@@ -6574,9 +6574,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MPIRankTable::MPIRankTable(void)
-      : collective_radix(runtime->legion_collective_radix),
-        done_triggered(false)
+    MPIRankTable::MPIRankTable(int radix)
+      : collective_radix(radix), done_triggered(false)
     //--------------------------------------------------------------------------
     {
       if (runtime->total_address_spaces > 1)
@@ -16632,7 +16631,8 @@ namespace Legion {
         check_privileges(config.check_privileges),
         dump_free_ranges(config.dump_free_ranges),
         legion_collective_radix(config.legion_collective_radix),
-        mpi_rank_table((mpi_rank >= 0) ? new MPIRankTable() : NULL),
+        mpi_rank_table((mpi_rank >= 0) ? 
+            new MPIRankTable(config.legion_collective_radix) : NULL),
         prepared_for_shutdown(false), total_outstanding_tasks(0), 
         outstanding_top_level_tasks(initialize_outstanding_top_level_tasks(
               address_space, total_address_spaces, legion_collective_radix)),
@@ -16791,63 +16791,6 @@ namespace Legion {
       for (unsigned idx = 0; idx < outstanding_counts.size(); idx++)
         outstanding_counts[idx].store(0);
 #endif
-    }
-
-    //--------------------------------------------------------------------------
-    Runtime::Runtime(const Runtime &rhs)
-      : external(NULL), mapper_runtime(NULL), machine(rhs.machine), 
-        runtime_system_memory(Memory::NO_MEMORY), address_space(0), 
-        total_address_spaces(0), runtime_stride(0), profiler(NULL),forest(NULL),
-        num_utility_procs(rhs.num_utility_procs), input_args(rhs.input_args),
-        initial_task_window_size(rhs.initial_task_window_size),
-        initial_task_window_hysteresis(rhs.initial_task_window_hysteresis),
-        initial_tasks_to_schedule(rhs.initial_tasks_to_schedule),
-        initial_meta_task_vector_width(rhs.initial_meta_task_vector_width),
-        eager_alloc_percentage(rhs.eager_alloc_percentage),
-        max_message_size(rhs.max_message_size),
-        gc_epoch_size(rhs.gc_epoch_size), 
-        max_control_replication_contexts(rhs.max_control_replication_contexts),
-        max_local_fields(rhs.max_local_fields),
-        max_replay_parallelism(rhs.max_replay_parallelism),
-        safe_control_replication(rhs.safe_control_replication),
-        program_order_execution(rhs.program_order_execution),
-        dump_physical_traces(rhs.dump_physical_traces),
-        no_tracing(rhs.no_tracing),
-        no_physical_tracing(rhs.no_physical_tracing),
-        no_trace_optimization(rhs.no_trace_optimization),
-        no_fence_elision(rhs.no_fence_elision),
-        no_transitive_reduction(rhs.no_transitive_reduction),
-        replay_on_cpus(rhs.replay_on_cpus),
-        verify_partitions(rhs.verify_partitions),
-        runtime_warnings(rhs.runtime_warnings),
-        warnings_backtrace(rhs.warnings_backtrace),
-        report_leaks(rhs.report_leaks),
-        record_registration(rhs.record_registration),
-        stealing_disabled(rhs.stealing_disabled),
-        resilient_mode(rhs.resilient_mode),
-        unsafe_launch(rhs.unsafe_launch),
-        unsafe_mapper(rhs.unsafe_mapper),
-        disable_independence_tests(rhs.disable_independence_tests),
-        legion_spy_enabled(rhs.legion_spy_enabled),
-        supply_default_mapper(rhs.supply_default_mapper),
-        enable_test_mapper(rhs.enable_test_mapper),
-        legion_ldb_enabled(rhs.legion_ldb_enabled),
-        replay_file(rhs.replay_file),
-#ifdef DEBUG_LEGION
-        logging_region_tree_state(rhs.logging_region_tree_state),
-        verbose_logging(rhs.verbose_logging),
-        logical_logging_only(rhs.logical_logging_only),
-        physical_logging_only(rhs.physical_logging_only),
-#endif
-        check_privileges(rhs.check_privileges),
-        dump_free_ranges(rhs.dump_free_ranges),
-        legion_collective_radix(rhs.legion_collective_radix),
-        mpi_rank_table(NULL), local_procs(rhs.local_procs), 
-        local_utils(rhs.local_utils), proc_spaces(rhs.proc_spaces)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
@@ -17034,15 +16977,6 @@ namespace Legion {
       if (logging_region_tree_state)
 	delete tree_state_logger;
 #endif
-    }
-
-    //--------------------------------------------------------------------------
-    Runtime& Runtime::operator=(const Runtime &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -30924,6 +30858,10 @@ namespace Legion {
               it->register_task(LG_APP_PROC_TASK_ID, app_proc_task,
                 no_requests)));
 #endif
+        // Register profiling return meta-task on all processor kinds
+        registered_events.push_back(RtEvent(
+            it->register_task(LG_LEGION_PROFILING_ID, rt_profiling_task,
+              no_requests)));
       }
       for (std::set<Processor>::const_iterator it =
             local_util_procs.begin(); it != local_util_procs.end(); it++)

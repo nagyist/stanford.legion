@@ -1165,7 +1165,7 @@ namespace Legion {
 
     class MPIRankTable {
     public:
-      MPIRankTable(void);
+      MPIRankTable(int radix);
       MPIRankTable(const MPIRankTable &rhs) = delete;
       ~MPIRankTable(void);
     public:
@@ -2601,10 +2601,10 @@ namespace Legion {
               const std::set<AddressSpaceID> &address_spaces,
               const std::map<Processor,AddressSpaceID> &proc_spaces,
               bool supply_default_mapper);
-      Runtime(const Runtime &rhs);
+      Runtime(const Runtime &rhs) = delete;
       ~Runtime(void);
     public:
-      Runtime& operator=(const Runtime &rhs);
+      Runtime& operator=(const Runtime &rhs) = delete;
     public:
       // The Runtime wrapper for this class
       Legion::Runtime *const external;
