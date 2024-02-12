@@ -6574,18 +6574,19 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MPIRankTable::MPIRankTable(int radix)
+    MPIRankTable::MPIRankTable(int radix, AddressSpaceID address_space,
+                               size_t total_address_spaces)
       : collective_radix(radix), done_triggered(false)
     //--------------------------------------------------------------------------
     {
-      if (runtime->total_address_spaces > 1)
+      if (total_address_spaces > 1)
       {
-        configure_collective_settings(runtime->total_address_spaces,
-            runtime->address_space, collective_radix, collective_log_radix,
+        configure_collective_settings(total_address_spaces,
+            address_space, collective_radix, collective_log_radix,
             collective_stages, collective_participating_spaces, 
             collective_last_radix);
         participating = 
-          (int(runtime->address_space) < collective_participating_spaces);
+          (int(address_space) < collective_participating_spaces);
         // We already have our contributions for each stage so
         // we can set the inditial participants to 1
         if (participating)
@@ -6605,7 +6606,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(Runtime::mpi_rank >= 0);
 #endif
-      forward_mapping[Runtime::mpi_rank] = runtime->address_space;
+      forward_mapping[Runtime::mpi_rank] = address_space;
     }
     
     //--------------------------------------------------------------------------
@@ -16631,8 +16632,8 @@ namespace Legion {
         check_privileges(config.check_privileges),
         dump_free_ranges(config.dump_free_ranges),
         legion_collective_radix(config.legion_collective_radix),
-        mpi_rank_table((mpi_rank >= 0) ? 
-            new MPIRankTable(config.legion_collective_radix) : NULL),
+        mpi_rank_table((mpi_rank >= 0) ? new MPIRankTable(
+          legion_collective_radix, address_space, total_address_spaces) : NULL),
         prepared_for_shutdown(false), total_outstanding_tasks(0), 
         outstanding_top_level_tasks(initialize_outstanding_top_level_tasks(
               address_space, total_address_spaces, legion_collective_radix)),

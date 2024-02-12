@@ -1165,7 +1165,8 @@ namespace Legion {
 
     class MPIRankTable {
     public:
-      MPIRankTable(int radix);
+      MPIRankTable(int radix, AddressSpaceID address_space,
+                   size_t total_address_spaces);
       MPIRankTable(const MPIRankTable &rhs) = delete;
       ~MPIRankTable(void);
     public:
