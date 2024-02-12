@@ -628,27 +628,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::ResourceTracker(const ResourceTracker &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     ResourceTracker::~ResourceTracker(void)
     //--------------------------------------------------------------------------
     {
     }
-
-    //--------------------------------------------------------------------------
-    ResourceTracker& ResourceTracker::operator=(const ResourceTracker&rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    } 
 
     //--------------------------------------------------------------------------
     void ResourceTracker::return_resources(ResourceTracker *target, 
@@ -1167,8 +1150,8 @@ namespace Legion {
       Operation::op_names[Operation::LAST_OP_KIND] = OPERATION_NAMES;
 
     //--------------------------------------------------------------------------
-    Operation::Operation(Runtime *rt)
-      : runtime(rt), gen(0), unique_op_id(0), context_index(0), 
+    Operation::Operation(void)
+      : gen(0), unique_op_id(0), context_index(0), 
         outstanding_mapping_references(0), hardened(false),
         trigger_commit_invoked(false), early_commit_request(false),
         track_parent(false), tracing(false), trace(NULL), trace_local_id(0),
@@ -1293,8 +1276,7 @@ namespace Legion {
       {
         const RegionRequirement &req = get_requirement(i);
 
-        ProjectionInfo projection_info(runtime,
-                                       &req,
+        ProjectionInfo projection_info(&req,
                                        launch_space,
                                        func,
                                        shard_space);
@@ -2105,7 +2087,7 @@ namespace Legion {
           {
             CommitDependenceTracker *tracker = commit_tracker;
             commit_tracker = NULL;
-            need_trigger = tracker->issue_commit_trigger(this, runtime);
+            need_trigger = tracker->issue_commit_trigger(this);
             delete tracker;
           }
           else
@@ -2422,7 +2404,7 @@ namespace Legion {
       MemoizableOp *memo = get_memoizable();
       // Skip all the triggers for things that are replaying
       if ((memo == NULL) || !memo->is_replaying())
-        tracker->issue_stage_triggers(this, runtime, must_epoch);
+        tracker->issue_stage_triggers(this, must_epoch);
       delete tracker;
     }
 
@@ -2635,7 +2617,7 @@ namespace Legion {
             {
               CommitDependenceTracker *tracker = commit_tracker;
               commit_tracker = NULL;
-              need_trigger = tracker->issue_commit_trigger(this,runtime);
+              need_trigger = tracker->issue_commit_trigger(this);
               delete tracker;
             }
             else
@@ -2898,7 +2880,7 @@ namespace Legion {
         static_cast<RegionTreeNode*>(runtime->forest->get_node(req->region));
       FieldMask user_mask =
         child_node->column_source->get_field_mask(req->privilege_fields);
-      TreeStateLogger::capture_state(runtime, req, idx,
+      TreeStateLogger::capture_state(req, idx,
                                      get_logging_name(), unique_op_id,
                                      child_node, ctx,
                                      before/*before*/, false/*premap*/,
@@ -2909,7 +2891,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void Operation::MappingDependenceTracker::issue_stage_triggers(
-                      Operation *op, Runtime *runtime, MustEpochOp *must_epoch)
+                      Operation *op, MustEpochOp *must_epoch)
     //--------------------------------------------------------------------------
     {
       bool trigger_now = false;
@@ -2931,8 +2913,7 @@ namespace Legion {
     }
     
     //--------------------------------------------------------------------------
-    bool Operation::CommitDependenceTracker::issue_commit_trigger(Operation *op,
-                                                               Runtime *runtime)
+    bool Operation::CommitDependenceTracker::issue_commit_trigger(Operation *op)
     //--------------------------------------------------------------------------
     {
       if (!commit_dependences.empty())
@@ -3003,7 +2984,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool CollectiveViewCreatorBase::RendezvousResult::finalize_rendezvous(
        CollectiveMapping *mapping, const FieldMaskSet<CollectiveResult> &views,
-       const std::map<DistributedID,size_t> &counts, Runtime *runtime,
+       const std::map<DistributedID,size_t> &counts,
        bool first, size_t local_analyses)
     //--------------------------------------------------------------------------
     {
@@ -3274,7 +3255,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void CollectiveViewCreatorBase::finalize_collective_mapping(
-        Runtime *runtime, CollectiveMapping *mapping, AddressSpaceID owner,
+        CollectiveMapping *mapping, AddressSpaceID owner,
         std::vector<std::pair<AddressSpaceID,RendezvousResult*> > &results,
         const std::map<DistributedID,size_t> &counts,
         const FieldMaskSet<CollectiveResult> &views)
@@ -3373,7 +3354,7 @@ namespace Legion {
         {
           bool first = true;
           if (result_it->second->finalize_rendezvous(mapping, views,
-                            counts, runtime, first, local_analyses))
+                            counts, first, local_analyses))
             delete result_it->second;
           first = false;
           if (++result_it == results.end())
@@ -3385,7 +3366,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     /*static*/
         void CollectiveViewCreatorBase::handle_finalize_collective_mapping(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3434,7 +3415,7 @@ namespace Legion {
         derez.deserialize(mask);
         views.insert(view, mask);
       }
-      finalize_collective_mapping(runtime, mapping, owner,results,counts,views);
+      finalize_collective_mapping(mapping, owner,results,counts,views);
       for (FieldMaskSet<CollectiveResult>::const_iterator it =
             views.begin(); it != views.end(); it++)
         if (it->first->remove_reference())
@@ -3811,7 +3792,7 @@ namespace Legion {
             to_perform.begin(); pit != to_perform.end(); pit++)
       {
         IndexSpaceNode *expr =
-          this->runtime->forest->get_node(pit->first.get_index_space());
+          runtime->forest->get_node(pit->first.get_index_space());
         std::vector<RtEvent> preconditions;
         LegionList<FieldSet<std::pair<AddressSpaceID,EqSetTracker*> > >
           fields;
@@ -3829,8 +3810,7 @@ namespace Legion {
         // If you change this heuristic make sure you update it in 
         // SingleTask::perform_replicate_collective_vesioning too
         const AddressSpaceID region_owner_space =
-            IndexSpaceNode::get_owner_space(pit->first.get_index_space(), 
-                                            this->runtime);
+            IndexSpaceNode::get_owner_space(pit->first.get_index_space());
         for (LegionList<FieldSet<std::pair<AddressSpaceID,EqSetTracker*> > >::
               const_iterator fit = fields.begin(); fit != fields.end(); fit++)
         {
@@ -3850,7 +3830,7 @@ namespace Legion {
                 target_spaces.end(), region_owner_space))
           {
             const CollectiveMapping mapping(target_spaces,
-                this->runtime->legion_collective_radix);
+                runtime->legion_collective_radix);
             const AddressSpaceID creation_origin =
               mapping.find_nearest(region_owner_space);
             precondition = context->compute_equivalence_sets(
@@ -3931,7 +3911,7 @@ namespace Legion {
           first_local, target_views, collective_arrivals);
       // Now perform the rendezvous for this result
       rendezvous_collective_mapping(index, analysis, region, result,
-          this->runtime->address_space, result->instances);
+          runtime->address_space, result->instances);
       const RtEvent ready = result->ready;
       if (result->remove_reference())
         delete result;
@@ -4066,7 +4046,6 @@ namespace Legion {
       const RegionTreeID tid = rendezvous.begin()->first.get_tree_id();
       InnerContext *physical_ctx = 
         this->find_physical_context(key.region_index);
-      Runtime *runtime = this->runtime;
       for (std::map<LogicalRegion,CollectiveRendezvous>::iterator rit =
             rendezvous.begin(); rit != rendezvous.end(); rit++)
       {
@@ -4134,7 +4113,7 @@ namespace Legion {
           if (wait_on.exists() && !wait_on.has_triggered())
             wait_on.wait();
         }
-        finalize_collective_mapping(runtime, mapping, owner,
+        finalize_collective_mapping(mapping, owner,
             rit->second.results, rit->second.counts, results);
         if (mapping->remove_reference())
           delete mapping;
@@ -4341,8 +4320,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MemoizableOp::MemoizableOp(Runtime *rt)
-      : Operation(rt)
+    MemoizableOp::MemoizableOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
     }
@@ -4411,7 +4390,7 @@ namespace Legion {
       {
         DeferRecordCompleteReplay args(this, precondition, trace_info, 
             this->get_unique_op_id());
-        this->runtime->issue_runtime_meta_task(args,
+        runtime->issue_runtime_meta_task(args,
             LG_LATENCY_WORK_PRIORITY, ready);
         return args.done;
       }
@@ -4454,8 +4433,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PredicatedOp::PredicatedOp(Runtime *rt)
-      : MemoizableOp(rt)
+    PredicatedOp::PredicatedOp(void)
+      : MemoizableOp()
     //--------------------------------------------------------------------------
     {
     }
@@ -4569,8 +4548,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalMapping::unpack_external_mapping(Deserializer &derez,
-                                                  Runtime *runtime)
+    void ExternalMapping::unpack_external_mapping(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -4602,34 +4580,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MapOp::MapOp(Runtime *rt)
-      : ExternalMapping(), Operation(rt)
+    MapOp::MapOp(void)
+      : ExternalMapping(), Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    MapOp::MapOp(const MapOp &rhs)
-      : ExternalMapping(), Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     MapOp::~MapOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    MapOp& MapOp::operator=(const MapOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -4653,7 +4613,7 @@ namespace Legion {
       region = PhysicalRegion(new PhysicalRegionImpl(requirement,
             mapped_event, ready_event, term_event, true/*mapped*/, ctx,
             map_id, tag, false/*leaf*/, false/*virtual mapped*/,
-            true/*collective for replication*/, runtime));
+            true/*collective for replication*/));
       termination_event = term_event;
       grants = launcher.grants;
       // Register ourselves with all the grants
@@ -5711,8 +5671,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalCopy::unpack_external_copy(Deserializer &derez,
-                                            Runtime *runtime)
+    void ExternalCopy::unpack_external_copy(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -5793,35 +5752,17 @@ namespace Legion {
       {SRC_REQ, DST_REQ, GATHER_REQ, SCATTER_REQ};
 
     //--------------------------------------------------------------------------
-    CopyOp::CopyOp(Runtime *rt)
-      : ExternalCopy(), PredicatedOp(rt)
+    CopyOp::CopyOp(void)
+      : ExternalCopy(), PredicatedOp()
     //--------------------------------------------------------------------------
     {
       this->is_index_space = false;
     }
 
     //--------------------------------------------------------------------------
-    CopyOp::CopyOp(const CopyOp &rhs)
-      : ExternalCopy(), PredicatedOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     CopyOp::~CopyOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    CopyOp& CopyOp::operator=(const CopyOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     std::vector<RegionRequirement> &CopyOp::get_reqs_by_type(ReqType type)
@@ -8304,35 +8245,17 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    IndexCopyOp::IndexCopyOp(Runtime *rt)
-      : CopyOp(rt)
+    IndexCopyOp::IndexCopyOp(void)
+      : CopyOp()
     //--------------------------------------------------------------------------
     {
       this->is_index_space = true;
     }
 
     //--------------------------------------------------------------------------
-    IndexCopyOp::IndexCopyOp(const IndexCopyOp &rhs)
-      : CopyOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     IndexCopyOp::~IndexCopyOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    IndexCopyOp& IndexCopyOp::operator=(const IndexCopyOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -8908,7 +8831,7 @@ namespace Legion {
         ProjectionFunction *function = 
           runtime->find_projection_function(src_requirements[idx].projection);
         function->project_points(this, idx, src_requirements[idx],
-                                 runtime, index_domain, projection_points);
+                                 index_domain, projection_points);
       }
       unsigned offset = src_requirements.size();
       for (unsigned idx = 0; idx < dst_requirements.size(); idx++)
@@ -8918,7 +8841,7 @@ namespace Legion {
         ProjectionFunction *function = 
           runtime->find_projection_function(dst_requirements[idx].projection);
         function->project_points(this, offset + idx, 
-                                 dst_requirements[idx], runtime, 
+                                 dst_requirements[idx],
                                  index_domain, projection_points);
       }
       offset += dst_requirements.size();
@@ -8933,7 +8856,7 @@ namespace Legion {
             runtime->find_projection_function(
                 src_indirect_requirements[idx].projection);
           function->project_points(this, offset + idx,
-                                   src_indirect_requirements[idx], runtime,
+                                   src_indirect_requirements[idx],
                                    index_domain, projection_points);
         }
         offset += src_indirect_requirements.size();
@@ -8949,7 +8872,7 @@ namespace Legion {
             runtime->find_projection_function(
                 dst_indirect_requirements[idx].projection);
           function->project_points(this, offset + idx,
-                                   dst_indirect_requirements[idx], runtime,
+                                   dst_indirect_requirements[idx],
                                    index_domain, projection_points);
         }
       }
@@ -9430,35 +9353,17 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PointCopyOp::PointCopyOp(Runtime *rt)
-      : CopyOp(rt)
+    PointCopyOp::PointCopyOp(void)
+      : CopyOp()
     //--------------------------------------------------------------------------
     {
       this->is_index_space = true;
     }
 
     //--------------------------------------------------------------------------
-    PointCopyOp::PointCopyOp(const PointCopyOp &rhs)
-      : CopyOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     PointCopyOp::~PointCopyOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointCopyOp& PointCopyOp::operator=(const PointCopyOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -9816,34 +9721,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    FenceOp::FenceOp(Runtime *rt)
-      : MemoizableOp(rt)
+    FenceOp::FenceOp(void)
+      : MemoizableOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    FenceOp::FenceOp(const FenceOp &rhs)
-      : MemoizableOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     FenceOp::~FenceOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    FenceOp& FenceOp::operator=(const FenceOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -9854,7 +9741,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       fence_kind = kind;
       if (need_future)
-        result = Future(new FutureImpl(parent_ctx, runtime, true/*register*/,
+        result = Future(new FutureImpl(parent_ctx, true/*register*/,
               runtime->get_available_distributed_id(),
               get_provenance(), this));
       if (runtime->legion_spy_enabled)
@@ -10038,34 +9925,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    FrameOp::FrameOp(Runtime *rt)
-      : FenceOp(rt)
+    FrameOp::FrameOp(void)
+      : FenceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    FrameOp::FrameOp(const FrameOp &rhs)
-      : FenceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     FrameOp::~FrameOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    FrameOp& FrameOp::operator=(const FrameOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -10139,34 +10008,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    CreationOp::CreationOp(Runtime *rt)
-      : Operation(rt)
+    CreationOp::CreationOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    CreationOp::CreationOp(const CreationOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     CreationOp::~CreationOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    CreationOp& CreationOp::operator=(const CreationOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -10460,34 +10311,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DeletionOp::DeletionOp(Runtime *rt)
-      : Operation(rt)
+    DeletionOp::DeletionOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    DeletionOp::DeletionOp(const DeletionOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     DeletionOp::~DeletionOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    DeletionOp& DeletionOp::operator=(const DeletionOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -10985,8 +10818,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    InternalOp::InternalOp(Runtime *rt)
-      : Operation(rt)
+    InternalOp::InternalOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
     }
@@ -11094,8 +10927,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalClose::unpack_external_close(Deserializer &derez,
-                                              Runtime *runtime)
+    void ExternalClose::unpack_external_close(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       unpack_region_requirement(requirement, derez);
@@ -11109,19 +10941,10 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    CloseOp::CloseOp(Runtime *rt)
-      : InternalOp(rt)
+    CloseOp::CloseOp(void)
+      : InternalOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    CloseOp::CloseOp(const CloseOp &rhs)
-      : InternalOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
@@ -11129,15 +10952,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
     }
-
-    //--------------------------------------------------------------------------
-    CloseOp& CloseOp::operator=(const CloseOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    } 
 
     //--------------------------------------------------------------------------
     UniqueID CloseOp::get_unique_id(void) const
@@ -11301,34 +11115,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MergeCloseOp::MergeCloseOp(Runtime *runtime)
-      : CloseOp(runtime)
+    MergeCloseOp::MergeCloseOp(void)
+      : CloseOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    MergeCloseOp::MergeCloseOp(const MergeCloseOp &rhs)
-      : CloseOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     MergeCloseOp::~MergeCloseOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    MergeCloseOp& MergeCloseOp::operator=(const MergeCloseOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -11422,34 +11218,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PostCloseOp::PostCloseOp(Runtime *runtime)
-      : CloseOp(runtime)
+    PostCloseOp::PostCloseOp(void)
+      : CloseOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PostCloseOp::PostCloseOp(const PostCloseOp &rhs)
-      : CloseOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     PostCloseOp::~PostCloseOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PostCloseOp& PostCloseOp::operator=(const PostCloseOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -11773,34 +11551,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    VirtualCloseOp::VirtualCloseOp(Runtime *rt)
-      : CloseOp(rt)
+    VirtualCloseOp::VirtualCloseOp(void)
+      : CloseOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    VirtualCloseOp::VirtualCloseOp(const VirtualCloseOp &rhs) 
-      : CloseOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     VirtualCloseOp::~VirtualCloseOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    VirtualCloseOp& VirtualCloseOp::operator=(const VirtualCloseOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -11890,7 +11650,7 @@ namespace Legion {
       source_version_info.swap(sources);
       IndexSpaceExpression *expr = 
         runtime->forest->get_node(requirement.region.get_index_space()); 
-      CloneAnalysis *analysis = new CloneAnalysis(runtime, expr, 
+      CloneAnalysis *analysis = new CloneAnalysis(expr, 
           parent_ctx->owner_task, parent_idx, std::move(sources));
       analysis->add_reference();
       
@@ -11923,34 +11683,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RefinementOp::RefinementOp(Runtime *runtime)
-      : InternalOp(runtime)
+    RefinementOp::RefinementOp(void)
+      : InternalOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RefinementOp::RefinementOp(const RefinementOp &rhs)
-      : InternalOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RefinementOp::~RefinementOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RefinementOp& RefinementOp::operator=(const RefinementOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -12131,8 +11873,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ResetOp::ResetOp(Runtime *runtime)
-      : Operation(runtime)
+    ResetOp::ResetOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
     }
@@ -12297,8 +12039,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalAcquire::unpack_external_acquire(Deserializer &derez,
-                                                  Runtime *runtime)
+    void ExternalAcquire::unpack_external_acquire(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -12338,34 +12079,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    AcquireOp::AcquireOp(Runtime *rt)
-      : ExternalAcquire(), PredicatedOp(rt)
+    AcquireOp::AcquireOp(void)
+      : ExternalAcquire(), PredicatedOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    AcquireOp::AcquireOp(const AcquireOp &rhs)
-      : ExternalAcquire(), PredicatedOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     AcquireOp::~AcquireOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    AcquireOp& AcquireOp::operator=(const AcquireOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -13113,8 +12836,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalRelease::unpack_external_release(Deserializer &derez,
-                                                  Runtime *runtime)
+    void ExternalRelease::unpack_external_release(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -13154,34 +12876,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReleaseOp::ReleaseOp(Runtime *rt)
-      : ExternalRelease(), PredicatedOp(rt)
+    ReleaseOp::ReleaseOp(void)
+      : ExternalRelease(), PredicatedOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReleaseOp::ReleaseOp(const ReleaseOp &rhs)
-      : ExternalRelease(), PredicatedOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReleaseOp::~ReleaseOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReleaseOp& ReleaseOp::operator=(const ReleaseOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -13933,19 +13637,10 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DynamicCollectiveOp::DynamicCollectiveOp(Runtime *rt)
-      : MemoizableOp(rt)
+    DynamicCollectiveOp::DynamicCollectiveOp(void)
+      : MemoizableOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    DynamicCollectiveOp::DynamicCollectiveOp(const DynamicCollectiveOp &rhs)
-      : MemoizableOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
@@ -13955,22 +13650,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    DynamicCollectiveOp& DynamicCollectiveOp::operator=(
-                                                const DynamicCollectiveOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    }
-
-    //--------------------------------------------------------------------------
     Future DynamicCollectiveOp::initialize(InnerContext *ctx, 
                             const DynamicCollective &dc, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-      future = Future(new FutureImpl(parent_ctx, runtime, true/*register*/,
+      future = Future(new FutureImpl(parent_ctx, true/*register*/,
             runtime->get_available_distributed_id(),
             get_provenance(), this));
       collective = dc;
@@ -14083,34 +13768,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    FuturePredOp::FuturePredOp(Runtime *rt)
-      : Operation(rt)
+    FuturePredOp::FuturePredOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    FuturePredOp::FuturePredOp(const FuturePredOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never happen
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     FuturePredOp::~FuturePredOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    FuturePredOp& FuturePredOp::operator=(const FuturePredOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -14178,7 +13845,7 @@ namespace Legion {
 #endif
       initialize_operation(ctx, provenance);
       predicate = p;
-      future = Future(new FutureImpl(parent_ctx, runtime, true/*register*/,
+      future = Future(new FutureImpl(parent_ctx, true/*register*/,
                 runtime->get_available_distributed_id(),
                 get_provenance(), this));
       to_predicate = false;
@@ -14266,34 +13933,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    NotPredOp::NotPredOp(Runtime *rt)
-      : Operation(rt)
+    NotPredOp::NotPredOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    NotPredOp::NotPredOp(const NotPredOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never happen
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     NotPredOp::~NotPredOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    NotPredOp& NotPredOp::operator=(const NotPredOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -14388,34 +14037,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    AndPredOp::AndPredOp(Runtime *rt)
-      : Operation(rt)
+    AndPredOp::AndPredOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    AndPredOp::AndPredOp(const AndPredOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never happen
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     AndPredOp::~AndPredOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    AndPredOp& AndPredOp::operator=(const AndPredOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -14534,34 +14165,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    OrPredOp::OrPredOp(Runtime *rt)
-      : Operation(rt)
+    OrPredOp::OrPredOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    OrPredOp::OrPredOp(const OrPredOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never happen
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     OrPredOp::~OrPredOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    OrPredOp& OrPredOp::operator=(const OrPredOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -14680,34 +14293,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MustEpochOp::MustEpochOp(Runtime *rt)
-      : Operation(rt), MustEpoch()
+    MustEpochOp::MustEpochOp(void)
+      : Operation(), MustEpoch()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    MustEpochOp::MustEpochOp(const MustEpochOp &rhs)
-      : Operation(NULL), MustEpoch()
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     MustEpochOp::~MustEpochOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    MustEpochOp& MustEpochOp::operator=(const MustEpochOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -14799,7 +14394,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexSpaceNode *launch_node = runtime->forest->get_node(domain);
-      return FutureMap(new FutureMapImpl(ctx, this, launch_node, runtime,
+      return FutureMap(new FutureMapImpl(ctx, this, launch_node,
               runtime->get_available_distributed_id(), get_provenance()));
     }
 
@@ -15233,7 +14828,7 @@ namespace Legion {
         {
           MustEpochIndivArgs args(current, indiv_tasks[idx], owner);
           RtEvent wait = 
-            owner->runtime->issue_runtime_meta_task(args, 
+            runtime->issue_runtime_meta_task(args, 
                         LG_THROUGHPUT_DEFERRED_PRIORITY);
           if (wait.exists())
             wait_events.insert(wait);
@@ -15245,7 +14840,7 @@ namespace Legion {
         {
           MustEpochIndexArgs args(current, index_tasks[idx], owner);
           RtEvent wait = 
-            owner->runtime->issue_runtime_meta_task(args,
+            runtime->issue_runtime_meta_task(args,
                         LG_THROUGHPUT_DEFERRED_PRIORITY);
           if (wait.exists())
             wait_events.insert(wait);
@@ -15997,35 +15592,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PendingPartitionOp::PendingPartitionOp(Runtime *rt)
-      : Operation(rt), thunk(NULL)
+    PendingPartitionOp::PendingPartitionOp(void)
+      : Operation(), thunk(NULL)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PendingPartitionOp::PendingPartitionOp(const PendingPartitionOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     PendingPartitionOp::~PendingPartitionOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PendingPartitionOp& PendingPartitionOp::operator=(
-                                                  const PendingPartitionOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -16520,8 +16096,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalPartition::unpack_external_partition(Deserializer &derez,
-                                                      Runtime *runtime)
+    void ExternalPartition::unpack_external_partition(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -16540,36 +16115,17 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DependentPartitionOp::DependentPartitionOp(Runtime *rt)
-      : ExternalPartition(), Operation(rt), 
+    DependentPartitionOp::DependentPartitionOp(void)
+      : ExternalPartition(), Operation(), 
         thunk(NULL)
     //--------------------------------------------------------------------------
     {
     }
 
     //--------------------------------------------------------------------------
-    DependentPartitionOp::DependentPartitionOp(const DependentPartitionOp &rhs)
-      : ExternalPartition(), Operation(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     DependentPartitionOp::~DependentPartitionOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    DependentPartitionOp& DependentPartitionOp::operator=(
-                                                const DependentPartitionOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -17171,7 +16727,7 @@ namespace Legion {
         std::vector<ProjectionPoint*> projection_points(points.begin(),
                                                         points.end());
         function->project_points(this, 0/*idx*/, requirement,
-                                 runtime, index_domain, projection_points);
+                                 index_domain, projection_points);
         // No need to check the validity of the points, we know they are good
         if (runtime->legion_spy_enabled)
         {
@@ -18197,34 +17753,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PointDepPartOp::PointDepPartOp(Runtime *rt)
-      : DependentPartitionOp(rt), owner(NULL)
+    PointDepPartOp::PointDepPartOp(void)
+      : DependentPartitionOp(), owner(NULL)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointDepPartOp::PointDepPartOp(const PointDepPartOp &rhs)
-      : DependentPartitionOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     PointDepPartOp::~PointDepPartOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointDepPartOp& PointDepPartOp::operator=(const PointDepPartOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -18448,8 +17986,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalFill::unpack_external_fill(Deserializer &derez,
-                                            Runtime *runtime)
+    void ExternalFill::unpack_external_fill(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -18483,35 +18020,17 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    FillOp::FillOp(Runtime *rt)
-      : PredicatedOp(rt), ExternalFill()
+    FillOp::FillOp(void)
+      : PredicatedOp(), ExternalFill()
     //--------------------------------------------------------------------------
     {
       this->is_index_space = false;
     }
 
     //--------------------------------------------------------------------------
-    FillOp::FillOp(const FillOp &rhs)
-      : PredicatedOp(NULL), ExternalFill()
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     FillOp::~FillOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    FillOp& FillOp::operator=(const FillOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -19157,35 +18676,17 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    IndexFillOp::IndexFillOp(Runtime *rt)
-      : FillOp(rt)
+    IndexFillOp::IndexFillOp(void)
+      : FillOp()
     //--------------------------------------------------------------------------
     {
       this->is_index_space = true;
     }
 
     //--------------------------------------------------------------------------
-    IndexFillOp::IndexFillOp(const IndexFillOp &rhs)
-      : FillOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     IndexFillOp::~IndexFillOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    IndexFillOp& IndexFillOp::operator=(const IndexFillOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -19501,7 +19002,7 @@ namespace Legion {
       std::vector<ProjectionPoint*> projection_points(points.begin(),
                                                       points.end());
       function->project_points(this, 0/*idx*/, requirement,
-                               runtime, index_domain, projection_points);
+                               index_domain, projection_points);
       if (runtime->legion_spy_enabled)
       {
         for (std::vector<PointFillOp*>::const_iterator it = points.begin();
@@ -19710,35 +19211,17 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PointFillOp::PointFillOp(Runtime *rt)
-      : FillOp(rt)
+    PointFillOp::PointFillOp(void)
+      : FillOp()
     //--------------------------------------------------------------------------
     {
       this->is_index_space = true;
     }
 
     //--------------------------------------------------------------------------
-    PointFillOp::PointFillOp(const PointFillOp &rhs)
-      : FillOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     PointFillOp::~PointFillOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointFillOp& PointFillOp::operator=(const PointFillOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -19952,8 +19435,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DiscardOp::DiscardOp(Runtime *rt)
-      : Operation(rt)
+    DiscardOp::DiscardOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
     }
@@ -20266,34 +19749,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    AttachOp::AttachOp(Runtime *rt)
-      : Operation(rt)
+    AttachOp::AttachOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    AttachOp::AttachOp(const AttachOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // Should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     AttachOp::~AttachOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    AttachOp& AttachOp::operator=(const AttachOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // Should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -20427,7 +19892,7 @@ namespace Legion {
       region = PhysicalRegion(new PhysicalRegionImpl(requirement,
         mapped_event, get_completion_event(), ApUserEvent::NO_AP_USER_EVENT, 
         false/*mapped*/, ctx, 0/*map id*/, 0/*tag*/, false/*leaf*/, 
-        false/*virtual mapped*/, launcher.collective, runtime)); 
+        false/*virtual mapped*/, launcher.collective)); 
       // Restore privileges back to write-discard
       requirement.privilege = LEGION_WRITE_DISCARD;
       if (runtime->legion_spy_enabled)
@@ -20908,8 +20373,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    IndexAttachOp::IndexAttachOp(Runtime *rt)
-      : CollectiveViewCreator<Operation>(rt)
+    IndexAttachOp::IndexAttachOp(void)
+      : CollectiveViewCreator<Operation>()
     //--------------------------------------------------------------------------
     {
     }
@@ -21406,34 +20871,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PointAttachOp::PointAttachOp(Runtime *rt)
-      : AttachOp(rt)
+    PointAttachOp::PointAttachOp(void)
+      : AttachOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointAttachOp::PointAttachOp(const PointAttachOp &rhs)
-      : AttachOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     PointAttachOp::~PointAttachOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointAttachOp& PointAttachOp::operator=(const PointAttachOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -21600,7 +21047,7 @@ namespace Legion {
       region = PhysicalRegion(new PhysicalRegionImpl(requirement,
             mapped_event, get_completion_event(), ApUserEvent::NO_AP_USER_EVENT,
             false/*mapped*/, ctx, 0/*map id*/, 0/*tag*/, false/*leaf*/, 
-            false/*virtual mapped*/, false/*collective*/, runtime)); 
+            false/*virtual mapped*/, false/*collective*/)); 
       // Restore privileges back to write-discard
       requirement.privilege = LEGION_WRITE_DISCARD;
       if (runtime->legion_spy_enabled)
@@ -21706,34 +21153,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DetachOp::DetachOp(Runtime *rt)
-      : Operation(rt)
+    DetachOp::DetachOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    DetachOp::DetachOp(const DetachOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     DetachOp::~DetachOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    DetachOp& DetachOp::operator=(const DetachOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -21752,7 +21181,7 @@ namespace Legion {
       requirement.privilege = flush ? LEGION_READ_WRITE : LEGION_WRITE_DISCARD;
       requirement.prop = LEGION_EXCLUSIVE;
       // Create the future result that we will complete when we're done
-      result = Future(new FutureImpl(parent_ctx, runtime, true/*register*/,
+      result = Future(new FutureImpl(parent_ctx, true/*register*/,
                 runtime->get_available_distributed_id(),
                 get_provenance(), this));
       if (runtime->legion_spy_enabled)
@@ -22044,8 +21473,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    IndexDetachOp::IndexDetachOp(Runtime *rt)
-      : CollectiveViewCreator<Operation>(rt)
+    IndexDetachOp::IndexDetachOp(void)
+      : CollectiveViewCreator<Operation>()
     //--------------------------------------------------------------------------
     {
     }
@@ -22146,7 +21575,7 @@ namespace Legion {
         points.push_back(point);
       }
       // Create the future result that we will complete when we're done
-      result = Future(new FutureImpl(parent_ctx, runtime, true/*register*/,
+      result = Future(new FutureImpl(parent_ctx, true/*register*/,
                 runtime->get_available_distributed_id(),
                 get_provenance(), this));
       if (runtime->legion_spy_enabled)
@@ -22364,34 +21793,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PointDetachOp::PointDetachOp(Runtime *rt)
-      : DetachOp(rt)
+    PointDetachOp::PointDetachOp(void)
+      : DetachOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointDetachOp::PointDetachOp(const PointDetachOp &rhs)
-      : DetachOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     PointDetachOp::~PointDetachOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointDetachOp& PointDetachOp::operator=(const PointDetachOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -22539,34 +21950,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TimingOp::TimingOp(Runtime *rt)
-      : Operation(rt)
+    TimingOp::TimingOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TimingOp::TimingOp(const TimingOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     TimingOp::~TimingOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TimingOp& TimingOp::operator=(const TimingOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -22585,7 +21978,7 @@ namespace Legion {
           if (it->impl != NULL)
             preconditions.insert(*it);
       }
-      result = Future(new FutureImpl(parent_ctx, runtime, true/*register*/,
+      result = Future(new FutureImpl(parent_ctx, true/*register*/,
                 runtime->get_available_distributed_id(),
                 get_provenance(), this));
       if (runtime->legion_spy_enabled)
@@ -22707,34 +22100,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TunableOp::TunableOp(Runtime *rt)
-      : Operation(rt)
+    TunableOp::TunableOp(void)
+      : Operation()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TunableOp::TunableOp(const TunableOp &rhs)
-      : Operation(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     TunableOp::~TunableOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TunableOp& TunableOp::operator=(const TunableOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -22754,7 +22129,7 @@ namespace Legion {
         memcpy(arg, launcher.arg.get_ptr(), argsize);
       }
       return_type_size = launcher.return_type_size;
-      result = Future(new FutureImpl(parent_ctx, runtime, true/*register*/,
+      result = Future(new FutureImpl(parent_ctx, true/*register*/,
             runtime->get_available_distributed_id(), get_provenance(), this));
       if (runtime->legion_spy_enabled)
       {
@@ -22914,8 +22289,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    AllReduceOp::AllReduceOp(Runtime *rt)
-      : MemoizableOp(rt)
+    AllReduceOp::AllReduceOp(void)
+      : MemoizableOp()
     //--------------------------------------------------------------------------
     {
     }
@@ -22939,7 +22314,7 @@ namespace Legion {
       redop_id = redid;
       redop = runtime->get_reduction(redop_id);
       serdez_redop_fns = Runtime::get_serdez_redop_fns(redop_id);
-      result = Future(new FutureImpl(parent_ctx, runtime, true/*register*/,
+      result = Future(new FutureImpl(parent_ctx, true/*register*/,
               runtime->get_available_distributed_id(), get_provenance(), this));
       if (serdez_redop_fns == NULL)
         result.impl->set_future_result_size(redop->sizeof_rhs, 
@@ -23396,21 +22771,12 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteOp::RemoteOp(Runtime *rt, Operation *ptr, AddressSpaceID src)
-      : Operation(rt), remote_ptr(ptr), source(src), mapper(NULL),
+    RemoteOp::RemoteOp(Operation *ptr, AddressSpaceID src)
+      : Operation(), remote_ptr(ptr), source(src), mapper(NULL),
         profiling_reports(0)
     //--------------------------------------------------------------------------
     {
       set_provenance(NULL);
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteOp::RemoteOp(const RemoteOp &rhs)
-      : Operation(rhs), remote_ptr(NULL), source(0)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
@@ -23437,15 +22803,6 @@ namespace Legion {
       if ((provenance != NULL) && provenance->remove_reference())
         delete provenance;
     }
-
-    //--------------------------------------------------------------------------
-    RemoteOp& RemoteOp::operator=(const RemoteOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    } 
 
     //--------------------------------------------------------------------------
     void RemoteOp::defer_deletion(RtEvent precondition)
@@ -23477,11 +22834,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteOp::unpack_remote_base(Deserializer &derez, Runtime *runtime)
+    void RemoteOp::unpack_remote_base(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       derez.deserialize(unique_op_id);
-      parent_ctx = InnerContext::unpack_inner_context(derez, runtime);
+      parent_ctx = InnerContext::unpack_inner_context(derez);
       set_provenance(Provenance::deserialize(derez));
       derez.deserialize<bool>(tracing);
     }
@@ -23661,8 +23018,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ RemoteOp* RemoteOp::unpack_remote_operation(Deserializer &derez,
-                                                           Runtime *runtime)
+    /*static*/ RemoteOp* RemoteOp::unpack_remote_operation(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       Operation::OpKind kind;
@@ -23676,79 +23032,79 @@ namespace Legion {
       {
         case TASK_OP_KIND:
           {
-            result = new RemoteTaskOp(runtime, remote_ptr, source);
+            result = new RemoteTaskOp(remote_ptr, source);
             break;
           }
         case MAP_OP_KIND:
           {
-            result = new RemoteMapOp(runtime, remote_ptr, source);
+            result = new RemoteMapOp(remote_ptr, source);
             break;
           }
         case COPY_OP_KIND:
           {
-            result = new RemoteCopyOp(runtime, remote_ptr, source);
+            result = new RemoteCopyOp(remote_ptr, source);
             break;
           }
         case POST_CLOSE_OP_KIND:
           {
-            result = new RemoteCloseOp(runtime, remote_ptr, source);
+            result = new RemoteCloseOp(remote_ptr, source);
             break;
           }
         case ACQUIRE_OP_KIND:
           {
-            result = new RemoteAcquireOp(runtime, remote_ptr, source);
+            result = new RemoteAcquireOp(remote_ptr, source);
             break;
           }
         case RELEASE_OP_KIND:
           {
-            result = new RemoteReleaseOp(runtime, remote_ptr, source);
+            result = new RemoteReleaseOp(remote_ptr, source);
             break;
           }
         case DEPENDENT_PARTITION_OP_KIND:
           {
-            result = new RemotePartitionOp(runtime, remote_ptr, source);
+            result = new RemotePartitionOp(remote_ptr, source);
             break;
           }
         case FILL_OP_KIND:
           {
-            result = new RemoteFillOp(runtime, remote_ptr, source);
+            result = new RemoteFillOp(remote_ptr, source);
             break;
           }
         case DISCARD_OP_KIND:
           {
-            result = new RemoteDiscardOp(runtime, remote_ptr, source);
+            result = new RemoteDiscardOp(remote_ptr, source);
             break;
           }
         case ATTACH_OP_KIND:
           {
-            result = new RemoteAttachOp(runtime, remote_ptr, source);
+            result = new RemoteAttachOp(remote_ptr, source);
             break;
           }
         case DETACH_OP_KIND:
           {
-            result = new RemoteDetachOp(runtime, remote_ptr, source);
+            result = new RemoteDetachOp(remote_ptr, source);
             break;
           }
         case DELETION_OP_KIND:
           {
-            result = new RemoteDeletionOp(runtime, remote_ptr, source);
+            result = new RemoteDeletionOp(remote_ptr, source);
             break;
           }
         case TRACE_REPLAY_OP_KIND:
           {
-            result = new RemoteReplayOp(runtime, remote_ptr, source);
+            result = new RemoteReplayOp(remote_ptr, source);
             break;
           }
         case TRACE_SUMMARY_OP_KIND:
           {
-            result = new RemoteSummaryOp(runtime, remote_ptr, source);
+            result = new RemoteSummaryOp(remote_ptr, source);
             break;
           }
         default:
           assert(false);
       }
       // Do the rest of the unpack
-      result->unpack_remote_base(derez, runtime);
+      result->unpack_remote_base(derez);
       result->unpack(derez);
       return result;
     }
@@ -23819,34 +23175,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteMapOp::RemoteMapOp(Runtime *rt, Operation *ptr, AddressSpaceID src)
-      : ExternalMapping(), RemoteOp(rt, ptr, src)
+    RemoteMapOp::RemoteMapOp(Operation *ptr, AddressSpaceID src)
+      : ExternalMapping(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteMapOp::RemoteMapOp(const RemoteMapOp &rhs)
-      : ExternalMapping(), RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteMapOp::~RemoteMapOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteMapOp& RemoteMapOp::operator=(const RemoteMapOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -23953,7 +23291,7 @@ namespace Legion {
     void RemoteMapOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      unpack_external_mapping(derez, runtime);
+      unpack_external_mapping(derez);
       unpack_profiling_requests(derez);
     }
 
@@ -23962,34 +23300,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteCopyOp::RemoteCopyOp(Runtime *rt, Operation *ptr, AddressSpaceID src)
-      : ExternalCopy(), RemoteOp(rt, ptr, src)
+    RemoteCopyOp::RemoteCopyOp(Operation *ptr, AddressSpaceID src)
+      : ExternalCopy(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteCopyOp::RemoteCopyOp(const RemoteCopyOp &rhs)
-      : ExternalCopy(), RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteCopyOp::~RemoteCopyOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteCopyOp& RemoteCopyOp::operator=(const RemoteCopyOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -24129,7 +23449,7 @@ namespace Legion {
     void RemoteCopyOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      unpack_external_copy(derez, runtime);
+      unpack_external_copy(derez);
       unpack_profiling_requests(derez);
     }
 
@@ -24138,34 +23458,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteCloseOp::RemoteCloseOp(Runtime *rt, Operation *ptr,AddressSpaceID src)
-      : ExternalClose(), RemoteOp(rt, ptr, src)
+    RemoteCloseOp::RemoteCloseOp(Operation *ptr,AddressSpaceID src)
+      : ExternalClose(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteCloseOp::RemoteCloseOp(const RemoteCloseOp &rhs)
-      : ExternalClose(), RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteCloseOp::~RemoteCloseOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteCloseOp& RemoteCloseOp::operator=(const RemoteCloseOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -24272,7 +23574,7 @@ namespace Legion {
     void RemoteCloseOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      unpack_external_close(derez, runtime);
+      unpack_external_close(derez);
       unpack_profiling_requests(derez);
     }
 
@@ -24281,35 +23583,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteAcquireOp::RemoteAcquireOp(Runtime *rt, 
-                                     Operation *ptr, AddressSpaceID src)
-      : ExternalAcquire(), RemoteOp(rt, ptr, src)
+    RemoteAcquireOp::RemoteAcquireOp(Operation *ptr, AddressSpaceID src)
+      : ExternalAcquire(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteAcquireOp::RemoteAcquireOp(const RemoteAcquireOp &rhs)
-      : ExternalAcquire(), RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteAcquireOp::~RemoteAcquireOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteAcquireOp& RemoteAcquireOp::operator=(const RemoteAcquireOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -24388,7 +23671,7 @@ namespace Legion {
     void RemoteAcquireOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      unpack_external_acquire(derez, runtime);
+      unpack_external_acquire(derez);
       unpack_profiling_requests(derez);
     }
 
@@ -24397,35 +23680,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteReleaseOp::RemoteReleaseOp(Runtime *rt, 
-                                     Operation *ptr, AddressSpaceID src)
-      : ExternalRelease(), RemoteOp(rt, ptr, src)
+    RemoteReleaseOp::RemoteReleaseOp(Operation *ptr, AddressSpaceID src)
+      : ExternalRelease(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteReleaseOp::RemoteReleaseOp(const RemoteReleaseOp &rhs)
-      : ExternalRelease(), RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteReleaseOp::~RemoteReleaseOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteReleaseOp& RemoteReleaseOp::operator=(const RemoteReleaseOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -24532,7 +23796,7 @@ namespace Legion {
     void RemoteReleaseOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      unpack_external_release(derez, runtime);
+      unpack_external_release(derez);
       unpack_profiling_requests(derez);
     }
 
@@ -24541,34 +23805,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteFillOp::RemoteFillOp(Runtime *rt, Operation *ptr, AddressSpaceID src)
-      : ExternalFill(), RemoteOp(rt, ptr, src)
+    RemoteFillOp::RemoteFillOp(Operation *ptr, AddressSpaceID src)
+      : ExternalFill(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteFillOp::RemoteFillOp(const RemoteFillOp &rhs)
-      : ExternalFill(), RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteFillOp::~RemoteFillOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteFillOp& RemoteFillOp::operator=(const RemoteFillOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -24646,7 +23892,7 @@ namespace Legion {
     void RemoteFillOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      unpack_external_fill(derez, runtime);
+      unpack_external_fill(derez);
     }
 
     ///////////////////////////////////////////////////////////// 
@@ -24654,9 +23900,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteDiscardOp::RemoteDiscardOp(Runtime *rt, 
-                                     Operation *ptr, AddressSpaceID src)
-      : RemoteOp(rt, ptr, src)
+    RemoteDiscardOp::RemoteDiscardOp(Operation *ptr, AddressSpaceID src)
+      : RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
     }
@@ -24729,36 +23974,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemotePartitionOp::RemotePartitionOp(Runtime *rt, 
-                                     Operation *ptr, AddressSpaceID src)
-      : ExternalPartition(), RemoteOp(rt, ptr, src)
+    RemotePartitionOp::RemotePartitionOp(Operation *ptr, AddressSpaceID src)
+      : ExternalPartition(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemotePartitionOp::RemotePartitionOp(const RemotePartitionOp &rhs)
-      : ExternalPartition(), RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemotePartitionOp::~RemotePartitionOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemotePartitionOp& RemotePartitionOp::operator=(
-                                                   const RemotePartitionOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -24874,7 +24099,7 @@ namespace Legion {
     void RemotePartitionOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      unpack_external_partition(derez, runtime);
+      unpack_external_partition(derez);
       derez.deserialize(part_kind);
       unpack_profiling_requests(derez);
     }
@@ -24884,35 +24109,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteAttachOp::RemoteAttachOp(Runtime *rt, 
-                                   Operation *ptr, AddressSpaceID src)
-      : RemoteOp(rt, ptr, src)
+    RemoteAttachOp::RemoteAttachOp(Operation *ptr, AddressSpaceID src)
+      : RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteAttachOp::RemoteAttachOp(const RemoteAttachOp &rhs)
-      : RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteAttachOp::~RemoteAttachOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteAttachOp& RemoteAttachOp::operator=(const RemoteAttachOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -24977,35 +24183,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteDetachOp::RemoteDetachOp(Runtime *rt, 
-                                   Operation *ptr, AddressSpaceID src)
-      : RemoteOp(rt, ptr, src)
+    RemoteDetachOp::RemoteDetachOp(Operation *ptr, AddressSpaceID src)
+      : RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteDetachOp::RemoteDetachOp(const RemoteDetachOp &rhs)
-      : RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteDetachOp::~RemoteDetachOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteDetachOp& RemoteDetachOp::operator=(const RemoteDetachOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -25081,35 +24268,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteDeletionOp::RemoteDeletionOp(Runtime *rt, 
-                                       Operation *ptr, AddressSpaceID src)
-      : RemoteOp(rt, ptr, src)
+    RemoteDeletionOp::RemoteDeletionOp(Operation *ptr, AddressSpaceID src)
+      : RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteDeletionOp::RemoteDeletionOp(const RemoteDeletionOp &rhs)
-      : RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteDeletionOp::~RemoteDeletionOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteDeletionOp& RemoteDeletionOp::operator=(const RemoteDeletionOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -25174,35 +24342,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteReplayOp::RemoteReplayOp(Runtime *rt,
-                                   Operation *ptr, AddressSpaceID src)
-      : RemoteOp(rt, ptr, src)
+    RemoteReplayOp::RemoteReplayOp(Operation *ptr, AddressSpaceID src)
+      : RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteReplayOp::RemoteReplayOp(const RemoteReplayOp &rhs)
-      : RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteReplayOp::~RemoteReplayOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteReplayOp& RemoteReplayOp::operator=(const RemoteReplayOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -25267,35 +24416,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteSummaryOp::RemoteSummaryOp(Runtime *rt,
-                                     Operation *ptr, AddressSpaceID src)
-      : RemoteOp(rt, ptr, src)
+    RemoteSummaryOp::RemoteSummaryOp(Operation *ptr, AddressSpaceID src)
+      : RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteSummaryOp::RemoteSummaryOp(const RemoteSummaryOp &rhs)
-      : RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     RemoteSummaryOp::~RemoteSummaryOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteSummaryOp& RemoteSummaryOp::operator=(const RemoteSummaryOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------

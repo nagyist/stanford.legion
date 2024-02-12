@@ -38,7 +38,7 @@ namespace Legion {
       ExternalTask(void);
     public:
       void pack_external_task(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_task(Deserializer &derez, Runtime *runtime);
+      void unpack_external_task(Deserializer &derez);
     public:
       static void pack_output_requirement(
           const OutputRequirement &req, Serializer &rez);
@@ -131,7 +131,7 @@ namespace Legion {
       TaskOp *const proxy_this;
     };
     public:
-      TaskOp(Runtime *rt);
+      TaskOp(void);
       virtual ~TaskOp(void);
     public:
       virtual UniqueID get_unique_id(void) const;
@@ -307,8 +307,8 @@ namespace Legion {
       unsigned must_epoch_index;
     public:
       // Static methods
-      static void process_unpack_task(Runtime *rt, Deserializer &derez);
-      static void process_remote_replay(Runtime *rt, Deserializer &derez);
+      static void process_unpack_task(Deserializer &derez);
+      static void process_remote_replay(Deserializer &derez);
     public:
       static void log_requirement(UniqueID uid, unsigned idx,
                                  const RegionRequirement &req);
@@ -321,11 +321,11 @@ namespace Legion {
      */
     class RemoteTaskOp : public ExternalTask, public RemoteOp {
     public:
-      RemoteTaskOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteTaskOp(const RemoteTaskOp &rhs);
+      RemoteTaskOp(Operation *ptr, AddressSpaceID src);
+      RemoteTaskOp(const RemoteTaskOp &rhs) = delete;
       virtual ~RemoteTaskOp(void);
     public:
-      RemoteTaskOp& operator=(const RemoteTaskOp &rhs);
+      RemoteTaskOp& operator=(const RemoteTaskOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -399,7 +399,7 @@ namespace Legion {
         const bool needs_barrier;
       };
     public:
-      SingleTask(Runtime *rt);
+      SingleTask(void);
       virtual ~SingleTask(void);
     public:
       virtual void trigger_dependence_analysis(void) = 0;
@@ -641,7 +641,7 @@ namespace Legion {
         std::map<DomainPoint,DistributedID> handles;
       };
     public:
-      MultiTask(Runtime *rt);
+      MultiTask(void);
       virtual ~MultiTask(void);
     public:
       bool is_sliced(void) const;
@@ -771,11 +771,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = INDIVIDUAL_TASK_ALLOC;
     public:
-      IndividualTask(Runtime *rt);
-      IndividualTask(const IndividualTask &rhs);
+      IndividualTask(void);
+      IndividualTask(const IndividualTask &rhs) = delete;
       virtual ~IndividualTask(void);
     public:
-      IndividualTask& operator=(const IndividualTask &rhs);
+      IndividualTask& operator=(const IndividualTask &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -900,11 +900,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = POINT_TASK_ALLOC;
     public:
-      PointTask(Runtime *rt);
-      PointTask(const PointTask &rhs);
+      PointTask(void);
+      PointTask(const PointTask &rhs) = delete;
       virtual ~PointTask(void);
     public:
-      PointTask& operator=(const PointTask &rhs);
+      PointTask& operator=(const PointTask &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -1029,10 +1029,10 @@ namespace Legion {
      */
     class ShardTask : public SingleTask {
     public:
-      ShardTask(Runtime *rt, SingleTask *source, InnerContext *parent,
+      ShardTask(SingleTask *source, InnerContext *parent,
           ShardManager *manager, ShardID shard_id,
           Processor target, VariantID chosen);
-      ShardTask(Runtime *rt, InnerContext *parent_ctx, Deserializer &derez,
+      ShardTask(InnerContext *parent_ctx, Deserializer &derez,
           ShardManager *manager, ShardID shard_id, Processor target,
           VariantID chosen);
       ShardTask(const ShardTask &rhs) = delete;
@@ -1185,11 +1185,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = INDEX_TASK_ALLOC;
     public:
-      IndexTask(Runtime *rt);
-      IndexTask(const IndexTask &rhs);
+      IndexTask(void);
+      IndexTask(const IndexTask &rhs) = delete;
       virtual ~IndexTask(void);
     public:
-      IndexTask& operator=(const IndexTask &rhs);
+      IndexTask& operator=(const IndexTask &rhs) = delete;
     public:
       FutureMap initialize_task(InnerContext *ctx,
                                 const IndexTaskLauncher &launcher,
@@ -1382,11 +1382,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = SLICE_TASK_ALLOC;
     public:
-      SliceTask(Runtime *rt);
-      SliceTask(const SliceTask &rhs);
+      SliceTask(void);
+      SliceTask(const SliceTask &rhs) = delete;
       virtual ~SliceTask(void);
     public:
-      SliceTask& operator=(const SliceTask &rhs);
+      SliceTask& operator=(const SliceTask &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -1475,7 +1475,7 @@ namespace Legion {
       void pack_remote_complete(Serializer &rez, RtEvent applied_condition);
       void pack_remote_commit(Serializer &rez, RtEvent applied_condition);
     public:
-      static void handle_slice_return(Runtime *rt, Deserializer &derez);
+      static void handle_slice_return(Deserializer &derez);
     public: // Privilege tracker methods
       virtual void receive_resources(uint64_t return_index,
               std::map<LogicalRegion,unsigned> &created_regions,
@@ -1529,9 +1529,8 @@ namespace Legion {
                                   const LegionVector<
                                    std::pair<DistributedID,FieldMask> > &insts);
       static void handle_collective_rendezvous(Deserializer &derez,
-                                       Runtime *runtime, AddressSpaceID source);
-      static void handle_collective_versioning_rendezvous(Deserializer &derez,
-                                                          Runtime *runtime);
+                                               AddressSpaceID source);
+      static void handle_collective_versioning_rendezvous(Deserializer &derez);
       static void handle_verify_concurrent_execution(Deserializer &derez);
       static void handle_concurrent_allreduce_request(Deserializer &derez,
                                                       AddressSpaceID source);

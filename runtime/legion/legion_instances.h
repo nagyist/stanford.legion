@@ -319,10 +319,9 @@ namespace Legion {
       }; 
     public:
       struct BroadcastFunctor {
-        BroadcastFunctor(Runtime *rt, Serializer &r) : runtime(rt), rez(r) { }
+        BroadcastFunctor(Serializer &r) : rez(r) { }
         inline void apply(AddressSpaceID target)
           { runtime->send_manager_update(target, rez); }
-        Runtime *runtime;
         Serializer &rez;
       };
     public:
@@ -381,7 +380,7 @@ namespace Legion {
       bool notify_invalid(void);
     public:
       virtual void send_manager(AddressSpaceID target);
-      static void handle_manager_request(Deserializer &derez, Runtime *runtime);
+      static void handle_manager_request(Deserializer &derez);
     public:
       virtual void notify_local(void);
     public:
@@ -412,8 +411,7 @@ namespace Legion {
                                     size_t new_footprint,
                                     uintptr_t new_pointer = 0);
       void broadcast_manager_update(void);
-      static void handle_send_manager_update(Runtime *runtime,
-                                             AddressSpaceID source,
+      static void handle_send_manager_update(AddressSpaceID source,
                                              Deserializer &derez);
       void pack_fields(Serializer &rez, 
                        const std::vector<CopySrcDstField> &fields) const;
@@ -448,24 +446,21 @@ namespace Legion {
                                     Operation *op, unsigned index);
       void find_field_reservations(const FieldMask &mask,
                                    std::vector<Reservation> &results);
-      static void handle_padded_reservation_request(Runtime *runtime,
+      static void handle_padded_reservation_request(
                                   Deserializer &derez, AddressSpaceID source);
       void update_field_reservations(const FieldMask &mask,
                                   const std::vector<Reservation> &reservations);
-      static void handle_padded_reservation_response(Runtime *runtime,
-                                                     Deserializer &derez);
+      static void handle_padded_reservation_response(Deserializer &derez);
     protected:
       void pack_garbage_collection_state(Serializer &rez,
                                          AddressSpaceID target, bool need_lock);
       void initialize_remote_gc_state(GarbageCollectionState state);
     public:
-      static void handle_send_manager(Runtime *runtime, 
-                                      AddressSpaceID source,
+      static void handle_send_manager(AddressSpaceID source,
                                       Deserializer &derez); 
-      static void handle_defer_manager(const void *args, Runtime *runtime);
-      static void handle_defer_perform_deletion(const void *args,
-                                                Runtime *runtime);
-      static void create_remote_manager(Runtime *runtime, DistributedID did,
+      static void handle_defer_manager(const void *args);
+      static void handle_defer_perform_deletion(const void *args);
+      static void create_remote_manager(DistributedID did,
           Memory mem, PhysicalInstance inst,
           size_t inst_footprint, IndexSpaceExpression *inst_domain,
           const void *piece_list, size_t piece_list_size,
@@ -477,31 +472,31 @@ namespace Legion {
       static void process_top_view_request(PhysicalManager *manager,
           InnerContext *context, AddressSpaceID logical_owner,
           CollectiveMapping *mapping, std::atomic<DistributedID> *target,
-          AddressSpaceID source, RtUserEvent done_event, Runtime *runtime);
-      static void handle_top_view_request(Deserializer &derez, Runtime *runtime,
+          AddressSpaceID source, RtUserEvent done_event);
+      static void handle_top_view_request(Deserializer &derez,
                                           AddressSpaceID source);
       static void handle_top_view_response(Deserializer &derez);
-      static void handle_top_view_creation(const void *args, Runtime *runtime);
-      static void handle_acquire_request(Runtime *runtime,
+      static void handle_top_view_creation(const void *args);
+      static void handle_acquire_request(
           Deserializer &derez, AddressSpaceID source);
       static void handle_acquire_response(Deserializer &derez, 
           AddressSpaceID source);
-      static void handle_garbage_collection_request(Runtime *runtime,
+      static void handle_garbage_collection_request(
           Deserializer &derez, AddressSpaceID source);
       static void handle_garbage_collection_response(Deserializer &derez);
-      static void handle_garbage_collection_acquire(Runtime *runtime,
+      static void handle_garbage_collection_acquire(
           Deserializer &derez);
       static void handle_garbage_collection_failed(Deserializer &derez);
-      static void handle_garbage_collection_mismatch(Runtime *runtime,
+      static void handle_garbage_collection_mismatch(
           Deserializer &derez);
-      static void handle_garbage_collection_notify(Runtime *runtime,
+      static void handle_garbage_collection_notify(
           Deserializer &derez);
-      static void handle_garbage_collection_priority_update(Runtime *runtime,
+      static void handle_garbage_collection_priority_update(
           Deserializer &derez, AddressSpaceID source);
-      static void handle_garbage_collection_debug_request(Runtime *runtime,
+      static void handle_garbage_collection_debug_request(
           Deserializer &derez, AddressSpaceID source);
       static void handle_garbage_collection_debug_response(Deserializer &derez); 
-      static void handle_record_event(Runtime *runtime, Deserializer &derez);
+      static void handle_record_event(Deserializer &derez);
     public:
       MemoryManager *const memory_manager;
       // Unique identifier event that is common across nodes
@@ -603,7 +598,7 @@ namespace Legion {
     class VirtualManager : public InstanceManager,
                            public LegionHeapify<VirtualManager> {
     public:
-      VirtualManager(Runtime *runtime, DistributedID did, 
+      VirtualManager(DistributedID did, 
                      LayoutDescription *layout, CollectiveMapping *mapping);
       VirtualManager(const VirtualManager &rhs);
       virtual ~VirtualManager(void);
@@ -623,9 +618,9 @@ namespace Legion {
     class InstanceBuilder : public ProfilingResponseHandler {
     public:
       InstanceBuilder(const std::vector<LogicalRegion> &regs,
-                      const LayoutConstraintSet &cons, Runtime *rt,
+                      const LayoutConstraintSet &cons,
                       MemoryManager *memory = NULL, UniqueID cid = 0)
-        : regions(regs), constraints(cons), runtime(rt), memory_manager(memory),
+        : regions(regs), constraints(cons), memory_manager(memory),
           creator_id(cid), instance(PhysicalInstance::NO_INST), 
           field_space_node(NULL), instance_domain(NULL), tree_id(0),
           redop_id(0), reduction_op(NULL), realm_layout(NULL), piece_list(NULL),
@@ -633,7 +628,7 @@ namespace Legion {
       InstanceBuilder(const std::vector<LogicalRegion> &regs,
                       IndexSpaceExpression *expr, FieldSpaceNode *node,
                       RegionTreeID tree_id, const LayoutConstraintSet &cons, 
-                      Runtime *rt, MemoryManager *memory, UniqueID cid,
+                      MemoryManager *memory, UniqueID cid,
                       const void *piece_list, size_t piece_list_size); 
       virtual ~InstanceBuilder(void);
     public:
@@ -653,7 +648,6 @@ namespace Legion {
     protected:
       const std::vector<LogicalRegion> &regions;
       LayoutConstraintSet constraints;
-      Runtime *const runtime;
       MemoryManager *const memory_manager;
       const UniqueID creator_id;
     protected:

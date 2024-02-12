@@ -48,7 +48,7 @@ namespace Legion {
         YieldArgs(UniqueID uid) : LgTaskArgs<YieldArgs>(uid) { }
       };
     public:
-      TaskContext(Runtime *runtime, SingleTask *owner, int depth,
+      TaskContext(SingleTask *owner, int depth,
                   const std::vector<RegionRequirement> &reqs,
                   const std::vector<OutputRequirement> &output_reqs,
                   DistributedID did, bool perform_registration,
@@ -972,7 +972,7 @@ namespace Legion {
       };
       class AttachProjectionFunctor : public ProjectionFunctor {
       public:
-        AttachProjectionFunctor(Runtime *rt, ProjectionID pid,
+        AttachProjectionFunctor(ProjectionID pid,
                                 std::vector<IndexSpace> &&spaces);
         virtual ~AttachProjectionFunctor(void) { }
       public:
@@ -1034,7 +1034,7 @@ namespace Legion {
         const bool verify_every_call;
       };
     public:
-      InnerContext(Runtime *runtime, SingleTask *owner, int depth, 
+      InnerContext(SingleTask *owner, int depth, 
                    bool full_inner, const std::vector<RegionRequirement> &reqs,
                    const std::vector<OutputRequirement> &output_reqs,
                    const std::vector<unsigned> &parent_indexes,
@@ -1746,8 +1746,7 @@ namespace Legion {
       virtual VirtualCloseOp* get_virtual_close_op(void);
     public:
       virtual void pack_inner_context(Serializer &rez) const;
-      static InnerContext* unpack_inner_context(Deserializer &derez,
-                                                Runtime *runtime);
+      static InnerContext* unpack_inner_context(Deserializer &derez);
     public:
       bool nonexclusive_virtual_mapping(unsigned index);
       virtual InnerContext* find_parent_physical_context(unsigned index);
@@ -1855,13 +1854,11 @@ namespace Legion {
       virtual void set_current_priority(TaskPriority priority); 
     public:
       static void handle_compute_equivalence_sets_request(Deserializer &derez,
-                                     Runtime *runtime, AddressSpaceID source);
-      static void handle_compute_equivalence_sets_response(Deserializer &derez,
-                                                           Runtime *runtime);
-      static void handle_output_equivalence_set_request(Deserializer &derez,
-                                     Runtime *runtime);
+                                                        AddressSpaceID source);
+      static void handle_compute_equivalence_sets_response(Deserializer &derez);
+      static void handle_output_equivalence_set_request(Deserializer &derez);
       static void handle_output_equivalence_set_response(Deserializer &derez,
-                                     Runtime *runtime, AddressSpaceID source);
+                                                         AddressSpaceID source);
     public:
       static void handle_prepipeline_stage(const void *args);
       static void handle_dependence_stage(const void *args);
@@ -1911,15 +1908,12 @@ namespace Legion {
       RtEvent create_collective_view(DistributedID creator_did,
           DistributedID collective_did, CollectiveMapping *mapping,
           const std::vector<DistributedID> &individual_dids);
-      static void release_collective_view(Runtime *runtime, 
+      static void release_collective_view(
           DistributedID context_did, DistributedID collective_did);
     public:
-      static void handle_create_collective_view(Deserializer &derez,
-                                                Runtime *runtime);
-      static void handle_delete_collective_view(Deserializer &derez,
-                                                Runtime *runtime);
-      static void handle_release_collective_view(Deserializer &derez,
-                                                 Runtime *runtime);
+      static void handle_create_collective_view(Deserializer &derez);
+      static void handle_delete_collective_view(Deserializer &derez);
+      static void handle_release_collective_view(Deserializer &derez);
     protected:
       void execute_task_launch(TaskOp *task, bool index, 
                                const std::vector<StaticDependence> *dependences,
@@ -2188,7 +2182,7 @@ namespace Legion {
      */
     class TopLevelContext : public InnerContext {
     public:
-      TopLevelContext(Runtime *runtime, Processor executing,
+      TopLevelContext(Processor executing,
           coord_t normal_id, coord_t implicit_id,
           DistributedID id = 0, CollectiveMapping *mapping = NULL);
       TopLevelContext(const TopLevelContext &rhs) = delete;
@@ -2467,7 +2461,7 @@ namespace Legion {
                               const size_t total_shards) { return UINT_MAX; }
       };
     public:
-      ReplicateContext(Runtime *runtime, ShardTask *owner,int d,bool full_inner,
+      ReplicateContext(ShardTask *owner,int d,bool full_inner,
                        const std::vector<RegionRequirement> &reqs,
                        const std::vector<OutputRequirement> &output_reqs,
                        const std::vector<unsigned> &parent_indexes,
@@ -3225,11 +3219,11 @@ namespace Legion {
     public:
       const DomainPoint& get_shard_point(void) const; 
     public:
-      static void register_attach_detach_sharding_functor(Runtime *runtime);
+      static void register_attach_detach_sharding_functor(void);
       ShardingFunction* get_attach_detach_sharding_function(void);
       IndexSpaceNode* compute_index_attach_launch_spaces(
           std::vector<size_t> &shard_sizes, Provenance *provenance);
-      static void register_universal_sharding_functor(Runtime *runtime);
+      static void register_universal_sharding_functor(void);
       ShardingFunction* get_universal_sharding_function(void);
     public:
       void hash_future(HashVerifier &hasher, const unsigned safe_level, 
@@ -3457,7 +3451,7 @@ namespace Legion {
      */
     class RemoteContext : public InnerContext {
     public:
-      RemoteContext(DistributedID did, Runtime *runtime,
+      RemoteContext(DistributedID did,
                     CollectiveMapping *mapping = NULL);
       RemoteContext(const RemoteContext &rhs) = delete;
       virtual ~RemoteContext(void);
@@ -3495,28 +3489,24 @@ namespace Legion {
                           const std::vector<EqKDTree*> &created_trees,
                           std::set<RtEvent> &applied_events,
                           const ShardMapping *mapping, ShardID source_shard);
-      static void handle_created_region_contexts(Runtime *runtime, 
-                                                 Deserializer &derez);
+      static void handle_created_region_contexts(Deserializer &derez);
     public:
       const Task* get_parent_task(void);
       inline Provenance* get_provenance(void) { return provenance; }
     public:
       void unpack_local_field_update(Deserializer &derez);
-      static void handle_local_field_update(Deserializer &derez, 
-                                            Runtime *runtime);
+      static void handle_local_field_update(Deserializer &derez); 
     public:
-      static void handle_context_request(Deserializer &derez, Runtime *runtime);
-      static void handle_context_response(Deserializer &derez,Runtime *runtime);
+      static void handle_context_request(Deserializer &derez);
+      static void handle_context_response(Deserializer &derez);
       static void handle_physical_request(Deserializer &derez,
-                      Runtime *runtime, AddressSpaceID source);
+                                          AddressSpaceID source);
       void set_physical_context_result(unsigned index, 
                                        InnerContext *result);
-      static void handle_physical_response(Deserializer &derez, 
-                                           Runtime *runtime);
+      static void handle_physical_response(Deserializer &derez); 
       static void handle_find_collective_view_request(Deserializer &derez,
-                                  Runtime *runtime, AddressSpaceID source);
-      static void handle_find_collective_view_response(Deserializer &derez,
-                                                       Runtime *runtime);
+                                                      AddressSpaceID source);
+      static void handle_find_collective_view_response(Deserializer &derez);
     protected:
       DistributedID parent_context_did;
       std::atomic<InnerContext*> parent_ctx;
@@ -3552,7 +3542,7 @@ namespace Legion {
     class LeafContext : public TaskContext,
                         public LegionHeapify<LeafContext> {
     public:
-      LeafContext(Runtime *runtime, SingleTask *owner,bool inline_task = false);
+      LeafContext(SingleTask *owner,bool inline_task = false);
       LeafContext(const LeafContext &rhs) = delete;
       virtual ~LeafContext(void);
     public:

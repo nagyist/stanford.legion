@@ -292,7 +292,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(implicit_runtime->legion_spy_enabled);
+      assert(runtime->legion_spy_enabled);
 #endif
       for (std::map<FieldID,unsigned>::const_iterator it = 
             field_indexes.begin(); it != field_indexes.end(); it++)
@@ -800,7 +800,7 @@ namespace Legion {
                                      IndexSpaceExpression *domain,
                                      RegionTreeID tid, bool register_now,
                                      CollectiveMapping *mapping)
-      : DistributedCollectable(ctx->runtime, did, register_now, mapping),
+      : DistributedCollectable(did, register_now, mapping),
         context(ctx), layout(desc), field_space_node(node),
         instance_domain(domain), tree_id(tid)
     //--------------------------------------------------------------------------
@@ -939,13 +939,13 @@ namespace Legion {
           // If we're on the owner node we need to produce the expression
           // that actually describes this points in this space
           // On remote nodes we'll already have it from the owner
-          (ctx->runtime->determine_owner(did) == ctx->runtime->address_space) &&
+          (runtime->determine_owner(did) == runtime->address_space) &&
             (k != UNBOUND_INSTANCE_KIND) ?
             instance_domain->create_layout_expression(pl, pl_size) : 
             instance_domain, tree_id, register_now, mapping), 
         memory_manager(memory), unique_event(unique), 
         instance_footprint(footprint), reduction_op((redop_id == 0) ? NULL : 
-            ctx->runtime->get_reduction(redop_id)), redop(redop_id),
+            runtime->get_reduction(redop_id)), redop(redop_id),
         piece_list(pl), piece_list_size(pl_size), instance(inst),
         use_event(Runtime::create_ap_user_event(NULL)),
         instance_ready((k == UNBOUND_INSTANCE_KIND) ? 
@@ -1133,11 +1133,11 @@ namespace Legion {
           void *location = 
             runtime->find_or_create_pending_collectable_location<ReductionView>(
               view_did);
-          return new (location) ReductionView(runtime, view_did,
+          return new (location) ReductionView(view_did,
               logical_owner, this, true/*register now*/, mapping);
         }
         else
-          return new ReductionView(runtime, view_did,
+          return new ReductionView(view_did,
               logical_owner, this, true/*register now*/, mapping);
       }
       else
@@ -1148,11 +1148,11 @@ namespace Legion {
           // node from an unrelated meta-task execution
           void *location = runtime->find_or_create_pending_collectable_location<
             MaterializedView>(view_did);
-          return new (location) MaterializedView(runtime, view_did,
+          return new (location) MaterializedView(view_did,
                 logical_owner, this, true/*register now*/, mapping);
         }
         else
-          return new MaterializedView(runtime, view_did,
+          return new MaterializedView(view_did,
                 logical_owner, this, true/*register now*/, mapping);
       }
     }
@@ -1442,8 +1442,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_record_event(Runtime *runtime,
-                                                         Deserializer &derez)
+    /*static*/ void PhysicalManager::handle_record_event(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1711,7 +1710,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_garbage_collection_debug_request(
-                   Runtime *runtime, Deserializer &derez, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1907,7 +1906,7 @@ namespace Legion {
 #endif
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_acquire_request(Runtime *runtime,
+    /*static*/ void PhysicalManager::handle_acquire_request(
                                      Deserializer &derez, AddressSpaceID source) 
     //--------------------------------------------------------------------------
     {
@@ -2014,7 +2013,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_garbage_collection_request(
-                   Runtime *runtime, Deserializer &derez, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2067,7 +2066,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_garbage_collection_acquire(
-                                          Runtime *runtime, Deserializer &derez)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2188,7 +2187,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_garbage_collection_mismatch(
-                                          Runtime *runtime, Deserializer &derez)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2208,7 +2207,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_garbage_collection_notify(
-                                          Runtime *runtime, Deserializer &derez)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2386,10 +2385,10 @@ namespace Legion {
           if (needed_guards > 0)
           {
             struct AcquireFunctor {
-              AcquireFunctor(DistributedID d, Runtime *rt, 
+              AcquireFunctor(DistributedID d,
                              std::vector<RtEvent> &r,
                              std::atomic<unsigned> *c)
-                : did(d), runtime(rt), ready_events(r), count(c) { }
+                : did(d), ready_events(r), count(c) { }
               inline void apply(AddressSpaceID target)
               {
                 if (target == runtime->address_space)
@@ -2406,11 +2405,10 @@ namespace Legion {
                 ready_events.push_back(ready_event);
               }
               const DistributedID did;
-              Runtime *const runtime;
               std::vector<RtEvent> &ready_events;
               std::atomic<unsigned> *const count;
             };
-            AcquireFunctor functor(did, runtime, ready_events,
+            AcquireFunctor functor(did, ready_events,
                                    &failed_collection_count);
             map_over_remote_instances(functor);
           }
@@ -2517,8 +2515,8 @@ namespace Legion {
                 if (needed_guards > 0)
                 {
                   struct NotifyFunctor {
-                    NotifyFunctor(DistributedID d, Runtime *rt) 
-                      : did(d), runtime(rt), count(0) { }
+                    NotifyFunctor(DistributedID d) 
+                      : did(d), count(0) { }
                     inline void apply(AddressSpaceID target)
                     {
                       if (target == runtime->address_space)
@@ -2532,10 +2530,9 @@ namespace Legion {
                       count++;
                     }
                     const DistributedID did;
-                    Runtime *const runtime;
                     unsigned count;
                   };
-                  NotifyFunctor functor(did, runtime);
+                  NotifyFunctor functor(did);
                   map_over_remote_instances(functor);
                   if (functor.count > 0)
                     pack_global_ref(functor.count);
@@ -2731,7 +2728,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_garbage_collection_priority_update(
-                   Runtime *runtime, Deserializer &derez, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2763,8 +2760,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/void PhysicalManager::handle_manager_request(Deserializer &derez,
-                                                           Runtime *runtime)
+    /*static*/void PhysicalManager::handle_manager_request(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2805,7 +2801,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_top_view_request(
-                   Deserializer &derez, Runtime *runtime, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez); 
@@ -2814,7 +2810,7 @@ namespace Legion {
       RtEvent man_ready;
       PhysicalManager *manager =
         runtime->find_or_request_instance_manager(did, man_ready);
-      InnerContext *context = InnerContext::unpack_inner_context(derez,runtime);
+      InnerContext *context = InnerContext::unpack_inner_context(derez);
       AddressSpaceID logical_owner;
       derez.deserialize(logical_owner);
       CollectiveMapping *mapping = NULL;
@@ -2839,7 +2835,7 @@ namespace Legion {
         return;
       }
       process_top_view_request(manager, context, logical_owner, mapping,
-                               target, source, done, runtime);
+                               target, source, done);
       if ((mapping != NULL) && mapping->remove_reference())
         delete mapping;
     }
@@ -2848,7 +2844,7 @@ namespace Legion {
     /*static*/ void PhysicalManager::process_top_view_request(
         PhysicalManager *manager, InnerContext *context, AddressSpaceID logical,
         CollectiveMapping *mapping, std::atomic<DistributedID> *target,
-        AddressSpaceID source, RtUserEvent done_event, Runtime *runtime)
+        AddressSpaceID source, RtUserEvent done_event)
     //--------------------------------------------------------------------------
     {
       // Get the view from the context
@@ -2881,14 +2877,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_top_view_creation(const void *args,
-                                                              Runtime *runtime)
+    /*static*/ void PhysicalManager::handle_top_view_creation(const void *args)
     //--------------------------------------------------------------------------
     {
       const RemoteCreateViewArgs *rargs = (const RemoteCreateViewArgs*)args; 
       process_top_view_request(rargs->manager, rargs->context,
           rargs->logical_owner, rargs->mapping, rargs->target,
-          rargs->source, rargs->done_event, runtime);
+          rargs->source, rargs->done_event);
       if ((rargs->mapping != NULL) && rargs->mapping->remove_reference())
         delete rargs->mapping;
     } 
@@ -2972,11 +2967,11 @@ namespace Legion {
         rez.serialize(kind);
         pack_garbage_collection_state(rez, target, false/*need lock*/);
       }
-      context->runtime->send_instance_manager(target, rez);
+      runtime->send_instance_manager(target, rez);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_send_manager(Runtime *runtime, 
+    /*static*/ void PhysicalManager::handle_send_manager(
                                      AddressSpaceID source, Deserializer &derez)
     //--------------------------------------------------------------------------
     {
@@ -3050,7 +3045,7 @@ namespace Legion {
             runtime->find_layout_constraints(layout_id, false/*can fail*/);
       }
       // If we fall through here we can create the manager now
-      create_remote_manager(runtime, did, mem, inst, inst_footprint,
+      create_remote_manager(did, mem, inst, inst_footprint,
                             inst_domain, piece_list, piece_list_size, 
                             space_node, tree_id, constraints, use_event,
                             unique_event, kind, redop, gc_state);
@@ -3085,8 +3080,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::handle_defer_manager(const void *args,
-                                                          Runtime *runtime)
+    /*static*/ void PhysicalManager::handle_defer_manager(const void *args)
     //--------------------------------------------------------------------------
     {
       const DeferPhysicalManagerArgs *dargs = 
@@ -3097,7 +3091,7 @@ namespace Legion {
       FieldSpaceNode *space_node = runtime->forest->get_node(dargs->handle);
       LayoutConstraints *constraints = 
         runtime->find_layout_constraints(dargs->layout_id);
-      create_remote_manager(runtime, dargs->did, dargs->mem,
+      create_remote_manager(dargs->did, dargs->mem,
           dargs->inst, dargs->footprint, inst_domain, dargs->piece_list,
           dargs->piece_list_size, space_node, dargs->tree_id, constraints, 
           dargs->use_event, dargs->unique_event, dargs->kind,
@@ -3110,7 +3104,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_defer_perform_deletion(
-                                             const void *args, Runtime *runtime)
+                                             const void *args)
     //--------------------------------------------------------------------------
     {
       const DeferDeletePhysicalManager *dargs =
@@ -3120,7 +3114,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void PhysicalManager::create_remote_manager(Runtime *runtime, 
+    /*static*/ void PhysicalManager::create_remote_manager(
           DistributedID did, Memory mem, 
           PhysicalInstance inst, size_t inst_footprint, 
           IndexSpaceExpression *inst_domain, const void *piece_list,
@@ -3373,13 +3367,13 @@ namespace Legion {
         rez.serialize(instance_footprint);
         rez.serialize(kind);
       }
-      BroadcastFunctor functor(context->runtime, rez);
+      BroadcastFunctor functor(rez);
       map_over_remote_instances(functor);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_send_manager_update(
-                   Runtime *runtime, AddressSpaceID source, Deserializer &derez)
+                   AddressSpaceID source, Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3508,7 +3502,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_padded_reservation_request(
-                   Runtime *runtime, Deserializer &derez, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3559,7 +3553,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void PhysicalManager::handle_padded_reservation_response(
-                                          Runtime *runtime, Deserializer &derez)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3588,7 +3582,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    VirtualManager::VirtualManager(Runtime *runtime, DistributedID did,
+    VirtualManager::VirtualManager(DistributedID did,
                             LayoutDescription *desc, CollectiveMapping *mapping)
       : InstanceManager(runtime->forest, did, desc,
                         NULL/*field space node*/,NULL/*index space expression*/,
@@ -3648,9 +3642,9 @@ namespace Legion {
     InstanceBuilder::InstanceBuilder(const std::vector<LogicalRegion> &regs,
                       IndexSpaceExpression *expr, FieldSpaceNode *node, 
                       RegionTreeID tid, const LayoutConstraintSet &cons, 
-                      Runtime *rt, MemoryManager *memory, UniqueID cid,
+                      MemoryManager *memory, UniqueID cid,
                       const void *pl, size_t pl_size)
-      : regions(regs), constraints(cons), runtime(rt), memory_manager(memory),
+      : regions(regs), constraints(cons), memory_manager(memory),
         creator_id(cid), instance(PhysicalInstance::NO_INST), 
         field_space_node(node), instance_domain(expr), tree_id(tid), 
         redop_id(0), reduction_op(NULL), realm_layout(NULL), piece_list(NULL),
@@ -3826,7 +3820,7 @@ namespace Legion {
       {
         // First make a new layout constraint
         LayoutConstraints *layout_constraints = 
-          forest->runtime->register_layout(field_space_node->handle,
+          runtime->register_layout(field_space_node->handle,
                                            constraints, true/*internal*/);
         // Then make our description
         layout = field_space_node->create_layout_description(instance_mask, 
@@ -3835,7 +3829,7 @@ namespace Legion {
                                   field_sizes, serdez);
       }
       // Creating an individual manager
-      DistributedID did = forest->runtime->get_available_distributed_id();
+      DistributedID did = runtime->get_available_distributed_id();
       // Figure out what kind of instance we just made
       switch (constraints.specialized_constraint.get_kind())
       {

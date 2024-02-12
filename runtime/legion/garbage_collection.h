@@ -233,12 +233,15 @@ namespace Legion {
         VALID_REF_STATE = 5, // a second global ref state
       };
     public:
-      DistributedCollectable(Runtime *rt, DistributedID did,
+      DistributedCollectable(DistributedID did,
                              bool register_with_runtime = true,
                              CollectiveMapping *mapping = NULL,
                              State initial_state = GLOBAL_REF_STATE);
-      DistributedCollectable(const DistributedCollectable &rhs);
+      DistributedCollectable(const DistributedCollectable &rhs) = delete;
       virtual ~DistributedCollectable(void);
+    public:
+      DistributedCollectable& operator=(
+          const DistributedCollectable& rhs) = delete;
     public:
       inline void add_base_gc_ref(ReferenceSource source, int cnt = 1);
       inline void add_nested_gc_ref(DistributedID source, int cnt = 1);
@@ -304,12 +307,10 @@ namespace Legion {
     public:
       // This for remote nodes only
       void unregister_collectable(std::set<RtEvent> &done_events);
-      static void handle_unregister_collectable(Runtime *runtime,
-                                                Deserializer &derez);
+      static void handle_unregister_collectable(Deserializer &derez);
     public:
       RtEvent send_remote_registration(void);
-      static void handle_did_remote_registration(Runtime *runtime,
-                                                 Deserializer &derez,
+      static void handle_did_remote_registration(Deserializer &derez,
                                                  AddressSpaceID source);
     protected:
       bool can_delete(AutoLock &gc);
@@ -327,19 +328,14 @@ namespace Legion {
       void process_downgrade_success(State old_state);
       AddressSpaceID get_downgrade_target(AddressSpaceID owner) const;
     public:
-      static void handle_downgrade_request(Runtime *runtime,
+      static void handle_downgrade_request(
                          Deserializer &derez, AddressSpaceID source);
-      static void handle_downgrade_response(Runtime *runtime,
-                                            Deserializer &derez);
-      static void handle_downgrade_success(Runtime *runtime,
-                                           Deserializer &derez);
-      static void handle_downgrade_update(Runtime *runtime,
-                                          Deserializer &derez);
-      static void handle_global_acquire_request(Runtime *runtime,
-                                                Deserializer &derez);
+      static void handle_downgrade_response(Deserializer &derez);
+      static void handle_downgrade_success(Deserializer &derez);
+      static void handle_downgrade_update(Deserializer &derez);
+      static void handle_global_acquire_request(Deserializer &derez);
       static void handle_global_acquire_response(Deserializer &derez);
     public:
-      Runtime *const runtime;
       const DistributedID did;
       const AddressSpaceID owner_space;
       const AddressSpaceID local_space;
@@ -383,11 +379,12 @@ namespace Legion {
      */
     class ValidDistributedCollectable : public DistributedCollectable {
     public:
-      ValidDistributedCollectable(Runtime *rt, DistributedID did,
+      ValidDistributedCollectable(DistributedID did,
                                   bool register_with_runtime = true,
                                   CollectiveMapping *mapping = NULL,
                                   bool start_in_valid_state = true);
-      ValidDistributedCollectable(const ValidDistributedCollectable &rhs);
+      ValidDistributedCollectable(
+          const ValidDistributedCollectable &rhs) = delete;
       virtual ~ValidDistributedCollectable(void);     
     public:
       inline void add_base_valid_ref(ReferenceSource source, int cnt = 1);
@@ -431,8 +428,7 @@ namespace Legion {
       // Notify that this is no longer globally valid
       virtual void notify_invalid(void) = 0;
     public:
-      static void handle_valid_acquire_request(Runtime *runtime,
-                                               Deserializer &derez);
+      static void handle_valid_acquire_request(Deserializer &derez);
       static void handle_valid_acquire_response(Deserializer &derez);
     protected:
 #ifdef DEBUG_LEGION_GC

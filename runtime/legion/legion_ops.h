@@ -195,10 +195,10 @@ namespace Legion {
       };
     public:
       ResourceTracker(void);
-      ResourceTracker(const ResourceTracker &rhs);
+      ResourceTracker(const ResourceTracker &rhs) = delete;
       virtual ~ResourceTracker(void);
     public:
-      ResourceTracker& operator=(const ResourceTracker &rhs);
+      ResourceTracker& operator=(const ResourceTracker &rhs) = delete;
     public:
       // Delete this function once MustEpochOps are gone
       void return_resources(ResourceTracker *target, uint64_t return_index,
@@ -361,7 +361,7 @@ namespace Legion {
       public:
         inline void add_mapping_dependence(RtEvent dependence)
           { mapping_dependences.insert(dependence); }
-        void issue_stage_triggers(Operation *op, Runtime *runtime, 
+        void issue_stage_triggers(Operation *op,
                                   MustEpochOp *must_epoch);
       private:
         std::set<RtEvent> mapping_dependences;
@@ -370,7 +370,7 @@ namespace Legion {
       public:
         inline void add_commit_dependence(RtEvent dependence)
           { commit_dependences.insert(dependence); }
-        bool issue_commit_trigger(Operation *op, Runtime *runtime);
+        bool issue_commit_trigger(Operation *op);
       private:
         std::set<RtEvent> commit_dependences;
       };
@@ -386,7 +386,7 @@ namespace Legion {
       };
     
     public:
-      Operation(Runtime *rt);
+      Operation(void);
       virtual ~Operation(void);
     public:
       static const char* get_string_rep(OpKind kind);
@@ -722,8 +722,6 @@ namespace Legion {
       {
         return (node != NULL) && node->remove_base_valid_ref(CONTEXT_REF);
       }
-    public:
-      Runtime *const runtime;
     protected:
       mutable LocalLock op_lock;
       GenerationID gen;
@@ -816,10 +814,10 @@ namespace Legion {
      */
     class CollectiveHelperOp : public DistributedCollectable {
     public:
-      CollectiveHelperOp(Runtime *rt, DistributedID did,
+      CollectiveHelperOp(DistributedID did,
                          bool register_with_runtime = true,
                          CollectiveMapping *mapping = NULL)
-        : DistributedCollectable(rt, did, register_with_runtime, mapping) { }
+        : DistributedCollectable(did, register_with_runtime, mapping) { }
     public:
       virtual InnerContext* get_context(void) = 0;
       virtual InnerContext* find_physical_context(unsigned index) = 0;
@@ -859,8 +857,8 @@ namespace Legion {
                                  public CollectiveVersioningBase {
     public:
       template<typename ... Args>
-      CollectiveVersioning(Runtime *rt, Args&& ... args)
-        : OP(rt, std::forward<Args>(args) ...) { }
+      CollectiveVersioning(Args&& ... args)
+        : OP(std::forward<Args>(args) ...) { }
       CollectiveVersioning(const CollectiveVersioning<OP> &rhs) = delete; 
     public:
       CollectiveVersioning<OP>& operator=(
@@ -964,7 +962,7 @@ namespace Legion {
         bool finalize_rendezvous(CollectiveMapping *mapping,
                                  const FieldMaskSet<CollectiveResult> &views,
                                  const std::map<DistributedID,size_t> &counts,
-                                 Runtime *runtime, bool first, size_t local);
+                                 bool first, size_t local);
       public:
         CollectiveViewCreatorBase *const owner;
         InnerContext *const physical_ctx;
@@ -1002,7 +1000,7 @@ namespace Legion {
                         LegionVector<FieldMaskSet<InstanceView> > &target_views,
                         std::map<InstanceView*,size_t> &collective_arrivals);
       bool remove_pending_rendezvous(RendezvousResult *result);
-      static void finalize_collective_mapping(Runtime *runtime,
+      static void finalize_collective_mapping(
           CollectiveMapping *mapping, AddressSpaceID owner_space,
           // Can assume that the results are sorted
           std::vector<std::pair<AddressSpaceID,RendezvousResult*> > &results,
@@ -1010,8 +1008,7 @@ namespace Legion {
           const std::map<DistributedID,size_t> &counts,
           // The collective views that describes the results for this region
           const FieldMaskSet<CollectiveResult> &views);
-      static void handle_finalize_collective_mapping(Deserializer &derez,
-                                                     Runtime *runtime);
+      static void handle_finalize_collective_mapping(Deserializer &derez);
       static void update_groups_and_counts(CollectiveRendezvous &target,
           DistributedID did, const FieldMask &mask, size_t count = 1);
       static void pack_collective_rendezvous(Serializer &rez,
@@ -1037,8 +1034,8 @@ namespace Legion {
                                   public CollectiveViewCreatorBase {
     public:
       template<typename ... Args>
-      CollectiveViewCreator(Runtime *rt, Args&& ... args)
-        : CollectiveVersioning<OP>(rt, std::forward<Args>(args) ...) { }
+      CollectiveViewCreator(Args&& ... args)
+        : CollectiveVersioning<OP>(std::forward<Args>(args) ...) { }
       CollectiveViewCreator(const CollectiveViewCreator<OP> &rhs) = delete; 
     public:
       CollectiveViewCreator<OP>& operator=(
@@ -1132,7 +1129,7 @@ namespace Legion {
         const RtUserEvent done;
       };
     public:
-      MemoizableOp(Runtime *rt);
+      MemoizableOp(void);
       virtual ~MemoizableOp(void);
     public:
       virtual void activate(void);
@@ -1184,8 +1181,8 @@ namespace Legion {
     class Memoizable : public OP {
     public:
       template<typename ... Args>
-      Memoizable(Runtime *rt, Args&& ... args) 
-        : OP(rt, std::forward<Args>(args) ...) { }
+      Memoizable(Args&& ... args) 
+        : OP(std::forward<Args>(args) ...) { }
       virtual ~Memoizable(void) { }
     public:
       virtual void trigger_dependence_analysis(void) override;
@@ -1210,7 +1207,7 @@ namespace Legion {
         PREDICATED_FALSE_STATE,
       };
     public:
-      PredicatedOp(Runtime *rt);
+      PredicatedOp(void);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -1243,7 +1240,7 @@ namespace Legion {
     template<typename OP>
     class Predicated : public Memoizable<OP> {
     public:
-      Predicated(Runtime *rt) : Memoizable<OP>(rt) {}
+      Predicated(void) : Memoizable<OP>() {}
       virtual ~Predicated(void) { }
     public:
       virtual void trigger_dependence_analysis(void) override;
@@ -1262,7 +1259,7 @@ namespace Legion {
       virtual void set_context_index(uint64_t index) = 0;
     public:
       void pack_external_mapping(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_mapping(Deserializer &derez, Runtime *runtime);
+      void unpack_external_mapping(Deserializer &derez);
     };
 
     /**
@@ -1284,11 +1281,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = MAP_OP_ALLOC;
     public:
-      MapOp(Runtime *rt);
-      MapOp(const MapOp &rhs);
+      MapOp(void);
+      MapOp(const MapOp &rhs) = delete;
       virtual ~MapOp(void);
     public:
-      MapOp& operator=(const MapOp &rhs);
+      MapOp& operator=(const MapOp &rhs) = delete;
     public:
       PhysicalRegion initialize(InnerContext *ctx,
                                 const InlineLauncher &launcher,
@@ -1381,7 +1378,7 @@ namespace Legion {
       virtual void set_context_index(uint64_t index) = 0;
     public:
       void pack_external_copy(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_copy(Deserializer &derez, Runtime *runtime);
+      void unpack_external_copy(Deserializer &derez);
     };
 
     /**
@@ -1457,11 +1454,11 @@ namespace Legion {
         const bool compute_preimages;
       };
     public:
-      CopyOp(Runtime *rt);
-      CopyOp(const CopyOp &rhs);
+      CopyOp(void);
+      CopyOp(const CopyOp &rhs) = delete;
       virtual ~CopyOp(void);
     public:
-      CopyOp& operator=(const CopyOp &rhs);
+      CopyOp& operator=(const CopyOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx,
                       const CopyLauncher &launcher, Provenance *provenance);
@@ -1674,11 +1671,11 @@ namespace Legion {
      */
     class IndexCopyOp : public CopyOp {
     public:
-      IndexCopyOp(Runtime *rt);
-      IndexCopyOp(const IndexCopyOp &rhs);
+      IndexCopyOp(void);
+      IndexCopyOp(const IndexCopyOp &rhs) = delete;
       virtual ~IndexCopyOp(void);
     public:
-      IndexCopyOp& operator=(const IndexCopyOp &rhs);
+      IndexCopyOp& operator=(const IndexCopyOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx,
                       const IndexCopyLauncher &launcher,
@@ -1759,11 +1756,11 @@ namespace Legion {
     class PointCopyOp : public CopyOp, public ProjectionPoint {
     public:
       friend class IndexCopyOp;
-      PointCopyOp(Runtime *rt);
-      PointCopyOp(const PointCopyOp &rhs);
+      PointCopyOp(void);
+      PointCopyOp(const PointCopyOp &rhs) = delete;
       virtual ~PointCopyOp(void);
     public:
-      PointCopyOp& operator=(const PointCopyOp &rhs);
+      PointCopyOp& operator=(const PointCopyOp &rhs) = delete;
     public:
       void initialize(IndexCopyOp *owner, const DomainPoint &point);
       void launch(void);
@@ -1829,11 +1826,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = FENCE_OP_ALLOC;
     public:
-      FenceOp(Runtime *rt);
-      FenceOp(const FenceOp &rhs);
+      FenceOp(void);
+      FenceOp(const FenceOp &rhs) = delete;
       virtual ~FenceOp(void);
     public:
-      FenceOp& operator=(const FenceOp &rhs);
+      FenceOp& operator=(const FenceOp &rhs) = delete;
     public:
       Future initialize(InnerContext *ctx, FenceKind kind, bool need_future,
                         Provenance *provenance);
@@ -1876,11 +1873,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = FRAME_OP_ALLOC;
     public:
-      FrameOp(Runtime *rt);
-      FrameOp(const FrameOp &rhs);
+      FrameOp(void);
+      FrameOp(const FrameOp &rhs) = delete;
       virtual ~FrameOp(void);
     public:
-      FrameOp& operator=(const FrameOp &rhs);
+      FrameOp& operator=(const FrameOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx, Provenance *provenance);
       void set_previous(ApEvent previous);
@@ -1912,11 +1909,11 @@ namespace Legion {
         FUTURE_MAP_CREATION,
       };
     public:
-      CreationOp(Runtime *rt);
-      CreationOp(const CreationOp &rhs);
+      CreationOp(void);
+      CreationOp(const CreationOp &rhs) = delete;
       virtual ~CreationOp(void);
     public:
-      CreationOp& operator=(const CreationOp &rhs);
+      CreationOp& operator=(const CreationOp &rhs) = delete;
     public:
       void initialize_index_space(InnerContext *ctx, IndexSpaceNode *node, 
                             const Future &future, Provenance *provenance,
@@ -1970,11 +1967,11 @@ namespace Legion {
         LOGICAL_REGION_DELETION,
       };
     public:
-      DeletionOp(Runtime *rt);
-      DeletionOp(const DeletionOp &rhs);
+      DeletionOp(void);
+      DeletionOp(const DeletionOp &rhs) = delete;
       virtual ~DeletionOp(void);
     public:
-      DeletionOp& operator=(const DeletionOp &rhs);
+      DeletionOp& operator=(const DeletionOp &rhs) = delete;
     public:
       void set_deletion_preconditions(ApEvent precondition,
           const std::map<Operation*,GenerationID> &dependences);
@@ -2060,7 +2057,7 @@ namespace Legion {
      */
     class InternalOp : public Operation {
     public:
-      InternalOp(Runtime *rt);
+      InternalOp(void);
       virtual ~InternalOp(void);
     public:
       void initialize_internal(Operation *creator, int creator_req_idx);
@@ -2101,7 +2098,7 @@ namespace Legion {
       virtual void set_context_index(uint64_t index) = 0;
     public:
       void pack_external_close(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_close(Deserializer &derez, Runtime *runtime);
+      void unpack_external_close(Deserializer &derez);
     };
 
     /**
@@ -2116,11 +2113,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = CLOSE_OP_ALLOC;
     public:
-      CloseOp(Runtime *rt);
-      CloseOp(const CloseOp &rhs);
+      CloseOp(void);
+      CloseOp(const CloseOp &rhs) = delete;
       virtual ~CloseOp(void);
     public:
-      CloseOp& operator=(const CloseOp &rhs);
+      CloseOp& operator=(const CloseOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -2160,11 +2157,11 @@ namespace Legion {
      */
     class MergeCloseOp : public CloseOp {
     public:
-      MergeCloseOp(Runtime *runtime);
-      MergeCloseOp(const MergeCloseOp &rhs);
+      MergeCloseOp(void);
+      MergeCloseOp(const MergeCloseOp &rhs) = delete;
       virtual ~MergeCloseOp(void);
     public:
-      MergeCloseOp& operator=(const MergeCloseOp &rhs);
+      MergeCloseOp& operator=(const MergeCloseOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx, const RegionRequirement &req,
                       int close_idx, Operation *create_op);
@@ -2197,11 +2194,11 @@ namespace Legion {
      */
     class PostCloseOp : public CloseOp {
     public:
-      PostCloseOp(Runtime *runtime);
-      PostCloseOp(const PostCloseOp &rhs);
+      PostCloseOp(void);
+      PostCloseOp(const PostCloseOp &rhs) = delete;
       virtual ~PostCloseOp(void);
     public:
-      PostCloseOp& operator=(const PostCloseOp &rhs);
+      PostCloseOp& operator=(const PostCloseOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx, unsigned index, 
                       const InstanceSet &target_instances); 
@@ -2262,11 +2259,11 @@ namespace Legion {
      */
     class VirtualCloseOp : public CloseOp {
     public:
-      VirtualCloseOp(Runtime *runtime);
-      VirtualCloseOp(const VirtualCloseOp &rhs);
+      VirtualCloseOp(void);
+      VirtualCloseOp(const VirtualCloseOp &rhs) = delete;
       virtual ~VirtualCloseOp(void);
     public:
-      VirtualCloseOp& operator=(const VirtualCloseOp &rhs);
+      VirtualCloseOp& operator=(const VirtualCloseOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx, unsigned index,
                       const RegionRequirement &req,
@@ -2298,11 +2295,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = REFINEMENT_OP_ALLOC;
     public:
-      RefinementOp(Runtime *runtime);
-      RefinementOp(const RefinementOp &rhs);
+      RefinementOp(void);
+      RefinementOp(const RefinementOp &rhs) = delete;
       virtual ~RefinementOp(void);
     public:
-      RefinementOp& operator=(const RefinementOp &rhs);
+      RefinementOp& operator=(const RefinementOp &rhs) = delete;
     public:
       // For ordering refinement operations in the logical analysis
       // based on their monotonically increasing unique ID
@@ -2342,7 +2339,7 @@ namespace Legion {
      */
     class ResetOp : public Operation {
     public:
-      ResetOp(Runtime *runtime);
+      ResetOp(void);
       ResetOp(const ResetOp &rhs) = delete;
       virtual ~ResetOp(void);
     public:
@@ -2384,7 +2381,7 @@ namespace Legion {
       virtual void set_context_index(uint64_t index) = 0;
     public:
       void pack_external_acquire(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_acquire(Deserializer &derez, Runtime *runtime);
+      void unpack_external_acquire(Deserializer &derez);
     };
 
     /**
@@ -2397,11 +2394,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = ACQUIRE_OP_ALLOC;
     public:
-      AcquireOp(Runtime *rt);
-      AcquireOp(const AcquireOp &rhs);
+      AcquireOp(void);
+      AcquireOp(const AcquireOp &rhs) = delete;
       virtual ~AcquireOp(void);
     public:
-      AcquireOp& operator=(const AcquireOp &rhs);
+      AcquireOp& operator=(const AcquireOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx, const AcquireLauncher &launcher,
                       Provenance *provenance);
@@ -2494,7 +2491,7 @@ namespace Legion {
       virtual void set_context_index(uint64_t index) = 0;
     public:
       void pack_external_release(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_release(Deserializer &derez, Runtime *runtime);
+      void unpack_external_release(Deserializer &derez);
     };
 
     /**
@@ -2507,11 +2504,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = RELEASE_OP_ALLOC;
     public:
-      ReleaseOp(Runtime *rt);
-      ReleaseOp(const ReleaseOp &rhs);
+      ReleaseOp(void);
+      ReleaseOp(const ReleaseOp &rhs) = delete;
       virtual ~ReleaseOp(void);
     public:
-      ReleaseOp& operator=(const ReleaseOp &rhs);
+      ReleaseOp& operator=(const ReleaseOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx, const ReleaseLauncher &launcher,
                       Provenance *provenance);
@@ -2607,11 +2604,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = DYNAMIC_COLLECTIVE_OP_ALLOC;
     public:
-      DynamicCollectiveOp(Runtime *rt);
-      DynamicCollectiveOp(const DynamicCollectiveOp &rhs);
+      DynamicCollectiveOp(void);
+      DynamicCollectiveOp(const DynamicCollectiveOp &rhs) = delete;
       virtual ~DynamicCollectiveOp(void);
     public:
-      DynamicCollectiveOp& operator=(const DynamicCollectiveOp &rhs);
+      DynamicCollectiveOp& operator=(const DynamicCollectiveOp &rhs) = delete;
     public:
       Future initialize(InnerContext *ctx, const DynamicCollective &dc,
                         Provenance *provenance);
@@ -2645,11 +2642,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = FUTURE_PRED_OP_ALLOC;
     public:
-      FuturePredOp(Runtime *rt);
-      FuturePredOp(const FuturePredOp &rhs);
+      FuturePredOp(void);
+      FuturePredOp(const FuturePredOp &rhs) = delete;
       virtual ~FuturePredOp(void);
     public:
-      FuturePredOp& operator=(const FuturePredOp &rhs);
+      FuturePredOp& operator=(const FuturePredOp &rhs) = delete;
     public:
       Predicate initialize(InnerContext *ctx, 
                            const Future &f, Provenance *provenance);
@@ -2678,11 +2675,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = NOT_PRED_OP_ALLOC;
     public:
-      NotPredOp(Runtime *rt);
-      NotPredOp(const NotPredOp &rhs);
+      NotPredOp(void);
+      NotPredOp(const NotPredOp &rhs) = delete;
       virtual ~NotPredOp(void);
     public:
-      NotPredOp& operator=(const NotPredOp &rhs);
+      NotPredOp& operator=(const NotPredOp &rhs) = delete;
     public:
       Predicate initialize(InnerContext *task, const Predicate &p,
                            Provenance *provenance);
@@ -2707,11 +2704,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = AND_PRED_OP_ALLOC;
     public:
-      AndPredOp(Runtime *rt);
-      AndPredOp(const AndPredOp &rhs);
+      AndPredOp(void);
+      AndPredOp(const AndPredOp &rhs) = delete;
       virtual ~AndPredOp(void);
     public:
-      AndPredOp& operator=(const AndPredOp &rhs);
+      AndPredOp& operator=(const AndPredOp &rhs) = delete;
     public:
       Predicate initialize(InnerContext *task, 
                            std::vector<Predicate> &predicates,
@@ -2738,11 +2735,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = OR_PRED_OP_ALLOC;
     public:
-      OrPredOp(Runtime *rt);
-      OrPredOp(const OrPredOp &rhs);
+      OrPredOp(void);
+      OrPredOp(const OrPredOp &rhs) = delete;
       virtual ~OrPredOp(void);
     public:
-      OrPredOp& operator=(const OrPredOp &rhs);
+      OrPredOp& operator=(const OrPredOp &rhs) = delete;
     public:
       Predicate initialize(InnerContext *task, 
                            std::vector<Predicate> &predicates,
@@ -2840,11 +2837,11 @@ namespace Legion {
         TaskOp *task;
       };
     public:
-      MustEpochOp(Runtime *rt);
-      MustEpochOp(const MustEpochOp &rhs);
+      MustEpochOp(void);
+      MustEpochOp(const MustEpochOp &rhs) = delete;
       virtual ~MustEpochOp(void);
     public:
-      MustEpochOp& operator=(const MustEpochOp &rhs);
+      MustEpochOp& operator=(const MustEpochOp &rhs) = delete;
     public:
       inline FutureMap get_future_map(void) const { return result_map; }
     public:
@@ -3236,11 +3233,11 @@ namespace Legion {
         std::vector<IndexSpace> handles;
       };
     public:
-      PendingPartitionOp(Runtime *rt);
-      PendingPartitionOp(const PendingPartitionOp &rhs);
+      PendingPartitionOp(void);
+      PendingPartitionOp(const PendingPartitionOp &rhs) = delete;
       virtual ~PendingPartitionOp(void);
     public:
-      PendingPartitionOp& operator=(const PendingPartitionOp &rhs);
+      PendingPartitionOp& operator=(const PendingPartitionOp &rhs) = delete;
     public:
       void initialize_equal_partition(InnerContext *ctx, IndexPartition pid,
                                       size_t granularity, Provenance *prov);
@@ -3337,7 +3334,7 @@ namespace Legion {
       virtual void set_context_index(uint64_t index) = 0;
     public:
       void pack_external_partition(Serializer &rez,AddressSpaceID target) const;
-      void unpack_external_partition(Deserializer &derez, Runtime *runtime);
+      void unpack_external_partition(Deserializer &derez);
     };
 
     /**
@@ -3480,11 +3477,11 @@ namespace Legion {
         IndexSpace range;
       };
     public:
-      DependentPartitionOp(Runtime *rt);
-      DependentPartitionOp(const DependentPartitionOp &rhs);
+      DependentPartitionOp(void);
+      DependentPartitionOp(const DependentPartitionOp &rhs) = delete;
       virtual ~DependentPartitionOp(void);
     public:
-      DependentPartitionOp& operator=(const DependentPartitionOp &rhs);
+      DependentPartitionOp& operator=(const DependentPartitionOp &rhs) = delete;
     public:
       void initialize_by_field(InnerContext *ctx, IndexPartition pid,
                                LogicalRegion handle, LogicalRegion parent,
@@ -3646,11 +3643,11 @@ namespace Legion {
      */
     class PointDepPartOp : public DependentPartitionOp, public ProjectionPoint {
     public:
-      PointDepPartOp(Runtime *rt);
-      PointDepPartOp(const PointDepPartOp &rhs);
+      PointDepPartOp(void);
+      PointDepPartOp(const PointDepPartOp &rhs) = delete;
       virtual ~PointDepPartOp(void);
     public:
-      PointDepPartOp& operator=(const PointDepPartOp &rhs);
+      PointDepPartOp& operator=(const PointDepPartOp &rhs) = delete;
     public:
       void initialize(DependentPartitionOp *owner, const DomainPoint &point);
       void launch(void);
@@ -3699,7 +3696,7 @@ namespace Legion {
       virtual void set_context_index(uint64_t index) = 0;
     public:
       void pack_external_fill(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_fill(Deserializer &derez, Runtime *runtime);
+      void unpack_external_fill(Deserializer &derez);
     };
 
     /**
@@ -3711,11 +3708,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = FILL_OP_ALLOC;
     public:
-      FillOp(Runtime *rt);
-      FillOp(const FillOp &rhs);
+      FillOp(void);
+      FillOp(const FillOp &rhs) = delete;
       virtual ~FillOp(void);
     public:
-      FillOp& operator=(const FillOp &rhs);
+      FillOp& operator=(const FillOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx, const FillLauncher &launcher,
                       Provenance *provenance);
@@ -3795,11 +3792,11 @@ namespace Legion {
      */
     class IndexFillOp : public FillOp {
     public:
-      IndexFillOp(Runtime *rt);
-      IndexFillOp(const IndexFillOp &rhs);
+      IndexFillOp(void);
+      IndexFillOp(const IndexFillOp &rhs) = delete;
       virtual ~IndexFillOp(void);
     public:
-      IndexFillOp& operator=(const IndexFillOp &rhs);
+      IndexFillOp& operator=(const IndexFillOp &rhs) = delete;
     public:
       void initialize(InnerContext *ctx,
                       const IndexFillLauncher &launcher,
@@ -3847,11 +3844,11 @@ namespace Legion {
      */
     class PointFillOp : public FillOp, public ProjectionPoint {
     public:
-      PointFillOp(Runtime *rt);
-      PointFillOp(const PointFillOp &rhs);
+      PointFillOp(void);
+      PointFillOp(const PointFillOp &rhs) = delete;
       virtual ~PointFillOp(void);
     public:
-      PointFillOp& operator=(const PointFillOp &rhs);
+      PointFillOp& operator=(const PointFillOp &rhs) = delete;
     public:
       void initialize(IndexFillOp *owner, const DomainPoint &point);
       void launch(RtEvent view_ready);
@@ -3900,7 +3897,7 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = DISCARD_OP_ALLOC;
     public:
-      DiscardOp(Runtime *rt);
+      DiscardOp(void);
       DiscardOp(const DiscardOp &rhs) = delete;
       virtual ~DiscardOp(void);
     public:
@@ -3945,11 +3942,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = ATTACH_OP_ALLOC;
     public:
-      AttachOp(Runtime *rt);
-      AttachOp(const AttachOp &rhs);
+      AttachOp(void);
+      AttachOp(const AttachOp &rhs) = delete;
       virtual ~AttachOp(void);
     public:
-      AttachOp& operator=(const AttachOp &rhs);
+      AttachOp& operator=(const AttachOp &rhs) = delete;
     public:
       PhysicalRegion initialize(InnerContext *ctx,
                                 const AttachLauncher &launcher,
@@ -4018,7 +4015,7 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = ATTACH_OP_ALLOC;
     public:
-      IndexAttachOp(Runtime *rt);
+      IndexAttachOp(void);
       IndexAttachOp(const IndexAttachOp &rhs) = delete;
       virtual ~IndexAttachOp(void);
     public:
@@ -4074,11 +4071,11 @@ namespace Legion {
      */
     class PointAttachOp : public AttachOp {
     public:
-      PointAttachOp(Runtime *rt);
-      PointAttachOp(const PointAttachOp &rhs);
+      PointAttachOp(void);
+      PointAttachOp(const PointAttachOp &rhs) = delete;
       virtual ~PointAttachOp(void);
     public:
-      PointAttachOp& operator=(const PointAttachOp &rhs);
+      PointAttachOp& operator=(const PointAttachOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -4123,11 +4120,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = DETACH_OP_ALLOC;
     public:
-      DetachOp(Runtime *rt);
-      DetachOp(const DetachOp &rhs);
+      DetachOp(void);
+      DetachOp(const DetachOp &rhs) = delete;
       virtual ~DetachOp(void);
     public:
-      DetachOp& operator=(const DetachOp &rhs);
+      DetachOp& operator=(const DetachOp &rhs) = delete;
     public:
       Future initialize_detach(InnerContext *ctx, PhysicalRegion region,
                                const bool flush, const bool unordered,
@@ -4183,7 +4180,7 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = DETACH_OP_ALLOC;
     public:
-      IndexDetachOp(Runtime *rt);
+      IndexDetachOp(void);
       IndexDetachOp(const IndexDetachOp &rhs) = delete;
       virtual ~IndexDetachOp(void);
     public:
@@ -4245,11 +4242,11 @@ namespace Legion {
      */
     class PointDetachOp : public DetachOp {
     public:
-      PointDetachOp(Runtime *rt);
-      PointDetachOp(const PointDetachOp &rhs);
+      PointDetachOp(void);
+      PointDetachOp(const PointDetachOp &rhs) = delete;
       virtual ~PointDetachOp(void);
     public:
-      PointDetachOp& operator=(const PointDetachOp &rhs);
+      PointDetachOp& operator=(const PointDetachOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -4292,11 +4289,11 @@ namespace Legion {
      */
     class TimingOp : public Operation {
     public:
-      TimingOp(Runtime *rt);
-      TimingOp(const TimingOp &rhs);
+      TimingOp(void);
+      TimingOp(const TimingOp &rhs) = delete;
       virtual ~TimingOp(void);
     public:
-      TimingOp& operator=(const TimingOp &rhs);
+      TimingOp& operator=(const TimingOp &rhs) = delete;
     public:
       Future initialize(InnerContext *ctx, const TimingLauncher &launcher,
                         Provenance *provenance);
@@ -4323,11 +4320,11 @@ namespace Legion {
      */
     class TunableOp : public Operation {
     public:
-      TunableOp(Runtime *rt);
-      TunableOp(const TunableOp &rhs);
+      TunableOp(void);
+      TunableOp(const TunableOp &rhs) = delete;
       virtual ~TunableOp(void);
     public:
-      TunableOp& operator=(const TunableOp &rhs);
+      TunableOp& operator=(const TunableOp &rhs) = delete;
     public:
       Future initialize(InnerContext *ctx, const TunableLauncher &launcher,
                         Provenance *provenance);
@@ -4364,7 +4361,7 @@ namespace Legion {
      */
     class AllReduceOp : public MemoizableOp {
     public:
-      AllReduceOp(Runtime *rt);
+      AllReduceOp(void);
       AllReduceOp(const AllReduceOp &rhs) = delete;
       virtual ~AllReduceOp(void);
     public:
@@ -4449,11 +4446,11 @@ namespace Legion {
         Operation *const op;
       };
     public:
-      RemoteOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteOp(const RemoteOp &rhs);
+      RemoteOp(Operation *ptr, AddressSpaceID src);
+      RemoteOp(const RemoteOp &rhs) = delete;
       virtual ~RemoteOp(void);
     public:
-      RemoteOp& operator=(const RemoteOp &rhs);
+      RemoteOp& operator=(const RemoteOp &rhs) = delete;
     public:
       virtual void unpack(Deserializer &derez) = 0;
     public:
@@ -4484,14 +4481,13 @@ namespace Legion {
     public:
       void defer_deletion(RtEvent precondition);
       void pack_remote_base(Serializer &rez) const;
-      void unpack_remote_base(Deserializer &derez, Runtime *runtime);
+      void unpack_remote_base(Deserializer &derez);
       void pack_profiling_requests(Serializer &rez, 
                                    std::set<RtEvent> &applied) const;
       void unpack_profiling_requests(Deserializer &derez);
       static void handle_deferred_deletion(const void *args);
       // Caller takes ownership of this object and must delete it when done
-      static RemoteOp* unpack_remote_operation(Deserializer &derez,
-                                               Runtime *runtime);
+      static RemoteOp* unpack_remote_operation(Deserializer &derez);
       static void handle_report_uninitialized(Deserializer &derez);
       static void handle_report_profiling_count_update(Deserializer &derez);
       static void handle_completion_effect(Deserializer &derez);
@@ -4519,11 +4515,11 @@ namespace Legion {
     class RemoteMapOp : public ExternalMapping, public RemoteOp,
                         public LegionHeapify<RemoteMapOp> {
     public:
-      RemoteMapOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteMapOp(const RemoteMapOp &rhs);
+      RemoteMapOp(Operation *ptr, AddressSpaceID src);
+      RemoteMapOp(const RemoteMapOp &rhs) = delete;
       virtual ~RemoteMapOp(void);
     public:
-      RemoteMapOp& operator=(const RemoteMapOp &rhs); 
+      RemoteMapOp& operator=(const RemoteMapOp &rhs) = delete; 
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4551,11 +4547,11 @@ namespace Legion {
     class RemoteCopyOp : public ExternalCopy, public RemoteOp,
                          public LegionHeapify<RemoteCopyOp> {
     public:
-      RemoteCopyOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteCopyOp(const RemoteCopyOp &rhs);
+      RemoteCopyOp(Operation *ptr, AddressSpaceID src);
+      RemoteCopyOp(const RemoteCopyOp &rhs) = delete;
       virtual ~RemoteCopyOp(void);
     public:
-      RemoteCopyOp& operator=(const RemoteCopyOp &rhs);
+      RemoteCopyOp& operator=(const RemoteCopyOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4583,11 +4579,11 @@ namespace Legion {
     class RemoteCloseOp : public ExternalClose, public RemoteOp,
                           public LegionHeapify<RemoteCloseOp> {
     public:
-      RemoteCloseOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteCloseOp(const RemoteCloseOp &rhs);
+      RemoteCloseOp(Operation *ptr, AddressSpaceID src);
+      RemoteCloseOp(const RemoteCloseOp &rhs) = delete;
       virtual ~RemoteCloseOp(void);
     public:
-      RemoteCloseOp& operator=(const RemoteCloseOp &rhs);
+      RemoteCloseOp& operator=(const RemoteCloseOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4615,11 +4611,11 @@ namespace Legion {
     class RemoteAcquireOp : public ExternalAcquire, public RemoteOp,
                             public LegionHeapify<RemoteAcquireOp> {
     public:
-      RemoteAcquireOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteAcquireOp(const RemoteAcquireOp &rhs);
+      RemoteAcquireOp(Operation *ptr, AddressSpaceID src);
+      RemoteAcquireOp(const RemoteAcquireOp &rhs) = delete;
       virtual ~RemoteAcquireOp(void);
     public:
-      RemoteAcquireOp& operator=(const RemoteAcquireOp &rhs);
+      RemoteAcquireOp& operator=(const RemoteAcquireOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4643,11 +4639,11 @@ namespace Legion {
     class RemoteReleaseOp : public ExternalRelease, public RemoteOp,
                             public LegionHeapify<RemoteReleaseOp> {
     public:
-      RemoteReleaseOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteReleaseOp(const RemoteReleaseOp &rhs);
+      RemoteReleaseOp(Operation *ptr, AddressSpaceID src);
+      RemoteReleaseOp(const RemoteReleaseOp &rhs) = delete;
       virtual ~RemoteReleaseOp(void);
     public:
-      RemoteReleaseOp& operator=(const RemoteReleaseOp &rhs);
+      RemoteReleaseOp& operator=(const RemoteReleaseOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4675,11 +4671,11 @@ namespace Legion {
     class RemoteFillOp : public ExternalFill, public RemoteOp,
                          public LegionHeapify<RemoteFillOp> {
     public:
-      RemoteFillOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteFillOp(const RemoteFillOp &rhs);
+      RemoteFillOp(Operation *ptr, AddressSpaceID src);
+      RemoteFillOp(const RemoteFillOp &rhs) = delete;
       virtual ~RemoteFillOp(void);
     public:
-      RemoteFillOp& operator=(const RemoteFillOp &rhs);
+      RemoteFillOp& operator=(const RemoteFillOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4703,7 +4699,7 @@ namespace Legion {
     class RemoteDiscardOp : public RemoteOp,
                             public LegionHeapify<RemoteDiscardOp> {
     public:
-      RemoteDiscardOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
+      RemoteDiscardOp(Operation *ptr, AddressSpaceID src);
       RemoteDiscardOp(const RemoteDiscardOp &rhs) = delete;
       virtual ~RemoteDiscardOp(void);
     public:
@@ -4729,11 +4725,11 @@ namespace Legion {
     class RemotePartitionOp : public ExternalPartition, public RemoteOp,
                               public LegionHeapify<RemotePartitionOp> {
     public:
-      RemotePartitionOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemotePartitionOp(const RemotePartitionOp &rhs);
+      RemotePartitionOp(Operation *ptr, AddressSpaceID src);
+      RemotePartitionOp(const RemotePartitionOp &rhs) = delete;
       virtual ~RemotePartitionOp(void);
     public:
-      RemotePartitionOp& operator=(const RemotePartitionOp &rhs);
+      RemotePartitionOp& operator=(const RemotePartitionOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4764,11 +4760,11 @@ namespace Legion {
     class RemoteAttachOp : public RemoteOp,
                            public LegionHeapify<RemoteAttachOp> {
     public:
-      RemoteAttachOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteAttachOp(const RemoteAttachOp &rhs);
+      RemoteAttachOp(Operation *ptr, AddressSpaceID src);
+      RemoteAttachOp(const RemoteAttachOp &rhs) = delete;
       virtual ~RemoteAttachOp(void);
     public:
-      RemoteAttachOp& operator=(const RemoteAttachOp &rhs);
+      RemoteAttachOp& operator=(const RemoteAttachOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4790,11 +4786,11 @@ namespace Legion {
     class RemoteDetachOp : public RemoteOp,
                            public LegionHeapify<RemoteDetachOp> {
     public:
-      RemoteDetachOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteDetachOp(const RemoteDetachOp &rhs);
+      RemoteDetachOp(Operation *ptr, AddressSpaceID src);
+      RemoteDetachOp(const RemoteDetachOp &rhs) = delete;
       virtual ~RemoteDetachOp(void);
     public:
-      RemoteDetachOp& operator=(const RemoteDetachOp &rhs);
+      RemoteDetachOp& operator=(const RemoteDetachOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4820,11 +4816,11 @@ namespace Legion {
     class RemoteDeletionOp : public RemoteOp,
                              public LegionHeapify<RemoteDeletionOp> {
     public:
-      RemoteDeletionOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteDeletionOp(const RemoteDeletionOp &rhs);
+      RemoteDeletionOp(Operation *ptr, AddressSpaceID src);
+      RemoteDeletionOp(const RemoteDeletionOp &rhs) = delete;
       virtual ~RemoteDeletionOp(void);
     public:
-      RemoteDeletionOp& operator=(const RemoteDeletionOp &rhs);
+      RemoteDeletionOp& operator=(const RemoteDeletionOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4848,11 +4844,11 @@ namespace Legion {
     class RemoteReplayOp : public RemoteOp,
                            public LegionHeapify<RemoteReplayOp> {
     public:
-      RemoteReplayOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteReplayOp(const RemoteReplayOp &rhs);
+      RemoteReplayOp(Operation *ptr, AddressSpaceID src);
+      RemoteReplayOp(const RemoteReplayOp &rhs) = delete;
       virtual ~RemoteReplayOp(void);
     public:
-      RemoteReplayOp& operator=(const RemoteReplayOp &rhs);
+      RemoteReplayOp& operator=(const RemoteReplayOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -4876,11 +4872,11 @@ namespace Legion {
     class RemoteSummaryOp : public RemoteOp,
                             public LegionHeapify<RemoteSummaryOp> {
     public:
-      RemoteSummaryOp(Runtime *rt, Operation *ptr, AddressSpaceID src);
-      RemoteSummaryOp(const RemoteSummaryOp &rhs);
+      RemoteSummaryOp(Operation *ptr, AddressSpaceID src);
+      RemoteSummaryOp(const RemoteSummaryOp &rhs) = delete;
       virtual ~RemoteSummaryOp(void);
     public:
-      RemoteSummaryOp& operator=(const RemoteSummaryOp &rhs);
+      RemoteSummaryOp& operator=(const RemoteSummaryOp &rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;

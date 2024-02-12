@@ -432,12 +432,10 @@ namespace Legion {
         : BroadcastCollective(loc, ctx, origin) { }
       ValueBroadcast(CollectiveID id, ReplicateContext *ctx, ShardID origin)
         : BroadcastCollective(ctx, id, origin) { }
-      ValueBroadcast(const ValueBroadcast &rhs) 
-        : BroadcastCollective(rhs) { assert(false); }
+      ValueBroadcast(const ValueBroadcast &rhs) = delete; 
       virtual ~ValueBroadcast(void) { }
     public:
-      ValueBroadcast& operator=(const ValueBroadcast &rhs)
-        { assert(false); return *this; }
+      ValueBroadcast& operator=(const ValueBroadcast &rhs) = delete;
       inline void broadcast(const T &v) 
         { value = v; perform_collective_async(); }
       inline T get_value(bool wait = true)
@@ -519,12 +517,10 @@ namespace Legion {
                       ReplicateContext *ctx)
         : BroadcastCollective(ctx, id, origin),
           buffer(NULL), size(0), own(false) { }
-      BufferBroadcast(const BufferBroadcast &rhs) 
-        : BroadcastCollective(rhs) { assert(false); }
+      BufferBroadcast(const BufferBroadcast &rhs) = delete;
       virtual ~BufferBroadcast(void) { if (own) free(buffer); }
     public:
-      BufferBroadcast& operator=(const BufferBroadcast &rhs)
-        { assert(false); return *this; }
+      BufferBroadcast& operator=(const BufferBroadcast &rhs) = delete;
       void broadcast(void *buffer, size_t size, bool copy = true);
       const void* get_buffer(size_t &size, bool wait = true);
     public:
@@ -626,10 +622,11 @@ namespace Legion {
     public:
       CrossProductCollective(ReplicateContext *ctx,
                              CollectiveIndexLocation loc);
-      CrossProductCollective(const CrossProductCollective &rhs);
+      CrossProductCollective(const CrossProductCollective &rhs) = delete;
       virtual ~CrossProductCollective(void);
     public:
-      CrossProductCollective& operator=(const CrossProductCollective &rhs);
+      CrossProductCollective& operator=(
+          const CrossProductCollective &rhs) = delete;
     public:
       void exchange_partitions(std::map<IndexSpace,IndexPartition> &handles);
     public:
@@ -652,10 +649,11 @@ namespace Legion {
     public:
       ShardingGatherCollective(ReplicateContext *ctx, ShardID target,
                                CollectiveIndexLocation loc);
-      ShardingGatherCollective(const ShardingGatherCollective &rhs);
+      ShardingGatherCollective(const ShardingGatherCollective &rhs) = delete;
       virtual ~ShardingGatherCollective(void);
     public:
-      ShardingGatherCollective& operator=(const ShardingGatherCollective &rhs);
+      ShardingGatherCollective& operator=(
+          const ShardingGatherCollective &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_SHARDING_GATHER_COLLECTIVE; }
@@ -787,10 +785,10 @@ namespace Legion {
     public:
       BufferExchange(ReplicateContext *ctx,
                      CollectiveIndexLocation loc);
-      BufferExchange(const BufferExchange &rhs);
+      BufferExchange(const BufferExchange &rhs) = delete;
       virtual ~BufferExchange(void);
     public:
-      BufferExchange& operator=(const BufferExchange &rhs);
+      BufferExchange& operator=(const BufferExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_BUFFER_EXCHANGE; }
@@ -814,10 +812,10 @@ namespace Legion {
     class FutureNameExchange : public AllGatherCollective<false> {
     public:
       FutureNameExchange(ReplicateContext *ctx, CollectiveIndexLocation loc);
-      FutureNameExchange(const FutureNameExchange &rhs);
+      FutureNameExchange(const FutureNameExchange &rhs) = delete;
       virtual ~FutureNameExchange(void);
     public:
-      FutureNameExchange& operator=(const FutureNameExchange &rhs);
+      FutureNameExchange& operator=(const FutureNameExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_FUTURE_NAME_EXCHANGE; }
@@ -839,11 +837,11 @@ namespace Legion {
     public:
       MustEpochMappingBroadcast(ReplicateContext *ctx, ShardID origin,
                                 CollectiveID collective_id);
-      MustEpochMappingBroadcast(const MustEpochMappingBroadcast &rhs);
+      MustEpochMappingBroadcast(const MustEpochMappingBroadcast &rhs) = delete;
       virtual ~MustEpochMappingBroadcast(void);
     public:
       MustEpochMappingBroadcast& operator=(
-                                  const MustEpochMappingBroadcast &rhs);
+          const MustEpochMappingBroadcast &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_BROADCAST; }
@@ -880,10 +878,11 @@ namespace Legion {
     public:
       MustEpochMappingExchange(ReplicateContext *ctx,
                                CollectiveID collective_id);
-      MustEpochMappingExchange(const MustEpochMappingExchange &rhs);
+      MustEpochMappingExchange(const MustEpochMappingExchange &rhs) = delete;
       virtual ~MustEpochMappingExchange(void);
     public:
-      MustEpochMappingExchange& operator=(const MustEpochMappingExchange &rhs);
+      MustEpochMappingExchange& operator=(
+          const MustEpochMappingExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_MUST_EPOCH_MAPPING_EXCHANGE; }
@@ -919,11 +918,12 @@ namespace Legion {
     public:
       MustEpochDependenceExchange(ReplicateContext *ctx, 
                                   CollectiveIndexLocation loc);
-      MustEpochDependenceExchange(const MustEpochDependenceExchange &rhs);
+      MustEpochDependenceExchange(
+          const MustEpochDependenceExchange &rhs) = delete;
       virtual ~MustEpochDependenceExchange(void);
     public:
       MustEpochDependenceExchange& operator=(
-                                  const MustEpochDependenceExchange &rhs);
+          const MustEpochDependenceExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_MUST_EPOCH_DEPENDENCE_EXCHANGE; }
@@ -946,11 +946,12 @@ namespace Legion {
     public:
       MustEpochCompletionExchange(ReplicateContext *ctx,
                                   CollectiveIndexLocation loc);
-      MustEpochCompletionExchange(const MustEpochCompletionExchange &rhs);
+      MustEpochCompletionExchange(
+          const MustEpochCompletionExchange &rhs) = delete;
       virtual ~MustEpochCompletionExchange(void);
     public:
       MustEpochCompletionExchange& operator=(
-                                    const MustEpochCompletionExchange &rhs);
+          const MustEpochCompletionExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_MUST_EPOCH_COMPLETION_EXCHANGE; }
@@ -1020,10 +1021,11 @@ namespace Legion {
     class TemplateIndexExchange : public AllGatherCollective<true> {
     public:
       TemplateIndexExchange(ReplicateContext *ctx, CollectiveID id);
-      TemplateIndexExchange(const TemplateIndexExchange &rhs);
+      TemplateIndexExchange(const TemplateIndexExchange &rhs) = delete;
       virtual ~TemplateIndexExchange(void);
     public:
-      TemplateIndexExchange& operator=(const TemplateIndexExchange &rhs);
+      TemplateIndexExchange& operator=(
+          const TemplateIndexExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_TEMPLATE_INDEX_EXCHANGE; }
@@ -1047,10 +1049,10 @@ namespace Legion {
     class UnorderedExchange : public AllGatherCollective<true> {
     public:
       UnorderedExchange(ReplicateContext *ctx, CollectiveIndexLocation loc);
-      UnorderedExchange(const UnorderedExchange &rhs);
+      UnorderedExchange(const UnorderedExchange &rhs) = delete;
       virtual ~UnorderedExchange(void);
     public:
-      UnorderedExchange& operator=(const UnorderedExchange &rhs);
+      UnorderedExchange& operator=(const UnorderedExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_UNORDERED_EXCHANGE; }
@@ -1142,10 +1144,11 @@ namespace Legion {
     public:
       ConsensusMatchExchange(ReplicateContext *ctx, CollectiveIndexLocation loc,
                              Future to_complete, void *output);
-      ConsensusMatchExchange(const ConsensusMatchExchange &rhs);
+      ConsensusMatchExchange(const ConsensusMatchExchange &rhs) = delete;
       virtual ~ConsensusMatchExchange(void);
     public:
-      ConsensusMatchExchange& operator=(const ConsensusMatchExchange &rhs);
+      ConsensusMatchExchange& operator=(
+          const ConsensusMatchExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_CONSENSUS_MATCH; }
@@ -1174,10 +1177,11 @@ namespace Legion {
     public:
       VerifyReplicableExchange(CollectiveIndexLocation loc, 
                                ReplicateContext *ctx);
-      VerifyReplicableExchange(const VerifyReplicableExchange &rhs);
+      VerifyReplicableExchange(const VerifyReplicableExchange &rhs) = delete;
       virtual ~VerifyReplicableExchange(void);
     public:
-      VerifyReplicableExchange& operator=(const VerifyReplicableExchange &rhs);
+      VerifyReplicableExchange& operator=(
+          const VerifyReplicableExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_VERIFY_CONTROL_REPLICATION_EXCHANGE; }
@@ -1229,10 +1233,11 @@ namespace Legion {
     public:
       IndexAttachLaunchSpace(ReplicateContext *ctx,
                              CollectiveIndexLocation loc);
-      IndexAttachLaunchSpace(const IndexAttachLaunchSpace &rhs);
+      IndexAttachLaunchSpace(const IndexAttachLaunchSpace &rhs) = delete;
       virtual ~IndexAttachLaunchSpace(void);
     public:
-      IndexAttachLaunchSpace& operator=(const IndexAttachLaunchSpace &rhs);
+      IndexAttachLaunchSpace& operator=(
+          const IndexAttachLaunchSpace &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_INDEX_ATTACH_LAUNCH_SPACE; }
@@ -1257,10 +1262,11 @@ namespace Legion {
       IndexAttachUpperBound(ReplicateContext *ctx,
                             CollectiveIndexLocation loc,
                             RegionTreeForest *forest);
-      IndexAttachUpperBound(const IndexAttachUpperBound &rhs);
+      IndexAttachUpperBound(const IndexAttachUpperBound &rhs) = delete;
       virtual ~IndexAttachUpperBound(void);
     public:
-      IndexAttachUpperBound& operator=(const IndexAttachUpperBound &rhs);
+      IndexAttachUpperBound& operator=(
+          const IndexAttachUpperBound &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_INDEX_ATTACH_UPPER_BOUND; }
@@ -1284,10 +1290,10 @@ namespace Legion {
     public:
       IndexAttachExchange(ReplicateContext *ctx,
                           CollectiveIndexLocation loc);
-      IndexAttachExchange(const IndexAttachExchange &rhs);
+      IndexAttachExchange(const IndexAttachExchange &rhs) = delete;
       virtual ~IndexAttachExchange(void);
     public:
-      IndexAttachExchange& operator=(const IndexAttachExchange &rhs);
+      IndexAttachExchange& operator=(const IndexAttachExchange &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_INDEX_ATTACH_EXCHANGE; }
@@ -1339,10 +1345,11 @@ namespace Legion {
       ImplicitShardingFunctor(ReplicateContext *ctx,
                               CollectiveIndexLocation loc,
                               ReplFutureMapImpl *map);
-      ImplicitShardingFunctor(const ImplicitShardingFunctor &rhs);
+      ImplicitShardingFunctor(const ImplicitShardingFunctor &rhs) = delete;
       virtual ~ImplicitShardingFunctor(void);
     public:
-      ImplicitShardingFunctor& operator=(const ImplicitShardingFunctor &rhs);
+      ImplicitShardingFunctor& operator=(
+          const ImplicitShardingFunctor &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_IMPLICIT_SHARDING_FUNCTOR; }
@@ -1700,10 +1707,10 @@ namespace Legion {
     class SlowBarrier : public AllGatherCollective<false> {
     public:
       SlowBarrier(ReplicateContext *ctx, CollectiveID id);
-      SlowBarrier(const SlowBarrier &rhs);
+      SlowBarrier(const SlowBarrier &rhs) = delete;
       virtual ~SlowBarrier(void);
     public:
-      SlowBarrier& operator=(const SlowBarrier &rhs);
+      SlowBarrier& operator=(const SlowBarrier &rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
         { return SEND_CONTROL_REPLICATION_SLOW_BARRIER; }
@@ -1840,7 +1847,7 @@ namespace Legion {
     public:
       typedef typename OP::RegionVersioning RegionVersioning;
     public:
-      ReplCollectiveVersioning(Runtime *rt);
+      ReplCollectiveVersioning(void);
       ReplCollectiveVersioning(
           const ReplCollectiveVersioning<OP> &rhs) = delete;
     public:
@@ -1877,7 +1884,7 @@ namespace Legion {
       typedef typename OP::RendezvousKey RendezvousKey;
       typedef typename OP::CollectiveRendezvous CollectiveRendezvous;
     public:
-      ReplCollectiveViewCreator(Runtime *rt);
+      ReplCollectiveViewCreator(void);
       ReplCollectiveViewCreator(
           const ReplCollectiveViewCreator<OP> &rhs) = delete;
     public:
@@ -1906,11 +1913,11 @@ namespace Legion {
      */
     class ReplIndividualTask : public IndividualTask {
     public:
-      ReplIndividualTask(Runtime *rt);
-      ReplIndividualTask(const ReplIndividualTask &rhs);
+      ReplIndividualTask(void);
+      ReplIndividualTask(const ReplIndividualTask &rhs) = delete;
       virtual ~ReplIndividualTask(void);
     public:
-      ReplIndividualTask& operator=(const ReplIndividualTask &rhs);
+      ReplIndividualTask& operator=(const ReplIndividualTask &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -1954,7 +1961,7 @@ namespace Legion {
      */
     class ReplIndexTask : public ReplCollectiveViewCreator<IndexTask> {
     public:
-      ReplIndexTask(Runtime *rt);
+      ReplIndexTask(void);
       ReplIndexTask(const ReplIndexTask &rhs) = delete;
       virtual ~ReplIndexTask(void);
     public:
@@ -2036,11 +2043,11 @@ namespace Legion {
      */
     class ReplMergeCloseOp : public MergeCloseOp {
     public:
-      ReplMergeCloseOp(Runtime *runtime);
-      ReplMergeCloseOp(const ReplMergeCloseOp &rhs);
+      ReplMergeCloseOp(void);
+      ReplMergeCloseOp(const ReplMergeCloseOp &rhs) = delete;
       virtual ~ReplMergeCloseOp(void);
     public:
-      ReplMergeCloseOp& operator=(const ReplMergeCloseOp &rhs);
+      ReplMergeCloseOp& operator=(const ReplMergeCloseOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -2059,7 +2066,7 @@ namespace Legion {
     class ReplVirtualCloseOp :
       public ReplCollectiveVersioning<CollectiveVersioning<VirtualCloseOp> > {
     public:
-      ReplVirtualCloseOp(Runtime *runtime);
+      ReplVirtualCloseOp(void);
       ReplVirtualCloseOp(const ReplVirtualCloseOp &rhs) = delete;
       virtual ~ReplVirtualCloseOp(void);
     public:
@@ -2085,11 +2092,11 @@ namespace Legion {
      */
     class ReplRefinementOp : public RefinementOp {
     public:
-      ReplRefinementOp(Runtime *runtime);
-      ReplRefinementOp(const ReplRefinementOp &rhs);
+      ReplRefinementOp(void);
+      ReplRefinementOp(const ReplRefinementOp &rhs) = delete;
       virtual ~ReplRefinementOp(void);
     public:
-      ReplRefinementOp& operator=(const ReplRefinementOp &rhs);
+      ReplRefinementOp& operator=(const ReplRefinementOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -2110,7 +2117,7 @@ namespace Legion {
      */
     class ReplResetOp : public ResetOp {
     public:
-      ReplResetOp(Runtime *runtime);
+      ReplResetOp(void);
       ReplResetOp(const ReplResetOp &rhs) = delete;
       virtual ~ReplResetOp(void);
     public:
@@ -2134,7 +2141,7 @@ namespace Legion {
     class ReplFillOp : 
       public ReplCollectiveVersioning<CollectiveVersioning<FillOp> > {
     public:
-      ReplFillOp(Runtime *rt);
+      ReplFillOp(void);
       ReplFillOp(const ReplFillOp &rhs) = delete;
       virtual ~ReplFillOp(void);
     public:
@@ -2175,11 +2182,11 @@ namespace Legion {
      */
     class ReplIndexFillOp : public IndexFillOp {
     public:
-      ReplIndexFillOp(Runtime *rt);
-      ReplIndexFillOp(const ReplIndexFillOp &rhs);
+      ReplIndexFillOp(void);
+      ReplIndexFillOp(const ReplIndexFillOp &rhs) = delete;
       virtual ~ReplIndexFillOp(void);
     public:
-      ReplIndexFillOp& operator=(const ReplIndexFillOp &rhs);
+      ReplIndexFillOp& operator=(const ReplIndexFillOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -2220,7 +2227,7 @@ namespace Legion {
     class ReplDiscardOp : 
       public ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> > {
     public:
-      ReplDiscardOp(Runtime *rt);
+      ReplDiscardOp(void);
       ReplDiscardOp(const ReplDiscardOp &rhs) = delete;
       virtual ~ReplDiscardOp(void);
     public:
@@ -2250,11 +2257,11 @@ namespace Legion {
      */
     class ReplCopyOp : public CopyOp {
     public:
-      ReplCopyOp(Runtime *rt);
-      ReplCopyOp(const ReplCopyOp &rhs);
+      ReplCopyOp(void);
+      ReplCopyOp(const ReplCopyOp &rhs) = delete;
       virtual ~ReplCopyOp(void);
     public:
-      ReplCopyOp& operator=(const ReplCopyOp &rhs);
+      ReplCopyOp& operator=(const ReplCopyOp &rhs) = delete;
     public:
       void initialize_replication(ReplicateContext *ctx);
     public:
@@ -2285,11 +2292,11 @@ namespace Legion {
      */
     class ReplIndexCopyOp : public IndexCopyOp {
     public:
-      ReplIndexCopyOp(Runtime *rt);
-      ReplIndexCopyOp(const ReplIndexCopyOp &rhs);
+      ReplIndexCopyOp(void);
+      ReplIndexCopyOp(const ReplIndexCopyOp &rhs) = delete;
       virtual ~ReplIndexCopyOp(void);
     public:
-      ReplIndexCopyOp& operator=(const ReplIndexCopyOp &rhs);
+      ReplIndexCopyOp& operator=(const ReplIndexCopyOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -2342,7 +2349,7 @@ namespace Legion {
     class ReplDeletionOp : 
       public ReplCollectiveVersioning<CollectiveVersioning<DeletionOp> > {
     public:
-      ReplDeletionOp(Runtime *rt);
+      ReplDeletionOp(void);
       ReplDeletionOp(const ReplDeletionOp &rhs) = delete;
       virtual ~ReplDeletionOp(void);
     public:
@@ -2381,11 +2388,12 @@ namespace Legion {
      */
     class ReplPendingPartitionOp : public PendingPartitionOp {
     public:
-      ReplPendingPartitionOp(Runtime *rt);
-      ReplPendingPartitionOp(const ReplPendingPartitionOp &rhs);
+      ReplPendingPartitionOp(void);
+      ReplPendingPartitionOp(const ReplPendingPartitionOp &rhs) = delete;
       virtual ~ReplPendingPartitionOp(void);
     public:
-      ReplPendingPartitionOp& operator=(const ReplPendingPartitionOp &rhs);
+      ReplPendingPartitionOp& operator=(
+          const ReplPendingPartitionOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -2403,7 +2411,7 @@ namespace Legion {
     class ReplDependentPartitionOp : public ReplCollectiveViewCreator<
                             CollectiveViewCreator<DependentPartitionOp> > {
     public:
-      ReplDependentPartitionOp(Runtime *rt);
+      ReplDependentPartitionOp(void);
       ReplDependentPartitionOp(const ReplDependentPartitionOp &rhs) = delete;
       virtual ~ReplDependentPartitionOp(void);
     public:
@@ -2477,11 +2485,11 @@ namespace Legion {
         const RtUserEvent done;
       };
     public:
-      ReplMustEpochOp(Runtime *rt);
-      ReplMustEpochOp(const ReplMustEpochOp &rhs);
+      ReplMustEpochOp(void);
+      ReplMustEpochOp(const ReplMustEpochOp &rhs) = delete;
       virtual ~ReplMustEpochOp(void);
     public:
-      ReplMustEpochOp& operator=(const ReplMustEpochOp &rhs);
+      ReplMustEpochOp& operator=(const ReplMustEpochOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -2544,11 +2552,11 @@ namespace Legion {
      */
     class ReplTimingOp : public TimingOp {
     public:
-      ReplTimingOp(Runtime *rt);
-      ReplTimingOp(const ReplTimingOp &rhs);
+      ReplTimingOp(void);
+      ReplTimingOp(const ReplTimingOp &rhs) = delete;
       virtual ~ReplTimingOp(void);
     public:
-      ReplTimingOp& operator=(const ReplTimingOp &rhs);
+      ReplTimingOp& operator=(const ReplTimingOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -2569,11 +2577,11 @@ namespace Legion {
      */
     class ReplTunableOp : public TunableOp {
     public:
-      ReplTunableOp(Runtime *rt);
-      ReplTunableOp(const ReplTunableOp &rhs);
+      ReplTunableOp(void);
+      ReplTunableOp(const ReplTunableOp &rhs) = delete;
       virtual ~ReplTunableOp(void);
     public:
-      ReplTunableOp& operator=(const ReplTunableOp &rhs);
+      ReplTunableOp& operator=(const ReplTunableOp &rhs) = delete;
     public:
       void initialize_replication(ReplicateContext *context);
     public:
@@ -2592,7 +2600,7 @@ namespace Legion {
      */
     class ReplAllReduceOp : public AllReduceOp {
     public:
-      ReplAllReduceOp(Runtime *rt);
+      ReplAllReduceOp(void);
       ReplAllReduceOp(const ReplAllReduceOp &rhs) = delete;
       virtual ~ReplAllReduceOp(void);
     public:
@@ -2622,11 +2630,11 @@ namespace Legion {
      */
     class ReplFenceOp : public FenceOp {
     public:
-      ReplFenceOp(Runtime *rt);
-      ReplFenceOp(const ReplFenceOp &rhs);
+      ReplFenceOp(void);
+      ReplFenceOp(const ReplFenceOp &rhs) = delete;
       virtual ~ReplFenceOp(void);
     public:
-      ReplFenceOp& operator=(const ReplFenceOp &rhs);
+      ReplFenceOp& operator=(const ReplFenceOp &rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -2654,7 +2662,7 @@ namespace Legion {
     class ReplMapOp : 
       public ReplCollectiveViewCreator<CollectiveViewCreator<MapOp> > {
     public:
-      ReplMapOp(Runtime *rt);
+      ReplMapOp(void);
       ReplMapOp(const ReplMapOp &rhs) = delete;
       virtual ~ReplMapOp(void);
     public:
@@ -2689,7 +2697,7 @@ namespace Legion {
     class ReplAttachOp : 
       public ReplCollectiveViewCreator<CollectiveViewCreator<AttachOp> > {
     public:
-      ReplAttachOp(Runtime *rt);
+      ReplAttachOp(void);
       ReplAttachOp(const ReplAttachOp &rhs) = delete;
       virtual ~ReplAttachOp(void);
     public:
@@ -2747,7 +2755,7 @@ namespace Legion {
      */
     class ReplIndexAttachOp : public ReplCollectiveViewCreator<IndexAttachOp> {
     public:
-      ReplIndexAttachOp(Runtime *rt);
+      ReplIndexAttachOp(void);
       ReplIndexAttachOp(const ReplIndexAttachOp &rhs) = delete;
       virtual ~ReplIndexAttachOp(void);
     public:
@@ -2778,7 +2786,7 @@ namespace Legion {
     class ReplDetachOp : 
       public ReplCollectiveViewCreator<CollectiveViewCreator<DetachOp> > {
     public:
-      ReplDetachOp(Runtime *rt);
+      ReplDetachOp(void);
       ReplDetachOp(const ReplDetachOp &rhs) = delete;
       virtual ~ReplDetachOp(void);
     public:
@@ -2819,7 +2827,7 @@ namespace Legion {
      */
     class ReplIndexDetachOp : public ReplCollectiveViewCreator<IndexDetachOp> {
     public:
-      ReplIndexDetachOp(Runtime *rt);
+      ReplIndexDetachOp(void);
       ReplIndexDetachOp(const ReplIndexDetachOp &rhs) = delete;
       virtual ~ReplIndexDetachOp(void);
     public:
@@ -2852,7 +2860,7 @@ namespace Legion {
     class ReplAcquireOp : 
       public ReplCollectiveViewCreator<CollectiveViewCreator<AcquireOp> > {
     public:
-      ReplAcquireOp(Runtime *rt);
+      ReplAcquireOp(void);
       ReplAcquireOp(const ReplAcquireOp &rhs) = delete;
       virtual ~ReplAcquireOp(void);
     public:
@@ -2886,7 +2894,7 @@ namespace Legion {
     class ReplReleaseOp : 
       public ReplCollectiveViewCreator<CollectiveViewCreator<ReleaseOp> > {
     public:
-      ReplReleaseOp(Runtime *rt);
+      ReplReleaseOp(void);
       ReplReleaseOp(const ReplReleaseOp &rhs) = delete;
       virtual ~ReplReleaseOp(void);
     public:
@@ -2921,11 +2929,11 @@ namespace Legion {
      */
     class ReplTraceOp : public ReplFenceOp {
     public:
-      ReplTraceOp(Runtime *rt);
-      ReplTraceOp(const ReplTraceOp &rhs);
+      ReplTraceOp(void);
+      ReplTraceOp(const ReplTraceOp &rhs) = delete;
       virtual ~ReplTraceOp(void);
     public:
-      ReplTraceOp& operator=(const ReplTraceOp &rhs);
+      ReplTraceOp& operator=(const ReplTraceOp &rhs) = delete;
     public:
       virtual bool is_tracing_fence(void) const override { return true; }
       virtual void sync_for_replayable_check(void);
@@ -2941,11 +2949,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_CAPTURE_OP_ALLOC;
     public:
-      ReplTraceCaptureOp(Runtime *rt);
-      ReplTraceCaptureOp(const ReplTraceCaptureOp &rhs);
+      ReplTraceCaptureOp(void);
+      ReplTraceCaptureOp(const ReplTraceCaptureOp &rhs) = delete;
       virtual ~ReplTraceCaptureOp(void);
     public:
-      ReplTraceCaptureOp& operator=(const ReplTraceCaptureOp &rhs);
+      ReplTraceCaptureOp& operator=(const ReplTraceCaptureOp &rhs) = delete;
     public:
       void initialize_capture(ReplicateContext *ctx, Provenance *provenance,
           bool has_blocking_call, bool remove_trace_reference);
@@ -2979,11 +2987,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_COMPLETE_OP_ALLOC;
     public:
-      ReplTraceCompleteOp(Runtime *rt);
-      ReplTraceCompleteOp(const ReplTraceCompleteOp &rhs);
+      ReplTraceCompleteOp(void);
+      ReplTraceCompleteOp(const ReplTraceCompleteOp &rhs) = delete;
       virtual ~ReplTraceCompleteOp(void);
     public:
-      ReplTraceCompleteOp& operator=(const ReplTraceCompleteOp &rhs);
+      ReplTraceCompleteOp& operator=(const ReplTraceCompleteOp &rhs) = delete;
     public:
       void initialize_complete(ReplicateContext *ctx, Provenance *provenance,
                                bool has_blocking_call);
@@ -3018,11 +3026,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_REPLAY_OP_ALLOC;
     public:
-      ReplTraceReplayOp(Runtime *rt);
-      ReplTraceReplayOp(const ReplTraceReplayOp &rhs);
+      ReplTraceReplayOp(void);
+      ReplTraceReplayOp(const ReplTraceReplayOp &rhs) = delete;
       virtual ~ReplTraceReplayOp(void);
     public:
-      ReplTraceReplayOp& operator=(const ReplTraceReplayOp &rhs);
+      ReplTraceReplayOp& operator=(const ReplTraceReplayOp &rhs) = delete;
     public:
       void initialize_replay(ReplicateContext *ctx, LogicalTrace *trace,
                              Provenance *provenance);
@@ -3054,11 +3062,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_BEGIN_OP_ALLOC;
     public:
-      ReplTraceBeginOp(Runtime *rt);
-      ReplTraceBeginOp(const ReplTraceBeginOp &rhs);
+      ReplTraceBeginOp(void);
+      ReplTraceBeginOp(const ReplTraceBeginOp &rhs) = delete;
       virtual ~ReplTraceBeginOp(void);
     public:
-      ReplTraceBeginOp& operator=(const ReplTraceBeginOp &rhs);
+      ReplTraceBeginOp& operator=(const ReplTraceBeginOp &rhs) = delete;
     public:
       void initialize_begin(ReplicateContext *ctx, LogicalTrace *trace,
                             Provenance *provenance);
@@ -3078,11 +3086,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_SUMMARY_OP_ALLOC;
     public:
-      ReplTraceSummaryOp(Runtime *rt);
-      ReplTraceSummaryOp(const ReplTraceSummaryOp &rhs);
+      ReplTraceSummaryOp(void);
+      ReplTraceSummaryOp(const ReplTraceSummaryOp &rhs) = delete;
       virtual ~ReplTraceSummaryOp(void);
     public:
-      ReplTraceSummaryOp& operator=(const ReplTraceSummaryOp &rhs);
+      ReplTraceSummaryOp& operator=(const ReplTraceSummaryOp &rhs) = delete;
     public:
       void initialize_summary(ReplicateContext *ctx,
                               ShardedPhysicalTemplate *tpl,
@@ -3111,11 +3119,11 @@ namespace Legion {
     class ShardMapping : public Collectable {
     public:
       ShardMapping(void);
-      ShardMapping(const ShardMapping &rhs);
+      ShardMapping(const ShardMapping &rhs) = delete;
       ShardMapping(const std::vector<AddressSpaceID> &spaces);
       ~ShardMapping(void);
     public:
-      ShardMapping& operator=(const ShardMapping &rhs);
+      ShardMapping& operator=(const ShardMapping &rhs) = delete;
       AddressSpaceID operator[](unsigned idx) const;
       AddressSpaceID& operator[](unsigned idx);
     public:
@@ -3156,7 +3164,7 @@ namespace Legion {
         unsigned done_count;
       };
     public:
-      ShardManager(Runtime *rt, DistributedID did,
+      ShardManager(DistributedID did,
                    CollectiveMapping *mapping, unsigned local_count,
                    bool top, bool isomorphic_points, bool cr,
                    const Domain &shard_domain,
@@ -3352,37 +3360,32 @@ namespace Legion {
       void send_find_or_create_collective_view(ShardID target, Serializer &rez);
       void handle_find_or_create_collective_view(Deserializer &derez);
     public:
-      static void handle_distribution(Deserializer &derez, Runtime *rt); 
-      static void handle_collective_versioning(Deserializer &derez,Runtime *rt);
-      static void handle_collective_mapping(Deserializer &derez, Runtime *rt);
-      static void handle_virtual_rendezvous(Deserializer &derez, Runtime *rt);
-      static void handle_post_mapped(Deserializer &derez, Runtime *rt);
-      static void handle_post_execution(Deserializer &derez, Runtime *rt);
-      static void handle_trigger_complete(Deserializer &derez, Runtime *rt);
-      static void handle_trigger_commit(Deserializer &derez, Runtime *rt);
-      static void handle_collective_message(Deserializer &derez, Runtime *rt);
-      static void handle_rendezvous_message(Deserializer &derez, Runtime *rt);
-      static void handle_compute_equivalence_sets(Deserializer &derez,
-                                                  Runtime *runtime);
-      static void handle_output_equivalence_set(Deserializer &derez,
-                                                Runtime *runtime);
-      static void handle_refine_equivalence_sets(Deserializer &derez,
-                                                 Runtime *runtime);
-      static void handle_equivalence_set_notification(Deserializer &derez, 
-                                                      Runtime *rt);
-      static void handle_intra_space_dependence(Deserializer &derez, 
-                                                Runtime *rt);
-      static void handle_broadcast_update(Deserializer &derez, Runtime *rt);
-      static void handle_created_regions(Deserializer &derez, Runtime *rt);
-      static void handle_trace_event_request(Deserializer &derez, Runtime *rt,
+      static void handle_distribution(Deserializer &derez); 
+      static void handle_collective_versioning(Deserializer &derez);
+      static void handle_collective_mapping(Deserializer &derez);
+      static void handle_virtual_rendezvous(Deserializer &derez);
+      static void handle_post_mapped(Deserializer &derez);
+      static void handle_post_execution(Deserializer &derez);
+      static void handle_trigger_complete(Deserializer &derez);
+      static void handle_trigger_commit(Deserializer &derez);
+      static void process_collective_message(Deserializer &derez);
+      static void process_rendezvous_message(Deserializer &derez);
+      static void process_compute_equivalence_sets(Deserializer &derez);
+      static void process_output_equivalence_set(Deserializer &derez);
+      static void process_refine_equivalence_sets(Deserializer &derez);
+      static void process_equivalence_set_notification(Deserializer &derez); 
+      static void process_intra_space_dependence(Deserializer &derez); 
+      static void handle_broadcast_update(Deserializer &derez);
+      static void handle_created_regions(Deserializer &derez);
+      static void handle_trace_event_request(Deserializer &derez,
                                              AddressSpaceID request_source);
       static void handle_trace_event_response(Deserializer &derez);
-      static void handle_trace_frontier_request(Deserializer &derez,Runtime *rt,
+      static void handle_trace_frontier_request(Deserializer &derez,
                                                 AddressSpaceID request_source);
       static void handle_trace_frontier_response(Deserializer &derez);
-      static void handle_trace_update(Deserializer &derez, Runtime *rt,
+      static void process_trace_update(Deserializer &derez,
                                       AddressSpaceID source);
-      static void handle_find_collective_view(Deserializer &derez, Runtime *rt);
+      static void handle_find_collective_view(Deserializer &derez);
     public:
       ShardingFunction* find_sharding_function(ShardingID sid, 
                                                bool skip_check = false);

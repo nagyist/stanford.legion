@@ -2340,7 +2340,7 @@ namespace Legion {
     // our context implicitly
     extern thread_local TaskContext *implicit_context;
     // Same thing for the runtime
-    extern thread_local Runtime *implicit_runtime;
+    extern thread_local Runtime *runtime;
     // Another nasty global variable for tracking the fast
     // reservations that we are holding
     extern thread_local AutoLock *local_lock_list;

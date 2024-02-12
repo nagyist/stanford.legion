@@ -152,11 +152,11 @@ namespace Legion {
         const RtUserEvent ready;
       };   
     public:
-      RegionTreeForest(Runtime *rt);
-      RegionTreeForest(const RegionTreeForest &rhs);
+      RegionTreeForest(void);
+      RegionTreeForest(const RegionTreeForest &rhs) = delete;
       ~RegionTreeForest(void);
     public:
-      RegionTreeForest& operator=(const RegionTreeForest &rhs);
+      RegionTreeForest& operator=(const RegionTreeForest &rhs) = delete;
     public:
       IndexSpaceNode* create_index_space(IndexSpace handle, 
                               const Domain *domain,
@@ -932,8 +932,6 @@ namespace Legion {
     protected:
       IndexSpaceExpression* unpack_expression_value(Deserializer &derez,
                                                     AddressSpaceID source);
-    public:
-      Runtime *const runtime;
     protected:
       mutable LocalLock lookup_lock;
       mutable LocalLock lookup_is_op_lock;
@@ -1033,9 +1031,9 @@ namespace Legion {
         const bool recurrent_replay;
       };
     public:
-      CopyAcrossExecutor(Runtime *rt, const bool preimages,
+      CopyAcrossExecutor(const bool preimages,
                          const std::map<Reservation,bool> &rsrvs)
-        : runtime(rt), reservations(rsrvs), priority(0),
+        : reservations(rsrvs), priority(0),
           compute_preimages(preimages) { }
       virtual ~CopyAcrossExecutor(void) { }
     public:
@@ -1054,7 +1052,6 @@ namespace Legion {
     public:
       static void handle_deferred_copy_across(const void *args);
     public:
-      Runtime *const runtime; 
       // Reservations that must be acquired for performing this copy
       // across and whether they need to be acquired with exclusive
       // permissions or not
@@ -1071,9 +1068,9 @@ namespace Legion {
      */
     class CopyAcrossUnstructured : public CopyAcrossExecutor {
     public:
-      CopyAcrossUnstructured(Runtime *rt, const bool preimages,
+      CopyAcrossUnstructured(const bool preimages,
                              const std::map<Reservation,bool> &rsrvs)
-        : CopyAcrossExecutor(rt, preimages, rsrvs),
+        : CopyAcrossExecutor(preimages, rsrvs),
           src_indirect_field(0), dst_indirect_field(0),
           src_indirect_instance(PhysicalInstance::NO_INST),
           dst_indirect_instance(PhysicalInstance::NO_INST) { }
@@ -1190,8 +1187,7 @@ namespace Legion {
         bool empty;
       };
     public:
-      CopyAcrossUnstructuredT(Runtime *runtime, 
-                              IndexSpaceExpression *expr,
+      CopyAcrossUnstructuredT(IndexSpaceExpression *expr,
                               const DomainT<DIM,T> &domain,
                               ApEvent domain_ready,
                               const std::map<Reservation,bool> &rsrvs,
@@ -1292,7 +1288,7 @@ namespace Legion {
       };
     public:
       IndexSpaceExpression(LocalLock &lock);
-      IndexSpaceExpression(TypeTag tag, Runtime *runtime, LocalLock &lock); 
+      IndexSpaceExpression(TypeTag tag, LocalLock &lock); 
       IndexSpaceExpression(TypeTag tag, IndexSpaceExprID id, LocalLock &lock);
       virtual ~IndexSpaceExpression(void);
     public:
@@ -1419,7 +1415,7 @@ namespace Legion {
           ShardID local_shard = 0) = 0;
     public:
       static void handle_tighten_index_space(const void *args);
-      static AddressSpaceID get_owner_space(IndexSpaceExprID id, Runtime *rt);
+      static AddressSpaceID get_owner_space(IndexSpaceExprID id);
     public:
       void add_derived_operation(IndexSpaceOperation *op);
       void remove_derived_operation(IndexSpaceOperation *op);
@@ -2108,12 +2104,11 @@ namespace Legion {
       };
       class IndexSpaceSetFunctor {
       public:
-        IndexSpaceSetFunctor(Runtime *rt, AddressSpaceID src, Serializer &r)
-          : runtime(rt), source(src), rez(r) { }
+        IndexSpaceSetFunctor(AddressSpaceID src, Serializer &r)
+          : source(src), rez(r) { }
       public:
         void apply(AddressSpaceID target);
       public:
-        Runtime *const runtime;
         const AddressSpaceID source;
         Serializer &rez;
       };
@@ -2139,7 +2134,7 @@ namespace Legion {
       virtual IndexPartNode* as_index_part_node(void);
 #endif
       virtual AddressSpaceID get_owner_space(void) const;
-      static AddressSpaceID get_owner_space(IndexSpace handle, Runtime *rt);
+      static AddressSpaceID get_owner_space(IndexSpace handle);
     public:
       virtual IndexTreeNode* get_parent(void) const;
       virtual LegionColor get_colors(std::vector<LegionColor> &colors);
@@ -3139,7 +3134,6 @@ namespace Legion {
           ShardID dst_upper_shard, RegionNode *region) const = 0;
       virtual void invalidate_shard_tree(const Domain &domain,
                                          const FieldMask &mask,
-                                         Runtime *runtime,
                                          std::vector<RtEvent> &invalidated) = 0;
       // Return true if we should remove the reference on the origin tracker
       virtual unsigned cancel_subscription(EqSetTracker *tracker,
@@ -3212,17 +3206,15 @@ namespace Legion {
           ShardID source_shard, ShardID dst_lower_shard,
           ShardID dst_upper_shard, RegionNode *region) const = 0;
       virtual void invalidate_tree(const Rect<DIM,T> &rect,
-                                   const FieldMask &mask, Runtime *runtime,
+                                   const FieldMask &mask,
                                    std::vector<RtEvent> &invalidated_events,
                                    bool move_to_previous,
                                    FieldMask *parent_all_previous = NULL) = 0;
       virtual void invalidate_shard_tree(const Domain &domain,
                                          const FieldMask &mask,
-                                         Runtime *runtime,
                                          std::vector<RtEvent> &invalidated);
       virtual void invalidate_shard_tree_remote(const Rect<DIM,T> &rect,
                                          const FieldMask &mask,
-                                         Runtime *runtime,
                                          std::vector<RtEvent> &invalidated,
           std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
           ShardID local_shard = 0) = 0;
@@ -3286,13 +3278,12 @@ namespace Legion {
           ShardID source_shard, ShardID dst_lower_shard,
           ShardID dst_upper_shard, RegionNode *region) const;
       virtual void invalidate_tree(const Rect<DIM,T> &rect,
-                                   const FieldMask &mask, Runtime *runtime,
+                                   const FieldMask &mask,
                                    std::vector<RtEvent> &invalidated_events,
                                    bool move_to_previous,
                                    FieldMask *parent_all_previous = NULL);
       virtual void invalidate_shard_tree_remote(const Rect<DIM,T> &rect,
                                          const FieldMask &mask,
-                                         Runtime *runtime,
                                          std::vector<RtEvent> &invalidated,
           std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
           ShardID local_shard = 0);
@@ -3404,13 +3395,12 @@ namespace Legion {
           ShardID source_shard, ShardID dst_lower_shard,
           ShardID dst_upper_shard, RegionNode *region) const;
       virtual void invalidate_tree(const Rect<DIM,T> &rect,
-                                   const FieldMask &mask, Runtime *runtime,
+                                   const FieldMask &mask,
                                    std::vector<RtEvent> &invalidated_events,
                                    bool move_to_previous,
                                    FieldMask *parent_all_previous = NULL);
       virtual void invalidate_shard_tree_remote(const Rect<DIM,T> &rect,
                                          const FieldMask &mask,
-                                         Runtime *runtime,
                                          std::vector<RtEvent> &invalidated,
           std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
           ShardID local_shard = 0);
@@ -3472,13 +3462,12 @@ namespace Legion {
           ShardID source_shard, ShardID dst_lower_shard,
           ShardID dst_upper_shard, RegionNode *region) const;
       virtual void invalidate_tree(const Rect<DIM,T> &rect,
-                                   const FieldMask &mask, Runtime *runtime,
+                                   const FieldMask &mask,
                                    std::vector<RtEvent> &invalidated_events,
                                    bool move_to_previous,
                                    FieldMask *parent_all_previous = NULL);
       virtual void invalidate_shard_tree_remote(const Rect<DIM,T> &rect,
                                          const FieldMask &mask,
-                                         Runtime *runtime,
                                          std::vector<RtEvent> &invalidated,
           std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
           ShardID local_shard = 0);
@@ -3609,12 +3598,11 @@ namespace Legion {
       };
       class RemoteDisjointnessFunctor {
       public:
-        RemoteDisjointnessFunctor(Serializer &r, Runtime *rt);
+        RemoteDisjointnessFunctor(Serializer &r);
       public:
         void apply(AddressSpaceID target);
       public:
         Serializer &rez;
-        Runtime *const runtime;
       };
     protected:
       class InterferenceEntry {
@@ -3629,7 +3617,7 @@ namespace Legion {
       };
       class RemoteKDTracker {
       public:
-        RemoteKDTracker(Runtime *runtime);
+        RemoteKDTracker(void);
       public:
         RtEvent find_remote_interfering(const std::set<AddressSpaceID> &targets,
                           IndexPartition handle, IndexSpaceExpression *expr);
@@ -3638,7 +3626,6 @@ namespace Legion {
       protected:
         mutable LocalLock tracker_lock;
         std::set<LegionColor> remote_colors;
-        Runtime *const runtime;
         RtUserEvent done_event;
         std::atomic<unsigned> remaining;
       };
@@ -3667,7 +3654,7 @@ namespace Legion {
       virtual IndexPartNode* as_index_part_node(void);
 #endif
       virtual AddressSpaceID get_owner_space(void) const;
-      static AddressSpaceID get_owner_space(IndexPartition handle, Runtime *rt);
+      static AddressSpaceID get_owner_space(IndexPartition handle);
     public:
       virtual IndexTreeNode* get_parent(void) const;
       virtual LegionColor get_colors(std::vector<LegionColor> &colors);
@@ -4062,7 +4049,7 @@ namespace Legion {
     public:
       FieldSpaceNode& operator=(const FieldSpaceNode &rhs) = delete;
       AddressSpaceID get_owner_space(void) const; 
-      static AddressSpaceID get_owner_space(FieldSpace handle, Runtime *rt);
+      static AddressSpaceID get_owner_space(FieldSpace handle);
     public:
       virtual void notify_local(void) { }
     public:
@@ -4188,7 +4175,7 @@ namespace Legion {
             RegionNode *node, const std::vector<CustomSerdezID> &serdez,
             DistributedID did, CollectiveMapping *collective_mapping = NULL);
       static void handle_external_create_request(Deserializer &derez,
-                                Runtime *runtime, AddressSpaceID source);
+                                AddressSpaceID source);
       static void handle_external_create_response(Deserializer &derez);
     public:
       LayoutDescription* find_layout_description(const FieldMask &field_mask,
@@ -4335,7 +4322,7 @@ namespace Legion {
                      CollectiveMapping *mapping = NULL);
       virtual ~RegionTreeNode(void);
     public:
-      static AddressSpaceID get_owner_space(RegionTreeID tid, Runtime *rt);
+      static AddressSpaceID get_owner_space(RegionTreeID tid);
     public:
       inline LogicalState& get_logical_state(ContextID ctx)
       {
@@ -4568,7 +4555,7 @@ namespace Legion {
       virtual PartitionNode* as_partition_node(void) const;
 #endif
       virtual AddressSpaceID get_owner_space(void) const;
-      static AddressSpaceID get_owner_space(LogicalRegion handle, Runtime *rt);
+      static AddressSpaceID get_owner_space(LogicalRegion handle);
       virtual bool visit_node(PathTraverser *traverser);
       virtual bool visit_node(NodeTraverser *traverser);
       virtual bool is_complete(void);
@@ -4689,8 +4676,7 @@ namespace Legion {
       virtual PartitionNode* as_partition_node(void) const;
 #endif
       virtual AddressSpaceID get_owner_space(void) const;
-      static AddressSpaceID get_owner_space(LogicalPartition handle, 
-                                            Runtime *runtime);
+      static AddressSpaceID get_owner_space(LogicalPartition handle); 
       virtual bool visit_node(PathTraverser *traverser);
       virtual bool visit_node(NodeTraverser *traverser);
       virtual bool is_complete(void);

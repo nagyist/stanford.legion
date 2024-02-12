@@ -54,9 +54,9 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MapperManager::MapperManager(Runtime *rt, Mapping::Mapper *mp, 
+    MapperManager::MapperManager(Mapping::Mapper *mp, 
                                  MapperID mid, Processor p, bool is_default)
-      : runtime(rt), mapper(mp), mapper_id(mid), processor(p),
+      : mapper(mp), mapper_id(mid), processor(p),
         profile_mapper(runtime->profiler != NULL),
         request_valid_instances(mp->request_valid_instances()),
         is_default_mapper(is_default)
@@ -2890,9 +2890,9 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    SerializingManager::SerializingManager(Runtime *rt, Mapping::Mapper *mp,
+    SerializingManager::SerializingManager(Mapping::Mapper *mp,
              MapperID map_id, Processor p, bool init_reentrant, bool def)
-      : MapperManager(rt,mp,map_id,p,def),executing_call(NULL),paused_calls(0),
+      : MapperManager(mp,map_id,p,def),executing_call(NULL),paused_calls(0),
         allow_reentrant(init_reentrant), permit_reentrant(init_reentrant)
     //--------------------------------------------------------------------------
     {
@@ -2901,29 +2901,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    SerializingManager::SerializingManager(const SerializingManager &rhs)
-      : MapperManager(NULL, NULL, 0, Processor::NO_PROC, false), 
-        allow_reentrant(false)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     SerializingManager::~SerializingManager(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    SerializingManager& SerializingManager::operator=(
-                                                  const SerializingManager &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -3239,36 +3219,17 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ConcurrentManager::ConcurrentManager(Runtime *rt, Mapping::Mapper *mp,
+    ConcurrentManager::ConcurrentManager(Mapping::Mapper *mp,
                                          MapperID map_id, Processor p, bool def)
-      : MapperManager(rt, mp, map_id, p, def), lock_state(UNLOCKED_STATE)
+      : MapperManager(mp, map_id, p, def), lock_state(UNLOCKED_STATE)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ConcurrentManager::ConcurrentManager(const ConcurrentManager &rhs)
-      : MapperManager(NULL, NULL, 0, Processor::NO_PROC, false)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ConcurrentManager::~ConcurrentManager(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ConcurrentManager& ConcurrentManager::operator=(
-                                                   const ConcurrentManager &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------

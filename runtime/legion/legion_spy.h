@@ -1687,7 +1687,7 @@ namespace Legion {
       void finish_block(void);
       unsigned get_depth(void) const { return depth; }
     public:
-      static void capture_state(Runtime *rt, const RegionRequirement *req, 
+      static void capture_state(const RegionRequirement *req, 
                                 unsigned idx, const char *task_name, 
                                 long long uid, RegionTreeNode *node, 
                                 ContextID ctx, bool before, 

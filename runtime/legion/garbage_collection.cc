@@ -44,13 +44,12 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DistributedCollectable::DistributedCollectable(Runtime *rt,
-                                                   DistributedID id,
+    DistributedCollectable::DistributedCollectable(DistributedID id,
                                                    bool do_registration,
                                                    CollectiveMapping *mapping,
                                                    State initial_state)
-      : runtime(rt), did(id), owner_space(runtime->determine_owner(did)),
-        local_space(rt->address_space), collective_mapping(mapping),
+      : did(id), owner_space(runtime->determine_owner(did)),
+        local_space(runtime->address_space), collective_mapping(mapping),
         current_state(initial_state), gc_references(0),
         resource_references(0), downgrade_owner(owner_space),
         notready_owner(owner_space), sent_global_references(0),
@@ -68,17 +67,6 @@ namespace Legion {
       }
       if (do_registration)
         register_with_runtime();
-    }
-
-    //--------------------------------------------------------------------------
-    DistributedCollectable::DistributedCollectable(
-                                              const DistributedCollectable &rhs)
-      : runtime(NULL), did(0), owner_space(0), local_space(0), 
-        collective_mapping(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // Should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
@@ -329,7 +317,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_global_acquire_request(
-                                          Runtime *runtime, Deserializer &derez)
+                                                            Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -681,7 +669,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_did_remote_registration(
-                  Runtime *runtime, Deserializer &derez, AddressSpaceID source)
+                  Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -819,11 +807,9 @@ namespace Legion {
                 runtime->send_did_downgrade_success(space, *rez); 
             }
             Serializer *rez;
-            Runtime *runtime;
             AddressSpaceID owner;
           } downgrade_functor;
           downgrade_functor.rez = &rez;
-          downgrade_functor.runtime = runtime;
           downgrade_functor.owner = downgrade_owner;
           remote_instances.map(downgrade_functor);
         }
@@ -953,12 +939,10 @@ namespace Legion {
                   skipped++;
               }
               Serializer *rez;
-              Runtime *runtime;
               AddressSpaceID owner;
               unsigned skipped;
             } downgrade_functor;
             downgrade_functor.rez = &rez;
-            downgrade_functor.runtime = runtime;
             downgrade_functor.owner = downgrade_owner;
             downgrade_functor.skipped = 0;
             remote_instances.map(downgrade_functor);
@@ -1059,7 +1043,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_downgrade_request(
-                   Runtime *runtime, Deserializer &derez, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1222,7 +1206,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_downgrade_response(
-                                          Runtime *runtime, Deserializer &derez)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1257,7 +1241,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_downgrade_success(
-                                          Runtime *runtime, Deserializer &derez)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -1301,7 +1285,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_downgrade_update(
-                                          Runtime *runtime, Deserializer &derez)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -1321,27 +1305,17 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ValidDistributedCollectable::ValidDistributedCollectable(Runtime *rt,
+    ValidDistributedCollectable::ValidDistributedCollectable(
                                                   DistributedID id, 
                                                   bool do_registration, 
                                                   CollectiveMapping *map,
                                                   bool start_in_valid_state)
-      : DistributedCollectable(rt, id, do_registration, map,
+      : DistributedCollectable(id, do_registration, map,
           start_in_valid_state ? VALID_REF_STATE : GLOBAL_REF_STATE),
         valid_references(0), sent_valid_references(0),
         received_valid_references(0)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ValidDistributedCollectable::ValidDistributedCollectable(
-                                         const ValidDistributedCollectable &rhs)
-      : DistributedCollectable(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
@@ -1630,7 +1604,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ValidDistributedCollectable::handle_valid_acquire_request(
-                                          Runtime *runtime, Deserializer &derez)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

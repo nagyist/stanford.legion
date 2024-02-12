@@ -224,11 +224,11 @@ namespace Legion {
 
     class TraceOp : public FenceOp {
     public:
-      TraceOp(Runtime *rt);
-      TraceOp(const TraceOp &rhs);
+      TraceOp(void);
+      TraceOp(const TraceOp &rhs) = delete;
       virtual ~TraceOp(void);
     public:
-      TraceOp& operator=(const TraceOp &rhs);
+      TraceOp& operator=(const TraceOp &rhs) = delete;
     public:
       virtual bool is_tracing_fence(void) const override { return true; }
     };
@@ -244,11 +244,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_CAPTURE_OP_ALLOC;
     public:
-      TraceCaptureOp(Runtime *rt);
-      TraceCaptureOp(const TraceCaptureOp &rhs);
+      TraceCaptureOp(void);
+      TraceCaptureOp(const TraceCaptureOp &rhs) = delete;
       virtual ~TraceCaptureOp(void);
     public:
-      TraceCaptureOp& operator=(const TraceCaptureOp &rhs);
+      TraceCaptureOp& operator=(const TraceCaptureOp &rhs) = delete;
     public:
       void initialize_capture(InnerContext *ctx, bool has_blocking_call,
                     bool remove_trace_reference, Provenance *provenance);
@@ -278,11 +278,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_COMPLETE_OP_ALLOC;
     public:
-      TraceCompleteOp(Runtime *rt);
-      TraceCompleteOp(const TraceCompleteOp &rhs);
+      TraceCompleteOp(void);
+      TraceCompleteOp(const TraceCompleteOp &rhs) = delete;
       virtual ~TraceCompleteOp(void);
     public:
-      TraceCompleteOp& operator=(const TraceCompleteOp &rhs);
+      TraceCompleteOp& operator=(const TraceCompleteOp &rhs) = delete;
     public:
       void initialize_complete(InnerContext *ctx, bool has_blocking_call,
                                Provenance *provenance);
@@ -311,11 +311,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_REPLAY_OP_ALLOC;
     public:
-      TraceReplayOp(Runtime *rt);
-      TraceReplayOp(const TraceReplayOp &rhs);
+      TraceReplayOp(void);
+      TraceReplayOp(const TraceReplayOp &rhs) = delete;
       virtual ~TraceReplayOp(void);
     public:
-      TraceReplayOp& operator=(const TraceReplayOp &rhs);
+      TraceReplayOp& operator=(const TraceReplayOp &rhs) = delete;
     public:
       void initialize_replay(InnerContext *ctx, LogicalTrace *trace,
                              Provenance *provenance);
@@ -339,11 +339,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_BEGIN_OP_ALLOC;
     public:
-      TraceBeginOp(Runtime *rt);
-      TraceBeginOp(const TraceBeginOp &rhs);
+      TraceBeginOp(void);
+      TraceBeginOp(const TraceBeginOp &rhs) = delete;
       virtual ~TraceBeginOp(void);
     public:
-      TraceBeginOp& operator=(const TraceBeginOp &rhs);
+      TraceBeginOp& operator=(const TraceBeginOp &rhs) = delete;
     public:
       void initialize_begin(InnerContext *ctx, LogicalTrace *trace,
                             Provenance *provenance);
@@ -359,11 +359,11 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = TRACE_SUMMARY_OP_ALLOC;
     public:
-      TraceSummaryOp(Runtime *rt);
-      TraceSummaryOp(const TraceSummaryOp &rhs);
+      TraceSummaryOp(void);
+      TraceSummaryOp(const TraceSummaryOp &rhs) = delete;
       virtual ~TraceSummaryOp(void);
     public:
-      TraceSummaryOp& operator=(const TraceSummaryOp &rhs);
+      TraceSummaryOp& operator=(const TraceSummaryOp &rhs) = delete;
     public:
       void initialize_summary(InnerContext *ctx,
                               PhysicalTemplate *tpl,
@@ -391,7 +391,7 @@ namespace Legion {
      */
     class PhysicalTrace {
     public:
-      PhysicalTrace(Runtime *runtime, LogicalTrace *logical_trace);
+      PhysicalTrace(LogicalTrace *logical_trace);
       PhysicalTrace(const PhysicalTrace &rhs) = delete;
       ~PhysicalTrace(void);
     public:
@@ -435,7 +435,6 @@ namespace Legion {
     public:
       void initialize_template(ApEvent fence_completion, bool recurrent);
     public:
-      Runtime * const runtime;
       const LogicalTrace *logical_trace;
       const bool perform_fence_elision;
       ReplicateContext *const repl_ctx;
@@ -785,8 +784,7 @@ namespace Legion {
       virtual size_t get_sharded_template_index(void) const { return 0; }
       virtual void initialize_replay(ApEvent fence_completion, bool recurrent,
                                      bool need_lock = true);
-      virtual void perform_replay(Runtime *rt, 
-                                  std::set<RtEvent> &replayed_events);
+      virtual void perform_replay(std::set<RtEvent> &replayed_events);
       virtual RtEvent refresh_managed_barriers(void);
       virtual void finish_replay(std::set<ApEvent> &postconditions);
       virtual ApEvent get_completion_for_deletion(void) const;
@@ -1268,8 +1266,7 @@ namespace Legion {
         { return template_index; }
       virtual void initialize_replay(ApEvent fence_completion, bool recurrent,
                                      bool need_lock = true);
-      virtual void perform_replay(Runtime *runtime, 
-                                  std::set<RtEvent> &replayed_events);
+      virtual void perform_replay(std::set<RtEvent> &replayed_events);
       virtual RtEvent refresh_managed_barriers(void);
       virtual void finish_replay(std::set<ApEvent> &postconditions);
       virtual ApEvent get_completion_for_deletion(void) const;
@@ -1338,7 +1335,7 @@ namespace Legion {
       ApBarrier find_trace_shard_frontier(ApEvent event, ShardID remote_shard);
       void record_trace_shard_frontier(unsigned frontier, ApBarrier result);
       void handle_trace_update(Deserializer &derez, AddressSpaceID source);
-      static void handle_deferred_trace_update(const void *args, Runtime *rt);
+      static void handle_deferred_trace_update(const void *args);
     protected:
       bool handle_update_mutated_inst(const UniqueInst &inst, 
                             IndexSpaceExpression *ex, Deserializer &derez, 

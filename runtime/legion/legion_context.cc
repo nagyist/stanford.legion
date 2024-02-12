@@ -40,13 +40,13 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TaskContext::TaskContext(Runtime *rt, SingleTask *owner, int d,
+    TaskContext::TaskContext(SingleTask *owner, int d,
                              const std::vector<RegionRequirement> &reqs,
                              const std::vector<OutputRequirement> &out_reqs,
                              DistributedID id, bool perform_registration,
                              bool inline_t, bool implicit_t,
                              CollectiveMapping *mapping)
-      : DistributedCollectable(rt, id, perform_registration, mapping),
+      : DistributedCollectable(id, perform_registration, mapping),
         owner_task(owner), regions(reqs), output_reqs(out_reqs), depth(d),
         executing_processor(Processor::NO_PROC), inlined_tasks(0),
         overhead_profiler(NULL), implicit_profiler(NULL), task_executed(false),
@@ -161,7 +161,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoRuntimeCall call(this);
-      Future result(new FutureImpl(this, runtime, true/*register*/,
+      Future result(new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance));
       // Set the future result
       FutureInstance *instance = NULL;
@@ -190,7 +190,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoRuntimeCall call(this);
-      Future result(new FutureImpl(this, runtime, true/*register*/,
+      Future result(new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance));
       FutureInstance *instance = new FutureInstance(buffer, size,
           owned, resource.clone(), freefunc);
@@ -210,7 +210,7 @@ namespace Legion {
       // is woefully underspecified as usual.
       if (num_elements > 0)
         memcpy(output, input, num_elements*future_size);
-      Future result(new FutureImpl(this, runtime, true/*register*/,
+      Future result(new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance));
       result.impl->set_local(&num_elements, future_size);
       return result;
@@ -305,7 +305,6 @@ namespace Legion {
                                                     req,
                                                     instances,
                                                     this,
-                                                    runtime,
                                                     global,
                                                     valid);
       output_regions.push_back(OutputRegion(impl));
@@ -539,10 +538,10 @@ namespace Legion {
     const std::vector<PhysicalRegion>& TaskContext::begin_task(Processor proc)
     //--------------------------------------------------------------------------
     {
-      if (implicit_runtime == NULL)
-        implicit_runtime = this->runtime;
       implicit_context = this;
       implicit_provenance = owner_task->get_unique_op_id();
+      if (runtime == NULL)
+        runtime = Runtime::the_runtime;
       if (overhead_profiler != NULL)
         overhead_profiler->previous_profiling_time = 
           Realm::Clock::current_time_in_nanoseconds();
@@ -773,7 +772,6 @@ namespace Legion {
       assert(owner_task != NULL);
       const TaskID owner_task_id = owner_task->task_id;
 #endif
-      Runtime *runtime_ptr = runtime;
       // Tell the parent context that we are ready for post-end
       InnerContext *parent_ctx = owner_task->get_context();
       if (inline_task)
@@ -785,10 +783,10 @@ namespace Legion {
         parent_ctx->add_to_post_task_queue(this, RtEvent::NO_RT_EVENT,
             instance, callback_functor, owned, metadataptr, metadatasize); 
 #ifdef DEBUG_LEGION
-      runtime_ptr->decrement_total_outstanding_tasks(owner_task_id, 
+      runtime->decrement_total_outstanding_tasks(owner_task_id, 
                                                      false/*meta*/);
 #else
-      runtime_ptr->decrement_total_outstanding_tasks();
+      runtime->decrement_total_outstanding_tasks();
 #endif
       // See if we can release our callback down
       if (release_callback)
@@ -1066,7 +1064,7 @@ namespace Legion {
       if (launcher.predicate_false_future.impl != NULL)
         return launcher.predicate_false_future;
       // Otherwise check to see if we have a value
-      FutureImpl *result = new FutureImpl(this, runtime, true/*register*/,
+      FutureImpl *result = new FutureImpl(this, true/*register*/,
         runtime->get_available_distributed_id(), provenance);
       const size_t future_size = launcher.predicate_false_result.get_size(); 
       if (future_size > 0)
@@ -1088,7 +1086,7 @@ namespace Legion {
       if (!launch_domain.exists())
         runtime->forest->find_domain(launch_space, launch_domain);
       IndexSpaceNode *launch_node = runtime->forest->get_node(launch_space);
-      FutureMapImpl *result = new FutureMapImpl(this, runtime,
+      FutureMapImpl *result = new FutureMapImpl(this,
           launch_node, runtime->get_available_distributed_id(),
           InnerContext::NO_FUTURE_COORDINATE, ApEvent::NO_AP_EVENT, provenance);
       if (launcher.predicate_false_future.impl != NULL)
@@ -1133,7 +1131,7 @@ namespace Legion {
       if (launcher.initial_value.impl != NULL)
         return launcher.initial_value;
       // Otherwise set it to the identity value of the reduction operator
-      FutureImpl *result = new FutureImpl(this, runtime, true/*register*/, 
+      FutureImpl *result = new FutureImpl(this, true/*register*/, 
         runtime->get_available_distributed_id(), provenance);
       const ReductionOp *reduction_op = runtime->get_reduction(redop);
       result->set_local(&reduction_op->identity, reduction_op->sizeof_rhs);
@@ -1212,7 +1210,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
     
     //--------------------------------------------------------------------------
-    InnerContext::InnerContext(Runtime *rt, SingleTask *owner,int d,bool finner,
+    InnerContext::InnerContext(SingleTask *owner,int d,bool finner,
                                const std::vector<RegionRequirement> &reqs,
                                const std::vector<OutputRequirement> &out_reqs,
                                const std::vector<unsigned> &parent_indexes,
@@ -1221,12 +1219,12 @@ namespace Legion {
                                DistributedID id, bool inline_task, 
                                bool implicit_task, bool concurrent,
                                CollectiveMapping *mapping)
-      : TaskContext(rt, owner, d, reqs, out_reqs, 
+      : TaskContext(owner, d, reqs, out_reqs, 
           LEGION_DISTRIBUTED_HELP_ENCODE((id > 0) ? id : 
-          rt->get_available_distributed_id(), INNER_CONTEXT_DC),
+          runtime->get_available_distributed_id(), INNER_CONTEXT_DC),
           (id == 0)/*register if not remote*/, 
           inline_task, implicit_task, mapping),
-        tree_context(rt->allocate_region_tree_context()),
+        tree_context(runtime->allocate_region_tree_context()),
         full_inner_context(finner), concurrent_context(concurrent), 
         finished_execution(false), has_inline_accessor(false),
         next_created_index(reqs.size()), parent_req_indexes(parent_indexes),
@@ -1410,7 +1408,7 @@ namespace Legion {
         for (std::vector<CollectiveResult*>::const_iterator it =
               rit->second.begin(); it != rit->second.end(); it++)
         {
-          release_collective_view(runtime, did, (*it)->collective_did);
+          release_collective_view(did, (*it)->collective_did);
           delete (*it);
         }
       }
@@ -2373,11 +2371,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void InnerContext::handle_compute_equivalence_sets_response(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      InnerContext *context = unpack_inner_context(derez, runtime);
+      InnerContext *context = unpack_inner_context(derez);
       AddressSpaceID source_space;
       derez.deserialize(source_space);
       size_t total_spaces;
@@ -2644,11 +2642,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void InnerContext::handle_output_equivalence_set_request(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      InnerContext *context = unpack_inner_context(derez, runtime);
+      InnerContext *context = unpack_inner_context(derez);
       EqSetTracker *source;
       derez.deserialize(source);
       AddressSpaceID source_space;
@@ -2717,7 +2715,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void InnerContext::handle_output_equivalence_set_response(
-                   Deserializer &derez, Runtime *runtime, AddressSpaceID source) 
+                   Deserializer &derez, AddressSpaceID source) 
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -5638,10 +5636,10 @@ namespace Legion {
                                      new_indexes[0], false));
       struct Functor {
       public:
-        Functor(DistributedID id, FieldSpace sp, Runtime *rt,
+        Functor(DistributedID id, FieldSpace sp,
                 Provenance *prov, const LocalFieldInfo &in, 
                 std::set<RtEvent> &done)
-          : did(id), space(sp), runtime(rt), provenance(prov),
+          : did(id), space(sp), provenance(prov),
             info(in), done_events(done), count(0) { }
         void apply(AddressSpaceID target)
         {
@@ -5667,13 +5665,12 @@ namespace Legion {
       public:
         DistributedID did;
         FieldSpace space;
-        Runtime *runtime;
         Provenance *provenance;
         const LocalFieldInfo &info;
         std::set<RtEvent> &done_events;
         unsigned count;
       };
-      Functor functor(did, space, runtime, 
+      Functor functor(did, space,
           provenance, infos.back(), done_events);
       map_over_remote_instances(functor);
       if (functor.count > 0)
@@ -5776,10 +5773,10 @@ namespace Legion {
       // Have to send notifications to any remote nodes 
       struct Functor {
       public:
-        Functor(DistributedID id, FieldSpace sp, Runtime *rt,
+        Functor(DistributedID id, FieldSpace sp,
                 Provenance *prov, size_t s, unsigned off,
                 const std::vector<LocalFieldInfo> &in, std::set<RtEvent> &done)
-          : did(id), space(sp), runtime(rt), provenance(prov), size(s),
+          : did(id), space(sp), provenance(prov), size(s),
             offset(off), infos(in), done_events(done), count(0) { }
         void apply(AddressSpaceID target)
         {
@@ -5806,7 +5803,6 @@ namespace Legion {
       public:
         DistributedID did;
         FieldSpace space;
-        Runtime *runtime;
         Provenance *provenance;
         size_t size;
         unsigned offset;
@@ -5814,7 +5810,7 @@ namespace Legion {
         std::set<RtEvent> &done_events;
         unsigned count;
       };
-      Functor functor(did, space, runtime, provenance, resulting_fields.size(),
+      Functor functor(did, space, provenance, resulting_fields.size(),
                       offset, infos, done_events);
       map_over_remote_instances(functor);
       if (functor.count > 0)
@@ -6817,7 +6813,7 @@ namespace Legion {
           RtEvent::NO_RT_EVENT, ApEvent::NO_AP_EVENT,
           mapped ? unmap_event : ApUserEvent::NO_AP_USER_EVENT, mapped, this,
           mid, tag, false/*leaf region*/, virtual_mapped, 
-          false/*never collective*/, runtime);
+          false/*never collective*/);
       physical_regions.emplace_back(PhysicalRegion(impl));
       if (!virtual_mapped)
       {
@@ -6960,7 +6956,7 @@ namespace Legion {
 
         // Else return the reduction operation's identity value
         const ReductionOp *reduction_op = runtime->get_reduction(redop);
-        FutureImpl *result = new FutureImpl(this, runtime, true/*register*/,
+        FutureImpl *result = new FutureImpl(this, true/*register*/,
           runtime->get_available_distributed_id(), provenance);
         result->set_local(reduction_op->identity,
                           reduction_op->sizeof_rhs, false/*own*/);
@@ -7002,7 +6998,7 @@ namespace Legion {
       if (future_map.impl == NULL)
       {
         const ReductionOp *reduction_op = runtime->get_reduction(redop);
-        FutureImpl *result = new FutureImpl(this, runtime, true/*register*/,
+        FutureImpl *result = new FutureImpl(this, true/*register*/,
           runtime->get_available_distributed_id(), prov);
         result->set_local(reduction_op->identity,
                           reduction_op->sizeof_rhs, false/*own*/);
@@ -7035,7 +7031,7 @@ namespace Legion {
           get_task_name(), get_unique_id())
       const DistributedID did = runtime->get_available_distributed_id();
       IndexSpaceNode *launch_node = runtime->forest->get_node(space);
-      FutureMapImpl *impl = new FutureMapImpl(this, runtime, launch_node, did,
+      FutureMapImpl *impl = new FutureMapImpl(this, launch_node, did,
         NO_FUTURE_COORDINATE, ApEvent::NO_AP_EVENT, provenance);
       for (std::map<DomainPoint,UntypedBuffer>::const_iterator it =
             data.begin(); it != data.end(); it++)
@@ -7046,7 +7042,7 @@ namespace Legion {
             "within the bounds of the domain in task %s (UID %lld)",
             get_task_name(), get_unique_id())
         const size_t future_size = it->second.get_size();
-        FutureImpl *future = new FutureImpl(this, runtime, true/*register*/,
+        FutureImpl *future = new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance);
         future->set_local(it->second.get_ptr(), future_size);
         impl->set_future(it->first, future);
@@ -7094,7 +7090,7 @@ namespace Legion {
             "in task %s (UID %lld)", futures.size(), launch_node->get_volume(),
             get_task_name(), get_unique_id())
       FutureMapImpl *impl = new FutureMapImpl(this, creation_op, launch_node,
-                            runtime, did, provenance);
+                            did, provenance);
       add_to_dependence_queue(creation_op);
       impl->set_all_futures(futures);
       return FutureMap(impl);
@@ -7844,7 +7840,7 @@ namespace Legion {
         {
           // We can use the identity projection in this case
           // so just make it, but no need to register it with the runtime
-          finder->second.push_back(new AttachProjectionFunctor(runtime,
+          finder->second.push_back(new AttachProjectionFunctor(
                                       0/*identity*/, std::move(spaces)));
           return 0;
         }
@@ -7854,7 +7850,7 @@ namespace Legion {
       const ProjectionID result =
         runtime->generate_dynamic_projection_id(false/*check context*/);
       AttachProjectionFunctor *functor =
-        new AttachProjectionFunctor(runtime, result, std::move(spaces));
+        new AttachProjectionFunctor(result, std::move(spaces));
       runtime->register_projection_functor(result, functor, false/*check*/,
                                            true/*silence warnings*/);
       finder->second.push_back(functor);
@@ -7865,9 +7861,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    InnerContext::AttachProjectionFunctor::AttachProjectionFunctor(Runtime *rt,
+    InnerContext::AttachProjectionFunctor::AttachProjectionFunctor(
                                ProjectionID p, std::vector<IndexSpace> &&spaces)
-      : ProjectionFunctor(rt->external), handles(spaces), pid(p)
+      : ProjectionFunctor(Internal::runtime->external), handles(spaces), pid(p)
     //--------------------------------------------------------------------------
     {
     }
@@ -8226,7 +8222,7 @@ namespace Legion {
       AutoRuntimeCall call(this); 
       if (p == Predicate::TRUE_PRED)
       {
-        Future result(new FutureImpl(this, runtime, true/*register*/,
+        Future result(new FutureImpl(this, true/*register*/,
               runtime->get_available_distributed_id(), provenance));
         const bool value = true;
         result.impl->set_local(&value, sizeof(value));
@@ -8234,7 +8230,7 @@ namespace Legion {
       }
       else if (p == Predicate::FALSE_PRED)
       {
-        Future result(new FutureImpl(this, runtime, true/*register*/,
+        Future result(new FutureImpl(this, true/*register*/,
               runtime->get_available_distributed_id(), provenance));
         const bool value = false;
         result.impl->set_local(&value, sizeof(value));
@@ -10489,7 +10485,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ InnerContext* InnerContext::unpack_inner_context(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID ctx_did, man_did;
@@ -10951,7 +10947,7 @@ namespace Legion {
       // This is the normal equivalence set creation pathway for single tasks
       IndexSpaceNode *node = runtime->forest->get_node(req.region.index_space);
       EquivalenceSet *result =
-        new EquivalenceSet(runtime, runtime->get_available_distributed_id(),
+        new EquivalenceSet(runtime->get_available_distributed_id(),
             runtime->address_space, node, req.region.get_tree_id(),
             find_parent_physical_context(idx), true/*register now*/);
       // Add a context ref that will be removed after this is registered
@@ -11311,7 +11307,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void InnerContext::handle_compute_equivalence_sets_request(
-                   Deserializer &derez, Runtime *runtime, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -11499,10 +11495,10 @@ namespace Legion {
         ReductionOpID redop = local_views.back()->get_redop();
         CollectiveView *view = NULL;
         if (redop > 0)
-          view = new AllreduceView(runtime, collective_did, creator_did,
+          view = new AllreduceView(collective_did, creator_did,
            local_views, individual_dids, false/*register now*/, mapping, redop);
         else
-          view = new ReplicatedView(runtime, collective_did, creator_did,
+          view = new ReplicatedView(collective_did, creator_did,
               local_views, individual_dids, false/*register now*/, mapping);
         if (view->is_owner())
           view->add_nested_gc_ref(creator_did);
@@ -11536,11 +11532,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void InnerContext::handle_create_collective_view(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      InnerContext *context = unpack_inner_context(derez, runtime);
+      InnerContext *context = unpack_inner_context(derez);
       DistributedID creator_did, collective_did;
       derez.deserialize(creator_did);
       derez.deserialize(collective_did);
@@ -11585,12 +11581,12 @@ namespace Legion {
         }
       }
       if (found)
-        release_collective_view(runtime, did, collective_did);
+        release_collective_view(did, collective_did);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void InnerContext::handle_delete_collective_view(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -11611,7 +11607,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InnerContext::release_collective_view(Runtime *runtime,
+    /*static*/ void InnerContext::release_collective_view(
                         DistributedID context_did, DistributedID collective_did)
     //--------------------------------------------------------------------------
     {
@@ -11638,13 +11634,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void InnerContext::handle_release_collective_view(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID context_did, collective_did;
       derez.deserialize(context_did);
       derez.deserialize(collective_did);
-      release_collective_view(runtime, context_did, collective_did);
+      release_collective_view(context_did, collective_did);
     }
 
     //--------------------------------------------------------------------------
@@ -11786,7 +11782,7 @@ namespace Legion {
 #endif
       // At this point we have to make it since we couldn't find it
       FillView *fill_view = 
-        new FillView(runtime, runtime->get_available_distributed_id(),
+        new FillView(runtime->get_available_distributed_id(),
 #ifdef LEGION_SPY
                      op->get_unique_op_id(),
 #endif
@@ -11841,7 +11837,7 @@ namespace Legion {
       // We're going to need to set the value for this view
       set_view = true;
       FillView *fill_view = 
-        new FillView(runtime, runtime->get_available_distributed_id(),
+        new FillView(runtime->get_available_distributed_id(),
 #ifdef LEGION_SPY
                      op->get_unique_op_id(),
 #endif
@@ -12673,14 +12669,14 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TopLevelContext::TopLevelContext(Runtime *rt, Processor p, 
+    TopLevelContext::TopLevelContext(Processor p, 
         coord_t normal_id, coord_t implicit_id, 
         DistributedID id, CollectiveMapping *mapping)
-      : InnerContext(rt, NULL, -1, false/*full inner*/,
+      : InnerContext(NULL, -1, false/*full inner*/,
                      dummy_requirements, dummy_output_requirements,
                      dummy_indexes, dummy_mapped, ApEvent::NO_AP_EVENT,
                      id, false, false, false, mapping),
-        root_uid(rt->get_unique_operation_id())
+        root_uid(runtime->get_unique_operation_id())
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -12773,7 +12769,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplicateContext::ReplicateContext(Runtime *rt, 
+    ReplicateContext::ReplicateContext(
                                  ShardTask *owner, int d, bool full,
                                  const std::vector<RegionRequirement> &reqs,
                                  const std::vector<OutputRequirement> &out_reqs,
@@ -12782,7 +12778,7 @@ namespace Legion {
                                  ApEvent exec_fence,
                                  ShardManager *manager, bool inline_task,
                                  bool implicit_task, bool concurrent)
-      : InnerContext(rt, owner, d, full, reqs, out_reqs, parent_indexes,
+      : InnerContext(owner, d, full, reqs, out_reqs, parent_indexes,
          virt_mapped, exec_fence, 0, inline_task, implicit_task, concurrent),
         owner_shard(owner), shard_manager(manager),
         total_shards(shard_manager->total_shards),
@@ -12957,7 +12953,7 @@ namespace Legion {
           break;
       }
       const size_t future_size = sizeof(num_elements);
-      Future result(new FutureImpl(this, runtime, true/*register*/,
+      Future result(new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance));
       result.impl->set_future_result_size(future_size, runtime->address_space);
       switch (element_size)
@@ -13087,7 +13083,7 @@ namespace Legion {
         if (vid == LEGION_AUTO_GENERATE_ID)
         {
           auto impl = 
-              this->runtime->find_or_create_task_impl(registrar.task_id);
+              runtime->find_or_create_task_impl(registrar.task_id);
           if (this->owner_shard->shard_id == this->dynamic_id_allocator_shard)
           {
             vid = impl->get_unique_variant_id();
@@ -15801,7 +15797,7 @@ namespace Legion {
       }
       const DistributedID did = runtime->get_available_distributed_id();
       IndexSpaceNode *color_node = runtime->forest->get_node(color_space); 
-      FutureMap future_map(new FutureMapImpl(this, runtime, color_node, did,
+      FutureMap future_map(new FutureMapImpl(this, color_node, did,
                                  NO_FUTURE_COORDINATE, ApEvent::NO_AP_EVENT,
                                  provenance, true/*reg now*/));
       // Prune out every N-th one for this shard and then pass through
@@ -16857,8 +16853,7 @@ namespace Legion {
             get_unique_id(), resulting_fields[idx])
       }
       // Figure out if we're going to do the field initialization on this node
-      const AddressSpaceID owner_space =
-        FieldSpaceNode::get_owner_space(space, runtime);
+      const AddressSpaceID owner_space = FieldSpaceNode::get_owner_space(space);
       const bool local_shard = (owner_space == runtime->address_space) ?
         (creator_shard == owner_shard->shard_id) :
         shard_manager->is_first_local_shard(owner_shard);
@@ -16968,8 +16963,7 @@ namespace Legion {
               "in task %s (UID %lld)", resulting_fields[idx],
               get_task_name(), get_unique_id())
       // Figure out if we're going to do the field initialization on this node
-      const AddressSpaceID owner_space =
-        FieldSpaceNode::get_owner_space(space, runtime);
+      const AddressSpaceID owner_space = FieldSpaceNode::get_owner_space(space);
       const bool local_shard = (owner_space == runtime->address_space) ?
         (creator_shard == owner_shard->shard_id) :
         shard_manager->is_first_local_shard(owner_shard);
@@ -18108,7 +18102,7 @@ namespace Legion {
         return finder->second;
       // Check to see which shard (if any) owns this field space
       const AddressSpaceID owner_space = 
-        FieldSpaceNode::get_owner_space(handle, runtime);
+        FieldSpaceNode::get_owner_space(handle);
       // Figure out which shard is the owner
       bool found = false;
       std::pair<ShardID,bool> owner(0,false);
@@ -18496,7 +18490,7 @@ namespace Legion {
           "Ignoring empty index task launch in task %s (ID %lld)",
                         get_task_name(), get_unique_id());
         const ReductionOp *reduction_op = runtime->get_reduction(redop);
-        FutureImpl *result = new FutureImpl(this, runtime, true/*register*/,
+        FutureImpl *result = new FutureImpl(this, true/*register*/,
           runtime->get_available_distributed_id(), provenance);
         result->set_local(reduction_op->identity,
                           reduction_op->sizeof_rhs, false/*own*/);
@@ -18562,7 +18556,7 @@ namespace Legion {
       if (future_map.impl == NULL)
       {
         const ReductionOp *reduction_op = runtime->get_reduction(redop);
-        FutureImpl *result = new FutureImpl(this, runtime, true/*register*/,
+        FutureImpl *result = new FutureImpl(this, true/*register*/,
           runtime->get_available_distributed_id(), provenance);
         result->set_local(reduction_op->identity,
                           reduction_op->sizeof_rhs, false/*own*/);
@@ -18742,7 +18736,7 @@ namespace Legion {
             "in task %s (UID %lld)", data.size(), domain_node->get_volume(),
             get_task_name(), get_unique_id())
         const DistributedID did = runtime->get_available_distributed_id();
-        result = FutureMap(new FutureMapImpl(this, runtime, domain_node, did,
+        result = FutureMap(new FutureMapImpl(this, domain_node, did,
               NO_FUTURE_COORDINATE, ApEvent::NO_AP_EVENT, provenance));
       }
       for (std::map<DomainPoint,UntypedBuffer>::const_iterator it =
@@ -18754,7 +18748,7 @@ namespace Legion {
             "within the bounds of the domain in task %s (UID %lld)",
             get_task_name(), get_unique_id())
         const size_t future_size = it->second.get_size();
-        FutureImpl *future = new FutureImpl(this, runtime, true/*register*/,
+        FutureImpl *future = new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance);
         future->set_local(it->second.get_ptr(), future_size);
         result.impl->set_future(it->first, future);
@@ -18852,7 +18846,7 @@ namespace Legion {
             get_task_name(), get_unique_id())
         const DistributedID did = runtime->get_available_distributed_id();
         result = FutureMap(new FutureMapImpl(this, creation_op, domain_node,
-                          runtime, did, provenance));
+                          did, provenance));
       }
       add_to_dependence_queue(creation_op);
       result.impl->set_all_futures(futures);
@@ -22250,7 +22244,7 @@ namespace Legion {
         derez.deserialize(domain);
         FieldMask mask;
         derez.deserialize(mask);
-        tree->invalidate_shard_tree(domain, mask, runtime, invalidated);
+        tree->invalidate_shard_tree(domain, mask, invalidated);
       }
       RtUserEvent done_event;
       derez.deserialize(done_event);
@@ -22521,7 +22515,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ReplicateContext::register_attach_detach_sharding_functor(
-                                                               Runtime *runtime)
+                                                                           void)
     //--------------------------------------------------------------------------
     {
       // See Runtime::get_current_static_sharding_id for how we get this ID
@@ -22611,8 +22605,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ReplicateContext::register_universal_sharding_functor(
-                                                               Runtime *runtime)
+    /*static*/ void ReplicateContext::register_universal_sharding_functor(void)
     //--------------------------------------------------------------------------
     {
       // See Runtime::get_current_static_sharding_id for how we get this ID
@@ -22761,7 +22754,7 @@ namespace Legion {
     const char* RemoteTask::get_task_name(void) const
     //--------------------------------------------------------------------------
     {
-      TaskImpl *task_impl = owner->runtime->find_task_impl(task_id);
+      TaskImpl *task_impl = runtime->find_task_impl(task_id);
       return task_impl->get_name();
     }
 
@@ -22777,9 +22770,9 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteContext::RemoteContext(DistributedID id, Runtime *rt,
+    RemoteContext::RemoteContext(DistributedID id,
                                  CollectiveMapping *mapping)
-      : InnerContext(rt, NULL, -1, false/*full inner*/, remote_task.regions,
+      : InnerContext(NULL, -1, false/*full inner*/, remote_task.regions,
                      remote_task.output_regions, local_parent_req_indexes,
                      local_virtual_mapped, ApEvent::NO_AP_EVENT, id,
                      false, false, false, mapping),
@@ -23088,7 +23081,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_created_region_contexts(
-                   Runtime *runtime, Deserializer &derez)
+                   Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -23157,7 +23150,7 @@ namespace Legion {
       // If we're the top-level context then we're already done
       if (top_level_context)
         return;
-      remote_task.unpack_external_task(derez, runtime);
+      remote_task.unpack_external_task(derez);
       local_parent_req_indexes.resize(remote_task.regions.size()); 
       for (unsigned idx = 0; idx < local_parent_req_indexes.size(); idx++)
         derez.deserialize(local_parent_req_indexes[idx]);
@@ -23275,7 +23268,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_local_field_update(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -23292,7 +23285,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_physical_request(Deserializer &derez,
-                                        Runtime *runtime, AddressSpaceID source)
+                                        AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -23337,8 +23330,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_physical_response(Deserializer &derez,
-                                                            Runtime *runtime)
+    /*static*/ void RemoteContext::handle_physical_response(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -23346,7 +23338,7 @@ namespace Legion {
       derez.deserialize(target);
       unsigned index;
       derez.deserialize(index);
-      InnerContext *result = unpack_inner_context(derez, runtime);
+      InnerContext *result = unpack_inner_context(derez);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
       target->set_physical_context_result(index, result);
@@ -23355,7 +23347,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_find_collective_view_request(
-                   Deserializer &derez, Runtime *runtime, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -23394,7 +23386,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_find_collective_view_response(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -23411,8 +23403,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_context_request(Deserializer &derez,
-                                                          Runtime *runtime)
+    /*static*/ void RemoteContext::handle_context_request(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -23431,8 +23422,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_context_response(Deserializer &derez,
-                                                           Runtime *runtime)
+    /*static*/ void RemoteContext::handle_context_response(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -23440,7 +23430,7 @@ namespace Legion {
       derez.deserialize(did);
       void *location = runtime->find_or_create_pending_collectable_location<
                                                           RemoteContext>(did);
-      RemoteContext *context = new(location) RemoteContext(did, runtime);
+      RemoteContext *context = new(location) RemoteContext(did);
       context->unpack_remote_context(derez);
       context->register_with_runtime();
     }
@@ -23450,10 +23440,10 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    LeafContext::LeafContext(Runtime *rt, SingleTask *owner, bool inline_task)
-      : TaskContext(rt, owner, owner->get_depth(), owner->regions,
+    LeafContext::LeafContext(SingleTask *owner, bool inline_task)
+      : TaskContext(owner, owner->get_depth(), owner->regions,
                     owner->output_regions, LEGION_DISTRIBUTED_HELP_ENCODE(
-                      rt->get_available_distributed_id(), LEAF_CONTEXT_DC),
+                      runtime->get_available_distributed_id(), LEAF_CONTEXT_DC),
                     false/*perform registration*/, inline_task),
         inlined_tasks(0)
     //--------------------------------------------------------------------------
@@ -24388,7 +24378,7 @@ namespace Legion {
       PhysicalRegionImpl *impl = new PhysicalRegionImpl(req, 
           RtEvent::NO_RT_EVENT, ApEvent::NO_AP_EVENT, 
           ApUserEvent::NO_AP_USER_EVENT, mapped, this, mid, tag, 
-          true/*leaf region*/, virtual_mapped, false/*collective*/, runtime);
+          true/*leaf region*/, virtual_mapped, false/*collective*/);
       physical_regions.emplace_back(PhysicalRegion(impl));
       if (mapped)
         impl->set_references(physical_instances, true/*safe*/);
@@ -24880,7 +24870,7 @@ namespace Legion {
     {
       if (p == Predicate::TRUE_PRED)
       {
-        Future result(new FutureImpl(this, runtime, true/*register*/,
+        Future result(new FutureImpl(this, true/*register*/,
               runtime->get_available_distributed_id(), provenance));
         const bool value = true;
         result.impl->set_local(&value, sizeof(value));
@@ -24888,7 +24878,7 @@ namespace Legion {
       }
       else if (p == Predicate::FALSE_PRED)
       {
-        Future result(new FutureImpl(this, runtime, true/*register*/,
+        Future result(new FutureImpl(this, true/*register*/,
               runtime->get_available_distributed_id(), provenance));
         const bool value = false;
         result.impl->set_local(&value, sizeof(value));

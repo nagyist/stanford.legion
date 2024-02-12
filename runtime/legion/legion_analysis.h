@@ -131,7 +131,7 @@ namespace Legion {
         { equivalence_sets.relax_valid_mask(mask); }
     public:
       void pack_equivalence_sets(Serializer &rez) const;
-      void unpack_equivalence_sets(Deserializer &derez, Runtime *runtime,
+      void unpack_equivalence_sets(Deserializer &derez,
                                    std::set<RtEvent> &ready_events);
     public:
       void record_equivalence_set(EquivalenceSet *set, const FieldMask &mask);
@@ -355,7 +355,7 @@ namespace Legion {
         REMOTE_TRACE_BARRIER_ARRIVAL,
       };
     public:
-      RemoteTraceRecorder(Runtime *rt, AddressSpaceID origin,AddressSpace local,
+      RemoteTraceRecorder( AddressSpaceID origin,AddressSpace local,
                           const TraceLocalID &tlid, PhysicalTemplate *tpl, 
                           RtUserEvent applied_event);
       RemoteTraceRecorder(const RemoteTraceRecorder &rhs) = delete;
@@ -481,15 +481,14 @@ namespace Legion {
           const std::vector<Memory> &target_memories, size_t future_size);
     public:
       static RemoteTraceRecorder* unpack_remote_recorder(Deserializer &derez,
-                                    Runtime *runtime, const TraceLocalID &tlid);
+                                                    const TraceLocalID &tlid);
       static void handle_remote_update(Deserializer &derez, 
-                  Runtime *runtime, AddressSpaceID source);
+                                       AddressSpaceID source);
       static void handle_remote_response(Deserializer &derez);
     protected:
       static void pack_src_dst_field(Serializer &rez, const CopySrcDstField &f);
       static void unpack_src_dst_field(Deserializer &derez, CopySrcDstField &f);
     public:
-      Runtime *const runtime;
       const AddressSpaceID origin_space;
       const AddressSpaceID local_space;
       PhysicalTemplate *const remote_tpl;
@@ -766,8 +765,7 @@ namespace Legion {
                           std::set<RtEvent> &applied) const;
     public:
       void pack_trace_info(Serializer &rez, std::set<RtEvent> &applied) const;
-      static PhysicalTraceInfo unpack_trace_info(Deserializer &derez,
-                                                 Runtime *runtime);
+      static PhysicalTraceInfo unpack_trace_info(Deserializer &derez);
     private:
       inline void sanity_check(void) const
         {
@@ -789,8 +787,7 @@ namespace Legion {
      */
     class ProjectionInfo {
     public:
-      ProjectionInfo(Runtime *runtime,
-                     const RegionRequirement *req,
+      ProjectionInfo(const RegionRequirement *req,
                      IndexSpaceNode *launch_space,
                      ShardingFunction *func,
                      IndexSpace shard_space);
@@ -1547,7 +1544,7 @@ namespace Legion {
       bool is_field_set(FieldID fid) const;
     public:
       void pack_reference(Serializer &rez) const;
-      void unpack_reference(Runtime *rt, Deserializer &derez, RtEvent &ready);
+      void unpack_reference(Deserializer &derez, RtEvent &ready);
     protected:
       FieldMask valid_fields; 
       InstanceManager *manager;
@@ -1610,7 +1607,7 @@ namespace Legion {
       bool is_virtual_mapping(void) const;
     public:
       void pack_references(Serializer &rez) const;
-      void unpack_references(Runtime *runtime, Deserializer &derez, 
+      void unpack_references(Deserializer &derez, 
                              std::set<RtEvent> &ready_events);
     public:
       void add_resource_references(ReferenceSource source) const;
@@ -1659,11 +1656,11 @@ namespace Legion {
       CopyFillGuard& operator=(const CopyFillGuard &rhs);
     public:
       void pack_guard(Serializer &rez);
-      static CopyFillGuard* unpack_guard(Deserializer &derez, Runtime *rt,
+      static CopyFillGuard* unpack_guard(Deserializer &derez,
                                          EquivalenceSet *set);
     public:
       bool record_guard_set(EquivalenceSet *set, bool read_only_guard);
-      bool release_guards(Runtime *runtime, std::set<RtEvent> &applied,
+      bool release_guards(std::set<RtEvent> &applied,
                           bool force_deferral = false);
       static void handle_deletion(const void *args); 
     private:
@@ -2064,13 +2061,13 @@ namespace Legion {
       };
     public:
       // Local physical analysis
-      PhysicalAnalysis(Runtime *rt, Operation *op, unsigned index,
+      PhysicalAnalysis(Operation *op, unsigned index,
                        IndexSpaceExpression *expr, bool on_heap,
                        bool immutable, bool exclusive = false,
                        CollectiveMapping *mapping = NULL,
                        bool first_local = true);
       // Remote physical analysis
-      PhysicalAnalysis(Runtime *rt, AddressSpaceID source, AddressSpaceID prev,
+      PhysicalAnalysis(AddressSpaceID source, AddressSpaceID prev,
                        Operation *op, unsigned index, 
                        IndexSpaceExpression *expr, bool on_heap,
                        bool immutable = false,CollectiveMapping *mapping = NULL,
@@ -2159,7 +2156,7 @@ namespace Legion {
       void record_instance(LogicalView* view, const FieldMask &mask);
       inline void record_restriction(void) { restricted = true; }
     public:
-      static void handle_remote_instances(Deserializer &derez, Runtime *rt);
+      static void handle_remote_instances(Deserializer &derez);
       static void handle_deferred_traversal(const void *args);
       static void handle_deferred_analysis(const void *args);
       static void handle_deferred_remote(const void *args);
@@ -2169,7 +2166,6 @@ namespace Legion {
     public:
       const AddressSpaceID previous;
       const AddressSpaceID original_source;
-      Runtime *const runtime;
       IndexSpaceExpression *const analysis_expr;
     public:
       Operation *const op;
@@ -2213,10 +2209,10 @@ namespace Legion {
      */
     class RegistrationAnalysis : public PhysicalAnalysis {
     public:
-      RegistrationAnalysis(Runtime *rt, Operation *op, unsigned index,
+      RegistrationAnalysis(Operation *op, unsigned index,
                            RegionNode *node, bool on_heap,
                            const PhysicalTraceInfo &trace_info, bool exclusive);
-      RegistrationAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      RegistrationAnalysis(AddressSpaceID src, AddressSpaceID prev,
                            Operation *op, unsigned index, 
                            RegionNode *node, bool on_heap, 
                            std::vector<PhysicalManager*> &&target_insts,
@@ -2227,7 +2223,7 @@ namespace Legion {
                            CollectiveMapping *collective_mapping,
                            bool first_local, bool exclusive);
       // Remote registration analysis with no views
-      RegistrationAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      RegistrationAnalysis(AddressSpaceID src, AddressSpaceID prev,
                            Operation *op, unsigned index, 
                            RegionNode *node, bool on_heap, 
                            const PhysicalTraceInfo &trace_info,
@@ -2296,7 +2292,7 @@ namespace Legion {
     public:
       RemoteCollectiveAnalysis(size_t ctx_index, unsigned req_index,
                                IndexSpaceID match_space, RemoteOp *op,
-                               Deserializer &derez, Runtime *runtime);
+                               Deserializer &derez);
       virtual ~RemoteCollectiveAnalysis(void);
       virtual size_t get_context_index(void) const { return context_index; }
       virtual unsigned get_requirement_index(void) const
@@ -2308,8 +2304,7 @@ namespace Legion {
       virtual void add_analysis_reference(void) { add_reference(); }
       virtual bool remove_analysis_reference(void) 
         { return remove_reference(); }
-      static RemoteCollectiveAnalysis* unpack(Deserializer &derez,
-                                              Runtime *runtime);
+      static RemoteCollectiveAnalysis* unpack(Deserializer &derez);
     public:
       const size_t context_index;
       const unsigned requirement_index;
@@ -2330,12 +2325,11 @@ namespace Legion {
     class CollectiveCopyFillAnalysis : public RegistrationAnalysis,
                                        public CollectiveAnalysis {
     public:
-      CollectiveCopyFillAnalysis(Runtime *rt, Operation *op, unsigned index,
+      CollectiveCopyFillAnalysis(Operation *op, unsigned index,
                                  RegionNode *node, bool on_heap,
                                  const PhysicalTraceInfo &trace_info,
                                  bool exclusive);
-      CollectiveCopyFillAnalysis(Runtime *rt, 
-                                 AddressSpaceID src, AddressSpaceID prev,
+      CollectiveCopyFillAnalysis(AddressSpaceID src, AddressSpaceID prev,
                                  Operation *op, unsigned index, 
                                  RegionNode *node, bool on_heap, 
                                  std::vector<PhysicalManager*> &&target_insts,
@@ -2369,9 +2363,9 @@ namespace Legion {
     class ValidInstAnalysis : public PhysicalAnalysis,
                               public LegionHeapify<ValidInstAnalysis> {
     public:
-      ValidInstAnalysis(Runtime *rt, Operation *op, unsigned index,
+      ValidInstAnalysis(Operation *op, unsigned index,
                         IndexSpaceExpression *expr, ReductionOpID redop = 0);
-      ValidInstAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      ValidInstAnalysis(AddressSpaceID src, AddressSpaceID prev,
                         Operation *op,unsigned index,IndexSpaceExpression *expr,
                         ValidInstAnalysis *target, ReductionOpID redop);
       ValidInstAnalysis(const ValidInstAnalysis &rhs) = delete;
@@ -2394,7 +2388,7 @@ namespace Legion {
                                       const bool already_deferred = false);
     public:
       static void handle_remote_request_instances(Deserializer &derez, 
-                                     Runtime *rt, AddressSpaceID previous);
+                                                  AddressSpaceID previous);
     public:
       const ReductionOpID redop;
       ValidInstAnalysis *const target_analysis;
@@ -2408,10 +2402,10 @@ namespace Legion {
     class InvalidInstAnalysis : public PhysicalAnalysis,
                                 public LegionHeapify<InvalidInstAnalysis> {
     public:
-      InvalidInstAnalysis(Runtime *rt, Operation *op, unsigned index,
+      InvalidInstAnalysis(Operation *op, unsigned index,
                           IndexSpaceExpression *expr,
                           const FieldMaskSet<LogicalView> &valid_instances);
-      InvalidInstAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      InvalidInstAnalysis(AddressSpaceID src, AddressSpaceID prev,
                         Operation *op, unsigned index, 
                         IndexSpaceExpression *expr, InvalidInstAnalysis *target,
                         const FieldMaskSet<LogicalView> &valid_instances);
@@ -2438,7 +2432,7 @@ namespace Legion {
                                       const bool already_deferred = false);
     public:
       static void handle_remote_request_invalid(Deserializer &derez, 
-                                     Runtime *rt, AddressSpaceID previous);
+                                                AddressSpaceID previous);
     public:
       const FieldMaskSet<LogicalView> valid_instances;
       InvalidInstAnalysis *const target_analysis;
@@ -2451,10 +2445,10 @@ namespace Legion {
     class AntivalidInstAnalysis : public PhysicalAnalysis,
                                   public LegionHeapify<AntivalidInstAnalysis> {
     public:
-      AntivalidInstAnalysis(Runtime *rt, Operation *op, unsigned index,
+      AntivalidInstAnalysis(Operation *op, unsigned index,
                           IndexSpaceExpression *expr,
                           const FieldMaskSet<LogicalView> &anti_instances);
-      AntivalidInstAnalysis(Runtime *rt, AddressSpaceID src,AddressSpaceID prev,
+      AntivalidInstAnalysis(AddressSpaceID src,AddressSpaceID prev,
                       Operation *op, unsigned index, 
                       IndexSpaceExpression *expr, AntivalidInstAnalysis *target,
                       const FieldMaskSet<LogicalView> &anti_instances);
@@ -2481,7 +2475,7 @@ namespace Legion {
                                       const bool already_deferred = false);
     public:
       static void handle_remote_request_antivalid(Deserializer &derez, 
-                                     Runtime *rt, AddressSpaceID previous);
+                                                  AddressSpaceID previous);
     public:
       const FieldMaskSet<LogicalView> antivalid_instances;
       AntivalidInstAnalysis *const target_analysis;
@@ -2494,12 +2488,12 @@ namespace Legion {
     class UpdateAnalysis : public CollectiveCopyFillAnalysis,
                            public LegionHeapify<UpdateAnalysis> {
     public:
-      UpdateAnalysis(Runtime *rt, Operation *op, unsigned index,
+      UpdateAnalysis(Operation *op, unsigned index,
                      const RegionRequirement &req, RegionNode *node,
                      const PhysicalTraceInfo &trace_info,
                      const ApEvent precondition, const ApEvent term_event,
                      const bool check_initialized, const bool record_valid);
-      UpdateAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      UpdateAnalysis(AddressSpaceID src, AddressSpaceID prev,
                      Operation *op, unsigned index,
                      const RegionUsage &usage, RegionNode *node, 
                      std::vector<PhysicalManager*> &&target_instances,
@@ -2545,7 +2539,7 @@ namespace Legion {
                                      std::set<RtEvent> &applied_events,
                                      const bool already_deferred = false);
     public:
-      static void handle_remote_updates(Deserializer &derez, Runtime *rt,
+      static void handle_remote_updates(Deserializer &derez,
                                         AddressSpaceID previous);
     public:
       const RegionUsage usage;
@@ -2576,9 +2570,9 @@ namespace Legion {
     class AcquireAnalysis : public RegistrationAnalysis,
                             public LegionHeapify<AcquireAnalysis> {
     public: 
-      AcquireAnalysis(Runtime *rt, Operation *op, unsigned index,
+      AcquireAnalysis(Operation *op, unsigned index,
                       RegionNode *node, const PhysicalTraceInfo &t_info);
-      AcquireAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      AcquireAnalysis(AddressSpaceID src, AddressSpaceID prev,
                       Operation *op, unsigned index, RegionNode *node,
                       AcquireAnalysis *target,
                       const PhysicalTraceInfo &trace_info,
@@ -2603,7 +2597,7 @@ namespace Legion {
                                       std::set<RtEvent> &applied_events,
                                       const bool already_deferred = false);
     public:
-      static void handle_remote_acquires(Deserializer &derez, Runtime *rt,
+      static void handle_remote_acquires(Deserializer &derez,
                                          AddressSpaceID previous); 
     public:
       AcquireAnalysis *const target_analysis;
@@ -2616,10 +2610,10 @@ namespace Legion {
     class ReleaseAnalysis : public CollectiveCopyFillAnalysis,
                             public LegionHeapify<ReleaseAnalysis> {
     public:
-      ReleaseAnalysis(Runtime *rt, Operation *op, unsigned index,
+      ReleaseAnalysis(Operation *op, unsigned index,
                       ApEvent precondition, RegionNode *node,
                       const PhysicalTraceInfo &trace_info);
-      ReleaseAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      ReleaseAnalysis(AddressSpaceID src, AddressSpaceID prev,
                       Operation *op, unsigned index, RegionNode *node,
                       ApEvent precondition, ReleaseAnalysis *target, 
                       std::vector<PhysicalManager*> &&target_instances,
@@ -2646,7 +2640,7 @@ namespace Legion {
                                       std::set<RtEvent> &applied_events,
                                       const bool already_deferred = false);
     public:
-      static void handle_remote_releases(Deserializer &derez, Runtime *rt,
+      static void handle_remote_releases(Deserializer &derez,
                                          AddressSpaceID previous);
     public:
       const ApEvent precondition;
@@ -2663,7 +2657,7 @@ namespace Legion {
     class CopyAcrossAnalysis : public PhysicalAnalysis,
                                public LegionHeapify<CopyAcrossAnalysis> {
     public:
-      CopyAcrossAnalysis(Runtime *rt, Operation *op, 
+      CopyAcrossAnalysis(Operation *op, 
                          unsigned src_index, unsigned dst_index,
                          const RegionRequirement &src_req,
                          const RegionRequirement &dst_req,
@@ -2677,7 +2671,7 @@ namespace Legion {
                          const std::vector<unsigned> &dst_indexes,
                          const PhysicalTraceInfo &trace_info,
                          const bool perfect);
-      CopyAcrossAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      CopyAcrossAnalysis(AddressSpaceID src, AddressSpaceID prev,
                          Operation *op, unsigned src_index, unsigned dst_index,
                          const RegionUsage &src_usage, 
                          const RegionUsage &dst_usage,
@@ -2728,7 +2722,7 @@ namespace Legion {
           result.set_bit(idxs[idx]);
         return result;
       }
-      static void handle_remote_copies_across(Deserializer &derez, Runtime *rt,
+      static void handle_remote_copies_across(Deserializer &derez,
                                               AddressSpaceID previous); 
       static std::vector<CopyAcrossHelper*> create_across_helpers(
                             const FieldMask &src_mask,
@@ -2778,7 +2772,7 @@ namespace Legion {
     class OverwriteAnalysis : public PhysicalAnalysis,
                               public LegionHeapify<OverwriteAnalysis> {
     public:
-      OverwriteAnalysis(Runtime *rt, Operation *op, unsigned index,
+      OverwriteAnalysis(Operation *op, unsigned index,
                         const RegionUsage &usage, IndexSpaceExpression *expr,
                         LogicalView *view, const FieldMask &mask,
                         const PhysicalTraceInfo &trace_info,
@@ -2789,19 +2783,19 @@ namespace Legion {
                         const bool add_restriction = false,
                         const bool first_local = true);
       // Also local but with a full set of instances 
-      OverwriteAnalysis(Runtime *rt, Operation *op, unsigned index,
+      OverwriteAnalysis(Operation *op, unsigned index,
                         const RegionUsage &usage, IndexSpaceExpression *expr,
                         const PhysicalTraceInfo &trace_info,
                         const ApEvent precondition,
                         const bool add_restriction = false);
       // Also local but with a full set of views
-      OverwriteAnalysis(Runtime *rt, Operation *op, unsigned index,
+      OverwriteAnalysis(Operation *op, unsigned index,
                         const RegionUsage &usage, IndexSpaceExpression *expr,
                         const FieldMaskSet<LogicalView> &overwrite_views,
                         const PhysicalTraceInfo &trace_info,
                         const ApEvent precondition,
                         const bool add_restriction = false);
-      OverwriteAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      OverwriteAnalysis(AddressSpaceID src, AddressSpaceID prev,
                         Operation *op, unsigned index,
                         IndexSpaceExpression *expr, const RegionUsage &usage, 
                         FieldMaskSet<LogicalView> &views,
@@ -2847,7 +2841,7 @@ namespace Legion {
     public:
       RtEvent convert_views(LogicalRegion region, const InstanceSet &targets,
                             unsigned analysis_index = 0);
-      static void handle_remote_overwrites(Deserializer &derez, Runtime *rt,
+      static void handle_remote_overwrites(Deserializer &derez,
                                            AddressSpaceID previous); 
     public:
       const RegionUsage usage;
@@ -2874,10 +2868,10 @@ namespace Legion {
     class FilterAnalysis : public RegistrationAnalysis,
                            public LegionHeapify<FilterAnalysis> {
     public:
-      FilterAnalysis(Runtime *rt, Operation *op, unsigned index,
+      FilterAnalysis(Operation *op, unsigned index,
                      RegionNode *node, const PhysicalTraceInfo &trace_info,
                      const bool remove_restriction = false);
-      FilterAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      FilterAnalysis(AddressSpaceID src, AddressSpaceID prev,
                      Operation *op, unsigned index, RegionNode *node,
                      const PhysicalTraceInfo &trace_info,
                      const FieldMaskSet<InstanceView> &filter_views,
@@ -2902,7 +2896,7 @@ namespace Legion {
                                      std::set<RtEvent> &applied_events,
                                      const bool already_deferred = false);
     public:
-      static void handle_remote_filters(Deserializer &derez, Runtime *rt,
+      static void handle_remote_filters(Deserializer &derez,
                                         AddressSpaceID previous);
     public:
       FieldMaskSet<InstanceView> filter_views;
@@ -2917,9 +2911,9 @@ namespace Legion {
     class CloneAnalysis : public PhysicalAnalysis,
                           public LegionHeapify<CloneAnalysis> {
     public:
-      CloneAnalysis(Runtime *rt, IndexSpaceExpression *expr, Operation *op,
+      CloneAnalysis(IndexSpaceExpression *expr, Operation *op,
                     unsigned index, FieldMaskSet<EquivalenceSet> &&sources);
-      CloneAnalysis(Runtime *rt, AddressSpaceID src, AddressSpaceID prev,
+      CloneAnalysis(AddressSpaceID src, AddressSpaceID prev,
                     IndexSpaceExpression *expr, Operation *op,
                     unsigned index, FieldMaskSet<EquivalenceSet> &&sources);
       CloneAnalysis(const CloneAnalysis &rhs) = delete;
@@ -2938,7 +2932,7 @@ namespace Legion {
                                      std::set<RtEvent> &applied_events,
                                      const bool already_deferred = false);
     public:
-      static void handle_remote_clones(Deserializer &derez, Runtime *rt,
+      static void handle_remote_clones(Deserializer &derez,
                                        AddressSpaceID previous);
     public:
       const FieldMaskSet<EquivalenceSet> sources;
@@ -3169,28 +3163,25 @@ namespace Legion {
       virtual IndexSpaceExpression* get_tracker_expression(void) const = 0;
       virtual ReferenceSource get_reference_source_kind(void) const = 0;
     public:
-      unsigned invalidate_equivalence_sets(Runtime *runtime,
+      unsigned invalidate_equivalence_sets(
           const FieldMask &mask, EqKDTree *tree, AddressSpaceID source,
           std::vector<RtEvent> &invalidated_events);
-      void cancel_subscriptions(Runtime *runtime,
+      void cancel_subscriptions(
           const LegionMap<AddressSpaceID,FieldMaskSet<EqKDTree> > &to_cancel,
           std::vector<RtEvent> *cancelled_events = NULL);
-      static void invalidate_subscriptions(Runtime *runtime, EqKDTree *source,
+      static void invalidate_subscriptions(EqKDTree *source,
           LegionMap<AddressSpaceID,FieldMaskSet<EqSetTracker> > &subscribers,
           std::vector<RtEvent> &applied_events);
       static void handle_cancel_subscription(Deserializer &derez,
-          Runtime *runtime, AddressSpaceID source);
+          AddressSpaceID source);
       static void handle_invalidate_subscription(Deserializer &derez,
-          Runtime *runtime, AddressSpaceID source);
-      static void handle_equivalence_set_creation(Deserializer &derez,
-                                                  Runtime *runtime);
-      static void handle_equivalence_set_reuse(Deserializer &derez,
-                                               Runtime *runtime);
+          AddressSpaceID source);
+      static void handle_equivalence_set_creation(Deserializer &derez);
+      static void handle_equivalence_set_reuse(Deserializer &derez);
       void record_pending_equivalence_set(EquivalenceSet *set,
                                           const FieldMask &mask);
-      static void handle_pending_equivalence_set(Deserializer &derez,
-                                                 Runtime *runtime);
-      static void handle_finalize_eq_sets(const void *args, Runtime *runtime);
+      static void handle_pending_equivalence_set(Deserializer &derez);
+      static void handle_finalize_eq_sets(const void *args);
     protected:
       void record_subscriptions(AddressSpaceID source,
                 const FieldMaskSet<EqKDTree> &new_subs);
@@ -3222,7 +3213,7 @@ namespace Legion {
         size_t source_volume;
       };
       bool check_for_congruent_source_equivalence_sets(
-          FieldSet<Domain> &dest, Runtime *runtime,
+          FieldSet<Domain> &dest,
           std::vector<RtEvent> &ready_events,
           FieldMaskSet<EquivalenceSet> &created_sets,
           FieldMaskSet<EquivalenceSet> &unique_sources,
@@ -3238,10 +3229,10 @@ namespace Legion {
           LegionMap<AddressSpaceID,FieldMaskSet<EqKDTree> > &create_now,
           LegionMap<AddressSpaceID,FieldMaskSet<EqKDTree> > &to_notify);
       RtEvent initialize_new_equivalence_set(EquivalenceSet *set,
-          const FieldMask &mask, Runtime *runtime, bool filter_invalidations,
+          const FieldMask &mask, bool filter_invalidations,
           std::map<EquivalenceSet*,LegionList<SourceState> > &creation_sources);
       void finalize_equivalence_sets(RtUserEvent compute_event,
-          InnerContext *context, Runtime *runtime, unsigned parent_req_index,
+          InnerContext *context, unsigned parent_req_index,
           IndexSpaceExpression *expr, UniqueID opid);
       void record_equivalence_sets(VersionInfo *version_info,
                                    const FieldMask &mask) const;
@@ -3355,7 +3346,7 @@ namespace Legion {
         const bool filter_invalidations;
       };
     public:
-      EquivalenceSet(Runtime *rt, DistributedID did,
+      EquivalenceSet(DistributedID did,
                      AddressSpaceID logical_owner,
                      IndexSpaceExpression *expr,
                      RegionTreeID tid,
@@ -3773,22 +3764,20 @@ namespace Legion {
       static void handle_make_owner(const void *args);
       static void handle_apply_state(const void *args);
     public:
-      static void handle_equivalence_set_request(Deserializer &derez,
-                                                 Runtime *runtime);
-      static void handle_equivalence_set_response(Deserializer &derez,
-                                                  Runtime *runtime);
+      static void handle_equivalence_set_request(Deserializer &derez);
+      static void handle_equivalence_set_response(Deserializer &derez);
       static void handle_migration(Deserializer &derez, 
-                                   Runtime *runtime, AddressSpaceID source);
-      static void handle_owner_update(Deserializer &derez, Runtime *rt);
-      static void handle_invalidate_trackers(Deserializer &derez, Runtime *rt);
-      static void handle_replication_request(Deserializer &derez, Runtime *rt);
-      static void handle_replication_response(Deserializer &derez, Runtime *rt);
-      static void handle_clone_request(Deserializer &derez, Runtime *runtime, 
+                                   AddressSpaceID source);
+      static void handle_owner_update(Deserializer &derez);
+      static void handle_invalidate_trackers(Deserializer &derez);
+      static void handle_replication_request(Deserializer &derez);
+      static void handle_replication_response(Deserializer &derez);
+      static void handle_clone_request(Deserializer &derez,
                                        AddressSpaceID source);
-      static void handle_clone_response(Deserializer &derez, Runtime *runtime);
-      static void handle_capture_request(Deserializer &derez, Runtime *runtime,
+      static void handle_clone_response(Deserializer &derez);
+      static void handle_capture_request(Deserializer &derez,
                                          AddressSpaceID source);
-      static void handle_capture_response(Deserializer &derez, Runtime *runtime,
+      static void handle_capture_response(Deserializer &derez,
                                           AddressSpaceID source);
     public:
       // Note this context refers to the context from which the views are
@@ -3947,7 +3936,6 @@ namespace Legion {
     public:
       const ContextID ctx;
       RegionTreeNode *const node;
-      Runtime *const runtime;
     protected:
       mutable LocalLock manager_lock;
     };

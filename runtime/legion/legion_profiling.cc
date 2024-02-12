@@ -1679,7 +1679,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     LegionProfiler::LegionProfiler(Processor target, const Machine &machine,
-                                   Runtime *rt, unsigned num_meta_tasks,
+                                   unsigned num_meta_tasks,
                                    const char *const *const task_descriptions,
                                    unsigned num_message_kinds,
                                    const char *const *const 
@@ -1694,7 +1694,7 @@ namespace Legion {
                                    const size_t target_latency,
                                    const size_t call_threshold,
                                    const bool slow_config_ok)
-      : runtime(rt), done_event(Runtime::create_rt_user_event()), 
+      : done_event(Runtime::create_rt_user_event()), 
         minimum_call_threshold(call_threshold * 1000 /*convert us to ns*/),
         output_footprint_threshold(footprint_threshold), 
         output_target_latency(target_latency), target_proc(target), 
@@ -1752,9 +1752,9 @@ namespace Legion {
       LegionProfDesc::MachineDesc machine_desc;
 
       machine.get_process_info(target, &machine_desc.process_info);
-      machine_desc.node_id = static_cast<unsigned>(rt->address_space);
+      machine_desc.node_id = static_cast<unsigned>(runtime->address_space);
       machine_desc.num_nodes = static_cast<unsigned>(
-        rt->total_address_spaces);
+        runtime->total_address_spaces);
 
       serializer->serialize(machine_desc);
 
@@ -2821,7 +2821,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    DetailedProfiler::DetailedProfiler(Runtime *runtime, RuntimeCallKind call)
+    DetailedProfiler::DetailedProfiler(RuntimeCallKind call)
       : profiler(runtime->profiler), call_kind(call), start_time(0)
     //--------------------------------------------------------------------------
     {

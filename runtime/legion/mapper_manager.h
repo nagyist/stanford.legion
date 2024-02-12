@@ -72,7 +72,7 @@ namespace Legion {
         const bool broadcast;
       };
     public:
-      MapperManager(Runtime *runtime, Mapping::Mapper *mapper, 
+      MapperManager(Mapping::Mapper *mapper, 
                     MapperID map_id, Processor p, bool is_default);
       virtual ~MapperManager(void);
     public:
@@ -565,7 +565,6 @@ namespace Legion {
       void process_failed_steal(Processor thief);
       void perform_advertisements(std::set<Processor> &failed_waiters);
     public:
-      Runtime *const runtime;
       Mapping::Mapper *const mapper;
       const MapperID mapper_id;
       const Processor processor;
@@ -591,12 +590,12 @@ namespace Legion {
      */
     class SerializingManager : public MapperManager {
     public:
-      SerializingManager(Runtime *runtime, Mapping::Mapper *mapper,
+      SerializingManager(Mapping::Mapper *mapper,
          MapperID map_id, Processor p, bool reentrant, bool is_default = false);
-      SerializingManager(const SerializingManager &rhs);
+      SerializingManager(const SerializingManager &rhs) = delete;
       virtual ~SerializingManager(void);
     public:
-      SerializingManager& operator=(const SerializingManager &rhs);
+      SerializingManager& operator=(const SerializingManager &rhs) = delete;
     public:
       virtual bool is_locked(MappingCallInfo *info);
       virtual void lock_mapper(MappingCallInfo *info, bool read_only);
@@ -650,12 +649,12 @@ namespace Legion {
         EXCLUSIVE_STATE,
       };
     public:
-      ConcurrentManager(Runtime *runtime, Mapping::Mapper *mapper,
+      ConcurrentManager(Mapping::Mapper *mapper,
                         MapperID map_id, Processor p, bool is_default = false);
-      ConcurrentManager(const ConcurrentManager &rhs);
+      ConcurrentManager(const ConcurrentManager &rhs) = delete;
       virtual ~ConcurrentManager(void);
     public:
-      ConcurrentManager& operator=(const ConcurrentManager &rhs);
+      ConcurrentManager& operator=(const ConcurrentManager &rhs) = delete;
     public:
       virtual bool is_locked(MappingCallInfo *info);
       virtual void lock_mapper(MappingCallInfo *info, bool read_only);

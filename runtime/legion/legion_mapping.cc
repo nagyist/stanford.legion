@@ -238,7 +238,7 @@ namespace Legion {
     /*static*/ PhysicalInstance PhysicalInstance::get_virtual_instance(void)
     //--------------------------------------------------------------------------
     {
-      return PhysicalInstance(Internal::implicit_runtime->virtual_manager);
+      return PhysicalInstance(Internal::runtime->virtual_manager);
     }
 
     //--------------------------------------------------------------------------

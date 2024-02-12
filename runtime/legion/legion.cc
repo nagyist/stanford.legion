@@ -2916,8 +2916,8 @@ namespace Legion {
         Realm::InstanceLayoutGeneric::choose_instance_layout(bounds, 
             constraints, dim_order);
       layout->alignment_reqd = alignment;
-      Runtime *runtime = Runtime::get_runtime();
-      instance = runtime->create_task_local_instance(memory, layout);
+      instance =
+        Internal::implicit_context->create_task_local_instance(memory, layout);
       if (initial_value != NULL)
       {
         Realm::ProfilingRequestSet no_requests; 
@@ -2977,8 +2977,8 @@ namespace Legion {
         Realm::InstanceLayoutGeneric::choose_instance_layout(bounds, 
             constraints, dim_order);
       layout->alignment_reqd = alignment;
-      Runtime *runtime = Runtime::get_runtime();
-      instance = runtime->create_task_local_instance(memory, layout);
+      instance =
+        Internal::implicit_context->create_task_local_instance(memory, layout);
       if (initial_value != NULL)
       {
         Realm::ProfilingRequestSet no_requests; 
@@ -7257,8 +7257,8 @@ namespace Legion {
       if (!Internal::Runtime::runtime_started)
         REPORT_LEGION_ERROR(ERROR_DYNAMIC_CALL_PRE_RUNTIME_START,
             "Illegal call to 'get_input_args' before the runtime is started")
-      if (Internal::implicit_runtime != NULL)
-        return Internal::implicit_runtime->input_args;
+      if (Internal::runtime != NULL)
+        return Internal::runtime->input_args;
       // Otherwise this is not from a Legion task, so fallback to the_runtime
       return Internal::Runtime::the_runtime->input_args;
     }
@@ -7278,8 +7278,8 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_DYNAMIC_CALL_PRE_RUNTIME_START,
             "Illegal call to 'get_runtime' before the runtime is started")
       // If we have an implicit runtime we use that
-      if (Internal::implicit_runtime != NULL)
-        return Internal::implicit_runtime->external;
+      if (Internal::runtime != NULL)
+        return Internal::runtime->external;
       // Otherwise this is not from a Legion task, so fallback to the_runtime
       return Internal::Runtime::the_runtime->external;
     }
@@ -7423,7 +7423,7 @@ namespace Legion {
       assert(exec_proc.exists());
 #endif
       reg = &ctx->begin_task(exec_proc);
-      runtime = Internal::implicit_runtime->external;
+      runtime = Internal::runtime->external;
     }
 
     //--------------------------------------------------------------------------

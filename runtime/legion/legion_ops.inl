@@ -126,7 +126,7 @@ namespace Legion {
         {
           ApEvent e = Runtime::get_previous_phase(it->phase_barrier);
           sync_preconditions.push_back(e);
-          if (this->runtime->legion_spy_enabled)
+          if (runtime->legion_spy_enabled)
             LegionSpy::log_phase_barrier_wait(this->get_unique_op_id(), e);
         }
         for (std::vector<Grant>::const_iterator it =
@@ -207,7 +207,7 @@ namespace Legion {
       }
       if (this->predication_state == OP::PREDICATED_FALSE_STATE)
       {
-        if (this->runtime->legion_spy_enabled)
+        if (runtime->legion_spy_enabled)
           LegionSpy::log_predicated_false_op(this->unique_op_id);
         this->predicate_false();
       }

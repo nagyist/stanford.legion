@@ -51,7 +51,7 @@ namespace Legion {
      */
     class LogicalView : public DistributedCollectable {
     public:
-      LogicalView(Runtime *runtime, DistributedID did,
+      LogicalView(DistributedID did,
                   bool register_now, CollectiveMapping *mapping);
       virtual ~LogicalView(void);
     public:
@@ -82,7 +82,7 @@ namespace Legion {
       inline PhiView *as_phi_view(void) const;
     public:
       virtual void send_view(AddressSpaceID target) = 0; 
-      static void handle_view_request(Deserializer &derez, Runtime *runtime);
+      static void handle_view_request(Deserializer &derez);
     public:
       inline void add_base_valid_ref(ReferenceSource source, int cnt = 1);
       inline void add_nested_valid_ref(DistributedID source, int cnt = 1);
@@ -170,7 +170,7 @@ namespace Legion {
       typedef LegionMap<ApEvent,FieldMaskSet<PhysicalUser> > EventFieldUsers;
       typedef FieldMaskSet<PhysicalUser> EventUsers;
     public:
-      InstanceView(Runtime *runtime, DistributedID did,
+      InstanceView(DistributedID did,
                    bool register_now, CollectiveMapping *mapping);
       virtual ~InstanceView(void);  
     public:
@@ -227,7 +227,7 @@ namespace Legion {
       virtual bool aliases(InstanceView *other) const = 0;
     public:
       static void handle_view_register_user(Deserializer &derez,
-                        Runtime *runtime, AddressSpaceID source);
+                                            AddressSpaceID source);
     }; 
 
     /**
@@ -237,7 +237,7 @@ namespace Legion {
      */
     class IndividualView : public InstanceView { 
     public:
-      IndividualView(Runtime *runtime, DistributedID did,
+      IndividualView(DistributedID did,
                      PhysicalManager *man, AddressSpaceID logical_owner,
                      bool register_now, CollectiveMapping *mapping); 
       virtual ~IndividualView(void);
@@ -365,19 +365,16 @@ namespace Legion {
                                             RtUserEvent remote_applied);
     public:
       static void handle_view_find_copy_pre_request(Deserializer &derez,
-                        Runtime *runtime, AddressSpaceID source);
+                        AddressSpaceID source);
       static void handle_view_add_copy_user(Deserializer &derez,
-                        Runtime *runtime, AddressSpaceID source);
+                        AddressSpaceID source);
       static void handle_view_find_last_users_request(Deserializer &derz,
-                        Runtime *runtime, AddressSpaceID source);
+                        AddressSpaceID source);
       static void handle_view_find_last_users_response(Deserializer &derez);
-      static void handle_collective_user_registration(Runtime *runtime,
-                                                      Deserializer &derez);
+      static void handle_collective_user_registration(Deserializer &derez);
     public:
-      static void handle_atomic_reservation_request(Runtime *runtime,
-                                                    Deserializer &derez);
-      static void handle_atomic_reservation_response(Runtime *runtime,
-                                                     Deserializer &derez);
+      static void handle_atomic_reservation_request(Deserializer &derez);
+      static void handle_atomic_reservation_response(Deserializer &derez);
 #ifdef ENABLE_VIEW_REPLICATION
     public:
       virtual void process_replication_request(AddressSpaceID source,
@@ -388,11 +385,10 @@ namespace Legion {
       virtual void process_replication_removal(AddressSpaceID source,
                                  const FieldMask &removal_mask) = 0;
       static void handle_view_replication_request(Deserializer &derez,
-                        Runtime *runtime, AddressSpaceID source);
-      static void handle_view_replication_response(Deserializer &derez,
-                        Runtime *runtime);
+                        AddressSpaceID source);
+      static void handle_view_replication_response(Deserializer &derez);
       static void handle_view_replication_removal(Deserializer &derez,
-                        Runtime *runtime, AddressSpaceID source);
+                                                  AddressSpaceID source);
 #endif
     public:
       PhysicalManager *const manager; 
@@ -471,7 +467,7 @@ namespace Legion {
         NOT_VALID_STATE, 
       };
     public:
-      CollectiveView(Runtime *runtime, DistributedID did,
+      CollectiveView(DistributedID did,
                      DistributedID context_did,
                      const std::vector<IndividualView*> &views,
                      const std::vector<DistributedID> &instances,
@@ -781,51 +777,42 @@ namespace Legion {
       bool perform_invalidate_response(uint64_t generation, uint64_t sent,
                           uint64_t received, bool failed, bool need_lock);
     public:
-      static void handle_register_user_request(Runtime *runtime,
-                                    Deserializer &derez);
-      static void handle_register_user_response(Runtime *runtime,
-                                    Deserializer &derez);
-      static void handle_remote_instances_request(Runtime *runtime,
+      static void handle_register_user_request(Deserializer &derez);
+      static void handle_register_user_response(Deserializer &derez);
+      static void handle_remote_instances_request(
                                     Deserializer &derez, AddressSpaceID source);
-      static void handle_remote_instances_response(Runtime *runtime,
+      static void handle_remote_instances_response(
                                     Deserializer &derez, AddressSpaceID source);
-      static void handle_nearest_instances_request(Runtime *runtime,
-                                                   Deserializer &derez);
+      static void handle_nearest_instances_request(Deserializer &derez);
       static void handle_nearest_instances_response(Deserializer &derez);
       static void process_nearest_instances(std::atomic<size_t> *target,
           std::vector<DistributedID> *instances, size_t best,
           const std::vector<DistributedID> &results, bool bandwidth);
-      static void handle_remote_analysis_registration(Deserializer &derez,
-                                                      Runtime *runtime);
-      static void handle_collective_view_deletion(Deserializer &derez,
-                                                  Runtime *runtime);
+      static void handle_remote_analysis_registration(Deserializer &derez);
+      static void handle_collective_view_deletion(Deserializer &derez);
       static void unpack_fields(std::vector<CopySrcDstField> &fields,
           Deserializer &derez, std::set<RtEvent> &ready_events,
-          CollectiveView *view, RtEvent view_ready, Runtime *runtime);
-      static void handle_distribute_fill(Runtime *runtime, 
+          CollectiveView *view, RtEvent view_ready);
+      static void handle_distribute_fill(
                                     AddressSpaceID source, Deserializer &derez);
-      static void handle_distribute_point(Runtime *runtime, 
+      static void handle_distribute_point(
                                     AddressSpaceID source, Deserializer &derez);
-      static void handle_distribute_broadcast(Runtime *runtime, 
+      static void handle_distribute_broadcast(
                                     AddressSpaceID source, Deserializer &derez);
-      static void handle_distribute_reducecast(Runtime *runtime, 
+      static void handle_distribute_reducecast(
                                     AddressSpaceID source, Deserializer &derez);
-      static void handle_distribute_hourglass(Runtime *runtime, 
+      static void handle_distribute_hourglass(
                                     AddressSpaceID source, Deserializer &derez);
-      static void handle_distribute_pointwise(Runtime *runtime, 
+      static void handle_distribute_pointwise(
                                     AddressSpaceID source, Deserializer &derez);
-      static void handle_fuse_gather(Runtime *runtime,
+      static void handle_fuse_gather(
                                     AddressSpaceID source, Deserializer &derez);
-      static void handle_make_valid(Runtime *runtime, Deserializer &derez);
-      static void handle_make_invalid(Runtime *runtime, Deserializer &derez);
-      static void handle_invalidate_request(Runtime *runtime, 
-                                            Deserializer &derez);
-      static void handle_invalidate_response(Runtime *runtime,
-                                             Deserializer &derez);
-      static void handle_add_remote_reference(Runtime *runtime, 
-                                              Deserializer &derez);
-      static void handle_remove_remote_reference(Runtime *runtime,
-                                                 Deserializer &derez);
+      static void handle_make_valid(Deserializer &derez);
+      static void handle_make_invalid(Deserializer &derez);
+      static void handle_invalidate_request(Deserializer &derez);
+      static void handle_invalidate_response(Deserializer &derez);
+      static void handle_add_remote_reference(Deserializer &derez);
+      static void handle_remove_remote_reference(Deserializer &derez);
       static bool has_multiple_local_memories(
                     const std::vector<IndividualView*> &local_views);
     public:
@@ -1174,7 +1161,7 @@ namespace Legion {
         const AddressSpaceID logical_owner;
       };
     public:
-      MaterializedView(Runtime *runtime, DistributedID did,
+      MaterializedView(DistributedID did,
                        AddressSpaceID logical_owner, PhysicalManager *manager,
                        bool register_now, CollectiveMapping *mapping = NULL);
       MaterializedView(const MaterializedView &rhs) = delete;
@@ -1267,10 +1254,9 @@ namespace Legion {
       void update_remote_replication_state(std::set<RtEvent> &applied_events);
 #endif 
     public:
-      static void handle_send_materialized_view(Runtime *runtime,
-                                                Deserializer &derez);
-      static void handle_defer_materialized_view(const void *args, Runtime *rt);
-      static void create_remote_view(Runtime *runtime, DistributedID did, 
+      static void handle_send_materialized_view(Deserializer &derez);
+      static void handle_defer_materialized_view(const void *args);
+      static void create_remote_view(DistributedID did, 
                                      PhysicalManager *manager,
                                      AddressSpaceID logical_owner); 
     protected: 
@@ -1328,7 +1314,7 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = REPLICATED_VIEW_ALLOC;
     public:
-      ReplicatedView(Runtime *runtime, DistributedID did, DistributedID ctx_did,
+      ReplicatedView(DistributedID did, DistributedID ctx_did,
                      const std::vector<IndividualView*> &views,
                      const std::vector<DistributedID> &instances,
                      bool register_now, CollectiveMapping *mapping);
@@ -1338,8 +1324,7 @@ namespace Legion {
       ReplicatedView& operator=(const ReplicatedView &rhs) = delete;
     public: // From InstanceView
       virtual void send_view(AddressSpaceID target);
-      static void handle_send_replicated_view(Runtime *runtime,
-                                              Deserializer &derez);
+      static void handle_send_replicated_view(Deserializer &derez);
     };
 
     /**
@@ -1367,7 +1352,7 @@ namespace Legion {
         const AddressSpaceID logical_owner;
       };
     public:
-      ReductionView(Runtime *runtime, DistributedID did,
+      ReductionView(DistributedID did,
                     AddressSpaceID logical_owner, PhysicalManager *manager,
                     bool register_now, CollectiveMapping *mapping = NULL);
       ReductionView(const ReductionView &rhs) = delete;
@@ -1455,10 +1440,9 @@ namespace Legion {
                             std::set<ApEvent> &wait_on,
                             const bool trace_recording);
     public:
-      static void handle_send_reduction_view(Runtime *runtime,
-                                             Deserializer &derez);
-      static void handle_defer_reduction_view(const void *args, Runtime *rt);
-      static void create_remote_view(Runtime *runtime, DistributedID did, 
+      static void handle_send_reduction_view(Deserializer &derez);
+      static void handle_defer_reduction_view(const void *args);
+      static void create_remote_view(DistributedID did, 
                                      PhysicalManager *manager,
                                      AddressSpaceID logical_owner); 
     public:
@@ -1479,7 +1463,7 @@ namespace Legion {
     public:
       static const AllocationType alloc_type = ALLREDUCE_VIEW_ALLOC;
     public:
-      AllreduceView(Runtime *runtime, DistributedID did, DistributedID ctx_did,
+      AllreduceView(DistributedID did, DistributedID ctx_did,
                     const std::vector<IndividualView*> &views,
                     const std::vector<DistributedID> &instances,
                     bool register_now, CollectiveMapping *mapping,
@@ -1676,13 +1660,12 @@ namespace Legion {
                         std::vector<std::vector<
                               CopySrcDstField> > *src_fields = NULL);
     public:
-      static void handle_send_allreduce_view(Runtime *runtime,
-                                             Deserializer &derez);
-      static void handle_distribute_reduction(Runtime *runtime, 
+      static void handle_send_allreduce_view(Deserializer &derez);
+      static void handle_distribute_reduction(
                                     AddressSpaceID source, Deserializer &derez);
-      static void handle_hammer_reduction(Runtime *runtime, 
+      static void handle_hammer_reduction(
                                     AddressSpaceID source, Deserializer &derez);
-      static void handle_distribute_allreduce(Runtime *runtime, 
+      static void handle_distribute_allreduce(
                                     AddressSpaceID source, Deserializer &derez);
     public:
       const ReductionOpID redop;
@@ -1763,7 +1746,7 @@ namespace Legion {
      */
     class DeferredView : public LogicalView {
     public:
-      DeferredView(Runtime *runtime, DistributedID did,
+      DeferredView(DistributedID did,
                    bool register_now, CollectiveMapping *mapping = NULL);
       virtual ~DeferredView(void);
     public:
@@ -1815,14 +1798,14 @@ namespace Legion {
       };
     public:
       // Don't know the fill value yet, will be set later
-      FillView(Runtime *runtime, DistributedID did,
+      FillView(DistributedID did,
 #ifdef LEGION_SPY
                UniqueID fill_op_uid,
 #endif
                bool register_now,
                CollectiveMapping *mapping = NULL);
       // Already know the fill value
-      FillView(Runtime *runtime, DistributedID did,
+      FillView(DistributedID did,
 #ifdef LEGION_SPY
                UniqueID fill_op_uid,
 #endif
@@ -1858,9 +1841,8 @@ namespace Legion {
                          CollectiveKind collective = COLLECTIVE_NONE);
       static void handle_defer_issue_fill(const void *args);
     public:
-      static void handle_send_fill_view(Runtime *runtime, Deserializer &derez);
-      static void handle_send_fill_view_value(Runtime *runtime,
-                                              Deserializer &derez);
+      static void handle_send_fill_view(Deserializer &derez);
+      static void handle_send_fill_view_value(Deserializer &derez);
 #ifdef LEGION_SPY
     public:
       const UniqueID fill_op_uid;
@@ -1907,7 +1889,7 @@ namespace Legion {
         PhiView *const view;
       };
     public:
-      PhiView(Runtime *runtime, DistributedID did,
+      PhiView(DistributedID did,
               PredEvent true_guard, PredEvent false_guard,
               FieldMaskSet<DeferredView> &&true_views,
               FieldMaskSet<DeferredView> &&false_views,
@@ -1932,7 +1914,7 @@ namespace Legion {
                            CopyAcrossHelper *helper);
     public:
       void add_initial_references(bool unpack_references);
-      static void handle_send_phi_view(Runtime *runtime, Deserializer &derez);
+      static void handle_send_phi_view(Deserializer &derez);
       static void handle_deferred_view_registration(const void *args);
     public:
       const PredEvent true_guard;

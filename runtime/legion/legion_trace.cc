@@ -78,7 +78,7 @@ namespace Legion {
     {
       state.store(LOGICAL_ONLY);
       physical_trace = logical_only ? NULL : 
-        new PhysicalTrace(c->owner_task->runtime, this);
+        new PhysicalTrace(this);
       if (begin_provenance != NULL)
         begin_provenance->add_reference();
     }
@@ -685,7 +685,7 @@ namespace Legion {
          const unsigned index, const std::vector<StaticDependence> &dependences)
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = context->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       const bool is_replicated = (context->get_replication_id() > 0);
       for (std::vector<StaticDependence>::const_iterator it =
             dependences.begin(); it != dependences.end(); it++)
@@ -750,19 +750,10 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TraceOp::TraceOp(Runtime *rt)
-      : FenceOp(rt)
+    TraceOp::TraceOp(void)
+      : FenceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceOp::TraceOp(const TraceOp &rhs)
-      : FenceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
@@ -771,48 +762,21 @@ namespace Legion {
     {
     }
 
-    //--------------------------------------------------------------------------
-    TraceOp& TraceOp::operator=(const TraceOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    }
-
     /////////////////////////////////////////////////////////////
     // TraceCaptureOp 
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TraceCaptureOp::TraceCaptureOp(Runtime *rt)
-      : TraceOp(rt)
+    TraceCaptureOp::TraceCaptureOp(void)
+      : TraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceCaptureOp::TraceCaptureOp(const TraceCaptureOp &rhs)
-      : TraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     TraceCaptureOp::~TraceCaptureOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceCaptureOp& TraceCaptureOp::operator=(const TraceCaptureOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -926,34 +890,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TraceCompleteOp::TraceCompleteOp(Runtime *rt)
-      : TraceOp(rt)
+    TraceCompleteOp::TraceCompleteOp(void)
+      : TraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceCompleteOp::TraceCompleteOp(const TraceCompleteOp &rhs)
-      : TraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     TraceCompleteOp::~TraceCompleteOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceCompleteOp& TraceCompleteOp::operator=(const TraceCompleteOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -1059,7 +1005,7 @@ namespace Legion {
         // Having all our mapping dependences satisfied means that the previous 
         // replay of this template is done so we can start ours now
         std::set<RtEvent> replayed_events;
-        current_template->perform_replay(runtime, replayed_events);
+        current_template->perform_replay(replayed_events);
         if (!replayed_events.empty())
         {
           enqueue_ready_operation(Runtime::merge_events(replayed_events));
@@ -1122,34 +1068,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TraceReplayOp::TraceReplayOp(Runtime *rt)
-      : TraceOp(rt)
+    TraceReplayOp::TraceReplayOp(void)
+      : TraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceReplayOp::TraceReplayOp(const TraceReplayOp &rhs)
-      : TraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     TraceReplayOp::~TraceReplayOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceReplayOp& TraceReplayOp::operator=(const TraceReplayOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -1285,34 +1213,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TraceBeginOp::TraceBeginOp(Runtime *rt)
-      : TraceOp(rt)
+    TraceBeginOp::TraceBeginOp(void)
+      : TraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceBeginOp::TraceBeginOp(const TraceBeginOp &rhs)
-      : TraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     TraceBeginOp::~TraceBeginOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceBeginOp& TraceBeginOp::operator=(const TraceBeginOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -1368,34 +1278,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TraceSummaryOp::TraceSummaryOp(Runtime *rt)
-      : TraceOp(rt)
+    TraceSummaryOp::TraceSummaryOp(void)
+      : TraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceSummaryOp::TraceSummaryOp(const TraceSummaryOp &rhs)
-      : TraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     TraceSummaryOp::~TraceSummaryOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TraceSummaryOp& TraceSummaryOp::operator=(const TraceSummaryOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -1491,8 +1383,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PhysicalTrace::PhysicalTrace(Runtime *rt, LogicalTrace *lt)
-      : runtime(rt), logical_trace(lt), perform_fence_elision(
+    PhysicalTrace::PhysicalTrace(LogicalTrace *lt)
+      : logical_trace(lt), perform_fence_elision(
           !(runtime->no_trace_optimization || runtime->no_fence_elision)),
         repl_ctx(dynamic_cast<ReplicateContext*>(lt->context)),
         previous_replay(NULL), current_template(NULL), nonreplayable_count(0),
@@ -1905,7 +1797,7 @@ namespace Legion {
           }
           FieldMaskSet<IndexSpaceExpression> to_add;
           std::vector<IndexSpaceExpression*> to_delete;
-          RegionTreeForest *forest = context->runtime->forest;
+          RegionTreeForest *forest = runtime->forest;
           for (FieldMaskSet<IndexSpaceExpression>::iterator it =
                 finder->second.begin(); it != finder->second.end(); it++)
           {
@@ -2122,7 +2014,7 @@ namespace Legion {
         // We need intersection tests as part of filtering
         FieldMaskSet<IndexSpaceExpression> to_add;
         std::vector<IndexSpaceExpression*> to_delete;
-        RegionTreeForest *forest = context->runtime->forest;
+        RegionTreeForest *forest = runtime->forest;
         for (FieldMaskSet<IndexSpaceExpression>::iterator it =
               finder->second.begin(); it != finder->second.end(); it++)
         {
@@ -2255,7 +2147,7 @@ namespace Legion {
 #endif
       if (expr_volume == total_expr->get_volume())
         expr = total_expr;
-      RegionTreeForest *forest = context->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       ViewExprs::const_iterator finder = conditions.find(view);
       if (finder != conditions.end() && 
           !(finder->second.get_valid_mask() * non_dominated))
@@ -2392,7 +2284,7 @@ namespace Legion {
 #endif
       if (expr_volume == total_expr->get_volume())
         expr = total_expr;
-      RegionTreeForest *forest = context->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       ViewExprs::const_iterator finder = conditions.find(view);
       if (finder != conditions.end() && 
           !(finder->second.get_valid_mask() * mask))
@@ -2567,7 +2459,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldMask independent = mask;
-      RegionTreeForest *forest = context->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       for (ViewExprs::const_iterator vit =
             conditions.begin(); vit != conditions.end(); vit++)
       {
@@ -2727,7 +2619,7 @@ namespace Legion {
       LegionMap<std::pair<IndexSpaceExpression*,IndexSpaceExpression*>,
                 FieldMask> overlaps;
       unique_join_on_field_mask_sets(left_exprs, right_exprs, overlaps);
-      RegionTreeForest *forest = context->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       for (LegionMap<std::pair<IndexSpaceExpression*,IndexSpaceExpression*>,
                      FieldMask>::const_iterator it = 
             overlaps.begin(); it != overlaps.end(); it++)
@@ -2827,7 +2719,7 @@ namespace Legion {
             dst_views.swap(src_views);
           continue;
         }
-        RegionTreeForest *forest = context->runtime->forest;
+        RegionTreeForest *forest = runtime->forest;
         // Do pair-wise intersection tests for overlapping of the expressions
         std::vector<IndexSpaceExpression*> disjoint_expressions;
         std::vector<std::vector<IndexSpaceExpression*> > disjoint_components;
@@ -2964,7 +2856,7 @@ namespace Legion {
       }
       else
       {
-        RegionTreeForest *forest = context->runtime->forest;
+        RegionTreeForest *forest = runtime->forest;
         for (ViewExprs::const_iterator vit = 
               conditions.begin(); vit != conditions.end(); vit++)
         {
@@ -3042,14 +2934,14 @@ namespace Legion {
                          AddressSpaceID source, std::set<RtEvent> &ready_events)
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = context->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       for (unsigned idx1 = 0; idx1 < num_views; idx1++)
       {
         DistributedID did;
         derez.deserialize(did);
         RtEvent ready;
         LogicalView *view =
-          forest->runtime->find_or_request_logical_view(did, ready);
+          runtime->find_or_request_logical_view(did, ready);
         size_t num_exprs;
         derez.deserialize(num_exprs);
         FieldMaskSet<IndexSpaceExpression> &exprs = conditions[view];
@@ -3085,7 +2977,7 @@ namespace Legion {
     void TraceViewSet::dump(void) const
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = context->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       RegionNode *region = forest->get_tree(tree_id);
       for (ViewExprs::const_iterator vit = 
             conditions.begin(); vit != conditions.end(); ++vit)
@@ -3164,7 +3056,6 @@ namespace Legion {
         if (!mask)
           break;
       }
-      Runtime *runtime = context->runtime;
       // We've got the names of any collective views that need to be
       // refined to not include this individual view, so go ahead and
       // ask the context to make that collective view for us
@@ -3473,7 +3364,7 @@ namespace Legion {
             !result->ready_event.has_triggered())
           result->ready_event.wait();
         InstanceView *view = static_cast<InstanceView*>(
-          context->runtime->find_or_request_logical_view(
+          runtime->find_or_request_logical_view(
             result->collective_did, ready));
         if (result->remove_reference())
           delete result;
@@ -3485,12 +3376,12 @@ namespace Legion {
       {
         RtEvent ready;
         PhysicalManager *manager =
-          context->runtime->find_or_request_instance_manager(
+          runtime->find_or_request_instance_manager(
               dids.back(), ready);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
         return context->create_instance_top_view(manager,
-                        context->runtime->address_space);
+                        runtime->address_space);
       }
     }
 
@@ -3587,7 +3478,7 @@ namespace Legion {
         to_remove.swap(equivalence_sets);
         to_cancel.swap(current_subscriptions);
       }
-      cancel_subscriptions(context->runtime, to_cancel);
+      cancel_subscriptions(to_cancel);
       for (FieldMaskSet<EquivalenceSet>::const_iterator it =
             to_remove.begin(); it != to_remove.end(); it++)
         if (it->first->remove_base_gc_ref(TRACE_REF))
@@ -3786,7 +3677,7 @@ namespace Legion {
           const RtUserEvent tested = Runtime::create_rt_user_event();
           const RtUserEvent applied = Runtime::create_rt_user_event();
           DeferTracePreconditionTestArgs args(this, op, tested, applied);
-          forest->runtime->issue_runtime_meta_task(args, 
+          runtime->issue_runtime_meta_task(args, 
               LG_LATENCY_DEFERRED_PRIORITY, ready);
           ready_events.insert(tested);
           applied_events.insert(applied);
@@ -3801,7 +3692,7 @@ namespace Legion {
       for (ExprViews::const_iterator eit = 
             preconditions.begin(); eit != preconditions.end(); eit++)
       {
-        InvalidInstAnalysis *analysis = new InvalidInstAnalysis(forest->runtime,  
+        InvalidInstAnalysis *analysis = new InvalidInstAnalysis(
             op, precondition_analyses.size(), eit->first, eit->second);
         analysis->add_reference();
         precondition_analyses.push_back(analysis);
@@ -3828,7 +3719,7 @@ namespace Legion {
             anticonditions.begin(); eit != anticonditions.end(); eit++)
       {
         AntivalidInstAnalysis *analysis = 
-          new AntivalidInstAnalysis(forest->runtime, op, 
+          new AntivalidInstAnalysis(op, 
               anticondition_analyses.size(), eit->first, eit->second);
         analysis->add_reference();
         anticondition_analyses.push_back(analysis);
@@ -3921,7 +3812,7 @@ namespace Legion {
         {
           const RtUserEvent applied= Runtime::create_rt_user_event();
           DeferTracePostconditionTestArgs args(this, op, applied);
-          forest->runtime->issue_runtime_meta_task(args, 
+          runtime->issue_runtime_meta_task(args, 
               LG_LATENCY_DEFERRED_PRIORITY, ready);
           applied_events.insert(applied);
           return;
@@ -3934,7 +3825,7 @@ namespace Legion {
       for (ExprViews::const_iterator eit = 
             postconditions.begin(); eit != postconditions.end(); eit++, index++)
       {
-        OverwriteAnalysis *analysis = new OverwriteAnalysis(forest->runtime,
+        OverwriteAnalysis *analysis = new OverwriteAnalysis(
             op, index, usage, eit->first, eit->second, 
             PhysicalTraceInfo(trace_info, index), ApEvent::NO_AP_EVENT);
         analysis->add_reference();
@@ -3980,7 +3871,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!!invalid_mask);
 #endif
-      AddressSpaceID space = forest->runtime->address_space;
+      AddressSpaceID space = runtime->address_space;
       // Create a user event and store it in the equivalence set ready structure
       const RtUserEvent compute_event = Runtime::create_rt_user_event();
       {
@@ -4001,11 +3892,11 @@ namespace Legion {
         // Launch a meta-task to finalize this trace condition set
         LgFinalizeEqSetsArgs args(this, compute_event, opid,
             context, parent_req_index, condition_expr);
-        return forest->runtime->issue_runtime_meta_task(args, 
+        return runtime->issue_runtime_meta_task(args, 
                         LG_LATENCY_DEFERRED_PRIORITY, ready);
       }
       else
-        finalize_equivalence_sets(compute_event, context, forest->runtime,
+        finalize_equivalence_sets(compute_event, context,
             parent_req_index, condition_expr, opid);
       return compute_event;
     }
@@ -4018,7 +3909,7 @@ namespace Legion {
     PhysicalTemplate::PhysicalTemplate(PhysicalTrace *t, ApEvent fence_event)
       : trace(t), total_replays(1), replayable(false, "uninitialized"),
         fence_completion_id(0),
-        replay_parallelism(t->runtime->max_replay_parallelism),
+        replay_parallelism(runtime->max_replay_parallelism),
         has_virtual_mapping(false), has_no_consensus(false), last_fence(NULL)
     //--------------------------------------------------------------------------
     {
@@ -4265,7 +4156,7 @@ namespace Legion {
       // their fields will be the one to own the preconditions
       std::vector<RtEvent> ready_events;
       conditions.reserve(current_sets.size()); 
-      RegionTreeForest *forest = trace->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       std::map<EquivalenceSet*,unsigned>::const_iterator req_it =
         parent_req_indexes.begin();
       for (FieldMaskSet<EquivalenceSet>::const_iterator it = 
@@ -4314,7 +4205,7 @@ namespace Legion {
         bool not_subsumed = true;
         if (!(*it)->is_replayable(not_subsumed, &condition))
         {
-          if (trace->runtime->dump_physical_traces)
+          if (runtime->dump_physical_traces)
           {
             if (not_subsumed)
               return Replayable(
@@ -4378,7 +4269,7 @@ namespace Legion {
           InnerContext* context, Operation *invalidator, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      TraceSummaryOp *op = trace->runtime->get_available_summary_op();
+      TraceSummaryOp *op = runtime->get_available_summary_op();
       op->initialize_summary(context, this, invalidator, provenance);
 #ifdef LEGION_SPY
       LegionSpy::log_summary_op_creator(op->get_unique_op_id(),
@@ -4397,9 +4288,9 @@ namespace Legion {
 
       if (!replayable)
       {
-        if (trace->runtime->dump_physical_traces)
+        if (runtime->dump_physical_traces)
         {
-          optimize(op, !trace->runtime->no_transitive_reduction);
+          optimize(op, !runtime->no_transitive_reduction);
           dump_template();
         }
         return;
@@ -4412,17 +4303,17 @@ namespace Legion {
       // the transitive reduction in the background once all the other
       // optimizations are done so that they don't race on mutating
       // the instruction and event data structures
-      if (!trace->runtime->no_trace_optimization &&
-          !trace->runtime->no_transitive_reduction)
+      if (!runtime->no_trace_optimization &&
+          !runtime->no_transitive_reduction)
       {
         TransitiveReductionState *state = 
           new TransitiveReductionState(Runtime::create_rt_user_event());
         transitive_reduction_done = state->done;
         TransitiveReductionArgs args(this, state);
-        trace->runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY);
+        runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY);
       }
       // Can dump now if we're not deferring the transitive reduction
-      else if (trace->runtime->dump_physical_traces)
+      else if (runtime->dump_physical_traces)
         dump_template();
     }
 
@@ -4470,7 +4361,7 @@ namespace Legion {
       // Sync the frontier computation so we know that all our frontier data
       // structures such as 'local_frontiers' and 'remote_frontiers' are ready
       sync_compute_frontiers(op, frontier_events);
-      if (!trace->runtime->no_trace_optimization)
+      if (!runtime->no_trace_optimization)
       {
         propagate_merges(gen);
         if (do_transitive_reduction)
@@ -4551,7 +4442,7 @@ namespace Legion {
             recorded_views.find(uit->instance.view_did);
           RtEvent ready;
           PhysicalManager *manager = 
-            trace->runtime->find_or_request_instance_manager(
+            runtime->find_or_request_instance_manager(
                                 uit->instance.inst_did, ready);
 #ifdef DEBUG_LEGION
           assert(finder != recorded_views.end());
@@ -5389,7 +5280,7 @@ namespace Legion {
               // Hit the timeout so launch a continuation
               state->iteration = idx;
               TransitiveReductionArgs args(this, state); 
-              trace->runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY);
+              runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY);
               return;
             }
             else
@@ -5587,7 +5478,7 @@ namespace Legion {
               // Hit the timeout so launch a continuation
               state->iteration = idx;
               TransitiveReductionArgs args(this, state); 
-              trace->runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY); 
+              runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY); 
               return;
             }
             else
@@ -5644,7 +5535,7 @@ namespace Legion {
               state->pos = pos;
               state->num_chains = num_chains;
               TransitiveReductionArgs args(this, state); 
-              trace->runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY); 
+              runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY); 
               return;
             }
             else
@@ -5705,7 +5596,7 @@ namespace Legion {
               // Hit the timeout so launch a continuation
               state->iteration = idx;
               TransitiveReductionArgs args(this, state); 
-              trace->runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY); 
+              runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY); 
               return;
             }
             else
@@ -6348,7 +6239,7 @@ namespace Legion {
                                          std::set<RtEvent> &applied_events)
     //--------------------------------------------------------------------------
     {
-      rez.serialize(trace->runtime->address_space);
+      rez.serialize(runtime->address_space);
       rez.serialize(this);
       RtUserEvent remote_applied = Runtime::create_rt_user_event();
       rez.serialize(remote_applied);
@@ -6908,7 +6799,7 @@ namespace Legion {
       {
         RtEvent ready;
         IndividualView *view = static_cast<IndividualView*>(
-            trace->runtime->find_or_request_logical_view(
+            runtime->find_or_request_logical_view(
                                 instance.view_did, ready));
         recorded_views[instance.view_did] = view;
         if (ready.exists() && !ready.has_triggered())
@@ -6931,7 +6822,7 @@ namespace Legion {
       {
         RtEvent ready;
         IndividualView *view = static_cast<IndividualView*>(
-            trace->runtime->find_or_request_logical_view(inst.view_did, ready));
+            runtime->find_or_request_logical_view(inst.view_did, ready));
         recorded_views[inst.view_did] = view;
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
@@ -7182,8 +7073,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PhysicalTemplate::perform_replay(Runtime *runtime, 
-                                          std::set<RtEvent> &replayed_events)
+    void PhysicalTemplate::perform_replay(std::set<RtEvent> &replayed_events)
     //--------------------------------------------------------------------------
     {
       RtEvent replay_precondition;
@@ -7334,7 +7224,7 @@ namespace Legion {
       if (precondition.exists() && !precondition.has_triggered())
       {
         DeleteTemplateArgs args(this);
-        applied_events.insert(trace->runtime->issue_runtime_meta_task(args,
+        applied_events.insert(runtime->issue_runtime_meta_task(args,
                                             LG_LOW_PRIORITY, precondition));
         return true;
       }
@@ -7450,7 +7340,7 @@ namespace Legion {
     bool PhysicalTemplate::are_read_only_users(InstUsers &inst_users)
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = trace->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       for (InstUsers::const_iterator vit = 
             inst_users.begin(); vit != inst_users.end(); vit++)
       {
@@ -7584,7 +7474,7 @@ namespace Legion {
       // because we need all events to go back to a node where we know that
       // we have a shard that can answer queries about it
       const AddressSpaceID event_space = find_event_space(lhs);
-      if (event_space != repl_ctx->runtime->address_space)
+      if (event_space != runtime->address_space)
       {
         ApUserEvent rename = Runtime::create_ap_user_event(NULL);
         Runtime::trigger_event(NULL, rename, lhs);
@@ -7677,7 +7567,7 @@ namespace Legion {
       // because we need all events to go back to a node where we know that
       // we have a shard that can answer queries about it
       const AddressSpaceID event_space = find_event_space(lhs);
-      if (event_space != repl_ctx->runtime->address_space)
+      if (event_space != runtime->address_space)
       {
         ApUserEvent rename = Runtime::create_ap_user_event(NULL);
         Runtime::trigger_event(NULL, rename, lhs);
@@ -7715,7 +7605,7 @@ namespace Legion {
     {
       // We should only be recording events made on our node
       assert(!check || 
-          (find_event_space(event) == repl_ctx->runtime->address_space));
+          (find_event_space(event) == runtime->address_space));
       return PhysicalTemplate::convert_event(event, check);
     }
 #endif
@@ -7871,7 +7761,7 @@ namespace Legion {
       if (lhs.exists())
       {
         const AddressSpaceID event_space = find_event_space(lhs);
-        if (event_space != repl_ctx->runtime->address_space)
+        if (event_space != runtime->address_space)
         {
           ApUserEvent rename = Runtime::create_ap_user_event(NULL);
           Runtime::trigger_event(NULL, rename, lhs);
@@ -7907,7 +7797,7 @@ namespace Legion {
       if (lhs.exists())
       {
         const AddressSpaceID event_space = find_event_space(lhs);
-        if (event_space != repl_ctx->runtime->address_space)
+        if (event_space != runtime->address_space)
         {
           ApUserEvent rename = Runtime::create_ap_user_event(NULL);
           Runtime::trigger_event(NULL, rename, lhs);
@@ -7938,7 +7828,7 @@ namespace Legion {
       if (lhs.exists())
       {
         const AddressSpaceID event_space = find_event_space(lhs);
-        if (event_space != repl_ctx->runtime->address_space)
+        if (event_space != runtime->address_space)
         {
           ApUserEvent rename = Runtime::create_ap_user_event(NULL);
           Runtime::trigger_event(NULL, rename, lhs);
@@ -8086,7 +7976,6 @@ namespace Legion {
                                                       AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      Runtime *runtime = repl_ctx->runtime;
       UpdateKind kind;
       derez.deserialize(kind);
       RtUserEvent done;
@@ -8125,7 +8014,7 @@ namespace Legion {
             size_t num_users;
             derez.deserialize(num_users);
             InstUsers inst_users(num_users);
-            RegionTreeForest *forest = trace->runtime->forest;
+            RegionTreeForest *forest = runtime->forest;
             for (unsigned vidx = 0; vidx < num_users; vidx++)
             {
               InstanceUser &user = inst_users[vidx];
@@ -8376,7 +8265,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardedPhysicalTemplate::handle_deferred_trace_update(
-                                             const void *args, Runtime *runtime)
+                                             const void *args)
     //--------------------------------------------------------------------------
     {
       const DeferTraceUpdateArgs *dargs = (const DeferTraceUpdateArgs*)args;
@@ -8448,13 +8337,13 @@ namespace Legion {
         {
           DeferTraceUpdateArgs args(this, UPDATE_MUTATED_INST, done, inst,
                                     derez, user_expr, deferral);
-          repl_ctx->runtime->issue_runtime_meta_task(args, 
+          runtime->issue_runtime_meta_task(args, 
                   LG_LATENCY_MESSAGE_PRIORITY, pre);
         }
         else
         {
           DeferTraceUpdateArgs args(*dargs, deferral, user_expr);
-          repl_ctx->runtime->issue_runtime_meta_task(args, 
+          runtime->issue_runtime_meta_task(args, 
                   LG_LATENCY_MESSAGE_PRIORITY, pre);
 #ifdef DEBUG_LEGION
           // Keep the deserializer happy since we didn't use it
@@ -8480,7 +8369,7 @@ namespace Legion {
 #endif
       const AddressSpaceID event_space = find_event_space(event);
       repl_ctx->shard_manager->send_trace_event_request(this, 
-          repl_ctx->owner_shard->shard_id, repl_ctx->runtime->address_space, 
+          repl_ctx->owner_shard->shard_id, runtime->address_space, 
           template_index, event, event_space, done_event);
     }
 
@@ -8552,7 +8441,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ShardedPhysicalTemplate::perform_replay(Runtime *runtime,
+    void ShardedPhysicalTemplate::perform_replay(
                                              std::set<RtEvent> &replayed_events)
     //--------------------------------------------------------------------------
     {
@@ -8712,7 +8601,7 @@ namespace Legion {
         }
       }
       // Now call the base version of this
-      PhysicalTemplate::perform_replay(runtime, replayed_events); 
+      PhysicalTemplate::perform_replay(replayed_events); 
     }
 
     //--------------------------------------------------------------------------
@@ -9002,7 +8891,7 @@ namespace Legion {
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(context); 
 #endif
-      ReplTraceSummaryOp *op = trace->runtime->get_available_repl_summary_op();
+      ReplTraceSummaryOp *op = runtime->get_available_repl_summary_op();
       op->initialize_summary(repl_ctx, this, invalidator, provenance);
 #ifdef LEGION_SPY
       LegionSpy::log_summary_op_creator(op->get_unique_op_id(),
@@ -9105,7 +8994,7 @@ namespace Legion {
       const unsigned next_event_id = events.size(); 
       const RtUserEvent done_event = Runtime::create_rt_user_event();
       repl_ctx->shard_manager->send_trace_frontier_request(this,
-          repl_ctx->owner_shard->shard_id, repl_ctx->runtime->address_space,
+          repl_ctx->owner_shard->shard_id, runtime->address_space,
           template_index, event, event_space, next_event_id, done_event);
       events.resize(next_event_id + 1);
       ready_events.push_back(done_event);

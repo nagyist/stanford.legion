@@ -374,8 +374,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename OP>
-    ReplCollectiveVersioning<OP>::ReplCollectiveVersioning(Runtime *r)
-      : OP(r)
+    ReplCollectiveVersioning<OP>::ReplCollectiveVersioning(void)
+      : OP()
     //--------------------------------------------------------------------------
     {
     }
@@ -483,8 +483,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename OP>
-    ReplCollectiveViewCreator<OP>::ReplCollectiveViewCreator(Runtime *r)
-      : ReplCollectiveVersioning<OP>(r)
+    ReplCollectiveViewCreator<OP>::ReplCollectiveViewCreator(void)
+      : ReplCollectiveVersioning<OP>()
     //--------------------------------------------------------------------------
     {
     }
@@ -608,35 +608,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplIndividualTask::ReplIndividualTask(Runtime *rt)
-      : IndividualTask(rt)
+    ReplIndividualTask::ReplIndividualTask(void)
+      : IndividualTask()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplIndividualTask::ReplIndividualTask(const ReplIndividualTask &rhs)
-      : IndividualTask(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplIndividualTask::~ReplIndividualTask(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplIndividualTask& ReplIndividualTask::operator=(
-                                                  const ReplIndividualTask &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -963,8 +944,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplIndexTask::ReplIndexTask(Runtime *rt)
-      : ReplCollectiveViewCreator<IndexTask>(rt)
+    ReplIndexTask::ReplIndexTask(void)
+      : ReplCollectiveViewCreator<IndexTask>()
     //--------------------------------------------------------------------------
     {
     }
@@ -1967,34 +1948,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplMergeCloseOp::ReplMergeCloseOp(Runtime *rt)
-      : MergeCloseOp(rt)
+    ReplMergeCloseOp::ReplMergeCloseOp(void)
+      : MergeCloseOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplMergeCloseOp::ReplMergeCloseOp(const ReplMergeCloseOp &rhs)
-      : MergeCloseOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplMergeCloseOp::~ReplMergeCloseOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplMergeCloseOp& ReplMergeCloseOp::operator=(const ReplMergeCloseOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -2042,8 +2005,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplVirtualCloseOp::ReplVirtualCloseOp(Runtime *rt)
-      : ReplCollectiveVersioning<CollectiveVersioning<VirtualCloseOp> >(rt)
+    ReplVirtualCloseOp::ReplVirtualCloseOp(void)
+      : ReplCollectiveVersioning<CollectiveVersioning<VirtualCloseOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -2143,34 +2106,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplRefinementOp::ReplRefinementOp(Runtime *rt)
-      : RefinementOp(rt)
+    ReplRefinementOp::ReplRefinementOp(void)
+      : RefinementOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplRefinementOp::ReplRefinementOp(const ReplRefinementOp&rhs)
-      : RefinementOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplRefinementOp::~ReplRefinementOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplRefinementOp& ReplRefinementOp::operator=(const ReplRefinementOp&rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -2292,8 +2237,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplResetOp::ReplResetOp(Runtime *rt)
-      : ResetOp(rt)
+    ReplResetOp::ReplResetOp(void)
+      : ResetOp()
     //--------------------------------------------------------------------------
     {
     }
@@ -2369,8 +2314,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplFillOp::ReplFillOp(Runtime *rt)
-      : ReplCollectiveVersioning<CollectiveVersioning<FillOp> >(rt)
+    ReplFillOp::ReplFillOp(void)
+      : ReplCollectiveVersioning<CollectiveVersioning<FillOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -2565,34 +2510,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplIndexFillOp::ReplIndexFillOp(Runtime *rt)
-      : IndexFillOp(rt)
+    ReplIndexFillOp::ReplIndexFillOp(void)
+      : IndexFillOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplIndexFillOp::ReplIndexFillOp(const ReplIndexFillOp &rhs)
-      : IndexFillOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplIndexFillOp::~ReplIndexFillOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplIndexFillOp& ReplIndexFillOp::operator=(const ReplIndexFillOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -2834,8 +2761,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplDiscardOp::ReplDiscardOp(Runtime *rt)
-      : ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> >(rt)
+    ReplDiscardOp::ReplDiscardOp(void)
+      : ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -2967,34 +2894,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplCopyOp::ReplCopyOp(Runtime *rt)
-      : CopyOp(rt)
+    ReplCopyOp::ReplCopyOp(void)
+      : CopyOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplCopyOp::ReplCopyOp(const ReplCopyOp &rhs)
-      : CopyOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplCopyOp::~ReplCopyOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplCopyOp& ReplCopyOp::operator=(const ReplCopyOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -3182,34 +3091,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplIndexCopyOp::ReplIndexCopyOp(Runtime *rt)
-      : IndexCopyOp(rt)
+    ReplIndexCopyOp::ReplIndexCopyOp(void)
+      : IndexCopyOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplIndexCopyOp::ReplIndexCopyOp(const ReplIndexCopyOp &rhs)
-      : IndexCopyOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplIndexCopyOp::~ReplIndexCopyOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplIndexCopyOp& ReplIndexCopyOp::operator=(const ReplIndexCopyOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -3807,8 +3698,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplDeletionOp::ReplDeletionOp(Runtime *rt)
-      : ReplCollectiveVersioning<CollectiveVersioning<DeletionOp> >(rt)
+    ReplDeletionOp::ReplDeletionOp(void)
+      : ReplCollectiveVersioning<CollectiveVersioning<DeletionOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -4187,36 +4078,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplPendingPartitionOp::ReplPendingPartitionOp(Runtime *rt)
-      : PendingPartitionOp(rt)
+    ReplPendingPartitionOp::ReplPendingPartitionOp(void)
+      : PendingPartitionOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplPendingPartitionOp::ReplPendingPartitionOp(
-                                              const ReplPendingPartitionOp &rhs)
-      : PendingPartitionOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplPendingPartitionOp::~ReplPendingPartitionOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplPendingPartitionOp& ReplPendingPartitionOp::operator=(
-                                              const ReplPendingPartitionOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -4294,9 +4165,9 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplDependentPartitionOp::ReplDependentPartitionOp(Runtime *rt)
+    ReplDependentPartitionOp::ReplDependentPartitionOp(void)
       : ReplCollectiveViewCreator<
-          CollectiveViewCreator<DependentPartitionOp> >(rt)
+          CollectiveViewCreator<DependentPartitionOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -4832,34 +4703,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplMustEpochOp::ReplMustEpochOp(Runtime *rt)
-      : MustEpochOp(rt)
+    ReplMustEpochOp::ReplMustEpochOp(void)
+      : MustEpochOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplMustEpochOp::ReplMustEpochOp(const ReplMustEpochOp &rhs)
-      : MustEpochOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplMustEpochOp::~ReplMustEpochOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplMustEpochOp& ReplMustEpochOp::operator=(const ReplMustEpochOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -5523,34 +5376,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTimingOp::ReplTimingOp(Runtime *rt)
-      : TimingOp(rt)
+    ReplTimingOp::ReplTimingOp(void)
+      : TimingOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTimingOp::ReplTimingOp(const ReplTimingOp &rhs)
-      : TimingOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplTimingOp::~ReplTimingOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTimingOp& ReplTimingOp::operator=(const ReplTimingOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -5663,34 +5498,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTunableOp::ReplTunableOp(Runtime *rt)
-      : TunableOp(rt)
+    ReplTunableOp::ReplTunableOp(void)
+      : TunableOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTunableOp::ReplTunableOp(const ReplTunableOp &rhs)
-      : TunableOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplTunableOp::~ReplTunableOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTunableOp& ReplTunableOp::operator=(const ReplTunableOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -5776,8 +5593,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplAllReduceOp::ReplAllReduceOp(Runtime *rt)
-      : AllReduceOp(rt)
+    ReplAllReduceOp::ReplAllReduceOp(void)
+      : AllReduceOp()
     //--------------------------------------------------------------------------
     {
     }
@@ -6050,34 +5867,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplFenceOp::ReplFenceOp(Runtime *rt)
-      : FenceOp(rt)
+    ReplFenceOp::ReplFenceOp(void)
+      : FenceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplFenceOp::ReplFenceOp(const ReplFenceOp &rhs)
-      : FenceOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplFenceOp::~ReplFenceOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplFenceOp& ReplFenceOp::operator=(const ReplFenceOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -6217,8 +6016,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplMapOp::ReplMapOp(Runtime *rt)
-      : ReplCollectiveViewCreator<CollectiveViewCreator<MapOp> >(rt)
+    ReplMapOp::ReplMapOp(void)
+      : ReplCollectiveViewCreator<CollectiveViewCreator<MapOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -6436,8 +6235,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplAttachOp::ReplAttachOp(Runtime *rt)
-      : ReplCollectiveViewCreator<CollectiveViewCreator<AttachOp> >(rt)
+    ReplAttachOp::ReplAttachOp(void)
+      : ReplCollectiveViewCreator<CollectiveViewCreator<AttachOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -6855,8 +6654,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplDetachOp::ReplDetachOp(Runtime *rt)
-      : ReplCollectiveViewCreator<CollectiveViewCreator<DetachOp> >(rt)
+    ReplDetachOp::ReplDetachOp(void)
+      : ReplCollectiveViewCreator<CollectiveViewCreator<DetachOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -7058,8 +6857,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplIndexAttachOp::ReplIndexAttachOp(Runtime *rt)
-      : ReplCollectiveViewCreator<IndexAttachOp>(rt)
+    ReplIndexAttachOp::ReplIndexAttachOp(void)
+      : ReplCollectiveViewCreator<IndexAttachOp>()
     //--------------------------------------------------------------------------
     {
     }
@@ -7252,8 +7051,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplIndexDetachOp::ReplIndexDetachOp(Runtime *rt)
-      : ReplCollectiveViewCreator<IndexDetachOp>(rt)
+    ReplIndexDetachOp::ReplIndexDetachOp(void)
+      : ReplCollectiveViewCreator<IndexDetachOp>()
     //--------------------------------------------------------------------------
     {
     }
@@ -7414,8 +7213,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplAcquireOp::ReplAcquireOp(Runtime *rt)
-      : ReplCollectiveViewCreator<CollectiveViewCreator<AcquireOp> >(rt)
+    ReplAcquireOp::ReplAcquireOp(void)
+      : ReplCollectiveViewCreator<CollectiveViewCreator<AcquireOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -7606,8 +7405,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplReleaseOp::ReplReleaseOp(Runtime *rt)
-      : ReplCollectiveViewCreator<CollectiveViewCreator<ReleaseOp> >(rt)
+    ReplReleaseOp::ReplReleaseOp(void)
+      : ReplCollectiveViewCreator<CollectiveViewCreator<ReleaseOp> >()
     //--------------------------------------------------------------------------
     {
     }
@@ -7832,34 +7631,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTraceOp::ReplTraceOp(Runtime *rt)
-      : ReplFenceOp(rt)
+    ReplTraceOp::ReplTraceOp(void)
+      : ReplFenceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceOp::ReplTraceOp(const ReplTraceOp &rhs)
-      : ReplFenceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplTraceOp::~ReplTraceOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceOp& ReplTraceOp::operator=(const ReplTraceOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -7892,35 +7673,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTraceCaptureOp::ReplTraceCaptureOp(Runtime *rt)
-      : ReplTraceOp(rt)
+    ReplTraceCaptureOp::ReplTraceCaptureOp(void)
+      : ReplTraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceCaptureOp::ReplTraceCaptureOp(const ReplTraceCaptureOp &rhs)
-      : ReplTraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplTraceCaptureOp::~ReplTraceCaptureOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceCaptureOp& ReplTraceCaptureOp::operator=(
-                                                  const ReplTraceCaptureOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -8115,35 +7877,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTraceCompleteOp::ReplTraceCompleteOp(Runtime *rt)
-      : ReplTraceOp(rt)
+    ReplTraceCompleteOp::ReplTraceCompleteOp(void)
+      : ReplTraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceCompleteOp::ReplTraceCompleteOp(const ReplTraceCompleteOp &rhs)
-      : ReplTraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplTraceCompleteOp::~ReplTraceCompleteOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceCompleteOp& ReplTraceCompleteOp::operator=(
-                                                 const ReplTraceCompleteOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -8286,7 +8029,7 @@ namespace Legion {
         // Having all our mapping dependences satisfied means that the previous 
         // replay of this template is done so we can start ours now
         std::set<RtEvent> replayed_events;
-        current_template->perform_replay(runtime, replayed_events);
+        current_template->perform_replay(replayed_events);
         if (!replayed_events.empty())
         {
           enqueue_ready_operation(Runtime::merge_events(replayed_events));
@@ -8398,35 +8141,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTraceReplayOp::ReplTraceReplayOp(Runtime *rt)
-      : ReplTraceOp(rt)
+    ReplTraceReplayOp::ReplTraceReplayOp(void)
+      : ReplTraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceReplayOp::ReplTraceReplayOp(const ReplTraceReplayOp &rhs)
-      : ReplTraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplTraceReplayOp::~ReplTraceReplayOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceReplayOp& ReplTraceReplayOp::operator=(
-                                                   const ReplTraceReplayOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -8633,34 +8357,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTraceBeginOp::ReplTraceBeginOp(Runtime *rt)
-      : ReplTraceOp(rt)
+    ReplTraceBeginOp::ReplTraceBeginOp(void)
+      : ReplTraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceBeginOp::ReplTraceBeginOp(const ReplTraceBeginOp &rhs)
-      : ReplTraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplTraceBeginOp::~ReplTraceBeginOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceBeginOp& ReplTraceBeginOp::operator=(const ReplTraceBeginOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -8716,35 +8422,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTraceSummaryOp::ReplTraceSummaryOp(Runtime *rt)
-      : ReplTraceOp(rt)
+    ReplTraceSummaryOp::ReplTraceSummaryOp(void)
+      : ReplTraceOp()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceSummaryOp::ReplTraceSummaryOp(const ReplTraceSummaryOp &rhs)
-      : ReplTraceOp(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     ReplTraceSummaryOp::~ReplTraceSummaryOp(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplTraceSummaryOp& ReplTraceSummaryOp::operator=(
-                                                  const ReplTraceSummaryOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -8849,15 +8536,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ShardMapping::ShardMapping(const ShardMapping &rhs)
-      : Collectable()
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     ShardMapping::ShardMapping(const std::vector<AddressSpaceID> &spaces)
       : Collectable(), address_spaces(spaces)
     //--------------------------------------------------------------------------
@@ -8868,15 +8546,6 @@ namespace Legion {
     ShardMapping::~ShardMapping(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ShardMapping& ShardMapping::operator=(const ShardMapping &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -8932,7 +8601,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ShardManager::ShardManager(Runtime *rt, DistributedID id, 
+    ShardManager::ShardManager(DistributedID id, 
                                CollectiveMapping *mapping, unsigned local,
                                bool top, bool iso, bool cr, const Domain &dom,
                                std::vector<DomainPoint> &&shards,
@@ -8940,7 +8609,7 @@ namespace Legion {
                                std::vector<ShardID> &&lookup,
                                SingleTask *original/*= NULL*/, 
                                RtBarrier task_bar, RtBarrier call_bar)
-      : CollectiveViewCreator<CollectiveHelperOp>(rt, 
+      : CollectiveViewCreator<CollectiveHelperOp>(
           LEGION_DISTRIBUTED_HELP_ENCODE(id, SHARD_MANAGER_DC), true, mapping),
         shard_points(shards), sorted_points(sorted), shard_lookup(lookup), 
         shard_domain(dom), total_shards(shard_points.size()),
@@ -9189,7 +8858,7 @@ namespace Legion {
                     VariantID variant, InnerContext *parent, SingleTask *source)
     //--------------------------------------------------------------------------
     {
-      ShardTask *shard = new Memoizable<ShardTask>(runtime, source, parent,
+      ShardTask *shard = new Memoizable<ShardTask>(source, parent,
                                                    this, id, target, variant);
       local_shards.push_back(shard);
       return shard;
@@ -9200,7 +8869,7 @@ namespace Legion {
                VariantID variant, InnerContext *parent_ctx, Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      ShardTask *shard = new Memoizable<ShardTask>(runtime, parent_ctx, derez,
+      ShardTask *shard = new Memoizable<ShardTask>(parent_ctx, derez,
                                                    this, id, target, variant);
       local_shards.push_back(shard);
       return shard;
@@ -9460,7 +9129,7 @@ namespace Legion {
                                                                 *it, rez);
         }
         // Now make the equivalence set locally and register it
-        EquivalenceSet *result = new EquivalenceSet(runtime, eq_did,
+        EquivalenceSet *result = new EquivalenceSet(eq_did,
             owner_space, region_node->row_source, 
             region_node->handle.get_tree_id(), context, 
             true/*register now*/, eq_mapping);
@@ -9552,7 +9221,7 @@ namespace Legion {
           {
             // We're the first ones to get here after a notification
             // count the number of expected arrivals here if necessary
-            EquivalenceSet *result = new EquivalenceSet(runtime,
+            EquivalenceSet *result = new EquivalenceSet(
                finder->second.did, runtime->determine_owner(finder->second.did),
                region_node->row_source, region_node->handle.get_tree_id(),
                context, true/*register now*/, finder->second.mapping);
@@ -9588,7 +9257,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(finder->second.did > 0);
 #endif
-        finder->second.new_set = new EquivalenceSet(runtime,
+        finder->second.new_set = new EquivalenceSet(
                finder->second.did, runtime->determine_owner(finder->second.did),
                region_node->row_source, region_node->handle.get_tree_id(),
                context, true/*register now*/, finder->second.mapping);
@@ -9637,7 +9306,7 @@ namespace Legion {
         }
         void *location = runtime->find_or_create_pending_collectable_location<
                                                             FillView>(fill_did);
-        result = new(location) FillView(runtime, fill_did,
+        result = new(location) FillView(fill_did,
 #ifdef LEGION_SPY
                        op->get_unique_op_id(),
 #endif
@@ -9657,7 +9326,7 @@ namespace Legion {
       {
         void *location = runtime->find_or_create_pending_collectable_location<
                                                             FillView>(fill_did);
-        FillView *fill_view = new(location) FillView(runtime, fill_did,
+        FillView *fill_view = new(location) FillView(fill_did,
 #ifdef LEGION_SPY
                        op->get_unique_op_id(),
 #endif
@@ -9838,7 +9507,7 @@ namespace Legion {
           return result;
         }
         // Didn't find it so make it
-        FutureImpl *result = new FutureImpl(ctx, runtime, false/*register*/,
+        FutureImpl *result = new FutureImpl(ctx, false/*register*/,
             did, op, op->get_generation(),
             ContextCoordinate(ctx->get_next_future_coordinate(), index_point),
             op->get_unique_op_id(), ctx->get_depth(), op->get_provenance(),
@@ -9858,7 +9527,7 @@ namespace Legion {
       }
       else
       {
-        FutureImpl *impl = new FutureImpl(ctx, runtime, false/*register*/,
+        FutureImpl *impl = new FutureImpl(ctx, false/*register*/,
             did, op, op->get_generation(),
             ContextCoordinate(ctx->get_next_future_coordinate(), index_point),
             op->get_unique_op_id(), ctx->get_depth(), op->get_provenance(),
@@ -9912,7 +9581,7 @@ namespace Legion {
         }
         // Didn't find it so make it
         ReplFutureMapImpl *result = new ReplFutureMapImpl(ctx, this, op, domain,
-            shard_domain, runtime, map_did, provenance, collective_mapping);
+            shard_domain, map_did, provenance, collective_mapping);
         // Add a reference to it to keep it from being deleted and then 
         // register it with the runtime
         result->add_nested_gc_ref(did);
@@ -9927,7 +9596,7 @@ namespace Legion {
       else
       {
         ReplFutureMapImpl *impl = new ReplFutureMapImpl(ctx, this, op, domain,
-            shard_domain, runtime, map_did, provenance, collective_mapping);
+            shard_domain, map_did, provenance, collective_mapping);
         // Get a reference on it before we register it
         FutureMap result(impl);
         impl->register_with_runtime();
@@ -9965,7 +9634,7 @@ namespace Legion {
           return result;
         }
         // Didn't find it so make it
-        ReplFutureMapImpl *result = new ReplFutureMapImpl(ctx, this, runtime,
+        ReplFutureMapImpl *result = new ReplFutureMapImpl(ctx, this,
                               domain, shard_domain, map_did, coordinate,
                               completion, provenance, collective_mapping);
         // Add a reference to it to keep it from being deleted and then 
@@ -9981,7 +9650,7 @@ namespace Legion {
       }
       else
       {
-        ReplFutureMapImpl *impl = new ReplFutureMapImpl(ctx, this, runtime,
+        ReplFutureMapImpl *impl = new ReplFutureMapImpl(ctx, this,
             domain, shard_domain, map_did, coordinate, completion,
             provenance, collective_mapping);
         // Get a reference on it before we register it
@@ -10726,8 +10395,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_created_regions(Deserializer &derez,
-                                                         Runtime *runtime)
+    /*static*/ void ShardManager::handle_created_regions(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -10979,7 +10647,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_trace_event_request(
-                   Deserializer &derez, Runtime *runtime, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -11115,7 +10783,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_trace_frontier_request(
-                   Deserializer &derez, Runtime *runtime, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -11234,7 +10902,7 @@ namespace Legion {
     {
       // This is the node that made the logical region tree
       const AddressSpaceID tree_owner = 
-        RegionTreeNode::get_owner_space(tid, runtime);
+        RegionTreeNode::get_owner_space(tid);
       // This is the node in the replicate context that will handle
       // all the collective instance creations for this region tree
       const AddressSpaceID target_owner =
@@ -11323,7 +10991,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_find_collective_view(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11333,8 +11001,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_distribution(Deserializer &derez, 
-                                                      Runtime *runtime)
+    /*static*/ void ShardManager::handle_distribution(Deserializer &derez) 
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -11388,7 +11055,7 @@ namespace Legion {
           local_shards++;
       }
       ShardManager *manager =
-       new ShardManager(runtime, repl_id, mapping, local_shards, top_level_task,
+       new ShardManager(repl_id, mapping, local_shards, top_level_task,
                 isomorphic_points, control_replicated, shard_domain,
                 std::move(shard_points), std::move(sorted_points),
                 std::move(shard_lookup), NULL/*original*/,
@@ -11403,7 +11070,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < leaf_variants.size(); idx++)
           derez.deserialize(leaf_variants[idx]);
         InnerContext *parent_ctx = 
-          InnerContext::unpack_inner_context(derez, runtime);
+          InnerContext::unpack_inner_context(derez);
         // Create the local shards
         ShardTask *first_shard = NULL;
         for (unsigned idx = 0; idx < total_shards; idx++)
@@ -11440,7 +11107,7 @@ namespace Legion {
         derez.deserialize(implicit_coord);
         // This is a top-level implicit context so we know we can make
         // a new TopLevelContext here directly
-        TopLevelContext *top_context = new TopLevelContext(runtime, 
+        TopLevelContext *top_context = new TopLevelContext(
             exec_proc, 0/*normal id*/, implicit_coord, ctx_did, mapping);
         top_context->register_with_runtime();
         manager->set_shard_mapping(target_processors);
@@ -11459,7 +11126,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_collective_versioning(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -11478,7 +11145,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_collective_mapping(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -11496,7 +11163,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_virtual_rendezvous(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -11521,7 +11188,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_post_mapped(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11534,7 +11201,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_post_execution(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11558,7 +11225,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_trigger_complete(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11574,7 +11241,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShardManager::handle_trigger_commit(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11584,8 +11251,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_collective_message(Deserializer &derez,
-                                                            Runtime *runtime)
+    /*static*/ void ShardManager::process_collective_message(
+                                                            Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11595,8 +11262,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_rendezvous_message(Deserializer &derez,
-                                                            Runtime *runtime)
+    /*static*/ void ShardManager::process_rendezvous_message(
+                                                            Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11606,9 +11273,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_trace_update(Deserializer &derez,
-                                                      Runtime *runtime,
-                                                      AddressSpaceID source)
+    /*static*/ void ShardManager::process_trace_update(Deserializer &derez,
+                                                       AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11618,8 +11284,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_compute_equivalence_sets(
-                                          Deserializer &derez, Runtime *runtime)
+    /*static*/ void ShardManager::process_compute_equivalence_sets(
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11629,8 +11295,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_output_equivalence_set(
-                                          Deserializer &derez, Runtime *runtime)
+    /*static*/ void ShardManager::process_output_equivalence_set(
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11640,8 +11306,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_refine_equivalence_sets(
-                                          Deserializer &derez, Runtime *runtime)
+    /*static*/ void ShardManager::process_refine_equivalence_sets(
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11651,8 +11317,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_equivalence_set_notification(
-                                          Deserializer &derez, Runtime *runtime)
+    /*static*/ void ShardManager::process_equivalence_set_notification(
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -11663,8 +11329,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_intra_space_dependence(
-                                          Deserializer &derez, Runtime *runtime)
+    /*static*/ void ShardManager::process_intra_space_dependence(
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11674,8 +11340,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ShardManager::handle_broadcast_update(Deserializer &derez,
-                                                          Runtime *runtime)
+    /*static*/ void ShardManager::handle_broadcast_update(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;
@@ -11872,7 +11537,7 @@ namespace Legion {
       DeferCollectiveArgs args(this);
       if (precondition.has_triggered())
         return false;
-      context->runtime->issue_runtime_meta_task(args,
+      runtime->issue_runtime_meta_task(args,
           LG_LATENCY_DEFERRED_PRIORITY, precondition);
       return true;
     }
@@ -13608,7 +13273,7 @@ namespace Legion {
       ShardEventTree::unpack_collective(derez);
       if ((future != NULL) && has_future_size)
         future->set_future_result_size(future_size, 
-                  context->runtime->address_space);
+                  runtime->address_space);
     }
 
     /////////////////////////////////////////////////////////////
@@ -13624,29 +13289,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    CrossProductCollective::CrossProductCollective(
-                                              const CrossProductCollective &rhs)
-      : AllGatherCollective(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     CrossProductCollective::~CrossProductCollective(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    CrossProductCollective& CrossProductCollective::operator=(
-                                              const CrossProductCollective &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -13711,31 +13356,11 @@ namespace Legion {
     }
     
     //--------------------------------------------------------------------------
-    ShardingGatherCollective::ShardingGatherCollective(
-                                            const ShardingGatherCollective &rhs)
-      : GatherCollective(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     ShardingGatherCollective::~ShardingGatherCollective(void)
     //--------------------------------------------------------------------------
     {
       // Make sure that we wait in case we still have messages to pass on
       perform_collective_wait();
-    }
-
-    //--------------------------------------------------------------------------
-    ShardingGatherCollective& ShardingGatherCollective::operator=(
-                                            const ShardingGatherCollective &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -14086,15 +13711,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    BufferExchange::BufferExchange(const BufferExchange &rhs)
-      : AllGatherCollective(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     BufferExchange::~BufferExchange(void)
     //--------------------------------------------------------------------------
     {
@@ -14102,15 +13718,6 @@ namespace Legion {
             results.begin(); it != results.end(); it++)
         if (it->second.second > 0)
           free(it->second.first);
-    }
-
-    //--------------------------------------------------------------------------
-    BufferExchange& BufferExchange::operator=(const BufferExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -14206,28 +13813,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FutureNameExchange::FutureNameExchange(const FutureNameExchange &rhs)
-      : AllGatherCollective(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     FutureNameExchange::~FutureNameExchange(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    FutureNameExchange& FutureNameExchange::operator=(
-                                                  const FutureNameExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -14255,12 +13843,11 @@ namespace Legion {
     {
       size_t num_futures;
       derez.deserialize(num_futures);
-      Runtime *runtime = context->runtime;
       for (unsigned idx = 0; idx < num_futures; idx++)
       {
         DomainPoint point;
         derez.deserialize(point);
-        results[point] = FutureImpl::unpack_future(runtime, derez);
+        results[point] = FutureImpl::unpack_future(derez);
       }
     }
 
@@ -14291,16 +13878,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    MustEpochMappingBroadcast::MustEpochMappingBroadcast(
-                                           const MustEpochMappingBroadcast &rhs)
-      : BroadcastCollective(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     MustEpochMappingBroadcast::~MustEpochMappingBroadcast(void)
     //--------------------------------------------------------------------------
     {
@@ -14325,16 +13902,6 @@ namespace Legion {
       }
     }
     
-    //--------------------------------------------------------------------------
-    MustEpochMappingBroadcast& MustEpochMappingBroadcast::operator=(
-                                           const MustEpochMappingBroadcast &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    }
-
     //--------------------------------------------------------------------------
     void MustEpochMappingBroadcast::pack_collective(Serializer &rez) const
     //--------------------------------------------------------------------------
@@ -14426,7 +13993,6 @@ namespace Legion {
       // We are a little smarter with the mappings since we know exactly
       // which ones we are actually going to need for our local points
       std::set<RtEvent> ready_events;
-      Runtime *runtime = manager->runtime;
       for (std::vector<unsigned>::const_iterator it = 
             constraint_indexes.begin(); it != constraint_indexes.end(); it++)
       {
@@ -14497,16 +14063,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    MustEpochMappingExchange::MustEpochMappingExchange(
-                                            const MustEpochMappingExchange &rhs)
-      : AllGatherCollective(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     MustEpochMappingExchange::~MustEpochMappingExchange(void)
     //--------------------------------------------------------------------------
     {
@@ -14529,16 +14085,6 @@ namespace Legion {
           delete (*it);
     }
     
-    //--------------------------------------------------------------------------
-    MustEpochMappingExchange& MustEpochMappingExchange::operator=(
-                                            const MustEpochMappingExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    }
-
     //--------------------------------------------------------------------------
     void MustEpochMappingExchange::pack_collective_stage(ShardID target,
                                                      Serializer &rez, int stage)
@@ -14706,7 +14252,6 @@ namespace Legion {
       mappings.clear();
       mappings.resize(total_constraints);
       std::set<RtEvent> ready_events;
-      Runtime *runtime = manager->runtime;
       // We only need to get the results for local constraints as we 
       // know that we aren't going to care about any of the rest
       for (unsigned idx1 = 0; idx1 < constraint_indexes.size(); idx1++)
@@ -14780,31 +14325,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    MustEpochDependenceExchange::MustEpochDependenceExchange(
-                                         const MustEpochDependenceExchange &rhs)
-      : AllGatherCollective(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     MustEpochDependenceExchange::~MustEpochDependenceExchange(void)
     //--------------------------------------------------------------------------
     {
     }
     
-    //--------------------------------------------------------------------------
-    MustEpochDependenceExchange& MustEpochDependenceExchange::operator=(
-                                         const MustEpochDependenceExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    }
-
     //--------------------------------------------------------------------------
     void MustEpochDependenceExchange::pack_collective_stage(ShardID target,
                                                      Serializer &rez, int stage)
@@ -14863,31 +14388,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    MustEpochCompletionExchange::MustEpochCompletionExchange(
-                                         const MustEpochCompletionExchange &rhs)
-      : AllGatherCollective(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     MustEpochCompletionExchange::~MustEpochCompletionExchange(void)
     //--------------------------------------------------------------------------
     {
     }
     
-    //--------------------------------------------------------------------------
-    MustEpochCompletionExchange& MustEpochCompletionExchange::operator=(
-                                         const MustEpochCompletionExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    }
-
     //--------------------------------------------------------------------------
     void MustEpochCompletionExchange::pack_collective_stage(ShardID target,
                                                      Serializer &rez, int stage)
@@ -15126,29 +14631,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    TemplateIndexExchange::TemplateIndexExchange(
-                                               const TemplateIndexExchange &rhs)
-      : AllGatherCollective(rhs), current_stage(-1)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     TemplateIndexExchange::~TemplateIndexExchange(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    TemplateIndexExchange& TemplateIndexExchange::operator=(
-                                               const TemplateIndexExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -15228,28 +14713,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    UnorderedExchange::UnorderedExchange(const UnorderedExchange &rhs)
-      : AllGatherCollective(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     UnorderedExchange::~UnorderedExchange(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    UnorderedExchange& UnorderedExchange::operator=(
-                                                   const UnorderedExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -15580,32 +15046,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T>
-    ConsensusMatchExchange<T>::ConsensusMatchExchange(
-                                              const ConsensusMatchExchange &rhs)
-      : ConsensusMatchBase(rhs), to_complete(rhs.to_complete),
-        output(rhs.output)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T>
     ConsensusMatchExchange<T>::~ConsensusMatchExchange(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T>
-    ConsensusMatchExchange<T>& ConsensusMatchExchange<T>::operator=(
-                                              const ConsensusMatchExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -15683,7 +15126,7 @@ namespace Legion {
       if (precondition.exists() && !precondition.has_triggered())
       {
         ConsensusMatchArgs args(this, context->get_unique_id());
-        context->runtime->issue_runtime_meta_task(args,
+        runtime->issue_runtime_meta_task(args,
             LG_LATENCY_DEFERRED_PRIORITY, precondition);
         return false;
       }
@@ -15737,29 +15180,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    VerifyReplicableExchange::VerifyReplicableExchange(
-                                            const VerifyReplicableExchange &rhs)
-      : AllGatherCollective<false>(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     VerifyReplicableExchange::~VerifyReplicableExchange(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    VerifyReplicableExchange& VerifyReplicableExchange::operator=(
-                                            const VerifyReplicableExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -15908,29 +15331,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexAttachLaunchSpace::IndexAttachLaunchSpace(
-                                              const IndexAttachLaunchSpace &rhs)
-      : AllGatherCollective<false>(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     IndexAttachLaunchSpace::~IndexAttachLaunchSpace(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    IndexAttachLaunchSpace& IndexAttachLaunchSpace::operator=(
-                                              const IndexAttachLaunchSpace &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -16009,29 +15412,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexAttachUpperBound::IndexAttachUpperBound(
-                                               const IndexAttachUpperBound &rhs)
-      : AllGatherCollective<false>(rhs), forest(rhs.forest)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     IndexAttachUpperBound::~IndexAttachUpperBound(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    IndexAttachUpperBound& IndexAttachUpperBound::operator=(
-                                               const IndexAttachUpperBound &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -16139,30 +15522,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexAttachExchange::IndexAttachExchange(const IndexAttachExchange &rhs)
-      : AllGatherCollective<false>(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     IndexAttachExchange::~IndexAttachExchange(void)
     //--------------------------------------------------------------------------
     {
     }
     
-    //--------------------------------------------------------------------------
-    IndexAttachExchange& IndexAttachExchange::operator=(
-                                                 const IndexAttachExchange &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    }
-
     //--------------------------------------------------------------------------
     void IndexAttachExchange::pack_collective_stage(ShardID target,
                                                     Serializer &rez, int stage)
@@ -16321,29 +15685,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ImplicitShardingFunctor::ImplicitShardingFunctor(
-                                             const ImplicitShardingFunctor &rhs)
-      : AllGatherCollective<false>(rhs), map(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     ImplicitShardingFunctor::~ImplicitShardingFunctor(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ImplicitShardingFunctor& ImplicitShardingFunctor::operator=(
-                                             const ImplicitShardingFunctor &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -16644,7 +15988,7 @@ namespace Legion {
         if (finder != inverted.end())
         {
           MapperManager *mapper = 
-            owner->runtime->find_mapper(owner->current_proc, owner->map_id);
+            runtime->find_mapper(owner->current_proc, owner->map_id);
           // TODO: update this error message to name the bad points
           REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
               "Mapper %s performed illegal mapping of concurrent index "
@@ -16735,7 +16079,6 @@ namespace Legion {
     void ConcurrentAllreduce::notify_concurrent_slices(void)
     //--------------------------------------------------------------------------
     {
-      Runtime *runtime = context->runtime;
       for (std::vector<std::pair<SliceTask*,AddressSpaceID> >::const_iterator
             it = concurrent_slices.begin(); 
             it != concurrent_slices.end(); it++)
@@ -17149,27 +16492,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    SlowBarrier::SlowBarrier(const SlowBarrier &rhs)
-      : AllGatherCollective<false>(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     SlowBarrier::~SlowBarrier(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    SlowBarrier& SlowBarrier::operator=(const SlowBarrier &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     /////////////////////////////////////////////////////////////
@@ -17228,7 +16553,7 @@ namespace Legion {
 #endif
       const unsigned offset = convert_to_offset(local_index, origin_index);
       const unsigned index = convert_to_index(
-          (offset-1) / context->runtime->legion_collective_radix, origin_index);
+          (offset-1) / runtime->legion_collective_radix, origin_index);
       return get_index(index);
     }
 
@@ -17243,7 +16568,7 @@ namespace Legion {
       assert(local_index < total_participants);
       assert(origin_index < total_participants);
 #endif
-      const unsigned radix = context->runtime->legion_collective_radix;
+      const unsigned radix = runtime->legion_collective_radix;
       const unsigned offset = radix *
         convert_to_offset(local_index, origin_index);
       size_t result = 0;
@@ -17267,7 +16592,7 @@ namespace Legion {
       assert(local_index < total_participants);
       assert(origin_index < total_participants);
 #endif
-      const unsigned radix = context->runtime->legion_collective_radix;
+      const unsigned radix = runtime->legion_collective_radix;
       const unsigned offset = radix *
         convert_to_offset(local_index, origin_index);
       for (unsigned idx = 1; idx <= radix; idx++)
@@ -17443,7 +16768,7 @@ namespace Legion {
       size_t num_children;
       derez.deserialize(num_children);
       children.resize(num_children);
-      RegionTreeForest *forest = context->runtime->forest;
+      RegionTreeForest *forest = runtime->forest;
       for (unsigned idx = 0; idx < num_children; idx++)
       {
         IndexPartition handle;

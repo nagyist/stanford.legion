@@ -99,8 +99,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalTask::unpack_external_task(Deserializer &derez,
-                                            Runtime *runtime)
+    void ExternalTask::unpack_external_task(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -124,7 +123,7 @@ namespace Legion {
       derez.deserialize(num_futures);
       futures.resize(num_futures);
       for (unsigned idx = 0; idx < futures.size(); idx++)
-        futures[idx] = FutureImpl::unpack_future(runtime, derez);
+        futures[idx] = FutureImpl::unpack_future(derez);
       size_t num_grants;
       derez.deserialize(num_grants);
       grants.resize(num_grants);
@@ -212,8 +211,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
   
     //--------------------------------------------------------------------------
-    TaskOp::TaskOp(Runtime *rt)
-      : ExternalTask(), PredicatedOp(rt), 
+    TaskOp::TaskOp(void)
+      : ExternalTask(), PredicatedOp(), 
         logical_regions(TaskRequirements(*this))
     //--------------------------------------------------------------------------
     {
@@ -477,7 +476,7 @@ namespace Legion {
     {
       DETAILED_PROFILER(runtime, UNPACK_BASE_TASK_CALL);
       // unpack all the user facing data
-      unpack_external_task(derez, runtime); 
+      unpack_external_task(derez); 
       DerezCheck z(derez);
       size_t num_indexes;
       derez.deserialize(num_indexes);
@@ -524,7 +523,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void TaskOp::process_unpack_task(Runtime *rt,Deserializer &derez)
+    /*static*/ void TaskOp::process_unpack_task(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       // Figure out what kind of task this is and where it came from
@@ -537,7 +536,7 @@ namespace Legion {
       {
         case INDIVIDUAL_TASK_KIND:
           {
-            IndividualTask *task = rt->get_available_individual_task();
+            IndividualTask *task = runtime->get_available_individual_task();
             std::set<RtEvent> ready_events;
             if (task->unpack_task(derez, current, ready_events))
             {
@@ -549,7 +548,7 @@ namespace Legion {
               if (task->is_origin_mapped())
               {
                 TriggerTaskArgs trigger_args(task);
-                rt->issue_runtime_meta_task(trigger_args, 
+                runtime->issue_runtime_meta_task(trigger_args, 
                       LG_THROUGHPUT_WORK_PRIORITY, ready);
               }
               else
@@ -559,7 +558,7 @@ namespace Legion {
           }
         case SLICE_TASK_KIND:
           {
-            SliceTask *task = rt->get_available_slice_task();
+            SliceTask *task = runtime->get_available_slice_task();
             std::set<RtEvent> ready_events;
             if (task->unpack_task(derez, current, ready_events))
             {
@@ -571,7 +570,7 @@ namespace Legion {
               if (task->is_origin_mapped())
               {
                 TriggerTaskArgs trigger_args(task);
-                rt->issue_runtime_meta_task(trigger_args, 
+                runtime->issue_runtime_meta_task(trigger_args, 
                       LG_THROUGHPUT_WORK_PRIORITY, ready);
               }
               else
@@ -587,7 +586,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void TaskOp::process_remote_replay(Runtime *rt, Deserializer &derez)
+    void TaskOp::process_remote_replay(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       // Figure out what kind of task this is and where it came from
@@ -603,7 +602,7 @@ namespace Legion {
       {
         case INDIVIDUAL_TASK_KIND:
           {
-            IndividualTask *task = rt->get_available_individual_task();
+            IndividualTask *task = runtime->get_available_individual_task();
             std::set<RtEvent> ready_events;
             task->unpack_task(derez, target_proc, ready_events);
             if (!ready_events.empty())
@@ -617,7 +616,7 @@ namespace Legion {
           }
         case SLICE_TASK_KIND:
           {
-            SliceTask *task = rt->get_available_slice_task();
+            SliceTask *task = runtime->get_available_slice_task();
             std::set<RtEvent> ready_events;
             task->unpack_task(derez, target_proc, ready_events);
             if (!ready_events.empty())
@@ -1500,7 +1499,7 @@ namespace Legion {
             runtime->find_projection_function(regions[idx].projection);
           if (function->is_invertible)
             assert(false); // TODO: implement dependent launches for inline
-          regions[idx].region = function->project_point(this, idx, runtime, 
+          regions[idx].region = function->project_point(this, idx,
                                                 index_domain, index_point);
           // Update the region requirement kind 
           regions[idx].handle_type = LEGION_SINGULAR_PROJECTION;
@@ -2023,19 +2022,10 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteTaskOp::RemoteTaskOp(Runtime *rt, Operation *ptr, AddressSpaceID src)
-      : ExternalTask(), RemoteOp(rt, ptr, src)
+    RemoteTaskOp::RemoteTaskOp(Operation *ptr, AddressSpaceID src)
+      : ExternalTask(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteTaskOp::RemoteTaskOp(const RemoteTaskOp &rhs)
-      : ExternalTask(), RemoteOp(rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
@@ -2057,15 +2047,6 @@ namespace Legion {
       }
       if (local_args != NULL)
         free(local_args);
-    }
-
-    //--------------------------------------------------------------------------
-    RemoteTaskOp& RemoteTaskOp::operator=(const RemoteTaskOp &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -2221,7 +2202,7 @@ namespace Legion {
     void RemoteTaskOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      unpack_external_task(derez, runtime);
+      unpack_external_task(derez);
       unpack_profiling_requests(derez);
     }
 
@@ -2230,8 +2211,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    SingleTask::SingleTask(Runtime *rt)
-      : TaskOp(rt)
+    SingleTask::SingleTask(void)
+      : TaskOp()
     //--------------------------------------------------------------------------
     {
     }
@@ -2454,7 +2435,7 @@ namespace Legion {
           derez.deserialize(result);
           virtual_mapped[idx] = result;
           if (result)
-            version_infos[idx].unpack_equivalence_sets(derez, runtime, 
+            version_infos[idx].unpack_equivalence_sets(derez, 
                                                        ready_events);
         }
         derez.deserialize(single_task_termination);
@@ -2462,8 +2443,7 @@ namespace Legion {
         derez.deserialize(num_phy);
         physical_instances.resize(num_phy);
         for (unsigned idx = 0; idx < num_phy; idx++)
-          physical_instances[idx].unpack_references(runtime,
-                                                    derez, ready_events);
+          physical_instances[idx].unpack_references(derez, ready_events);
         size_t num_pre;
         derez.deserialize(num_pre);
         region_preconditions.resize(num_pre);
@@ -3623,7 +3603,7 @@ namespace Legion {
     InnerContext* SingleTask::create_implicit_context(void)
     //--------------------------------------------------------------------------
     {
-      InnerContext *inner_ctx = new InnerContext(runtime, this, 
+      InnerContext *inner_ctx = new InnerContext(this, 
           get_depth(), false/*is inner*/, regions, output_regions,
           parent_req_indexes, virtual_mapped, ApEvent::NO_AP_EVENT,
           0/*did*/, false/*inline*/, true/*implicit*/);
@@ -4090,7 +4070,7 @@ namespace Legion {
           continue;
         local_shards.push_back(idx);
       }
-      shard_manager = new ShardManager(runtime, manager_did, mapping,
+      shard_manager = new ShardManager(manager_did, mapping,
           local_shards.size(), is_top_level_task(), isomorphic_points,
           !var_impl->is_leaf(), output.shard_domain, 
           std::move(output.shard_points), std::move(sorted_points),
@@ -4118,7 +4098,7 @@ namespace Legion {
       if (is_remote() && is_recording() && (remote_trace_recorder == NULL))
       {
         const RtUserEvent remote_applied = Runtime::create_rt_user_event();
-        remote_trace_recorder = new RemoteTraceRecorder(runtime,
+        remote_trace_recorder = new RemoteTraceRecorder(
             orig_proc.address_space(), runtime->address_space, 
             get_trace_local_id(), tpl, remote_applied);
         remote_trace_recorder->add_recorder_reference();
@@ -5183,7 +5163,7 @@ namespace Legion {
     {
       if (!leaf_task)
       {
-        InnerContext *inner_ctx = new InnerContext(runtime, this, 
+        InnerContext *inner_ctx = new InnerContext(this, 
             get_depth(), v->is_inner(), regions, output_regions,
             parent_req_indexes, virtual_mapped, execution_fence_event, 0/*did*/, 
             inline_task,concurrent_task || parent_ctx->is_concurrent_context());
@@ -5193,7 +5173,7 @@ namespace Legion {
       }
       else
       {
-        LeafContext *leaf_ctx = new LeafContext(runtime, this, inline_task);
+        LeafContext *leaf_ctx = new LeafContext(this, inline_task);
         leaf_ctx->add_base_gc_ref(SINGLE_TASK_REF);
         return leaf_ctx;
       }
@@ -5233,7 +5213,7 @@ namespace Legion {
     {
       const OrderConcurrentLaunchArgs *oargs = 
         (const OrderConcurrentLaunchArgs*)args;
-      oargs->task->runtime->order_concurrent_task_launch(oargs->processor,
+      runtime->order_concurrent_task_launch(oargs->processor,
           oargs->task, oargs->start, oargs->ready, oargs->needs_barrier);
     }
 
@@ -5242,8 +5222,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MultiTask::MultiTask(Runtime *rt)
-      : CollectiveViewCreator<TaskOp>(rt)
+    MultiTask::MultiTask(void)
+      : CollectiveViewCreator<TaskOp>()
     //--------------------------------------------------------------------------
     {
     }
@@ -5869,34 +5849,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    IndividualTask::IndividualTask(Runtime *rt)
-      : SingleTask(rt)
+    IndividualTask::IndividualTask(void)
+      : SingleTask()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    IndividualTask::IndividualTask(const IndividualTask &rhs)
-      : SingleTask(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     IndividualTask::~IndividualTask(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    IndividualTask& IndividualTask::operator=(const IndividualTask &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -6064,7 +6026,7 @@ namespace Legion {
     Future IndividualTask::create_future(void)
     //--------------------------------------------------------------------------
     {
-      FutureImpl *impl = new FutureImpl(parent_ctx, runtime, true/*register*/,
+      FutureImpl *impl = new FutureImpl(parent_ctx, true/*register*/,
               runtime->get_available_distributed_id(), get_provenance(), this);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_future_creation(unique_op_id, 
@@ -6689,7 +6651,7 @@ namespace Legion {
       derez.deserialize(remote_unique_id);
       set_current_proc(current);
       // Figure out what our parent context is
-      parent_ctx = InnerContext::unpack_inner_context(derez, runtime);
+      parent_ctx = InnerContext::unpack_inner_context(derez);
       derez.deserialize(top_level_task);
       // Quick check to see if we've been sent back to our original node
       if (!is_remote())
@@ -6709,9 +6671,9 @@ namespace Legion {
       }
       if (!elide_future_return)
       {
-        result = FutureImpl::unpack_future(runtime, derez);
+        result = FutureImpl::unpack_future(derez);
         // Unpack the predicate false infos
-        predicate_false_future = FutureImpl::unpack_future(runtime, derez);
+        predicate_false_future = FutureImpl::unpack_future(derez);
         derez.deserialize(predicate_false_size);
         if (predicate_false_size > 0)
         {
@@ -7014,34 +6976,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PointTask::PointTask(Runtime *rt)
-      : SingleTask(rt)
+    PointTask::PointTask(void)
+      : SingleTask()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointTask::PointTask(const PointTask &rhs)
-      : SingleTask(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     PointTask::~PointTask(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PointTask& PointTask::operator=(const PointTask &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -7847,9 +7791,9 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ShardTask::ShardTask(Runtime *rt, SingleTask *source, InnerContext *parent,
+    ShardTask::ShardTask(SingleTask *source, InnerContext *parent,
         ShardManager *manager, ShardID id, Processor proc, VariantID variant)
-      : SingleTask(rt), shard_id(id), all_shards_complete(false)
+      : SingleTask(), shard_id(id), all_shards_complete(false)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -7880,9 +7824,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ShardTask::ShardTask(Runtime *rt, InnerContext *parent, Deserializer &derez,
+    ShardTask::ShardTask(InnerContext *parent, Deserializer &derez,
         ShardManager *manager, ShardID id, Processor proc, VariantID variant)
-      : SingleTask(rt), shard_id(id), all_shards_complete(false)
+      : SingleTask(), shard_id(id), all_shards_complete(false)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -8217,7 +8161,7 @@ namespace Legion {
       assert(!single_task_termination.exists());
 #endif
       unpack_single_task(derez, ready_events);
-      parent_ctx = InnerContext::unpack_inner_context(derez, runtime);
+      parent_ctx = InnerContext::unpack_inner_context(derez);
       set_current_proc(current);
       return false;
     }
@@ -8312,7 +8256,7 @@ namespace Legion {
       if (!leaf_task)
       {
         // If we have a control replication context then we do the special path
-        ReplicateContext *repl_ctx = new ReplicateContext(runtime, this,
+        ReplicateContext *repl_ctx = new ReplicateContext(this,
             get_depth(), v->is_inner(), regions, output_regions,
             parent_req_indexes, virtual_mapped, execution_fence_event,
             shard_manager, inline_task, parent_ctx->is_concurrent_context());
@@ -8329,7 +8273,7 @@ namespace Legion {
       }
       else
       {
-        execution_context = new LeafContext(runtime, this, inline_task);
+        execution_context = new LeafContext(this, inline_task);
         execution_context->add_base_gc_ref(SINGLE_TASK_REF);
       }
       return execution_context;
@@ -8339,7 +8283,7 @@ namespace Legion {
     InnerContext* ShardTask::create_implicit_context(void)
     //--------------------------------------------------------------------------
     {
-      ReplicateContext *repl_ctx = new ReplicateContext(runtime, this,
+      ReplicateContext *repl_ctx = new ReplicateContext(this,
           get_depth(), false/*is inner*/, regions, output_regions,
           parent_req_indexes, virtual_mapped, execution_fence_event,
           shard_manager, false/*inline task*/, true/*implicit*/);
@@ -8619,34 +8563,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    IndexTask::IndexTask(Runtime *rt)
-      : MultiTask(rt)
+    IndexTask::IndexTask(void)
+      : MultiTask()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    IndexTask::IndexTask(const IndexTask &rhs)
-      : MultiTask(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     IndexTask::~IndexTask(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    IndexTask& IndexTask::operator=(const IndexTask &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -9219,7 +9145,7 @@ namespace Legion {
       if (launcher.predicate != Predicate::TRUE_PRED)
         initialize_predicate(launcher.predicate_false_future,
                              launcher.predicate_false_result);
-      reduction_future = Future(new FutureImpl(parent_ctx, runtime,
+      reduction_future = Future(new FutureImpl(parent_ctx,
           true/*register*/, runtime->get_available_distributed_id(),
           provenance, this));
       if (serdez_redop_fns == NULL)
@@ -10344,7 +10270,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FutureMapImpl *result = new FutureMapImpl(ctx, this, this->launch_space,
-          runtime, runtime->get_available_distributed_id(), get_provenance());
+          runtime->get_available_distributed_id(), get_provenance());
       future_map_coordinate = result->future_coordinate;
       return FutureMap(result);
     }
@@ -11211,34 +11137,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    SliceTask::SliceTask(Runtime *rt)
-      : MultiTask(rt)
+    SliceTask::SliceTask(void)
+      : MultiTask()
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    SliceTask::SliceTask(const SliceTask &rhs)
-      : MultiTask(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
     SliceTask::~SliceTask(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    SliceTask& SliceTask::operator=(const SliceTask &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -11594,7 +11502,7 @@ namespace Legion {
       derez.deserialize(index_owner);
       derez.deserialize(remote_unique_id); 
       derez.deserialize(origin_mapped);
-      parent_ctx = InnerContext::unpack_inner_context(derez, runtime);
+      parent_ctx = InnerContext::unpack_inner_context(derez);
       derez.deserialize(internal_space);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_slice_slice(remote_unique_id, get_unique_id());
@@ -11609,10 +11517,10 @@ namespace Legion {
       if (!elide_future_return)
       {
         if (redop == 0)
-          future_map = FutureMapImpl::unpack_future_map(runtime, derez, 
+          future_map = FutureMapImpl::unpack_future_map(derez, 
                                                         parent_ctx);
         // Unpack the predicate false infos
-        predicate_false_future = FutureImpl::unpack_future(runtime, derez);
+        predicate_false_future = FutureImpl::unpack_future(derez);
         derez.deserialize(predicate_false_size);
         if (predicate_false_size > 0)
         {
@@ -11640,7 +11548,7 @@ namespace Legion {
       }
       if (num_points == 0)
       {
-        point_arguments = FutureMapImpl::unpack_future_map(runtime, derez, 
+        point_arguments = FutureMapImpl::unpack_future_map(derez, 
                                                            parent_ctx);
         size_t num_point_futures;
         derez.deserialize(num_point_futures);
@@ -11648,7 +11556,7 @@ namespace Legion {
         {
           point_futures.resize(num_point_futures);
           for (unsigned idx = 0; idx < num_point_futures; idx++)
-            point_futures[idx] = FutureMapImpl::unpack_future_map(runtime, 
+            point_futures[idx] = FutureMapImpl::unpack_future_map(
                                                         derez, parent_ctx);
         }
       }
@@ -11940,7 +11848,7 @@ namespace Legion {
           continue;
         ProjectionFunction *function = 
           runtime->find_projection_function(req.projection);
-        function->project_points(req, idx, runtime, index_domain, points);
+        function->project_points(req, idx, index_domain, points);
       }
       // Update the no access regions
       for (unsigned idx = 0; idx < num_points; idx++)
@@ -12757,8 +12665,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_slice_return(Runtime *rt, 
-                                                   Deserializer &derez)
+    /*static*/ void SliceTask::handle_slice_return(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -13116,7 +13023,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_collective_rendezvous(
-                   Deserializer &derez, Runtime *runtime, AddressSpaceID source)
+                   Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -13144,7 +13051,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_collective_versioning_rendezvous(
-                                          Deserializer &derez, Runtime *runtime)
+                                          Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

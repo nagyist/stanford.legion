@@ -209,10 +209,9 @@ namespace Legion {
     public:
       static void trace_allocation(AllocationType a, size_t size, int elems=1);
       static void trace_free(AllocationType a, size_t size, int elems=1);
-      static Runtime* find_runtime(void);
-      static void trace_allocation(Runtime *&rt, AllocationType a, 
+      static void trace_allocation(AllocationType a, 
                                    size_t size, int elems=1);
-      static void trace_free(Runtime *&rt, AllocationType a, 
+      static void trace_free(AllocationType a, 
                              size_t size, int elems=1);
     };
 
@@ -274,9 +273,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_TRACE_ALLOCATION
-      Runtime *rt = LegionAllocation::find_runtime(); 
-      LegionAllocation::trace_free(rt, a, old_size);
-      LegionAllocation::trace_allocation(rt, a, new_size);
+      LegionAllocation::trace_free(a, old_size);
+      LegionAllocation::trace_allocation(a, new_size);
 #endif
       return realloc(ptr, new_size);
     }
@@ -423,23 +421,11 @@ namespace Legion {
         typedef LegionAllocator<U, A> other;
       };
     public:
-      inline explicit LegionAllocator(void) 
-#ifdef LEGION_TRACE_ALLOCATION
-        : runtime(LegionAllocation::find_runtime()) 
-#endif
-      { }
+      inline explicit LegionAllocator(void) { }
       inline ~LegionAllocator(void) { }
-      inline LegionAllocator(const LegionAllocator<T, A> &rhs)
-#ifdef LEGION_TRACE_ALLOCATION
-        : runtime(rhs.runtime) 
-#endif
-      { }
+      inline LegionAllocator(const LegionAllocator<T, A> &rhs) { }
       template<typename U>
-      inline LegionAllocator(const LegionAllocator<U, A> &rhs) 
-#ifdef LEGION_TRACE_ALLOCATION
-        : runtime(rhs.runtime) 
-#endif  
-      { }
+      inline LegionAllocator(const LegionAllocator<U, A> &rhs) { }
     public:
       inline pointer address(reference r) { return &r; }
       inline const_pointer address(const_reference r) { return &r; }
@@ -452,14 +438,14 @@ namespace Legion {
         memcpy(&result, &ptr, sizeof(result));
 #ifdef LEGION_TRACE_ALLOCATION
         if (A != UNTRACKED_ALLOC)
-          LegionAllocation::trace_allocation(runtime, A, sizeof(T), cnt);
+          LegionAllocation::trace_allocation(A, sizeof(T), cnt);
 #endif
         return result;
       }
       inline void deallocate(T *ptr, std::size_t size) { 
 #ifdef LEGION_TRACE_ALLOCATION
         if (A != UNTRACKED_ALLOC)
-          LegionAllocation::trace_free(runtime, A, sizeof(T), size);
+          LegionAllocation::trace_free(A, sizeof(T), size);
 #endif
         free(ptr);
       }
@@ -468,7 +454,7 @@ namespace Legion {
                       typename std::allocator<void>::const_pointer = 0) {
 #ifdef LEGION_TRACE_ALLOCATION
         if (A != UNTRACKED_ALLOC)
-          LegionAllocation::trace_allocation(runtime, A, sizeof(T), cnt);
+          LegionAllocation::trace_allocation(A, sizeof(T), cnt);
 #endif
         void *ptr = legion_alloc_aligned<T, false/*bytes*/>(cnt);
         pointer result = NULL;
@@ -479,7 +465,7 @@ namespace Legion {
       inline void deallocate(pointer p, size_type size) {
 #ifdef LEGION_TRACE_ALLOCATION
         if (A != UNTRACKED_ALLOC)
-          LegionAllocation::trace_free(runtime, A, sizeof(T), size);
+          LegionAllocation::trace_free(A, sizeof(T), size);
 #endif
         free(p);
       }
@@ -514,10 +500,6 @@ namespace Legion {
       inline bool operator==(LegionAllocator const&) const { return true; }
       inline bool operator!=(LegionAllocator const& a) const
                                            { return !operator==(a); }
-    public:
-#ifdef LEGION_TRACE_ALLOCATION
-      Runtime *runtime;
-#endif
     };
 
     template<typename T, AllocationType A = UNTRACKED_ALLOC,

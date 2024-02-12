@@ -577,7 +577,7 @@ namespace Legion {
       // Statically known information passed through the constructor
       // so that it can be deduplicated
       LegionProfiler(Processor target_proc, const Machine &machine,
-                     Runtime *rt, unsigned num_meta_tasks,
+                     unsigned num_meta_tasks,
                      const char *const *const meta_task_descriptions,
                      unsigned num_message_kinds,
                      const char *const *const message_decriptions,
@@ -713,7 +713,6 @@ namespace Legion {
     private:
       void create_thread_local_profiling_instance(void);
     public:
-      Runtime *const runtime;
       // Event to trigger once the profiling is actually done
       const RtUserEvent done_event;
       // Minimum duration of mapper and runtime calls for logging in ns
@@ -752,7 +751,7 @@ namespace Legion {
 
     class DetailedProfiler {
     public:
-      DetailedProfiler(Runtime *runtime, RuntimeCallKind call);
+      DetailedProfiler(RuntimeCallKind call);
       DetailedProfiler(const DetailedProfiler &rhs);
       ~DetailedProfiler(void);
     public:

@@ -51,7 +51,7 @@ IndexSpaceValue::~IndexSpaceValue()
 
 IndexSpaceValue IndexSpaceValue::operator&(const IndexSpaceValue &other) const
 {
-  RegionTreeForest *forest = implicit_runtime->forest;
+  RegionTreeForest *forest = runtime->forest;
 
   if (expr != nullptr || other.expr != nullptr)
   {
