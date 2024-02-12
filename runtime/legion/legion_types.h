@@ -2336,11 +2336,11 @@ namespace Legion {
     class ProjectionTreeExchange;
     class TimeoutMatchExchange;
 
+    // This is the pointer to the runtime singleton
+    extern Runtime *runtime;
     // Nasty global variable for TLS support of figuring out
     // our context implicitly
     extern thread_local TaskContext *implicit_context;
-    // Same thing for the runtime
-    extern thread_local Runtime *runtime;
     // Another nasty global variable for tracking the fast
     // reservations that we are holding
     extern thread_local AutoLock *local_lock_list;

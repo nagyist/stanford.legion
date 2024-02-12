@@ -540,8 +540,6 @@ namespace Legion {
     {
       implicit_context = this;
       implicit_provenance = owner_task->get_unique_op_id();
-      if (runtime == NULL)
-        runtime = Runtime::the_runtime;
       if (overhead_profiler != NULL)
         overhead_profiler->previous_profiling_time = 
           Realm::Clock::current_time_in_nanoseconds();

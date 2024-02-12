@@ -2774,9 +2774,6 @@ namespace Legion {
                 "permitted to specify a single target processor for mapping "
                 "tasks in concurrent index space task launches.",
                 mapper->get_mapper_name(), get_task_name(), get_unique_id())
-          else if (runtime->separate_runtime_instances)
-            // Ignore additional processors in separate runtime instances
-            output.target_procs.resize(1);
         } 
         if (!runtime->unsafe_mapper)
           validate_target_processors(output.target_procs);

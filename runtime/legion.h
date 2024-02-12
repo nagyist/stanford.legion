@@ -9318,12 +9318,6 @@ namespace Legion {
        *              disjointness and completeness from the user are correct.
        *              This is an expensive test and users should expect a 
        *              significant slow-down of their application when using it.
-       * -lg:separate Indicate that separate instances of the Legion 
-       *              level runtime should be made for each processor.
-       *              The default is one runtime instance per node.
-       *              This is primarily useful for debugging purposes
-       *              to force messages to be sent between runtime 
-       *              instances on the same node.
        * -lg:registration Record the mapping from Realm task IDs to
        *              task variant names for debugging Realm runtime
        *              error messages.

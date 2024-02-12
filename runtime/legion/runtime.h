@@ -2469,7 +2469,6 @@ namespace Legion {
             runtime_warnings(false),
             warnings_backtrace(false),
             report_leaks(false),
-            separate_runtime_instances(false),
             record_registration(false),
             stealing_disabled(false),
             resilient_mode(false),
@@ -2527,7 +2526,6 @@ namespace Legion {
         bool runtime_warnings;
         bool warnings_backtrace;
         bool report_leaks;
-        bool separate_runtime_instances;
         bool record_registration;
         bool stealing_disabled;
         bool resilient_mode;
@@ -2652,7 +2650,6 @@ namespace Legion {
       const bool runtime_warnings;
       const bool warnings_backtrace;
       const bool report_leaks;
-      const bool separate_runtime_instances;
       const bool record_registration;
       const bool stealing_disabled;
       const bool resilient_mode;
@@ -4670,11 +4667,10 @@ namespace Legion {
       static unsigned initialize_outstanding_top_level_tasks(
           AddressSpaceID local_space, size_t total_spaces, unsigned radix);
       static void perform_slow_config_checks(const LegionConfiguration &config);
-      static void configure_interoperability(bool separate_runtimes);
+      static void configure_interoperability(void);
       static Processor configure_runtime(int argc, char **argv,
           const LegionConfiguration &config, RealmRuntime &realm,
           std::set<Processor> &local_procs,
-          std::map<Processor,Runtime*> &processor_mapping,
           bool background, bool default_mapper);
       static int wait_for_shutdown(void);
       static void set_return_code(int return_code);
@@ -4793,7 +4789,6 @@ namespace Legion {
       static bool runtime_cmdline_parsed;
       static bool runtime_started;
       static bool runtime_backgrounded;
-      static Runtime *the_runtime;
       static std::atomic<Realm::Event::id_t> startup_event;
       static Realm::Barrier::timestamp_t startup_timestamp;
       static std::atomic<bool> background_wait;

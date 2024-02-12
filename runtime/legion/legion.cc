@@ -7257,10 +7257,7 @@ namespace Legion {
       if (!Internal::Runtime::runtime_started)
         REPORT_LEGION_ERROR(ERROR_DYNAMIC_CALL_PRE_RUNTIME_START,
             "Illegal call to 'get_input_args' before the runtime is started")
-      if (Internal::runtime != NULL)
-        return Internal::runtime->input_args;
-      // Otherwise this is not from a Legion task, so fallback to the_runtime
-      return Internal::Runtime::the_runtime->input_args;
+      return Internal::runtime->input_args;
     }
 
     //--------------------------------------------------------------------------
@@ -7277,11 +7274,7 @@ namespace Legion {
       if (!Internal::Runtime::runtime_started)
         REPORT_LEGION_ERROR(ERROR_DYNAMIC_CALL_PRE_RUNTIME_START,
             "Illegal call to 'get_runtime' before the runtime is started")
-      // If we have an implicit runtime we use that
-      if (Internal::runtime != NULL)
-        return Internal::runtime->external;
-      // Otherwise this is not from a Legion task, so fallback to the_runtime
-      return Internal::Runtime::the_runtime->external;
+      return Internal::runtime->external;
     }
 
     //--------------------------------------------------------------------------
