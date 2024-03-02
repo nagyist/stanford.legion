@@ -1,4 +1,4 @@
-/* Copyright 2023 Stanford University, NVIDIA Corporation
+/* Copyright 2024 Stanford University, NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1112,7 +1112,12 @@ namespace Legion {
         // Need to hold the lock when creating the instance since 
         // the future instance object is not thread safe
         AutoLock f_lock(future_lock);
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+        LgEvent dummy_event;
+        result = instance->get_instance(instance->size,dummy_event,dummy_owner);
+#else
         result = instance->get_instance(instance->size, dummy_owner);
+#endif
 #ifdef DEBUG_LEGION
         // Should never be set to true here
         assert(!dummy_owner);
@@ -3130,7 +3135,13 @@ namespace Legion {
         Realm::CopySrcDstField src, dst;
         src.set_fill(redop->identity, redop->sizeof_rhs);
         bool own_inst = false;
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+        LgEvent inst_event;
+        PhysicalInstance dst_inst = 
+          get_instance(redop->sizeof_rhs, inst_event, own_inst);
+#else
         PhysicalInstance dst_inst = get_instance(redop->sizeof_rhs, own_inst);
+#endif
 #ifdef DEBUG_LEGION
         // Should only be writing to instances that this future instance owns
         assert(own_instance);
@@ -3142,7 +3153,11 @@ namespace Legion {
         if (runtime->profiler != NULL)
         {
           SmallNameClosure<1> *closure = new SmallNameClosure<1>();
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+          closure->record_instance_name(dst_inst, inst_event);
+#else
           closure->record_instance_name(dst_inst, unique_event);
+#endif
           runtime->profiler->add_fill_request(requests, closure, op);
         }
         const Point<1,coord_t> zero(0);
@@ -3179,8 +3194,15 @@ namespace Legion {
       {
         // We need to offload this to realm
         bool own_src = false, own_dst = false;
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+        LgEvent src_event, dst_event;
+        PhysicalInstance src_inst = 
+          source->get_instance(copy_size, src_event, own_src);
+        PhysicalInstance dst_inst = get_instance(copy_size, dst_event, own_dst);
+#else
         PhysicalInstance src_inst = source->get_instance(copy_size, own_src);
         PhysicalInstance dst_inst = get_instance(copy_size, own_dst);
+#endif
 #ifdef DEBUG_LEGION
         // Should only be writing to instances that this future instance owns
         assert(own_instance);
@@ -3193,8 +3215,13 @@ namespace Legion {
         if (runtime->profiler != NULL)
         {
           SmallNameClosure<2> *closure = new SmallNameClosure<2>();
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+          closure->record_instance_name(src_inst, src_event);
+          closure->record_instance_name(dst_inst, dst_event);
+#else
           closure->record_instance_name(src_inst, source->unique_event);
           closure->record_instance_name(dst_inst, unique_event);
+#endif
           runtime->profiler->add_copy_request(requests, closure, op);
         }
         const Point<1,coord_t> zero(0);
@@ -3244,9 +3271,17 @@ namespace Legion {
       {
         // We need to offload this to realm
         bool own_src = false, own_dst = false;
-        PhysicalInstance src_inst = 
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+        LgEvent src_event, dst_event;
+        PhysicalInstance src_inst =
+          source->get_instance(redop->sizeof_rhs, src_event, own_src);
+        PhysicalInstance dst_inst =
+          get_instance(redop->sizeof_rhs, dst_event, own_dst);
+#else
+        PhysicalInstance src_inst =
           source->get_instance(redop->sizeof_rhs, own_src);
         PhysicalInstance dst_inst = get_instance(redop->sizeof_rhs, own_dst);
+#endif
 #ifdef DEBUG_LEGION
         // Should only be reducing to instances that this future instance owns
         assert(own_instance);
@@ -3260,8 +3295,13 @@ namespace Legion {
         if (runtime->profiler != NULL)
         {
           SmallNameClosure<2> *closure = new SmallNameClosure<2>();
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+          closure->record_instance_name(src_inst, src_event);
+          closure->record_instance_name(dst_inst, dst_event);
+#else
           closure->record_instance_name(src_inst, source->unique_event);
           closure->record_instance_name(dst_inst, unique_event);
+#endif
           runtime->profiler->add_copy_request(requests, closure, op);
         }
         const Point<1,coord_t> zero(0);
@@ -3338,7 +3378,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+    PhysicalInstance FutureInstance::get_instance(size_t needed, 
+                                            LgEvent &inst_event, bool &own_inst)
+#else
     PhysicalInstance FutureInstance::get_instance(size_t needed, bool &own_inst)
+#endif
     //--------------------------------------------------------------------------
     {
       if (needed != size)
@@ -3355,7 +3400,11 @@ namespace Legion {
         // Check to see if we already have a resource or not
         if (alt_resource == NULL)
         {
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+          const PhysicalInstance inst = get_instance(size, inst_event,own_inst);
+#else
           const PhysicalInstance inst = get_instance(size, own_inst); 
+#endif
           alt_resource =
             inst.generate_resource_info(rect_space,0/*fid*/,false/*read only*/);
 #ifdef DEBUG_LEGION
@@ -3372,16 +3421,27 @@ namespace Legion {
         Realm::InstanceLayoutGeneric *ilg =
             Realm::InstanceLayoutGeneric::choose_instance_layout<1,coord_t>(
                 rect_space, constraints, dim_order);
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+        const RtUserEvent temp_unique_event = Runtime::create_rt_user_event();        
+        Runtime::trigger_event(temp_unique_event);
+#endif
         // If it is not an external allocation then ignore suggested_memory
         // because we know we're making this on top of an existing instance
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != NULL)
           runtime->profiler->add_inst_request(requests, 
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+                      implicit_provenance, temp_unique_event);
+#else
                       implicit_provenance, unique_event);
+#endif
         PhysicalInstance result;
         const RtEvent inst_ready(PhysicalInstance::create_external_instance(
               result, alt_resource->suggested_memory(), ilg,
               *alt_resource, requests));
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+        inst_event = temp_unique_event; 
+#endif
         own_inst = true;
         if (resource == NULL)
           delete alt_resource;
@@ -3425,6 +3485,9 @@ namespace Legion {
               resource->suggested_memory(), ilg, *resource, requests));
         own_instance = true;
       }
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+      inst_event = unique_event;
+#endif
       own_inst = false;
       if (use_event.exists() && !use_event.has_triggered())
       {
@@ -3493,7 +3556,12 @@ namespace Legion {
         rez.serialize<bool>(false); // by value
         rez.serialize(data.load());
         bool dummy_owner = true;
+#ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
+        LgEvent dummy_event;
+        rez.serialize(get_instance(size, dummy_event, dummy_owner));
+#else
         rez.serialize(get_instance(size, dummy_owner));
+#endif
         rez.serialize(unique_event);
 #ifdef DEBUG_LEGION
         // should never end up owning this instance
@@ -6148,9 +6216,7 @@ namespace Legion {
 #endif
         // Finally we set the instance to the physical manager
         const bool delete_now = manager->update_physical_instance(instance,
-                                          PhysicalManager::EAGER_INSTANCE_KIND,
-                                          bytes_used,
-                                          info.ptr);
+                                          bytes_used, info.ptr);
         if (delete_now)
           delete manager;
       }
@@ -7708,7 +7774,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ProcessorManager::order_concurrent_task_launch(SingleTask *task,
-                    ApEvent precondition, ApUserEvent ready, bool needs_barrier)
+                    ApEvent precondition, ApUserEvent ready, VariantID vid)
     //--------------------------------------------------------------------------
     {
       uint64_t lamport_clock = 0;
@@ -7733,7 +7799,7 @@ namespace Legion {
       assert(triggered);
 #endif
       // Tell the task to compute the max all-reduce of lamport clocks
-      task->concurrent_allreduce(this, lamport_clock, needs_barrier, poisoned);
+      task->concurrent_allreduce(this, lamport_clock, vid, poisoned);
     }
 
     //--------------------------------------------------------------------------
@@ -7749,6 +7815,8 @@ namespace Legion {
       assert(!finder->second.max);
       assert(finder->second.lamport_clock <= lamport_clock);
 #endif
+      if (concurrent_lamport_clock <= lamport_clock)
+        concurrent_lamport_clock = lamport_clock + 1;
       if (poisoned)
       {
         Runtime::poison_event(finder->second.ready);
@@ -7787,8 +7855,8 @@ namespace Legion {
       assert(ready_concurrent_tasks > 0);
 #endif
       // See if we can prove that there is a task that is safe to start
-      uint64_t min_next = (uint64_t)-1;
-      uint64_t min_pending = (uint64_t)-1;
+      uint64_t min_next = std::numeric_limits<uint64_t>::max();
+      uint64_t min_pending = std::numeric_limits<uint64_t>::max();
       SingleTask *next = NULL;
       TaskTreeCoordinates next_coords;
       for (std::map<SingleTask*,ConcurrentState>::const_iterator it =
@@ -7802,6 +7870,7 @@ namespace Legion {
             if (it->second.lamport_clock < min_next)
             {
               next = it->first;
+              next_coords.clear();
               min_next = it->second.lamport_clock;
             }
             else if (min_next == it->second.lamport_clock)
@@ -12405,6 +12474,11 @@ namespace Legion {
           case DISTRIBUTED_DOWNGRADE_UPDATE:
             {
               runtime->handle_did_downgrade_update(derez);
+              break;
+            }
+          case DISTRIBUTED_DOWNGRADE_RESTART:
+            {
+              runtime->handle_did_downgrade_restart(derez,remote_address_space);
               break;
             }
           case DISTRIBUTED_GLOBAL_ACQUIRE_REQUEST:
@@ -21841,6 +21915,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void Runtime::send_did_downgrade_restart(AddressSpaceID target,
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_DOWNGRADE_RESTART, rez,
+                                            true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
     void Runtime::send_did_acquire_global_request(AddressSpaceID target,
                                                   Serializer &rez)
     //--------------------------------------------------------------------------
@@ -24548,6 +24631,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void Runtime::handle_did_downgrade_restart(Deserializer &derez,
+                                               AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable::handle_downgrade_restart(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
     void Runtime::handle_did_global_acquire_request(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
@@ -26451,7 +26542,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void Runtime::order_concurrent_task_launch(Processor proc, SingleTask *task,
-                    ApEvent precondition, ApUserEvent ready, bool needs_barrier)
+                    ApEvent precondition, ApUserEvent ready, VariantID vid)
     //--------------------------------------------------------------------------
     {
       std::map<Processor,ProcessorManager*>::const_iterator finder =
@@ -26460,7 +26551,7 @@ namespace Legion {
       assert(finder != proc_managers.end());
 #endif
       finder->second->order_concurrent_task_launch(task, precondition,
-                                                   ready, needs_barrier);
+                                                   ready, vid);
     }
 
     //--------------------------------------------------------------------------

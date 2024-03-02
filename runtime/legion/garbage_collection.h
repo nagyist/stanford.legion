@@ -1,4 +1,4 @@
-/* Copyright 2023 Stanford University, NVIDIA Corporation
+/* Copyright 2024 Stanford University, NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -320,6 +320,7 @@ namespace Legion {
       virtual void accumulate_local_references(void);
       virtual void record_pending_downgrade(void);
       void check_for_downgrade(AddressSpaceID downgrade_owner); 
+      void check_for_downgrade_restart(AddressSpaceID new_owner);
       void process_downgrade_request(AddressSpaceID owner, State to_check);
       bool process_downgrade_response(AddressSpaceID notready,
                                               uint64_t total_sent,
@@ -333,6 +334,8 @@ namespace Legion {
       static void handle_downgrade_response(Deserializer &derez);
       static void handle_downgrade_success(Deserializer &derez);
       static void handle_downgrade_update(Deserializer &derez);
+      static void handle_downgrade_restart(Deserializer &derez,
+                                           AddressSpaceID source);
       static void handle_global_acquire_request(Deserializer &derez);
       static void handle_global_acquire_response(Deserializer &derez);
     public:
