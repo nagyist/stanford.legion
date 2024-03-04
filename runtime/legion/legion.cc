@@ -66,6 +66,83 @@ namespace Legion {
 #undef DIMFUNC 
 
     /////////////////////////////////////////////////////////////
+    // Auto Call
+    /////////////////////////////////////////////////////////////
+
+    /**
+     * This class helps with recording runtime calls for profiling
+     * and also will check that the user has passed in the correct
+     * context when they pass in a non-NULL one.
+     */
+    template<Internal::RuntimeCallKind KIND>
+    class AutoCall : public Internal::AutoProvenance {
+    public:
+      // no string versions
+      inline AutoCall(void)
+        : AutoProvenance(), start((Internal::implicit_context == NULL) ? 0 :
+            Internal::implicit_context->begin_runtime_call(KIND, *this) ?
+            Realm::Clock::current_time_in_nanoseconds() : 0)
+      {
+      }
+      inline AutoCall(Internal::TaskContext *ctx, const char *func)
+        : AutoProvenance(), start((Internal::implicit_context == NULL) ? 0 :
+            Internal::implicit_context->begin_runtime_call(KIND, *this) ?
+            Realm::Clock::current_time_in_nanoseconds() : 0)
+      {
+        if (ctx != Internal::implicit_context)
+          REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
+              "Invalid task context passed to runtime call %s", func)
+      }
+      // C string versions
+      inline AutoCall(const char *prov)
+        : AutoProvenance(prov), start((Internal::implicit_context == NULL) ? 0 :
+            Internal::implicit_context->begin_runtime_call(KIND, *this) ?
+            Realm::Clock::current_time_in_nanoseconds() : 0)
+      {
+      }
+      inline AutoCall(const char *prov, Internal::TaskContext *ctx, 
+                      const char *func)
+        : AutoProvenance(prov), start((Internal::implicit_context == NULL) ? 0 :
+            Internal::implicit_context->begin_runtime_call(KIND, *this) ?
+            Realm::Clock::current_time_in_nanoseconds() : 0)
+      {
+        if (ctx != Internal::implicit_context)
+          REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
+              "Invalid task context passed to runtime call %s", func)
+      }
+      // std::string versions
+      inline AutoCall(const std::string &prov)
+        : AutoProvenance(prov), start((Internal::implicit_context == NULL) ? 0 :
+            Internal::implicit_context->begin_runtime_call(KIND, *this) ?
+            Realm::Clock::current_time_in_nanoseconds() : 0)
+      {
+      }
+      inline AutoCall(const std::string &prov, Internal::TaskContext *ctx, 
+                      const char *func)
+        : AutoProvenance(prov), start((Internal::implicit_context == NULL) ? 0 :
+            Internal::implicit_context->begin_runtime_call(KIND, *this) ?
+            Realm::Clock::current_time_in_nanoseconds() : 0)
+      {
+        if (ctx != Internal::implicit_context)
+          REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
+              "Invalid task context passed to runtime call %s", func)
+      }
+      inline ~AutoCall(void)
+      {
+        if (Internal::implicit_context != NULL)
+        {
+          if (start == 0)
+            Internal::implicit_context->end_runtime_call(KIND, *this, start, 0);
+          else
+            Internal::implicit_context->end_runtime_call(KIND, *this, start,
+                Realm::Clock::current_time_in_nanoseconds());
+        }
+      }
+    private:
+      const unsigned long long start;
+    };
+
+    /////////////////////////////////////////////////////////////
     // Mappable 
     /////////////////////////////////////////////////////////////
 
@@ -3880,7 +3957,7 @@ namespace Legion {
       REPORT_LEGION_ERROR(ERROR_DEPRECATED_SHARDING,
           "Invocation of 'ShardingFunctor::invert_points' method "
           "without a user-provided override");
-    }
+    } 
     
     /////////////////////////////////////////////////////////////
     // Legion Runtime 
@@ -3908,7 +3985,8 @@ namespace Legion {
                                            TypeTag type_tag, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_CALL>
+        call(prov, ctx, __func__);
       switch (domain.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -3916,7 +3994,7 @@ namespace Legion {
           {                             \
             if (type_tag == 0) \
               type_tag = TYPE_TAG_##DIM##D; \
-            return ctx->create_index_space(domain, type_tag, provenance); \
+            return ctx->create_index_space(domain, type_tag, call); \
           }
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
@@ -3931,7 +4009,8 @@ namespace Legion {
                        const Future &future, TypeTag type_tag, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_CALL>
+        call(prov, ctx, __func__);
       if (type_tag == 0)
       {
         switch (dimensions)
@@ -3948,7 +4027,7 @@ namespace Legion {
           assert(false);
         }
       }
-      return ctx->create_index_space(future, type_tag, provenance);
+      return ctx->create_index_space(future, type_tag, call);
     }
 
     //--------------------------------------------------------------------------
@@ -3965,8 +4044,9 @@ namespace Legion {
                        const std::vector<DomainPoint> &points, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->create_index_space(points, provenance); 
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_CALL>
+        call(prov, ctx, __func__);
+      return ctx->create_index_space(points, call); 
     }
 
     //--------------------------------------------------------------------------
@@ -3974,8 +4054,9 @@ namespace Legion {
                               const std::vector<Domain> &rects, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->create_index_space(rects, provenance); 
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_CALL>
+        call(prov, ctx, __func__);
+      return ctx->create_index_space(rects, call); 
     }
 
     //--------------------------------------------------------------------------
@@ -3983,8 +4064,9 @@ namespace Legion {
                         const std::vector<IndexSpace> &spaces, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->union_index_spaces(spaces, provenance);
+      AutoCall<Internal::RUNTIME_UNION_INDEX_SPACES_CALL>
+        call(prov, ctx, __func__);
+      return ctx->union_index_spaces(spaces, call);
     }
 
     //--------------------------------------------------------------------------
@@ -3992,8 +4074,9 @@ namespace Legion {
                         const std::vector<IndexSpace> &spaces, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->intersect_index_spaces(spaces, provenance);
+      AutoCall<Internal::RUNTIME_INTERSECT_INDEX_SPACES_CALL>
+        call(prov, ctx, __func__);
+      return ctx->intersect_index_spaces(spaces, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4001,14 +4084,17 @@ namespace Legion {
                             IndexSpace left, IndexSpace right, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->subtract_index_spaces(left, right, provenance);
+      AutoCall<Internal::RUNTIME_SUBTRACT_INDEX_SPACES_CALL>
+        call(prov, ctx, __func__);
+      return ctx->subtract_index_spaces(left, right, call);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::create_shared_ownership(Context ctx, IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_SHARED_OWNERSHIP_CALL>
+        call(ctx, __func__);
       ctx->create_shared_ownership(handle);
     }
 
@@ -4017,14 +4103,17 @@ namespace Legion {
                      const bool unordered, const bool recurse, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      ctx->destroy_index_space(handle, unordered, recurse, provenance);
+      AutoCall<Internal::RUNTIME_DESTROY_INDEX_SPACE_CALL>
+        call(prov, ctx, __func__);
+      ctx->destroy_index_space(handle, unordered, recurse, call);
     } 
 
     //--------------------------------------------------------------------------
     void Runtime::create_shared_ownership(Context ctx, IndexPartition handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_SHARED_OWNERSHIP_CALL>
+        call(ctx, __func__);
       ctx->create_shared_ownership(handle);
     }
 
@@ -4033,8 +4122,9 @@ namespace Legion {
                      const bool unordered, const bool recurse, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      ctx->destroy_index_partition(handle, unordered, recurse, provenance);
+      AutoCall<Internal::RUNTIME_DESTROY_INDEX_SPACE_CALL>
+        call(prov, ctx, __func__);
+      ctx->destroy_index_partition(handle, unordered, recurse, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4046,9 +4136,10 @@ namespace Legion {
                                                    const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_EQUAL_PARTITION_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_equal_partition(parent, color_space, granularity,
-                                         color, provenance);
+                                         color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4060,6 +4151,8 @@ namespace Legion {
                                        const char *prov)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_WEIGHTS_CALL> 
+        call(prov, ctx, __func__);
       std::map<DomainPoint,UntypedBuffer> data;
       for (std::map<DomainPoint,int>::const_iterator it = 
             weights.begin(); it != weights.end(); it++)
@@ -4067,9 +4160,8 @@ namespace Legion {
               UntypedBuffer(&it->second, sizeof(it->second))));
       FutureMap future_map = construct_future_map(ctx, color_space, data,
           false/*collective*/, 0/*sid*/, false/*implicit*/, prov);
-      Internal::AutoProvenance provenance(prov);
       return ctx->create_partition_by_weights(parent, future_map, color_space,
-                                              granularity, color, provenance);
+                                              granularity, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4081,6 +4173,8 @@ namespace Legion {
                                     const char *prov)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_WEIGHTS_CALL> 
+        call(prov, ctx, __func__);
       std::map<DomainPoint,UntypedBuffer> data;
       for (std::map<DomainPoint,size_t>::const_iterator it = 
             weights.begin(); it != weights.end(); it++)
@@ -4088,9 +4182,8 @@ namespace Legion {
               UntypedBuffer(&it->second, sizeof(it->second))));
       FutureMap future_map = construct_future_map(ctx, color_space, data,
           false/*collective*/, 0/*sid*/, false/*implicit*/, prov);
-      Internal::AutoProvenance provenance(prov);
       return ctx->create_partition_by_weights(parent, future_map, color_space,
-                                              granularity, color, provenance);
+                                              granularity, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4102,9 +4195,10 @@ namespace Legion {
                                                 const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_WEIGHTS_CALL> 
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_weights(parent, weights, color_space, 
-                                              granularity, color, provenance);
+                                              granularity, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4115,9 +4209,10 @@ namespace Legion {
                                     Color color, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_UNION_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_union(parent, handle1, handle2, 
-                                color_space, kind, color, provenance);
+                                color_space, kind, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4130,9 +4225,10 @@ namespace Legion {
                                                 const char *prov) 
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_INTERSECTION_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_intersection(parent, handle1, handle2, 
-                                       color_space, kind, color, provenance);
+                                       color_space, kind, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4142,9 +4238,10 @@ namespace Legion {
                            bool dominates, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_INTERSECTION_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_intersection(parent, partition, part_kind,
-                                                   color, dominates,provenance);
+                                                   color, dominates, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4157,9 +4254,10 @@ namespace Legion {
                                                 const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_DIFFERENCE_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_difference(parent, handle1, handle2, 
-                                     color_space, kind, color, provenance);
+                                     color_space, kind, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4169,9 +4267,10 @@ namespace Legion {
                               PartitionKind kind, Color color, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_CROSS_PRODUCT_PARTITIONS_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_cross_product_partitions(handle1, handle2, handles, 
-                                                  kind, color, provenance);
+                                                  kind, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4184,9 +4283,10 @@ namespace Legion {
                                      UntypedBuffer marg, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_ASSOCIATION_CALL>
+        call(prov, ctx, __func__);
       ctx->create_association(domain, domain_parent, domain_fid, range,
-                              id, tag, marg, provenance);
+                              id, tag, marg, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4302,12 +4402,25 @@ namespace Legion {
                                                         size_t extent_size,
                                                         PartitionKind part_kind,
                                                         Color color,
-                                                        const char *prov)
+                                                        const char *prov,
+                                                        const char *func,
+                                                        bool blockify)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->create_restricted_partition(parent, color_space, transform, 
-            transform_size, extent, extent_size, part_kind, color, provenance);
+      if (blockify)
+      {
+        AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_BLOCKIFY_CALL> 
+          call(prov, ctx, func);
+        return ctx->create_restricted_partition(parent, color_space, transform,
+            transform_size, extent, extent_size, part_kind, color, call);
+      }
+      else
+      {
+        AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_RESTRICTION_CALL> 
+          call(prov, ctx, func); 
+        return ctx->create_restricted_partition(parent, color_space, transform,
+            transform_size, extent, extent_size, part_kind, color, call);
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -4317,9 +4430,10 @@ namespace Legion {
                  PartitionKind part_kind, Color color, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_DOMAIN_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_domain(parent, domains, color_space,
-                      perform_intersections, part_kind, color, provenance);
+                      perform_intersections, part_kind, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4329,9 +4443,10 @@ namespace Legion {
                          PartitionKind part_kind, Color color, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_DOMAIN_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_domain(parent, domains, color_space, 
-                           perform_intersections, part_kind, color, provenance);
+                           perform_intersections, part_kind, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4342,9 +4457,10 @@ namespace Legion {
                   UntypedBuffer marg, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_FIELD_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_field(handle, parent, fid, color_space, 
-                                color, id, tag, part_kind, marg, provenance);
+                                color, id, tag, part_kind, marg, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4355,9 +4471,10 @@ namespace Legion {
                   MappingTagID tag, UntypedBuffer marg, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_IMAGE_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_image(handle, projection, parent, fid, 
-                  color_space, part_kind, color, id, tag, marg, provenance);
+                  color_space, part_kind, color, id, tag, marg, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4368,9 +4485,10 @@ namespace Legion {
                   MappingTagID tag, UntypedBuffer marg, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_IMAGE_RANGE_CALL> 
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_image_range(handle, projection, parent, 
-              fid, color_space, part_kind, color, id, tag, marg, provenance);
+              fid, color_space, part_kind, color, id, tag, marg, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4381,9 +4499,10 @@ namespace Legion {
                   MappingTagID tag, UntypedBuffer marg, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_PREIMAGE_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_preimage(projection, handle, parent,
-            fid, color_space, part_kind, color, id, tag, marg, provenance);
+            fid, color_space, part_kind, color, id, tag, marg, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4394,9 +4513,10 @@ namespace Legion {
                   MappingTagID tag, UntypedBuffer marg, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_PREIMAGE_RANGE_CALL> 
+        call(prov, ctx, __func__);
       return ctx->create_partition_by_preimage_range(projection, handle, parent,
-                 fid, color_space, part_kind, color, id, tag, marg, provenance);
+                 fid, color_space, part_kind, color, id, tag, marg, call);
     } 
 
     //--------------------------------------------------------------------------
@@ -4406,9 +4526,10 @@ namespace Legion {
                              const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_PENDING_PARTITION_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_pending_partition(parent, color_space,
-                                           part_kind, color, provenance);
+                                           part_kind, color, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4417,7 +4538,8 @@ namespace Legion {
                       const std::vector<IndexSpace> &handles, const char *prov) 
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_UNION_CALL>
+        call(prov, ctx, __func__);
       switch (color.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -4425,7 +4547,7 @@ namespace Legion {
           { \
             Point<DIM,coord_t> point = color; \
             return ctx->create_index_space_union(parent, &point, sizeof(point),\
-                                      TYPE_TAG_##DIM##D, handles, provenance); \
+                                      TYPE_TAG_##DIM##D, handles, call); \
           }
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
@@ -4438,13 +4560,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpace Runtime::create_index_space_union_internal(Context ctx,
                     IndexPartition parent, const void *color, size_t color_size,
-                    TypeTag type_tag, const char *prov,
+                    TypeTag type_tag, const char *prov, const char *func_name,
                     const std::vector<IndexSpace> &handles)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_UNION_CALL>
+        call(prov, ctx, func_name);
       return ctx->create_index_space_union(parent, color, color_size, 
-                                           type_tag, handles, provenance);
+                                           type_tag, handles, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4453,7 +4576,8 @@ namespace Legion {
                                 IndexPartition handle, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_UNION_CALL>
+        call(prov, ctx, __func__);
       switch (color.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -4461,7 +4585,7 @@ namespace Legion {
           { \
             Point<DIM,coord_t> point = color; \
             return ctx->create_index_space_union(parent, &point, sizeof(point),\
-                                       TYPE_TAG_##DIM##D, handle, provenance); \
+                                       TYPE_TAG_##DIM##D, handle, call); \
           }
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
@@ -4474,13 +4598,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpace Runtime::create_index_space_union_internal(Context ctx,
                         IndexPartition parent, const void *realm_color, 
-                        size_t size, TypeTag type_tag,
-                        const char *prov, IndexPartition handle)
+                        size_t size, TypeTag type_tag, const char *prov,
+                        const char *func, IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_UNION_CALL>
+        call(prov, ctx, func);
       return ctx->create_index_space_union(parent, realm_color, size,
-                                           type_tag, handle, provenance);
+                                           type_tag, handle, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4490,7 +4615,8 @@ namespace Legion {
                       const char *prov) 
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_INTERSECTION_CALL>
+        call(prov, ctx, __func__);
       switch (color.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -4498,7 +4624,7 @@ namespace Legion {
         { \
           Point<DIM,coord_t> point = color; \
           return ctx->create_index_space_intersection(parent, &point, \
-              sizeof(point), TYPE_TAG_##DIM##D, handles, provenance); \
+              sizeof(point), TYPE_TAG_##DIM##D, handles, call); \
         }
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
@@ -4511,13 +4637,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpace Runtime::create_index_space_intersection_internal(Context ctx,
                     IndexPartition parent, const void *color, size_t color_size,
-                    TypeTag type_tag, const char *prov,
+                    TypeTag type_tag, const char *prov, const char *func,
                     const std::vector<IndexSpace> &handles)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_INTERSECTION_CALL>
+        call(prov, ctx, func);
       return ctx->create_index_space_intersection(parent, color, color_size, 
-                                              type_tag, handles, provenance);
+                                              type_tag, handles, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4526,7 +4653,8 @@ namespace Legion {
                       IndexPartition handle, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_INTERSECTION_CALL>
+        call(prov, ctx, __func__);
       switch (color.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -4534,7 +4662,7 @@ namespace Legion {
         { \
           Point<DIM,coord_t> point = color; \
           return ctx->create_index_space_intersection(parent, &point, \
-                sizeof(point), TYPE_TAG_##DIM##D, handle, provenance); \
+                sizeof(point), TYPE_TAG_##DIM##D, handle, call); \
         }
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
@@ -4547,13 +4675,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpace Runtime::create_index_space_intersection_internal(Context ctx,
                      IndexPartition parent, const void *realm_color, 
-                     size_t color_size, TypeTag type_tag,
-                     const char *prov, IndexPartition handle)
+                     size_t color_size, TypeTag type_tag, const char *prov,
+                     const char *func, IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_INTERSECTION_CALL>
+        call(prov, ctx, func);
       return ctx->create_index_space_intersection(parent, realm_color, 
-                            color_size, type_tag, handle, provenance);
+                            color_size, type_tag, handle, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4562,7 +4691,8 @@ namespace Legion {
           const std::vector<IndexSpace> &handles, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_DIFFERENCE_CALL>
+        call(prov, ctx, __func__);
       switch (color.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -4570,7 +4700,7 @@ namespace Legion {
         { \
           Point<DIM,coord_t> point = color; \
           return ctx->create_index_space_difference(parent, &point, \
-            sizeof(point), TYPE_TAG_##DIM##D, initial, handles, provenance); \
+            sizeof(point), TYPE_TAG_##DIM##D, initial, handles, call); \
         }
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
@@ -4583,13 +4713,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpace Runtime::create_index_space_difference_internal(Context ctx,
         IndexPartition parent, const void *realm_color, size_t color_size,
-        TypeTag type_tag, const char *prov, IndexSpace initial, 
-        const std::vector<IndexSpace> &handles)
+        TypeTag type_tag, const char *prov, const char *func,
+        IndexSpace initial, const std::vector<IndexSpace> &handles)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_INDEX_SPACE_DIFFERENCE_CALL>
+        call(prov, ctx, func);
       return ctx->create_index_space_difference(parent, realm_color, color_size,
-                                        type_tag, initial, handles, provenance);
+                                        type_tag, initial, handles, call);
     }
 
     //--------------------------------------------------------------------------
@@ -4597,7 +4728,9 @@ namespace Legion {
                                                 IndexSpace parent, Color color)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_index_partition(ctx, parent, color);
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_CALL>
+        call(ctx, __func__);
+      return runtime->get_index_partition(parent, color);
     }
 
     //--------------------------------------------------------------------------
@@ -4605,13 +4738,16 @@ namespace Legion {
                                     IndexSpace parent, const DomainPoint &color)
     //--------------------------------------------------------------------------
     {
-      return get_index_partition(ctx, parent, color.get_color());
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_CALL>
+        call(ctx, __func__);
+      return runtime->get_index_partition(parent, color.get_color());
     }
 
     //--------------------------------------------------------------------------
     IndexPartition Runtime::get_index_partition(IndexSpace parent, Color color)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_CALL> call;
       return runtime->get_index_partition(parent, color);
     }
 
@@ -4620,6 +4756,7 @@ namespace Legion {
                                                 const DomainPoint &color)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_CALL> call;
       return get_index_partition(parent, color.get_color());
     }
 
@@ -4627,7 +4764,8 @@ namespace Legion {
     bool Runtime::has_index_partition(Context ctx, IndexSpace parent, Color c)
     //--------------------------------------------------------------------------
     {
-      return runtime->has_index_partition(ctx, parent, c);
+      AutoCall<Internal::RUNTIME_HAS_INDEX_PARTITION_CALL> call(ctx, __func__);
+      return runtime->has_index_partition(parent, c);
     }
 
     //--------------------------------------------------------------------------
@@ -4635,13 +4773,15 @@ namespace Legion {
                                                const DomainPoint &color)
     //--------------------------------------------------------------------------
     {
-      return runtime->has_index_partition(ctx, parent, color.get_color());
+      AutoCall<Internal::RUNTIME_HAS_INDEX_PARTITION_CALL> call(ctx, __func__);
+      return runtime->has_index_partition(parent, color.get_color());
     }
 
     //--------------------------------------------------------------------------
     bool Runtime::has_index_partition(IndexSpace parent, Color c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_INDEX_PARTITION_CALL> call;
       return runtime->has_index_partition(parent, c);
     }
 
@@ -4650,6 +4790,7 @@ namespace Legion {
                                       const DomainPoint &color)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_INDEX_PARTITION_CALL> call;
       return runtime->has_index_partition(parent, color.get_color());
     }
 
@@ -4658,8 +4799,9 @@ namespace Legion {
                                                   IndexPartition p, Color color)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SUBSPACE_CALL> call(ctx, __func__);
       Point<1,coord_t> point = color;
-      return runtime->get_index_subspace(ctx, p, &point, TYPE_TAG_1D);
+      return runtime->get_index_subspace(p, &point, TYPE_TAG_1D);
     }
 
     //--------------------------------------------------------------------------
@@ -4667,13 +4809,14 @@ namespace Legion {
                                      IndexPartition p, const DomainPoint &color)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SUBSPACE_CALL> call(ctx, __func__);
       switch (color.get_dim())
       {
 #define DIMFUNC(DIM) \
     case DIM: \
       { \
         Point<DIM,coord_t> point = color; \
-        return runtime->get_index_subspace(ctx, p, &point, TYPE_TAG_##DIM##D); \
+        return runtime->get_index_subspace(p, &point, TYPE_TAG_##DIM##D); \
       }
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
@@ -4687,6 +4830,7 @@ namespace Legion {
     IndexSpace Runtime::get_index_subspace(IndexPartition p, Color color)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SUBSPACE_CALL> call;
       Point<1,coord_t> point = color;
       return runtime->get_index_subspace(p, &point, TYPE_TAG_1D);
     }
@@ -4696,6 +4840,7 @@ namespace Legion {
                                            const DomainPoint &color)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SUBSPACE_CALL> call;
       switch (color.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -4717,6 +4862,7 @@ namespace Legion {
                                       const void *realm_color, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SUBSPACE_CALL> call;
       return runtime->get_index_subspace(p, realm_color, type_tag);
     }
 
@@ -4725,13 +4871,14 @@ namespace Legion {
                                      IndexPartition p, const DomainPoint &color)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_INDEX_SUBSPACE_CALL> call(ctx, __func__);
       switch (color.get_dim())
       {
 #define DIMFUNC(DIM) \
     case DIM: \
       { \
         Point<DIM,coord_t> point = color; \
-        return runtime->has_index_subspace(ctx, p, &point, TYPE_TAG_##DIM##D); \
+        return runtime->has_index_subspace(p, &point, TYPE_TAG_##DIM##D); \
       }
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
@@ -4745,6 +4892,7 @@ namespace Legion {
     bool Runtime::has_index_subspace(IndexPartition p, const DomainPoint &color)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_INDEX_SUBSPACE_CALL> call;
       switch (color.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -4766,6 +4914,7 @@ namespace Legion {
                                       const void *realm_color, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_INDEX_SUBSPACE_CALL> call;
       return runtime->has_index_subspace(p, realm_color, type_tag);
     }
 
@@ -4789,6 +4938,8 @@ namespace Legion {
     Domain Runtime::get_index_space_domain(Context ctx, IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_DOMAIN_CALL>
+        call(ctx, __func__);
       const TypeTag type_tag = handle.get_type_tag();
       switch (Internal::NT_TemplateHelper::get_dim(type_tag))
       {
@@ -4796,7 +4947,7 @@ namespace Legion {
         case DIM: \
           { \
             DomainT<DIM,coord_t> realm_is; \
-            runtime->get_index_space_domain(ctx, handle, &realm_is, \
+            runtime->get_index_space_domain(handle, &realm_is, \
                 Internal::NT_TemplateHelper::encode_tag<DIM,coord_t>()); \
             return Domain(realm_is); \
           }
@@ -4812,6 +4963,7 @@ namespace Legion {
     Domain Runtime::get_index_space_domain(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_DOMAIN_CALL> call;
       const TypeTag type_tag = handle.get_type_tag();
       switch (Internal::NT_TemplateHelper::get_dim(type_tag))
       {
@@ -4836,6 +4988,7 @@ namespace Legion {
                                          void *realm_is, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_DOMAIN_CALL> call;
       runtime->get_index_space_domain(handle, realm_is, type_tag);
     }
 
@@ -4860,13 +5013,16 @@ namespace Legion {
                                                     IndexPartition p)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_index_partition_color_space(ctx, p);
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_COLOR_SPACE_CALL> 
+        call(ctx, __func__);
+      return runtime->get_index_partition_color_space(p);
     }
 
     //--------------------------------------------------------------------------
     Domain Runtime::get_index_partition_color_space(IndexPartition p)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_COLOR_SPACE_CALL> call;
       return runtime->get_index_partition_color_space(p);
     }
 
@@ -4875,6 +5031,7 @@ namespace Legion {
                                                void *realm_is, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_COLOR_SPACE_CALL> call;
       runtime->get_index_partition_color_space(p, realm_is, type_tag);
     }
 
@@ -4883,13 +5040,17 @@ namespace Legion {
                                                              IndexPartition p)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_index_partition_color_space_name(ctx, p);
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_COLOR_SPACE_NAME_CALL>
+        call(ctx, __func__);
+      return runtime->get_index_partition_color_space_name(p);
     }
 
     //--------------------------------------------------------------------------
     IndexSpace Runtime::get_index_partition_color_space_name(IndexPartition p)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_COLOR_SPACE_NAME_CALL>
+        call;
       return runtime->get_index_partition_color_space_name(p);
     }
 
@@ -4898,7 +5059,9 @@ namespace Legion {
                                                         std::set<Color> &colors)
     //--------------------------------------------------------------------------
     {
-      runtime->get_index_space_partition_colors(ctx, sp, colors);
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_PARTITION_COLORS_CALL>
+        call(ctx, __func__);
+      runtime->get_index_space_partition_colors(sp, colors);
     }
 
     //--------------------------------------------------------------------------
@@ -4906,8 +5069,10 @@ namespace Legion {
                                                   std::set<DomainPoint> &colors)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_PARTITION_COLORS_CALL>
+        call(ctx, __func__);
       std::set<Color> temp_colors;
-      runtime->get_index_space_partition_colors(ctx, sp, temp_colors);
+      runtime->get_index_space_partition_colors(sp, temp_colors);
       for (std::set<Color>::const_iterator it = temp_colors.begin();
             it != temp_colors.end(); it++)
         colors.insert(DomainPoint(*it));
@@ -4918,6 +5083,7 @@ namespace Legion {
                                                    std::set<Color> &colors)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_PARTITION_COLORS_CALL> call;
       runtime->get_index_space_partition_colors(sp, colors);
     }
 
@@ -4926,6 +5092,7 @@ namespace Legion {
                                                   std::set<DomainPoint> &colors)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_PARTITION_COLORS_CALL> call;
       std::set<Color> temp_colors;
       runtime->get_index_space_partition_colors(sp, temp_colors);
       for (std::set<Color>::const_iterator it = temp_colors.begin();
@@ -4937,13 +5104,16 @@ namespace Legion {
     bool Runtime::is_index_partition_disjoint(Context ctx, IndexPartition p)
     //--------------------------------------------------------------------------
     {
-      return runtime->is_index_partition_disjoint(ctx, p);
+      AutoCall<Internal::RUNTIME_IS_INDEX_PARTITION_DISJOINT_CALL>
+        call(ctx, __func__);
+      return runtime->is_index_partition_disjoint(p);
     }
 
     //--------------------------------------------------------------------------
     bool Runtime::is_index_partition_disjoint(IndexPartition p)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_IS_INDEX_PARTITION_DISJOINT_CALL> call;
       return runtime->is_index_partition_disjoint(p);
     }
 
@@ -4951,13 +5121,16 @@ namespace Legion {
     bool Runtime::is_index_partition_complete(Context ctx, IndexPartition p)
     //--------------------------------------------------------------------------
     {
-      return runtime->is_index_partition_complete(ctx, p);
+      AutoCall<Internal::RUNTIME_IS_INDEX_PARTITION_COMPLETE_CALL>
+        call(ctx, __func__);
+      return runtime->is_index_partition_complete(p);
     }
 
     //--------------------------------------------------------------------------
     bool Runtime::is_index_partition_complete(IndexPartition p)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_IS_INDEX_PARTITION_COMPLETE_CALL> call;
       return runtime->is_index_partition_complete(p);
     }
 
@@ -4966,8 +5139,10 @@ namespace Legion {
                                                   IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_COLOR_CALL> 
+        call(ctx, __func__);
       Point<1,coord_t> point;
-      runtime->get_index_space_color_point(ctx, handle, &point, TYPE_TAG_1D);
+      runtime->get_index_space_color_point(handle, &point, TYPE_TAG_1D);
       return point[0];
     }
 
@@ -4975,6 +5150,7 @@ namespace Legion {
     Color Runtime::get_index_space_color(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_COLOR_CALL> call; 
       Point<1,coord_t> point;
       runtime->get_index_space_color_point(handle, &point, TYPE_TAG_1D);
       return point[0];
@@ -4985,13 +5161,16 @@ namespace Legion {
                                                               IndexSpace handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_index_space_color_point(ctx, handle); 
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_COLOR_POINT_CALL>
+        call(ctx, __func__);
+      return runtime->get_index_space_color_point(handle); 
     }
 
     //--------------------------------------------------------------------------
     DomainPoint Runtime::get_index_space_color_point(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_COLOR_POINT_CALL> call;
       return runtime->get_index_space_color_point(handle);
     }
 
@@ -5000,6 +5179,7 @@ namespace Legion {
                                             void *realm_color, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_COLOR_POINT_CALL> call;
       runtime->get_index_space_color_point(handle, realm_color, type_tag);
     }
 
@@ -5008,13 +5188,16 @@ namespace Legion {
                                                       IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_index_partition_color(ctx, handle);
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_COLOR_CALL>
+        call(ctx, __func__);
+      return runtime->get_index_partition_color(handle);
     }
 
     //--------------------------------------------------------------------------
     Color Runtime::get_index_partition_color(IndexPartition handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_COLOR_CALL> call;
       return runtime->get_index_partition_color(handle);
     }
 
@@ -5023,13 +5206,16 @@ namespace Legion {
                                                           IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      return DomainPoint(runtime->get_index_partition_color(ctx, handle));
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_COLOR_POINT_CALL>
+        call(ctx, __func__);
+      return DomainPoint(runtime->get_index_partition_color(handle));
     }
     
     //--------------------------------------------------------------------------
     DomainPoint Runtime::get_index_partition_color_point(IndexPartition handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_COLOR_POINT_CALL> call;
       return DomainPoint(runtime->get_index_partition_color(handle));
     }
 
@@ -5038,13 +5224,16 @@ namespace Legion {
                                                         IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_parent_index_space(ctx, handle);
+      AutoCall<Internal::RUNTIME_GET_PARENT_INDEX_SPACE_CALL>
+        call(ctx, __func__);
+      return runtime->get_parent_index_space(handle);
     }
 
     //--------------------------------------------------------------------------
     IndexSpace Runtime::get_parent_index_space(IndexPartition handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_PARENT_INDEX_SPACE_CALL> call;
       return runtime->get_parent_index_space(handle);
     }
 
@@ -5053,13 +5242,16 @@ namespace Legion {
                                                       IndexSpace handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->has_parent_index_partition(ctx, handle);
+      AutoCall<Internal::RUNTIME_HAS_PARENT_INDEX_PARTITION_CALL>
+        call(ctx, __func__);
+      return runtime->has_parent_index_partition(handle);
     }
 
     //--------------------------------------------------------------------------
     bool Runtime::has_parent_index_partition(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_PARENT_INDEX_PARTITION_CALL> call;
       return runtime->has_parent_index_partition(handle);
     }
 
@@ -5068,13 +5260,16 @@ namespace Legion {
                                                               IndexSpace handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_parent_index_partition(ctx, handle);
+      AutoCall<Internal::RUNTIME_GET_PARENT_INDEX_PARTITION_CALL>
+        call(ctx, __func__);
+      return runtime->get_parent_index_partition(handle);
     }
 
     //--------------------------------------------------------------------------
     IndexPartition Runtime::get_parent_index_partition(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_PARENT_INDEX_PARTITION_CALL> call;
       return runtime->get_parent_index_partition(handle);
     }
 
@@ -5082,13 +5277,16 @@ namespace Legion {
     unsigned Runtime::get_index_space_depth(Context ctx, IndexSpace handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_index_space_depth(ctx, handle);
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_DEPTH_CALL> 
+        call(ctx, __func__);
+      return runtime->get_index_space_depth(handle);
     }
 
     //--------------------------------------------------------------------------
     unsigned Runtime::get_index_space_depth(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_DEPTH_CALL> call;
       return runtime->get_index_space_depth(handle);
     }
 
@@ -5097,13 +5295,16 @@ namespace Legion {
                                                 IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_index_partition_depth(ctx, handle);
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_DEPTH_CALL>
+        call(ctx, __func__);
+      return runtime->get_index_partition_depth(handle);
     }
 
     //--------------------------------------------------------------------------
     unsigned Runtime::get_index_partition_depth(IndexPartition handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_INDEX_PARTITION_DEPTH_CALL> call;
       return runtime->get_index_partition_depth(handle);
     }
 
@@ -5112,13 +5313,14 @@ namespace Legion {
                                             LogicalRegion region)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_SAFE_CAST_CALL> call(ctx, __func__);
       switch (point.get_dim())
       {
 #define DIMFUNC(DIM) \
         case DIM: \
           { \
             Point<DIM,coord_t> p(point); \
-            if (runtime->safe_cast(ctx, region, &p, TYPE_TAG_##DIM##D)) \
+            if (ctx->safe_cast(region.get_index_space(),&p,TYPE_TAG_##DIM##D)) \
               return point; \
             break; \
           }
@@ -5132,18 +5334,20 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool Runtime::safe_cast_internal(Context ctx, LogicalRegion region,
-                                     const void *realm_point, TypeTag type_tag) 
+                    const void *realm_point, TypeTag type_tag, const char *func) 
     //--------------------------------------------------------------------------
     {
-      return runtime->safe_cast(ctx, region, realm_point, type_tag);
+      AutoCall<Internal::RUNTIME_SAFE_CAST_CALL> call(ctx, func);
+      return ctx->safe_cast(region.get_index_space(), realm_point, type_tag);
     }
 
     //--------------------------------------------------------------------------
     FieldSpace Runtime::create_field_space(Context ctx, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->create_field_space(provenance);
+      AutoCall<Internal::RUNTIME_CREATE_FIELD_SPACE_CALL>
+        call(prov, ctx, __func__);
+      return ctx->create_field_space(call);
     }
 
     //--------------------------------------------------------------------------
@@ -5154,9 +5358,10 @@ namespace Legion {
                                          const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_FIELD_SPACE_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_field_space(field_sizes, resulting_fields,
-                                     serdez_id, provenance);
+                                     serdez_id, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5167,15 +5372,18 @@ namespace Legion {
                                          const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CREATE_FIELD_SPACE_CALL>
+        call(prov, ctx, __func__);
       return ctx->create_field_space(field_sizes, resulting_fields,
-                                     serdez_id, provenance);
+                                     serdez_id, call);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::create_shared_ownership(Context ctx, FieldSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_SHARED_OWNERSHIP_CALL>
+        call(ctx, __func__);
       ctx->create_shared_ownership(handle);
     }
 
@@ -5184,8 +5392,9 @@ namespace Legion {
                                       const bool unordered, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      ctx->destroy_field_space(handle, unordered, provenance);
+      AutoCall<Internal::RUNTIME_DESTROY_FIELD_SPACE_CALL>
+        call(prov, ctx, __func__);
+      ctx->destroy_field_space(handle, unordered, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5193,13 +5402,15 @@ namespace Legion {
                                             FieldID fid)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_field_size(ctx, handle, fid);
+      AutoCall<Internal::RUNTIME_GET_FIELD_SIZE_CALL> call(ctx, __func__);
+      return runtime->get_field_size(handle, fid);
     }
 
     //--------------------------------------------------------------------------
     size_t Runtime::get_field_size(FieldSpace handle, FieldID fid)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_FIELD_SIZE_CALL> call;
       return runtime->get_field_size(handle, fid);
     }
 
@@ -5208,7 +5419,9 @@ namespace Legion {
                                          std::vector<FieldID> &fields)
     //--------------------------------------------------------------------------
     {
-      runtime->get_field_space_fields(ctx, handle, fields);
+      AutoCall<Internal::RUNTIME_GET_FIELD_SPACE_FIELDS_CALL>
+        call(ctx, __func__);
+      runtime->get_field_space_fields(handle, fields);
     }
 
     //--------------------------------------------------------------------------
@@ -5216,6 +5429,7 @@ namespace Legion {
                                          std::vector<FieldID> &fields)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_FIELD_SPACE_FIELDS_CALL> call;
       runtime->get_field_space_fields(handle, fields);
     }
 
@@ -5224,8 +5438,10 @@ namespace Legion {
                                          std::set<FieldID> &fields)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_FIELD_SPACE_FIELDS_CALL>
+        call(ctx, __func__);
       std::vector<FieldID> local;
-      runtime->get_field_space_fields(ctx, handle, local);
+      runtime->get_field_space_fields(handle, local);
       fields.insert(local.begin(), local.end());
     }
 
@@ -5234,6 +5450,7 @@ namespace Legion {
                                          std::set<FieldID> &fields)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_FIELD_SPACE_FIELDS_CALL> call;
       std::vector<FieldID> local;
       runtime->get_field_space_fields(handle, local);
       fields.insert(local.begin(), local.end());
@@ -5245,14 +5462,17 @@ namespace Legion {
                            bool task_local, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->create_logical_region(index, fields, task_local, provenance);
+      AutoCall<Internal::RUNTIME_CREATE_LOGICAL_REGION_CALL>
+        call(prov, ctx, __func__);
+      return ctx->create_logical_region(index, fields, task_local, call);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::create_shared_ownership(Context ctx, LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_SHARED_OWNERSHIP_CALL>
+        call(ctx, __func__);
       ctx->create_shared_ownership(handle);
     }
 
@@ -5261,8 +5481,9 @@ namespace Legion {
                                          const bool unordered, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      ctx->destroy_logical_region(handle, unordered, provenance);
+      AutoCall<Internal::RUNTIME_DESTROY_LOGICAL_REGION_CALL>
+        call(ctx, __func__);
+      ctx->destroy_logical_region(handle, unordered, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5279,6 +5500,8 @@ namespace Legion {
                                          const std::set<FieldID> &fields)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_RESET_EQUIVALENCE_SETS_CALL>
+        call(ctx, __func__);
       ctx->reset_equivalence_sets(parent, region, fields);
     }
 
@@ -5287,7 +5510,9 @@ namespace Legion {
                                     LogicalRegion parent, IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_logical_partition(ctx, parent, handle);
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_CALL>
+        call(ctx, __func__);
+      return runtime->get_logical_partition(parent, handle);
     }
 
     //--------------------------------------------------------------------------
@@ -5295,6 +5520,7 @@ namespace Legion {
                                                     IndexPartition handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_CALL> call;
       return runtime->get_logical_partition(parent, handle);
     }
 
@@ -5303,7 +5529,9 @@ namespace Legion {
                                     Context ctx, LogicalRegion parent, Color c)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_logical_partition_by_color(ctx, parent, c);
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_BY_COLOR_CALL>
+        call(ctx, __func__);
+      return runtime->get_logical_partition_by_color(parent, c);
     }
 
     //--------------------------------------------------------------------------
@@ -5311,7 +5539,9 @@ namespace Legion {
                         Context ctx, LogicalRegion parent, const DomainPoint &c)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_logical_partition_by_color(ctx, parent,c.get_color());
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_BY_COLOR_CALL>
+        call(ctx, __func__);
+      return runtime->get_logical_partition_by_color(parent, c.get_color());
     }
 
     //--------------------------------------------------------------------------
@@ -5319,6 +5549,7 @@ namespace Legion {
                                                   LogicalRegion parent, Color c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_BY_COLOR_CALL> call;
       return runtime->get_logical_partition_by_color(parent, c);
     }
 
@@ -5327,6 +5558,7 @@ namespace Legion {
                                      LogicalRegion parent, const DomainPoint &c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_BY_COLOR_CALL> call;
       return runtime->get_logical_partition_by_color(parent, c.get_color());
     }
 
@@ -5335,7 +5567,9 @@ namespace Legion {
                                      LogicalRegion parent, const DomainPoint &c)
     //--------------------------------------------------------------------------
     {
-      return runtime->has_logical_partition_by_color(ctx, parent,c.get_color());
+      AutoCall<Internal::RUNTIME_HAS_LOGICAL_PARTITION_BY_COLOR_CALL>
+        call(ctx, __func__);
+      return runtime->has_logical_partition_by_color(parent, c.get_color());
     }
 
     //--------------------------------------------------------------------------
@@ -5343,6 +5577,7 @@ namespace Legion {
                                                  const DomainPoint &c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_LOGICAL_PARTITION_BY_COLOR_CALL> call;
       return runtime->has_logical_partition_by_color(parent, c.get_color());
     }
 
@@ -5352,7 +5587,9 @@ namespace Legion {
                                             FieldSpace fspace, RegionTreeID tid) 
     //--------------------------------------------------------------------------
     {
-      return runtime->get_logical_partition_by_tree(ctx, handle, fspace, tid);
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_BY_TREE_CALL>
+        call(ctx, __func__);
+      return runtime->get_logical_partition_by_tree(handle, fspace, tid);
     }
 
     //--------------------------------------------------------------------------
@@ -5361,6 +5598,7 @@ namespace Legion {
                                             FieldSpace fspace, RegionTreeID tid) 
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_BY_TREE_CALL> call;
       return runtime->get_logical_partition_by_tree(handle, fspace, tid);
     }
 
@@ -5369,7 +5607,9 @@ namespace Legion {
                                     LogicalPartition parent, IndexSpace handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_logical_subregion(ctx, parent, handle);
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_SUBREGION_CALL>
+        call(ctx, __func__);
+      return runtime->get_logical_subregion(parent, handle);
     }
 
     //--------------------------------------------------------------------------
@@ -5377,6 +5617,7 @@ namespace Legion {
                                                  IndexSpace handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_SUBREGION_CALL> call;
       return runtime->get_logical_subregion(parent, handle);
     }
 
@@ -5385,8 +5626,10 @@ namespace Legion {
                                              LogicalPartition parent, Color c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_SUBREGION_BY_COLOR_CALL>
+        call(ctx, __func__);
       Point<1,coord_t> point(c);
-      return runtime->get_logical_subregion_by_color(ctx, parent, 
+      return runtime->get_logical_subregion_by_color(parent, 
                                                      &point, TYPE_TAG_1D);
     }
 
@@ -5395,13 +5638,15 @@ namespace Legion {
                                   LogicalPartition parent, const DomainPoint &c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_SUBREGION_BY_COLOR_CALL>
+        call(ctx, __func__);
       switch (c.get_dim())
       {
 #define DIMFUNC(DIM) \
         case DIM: \
           { \
             Point<DIM,coord_t> point(c); \
-            return runtime->get_logical_subregion_by_color(ctx, parent,  \
+            return runtime->get_logical_subregion_by_color(parent,  \
                                              &point, TYPE_TAG_##DIM##D); \
           }
         LEGION_FOREACH_N(DIMFUNC)
@@ -5417,6 +5662,7 @@ namespace Legion {
                                                LogicalPartition parent, Color c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_SUBREGION_BY_COLOR_CALL> call;
       Point<1,coord_t> point(c);
       return runtime->get_logical_subregion_by_color(parent,&point,TYPE_TAG_1D);
     }
@@ -5426,6 +5672,7 @@ namespace Legion {
                                   LogicalPartition parent, const DomainPoint &c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_SUBREGION_BY_COLOR_CALL> call;
       switch (c.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -5448,6 +5695,7 @@ namespace Legion {
              LogicalPartition parent, const void *realm_color, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_SUBREGION_BY_COLOR_CALL> call;
       return runtime->get_logical_subregion_by_color(parent, 
                                                      realm_color, type_tag);
     }
@@ -5457,13 +5705,15 @@ namespace Legion {
                                   LogicalPartition parent, const DomainPoint &c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_LOGICAL_SUBREGION_BY_COLOR_CALL>
+        call(ctx, __func__);
       switch (c.get_dim())
       {
 #define DIMFUNC(DIM) \
       case DIM: \
         { \
           Point<DIM,coord_t> point(c); \
-          return runtime->has_logical_subregion_by_color(ctx, parent, &point, \
+          return runtime->has_logical_subregion_by_color(parent, &point, \
                                                          TYPE_TAG_##DIM##D); \
         }
         LEGION_FOREACH_N(DIMFUNC)
@@ -5479,6 +5729,7 @@ namespace Legion {
                                                  const DomainPoint &c)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_LOGICAL_SUBREGION_BY_COLOR_CALL> call;
       switch (c.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -5501,6 +5752,7 @@ namespace Legion {
              LogicalPartition parent, const void *realm_color, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_LOGICAL_SUBREGION_BY_COLOR_CALL> call;
       return runtime->has_logical_subregion_by_color(parent, 
                                                      realm_color, type_tag);
     }
@@ -5510,7 +5762,9 @@ namespace Legion {
                         IndexSpace handle, FieldSpace fspace, RegionTreeID tid)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_logical_subregion_by_tree(ctx, handle, fspace, tid);
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_SUBREGION_BY_TREE_CALL>
+        call(ctx, __func__);
+      return runtime->get_logical_subregion_by_tree(handle, fspace, tid);
     }
 
     //--------------------------------------------------------------------------
@@ -5518,6 +5772,7 @@ namespace Legion {
                                             FieldSpace fspace, RegionTreeID tid)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_SUBREGION_BY_TREE_CALL> call;
       return runtime->get_logical_subregion_by_tree(handle, fspace, tid);
     }
 
@@ -5525,8 +5780,10 @@ namespace Legion {
     Color Runtime::get_logical_region_color(Context ctx, LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_REGION_COLOR_CALL>
+        call(ctx, __func__);
       Point<1,coord_t> point;
-      runtime->get_logical_region_color(ctx, handle, &point, TYPE_TAG_1D);
+      runtime->get_logical_region_color(handle, &point, TYPE_TAG_1D);
       return point[0];
     }
 
@@ -5535,13 +5792,16 @@ namespace Legion {
                                                         LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_logical_region_color_point(ctx, handle); 
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_REGION_COLOR_POINT_CALL>
+        call(ctx, __func__);
+      return runtime->get_logical_region_color_point(handle); 
     }
 
     //--------------------------------------------------------------------------
     Color Runtime::get_logical_region_color(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_REGION_COLOR_CALL> call;
       Point<1,coord_t> point;
       runtime->get_logical_region_color(handle, &point, TYPE_TAG_1D);
       return point[0];
@@ -5551,6 +5811,7 @@ namespace Legion {
     DomainPoint Runtime::get_logical_region_color_point(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_REGION_COLOR_POINT_CALL> call;
       return runtime->get_logical_region_color_point(handle); 
     }
 
@@ -5559,7 +5820,9 @@ namespace Legion {
                                                         LogicalPartition handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_logical_partition_color(ctx, handle);
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_COLOR_CALL>
+        call(ctx, __func__);
+      return runtime->get_logical_partition_color(handle);
     }
 
     //--------------------------------------------------------------------------
@@ -5567,13 +5830,16 @@ namespace Legion {
                                                         LogicalPartition handle)
     //--------------------------------------------------------------------------
     {
-      return DomainPoint(runtime->get_logical_partition_color(ctx, handle));
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_COLOR_CALL>
+        call(ctx, __func__);
+      return DomainPoint(runtime->get_logical_partition_color(handle));
     }
 
     //--------------------------------------------------------------------------
     Color Runtime::get_logical_partition_color(LogicalPartition handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_COLOR_CALL> call;
       return runtime->get_logical_partition_color(handle);
     }
 
@@ -5582,6 +5848,7 @@ namespace Legion {
                                                         LogicalPartition handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOGICAL_PARTITION_COLOR_POINT_CALL> call;
       return DomainPoint(runtime->get_logical_partition_color(handle));
     }
 
@@ -5590,13 +5857,16 @@ namespace Legion {
                                                         LogicalPartition handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_parent_logical_region(ctx, handle);
+      AutoCall<Internal::RUNTIME_GET_PARENT_LOGICAL_REGION_CALL>
+        call(ctx, __func__);
+      return runtime->get_parent_logical_region(handle);
     }
 
     //--------------------------------------------------------------------------
     LogicalRegion Runtime::get_parent_logical_region(LogicalPartition handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_PARENT_LOGICAL_REGION_CALL> call;
       return runtime->get_parent_logical_region(handle);
     }
 
@@ -5605,13 +5875,16 @@ namespace Legion {
                                                         LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->has_parent_logical_partition(ctx, handle);
+      AutoCall<Internal::RUNTIME_HAS_PARENT_LOGICAL_PARTITION_CALL>
+        call(ctx, __func__);
+      return runtime->has_parent_logical_partition(handle);
     }
 
     //--------------------------------------------------------------------------
     bool Runtime::has_parent_logical_partition(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_HAS_PARENT_LOGICAL_PARTITION_CALL> call;
       return runtime->has_parent_logical_partition(handle);
     }
 
@@ -5620,13 +5893,16 @@ namespace Legion {
                                                            LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_parent_logical_partition(ctx, handle);
+      AutoCall<Internal::RUNTIME_GET_PARENT_LOGICAL_REGION_CALL>
+        call(ctx, __func__);
+      return runtime->get_parent_logical_partition(handle);
     }
 
     //--------------------------------------------------------------------------
     LogicalPartition Runtime::get_parent_logical_partition(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_PARENT_LOGICAL_REGION_CALL> call;
       return runtime->get_parent_logical_partition(handle);
     }
 
@@ -5634,6 +5910,8 @@ namespace Legion {
     FieldAllocator Runtime::create_field_allocator(Context ctx,FieldSpace space)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_PARENT_LOGICAL_REGION_CALL>
+        call(ctx, __func__);
       return FieldAllocator(
           ctx->create_field_allocator(space, false/*unordered*/));
     }
@@ -5642,6 +5920,8 @@ namespace Legion {
     ArgumentMap Runtime::create_argument_map(Context ctx)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_ARGUMENT_MAP_CALL>
+        call(ctx, __func__);
       return runtime->create_argument_map();
     }
 
@@ -5650,7 +5930,9 @@ namespace Legion {
                              std::vector<OutputRequirement> *outputs /*= NULL*/)
     //--------------------------------------------------------------------------
     {
-      return runtime->execute_task(ctx, launcher, outputs);
+      AutoCall<Internal::RUNTIME_EXECUTE_TASK_CALL>
+        call(launcher.provenance, ctx, __func__);
+      return ctx->execute_task(launcher, outputs, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5659,7 +5941,9 @@ namespace Legion {
                              std::vector<OutputRequirement> *outputs /*= NULL*/)
     //--------------------------------------------------------------------------
     {
-      return runtime->execute_index_space(ctx, launcher, outputs);
+      AutoCall<Internal::RUNTIME_EXECUTE_INDEX_SPACE_CALL>
+        call(launcher.provenance, ctx, __func__);
+      return ctx->execute_index_space(launcher, outputs, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5669,8 +5953,10 @@ namespace Legion {
                              std::vector<OutputRequirement> *outputs /*= NULL*/)
     //--------------------------------------------------------------------------
     {
-      return runtime->execute_index_space(
-                                  ctx, launcher, redop, deterministic, outputs);
+      AutoCall<Internal::RUNTIME_EXECUTE_INDEX_SPACE_CALL>
+        call(launcher.provenance, ctx, __func__);
+      return ctx->execute_index_space(launcher, redop, deterministic,
+                                      outputs, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5681,9 +5967,10 @@ namespace Legion {
                                       Future initial_value)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_REDUCE_FUTURE_MAP_CALL>
+        call(prov, ctx, __func__);
       return ctx->reduce_future_map(future_map, redop, deterministic,
-                                    map, tag, provenance, initial_value);
+                                    map, tag, call, initial_value);
     }
 
     //--------------------------------------------------------------------------
@@ -5693,8 +5980,9 @@ namespace Legion {
                                 const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->construct_future_map(domain, data, provenance,
+      AutoCall<Internal::RUNTIME_CONSTRUCT_FUTURE_MAP_CALL>
+        call(prov, ctx, __func__);
+      return ctx->construct_future_map(domain, data, call,
                                        collective, sid, implicit);
     }
 
@@ -5704,6 +5992,8 @@ namespace Legion {
                                 bool collective, ShardingID sid, bool implicit)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CONSTRUCT_FUTURE_MAP_CALL>
+        call(ctx, __func__);
       return ctx->construct_future_map(domain, data, collective, sid, implicit);
     }
 
@@ -5714,8 +6004,9 @@ namespace Legion {
                                  const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->construct_future_map(domain, futures, provenance, false,
+      AutoCall<Internal::RUNTIME_CONSTRUCT_FUTURE_MAP_CALL>
+        call(prov, ctx, __func__);
+      return ctx->construct_future_map(domain, futures, call, false,
                                        collective, sid, implicit);
     }
 
@@ -5725,7 +6016,9 @@ namespace Legion {
                                  bool collective, ShardingID sid, bool implicit)
     //--------------------------------------------------------------------------
     {
-      return ctx->construct_future_map(domain, futures, false/*internal*/,
+      AutoCall<Internal::RUNTIME_CONSTRUCT_FUTURE_MAP_CALL>
+        call(ctx, __func__);
+      return ctx->construct_future_map(domain, futures,
                                        collective, sid, implicit);
     }
 
@@ -5734,8 +6027,9 @@ namespace Legion {
              IndexSpace new_domain, PointTransformFnptr fnptr, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->transform_future_map(fm, new_domain, fnptr, provenance);
+      AutoCall<Internal::RUNTIME_TRANSFORM_FUTURE_MAP_CALL>
+        call(prov, ctx, __func__);
+      return ctx->transform_future_map(fm, new_domain, fnptr, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5744,8 +6038,9 @@ namespace Legion {
                           bool own, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->transform_future_map(fm, new_domain, functor, own,provenance);
+      AutoCall<Internal::RUNTIME_TRANSFORM_FUTURE_MAP_CALL>
+        call(prov, ctx, __func__);
+      return ctx->transform_future_map(fm, new_domain, functor, own, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5763,7 +6058,7 @@ namespace Legion {
       TaskLauncher launcher(task_id, arg, predicate, id, tag);
       launcher.index_requirements = indexes;
       launcher.region_requirements = regions;
-      return runtime->execute_task(ctx, launcher, NULL);
+      return execute_task(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -5785,7 +6080,7 @@ namespace Legion {
                                  predicate, must_parallelism, id, tag);
       launcher.index_requirements = indexes;
       launcher.region_requirements = regions;
-      return runtime->execute_index_space(ctx, launcher, NULL);
+      return execute_index_space(ctx, launcher);
     }
 
 
@@ -5810,7 +6105,7 @@ namespace Legion {
                                  predicate, must_parallelism, id, tag);
       launcher.index_requirements = indexes;
       launcher.region_requirements = regions;
-      return runtime->execute_index_space(ctx, launcher, reduction, false,NULL);
+      return execute_index_space(ctx, launcher, reduction, true);
     }
 
     //--------------------------------------------------------------------------
@@ -5818,7 +6113,9 @@ namespace Legion {
                                                 const InlineLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      return runtime->map_region(ctx, launcher);
+      AutoCall<Internal::RUNTIME_MAP_REGION_CALL>
+        call(launcher.provenance, ctx, __func__);
+      return ctx->map_region(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5830,7 +6127,7 @@ namespace Legion {
       InlineLauncher launcher(req, id, tag);
       if (provenance != NULL)
         launcher.provenance = provenance;
-      return runtime->map_region(ctx, launcher);
+      return map_region(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -5838,8 +6135,11 @@ namespace Legion {
                         MapperID id, MappingTagID tag, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return runtime->map_region(ctx, idx, id, tag, provenance);
+      AutoCall<Internal::RUNTIME_REMAP_REGION_CALL>
+        call(prov, ctx, __func__);
+      PhysicalRegion region = ctx->get_physical_region(idx);
+      ctx->remap_region(region, call);
+      return region;
     }
 
     //--------------------------------------------------------------------------
@@ -5847,28 +6147,35 @@ namespace Legion {
                                const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      runtime->remap_region(ctx, region, provenance);
+      AutoCall<Internal::RUNTIME_REMAP_REGION_CALL>
+        call(prov, ctx, __func__);
+      ctx->remap_region(region, call);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::unmap_region(Context ctx, PhysicalRegion region)
     //--------------------------------------------------------------------------
     {
-      runtime->unmap_region(ctx, region);
+      AutoCall<Internal::RUNTIME_UNMAP_REGION_CALL>
+        call(ctx, __func__);
+      ctx->unmap_region(region);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::unmap_all_regions(Context ctx)
     //--------------------------------------------------------------------------
     {
-      ctx->unmap_all_regions(true/*external*/);
+      AutoCall<Internal::RUNTIME_UNMAP_ALL_REGIONS_CALL>
+        call(ctx, __func__);
+      ctx->unmap_all_regions();
     }
 
     //--------------------------------------------------------------------------
     OutputRegion Runtime::get_output_region(Context ctx, unsigned index)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_OUTPUT_REGION_CALL>
+        call(ctx, __func__);
       return ctx->get_output_region(index);
     }
 
@@ -5877,6 +6184,8 @@ namespace Legion {
                                 Context ctx, std::vector<OutputRegion> &regions)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_OUTPUT_REGIONS_CALL>
+        call(ctx, __func__);
       regions = ctx->get_output_regions();
     }
 
@@ -5889,7 +6198,7 @@ namespace Legion {
     {
       FillLauncher launcher(handle, parent, UntypedBuffer(value, size), pred);
       launcher.add_field(fid);
-      runtime->fill_fields(ctx, launcher);
+      fill_fields(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -5901,7 +6210,7 @@ namespace Legion {
       FillLauncher launcher(handle, parent, UntypedBuffer(), pred);
       launcher.set_future(f);
       launcher.add_field(fid);
-      runtime->fill_fields(ctx, launcher);
+      fill_fields(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -5914,7 +6223,7 @@ namespace Legion {
     {
       FillLauncher launcher(handle, parent, UntypedBuffer(value, size), pred);
       launcher.fields = fields;
-      runtime->fill_fields(ctx, launcher);
+      fill_fields(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -5927,28 +6236,34 @@ namespace Legion {
       FillLauncher launcher(handle, parent, UntypedBuffer(), pred);
       launcher.set_future(f);
       launcher.fields = fields;
-      runtime->fill_fields(ctx, launcher);
+      fill_fields(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::fill_fields(Context ctx, const FillLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      runtime->fill_fields(ctx, launcher);
+      AutoCall<Internal::RUNTIME_FILL_FIELDS_CALL>
+        call(launcher.provenance, ctx, __func__);
+      ctx->fill_fields(launcher, call);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::fill_fields(Context ctx, const IndexFillLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      runtime->fill_fields(ctx, launcher);
+      AutoCall<Internal::RUNTIME_FILL_FIELDS_CALL>
+        call(launcher.provenance, ctx, __func__);
+      ctx->fill_fields(launcher, call);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::discard_fields(Context ctx, const DiscardLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      ctx->discard_fields(launcher);
+      AutoCall<Internal::RUNTIME_DISCARD_FIELDS_CALL>
+        call(launcher.provenance, ctx, __func__);
+      ctx->discard_fields(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5956,15 +6271,16 @@ namespace Legion {
                                                  const AttachLauncher &launcher)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_ATTACH_EXTERNAL_RESOURCE_CALL>
+        call(launcher.provenance, ctx, __func__);
       if (launcher.mapped)
       {
-        PhysicalRegion region = ctx->attach_resource(launcher);
-        Internal::AutoProvenance provenance(launcher.provenance);
-        ctx->remap_region(region, provenance);
+        PhysicalRegion region = ctx->attach_resource(launcher, call);
+        ctx->remap_region(region, call);
         return region;
       }
       else
-        return ctx->attach_resource(launcher);
+        return ctx->attach_resource(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5972,7 +6288,9 @@ namespace Legion {
                                             const IndexAttachLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      return ctx->attach_resources(launcher);
+      AutoCall<Internal::RUNTIME_ATTACH_EXTERNAL_RESOURCES_CALL>
+        call(launcher.provenance, ctx, __func__);
+      return ctx->attach_resources(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5982,8 +6300,9 @@ namespace Legion {
                                              const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->detach_resource(region, flush, unordered, provenance);
+      AutoCall<Internal::RUNTIME_DETACH_EXTERNAL_RESOURCE_CALL>
+        call(prov, ctx, __func__);
+      return ctx->detach_resource(region, flush, unordered, call);
     }
 
     //--------------------------------------------------------------------------
@@ -5994,14 +6313,17 @@ namespace Legion {
                                               const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->detach_resources(resources, flush, unordered, provenance);
+      AutoCall<Internal::RUNTIME_DETACH_EXTERNAL_RESOURCES_CALL>
+        call(prov, ctx, __func__);
+      return ctx->detach_resources(resources, flush, unordered, call);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::progress_unordered_operations(Context ctx)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_PROGRESS_UNORDERED_CALL>
+        call(ctx, __func__);
       ctx->progress_unordered_operations();
     }
 
@@ -6018,9 +6340,9 @@ namespace Legion {
     {
       AttachLauncher launcher(LEGION_EXTERNAL_HDF5_FILE, handle, parent);
       launcher.attach_hdf5(file_name, field_map, mode);
-      PhysicalRegion region = ctx->attach_resource(launcher);
+      PhysicalRegion region = attach_external_resource(ctx, launcher);
       if (launcher.mapped)
-        ctx->remap_region(region, NULL/*no provenance because deprecated*/);
+        remap_region(ctx, region);
       return region;
     }
 
@@ -6028,7 +6350,7 @@ namespace Legion {
     void Runtime::detach_hdf5(Context ctx, PhysicalRegion region)
     //--------------------------------------------------------------------------
     {
-      ctx->detach_resource(region, true/*flush*/, false/*unordered*/);
+      detach_external_resource(ctx, region);
     }
 
     //--------------------------------------------------------------------------
@@ -6042,9 +6364,9 @@ namespace Legion {
     {
       AttachLauncher launcher(LEGION_EXTERNAL_POSIX_FILE, handle, parent);
       launcher.attach_file(file_name, field_vec, mode);
-      PhysicalRegion region = ctx->attach_resource(launcher);
+      PhysicalRegion region = attach_external_resource(ctx, launcher);
       if (launcher.mapped)
-        ctx->remap_region(region, NULL/*no provenance because deprecated*/);
+        remap_region(ctx, region);
       return region;
     }
 
@@ -6054,14 +6376,16 @@ namespace Legion {
     void Runtime::detach_file(Context ctx, PhysicalRegion region)
     //--------------------------------------------------------------------------
     {
-      ctx->detach_resource(region, true/*flush*/, false/*unordered*/);
+      detach_external_resource(ctx, region);
     }
     
     //--------------------------------------------------------------------------
     void Runtime::issue_copy_operation(Context ctx,const CopyLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      runtime->issue_copy_operation(ctx, launcher);
+      AutoCall<Internal::RUNTIME_ISSUE_COPY_OPERATION_CALL>
+        call(launcher.provenance, ctx, __func__);
+      ctx->issue_copy(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6069,7 +6393,9 @@ namespace Legion {
                                        const IndexCopyLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      runtime->issue_copy_operation(ctx, launcher);
+      AutoCall<Internal::RUNTIME_ISSUE_COPY_OPERATION_CALL>
+        call(launcher.provenance, ctx, __func__);
+      ctx->issue_copy(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6077,8 +6403,9 @@ namespace Legion {
                                         const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->create_predicate(f, provenance);
+      AutoCall<Internal::RUNTIME_CREATE_PREDICATE_CALL>
+        call(prov, ctx, __func__);
+      return ctx->create_predicate(f, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6086,8 +6413,9 @@ namespace Legion {
                                      const char *prov) 
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->predicate_not(p, provenance);
+      AutoCall<Internal::RUNTIME_PREDICATE_NOT_CALL>
+        call(prov, ctx, __func__);
+      return ctx->predicate_not(p, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6101,7 +6429,7 @@ namespace Legion {
       launcher.add_predicate(p2);
       if (provenance != NULL)
         launcher.provenance.assign(provenance);
-      return ctx->create_predicate(launcher);
+      return create_predicate(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -6115,7 +6443,7 @@ namespace Legion {
       launcher.add_predicate(p2);
       if (provenance != NULL)
         launcher.provenance.assign(provenance);
-      return ctx->create_predicate(launcher);
+      return create_predicate(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -6123,7 +6451,9 @@ namespace Legion {
                                         const PredicateLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      return ctx->create_predicate(launcher);
+      AutoCall<Internal::RUNTIME_CREATE_PREDICATE_CALL>
+        call(launcher.provenance, ctx, __func__);
+      return ctx->create_predicate(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6131,14 +6461,16 @@ namespace Legion {
                                          const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->get_predicate_future(p, provenance);
+      AutoCall<Internal::RUNTIME_CREATE_PREDICATE_CALL>
+        call(prov, ctx, __func__);
+      return ctx->get_predicate_future(p, call);
     }
 
     //--------------------------------------------------------------------------
     Lock Runtime::create_lock(Context ctx)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_LOCK_CALL> call(ctx, __func__);
       return ctx->create_lock();
     }
 
@@ -6146,6 +6478,7 @@ namespace Legion {
     void Runtime::destroy_lock(Context ctx, Lock l)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_DESTROY_LOCK_CALL> call(ctx, __func__);
       ctx->destroy_lock(l);
     }
 
@@ -6154,6 +6487,7 @@ namespace Legion {
                                       const std::vector<LockRequest> &requests)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_ACQUIRE_GRANT_CALL> call(ctx, __func__);
       return ctx->acquire_grant(requests);
     }
 
@@ -6161,6 +6495,7 @@ namespace Legion {
     void Runtime::release_grant(Context ctx, Grant grant)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_RELEASE_GRANT_CALL> call(ctx, __func__);
       ctx->release_grant(grant);
     }
 
@@ -6169,6 +6504,7 @@ namespace Legion {
                                                         unsigned arrivals)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_PHASE_BARRIER_CALL> call(ctx, __func__);
       return ctx->create_phase_barrier(arrivals);
     }
 
@@ -6176,6 +6512,7 @@ namespace Legion {
     void Runtime::destroy_phase_barrier(Context ctx, PhaseBarrier pb)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_DESTROY_PHASE_BARRIER_CALL> call(ctx,__func__);
       ctx->destroy_phase_barrier(pb);
     }
 
@@ -6184,6 +6521,7 @@ namespace Legion {
                                                          PhaseBarrier pb)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_ADVANCE_PHASE_BARRIER_CALL> call(ctx,__func__);
       return ctx->advance_phase_barrier(pb);
     }
 
@@ -6195,6 +6533,8 @@ namespace Legion {
                                                         size_t init_size)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CREATE_DYNAMIC_COLLECTIVE_CALL>
+        call(ctx, __func__);
       return ctx->create_dynamic_collective(arrivals, redop, 
                                             init_value, init_size);
     }
@@ -6204,6 +6544,8 @@ namespace Legion {
                                                       DynamicCollective dc)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_DESTROY_DYNAMIC_COLLECTIVE_CALL>
+        call(ctx, __func__);
       ctx->destroy_dynamic_collective(dc);
     }
 
@@ -6215,6 +6557,8 @@ namespace Legion {
                                                      unsigned count)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_ARRIVE_DYNAMIC_COLLECTIVE_CALL>
+        call(ctx, __func__);
       ctx->arrive_dynamic_collective(dc, buffer, size, count);
     }
 
@@ -6225,6 +6569,8 @@ namespace Legion {
                                                    unsigned count)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_DEFER_DYNAMIC_COLLECTIVE_CALL>
+        call(ctx, __func__);
       ctx->defer_dynamic_collective_arrival(dc, f, count);
     }
 
@@ -6233,8 +6579,9 @@ namespace Legion {
                                          DynamicCollective dc, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->get_dynamic_collective_result(dc, provenance);
+      AutoCall<Internal::RUNTIME_GET_DYNAMIC_COLLECTIVE_CALL>
+        call(prov, ctx, __func__);
+      return ctx->get_dynamic_collective_result(dc, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6242,6 +6589,8 @@ namespace Legion {
                                                            DynamicCollective dc)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_ADVANCE_DYNAMIC_COLLECTIVE_CALL>
+        call(ctx, __func__);
       return ctx->advance_dynamic_collective(dc);
     }
 
@@ -6250,7 +6599,9 @@ namespace Legion {
                                          const AcquireLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      runtime->issue_acquire(ctx, launcher);
+      AutoCall<Internal::RUNTIME_ISSUE_ACQUIRE_CALL>
+        call(launcher.provenance, ctx, __func__);
+      ctx->issue_acquire(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6258,23 +6609,27 @@ namespace Legion {
                                          const ReleaseLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      runtime->issue_release(ctx, launcher);
+      AutoCall<Internal::RUNTIME_ISSUE_RELEASE_CALL>
+        call(launcher.provenance, ctx, __func__);
+      ctx->issue_release(launcher, call);
     }
 
     //--------------------------------------------------------------------------
     Future Runtime::issue_mapping_fence(Context ctx, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->issue_mapping_fence(provenance);
+      AutoCall<Internal::RUNTIME_ISSUE_MAPPING_FENCE_CALL> 
+        call(prov, ctx, __func__);
+      return ctx->issue_mapping_fence(call);
     }
 
     //--------------------------------------------------------------------------
     Future Runtime::issue_execution_fence(Context ctx, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      return ctx->issue_execution_fence(provenance);
+      AutoCall<Internal::RUNTIME_ISSUE_EXECUTION_FENCE_CALL> 
+        call(prov, ctx, __func__);
+      return ctx->issue_execution_fence(call);
     }
 
     //--------------------------------------------------------------------------
@@ -6283,17 +6638,17 @@ namespace Legion {
        bool static_trace, const std::set<RegionTreeID> *trees, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_BEGIN_TRACE_CALL> call(prov, ctx, __func__);
       ctx->begin_trace(tid, logical_only, static_trace, trees, 
-                       false/*dep*/, provenance);
+                       false/*dep*/, call);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::end_trace(Context ctx, TraceID tid, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      ctx->end_trace(tid, false/*deprecated*/, provenance);
+      AutoCall<Internal::RUNTIME_END_TRACE_CALL> call(prov, ctx, __func__);
+      ctx->end_trace(tid, false/*deprecated*/, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6301,6 +6656,7 @@ namespace Legion {
                                      const std::set<RegionTreeID> *managed)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_BEGIN_TRACE_CALL> call(ctx, __func__);
       ctx->begin_trace(0, true/*logical only*/, true/*static*/, managed,
                        true/*deprecated*/, NULL/*provenance*/);
     }
@@ -6309,6 +6665,7 @@ namespace Legion {
     void Runtime::end_static_trace(Context ctx)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_END_TRACE_CALL> call(ctx, __func__);
       ctx->end_trace(0, true/*deprecated*/, NULL/*provenance*/);
     }
 
@@ -6337,8 +6694,8 @@ namespace Legion {
     void Runtime::complete_frame(Context ctx, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
-      ctx->complete_frame(provenance);
+      AutoCall<Internal::RUNTIME_COMPLETE_FRAME_CALL> call(prov, ctx, __func__);
+      ctx->complete_frame(call);
     }
 
     //--------------------------------------------------------------------------
@@ -6346,7 +6703,9 @@ namespace Legion {
                                               const MustEpochLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      return runtime->execute_must_epoch(ctx, launcher);
+      AutoCall<Internal::RUNTIME_MUST_EPOCH_CALL>
+        call(launcher.provenance, ctx, __func__);
+      return ctx->execute_must_epoch(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6365,7 +6724,9 @@ namespace Legion {
                                          const TunableLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      return ctx->select_tunable_value(launcher);
+      AutoCall<Internal::RUNTIME_SELECT_TUNABLE_CALL>
+        call(launcher.provenance, ctx, __func__);
+      return ctx->select_tunable_value(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6382,6 +6743,7 @@ namespace Legion {
     const Task* Runtime::get_local_task(Context ctx)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_LOCAL_TASK_CALL> call(ctx, __func__);
       return ctx->get_task();
     }
 
@@ -6390,7 +6752,8 @@ namespace Legion {
                                                    LocalVariableID id)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_local_task_variable(ctx, id);
+      AutoCall<Internal::RUNTIME_GET_LOCAL_VARIABLE_CALL> call(ctx, __func__);
+      return ctx->get_local_task_variable(id);
     }
 
     //--------------------------------------------------------------------------
@@ -6398,7 +6761,8 @@ namespace Legion {
                LocalVariableID id, const void* value, void (*destructor)(void*))
     //--------------------------------------------------------------------------
     {
-      runtime->set_local_task_variable(ctx, id, value, destructor);
+      AutoCall<Internal::RUNTIME_SET_LOCAL_VARIABLE_CALL> call(ctx, __func__);
+      ctx->set_local_task_variable(id, value, destructor);
     }
 
     //--------------------------------------------------------------------------
@@ -6407,7 +6771,7 @@ namespace Legion {
     {
       TimingLauncher launcher(LEGION_MEASURE_SECONDS);
       launcher.add_precondition(precondition);
-      return runtime->issue_timing_measurement(ctx, launcher);
+      return issue_timing_measurement(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -6416,7 +6780,7 @@ namespace Legion {
     {
       TimingLauncher launcher(LEGION_MEASURE_MICRO_SECONDS);
       launcher.add_precondition(pre);
-      return runtime->issue_timing_measurement(ctx, launcher);
+      return issue_timing_measurement(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -6425,7 +6789,7 @@ namespace Legion {
     {
       TimingLauncher launcher(LEGION_MEASURE_NANO_SECONDS);
       launcher.add_precondition(pre);
-      return runtime->issue_timing_measurement(ctx, launcher);
+      return issue_timing_measurement(ctx, launcher);
     }
 
     //--------------------------------------------------------------------------
@@ -6433,7 +6797,9 @@ namespace Legion {
                                              const TimingLauncher &launcher)
     //--------------------------------------------------------------------------
     {
-      return runtime->issue_timing_measurement(ctx, launcher);
+      AutoCall<Internal::RUNTIME_ISSUE_TIMING_MEASUREMENT_CALL> 
+        call(launcher.provenance, ctx, __func__);
+      return ctx->issue_timing_measurement(launcher, call);
     }
 
     //--------------------------------------------------------------------------
@@ -6448,7 +6814,11 @@ namespace Legion {
                                          Processor target)
     //--------------------------------------------------------------------------
     {
-      return runtime->get_mapper(ctx, id, target);
+      AutoCall<Internal::RUNTIME_GET_MAPPER_CALL> call(ctx, __func__);
+      if (target.exists())
+        return runtime->get_mapper(id, target);
+      else
+        return runtime->get_mapper(id, ctx->get_executing_processor());
     }
 
     //--------------------------------------------------------------------------
@@ -6456,7 +6826,15 @@ namespace Legion {
                                                       Processor target)
     //--------------------------------------------------------------------------
     {
-      return runtime->begin_mapper_call(ctx, id, target);
+      // Cannot use auto-call here for profiling
+      if (ctx != Internal::implicit_context)
+        REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
+            "Invalid task context passed to runtime call %s", __func__)
+      if (target.exists())
+        return runtime->begin_mapper_call(id, target, ctx->owner_task);
+      else
+        return runtime->begin_mapper_call(id, ctx->get_executing_processor(),
+                                          ctx->owner_task);
     }
 
     //--------------------------------------------------------------------------
@@ -6470,6 +6848,8 @@ namespace Legion {
     Processor Runtime::get_executing_processor(Context ctx)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_GET_EXECUTING_PROCESSOR_CALL>
+        call(ctx, __func__);
       return ctx->get_executing_processor();
     }
 
@@ -6477,8 +6857,8 @@ namespace Legion {
     const Task* Runtime::get_current_task(Context ctx)
     //--------------------------------------------------------------------------
     {
-      if (ctx == DUMMY_CONTEXT)
-        return NULL;
+      AutoCall<Internal::RUNTIME_GET_CURRENT_TASK_CALL>
+        call(ctx, __func__);
       return ctx->get_task();
     }
 
@@ -6486,8 +6866,8 @@ namespace Legion {
     size_t Runtime::query_available_memory(Context ctx, Memory target)
     //--------------------------------------------------------------------------
     {
-      if (ctx == DUMMY_CONTEXT)
-        return 0;
+      AutoCall<Internal::RUNTIME_QUERY_AVAILABLE_MEMORY_CALL>
+        call(ctx, __func__);
       return ctx->query_available_memory(target);
     }
 
@@ -6496,6 +6876,8 @@ namespace Legion {
                                          PhysicalRegion region, bool nuclear)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_RAISE_REGION_EXCEPTION_CALL>
+        call(ctx, __func__);
       ctx->raise_region_exception(region, nuclear);
     }
 
@@ -6503,6 +6885,7 @@ namespace Legion {
     void Runtime::yield(Context ctx)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_YIELD_CALL> call(ctx, __func__);
       ctx->yield();
     }
 
@@ -6510,6 +6893,8 @@ namespace Legion {
     void Runtime::concurrent_task_barrier(Context ctx)
     //--------------------------------------------------------------------------
     {
+      AutoCall<Internal::RUNTIME_CONCURRENT_TASK_BARRIER_CALL>
+        call(ctx, __func__);
       ctx->concurrent_task_barrier();
     }
 
@@ -6987,14 +7372,16 @@ namespace Legion {
     void Runtime::print_once(Context ctx, FILE *f, const char *message)
     //--------------------------------------------------------------------------
     {
-      runtime->print_once(ctx, f, message);
+      AutoCall<Internal::RUNTIME_PRINT_ONCE_CALL> call(ctx, __func__);
+      ctx->print_once(f, message);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::log_once(Context ctx, Realm::LoggerMessage &message)
     //--------------------------------------------------------------------------
     {
-      runtime->log_once(ctx, message);
+      AutoCall<Internal::RUNTIME_LOG_ONCE_CALL> call(ctx, __func__);
+      ctx->log_once(message);
     }
 
     //--------------------------------------------------------------------------
@@ -7485,9 +7872,10 @@ namespace Legion {
                      size_t num_elements, size_t element_size, const char *prov)
     //--------------------------------------------------------------------------
     {
-      Internal::AutoProvenance provenance(prov);
+      AutoCall<Internal::RUNTIME_CONSENSUS_MATCH_CALL>
+        call(prov, ctx, __func__);
       return ctx->consensus_match(input, output, num_elements, 
-                                  element_size, provenance);
+                                  element_size, call);
     }
 
     //--------------------------------------------------------------------------

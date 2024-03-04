@@ -69,6 +69,7 @@ namespace Legion {
      */
     class AutoProvenance {
     public:
+      AutoProvenance(void) : provenance(NULL) { }
       AutoProvenance(const char *prov)
         : provenance((prov == NULL) ? NULL : new Provenance(prov))
         { if (provenance != NULL) provenance->add_reference(); }

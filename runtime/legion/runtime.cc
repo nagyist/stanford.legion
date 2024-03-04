@@ -55,9 +55,6 @@
 #endif
 #endif
 
-#define REPORT_DUMMY_CONTEXT(message)                        \
-  REPORT_LEGION_ERROR(ERROR_DUMMY_CONTEXT_OPERATION,  message)
-
 namespace Legion {
   namespace Internal {
 
@@ -500,8 +497,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FieldAllocatorImpl::FieldAllocatorImpl(FieldSpaceNode *n, TaskContext *ctx,
                                            RtEvent ready)
-      : field_space(n->handle), node(n), context(ctx), ready_event(ready),
-        free_from_application(true)
+      : field_space(n->handle), node(n), context(ctx), ready_event(ready)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -526,7 +522,7 @@ namespace Legion {
     FieldAllocatorImpl::~FieldAllocatorImpl(void)
     //--------------------------------------------------------------------------
     {
-      context->destroy_field_allocator(node, free_from_application);
+      context->destroy_field_allocator(node);
       if (context->remove_base_resource_ref(FIELD_ALLOCATOR_REF))
         delete context;
       if (node->remove_base_resource_ref(FIELD_ALLOCATOR_REF))
@@ -5266,7 +5262,8 @@ namespace Legion {
                           "Please try to be more careful. Warning string: %s",
                           context->get_task_name(), context->get_unique_id(),
                           (warning_string == NULL) ? "" : warning_string)
-        runtime->remap_region(context, PhysicalRegion(this));
+        context->remap_region(PhysicalRegion(this), NULL/*prov*/,
+                              true/*internal*/);
         // At this point we should have a new ready event
         // and be mapped
 #ifdef DEBUG_LEGION
@@ -17977,19 +17974,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexPartition Runtime::get_index_partition(Context ctx, 
-                                                IndexSpace parent, Color color)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      IndexPartition result = get_index_partition(parent, color);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     IndexPartition Runtime::get_index_partition(IndexSpace parent, Color color)
     //--------------------------------------------------------------------------
     {
@@ -18003,37 +17987,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool Runtime::has_index_partition(Context ctx, IndexSpace parent, 
-                                      Color color)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      bool result = has_index_partition(parent, color);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     bool Runtime::has_index_partition(IndexSpace parent, Color color)
     //--------------------------------------------------------------------------
     {
       return forest->has_index_partition(parent, color);
-    }
-
-    //--------------------------------------------------------------------------
-    IndexSpace Runtime::get_index_subspace(Context ctx, IndexPartition p, 
-                                           const void *realm_color,
-                                           TypeTag type_tag)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      IndexSpace result = get_index_subspace(p, realm_color, type_tag); 
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18046,19 +18003,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool Runtime::has_index_subspace(Context ctx, IndexPartition p,
-                                     const void *realm_color, TypeTag type_tag)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      bool result = has_index_subspace(p, realm_color, type_tag); 
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     bool Runtime::has_index_subspace(IndexPartition p,
                                      const void *realm_color, TypeTag type_tag)
     //--------------------------------------------------------------------------
@@ -18067,36 +18011,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::get_index_space_domain(Context ctx, IndexSpace handle,
-                                         void *realm_is, TypeTag type_tag)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      get_index_space_domain(handle, realm_is, type_tag);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-    }
-
-    //--------------------------------------------------------------------------
     void Runtime::get_index_space_domain(IndexSpace handle, 
                                          void *realm_is, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
       forest->get_index_space_domain(handle, realm_is, type_tag);
-    }
-
-    //--------------------------------------------------------------------------
-    Domain Runtime::get_index_partition_color_space(Context ctx,
-                                                    IndexPartition p)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      Domain result = get_index_partition_color_space(p); 
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18134,35 +18053,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexSpace Runtime::get_index_partition_color_space_name(Context ctx,
-                                                             IndexPartition p)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      IndexSpace result = get_index_partition_color_space_name(p);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     IndexSpace Runtime::get_index_partition_color_space_name(IndexPartition p)
     //--------------------------------------------------------------------------
     {
       return forest->get_index_partition_color_space(p);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::get_index_space_partition_colors(Context ctx, IndexSpace sp,
-                                                   std::set<Color> &colors)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      get_index_space_partition_colors(sp, colors);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
     }
 
     //--------------------------------------------------------------------------
@@ -18174,26 +18068,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool Runtime::is_index_partition_disjoint(Context ctx, IndexPartition p)
-    //--------------------------------------------------------------------------
-    {
-#ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == NULL);
-#endif
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      const bool result = forest->is_index_partition_disjoint(p);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      else if (implicit_reference_tracker != NULL)
-      {
-        delete implicit_reference_tracker;
-        implicit_reference_tracker = NULL;
-      }
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     bool Runtime::is_index_partition_disjoint(IndexPartition p)
     //--------------------------------------------------------------------------
     {
@@ -18202,26 +18076,6 @@ namespace Legion {
 #endif
       const bool result = forest->is_index_partition_disjoint(p);
       if (implicit_reference_tracker != NULL)
-      {
-        delete implicit_reference_tracker;
-        implicit_reference_tracker = NULL;
-      }
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
-    bool Runtime::is_index_partition_complete(Context ctx, IndexPartition p)
-    //--------------------------------------------------------------------------
-    {
-#ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == NULL);
-#endif
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      bool result = forest->is_index_partition_complete(p);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      else if (implicit_reference_tracker != NULL)
       {
         delete implicit_reference_tracker;
         implicit_reference_tracker = NULL;
@@ -18246,37 +18100,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::get_index_space_color_point(Context ctx, IndexSpace handle,
-                                            void *realm_color, TypeTag type_tag)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      forest->get_index_space_color(handle, realm_color, type_tag);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-    }
-
-    //--------------------------------------------------------------------------
     void Runtime::get_index_space_color_point(IndexSpace handle,
                                             void *realm_color, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
       forest->get_index_space_color(handle, realm_color, type_tag);
-    }
-
-    //--------------------------------------------------------------------------
-    DomainPoint Runtime::get_index_space_color_point(Context ctx, 
-                                                     IndexSpace handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      IndexSpaceNode *node = forest->get_node(handle);
-      DomainPoint result = node->get_domain_point_color();
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18288,36 +18116,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Color Runtime::get_index_partition_color(Context ctx, 
-                                                   IndexPartition handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      Color result = forest->get_index_partition_color(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     Color Runtime::get_index_partition_color(IndexPartition handle)
     //--------------------------------------------------------------------------
     {
       return forest->get_index_partition_color(handle);
-    }
-
-    //--------------------------------------------------------------------------
-    IndexSpace Runtime::get_parent_index_space(Context ctx,   
-                                               IndexPartition handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      IndexSpace result = forest->get_parent_index_space(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18328,35 +18130,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool Runtime::has_parent_index_partition(Context ctx, IndexSpace handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      bool result = forest->has_parent_index_partition(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     bool Runtime::has_parent_index_partition(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
       return forest->has_parent_index_partition(handle);
-    }
-
-    //--------------------------------------------------------------------------
-    IndexPartition Runtime::get_parent_index_partition(Context ctx,
-                                                       IndexSpace handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      IndexPartition result = forest->get_parent_index_partition(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18367,35 +18144,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    unsigned Runtime::get_index_space_depth(Context ctx, IndexSpace handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      unsigned result = forest->get_index_space_depth(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     unsigned Runtime::get_index_space_depth(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
       return forest->get_index_space_depth(handle);
-    }
-
-    //--------------------------------------------------------------------------
-    unsigned Runtime::get_index_partition_depth(Context ctx, 
-                                                IndexPartition handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      unsigned result = forest->get_index_partition_depth(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18406,45 +18158,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool Runtime::safe_cast(Context ctx, LogicalRegion region,
-                            const void *realm_point, TypeTag type_tag)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context safe cast!");
-      return ctx->safe_cast(forest, region.get_index_space(), 
-                            realm_point, type_tag);
-    }
-
-    //--------------------------------------------------------------------------
-    size_t Runtime::get_field_size(Context ctx, FieldSpace handle, FieldID fid)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      size_t result = forest->get_field_size(handle, fid);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     size_t Runtime::get_field_size(FieldSpace handle, FieldID fid)
     //--------------------------------------------------------------------------
     {
       return forest->get_field_size(handle, fid);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::get_field_space_fields(Context ctx, FieldSpace handle,
-                                         std::vector<FieldID> &fields)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      forest->get_field_space_fields(handle, fields);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
     }
 
     //--------------------------------------------------------------------------
@@ -18456,38 +18173,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LogicalPartition Runtime::get_logical_partition(Context ctx, 
-                                    LogicalRegion parent, IndexPartition handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      LogicalPartition result = forest->get_logical_partition(parent, handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     LogicalPartition Runtime::get_logical_partition(LogicalRegion parent,
                                                     IndexPartition handle)
     //--------------------------------------------------------------------------
     {
       return forest->get_logical_partition(parent, handle);
-    }
-
-    //--------------------------------------------------------------------------
-    LogicalPartition Runtime::get_logical_partition_by_color(
-                                    Context ctx, LogicalRegion parent, Color c)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      LogicalPartition result = 
-        forest->get_logical_partition_by_color(parent, c);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18499,39 +18189,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool Runtime::has_logical_partition_by_color(Context ctx, 
-                                              LogicalRegion parent, Color color)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      bool result = forest->has_logical_partition_by_color(parent, color);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     bool Runtime::has_logical_partition_by_color(LogicalRegion parent, 
                                                  Color color)
     //--------------------------------------------------------------------------
     {
       return forest->has_logical_partition_by_color(parent, color);
-    }
-
-    //--------------------------------------------------------------------------
-    LogicalPartition Runtime::get_logical_partition_by_tree(
-                                            Context ctx, IndexPartition handle, 
-                                            FieldSpace fspace, RegionTreeID tid)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      LogicalPartition result = 
-        forest->get_logical_partition_by_tree(handle, fspace, tid);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18545,19 +18207,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LogicalRegion Runtime::get_logical_subregion(Context ctx, 
-                                    LogicalPartition parent, IndexSpace handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      LogicalRegion result = forest->get_logical_subregion(parent, handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     LogicalRegion Runtime::get_logical_subregion(LogicalPartition parent,
                                                  IndexSpace handle)
     //--------------------------------------------------------------------------
@@ -18566,39 +18215,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LogicalRegion Runtime::get_logical_subregion_by_color(Context ctx,
-             LogicalPartition parent, const void *realm_color, TypeTag type_tag)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      LogicalRegion result = 
-        forest->get_logical_subregion_by_color(parent, realm_color, type_tag);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     LogicalRegion Runtime::get_logical_subregion_by_color(LogicalPartition par,
                                       const void *realm_color, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
       return forest->get_logical_subregion_by_color(par, realm_color, type_tag);
-    }
-
-    //--------------------------------------------------------------------------
-    bool Runtime::has_logical_subregion_by_color(Context ctx,
-             LogicalPartition parent, const void *realm_point, TypeTag type_tag)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      bool result = 
-        forest->has_logical_subregion_by_color(parent, realm_point, type_tag);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18611,38 +18232,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LogicalRegion Runtime::get_logical_subregion_by_tree(Context ctx, 
-                        IndexSpace handle, FieldSpace fspace, RegionTreeID tid)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      LogicalRegion result = 
-        forest->get_logical_subregion_by_tree(handle, fspace, tid);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     LogicalRegion Runtime::get_logical_subregion_by_tree(IndexSpace handle,
                                                          FieldSpace fspace,
                                                          RegionTreeID tid)
     //--------------------------------------------------------------------------
     {
       return forest->get_logical_subregion_by_tree(handle, fspace, tid);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::get_logical_region_color(Context ctx, LogicalRegion handle, 
-                                           void *realm_color, TypeTag type_tag)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      forest->get_logical_region_color(handle, realm_color, type_tag);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
     }
 
     //--------------------------------------------------------------------------
@@ -18654,38 +18249,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    DomainPoint Runtime::get_logical_region_color_point(Context ctx,
-                                                        LogicalRegion handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      IndexSpaceNode *node = forest->get_node(handle.get_index_space());
-      DomainPoint result = node->get_domain_point_color();
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     DomainPoint Runtime::get_logical_region_color_point(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
       IndexSpaceNode *node = forest->get_node(handle.get_index_space());
       return node->get_domain_point_color();
-    }
-
-    //--------------------------------------------------------------------------
-    Color Runtime::get_logical_partition_color(Context ctx,
-                                                     LogicalPartition handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      Color result = forest->get_logical_partition_color(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18696,19 +18264,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LogicalRegion Runtime::get_parent_logical_region(Context ctx, 
-                                                     LogicalPartition handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      LogicalRegion result = forest->get_parent_logical_region(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     LogicalRegion Runtime::get_parent_logical_region(LogicalPartition handle)
     //--------------------------------------------------------------------------
     {
@@ -18716,36 +18271,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool Runtime::has_parent_logical_partition(Context ctx, 
-                                               LogicalRegion handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      bool result = forest->has_parent_logical_partition(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
     bool Runtime::has_parent_logical_partition(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
       return forest->has_parent_logical_partition(handle);
-    }
-
-    //--------------------------------------------------------------------------
-    LogicalPartition Runtime::get_parent_logical_partition(Context ctx,
-                                                           LogicalRegion handle)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      LogicalPartition result = forest->get_parent_logical_partition(handle);
-      if (ctx != DUMMY_CONTEXT)
-        ctx->end_runtime_call();
-      return result;
     }
 
     //--------------------------------------------------------------------------
@@ -18765,137 +18294,6 @@ namespace Legion {
       assert(impl != NULL);
 #endif
       return ArgumentMap(impl);
-    }
-
-    //--------------------------------------------------------------------------
-    Future Runtime::execute_task(Context ctx, const TaskLauncher &launcher,
-                                 std::vector<OutputRequirement> *outputs)
-    //--------------------------------------------------------------------------
-    { 
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context execute task!");
-      return ctx->execute_task(launcher, outputs);
-    }
-
-    //--------------------------------------------------------------------------
-    FutureMap Runtime::execute_index_space(
-                                  Context ctx, const IndexTaskLauncher &launcher,
-                                  std::vector<OutputRequirement> *outputs)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context execute index space!");
-      return ctx->execute_index_space(launcher, outputs);
-    }
-
-    //--------------------------------------------------------------------------
-    Future Runtime::execute_index_space(
-                                 Context ctx, const IndexTaskLauncher &launcher,
-                                 ReductionOpID redop, bool deterministic,
-                                 std::vector<OutputRequirement> *outputs)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context execute index space!");
-      return ctx->execute_index_space(launcher, redop, deterministic, outputs);
-    }
-
-    //--------------------------------------------------------------------------
-    PhysicalRegion Runtime::map_region(Context ctx, 
-                                                const InlineLauncher &launcher)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context map region!");
-      return ctx->map_region(launcher); 
-    }
-
-    //--------------------------------------------------------------------------
-    PhysicalRegion Runtime::map_region(Context ctx, unsigned idx, 
-                          MapperID id, MappingTagID tag, Provenance *provenance)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context map region!");
-      PhysicalRegion result = ctx->get_physical_region(idx);
-      // Check to see if we are already mapped, if not, then remap it
-      if (!result.impl->is_mapped())
-        remap_region(ctx, result, provenance);
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::remap_region(Context ctx, const PhysicalRegion &region,
-                               Provenance *provenance)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context remap region!");
-      ctx->remap_region(region, provenance);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::unmap_region(Context ctx, PhysicalRegion region)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context unmap region!");
-      ctx->unmap_region(region); 
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::fill_fields(Context ctx, const FillLauncher &launcher)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context fill operation!");
-      ctx->fill_fields(launcher); 
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::fill_fields(Context ctx, const IndexFillLauncher &launcher)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context fill operation!");
-      ctx->fill_fields(launcher);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::issue_copy_operation(Context ctx,const CopyLauncher &launcher)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context issue copy operation!");
-      ctx->issue_copy(launcher); 
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::issue_copy_operation(Context ctx,
-                                       const IndexCopyLauncher &launcher)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context issue copy operation!");
-      ctx->issue_copy(launcher);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::issue_acquire(Context ctx, const AcquireLauncher &launcher)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context issue acquire!");
-      ctx->issue_acquire(launcher); 
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::issue_release(Context ctx, const ReleaseLauncher &launcher)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context issue release!");
-      ctx->issue_release(launcher); 
     }
 
     //--------------------------------------------------------------------------
@@ -19043,102 +18441,29 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FutureMap Runtime::execute_must_epoch(Context ctx, 
-                                          const MustEpochLauncher &launcher)
+    Mapper* Runtime::get_mapper(MapperID id, Processor target)
     //--------------------------------------------------------------------------
     {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context issue must epoch!");
-      return ctx->execute_must_epoch(launcher); 
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(target);
+      if (finder == proc_managers.end())
+        REPORT_LEGION_ERROR(ERROR_INVALID_PROCESSOR_NAME, 
+         "Invalid processor " IDFMT " passed to get mapper call.", target.id);
+      return finder->second->find_mapper(id)->mapper;
     }
 
     //--------------------------------------------------------------------------
-    Future Runtime::issue_timing_measurement(Context ctx,
-                                             const TimingLauncher &launcher)
+    MappingCallInfo* Runtime::begin_mapper_call(MapperID id, Processor target,
+                                                Operation *op)
     //--------------------------------------------------------------------------
     {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT(
-            "Illegal dummy context in timing measurement!");
-      return ctx->issue_timing_measurement(launcher); 
-    }
-
-    //--------------------------------------------------------------------------
-    void* Runtime::get_local_task_variable(Context ctx, LocalVariableID id)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT(
-            "Illegal dummy context get local task variable!");
-      return ctx->get_local_task_variable(id);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::set_local_task_variable(Context ctx, LocalVariableID id,
-                                   const void *value, void (*destructor)(void*))
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT(
-            "Illegal dummy context set local task variable!");
-      ctx->set_local_task_variable(id, value, destructor);
-    }
-
-    //--------------------------------------------------------------------------
-    Mapper* Runtime::get_mapper(Context ctx, MapperID id, Processor target)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      if (!target.exists())
-      {
-        Processor proc = ctx->get_executing_processor();
-#ifdef DEBUG_LEGION
-        assert(proc_managers.find(proc) != proc_managers.end());
-#endif
-        if (ctx != DUMMY_CONTEXT)
-          ctx->end_runtime_call();
-        return proc_managers[proc]->find_mapper(id)->mapper;
-      }
-      else
-      {
-        std::map<Processor,ProcessorManager*>::const_iterator finder = 
-          proc_managers.find(target);
-        if (finder == proc_managers.end())
-          REPORT_LEGION_ERROR(ERROR_INVALID_PROCESSOR_NAME, 
-           "Invalid processor " IDFMT " passed to get mapper call.", target.id);
-        if (ctx != DUMMY_CONTEXT)
-          ctx->end_runtime_call();
-        return finder->second->find_mapper(id)->mapper;
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    MappingCallInfo* Runtime::begin_mapper_call(Context ctx, MapperID id, 
-                                                Processor target)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx != DUMMY_CONTEXT)
-        ctx->begin_runtime_call();
-      MapperManager *manager;
-      if (!target.exists())
-      {
-        Processor proc = ctx->get_executing_processor();
-#ifdef DEBUG_LEGION
-        assert(proc_managers.find(proc) != proc_managers.end());
-#endif
-        manager = proc_managers[proc]->find_mapper(id);
-      }
-      else
-      {
-        std::map<Processor,ProcessorManager*>::const_iterator finder = 
-          proc_managers.find(target);
-        if (finder == proc_managers.end())
-          REPORT_LEGION_ERROR(ERROR_INVALID_PROCESSOR_NAME, "Invalid processor "
-                              IDFMT " passed to begin mapper call.", target.id)
-        manager = finder->second->find_mapper(id);
-      }
-      return new MappingCallInfo(manager, APPLICATION_MAPPER_CALL, NULL);
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(target);
+      if (finder == proc_managers.end())
+        REPORT_LEGION_ERROR(ERROR_INVALID_PROCESSOR_NAME, "Invalid processor "
+                            IDFMT " passed to begin mapper call.", target.id)
+      MapperManager *manager = finder->second->find_mapper(id);
+      return new MappingCallInfo(manager, APPLICATION_MAPPER_CALL, op);
     }
 
     //--------------------------------------------------------------------------
@@ -19146,24 +18471,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       delete info;
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::print_once(Context ctx, FILE *f, const char *message)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context print once!");
-      ctx->print_once(f, message);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::log_once(Context ctx, Realm::LoggerMessage &message)
-    //--------------------------------------------------------------------------
-    {
-      if (ctx == DUMMY_CONTEXT)
-        REPORT_DUMMY_CONTEXT("Illegal dummy context log once!");
-      ctx->log_once(message);
     }
 
     //--------------------------------------------------------------------------

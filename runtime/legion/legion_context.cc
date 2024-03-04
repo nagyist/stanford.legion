@@ -160,7 +160,6 @@ namespace Legion {
                            bool owned, Provenance *provenance, bool shard_local) 
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       Future result(new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance));
       // Set the future result
@@ -189,7 +188,6 @@ namespace Legion {
                        Provenance *provenance, bool shard_local)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       Future result(new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance));
       FutureInstance *instance = new FutureInstance(buffer, size,
@@ -371,7 +369,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool TaskContext::safe_cast(RegionTreeForest *forest, IndexSpace handle,
+    bool TaskContext::safe_cast(IndexSpace handle,
                                 const void *realm_point, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
@@ -380,7 +378,7 @@ namespace Legion {
         safe_cast_spaces.find(handle);
       if (finder == safe_cast_spaces.end())
       {
-        safe_cast_spaces[handle] = forest->get_node(handle);
+        safe_cast_spaces[handle] = runtime->forest->get_node(handle);
         finder = safe_cast_spaces.find(handle);
       }
       return finder->second->contains_point(realm_point, type_tag);
@@ -865,7 +863,6 @@ namespace Legion {
     Lock TaskContext::create_lock(void)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       return Lock(Reservation::create_reservation());
     }
 
@@ -873,7 +870,6 @@ namespace Legion {
     PhaseBarrier TaskContext::create_phase_barrier(unsigned arrivals)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       return PhaseBarrier(ApBarrier(Realm::Barrier::create_barrier(arrivals)));
     }
 
@@ -881,7 +877,6 @@ namespace Legion {
     PhaseBarrier TaskContext::advance_phase_barrier(PhaseBarrier pb)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       PhaseBarrier result = pb;
       Runtime::advance_barrier(result);
 #ifdef LEGION_SPY
@@ -900,43 +895,6 @@ namespace Legion {
 #endif
       overhead_profiler = new OverheadProfiler();
     } 
-
-    //--------------------------------------------------------------------------
-    void TaskContext::remap_unmapped_regions(LogicalTrace *trace,
-                            const std::vector<PhysicalRegion> &unmapped_regions,
-                            Provenance *provenance)
-    //--------------------------------------------------------------------------
-    {
-#ifdef DEBUG_LEGION
-      assert(!unmapped_regions.empty());
-#endif
-      if (trace != NULL)
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_RUNTIME_REMAPPING,
-                    "Illegal runtime remapping in trace %d inside of "
-                    "task %s (UID %lld). Traces must perfectly "
-                    "manage their physical mappings with no runtime help.",
-                    trace->tid, get_task_name(), get_unique_id())
-      std::set<ApEvent> mapped_events;
-      for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
-      {
-        const ApEvent ready = 
-          remap_region(unmapped_regions[idx], provenance, true/*internal*/);
-        if (ready.exists())
-          mapped_events.insert(ready);
-      }
-      // Wait for all the re-mapping operations to complete
-      const ApEvent mapped_event = Runtime::merge_events(NULL, mapped_events);
-      bool poisoned = false;
-      if (mapped_event.has_triggered_faultaware(poisoned))
-      {
-        if (poisoned)
-          raise_poison_exception();
-        return;
-      }
-      mapped_event.wait_faultaware(poisoned);
-      if (poisoned)
-        raise_poison_exception();
-    }
 
     //--------------------------------------------------------------------------
     void* TaskContext::get_local_task_variable(LocalVariableID id)
@@ -3483,7 +3441,6 @@ namespace Legion {
                                        TypeTag type_tag, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       return create_index_space_internal(&bounds, type_tag, provenance);
     }
 
@@ -3492,7 +3449,6 @@ namespace Legion {
                  const std::vector<DomainPoint> &points, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       switch (points[0].get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -3521,7 +3477,6 @@ namespace Legion {
                        const std::vector<Domain> &rects, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       switch (rects[0].get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -3598,7 +3553,6 @@ namespace Legion {
                                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       return create_index_space_internal(NULL, type_tag, provenance);
     }
 
@@ -3606,7 +3560,6 @@ namespace Legion {
     void InnerContext::create_shared_ownership(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!handle.exists())
         return;
       // Check to see if this is a top-level index space, if not then
@@ -3634,7 +3587,6 @@ namespace Legion {
     {
       if (spaces.empty())
         return IndexSpace::NO_SPACE;
-      AutoRuntimeCall call(this); 
       bool none_exists = true;
       for (std::vector<IndexSpace>::const_iterator it = 
             spaces.begin(); it != spaces.end(); it++)
@@ -3667,7 +3619,6 @@ namespace Legion {
     {
       if (spaces.empty())
         return IndexSpace::NO_SPACE;
-      AutoRuntimeCall call(this); 
       bool none_exists = true;
       for (std::vector<IndexSpace>::const_iterator it = 
             spaces.begin(); it != spaces.end(); it++)
@@ -3698,7 +3649,6 @@ namespace Legion {
                       IndexSpace left, IndexSpace right, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       if (!left.exists())
         return IndexSpace::NO_SPACE;
       if (right.exists() && left.get_type_tag() != right.get_type_tag())
@@ -3723,7 +3673,6 @@ namespace Legion {
                                        TypeTag type_tag, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       IndexSpace handle(runtime->get_unique_index_space_id(),
                         runtime->get_unique_index_tree_id(), type_tag);
       DistributedID did = runtime->get_available_distributed_id();
@@ -3751,7 +3700,6 @@ namespace Legion {
                const bool unordered, const bool recurse, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!handle.exists())
         return;
 #ifdef DEBUG_LEGION
@@ -3836,7 +3784,6 @@ namespace Legion {
     void InnerContext::create_shared_ownership(IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!handle.exists())
         return;
       runtime->create_shared_ownership(handle);
@@ -3854,7 +3801,6 @@ namespace Legion {
                const bool unordered, const bool recurse, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!handle.exists())
         return;
 #ifdef DEBUG_LEGION
@@ -3935,7 +3881,6 @@ namespace Legion {
                                                       Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);  
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
       DistributedID did = runtime->get_available_distributed_id();
@@ -3970,7 +3915,6 @@ namespace Legion {
                                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);  
       const IndexPartition pid(runtime->get_unique_index_partition_id(), 
                                parent.get_tree_id(), parent.get_type_tag());
       const DistributedID did = runtime->get_available_distributed_id();
@@ -4009,7 +3953,6 @@ namespace Legion {
                                           Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind)
@@ -4091,7 +4034,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind)
@@ -4171,7 +4113,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind)
@@ -4236,7 +4177,6 @@ namespace Legion {
                                                   Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind)
@@ -4307,7 +4247,6 @@ namespace Legion {
                                                       Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_index.debug("Creating cross product partitions in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4393,7 +4332,6 @@ namespace Legion {
                                           Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_index.debug("Creating association in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4438,7 +4376,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
@@ -4502,7 +4439,6 @@ namespace Legion {
                                                 bool skip_check)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
@@ -4546,7 +4482,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       // Partition by field is disjoint by construction
       PartitionKind verify_kind = LEGION_DISJOINT_KIND;
       if (runtime->verify_partitions)
@@ -4616,7 +4551,6 @@ namespace Legion {
                                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
@@ -4684,7 +4618,6 @@ namespace Legion {
                                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
@@ -4751,7 +4684,6 @@ namespace Legion {
                                                   Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
@@ -4837,7 +4769,6 @@ namespace Legion {
                                                   Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
@@ -4902,7 +4833,6 @@ namespace Legion {
                                                 bool trust)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions && !trust)
         SWAP_PART_KINDS(verify_kind, part_kind)
@@ -4942,7 +4872,6 @@ namespace Legion {
                                                       Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_index.debug("Creating index space union in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4966,7 +4895,6 @@ namespace Legion {
                                                       Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_index.debug("Creating index space union in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4991,7 +4919,6 @@ namespace Legion {
                                                       Provenance *prov)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_index.debug("Creating index space intersection in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -5016,7 +4943,6 @@ namespace Legion {
                                                       Provenance *prov)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_index.debug("Creating index space intersection in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -5042,7 +4968,6 @@ namespace Legion {
                                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_index.debug("Creating index space difference in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -5215,7 +5140,6 @@ namespace Legion {
     FieldSpace InnerContext::create_field_space(Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       FieldSpace space(runtime->get_unique_field_space_id());
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
@@ -5239,7 +5163,6 @@ namespace Legion {
                                          Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       FieldSpace space(runtime->get_unique_field_space_id());
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
@@ -5285,7 +5208,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const FieldSpace space = create_field_space(provenance);
-      AutoRuntimeCall call(this);
       FieldSpaceNode *node = runtime->forest->get_node(space);
       if (resulting_fields.size() < sizes.size())
         resulting_fields.resize(sizes.size(), LEGION_AUTO_GENERATE_ID);
@@ -5324,7 +5246,6 @@ namespace Legion {
     void InnerContext::create_shared_ownership(FieldSpace handle)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!handle.exists())
         return;
       runtime->create_shared_ownership(handle);
@@ -5342,7 +5263,6 @@ namespace Legion {
                                    const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!handle.exists())
         return;
 #ifdef DEBUG_LEGION
@@ -5425,7 +5345,6 @@ namespace Legion {
                                                              bool unordered)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       {
         AutoLock priv_lock(privilege_lock,1,false/*exclusive*/);
         std::map<FieldSpace,FieldAllocatorImpl*>::const_iterator finder = 
@@ -5450,16 +5369,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::destroy_field_allocator(FieldSpaceNode *node,
-                                               bool from_application)
+    void InnerContext::destroy_field_allocator(FieldSpaceNode *node)
     //--------------------------------------------------------------------------
     {
-      if (from_application)
-      {
-        AutoRuntimeCall call(this);
-        destroy_field_allocator(node, false/*from application*/);
-        return;
-      }
       const RtEvent ready = node->destroy_allocator(runtime->address_space);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
@@ -5479,7 +5391,6 @@ namespace Legion {
                                         Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (fid == LEGION_AUTO_GENERATE_ID)
         fid = runtime->get_unique_field_id();
 #ifdef DEBUG_LEGION
@@ -5517,7 +5428,6 @@ namespace Legion {
                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (resulting_fields.size() < sizes.size())
         resulting_fields.resize(sizes.size(), LEGION_AUTO_GENERATE_ID);
       for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
@@ -5559,7 +5469,6 @@ namespace Legion {
                                          Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (local)
         REPORT_LEGION_FATAL(LEGION_FATAL_UNIMPLEMENTED_FEATURE,
             "Local fields do no support allocation with future sizes yet.")
@@ -5685,7 +5594,6 @@ namespace Legion {
                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (local)
         REPORT_LEGION_FATAL(LEGION_FATAL_UNIMPLEMENTED_FEATURE,
             "Local fields do no support allocation with future sizes yet.") 
@@ -5822,7 +5730,6 @@ namespace Legion {
     FieldSpace space, FieldID fid, const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       {
         AutoLock priv_lock(privilege_lock,1,false/*exclusive*/);
         const std::pair<FieldSpace,FieldID> key(space, fid);
@@ -5870,7 +5777,6 @@ namespace Legion {
                                    const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       std::set<FieldID> free_now;
       {
         AutoLock priv_lock(privilege_lock,1,false/*exclusive*/);
@@ -5928,7 +5834,6 @@ namespace Legion {
                                                       const bool output_region)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       RegionTreeID tid = runtime->get_unique_region_tree_id();
       LogicalRegion region(tid, index_space, field_space);
 #ifdef DEBUG_LEGION
@@ -5968,7 +5873,6 @@ namespace Legion {
     void InnerContext::create_shared_ownership(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!handle.exists())
         return;
       if (!runtime->forest->is_top_level_region(handle))
@@ -5993,7 +5897,6 @@ namespace Legion {
                                    const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!handle.exists())
         return;
 #ifdef DEBUG_LEGION
@@ -6070,7 +5973,6 @@ namespace Legion {
                                               const std::set<FieldID> &fields)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       // Ignore reset calls inside of traces
       if ((current_trace != NULL) && current_trace->is_fixed())
       {
@@ -6842,11 +6744,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Future InnerContext::execute_task(const TaskLauncher &launcher,
-                                      std::vector<OutputRequirement> *outputs)
+                                      std::vector<OutputRequirement> *outputs,
+                                      Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       // Quick out for predicate false
       if (launcher.predicate == Predicate::FALSE_PRED)
         return predicate_task_false(launcher, provenance);
@@ -6877,7 +6778,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FutureMap InnerContext::execute_index_space(
                                         const IndexTaskLauncher &launcher,
-                                        std::vector<OutputRequirement> *outputs)
+                                        std::vector<OutputRequirement> *outputs,
+                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       if (launcher.must_parallelism)
@@ -6886,11 +6788,9 @@ namespace Legion {
         MustEpochLauncher epoch_launcher(launcher.map_id, launcher.tag);
         epoch_launcher.add_index_task(launcher);
         epoch_launcher.provenance = launcher.provenance;
-        FutureMap result = execute_must_epoch(epoch_launcher);
+        FutureMap result = execute_must_epoch(epoch_launcher, provenance);
         return result;
       }
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       if (launcher.launch_domain.exists() && 
           (launcher.launch_domain.get_volume() == 0))
       {
@@ -6928,22 +6828,21 @@ namespace Legion {
     //--------------------------------------------------------------------------
     Future InnerContext::execute_index_space(const IndexTaskLauncher &launcher,
                                         ReductionOpID redop, bool deterministic,
-                                        std::vector<OutputRequirement> *outputs)
+                                        std::vector<OutputRequirement> *outputs,
+                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoProvenance provenance(launcher.provenance);
       if (launcher.must_parallelism)
       {
         // Turn around and use a must epoch launcher
         MustEpochLauncher epoch_launcher(launcher.map_id, launcher.tag);
         epoch_launcher.add_index_task(launcher);
         epoch_launcher.provenance = launcher.provenance;
-        FutureMap result = execute_must_epoch(epoch_launcher);
+        FutureMap result = execute_must_epoch(epoch_launcher, provenance);
         return reduce_future_map(result, redop, deterministic,
                                  launcher.map_id, launcher.tag, provenance,
                                  launcher.initial_value);
       }
-      AutoRuntimeCall call(this);
       if (launcher.launch_domain.exists() &&
           (launcher.launch_domain.get_volume() == 0))
       {
@@ -6994,7 +6893,6 @@ namespace Legion {
                                         Future initial_value)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       if (future_map.impl == NULL)
       {
         const ReductionOp *reduction_op = runtime->get_reduction(redop);
@@ -7017,10 +6915,9 @@ namespace Legion {
                                 const std::map<DomainPoint,UntypedBuffer> &data,
                                 Provenance *provenance, bool collective,
                                 ShardingID sid, bool implicit, 
-                                bool internal, bool check_space)
+                                bool check_space)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       Domain domain;
       runtime->forest->find_domain(space, domain);
       if (data.size() != domain.get_volume())
@@ -7061,24 +6958,17 @@ namespace Legion {
       // space since we can't guarantee it is the same across the shards
       return construct_future_map(find_index_launch_space(domain, NULL/*prov*/),
           data, NULL/*deprecated so no provenance*/, collective, sid, 
-          implicit, false/*internal*/, false/*check space*/);
+          implicit, false/*check space*/);
     }
 
     //--------------------------------------------------------------------------
     FutureMap InnerContext::construct_future_map(IndexSpace space,
                                     const std::map<DomainPoint,Future> &futures,
                                     Provenance *provenance,
-                                    bool internal, bool collective,
-                                    ShardingID sid, bool implicit,
-                                    bool check_space)
+                                    bool collective, ShardingID sid,
+                                    bool implicit, bool check_space)
     //--------------------------------------------------------------------------
     {
-      if (!internal)
-      {
-        AutoRuntimeCall call(this);
-        return construct_future_map(space, futures, provenance,true/*internal*/,
-                                    collective, sid, implicit, check_space);
-      }
       CreationOp *creation_op = runtime->get_available_creation_op();
       creation_op->initialize_map(this, provenance, futures);
       const DistributedID did = runtime->get_available_distributed_id();
@@ -7099,14 +6989,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FutureMap InnerContext::construct_future_map(const Domain &domain,
                                  const std::map<DomainPoint,Future> &futures,
-                                 bool internal, bool collective,
-                                 ShardingID sid, bool implicit) 
+                                 bool collective, ShardingID sid, bool implicit) 
     //--------------------------------------------------------------------------
     {
       // Make sure we don't do any control replication checks on the 
       // space here since it might not be the same across the shards
       return construct_future_map(find_index_launch_space(domain, NULL),
-              futures, NULL/*deprecated so no provenance*/, true/*internal*/,
+              futures, NULL/*deprecated so no provenance*/,
               collective, sid, implicit, false/*check space*/);
     }
 
@@ -7116,7 +7005,6 @@ namespace Legion {
        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (fm.impl == NULL)
         return fm;
       IndexSpaceNode *new_node = runtime->forest->get_node(new_domain);
@@ -7130,7 +7018,6 @@ namespace Legion {
            bool own_func, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (fm.impl == NULL)
         return fm;
       IndexSpaceNode *new_node = runtime->forest->get_node(new_domain);
@@ -7139,13 +7026,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PhysicalRegion InnerContext::map_region(const InlineLauncher &launcher)
+    PhysicalRegion InnerContext::map_region(const InlineLauncher &launcher,
+                                            Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (IS_NO_ACCESS(launcher.requirement))
         return PhysicalRegion();
-      AutoProvenance provenance(launcher.provenance);
       MapOp *map_op = runtime->get_available_map_op();
       PhysicalRegion result = map_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
@@ -7203,11 +7089,6 @@ namespace Legion {
                                        Provenance *provenance, bool internal)
     //--------------------------------------------------------------------------
     {
-      if (!internal)
-      {
-        AutoRuntimeCall call(this);
-        return remap_region(region, provenance, true/*internal*/);
-      }
       // Check to see if the region is already mapped,
       // if it is then we are done
       if (region.is_mapped())
@@ -7235,7 +7116,6 @@ namespace Legion {
     void InnerContext::unmap_region(PhysicalRegion region)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!region.is_mapped())
         return;
       region.impl->unmap_region();
@@ -7243,15 +7123,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::unmap_all_regions(bool external)
+    void InnerContext::unmap_all_regions(void)
     //--------------------------------------------------------------------------
     {
-      if (external)
-      {
-        AutoRuntimeCall call(this);
-        unmap_all_regions(false);
-        return;
-      }
       for (std::vector<PhysicalRegion>::const_iterator it = 
             physical_regions.begin(); it != physical_regions.end(); it++)
       {
@@ -7269,10 +7143,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::fill_fields(const FillLauncher &launcher)
+    void InnerContext::fill_fields(const FillLauncher &launcher,
+                                   Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (launcher.fields.empty())
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_EMPTY_FILL_FIELDS,
@@ -7281,7 +7155,6 @@ namespace Legion {
         return;
       }
       FillOp *fill_op = runtime->get_available_fill_op();
-      AutoProvenance provenance(launcher.provenance);
       fill_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
       log_run.debug("Registering a fill operation in task %s (ID %lld)",
@@ -7313,10 +7186,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::fill_fields(const IndexFillLauncher &launcher)
+    void InnerContext::fill_fields(const IndexFillLauncher &launcher,
+                                   Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (launcher.fields.empty())
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_EMPTY_FILL_FIELDS,
@@ -7332,7 +7205,6 @@ namespace Legion {
                         get_task_name(), get_unique_id());
         return;
       }
-      AutoProvenance provenance(launcher.provenance);
       IndexSpace launch_space = launcher.launch_space;
       if (!launch_space.exists())
         launch_space = find_index_launch_space(launcher.launch_domain,
@@ -7369,10 +7241,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::discard_fields(const DiscardLauncher &launcher)
+    void InnerContext::discard_fields(const DiscardLauncher &launcher,
+                                      Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (launcher.fields.empty())
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_EMPTY_FILL_FIELDS,
@@ -7380,7 +7252,6 @@ namespace Legion {
             get_task_name(), get_unique_id())
         return;
       }
-      AutoProvenance provenance(launcher.provenance);
       DiscardOp *discard_op = runtime->get_available_discard_op();
       discard_op->initialize(this, launcher, provenance);
       // We still unamp conflicting regions for discard, but we wil never
@@ -7408,11 +7279,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::issue_copy(const CopyLauncher &launcher)
+    void InnerContext::issue_copy(const CopyLauncher &launcher,
+                                  Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       CopyOp *copy_op = runtime->get_available_copy_op();
       copy_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
@@ -7445,10 +7315,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::issue_copy(const IndexCopyLauncher &launcher)
+    void InnerContext::issue_copy(const IndexCopyLauncher &launcher,
+                                  Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (launcher.launch_domain.exists() &&
           (launcher.launch_domain.get_volume() == 0))
       {
@@ -7457,7 +7327,6 @@ namespace Legion {
                         "(ID %lld)", get_task_name(), get_unique_id());
         return;
       }
-      AutoProvenance provenance(launcher.provenance);
       IndexSpace launch_space = launcher.launch_space;
       if (!launch_space.exists())
         launch_space = find_index_launch_space(launcher.launch_domain,
@@ -7494,11 +7363,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::issue_acquire(const AcquireLauncher &launcher)
+    void InnerContext::issue_acquire(const AcquireLauncher &launcher,
+                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       AcquireOp *acquire_op = runtime->get_available_acquire_op();
       acquire_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
@@ -7530,11 +7398,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::issue_release(const ReleaseLauncher &launcher)
+    void InnerContext::issue_release(const ReleaseLauncher &launcher,
+                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       ReleaseOp *release_op = runtime->get_available_release_op();
       release_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
@@ -7566,11 +7433,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PhysicalRegion InnerContext::attach_resource(const AttachLauncher &launcher)
+    PhysicalRegion InnerContext::attach_resource(const AttachLauncher &launcher,
+                                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       AttachOp *attach_op = runtime->get_available_attach_op();
       PhysicalRegion result = attach_op->initialize(this, launcher, provenance);
       bool parent_conflict = false, inline_conflict = false;
@@ -7611,13 +7477,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ExternalResources InnerContext::attach_resources(
-                                            const IndexAttachLauncher &launcher)
+                    const IndexAttachLauncher &launcher, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (launcher.handles.empty())
         return ExternalResources();
-      AutoProvenance provenance(launcher.provenance);
       // This is not control replicated so no need to deduplicate anything
       std::vector<unsigned> indexes(launcher.handles.size());
       for (unsigned idx = 0; idx < indexes.size(); idx++)
@@ -7929,7 +7793,6 @@ namespace Legion {
                  const bool flush, const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       // Unmap the region here so that it is safe for re-use
       if (region.impl->is_mapped())
       {
@@ -7959,7 +7822,6 @@ namespace Legion {
                  const bool flush, const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (resources.impl == NULL)
         return Future();
       IndexDetachOp *op = runtime->get_available_index_detach_op();
@@ -8001,16 +7863,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FutureMap InnerContext::execute_must_epoch(
-                                              const MustEpochLauncher &launcher)
+                      const MustEpochLauncher &launcher, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       MustEpochOp *epoch_op = runtime->get_available_epoch_op();
 #ifdef DEBUG_LEGION
       log_run.debug("Executing a must epoch in task %s (ID %lld)",
                     get_task_name(), get_unique_id());
 #endif
-      AutoProvenance provenance(launcher.provenance);
       FutureMap result = epoch_op->initialize(this, launcher, provenance);
       // Now find all the parent task regions we need to invalidate
       std::vector<PhysicalRegion> unmapped_regions;
@@ -8037,15 +7897,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Future InnerContext::issue_timing_measurement(const TimingLauncher &launcher)
+    Future InnerContext::issue_timing_measurement(
+        const TimingLauncher &launcher, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_run.debug("Issuing a timing measurement in task %s (ID %lld)",
                     get_task_name(), get_unique_id());
 #endif
-      AutoProvenance provenance(launcher.provenance);
       TimingOp *timing_op = runtime->get_available_timing_op();
       Future result = timing_op->initialize(this, launcher, provenance);
       add_to_dependence_queue(timing_op);
@@ -8053,15 +7912,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Future InnerContext::select_tunable_value(const TunableLauncher &launcher)
+    Future InnerContext::select_tunable_value(const TunableLauncher &launcher,
+                                              Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_run.debug("Issuing a tunable request in task %s (ID %lld)",
                     get_task_name(), get_unique_id());
 #endif
-      AutoProvenance provenance(launcher.provenance);
       TunableOp *tunable_op = runtime->get_available_tunable_op();
       Future result = tunable_op->initialize(this, launcher, provenance);
       add_to_dependence_queue(tunable_op);
@@ -8072,7 +7930,6 @@ namespace Legion {
     Future InnerContext::issue_mapping_fence(Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       FenceOp *fence_op = runtime->get_available_fence_op();
 #ifdef DEBUG_LEGION
       log_run.debug("Issuing a mapping fence in task %s (ID %lld)",
@@ -8088,7 +7945,6 @@ namespace Legion {
     Future InnerContext::issue_execution_fence(Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       FenceOp *fence_op = runtime->get_available_fence_op();
 #ifdef DEBUG_LEGION
       log_run.debug("Issuing an execution fence in task %s (ID %lld)",
@@ -8104,7 +7960,6 @@ namespace Legion {
     void InnerContext::complete_frame(Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       FrameOp *frame_op = runtime->get_available_frame_op();
 #ifdef DEBUG_LEGION
       log_run.debug("Issuing a frame in task %s (ID %lld)",
@@ -8119,7 +7974,6 @@ namespace Legion {
                                              Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (f.impl == NULL)
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_PREDICATE_CREATION,
           "Illegal predicate creation performed on "
@@ -8137,7 +7991,6 @@ namespace Legion {
                                           Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (p == Predicate::TRUE_PRED)
         return Predicate::FALSE_PRED;
       if (p == Predicate::FALSE_PRED)
@@ -8150,10 +8003,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Predicate InnerContext::create_predicate(const PredicateLauncher &launcher)
+    Predicate InnerContext::create_predicate(const PredicateLauncher &launcher,
+                                             Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (launcher.predicates.empty())
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_PREDICATE_CREATION,
           "Illegal predicate creation performed on a "
@@ -8161,7 +8014,6 @@ namespace Legion {
                       get_task_name(), get_unique_id())
       else if (launcher.predicates.size() == 1)
         return launcher.predicates[0];
-      AutoProvenance provenance(launcher.provenance);
       if (launcher.and_op)
       {
         // Check for short circuit cases
@@ -8219,7 +8071,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       if (p == Predicate::TRUE_PRED)
       {
         Future result(new FutureImpl(this, true/*register*/,
@@ -10101,7 +9952,6 @@ namespace Legion {
       if (runtime->no_tracing) return;
       if (runtime->no_physical_tracing) logical_only = true;
 
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_run.debug("Beginning a trace in task %s (ID %lld)",
                     get_task_name(), get_unique_id());
@@ -10195,7 +10045,6 @@ namespace Legion {
     {
       if (runtime->no_tracing) return;
 
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_run.debug("Ending a trace in task %s (ID %lld)",
                     get_task_name(), get_unique_id());
@@ -10506,7 +10355,6 @@ namespace Legion {
     void InnerContext::destroy_lock(Lock l)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       // Can only be called from user land so no need to hold the lock
       context_locks.push_back(l.reservation_lock);
     }
@@ -10515,7 +10363,6 @@ namespace Legion {
     Grant InnerContext::acquire_grant(const std::vector<LockRequest> &requests)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       // Kind of annoying, but we need to unpack and repack the
       // Lock type here to build new requests because the C++
       // type system is dumb with nested classes.
@@ -10535,7 +10382,6 @@ namespace Legion {
     void InnerContext::release_grant(Grant grant)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       grant.impl->release_grant();
     } 
 
@@ -10543,7 +10389,6 @@ namespace Legion {
     void InnerContext::destroy_phase_barrier(PhaseBarrier pb)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       // Can only be called from user land so no need to hold the lock
       context_barriers.push_back(pb.phase_barrier);
     } 
@@ -10554,7 +10399,6 @@ namespace Legion {
                                        const void *init_value, size_t init_size)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       return DynamicCollective(
           ApBarrier(Realm::Barrier::create_barrier(arrivals, redop, 
                                     init_value, init_size)), redop);
@@ -10564,7 +10408,6 @@ namespace Legion {
     void InnerContext::destroy_dynamic_collective(DynamicCollective dc)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       // Can only be called from user land so no need to hold the lock
       context_barriers.push_back(dc.phase_barrier);
     }
@@ -10574,7 +10417,6 @@ namespace Legion {
                                 const void *buffer, size_t size, unsigned count)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       Runtime::phase_barrier_arrive(dc,count,ApEvent::NO_AP_EVENT,buffer,size);
     }
 
@@ -10583,7 +10425,6 @@ namespace Legion {
                                            const Future &future, unsigned count)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       future.impl->contribute_to_collective(dc, count);
       // No need to register anything if this future is an application future
       // or it was made in a context above this in the region tree
@@ -10678,7 +10519,6 @@ namespace Legion {
                                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
 #ifdef DEBUG_LEGION
       log_run.debug("Get dynamic collective result in task %s (ID %lld)",
                     get_task_name(), get_unique_id());
@@ -10695,7 +10535,6 @@ namespace Legion {
                                                            DynamicCollective dc)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       DynamicCollective result = dc;
       Runtime::advance_barrier(result);
 #ifdef LEGION_SPY
@@ -12112,7 +11951,7 @@ namespace Legion {
           "Task %s (UID %lld) failed to end trace before exiting!",
                         get_task_name(), get_unique_id()) 
       // Unmap any of our mapped regions before issuing any close operations
-      unmap_all_regions(false/*external*/);
+      unmap_all_regions();
       const std::deque<InstanceSet> &physical_instances = 
         owner_task->get_physical_instances();
       // Note that this loop doesn't handle create regions
@@ -12256,7 +12095,7 @@ namespace Legion {
     {
       owner_task->handle_post_mapped();
       owner_task->record_inner_termination(ApEvent::NO_AP_EVENT);
-      unmap_all_regions(false/*external*/);
+      unmap_all_regions();
       TaskContext::handle_mispredication();
     }
 
@@ -12614,6 +12453,43 @@ namespace Legion {
         if (!unmapped_regions.empty())
           remap_unmapped_regions(current_trace, unmapped_regions, provenance);
       }
+    }
+
+    //--------------------------------------------------------------------------
+    void InnerContext::remap_unmapped_regions(LogicalTrace *trace,
+                            const std::vector<PhysicalRegion> &unmapped_regions,
+                            Provenance *provenance)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(!unmapped_regions.empty());
+#endif
+      if (trace != NULL)
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_RUNTIME_REMAPPING,
+                    "Illegal runtime remapping in trace %d inside of "
+                    "task %s (UID %lld). Traces must perfectly "
+                    "manage their physical mappings with no runtime help.",
+                    trace->tid, get_task_name(), get_unique_id())
+      std::set<ApEvent> mapped_events;
+      for (unsigned idx = 0; idx < unmapped_regions.size(); idx++)
+      {
+        const ApEvent ready = 
+          remap_region(unmapped_regions[idx], provenance, true/*internal*/);
+        if (ready.exists())
+          mapped_events.insert(ready);
+      }
+      // Wait for all the re-mapping operations to complete
+      const ApEvent mapped_event = Runtime::merge_events(NULL, mapped_events);
+      bool poisoned = false;
+      if (mapped_event.has_triggered_faultaware(poisoned))
+      {
+        if (poisoned)
+          raise_poison_exception();
+        return;
+      }
+      mapped_event.wait_faultaware(poisoned);
+      if (poisoned)
+        raise_poison_exception();
     }
 
     //--------------------------------------------------------------------------
@@ -14057,7 +13933,6 @@ namespace Legion {
                                        TypeTag type_tag, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14150,7 +14025,6 @@ namespace Legion {
                                                          Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14207,7 +14081,6 @@ namespace Legion {
                                        TypeTag type_tag, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14301,7 +14174,6 @@ namespace Legion {
                  const std::vector<DomainPoint> &points, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14341,7 +14213,6 @@ namespace Legion {
                        const std::vector<Domain> &rects, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
           ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14380,7 +14251,6 @@ namespace Legion {
                   const std::vector<IndexSpace> &spaces, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14481,7 +14351,6 @@ namespace Legion {
                   const std::vector<IndexSpace> &spaces, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14582,7 +14451,6 @@ namespace Legion {
                       IndexSpace left, IndexSpace right, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14672,7 +14540,6 @@ namespace Legion {
     void ReplicateContext::create_shared_ownership(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
           ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14711,7 +14578,6 @@ namespace Legion {
                const bool unordered, const bool recurse, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
            && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14810,7 +14676,6 @@ namespace Legion {
     void ReplicateContext::create_shared_ownership(IndexPartition handle)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -14841,7 +14706,6 @@ namespace Legion {
                const bool unordered, const bool recurse, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
            && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15067,7 +14931,6 @@ namespace Legion {
                                                       Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);  
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15110,7 +14973,6 @@ namespace Legion {
                                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);  
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15156,7 +15018,6 @@ namespace Legion {
                                           Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15250,7 +15111,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15342,7 +15202,6 @@ namespace Legion {
                                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15418,7 +15277,6 @@ namespace Legion {
                                                   Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15500,7 +15358,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15661,7 +15518,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15722,7 +15578,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15774,7 +15629,6 @@ namespace Legion {
                                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15825,7 +15679,6 @@ namespace Legion {
                                                     bool skip_check)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !skip_check &&(i < 2)
            && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15879,7 +15732,6 @@ namespace Legion {
                                               Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -15961,7 +15813,6 @@ namespace Legion {
                                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);  
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16042,7 +15893,6 @@ namespace Legion {
                                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);  
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16122,7 +15972,6 @@ namespace Legion {
                                                   Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);  
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16220,7 +16069,6 @@ namespace Legion {
                                                   Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);  
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16298,7 +16146,6 @@ namespace Legion {
                                                       bool trust)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !trust && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16347,7 +16194,6 @@ namespace Legion {
                                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16387,7 +16233,6 @@ namespace Legion {
                                                       Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16425,7 +16270,6 @@ namespace Legion {
                                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16466,7 +16310,6 @@ namespace Legion {
                                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16506,7 +16349,6 @@ namespace Legion {
                                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16687,7 +16529,6 @@ namespace Legion {
     FieldSpace ReplicateContext::create_field_space(Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16783,7 +16624,6 @@ namespace Legion {
                                          Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -16887,7 +16727,6 @@ namespace Legion {
                                          Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17038,7 +16877,6 @@ namespace Legion {
     void ReplicateContext::create_shared_ownership(FieldSpace handle)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       if (!handle.exists())
         return;
       if (shard_manager->is_total_sharding() &&
@@ -17060,7 +16898,6 @@ namespace Legion {
                                    const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
             && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17157,7 +16994,6 @@ namespace Legion {
                                              Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17286,7 +17122,6 @@ namespace Legion {
                                              Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17398,7 +17233,6 @@ namespace Legion {
     FieldSpace space, FieldID fid, const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17457,7 +17291,6 @@ namespace Legion {
                                          Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17562,7 +17395,6 @@ namespace Legion {
                                          Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17686,7 +17518,6 @@ namespace Legion {
                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
             && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17755,7 +17586,6 @@ namespace Legion {
                                                       const bool output_region)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17895,7 +17725,6 @@ namespace Legion {
     void ReplicateContext::create_shared_ownership(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -17933,7 +17762,6 @@ namespace Legion {
                                    const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
             && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -18022,7 +17850,6 @@ namespace Legion {
                           LogicalRegion region, const std::set<FieldID> &fields)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -18065,7 +17892,6 @@ namespace Legion {
                                               FieldSpace handle, bool unordered)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
             && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -18144,16 +17970,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplicateContext::destroy_field_allocator(FieldSpaceNode *node,
-                                                   bool from_application)
+    void ReplicateContext::destroy_field_allocator(FieldSpaceNode *node)
     //--------------------------------------------------------------------------
     {
-      if (from_application)
-      {
-        AutoRuntimeCall call(this);
-        destroy_field_allocator(node, false/*from application*/);
-        return;
-      }
       bool found = false;
       std::pair<ShardID,bool> result;
       {
@@ -18325,11 +18144,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Future ReplicateContext::execute_task(const TaskLauncher &launcher,
-                                        std::vector<OutputRequirement> *outputs)
+                                        std::vector<OutputRequirement> *outputs,
+                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -18347,7 +18165,7 @@ namespace Legion {
       // If we're doing a local-function task then we can run that with just
       // a normal individual task in each shard since it is safe to duplicate
       if (launcher.local_function_task)
-        return InnerContext::execute_task(launcher, outputs);
+        return InnerContext::execute_task(launcher, outputs, provenance);
       ReplIndividualTask *task = 
         runtime->get_available_repl_individual_task();
       Future result = task->initialize_task(this,
@@ -18380,7 +18198,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FutureMap ReplicateContext::execute_index_space(
                                         const IndexTaskLauncher &launcher,
-                                        std::vector<OutputRequirement> *outputs)
+                                        std::vector<OutputRequirement> *outputs,
+                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       if (launcher.must_parallelism)
@@ -18388,12 +18207,9 @@ namespace Legion {
         // Turn around and use a must epoch launcher
         MustEpochLauncher epoch_launcher(launcher.map_id, launcher.tag);
         epoch_launcher.add_index_task(launcher);
-        epoch_launcher.provenance = launcher.provenance;
-        FutureMap result = execute_must_epoch(epoch_launcher);
+        FutureMap result = execute_must_epoch(epoch_launcher, provenance);
         return result;
       }
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
           ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -18450,23 +18266,21 @@ namespace Legion {
     Future ReplicateContext::execute_index_space(
                                         const IndexTaskLauncher &launcher,
                                         ReductionOpID redop, bool deterministic,
-                                        std::vector<OutputRequirement> *outputs)
+                                        std::vector<OutputRequirement> *outputs,
+                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoProvenance provenance(launcher.provenance);
       if (launcher.must_parallelism)
       {
         // Turn around and use a must epoch launcher
         MustEpochLauncher epoch_launcher(launcher.map_id, launcher.tag);
         epoch_launcher.add_index_task(launcher);
-        epoch_launcher.provenance = launcher.provenance;
-        FutureMap result = execute_must_epoch(epoch_launcher);
+        FutureMap result = execute_must_epoch(epoch_launcher, provenance);
         // Reduce the future map down to a future
         return reduce_future_map(result, redop, deterministic,
                                  launcher.map_id, launcher.tag, provenance,
                                  launcher.initial_value);
       }
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -18536,7 +18350,6 @@ namespace Legion {
                                         Future initial_value)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this); 
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -18653,38 +18466,31 @@ namespace Legion {
     FutureMap ReplicateContext::construct_future_map(IndexSpace space,
                                 const std::map<DomainPoint,UntypedBuffer> &data,
                                 Provenance *provenance, bool collective,
-                                ShardingID sid, bool implicit, bool internal,
-                                bool check_space)
+                                ShardingID sid, bool implicit, bool check_space)
     //--------------------------------------------------------------------------
     {
-      if (!internal)
+      for (int i = 0; runtime->safe_control_replication && (i < 2) &&
+            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
-        AutoRuntimeCall call(this);
-        for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-              ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+        HashVerifier hasher(this, runtime->safe_control_replication > 1,
+                              i > 0, provenance);
+        hasher.hash(REPLICATE_CONSTRUCT_FUTURE_MAP, __func__);
+        if (check_space)
+          hasher.hash(space, "space");
+        if (!collective)
         {
-          HashVerifier hasher(this, runtime->safe_control_replication > 1,
-                                i > 0, provenance);
-          hasher.hash(REPLICATE_CONSTRUCT_FUTURE_MAP, __func__);
-          if (check_space)
-            hasher.hash(space, "space");
-          if (!collective)
+          for (std::map<DomainPoint,UntypedBuffer>::const_iterator it =
+                data.begin(); it != data.end(); it++)
           {
-            for (std::map<DomainPoint,UntypedBuffer>::const_iterator it =
-                  data.begin(); it != data.end(); it++)
-            {
-              hasher.hash(it->first, "data");
-              if (runtime->safe_control_replication > 1)
-                hasher.hash(it->second.get_ptr(), it->second.get_size(),"data");
-            }
+            hasher.hash(it->first, "data");
+            if (runtime->safe_control_replication > 1)
+              hasher.hash(it->second.get_ptr(), it->second.get_size(),"data");
           }
-          else if (!implicit)
-            hasher.hash(sid, "sid");
-          if (hasher.verify(__func__))
-            break;
         }
-        return construct_future_map(space, data, provenance, collective,
-            sid, implicit, true/*internal*/, check_space);
+        else if (!implicit)
+          hasher.hash(sid, "sid");
+        if (hasher.verify(__func__))
+          break;
       }
       IndexSpaceNode *domain_node = runtime->forest->get_node(space);
       Domain domain;
@@ -18759,39 +18565,33 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FutureMap ReplicateContext::construct_future_map(IndexSpace space,
                                 const std::map<DomainPoint,Future> &futures,
-                                Provenance *provenance, bool internal,
+                                Provenance *provenance,
                                 bool collective, ShardingID sid, bool implicit,
                                 bool check_space)
     //--------------------------------------------------------------------------
     {
-      if (!internal)
+      for (int i = 0; runtime->safe_control_replication && (i < 2) &&
+            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
-        AutoRuntimeCall call(this);
-        for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-              ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+        HashVerifier hasher(this, runtime->safe_control_replication > 1,
+                              i > 0, provenance);
+        hasher.hash(REPLICATE_CONSTRUCT_FUTURE_MAP, __func__);
+        if (check_space)
+          hasher.hash(space, "space");
+        if (!collective)
         {
-          HashVerifier hasher(this, runtime->safe_control_replication > 1,
-                                i > 0, provenance);
-          hasher.hash(REPLICATE_CONSTRUCT_FUTURE_MAP, __func__);
-          if (check_space)
-            hasher.hash(space, "space");
-          if (!collective)
+          for (std::map<DomainPoint,Future>::const_iterator it =
+                futures.begin(); it != futures.end(); it++)
           {
-            for (std::map<DomainPoint,Future>::const_iterator it =
-                  futures.begin(); it != futures.end(); it++)
-            {
-              hasher.hash(it->first, "futures");
-              hash_future(hasher, runtime->safe_control_replication,
-                          it->second, "futures");
-            }
+            hasher.hash(it->first, "futures");
+            hash_future(hasher, runtime->safe_control_replication,
+                        it->second, "futures");
           }
-          else if (!implicit)
-            hasher.hash(sid, "sid");
-          if (hasher.verify(__func__))
-            break;
         }
-        return construct_future_map(space, futures, provenance,
-            true/*internal*/, collective, sid, implicit, check_space);
+        else if (!implicit)
+          hasher.hash(sid, "sid");
+        if (hasher.verify(__func__))
+          break;
       }
       IndexSpaceNode *domain_node = runtime->forest->get_node(space);
       CreationOp *creation_op = runtime->get_available_creation_op();
@@ -18854,11 +18654,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PhysicalRegion ReplicateContext::map_region(const InlineLauncher &launcher)
+    PhysicalRegion ReplicateContext::map_region(const InlineLauncher &launcher,
+                                                Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -18942,7 +18741,6 @@ namespace Legion {
     {
       if (!internal)
       {
-        AutoRuntimeCall call(this);
         for (int i = 0; runtime->safe_control_replication && (i < 2) &&
               ((current_trace == NULL) || !current_trace->is_fixed()); i++)
         {
@@ -18984,11 +18782,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplicateContext::fill_fields(const FillLauncher &launcher)
+    void ReplicateContext::fill_fields(const FillLauncher &launcher,
+                                       Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19061,11 +18858,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplicateContext::fill_fields(const IndexFillLauncher &launcher)
+    void ReplicateContext::fill_fields(const IndexFillLauncher &launcher,
+                                       Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19151,11 +18947,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplicateContext::discard_fields(const DiscardLauncher &launcher)
+    void ReplicateContext::discard_fields(const DiscardLauncher &launcher,
+                                          Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19208,11 +19003,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplicateContext::issue_copy(const CopyLauncher &launcher)
+    void ReplicateContext::issue_copy(const CopyLauncher &launcher,
+                                      Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19286,11 +19080,10 @@ namespace Legion {
     }
     
     //--------------------------------------------------------------------------
-    void ReplicateContext::issue_copy(const IndexCopyLauncher &launcher)
+    void ReplicateContext::issue_copy(const IndexCopyLauncher &launcher,
+                                      Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19380,10 +19173,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplicateContext::issue_acquire(const AcquireLauncher &launcher)
+    void ReplicateContext::issue_acquire(const AcquireLauncher &launcher,
+                                         Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19412,7 +19205,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-      AutoProvenance provenance(launcher.provenance);
       ReplAcquireOp *acquire_op = runtime->get_available_repl_acquire_op();
       acquire_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
@@ -19446,10 +19238,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplicateContext::issue_release(const ReleaseLauncher &launcher)
+    void ReplicateContext::issue_release(const ReleaseLauncher &launcher,
+                                         Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19478,7 +19270,6 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-      AutoProvenance provenance(launcher.provenance);
       ReplReleaseOp *release_op = runtime->get_available_repl_release_op();
       release_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
@@ -19513,11 +19304,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalRegion ReplicateContext::attach_resource(
-                                                 const AttachLauncher &launcher)
+                                                 const AttachLauncher &launcher,
+                                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19599,11 +19389,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ExternalResources ReplicateContext::attach_resources(
-                                            const IndexAttachLauncher &launcher)
+                                            const IndexAttachLauncher &launcher,
+                                            Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19737,7 +19526,6 @@ namespace Legion {
                  const bool flush, const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
             && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19784,7 +19572,6 @@ namespace Legion {
                  const bool flush, const bool unordered, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
             && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19832,11 +19619,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FutureMap ReplicateContext::execute_must_epoch(
-                                              const MustEpochLauncher &launcher)
+                      const MustEpochLauncher &launcher, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19893,11 +19678,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Future ReplicateContext::issue_timing_measurement(
-                                                 const TimingLauncher &launcher)
+                                                 const TimingLauncher &launcher,
+                                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19930,11 +19714,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Future ReplicateContext::select_tunable_value(
-                                                const TunableLauncher &launcher)
+                                                const TunableLauncher &launcher,
+                                                Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
-      AutoProvenance provenance(launcher.provenance);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19968,7 +19751,6 @@ namespace Legion {
     Future ReplicateContext::issue_mapping_fence(Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -19994,7 +19776,6 @@ namespace Legion {
     Future ReplicateContext::issue_execution_fence(Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -20022,7 +19803,6 @@ namespace Legion {
                         bool deprecated, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
@@ -20097,7 +19877,6 @@ namespace Legion {
                                      Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
@@ -20549,7 +20328,6 @@ namespace Legion {
     PhaseBarrier ReplicateContext::create_phase_barrier(unsigned arrivals)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -20576,7 +20354,6 @@ namespace Legion {
     void ReplicateContext::destroy_phase_barrier(PhaseBarrier pb)
     //--------------------------------------------------------------------------
     {
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -20601,7 +20378,6 @@ namespace Legion {
       // For now we issue a mapping fence whenever we do this because
       // we do not have any logical dependence analysis on phase barriers
       issue_mapping_fence(NULL/*provenance*/);
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -20693,7 +20469,6 @@ namespace Legion {
       // For now we issue a mapping fence whenever we do this because
       // we do not have any logical dependence analysis on phase barriers
       issue_mapping_fence(NULL/*provenance*/);
-      AutoRuntimeCall call(this);
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
             ((current_trace == NULL) || !current_trace->is_fixed()); i++)
       {
@@ -24193,8 +23968,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::destroy_field_allocator(FieldSpaceNode *node,
-                                              bool from_application)
+    void LeafContext::destroy_field_allocator(FieldSpaceNode *node)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_LEAF_TASK_VIOLATION,
@@ -24386,10 +24160,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Future LeafContext::execute_task(const TaskLauncher &launcher,
-                                     std::vector<OutputRequirement> *outputs)
+                                     std::vector<OutputRequirement> *outputs,
+                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoProvenance provenance(launcher.provenance);
       if (launcher.enable_inlining)
       {
         if (launcher.predicate == Predicate::FALSE_PRED)
@@ -24414,10 +24188,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FutureMap LeafContext::execute_index_space(
                                         const IndexTaskLauncher &launcher,
-                                        std::vector<OutputRequirement> *outputs)
+                                        std::vector<OutputRequirement> *outputs,
+                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoProvenance provenance(launcher.provenance);
       if (!launcher.must_parallelism && launcher.enable_inlining)
       {
         IndexSpace launch_space = launcher.launch_space;
@@ -24447,10 +24221,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     Future LeafContext::execute_index_space(const IndexTaskLauncher &launcher,
                                         ReductionOpID redop, bool deterministic,
-                                        std::vector<OutputRequirement> *outputs)
+                                        std::vector<OutputRequirement> *outputs,
+                                        Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      AutoProvenance provenance(launcher.provenance);
       if (!launcher.must_parallelism && launcher.enable_inlining)
       {
         IndexSpace launch_space = launcher.launch_space;
@@ -24496,8 +24270,7 @@ namespace Legion {
     FutureMap LeafContext::construct_future_map(IndexSpace domain,
                                 const std::map<DomainPoint,UntypedBuffer> &data,
                                 Provenance *provenance, bool collective,
-                                ShardingID sid, bool implicit, bool internal,
-                                bool check_space)
+                                ShardingID sid, bool implicit, bool check_space)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
@@ -24522,7 +24295,7 @@ namespace Legion {
     FutureMap LeafContext::construct_future_map(IndexSpace domain,
                                     const std::map<DomainPoint,Future> &futures,
                                     Provenance *provenance,
-                                    bool internal, bool collective,
+                                    bool collective,
                                     ShardingID sid, bool implicit, 
                                     bool check_space)
     //--------------------------------------------------------------------------
@@ -24536,7 +24309,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FutureMap LeafContext::construct_future_map(const Domain &domain,
                                     const std::map<DomainPoint,Future> &futures,
-                                    bool internal, bool collective,
+                                    bool collective,
                                     ShardingID sid, bool implicit)
     //--------------------------------------------------------------------------
     {
@@ -24571,7 +24344,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PhysicalRegion LeafContext::map_region(const InlineLauncher &launcher)
+    PhysicalRegion LeafContext::map_region(const InlineLauncher &launcher,
+                                           Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_MAP_REGION,
@@ -24601,7 +24375,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::unmap_all_regions(bool external)
+    void LeafContext::unmap_all_regions(void)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_UNMAP_OPERATION,
@@ -24610,7 +24384,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::fill_fields(const FillLauncher &launcher)
+    void LeafContext::fill_fields(const FillLauncher &launcher,
+                                  Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_FILL_OPERATION_CALL,
@@ -24619,7 +24394,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::fill_fields(const IndexFillLauncher &launcher)
+    void LeafContext::fill_fields(const IndexFillLauncher &launcher,
+                                  Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_INDEX_FILL_OPERATION_CALL,
@@ -24628,7 +24404,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::discard_fields(const DiscardLauncher &launcher)
+    void LeafContext::discard_fields(const DiscardLauncher &launcher,
+                                     Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_LEAF_TASK_VIOLATION,
@@ -24637,7 +24414,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::issue_copy(const CopyLauncher &launcher)
+    void LeafContext::issue_copy(const CopyLauncher &launcher,
+                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_COPY_FILL_OPERATION_CALL,
@@ -24646,7 +24424,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::issue_copy(const IndexCopyLauncher &launcher)
+    void LeafContext::issue_copy(const IndexCopyLauncher &launcher,
+                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_INDEX_COPY_OPERATION,
@@ -24655,7 +24434,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::issue_acquire(const AcquireLauncher &launcher)
+    void LeafContext::issue_acquire(const AcquireLauncher &launcher,
+                                    Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_ACQUIRE_OPERATION,
@@ -24664,7 +24444,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::issue_release(const ReleaseLauncher &launcher)
+    void LeafContext::issue_release(const ReleaseLauncher &launcher,
+                                    Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_RELEASE_OPERATION,
@@ -24673,7 +24454,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PhysicalRegion LeafContext::attach_resource(const AttachLauncher &launcher)
+    PhysicalRegion LeafContext::attach_resource(const AttachLauncher &launcher,
+                                                Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_ATTACH_RESOURCE_OPERATION,
@@ -24684,7 +24466,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ExternalResources LeafContext::attach_resources(
-                                            const IndexAttachLauncher &launcher)
+                                            const IndexAttachLauncher &launcher,
+                                            Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_ATTACH_RESOURCE_OPERATION,
@@ -24725,7 +24508,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FutureMap LeafContext::execute_must_epoch(const MustEpochLauncher &launcher)
+    FutureMap LeafContext::execute_must_epoch(const MustEpochLauncher &launcher,
+                                              Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_LEGION_EXECUTE_MUST_EPOCH,
@@ -24735,7 +24519,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Future LeafContext::issue_timing_measurement(const TimingLauncher &launcher)
+    Future LeafContext::issue_timing_measurement(const TimingLauncher &launcher,
+                                                 Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_TIMING_MEASUREMENT,
@@ -24745,7 +24530,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Future LeafContext::select_tunable_value(const TunableLauncher &launcher)
+    Future LeafContext::select_tunable_value(const TunableLauncher &launcher,
+                                             Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_LEAF_TASK_VIOLATION,
@@ -24817,7 +24603,8 @@ namespace Legion {
     }
     
     //--------------------------------------------------------------------------
-    Predicate LeafContext::create_predicate(const PredicateLauncher &launcher)
+    Predicate LeafContext::create_predicate(const PredicateLauncher &launcher,
+                                            Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       if (launcher.predicates.empty())

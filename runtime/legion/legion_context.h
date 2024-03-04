@@ -33,13 +33,6 @@ namespace Legion {
      */
     class TaskContext : public DistributedCollectable {
     public:
-      class AutoRuntimeCall {
-      public:
-        AutoRuntimeCall(TaskContext *c) : ctx(c) { ctx->begin_runtime_call(); }
-        ~AutoRuntimeCall(void) { ctx->end_runtime_call(); }
-      public:
-        TaskContext *const ctx;
-      };
       // This is a no-op task for yield operations
       struct YieldArgs : public LgTaskArgs<YieldArgs> {
       public:
@@ -414,8 +407,7 @@ namespace Legion {
                                           const std::set<FieldID> &fields) = 0;
       virtual FieldAllocatorImpl* create_field_allocator(FieldSpace handle,
                                                          bool unordered) = 0;
-      virtual void destroy_field_allocator(FieldSpaceNode *node, 
-                                           bool from_application = true) = 0;
+      virtual void destroy_field_allocator(FieldSpaceNode *node) = 0; 
       virtual void get_local_field_set(const FieldSpace handle,
                                        const std::set<unsigned> &indexes,
                                        std::set<FieldID> &to_set) const = 0;
@@ -427,12 +419,15 @@ namespace Legion {
           bool mapped, MapperID mid, MappingTagID tag, ApUserEvent &unmap_event,
           bool virtual_mapped, const InstanceSet &physical_instances) = 0;
       virtual Future execute_task(const TaskLauncher &launcher,
-                                  std::vector<OutputRequirement> *outputs) = 0;
+                                  std::vector<OutputRequirement> *outputs,
+                                  Provenance *provenance) = 0;
       virtual FutureMap execute_index_space(const IndexTaskLauncher &launcher,
-                                   std::vector<OutputRequirement> *outputs) = 0;
+                                   std::vector<OutputRequirement> *outputs,
+                                   Provenance *provenance) = 0;
       virtual Future execute_index_space(const IndexTaskLauncher &launcher,
                                    ReductionOpID redop, bool deterministic,
-                                   std::vector<OutputRequirement> *outputs) = 0;
+                                   std::vector<OutputRequirement> *outputs,
+                                   Provenance *provenance) = 0;
       virtual Future reduce_future_map(const FutureMap &future_map,
                                    ReductionOpID redop, bool deterministic,
                                    MapperID map_id, MappingTagID tag,
@@ -444,7 +439,6 @@ namespace Legion {
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false,
-                                             bool internal = false,
                                              bool check_space = true) = 0;
       virtual FutureMap construct_future_map(const Domain &domain,
                                 const std::map<DomainPoint,UntypedBuffer> &data,
@@ -454,14 +448,12 @@ namespace Legion {
       virtual FutureMap construct_future_map(IndexSpace domain,
                                const std::map<DomainPoint,Future> &futures,
                                              Provenance *provenance,
-                                             bool internal = false,
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false,
                                              bool check_space = true) = 0;
       virtual FutureMap construct_future_map(const Domain &domain,
                     const std::map<DomainPoint,Future> &futures,
-                                             bool internal = false,
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false) = 0;
@@ -474,23 +466,33 @@ namespace Legion {
                                              PointTransformFunctor *functor,
                                              bool own_functor,
                                              Provenance *provenance) = 0;
-      virtual PhysicalRegion map_region(const InlineLauncher &launcher) = 0;
+      virtual PhysicalRegion map_region(const InlineLauncher &launcher,
+                                        Provenance *provenance) = 0;
       virtual ApEvent remap_region(const PhysicalRegion &region,
                                    Provenance *provenance,
                                    bool internal = false) = 0;
       virtual void unmap_region(PhysicalRegion region) = 0;
-      virtual void unmap_all_regions(bool external) = 0;
-      virtual void fill_fields(const FillLauncher &launcher) = 0;
-      virtual void fill_fields(const IndexFillLauncher &launcher) = 0;
-      virtual void discard_fields(const DiscardLauncher &launcher) = 0;
-      virtual void issue_copy(const CopyLauncher &launcher) = 0;
-      virtual void issue_copy(const IndexCopyLauncher &launcher) = 0;
-      virtual void issue_acquire(const AcquireLauncher &launcher) = 0;
-      virtual void issue_release(const ReleaseLauncher &launcher) = 0;
+      virtual void unmap_all_regions(void) = 0;
+      virtual void fill_fields(const FillLauncher &launcher,
+                               Provenance *provenance) = 0;
+      virtual void fill_fields(const IndexFillLauncher &launcher,
+                               Provenance *provenance) = 0;
+      virtual void discard_fields(const DiscardLauncher &launcher,
+                                  Provenance *provenance) = 0;
+      virtual void issue_copy(const CopyLauncher &launcher,
+                              Provenance *provenance) = 0;
+      virtual void issue_copy(const IndexCopyLauncher &launcher,
+                              Provenance *provenance) = 0;
+      virtual void issue_acquire(const AcquireLauncher &launcher,
+                                 Provenance *provenance) = 0;
+      virtual void issue_release(const ReleaseLauncher &launcher,
+                                 Provenance *provenance) = 0;
       virtual PhysicalRegion attach_resource(
-                                  const AttachLauncher &launcher) = 0;
+                                  const AttachLauncher &launcher,
+                                  Provenance *provenance) = 0;
       virtual ExternalResources attach_resources(
-                                  const IndexAttachLauncher &launcher) = 0;
+                                  const IndexAttachLauncher &launcher,
+                                  Provenance *provenance) = 0;
       virtual Future detach_resource(PhysicalRegion region, 
                                      const bool flush,const bool unordered,
                                      Provenance *provenance = NULL) = 0;
@@ -499,10 +501,13 @@ namespace Legion {
                                     Provenance *provenance) = 0;
       virtual void progress_unordered_operations(bool end_task = false) = 0;
       virtual FutureMap execute_must_epoch(
-                                 const MustEpochLauncher &launcher) = 0;
+                                 const MustEpochLauncher &launcher,
+                                 Provenance *provenance) = 0;
       virtual Future issue_timing_measurement(
-                                    const TimingLauncher &launcher) = 0;
-      virtual Future select_tunable_value(const TunableLauncher &launcher) = 0;
+                                    const TimingLauncher &launcher,
+                                    Provenance *provenance) = 0;
+      virtual Future select_tunable_value(const TunableLauncher &launcher,
+                                          Provenance *provenance) = 0;
       virtual Future issue_mapping_fence(Provenance *provenance) = 0;
       virtual Future issue_execution_fence(Provenance *provenance) = 0;
       virtual void complete_frame(Provenance *provenance) = 0;
@@ -510,7 +515,8 @@ namespace Legion {
                                          Provenance *provenance) = 0;
       virtual Predicate predicate_not(const Predicate &p,
                                       Provenance *provenance) = 0;
-      virtual Predicate create_predicate(const PredicateLauncher &launcher) = 0;
+      virtual Predicate create_predicate(const PredicateLauncher &launcher,
+                                         Provenance *provenance) = 0;
       virtual Future get_predicate_future(const Predicate &p,
                                           Provenance *provenance) = 0;
     public:
@@ -606,7 +612,7 @@ namespace Legion {
       virtual void raise_poison_exception(void);
       virtual void raise_region_exception(PhysicalRegion region, bool nuclear);
     public:
-      bool safe_cast(RegionTreeForest *forest, IndexSpace handle, 
+      bool safe_cast(IndexSpace handle, 
                      const void *realm_point, TypeTag type_tag);
       bool is_region_mapped(unsigned idx);
       void record_padded_fields(VariantImpl *variant);
@@ -627,13 +633,14 @@ namespace Legion {
                              bool global_indexing, bool valid);
       void finalize_output_regions(void);
       void initialize_overhead_profiler(void);
-      inline void begin_runtime_call(void);
-      inline void end_runtime_call(void);
+      bool begin_runtime_call(RuntimeCallKind kind,
+                              Provenance *provenance);
+      void end_runtime_call(RuntimeCallKind kind,
+                            Provenance *provenance,
+                            unsigned long long start,
+                            unsigned long long stop);
       inline void begin_wait(bool from_application);
-      inline void end_wait(bool from_application);
-      void remap_unmapped_regions(LogicalTrace *current_trace,
-                           const std::vector<PhysicalRegion> &unmapped_regions,
-                           Provenance *provenance);
+      inline void end_wait(bool from_application); 
     public:
       void* get_local_task_variable(LocalVariableID id);
       void set_local_task_variable(LocalVariableID id, const void *value,
@@ -1521,8 +1528,7 @@ namespace Legion {
                                           const std::set<FieldID> &fields);
       virtual FieldAllocatorImpl* create_field_allocator(FieldSpace handle,
                                                          bool unordered);
-      virtual void destroy_field_allocator(FieldSpaceNode *node,
-                                           bool from_application = true);
+      virtual void destroy_field_allocator(FieldSpaceNode *node);
       virtual void get_local_field_set(const FieldSpace handle,
                                        const std::set<unsigned> &indexes,
                                        std::set<FieldID> &to_set) const;
@@ -1534,12 +1540,15 @@ namespace Legion {
           bool mapped, MapperID mid, MappingTagID tag, ApUserEvent &unmap_event,
           bool virtual_mapped, const InstanceSet &physical_instances);
       virtual Future execute_task(const TaskLauncher &launcher,
-                                  std::vector<OutputRequirement> *outputs);
+                                  std::vector<OutputRequirement> *outputs,
+                                  Provenance *provenance);
       virtual FutureMap execute_index_space(const IndexTaskLauncher &launcher,
-                                       std::vector<OutputRequirement> *outputs);
+                                       std::vector<OutputRequirement> *outputs,
+                                       Provenance *provenance);
       virtual Future execute_index_space(const IndexTaskLauncher &launcher,
                                        ReductionOpID redop, bool deterministic,
-                                       std::vector<OutputRequirement> *outputs);
+                                       std::vector<OutputRequirement> *outputs,
+                                       Provenance *provenance);
       virtual Future reduce_future_map(const FutureMap &future_map,
                                        ReductionOpID redop, bool deterministic,
                                        MapperID map_id, MappingTagID tag,
@@ -1551,7 +1560,6 @@ namespace Legion {
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false,
-                                             bool internal = false,
                                              bool check_space = true);
       virtual FutureMap construct_future_map(const Domain &domain,
                                 const std::map<DomainPoint,UntypedBuffer> &data,
@@ -1561,14 +1569,12 @@ namespace Legion {
       virtual FutureMap construct_future_map(IndexSpace domain,
                                    const std::map<DomainPoint,Future> &futures,
                                              Provenance *provenance,
-                                             bool internal = false,
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false,
                                              bool check_space = true);
       virtual FutureMap construct_future_map(const Domain &domain,
                     const std::map<DomainPoint,Future> &futures,
-                                             bool internal = false,
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false);
@@ -1581,22 +1587,32 @@ namespace Legion {
                                              PointTransformFunctor *functor,
                                              bool own_functor,
                                              Provenance *provenance);
-      virtual PhysicalRegion map_region(const InlineLauncher &launcher);
+      virtual PhysicalRegion map_region(const InlineLauncher &launcher,
+                                        Provenance *provenance);
       virtual ApEvent remap_region(const PhysicalRegion &region,
                                    Provenance *provenance,
                                    bool internal = false);
       virtual void unmap_region(PhysicalRegion region);
-      virtual void unmap_all_regions(bool external);
-      virtual void fill_fields(const FillLauncher &launcher);
-      virtual void fill_fields(const IndexFillLauncher &launcher);
-      virtual void discard_fields(const DiscardLauncher &launcher);
-      virtual void issue_copy(const CopyLauncher &launcher);
-      virtual void issue_copy(const IndexCopyLauncher &launcher);
-      virtual void issue_acquire(const AcquireLauncher &launcher);
-      virtual void issue_release(const ReleaseLauncher &launcher);
-      virtual PhysicalRegion attach_resource(const AttachLauncher &launcher);
+      virtual void unmap_all_regions(void);
+      virtual void fill_fields(const FillLauncher &launcher,
+                               Provenance *provenance);
+      virtual void fill_fields(const IndexFillLauncher &launcher,
+                               Provenance *provenance);
+      virtual void discard_fields(const DiscardLauncher &launcher,
+                                  Provenance *provenance);
+      virtual void issue_copy(const CopyLauncher &launcher,
+                              Provenance *provenance);
+      virtual void issue_copy(const IndexCopyLauncher &launcher,
+                              Provenance *provenance);
+      virtual void issue_acquire(const AcquireLauncher &launcher,
+                                 Provenance *provenance);
+      virtual void issue_release(const ReleaseLauncher &launcher,
+                                 Provenance *provenance);
+      virtual PhysicalRegion attach_resource(const AttachLauncher &launcher,
+                                             Provenance *provenance);
       virtual ExternalResources attach_resources(
-                                        const IndexAttachLauncher &launcher);
+                                        const IndexAttachLauncher &launcher,
+                                        Provenance *provenance);
       virtual RegionTreeNode* compute_index_attach_upper_bound(
                                         const IndexAttachLauncher &launcher,
                                         const std::vector<unsigned> &indexes);
@@ -1612,9 +1628,12 @@ namespace Legion {
                                       const bool flush, const bool unordered,
                                       Provenance *provenance);
       virtual void progress_unordered_operations(bool end_task = false);
-      virtual FutureMap execute_must_epoch(const MustEpochLauncher &launcher);
-      virtual Future issue_timing_measurement(const TimingLauncher &launcher);
-      virtual Future select_tunable_value(const TunableLauncher &launcher);
+      virtual FutureMap execute_must_epoch(const MustEpochLauncher &launcher,
+                                            Provenance *provenance);
+      virtual Future issue_timing_measurement(const TimingLauncher &launcher,
+                                              Provenance *provenance);
+      virtual Future select_tunable_value(const TunableLauncher &launcher,
+                                          Provenance *provenance);
       virtual Future issue_mapping_fence(Provenance *provenance);
       virtual Future issue_execution_fence(Provenance *provenance);
       virtual void complete_frame(Provenance *provenance);
@@ -1622,7 +1641,8 @@ namespace Legion {
                                          Provenance *provenance);
       virtual Predicate predicate_not(const Predicate &p,
                                       Provenance *provenance);
-      virtual Predicate create_predicate(const PredicateLauncher &launcher);
+      virtual Predicate create_predicate(const PredicateLauncher &launcher,
+                                         Provenance *provenance);
       virtual Future get_predicate_future(const Predicate &p,
                                           Provenance *provenance);
       virtual PredicateImpl* create_predicate_impl(Operation *op);
@@ -1919,6 +1939,9 @@ namespace Legion {
                                const std::vector<StaticDependence> *dependences,
                                Provenance *provenance, 
                                bool silence_warnings, bool inlining_enabled);
+      void remap_unmapped_regions(LogicalTrace *current_trace,
+                           const std::vector<PhysicalRegion> &unmapped_regions,
+                           Provenance *provenance);
     public:
       static constexpr uint64_t NO_FUTURE_COORDINATE =
         std::numeric_limits<uint64_t>::max();
@@ -2895,20 +2918,22 @@ namespace Legion {
     public:
       virtual FieldAllocatorImpl* create_field_allocator(FieldSpace handle,
                                                          bool unordered);
-      virtual void destroy_field_allocator(FieldSpaceNode *node,
-                                           bool from_application = true);
+      virtual void destroy_field_allocator(FieldSpaceNode *node);
     public:
       void initialize_unordered_collective(void);
       void finalize_unordered_collective(AutoLock &d_lock);
       virtual void insert_unordered_ops(AutoLock &d_lock);
       virtual void progress_unordered_operations(bool end_task = false);
       virtual Future execute_task(const TaskLauncher &launcher,
-                                  std::vector<OutputRequirement> *outputs);
+                                  std::vector<OutputRequirement> *outputs,
+                                  Provenance *provenance);
       virtual FutureMap execute_index_space(const IndexTaskLauncher &launcher,
-                                       std::vector<OutputRequirement> *outputs);
+                                       std::vector<OutputRequirement> *outputs,
+                                       Provenance *provenance);
       virtual Future execute_index_space(const IndexTaskLauncher &launcher,
                                        ReductionOpID redop, bool deterministic,
-                                       std::vector<OutputRequirement> *outputs);
+                                       std::vector<OutputRequirement> *outputs,
+                                       Provenance *provenance);
       virtual Future reduce_future_map(const FutureMap &future_map,
                                        ReductionOpID redop, bool deterministic,
                                        MapperID map_id, MappingTagID tag,
@@ -2921,31 +2946,39 @@ namespace Legion {
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false,
-                                             bool internal = false,
                                              bool check_space = true);
       virtual FutureMap construct_future_map(IndexSpace space,
                     const std::map<DomainPoint,Future> &futures,
                                              Provenance *provenance,
-                                             bool internal = false,
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false,
                                              bool check_space = true);
-      virtual PhysicalRegion map_region(const InlineLauncher &launcher);
+      virtual PhysicalRegion map_region(const InlineLauncher &launcher,
+                                        Provenance *provenance);
       virtual ApEvent remap_region(const PhysicalRegion &region,
                                    Provenance *provenance,
                                    bool internal = false);
       // Unmapping region is the same as for an inner context
-      virtual void fill_fields(const FillLauncher &launcher);
-      virtual void fill_fields(const IndexFillLauncher &launcher);
-      virtual void discard_fields(const DiscardLauncher &launcher);
-      virtual void issue_copy(const CopyLauncher &launcher);
-      virtual void issue_copy(const IndexCopyLauncher &launcher);
-      virtual void issue_acquire(const AcquireLauncher &launcher);
-      virtual void issue_release(const ReleaseLauncher &launcher);
-      virtual PhysicalRegion attach_resource(const AttachLauncher &launcher);
+      virtual void fill_fields(const FillLauncher &launcher,
+                               Provenance *provenance);
+      virtual void fill_fields(const IndexFillLauncher &launcher,
+                               Provenance *provenance);
+      virtual void discard_fields(const DiscardLauncher &launcher,
+                                  Provenance *provenance);
+      virtual void issue_copy(const CopyLauncher &launcher,
+                              Provenance *provenance);
+      virtual void issue_copy(const IndexCopyLauncher &launcher,
+                              Provenance *provenance);
+      virtual void issue_acquire(const AcquireLauncher &launcher,
+                                 Provenance *provenance);
+      virtual void issue_release(const ReleaseLauncher &launcher,
+                                 Provenance *provenance);
+      virtual PhysicalRegion attach_resource(const AttachLauncher &launcher,
+                                             Provenance *provenance);
       virtual ExternalResources attach_resources(
-                                          const IndexAttachLauncher &launcher);
+                                          const IndexAttachLauncher &launcher,
+                                          Provenance *provenance);
       virtual RegionTreeNode* compute_index_attach_upper_bound(
                                         const IndexAttachLauncher &launcher,
                                         const std::vector<unsigned> &indexes);
@@ -2955,9 +2988,12 @@ namespace Legion {
       virtual Future detach_resources(ExternalResources resources,
                                       const bool flush, const bool unordered,
                                       Provenance *provenance);
-      virtual FutureMap execute_must_epoch(const MustEpochLauncher &launcher);
-      virtual Future issue_timing_measurement(const TimingLauncher &launcher);
-      virtual Future select_tunable_value(const TunableLauncher &launcher);
+      virtual FutureMap execute_must_epoch(const MustEpochLauncher &launcher,
+                                           Provenance *provenance);
+      virtual Future issue_timing_measurement(const TimingLauncher &launcher,
+                                              Provenance *provenance);
+      virtual Future select_tunable_value(const TunableLauncher &launcher,
+                                          Provenance *provenance);
       virtual Future issue_mapping_fence(Provenance *provenance);
       virtual Future issue_execution_fence(Provenance *provenance);
       virtual void begin_trace(TraceID tid, bool logical_only,
@@ -3799,8 +3835,7 @@ namespace Legion {
                                        Provenance *provenance);
       virtual FieldAllocatorImpl* create_field_allocator(FieldSpace handle,
                                                          bool unordered);
-      virtual void destroy_field_allocator(FieldSpaceNode *node,
-                                           bool from_application = true);
+      virtual void destroy_field_allocator(FieldSpaceNode *node);
       virtual FieldID allocate_field(FieldSpace space, size_t field_size,
                                      FieldID fid, bool local,
                                      CustomSerdezID serdez_id,
@@ -3861,12 +3896,15 @@ namespace Legion {
           bool mapped, MapperID mid, MappingTagID tag, ApUserEvent &unmap_event,
           bool virtual_mapped, const InstanceSet &physical_instances);
       virtual Future execute_task(const TaskLauncher &launcher,
-                                  std::vector<OutputRequirement> *outputs);
+                                  std::vector<OutputRequirement> *outputs,
+                                  Provenance *provenance);
       virtual FutureMap execute_index_space(const IndexTaskLauncher &launcher,
-                                       std::vector<OutputRequirement> *outputs);
+                                       std::vector<OutputRequirement> *outputs,
+                                       Provenance *provenance);
       virtual Future execute_index_space(const IndexTaskLauncher &launcher,
                                        ReductionOpID redop, bool deterministic,
-                                       std::vector<OutputRequirement> *outputs);
+                                       std::vector<OutputRequirement> *outputs,
+                                       Provenance *provenance);
       virtual Future reduce_future_map(const FutureMap &future_map,
                                        ReductionOpID redop, bool deterministic,
                                        MapperID map_id, MappingTagID tag,
@@ -3878,7 +3916,6 @@ namespace Legion {
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false,
-                                             bool internal = false,
                                              bool check_space = true);
       virtual FutureMap construct_future_map(const Domain &domain,
                                 const std::map<DomainPoint,UntypedBuffer> &data,
@@ -3888,14 +3925,12 @@ namespace Legion {
       virtual FutureMap construct_future_map(IndexSpace domain,
                                    const std::map<DomainPoint,Future> &futures,
                                              Provenance *provenance,
-                                             bool internal = false,
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false,
                                              bool check_space = true);
       virtual FutureMap construct_future_map(const Domain &domain,
                     const std::map<DomainPoint,Future> &futures,
-                                             bool internal = false,
                                              bool collective = false,
                                              ShardingID sid = 0,
                                              bool implicit = false);
@@ -3908,22 +3943,32 @@ namespace Legion {
                                              PointTransformFunctor *functor,
                                              bool own_functor,
                                              Provenance *provenance);
-      virtual PhysicalRegion map_region(const InlineLauncher &launcher);
+      virtual PhysicalRegion map_region(const InlineLauncher &launcher,
+                                        Provenance *provenance);
       virtual ApEvent remap_region(const PhysicalRegion &region,
                                    Provenance *provenance,
                                    bool internal = false);
       virtual void unmap_region(PhysicalRegion region);
-      virtual void unmap_all_regions(bool external);
-      virtual void fill_fields(const FillLauncher &launcher);
-      virtual void fill_fields(const IndexFillLauncher &launcher);
-      virtual void discard_fields(const DiscardLauncher &launcher);
-      virtual void issue_copy(const CopyLauncher &launcher);
-      virtual void issue_copy(const IndexCopyLauncher &launcher);
-      virtual void issue_acquire(const AcquireLauncher &launcher);
-      virtual void issue_release(const ReleaseLauncher &launcher);
-      virtual PhysicalRegion attach_resource(const AttachLauncher &launcher);
+      virtual void unmap_all_regions(void);
+      virtual void fill_fields(const FillLauncher &launcher,
+                               Provenance *provenance);
+      virtual void fill_fields(const IndexFillLauncher &launcher,
+                               Provenance *provenance);
+      virtual void discard_fields(const DiscardLauncher &launcher,
+                                  Provenance *provenance);
+      virtual void issue_copy(const CopyLauncher &launcher,
+                              Provenance *provenance);
+      virtual void issue_copy(const IndexCopyLauncher &launcher,
+                              Provenance *provenance);
+      virtual void issue_acquire(const AcquireLauncher &launcher,
+                                 Provenance *provenance);
+      virtual void issue_release(const ReleaseLauncher &launcher,
+                                 Provenance *provenance);
+      virtual PhysicalRegion attach_resource(const AttachLauncher &launcher,
+                                             Provenance *provenance);
       virtual ExternalResources attach_resources(
-                                          const IndexAttachLauncher &launcher);
+                                          const IndexAttachLauncher &launcher,
+                                          Provenance *provenance);
       virtual Future detach_resource(PhysicalRegion region, const bool flush,
                                      const bool unordered,
                                      Provenance *provenance = NULL);
@@ -3931,9 +3976,12 @@ namespace Legion {
                                       const bool flush, const bool unordered,
                                       Provenance *provenance);
       virtual void progress_unordered_operations(bool end_task = false);
-      virtual FutureMap execute_must_epoch(const MustEpochLauncher &launcher);
-      virtual Future issue_timing_measurement(const TimingLauncher &launcher);
-      virtual Future select_tunable_value(const TunableLauncher &launcher);
+      virtual FutureMap execute_must_epoch(const MustEpochLauncher &launcher,
+                                           Provenance *provenance);
+      virtual Future issue_timing_measurement(const TimingLauncher &launcher,
+                                              Provenance *provenance);
+      virtual Future select_tunable_value(const TunableLauncher &launcher,
+                                          Provenance *provenance);
       virtual Future issue_mapping_fence(Provenance *provenance);
       virtual Future issue_execution_fence(Provenance *provenance);
       virtual void complete_frame(Provenance *provenance);
@@ -3941,7 +3989,8 @@ namespace Legion {
                                          Provenance *provenance);
       virtual Predicate predicate_not(const Predicate &p,
                                       Provenance *provenance);
-      virtual Predicate create_predicate(const PredicateLauncher &launcher);
+      virtual Predicate create_predicate(const PredicateLauncher &launcher,
+                                         Provenance *provenance);
       virtual Future get_predicate_future(const Predicate &p,
                                           Provenance *provenance);
     public:
@@ -4020,7 +4069,8 @@ namespace Legion {
     };
 
     //--------------------------------------------------------------------------
-    inline void TaskContext::begin_runtime_call(void)
+    inline bool TaskContext::begin_runtime_call(RuntimeCallKind kind,
+                                                Provenance *provenance)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -4035,10 +4085,13 @@ namespace Legion {
         overhead_profiler->previous_profiling_time = current;
         overhead_profiler->inside_runtime_call = true;
       }
+      return ((runtime->profiler != NULL) || (overhead_profiler != NULL));
     }
 
     //--------------------------------------------------------------------------
-    inline void TaskContext::end_runtime_call(void)
+    inline void TaskContext::end_runtime_call(RuntimeCallKind kind,
+        Provenance *provenance, unsigned long long start,
+        unsigned long long stop)
     //--------------------------------------------------------------------------
     {
       if (implicit_reference_tracker != NULL)
@@ -4055,6 +4108,8 @@ namespace Legion {
         overhead_profiler->previous_profiling_time = current;
         overhead_profiler->inside_runtime_call = false;
       }
+      if (runtime->profiler != NULL)
+        runtime->profiler->record_runtime_call(kind, start, stop); 
     }
 
     //--------------------------------------------------------------------------

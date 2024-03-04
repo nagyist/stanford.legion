@@ -10502,10 +10502,7 @@ namespace Legion {
       // We can remove the reference to the allocator once we are
       // done with all of our free operations
       if ((allocator != NULL) && allocator->remove_reference())
-      {
-        allocator->free_from_runtime();
         delete allocator;
-      }
       sub_partitions.clear();
       free_fields.clear();
       local_fields.clear();

@@ -53,9 +53,6 @@ code, __FILE__, __LINE__, message);                       \
 namespace Legion {
   namespace Internal {  
 
-    // Special helper for when we need a dummy context
-#define DUMMY_CONTEXT       0
-
     /**
      * A class for deduplicating memory used with task arguments
      * and knowing when to collect the data associated with it
@@ -171,14 +168,10 @@ namespace Legion {
       void free_fields(const std::set<FieldID> &to_free, const bool unordered,
                        Provenance *provenance = NULL);
     public:
-      inline void free_from_runtime(void) { free_from_application = false; }
-    public:
       FieldSpace field_space;
       FieldSpaceNode *const node;
       TaskContext *const context;
       const RtEvent ready_event;
-    protected:
-      bool free_from_application;
     };
 
     /**
@@ -2722,176 +2715,74 @@ namespace Legion {
               const bool total_sharding_collective = false,
               const bool unpack_reference = false);
     public:
-      IndexPartition get_index_partition(Context ctx, IndexSpace parent, 
-                                         Color color);
       IndexPartition get_index_partition(IndexSpace parent, Color color);
-      bool has_index_partition(Context ctx, IndexSpace parent, Color color);
       bool has_index_partition(IndexSpace parent, Color color); 
-      IndexSpace get_index_subspace(Context ctx, IndexPartition p,
-                                    const void *realm_color, TypeTag type_tag);
       IndexSpace get_index_subspace(IndexPartition p, 
                                     const void *realm_color, TypeTag type_tag);
-      bool has_index_subspace(Context ctx, IndexPartition p,
-                              const void *realm_color, TypeTag type_tag);
       bool has_index_subspace(IndexPartition p, 
                               const void *realm_color, TypeTag type_tag);
-      void get_index_space_domain(Context ctx, IndexSpace handle,
-                                  void *realm_is, TypeTag type_tag);
       void get_index_space_domain(IndexSpace handle, 
                                   void *realm_is, TypeTag type_tag);
-      Domain get_index_partition_color_space(Context ctx, IndexPartition p);
       Domain get_index_partition_color_space(IndexPartition p);
       void get_index_partition_color_space(IndexPartition p, 
                                            void *realm_is, TypeTag type_tag);
-      IndexSpace get_index_partition_color_space_name(Context ctx,
-                                                      IndexPartition p);
       IndexSpace get_index_partition_color_space_name(IndexPartition p);
-      void get_index_space_partition_colors(Context ctx, IndexSpace handle,
-                                            std::set<Color> &colors);
       void get_index_space_partition_colors(IndexSpace handle,
                                             std::set<Color> &colors);
-      bool is_index_partition_disjoint(Context ctx, IndexPartition p);
       bool is_index_partition_disjoint(IndexPartition p);
-      bool is_index_partition_complete(Context ctx, IndexPartition p);
       bool is_index_partition_complete(IndexPartition p);
-      void get_index_space_color_point(Context ctx, IndexSpace handle,
-                                       void *realm_color, TypeTag type_tag);
       void get_index_space_color_point(IndexSpace handle,
                                        void *realm_color, TypeTag type_tag);
-      DomainPoint get_index_space_color_point(Context ctx, IndexSpace handle);
       DomainPoint get_index_space_color_point(IndexSpace handle);
-      Color get_index_partition_color(Context ctx, IndexPartition handle);
       Color get_index_partition_color(IndexPartition handle);
-      IndexSpace get_parent_index_space(Context ctx, IndexPartition handle);
       IndexSpace get_parent_index_space(IndexPartition handle);
-      bool has_parent_index_partition(Context ctx, IndexSpace handle);
       bool has_parent_index_partition(IndexSpace handle);
-      IndexPartition get_parent_index_partition(Context ctx, IndexSpace handle);
       IndexPartition get_parent_index_partition(IndexSpace handle);
-      unsigned get_index_space_depth(Context ctx, IndexSpace handle);
       unsigned get_index_space_depth(IndexSpace handle);
-      unsigned get_index_partition_depth(Context ctx, IndexPartition handle);
       unsigned get_index_partition_depth(IndexPartition handle);
     public:
-      bool safe_cast(Context ctx, LogicalRegion region,
-                     const void *realm_point, TypeTag type_tag);
-    public:
-      size_t get_field_size(Context ctx, FieldSpace handle, FieldID fid);
       size_t get_field_size(FieldSpace handle, FieldID fid);
-      void get_field_space_fields(Context ctx, FieldSpace handle,
-                                  std::vector<FieldID> &fields);
       void get_field_space_fields(FieldSpace handle, 
                                   std::vector<FieldID> &fields);
     public:
-      LogicalPartition get_logical_partition(Context ctx, LogicalRegion parent, 
-                                             IndexPartition handle);
       LogicalPartition get_logical_partition(LogicalRegion parent,
                                              IndexPartition handle);
-      LogicalPartition get_logical_partition_by_color(Context ctx, 
-                                                      LogicalRegion parent, 
-                                                      Color c);
       LogicalPartition get_logical_partition_by_color(LogicalRegion parent,
                                                       Color c);
-      bool has_logical_partition_by_color(Context ctx, LogicalRegion parent,
-                                          Color c);
       bool has_logical_partition_by_color(LogicalRegion parent, Color c);
-      LogicalPartition get_logical_partition_by_tree(Context ctx, 
-                                                     IndexPartition handle, 
-                                                     FieldSpace fspace, 
-                                                     RegionTreeID tid); 
       LogicalPartition get_logical_partition_by_tree(IndexPartition handle,
                                                      FieldSpace fspace,
                                                      RegionTreeID tid);
-      LogicalRegion get_logical_subregion(Context ctx, LogicalPartition parent, 
-                                          IndexSpace handle);
       LogicalRegion get_logical_subregion(LogicalPartition parent,
                                           IndexSpace handle);
-      LogicalRegion get_logical_subregion_by_color(Context ctx,
-                                                   LogicalPartition parent,
-                                                   const void *realm_color,
-                                                   TypeTag type_tag);
       LogicalRegion get_logical_subregion_by_color(LogicalPartition parent,
                                                    const void *realm_color,
                                                    TypeTag type_tag);
-      bool has_logical_subregion_by_color(Context ctx, LogicalPartition parent,
-                                          const void *realm_color, 
-                                          TypeTag type_tag);
       bool has_logical_subregion_by_color(LogicalPartition parent,
                                           const void *realm_color,
                                           TypeTag type_tag);
-      LogicalRegion get_logical_subregion_by_tree(Context ctx, 
-                                                  IndexSpace handle, 
-                                                  FieldSpace fspace, 
-                                                  RegionTreeID tid);
       LogicalRegion get_logical_subregion_by_tree(IndexSpace handle,
                                                   FieldSpace fspace,
                                                   RegionTreeID tid);
-      void get_logical_region_color(Context ctx, LogicalRegion handle,
-                                    void *realm_color, TypeTag type_tag);
       void get_logical_region_color(LogicalRegion handle, 
                                     void *realm_color, TypeTag type_tag);
-      DomainPoint get_logical_region_color_point(Context ctx, 
-                                                 LogicalRegion handle);
       DomainPoint get_logical_region_color_point(LogicalRegion handle);
-      Color get_logical_partition_color(Context ctx, LogicalPartition handle);
       Color get_logical_partition_color(LogicalPartition handle);
-      LogicalRegion get_parent_logical_region(Context ctx, 
-                                              LogicalPartition handle);
       LogicalRegion get_parent_logical_region(LogicalPartition handle);
-      bool has_parent_logical_partition(Context ctx, LogicalRegion handle);
       bool has_parent_logical_partition(LogicalRegion handle);
-      LogicalPartition get_parent_logical_partition(Context ctx, 
-                                                    LogicalRegion handle);
       LogicalPartition get_parent_logical_partition(LogicalRegion handle);
     public:
       ArgumentMap create_argument_map(void);
     public:
-      Future execute_task(Context ctx,
-                          const TaskLauncher &launcher,
-                          std::vector<OutputRequirement> *outputs);
-      FutureMap execute_index_space(Context ctx,
-                                    const IndexTaskLauncher &launcher,
-                                    std::vector<OutputRequirement> *outputs);
-      Future execute_index_space(Context ctx, const IndexTaskLauncher &launcher,
-                                 ReductionOpID redop, bool deterministic,
-                                 std::vector<OutputRequirement> *outputs);
-    public:
-      PhysicalRegion map_region(Context ctx, 
-                                const InlineLauncher &launcher);
-      PhysicalRegion map_region(Context ctx, unsigned idx, 
-                                MapperID id, MappingTagID tag,
-                                Provenance *provenance);
-      void remap_region(Context ctx, const PhysicalRegion &region,
-                        Provenance *provenance = NULL);
-      void unmap_region(Context ctx, PhysicalRegion region);
-    public:
-      void fill_fields(Context ctx, const FillLauncher &launcher);
-      void fill_fields(Context ctx, const IndexFillLauncher &launcher);
-      void issue_copy_operation(Context ctx, const CopyLauncher &launcher);
-      void issue_copy_operation(Context ctx, const IndexCopyLauncher &launcher);
-    public:
-      void issue_acquire(Context ctx, const AcquireLauncher &launcher);
-      void issue_release(Context ctx, const ReleaseLauncher &launcher);
       TraceID generate_dynamic_trace_id(bool check_context = true);
       TraceID generate_library_trace_ids(const char *name, size_t count);
       static TraceID& get_current_static_trace_id(void);
       static TraceID generate_static_trace_id(void);
-      FutureMap execute_must_epoch(Context ctx, 
-                                   const MustEpochLauncher &launcher);
-      Future issue_timing_measurement(Context ctx,
-                                      const TimingLauncher &launcher);
     public:
-      void* get_local_task_variable(Context ctx, LocalVariableID id);
-      void set_local_task_variable(Context ctx, LocalVariableID id,
-                      const void *value, void (*destructor)(void*));
-    public:
-      Mapper* get_mapper(Context ctx, MapperID id, Processor target);
-      MappingCallInfo* begin_mapper_call(Context ctx, MapperID id, 
-                                         Processor target);
+      Mapper* get_mapper(MapperID id, Processor target);
+      MappingCallInfo* begin_mapper_call(MapperID id, Processor target,
+                                         Operation *op);
       void end_mapper_call(MappingCallInfo *info);
-    public:
-      void print_once(Context ctx, FILE *f, const char *message);
-      void log_once(Context ctx, Realm::LoggerMessage &message);
     public:
       bool is_MPI_interop_configured(void);
       const std::map<int,AddressSpace>& find_forward_MPI_mapping(void);

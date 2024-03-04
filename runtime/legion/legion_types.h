@@ -1425,6 +1425,134 @@ namespace Legion {
     };
 
     enum RuntimeCallKind {
+      // Runtime call kinds
+      RUNTIME_CREATE_INDEX_SPACE_CALL,
+      RUNTIME_UNION_INDEX_SPACES_CALL,
+      RUNTIME_INTERSECT_INDEX_SPACES_CALL,
+      RUNTIME_SUBTRACT_INDEX_SPACES_CALL,
+      RUNTIME_CREATE_SHARED_OWNERSHIP_CALL,
+      RUNTIME_DESTROY_INDEX_SPACE_CALL,
+      RUNTIME_DESTROY_INDEX_PARTITION_CALL,
+      RUNTIME_CREATE_EQUAL_PARTITION_CALL,
+      RUNTIME_CREATE_PARTITION_BY_WEIGHTS_CALL,
+      RUNTIME_CREATE_PARTITION_BY_UNION_CALL,
+      RUNTIME_CREATE_PARTITION_BY_INTERSECTION_CALL,
+      RUNTIME_CREATE_PARTITION_BY_DIFFERENCE_CALL,
+      RUNTIME_CREATE_CROSS_PRODUCT_PARTITIONS_CALL,
+      RUNTIME_CREATE_ASSOCIATION_CALL,
+      RUNTIME_CREATE_PARTITION_BY_RESTRICTION_CALL,
+      RUNTIME_CREATE_PARTITION_BY_BLOCKIFY_CALL,
+      RUNTIME_CREATE_PARTITION_BY_DOMAIN_CALL,
+      RUNTIME_CREATE_PARTITION_BY_FIELD_CALL,
+      RUNTIME_CREATE_PARTITION_BY_IMAGE_CALL,
+      RUNTIME_CREATE_PARTITION_BY_IMAGE_RANGE_CALL,
+      RUNTIME_CREATE_PARTITION_BY_PREIMAGE_CALL,
+      RUNTIME_CREATE_PARTITION_BY_PREIMAGE_RANGE_CALL,
+      RUNTIME_CREATE_PENDING_PARTITION_CALL,
+      RUNTIME_CREATE_INDEX_SPACE_UNION_CALL,
+      RUNTIME_CREATE_INDEX_SPACE_INTERSECTION_CALL,
+      RUNTIME_CREATE_INDEX_SPACE_DIFFERENCE_CALL,
+      RUNTIME_GET_INDEX_PARTITION_CALL,
+      RUNTIME_HAS_INDEX_PARTITION_CALL,
+      RUNTIME_GET_INDEX_SUBSPACE_CALL,
+      RUNTIME_HAS_INDEX_SUBSPACE_CALL,
+      RUNTIME_GET_INDEX_SPACE_DOMAIN_CALL,
+      RUNTIME_GET_INDEX_PARTITION_COLOR_SPACE_CALL,
+      RUNTIME_GET_INDEX_PARTITION_COLOR_SPACE_NAME_CALL,
+      RUNTIME_GET_INDEX_SPACE_PARTITION_COLORS_CALL,
+      RUNTIME_IS_INDEX_PARTITION_DISJOINT_CALL,
+      RUNTIME_IS_INDEX_PARTITION_COMPLETE_CALL,
+      RUNTIME_GET_INDEX_SPACE_COLOR_CALL,
+      RUNTIME_GET_INDEX_SPACE_COLOR_POINT_CALL,
+      RUNTIME_GET_INDEX_PARTITION_COLOR_CALL,
+      RUNTIME_GET_INDEX_PARTITION_COLOR_POINT_CALL,
+      RUNTIME_GET_PARENT_INDEX_SPACE_CALL,
+      RUNTIME_HAS_PARENT_INDEX_PARTITION_CALL,
+      RUNTIME_GET_PARENT_INDEX_PARTITION_CALL,
+      RUNTIME_GET_INDEX_SPACE_DEPTH_CALL,
+      RUNTIME_GET_INDEX_PARTITION_DEPTH_CALL,
+      RUNTIME_SAFE_CAST_CALL,
+      RUNTIME_CREATE_FIELD_SPACE_CALL,
+      RUNTIME_DESTROY_FIELD_SPACE_CALL,
+      RUNTIME_GET_FIELD_SIZE_CALL, 
+      RUNTIME_GET_FIELD_SPACE_FIELDS_CALL,
+      RUNTIME_CREATE_LOGICAL_REGION_CALL,
+      RUNTIME_DESTROY_LOGICAL_REGION_CALL,
+      RUNTIME_RESET_EQUIVALENCE_SETS_CALL,
+      RUNTIME_GET_LOGICAL_PARTITION_CALL,
+      RUNTIME_GET_LOGICAL_PARTITION_BY_COLOR_CALL,
+      RUNTIME_HAS_LOGICAL_PARTITION_BY_COLOR_CALL,
+      RUNTIME_GET_LOGICAL_PARTITION_BY_TREE_CALL,
+      RUNTIME_GET_LOGICAL_SUBREGION_CALL,
+      RUNTIME_GET_LOGICAL_SUBREGION_BY_COLOR_CALL,
+      RUNTIME_HAS_LOGICAL_SUBREGION_BY_COLOR_CALL,
+      RUNTIME_GET_LOGICAL_SUBREGION_BY_TREE_CALL,
+      RUNTIME_GET_LOGICAL_REGION_COLOR_CALL,
+      RUNTIME_GET_LOGICAL_REGION_COLOR_POINT_CALL,
+      RUNTIME_GET_LOGICAL_PARTITION_COLOR_CALL,
+      RUNTIME_GET_LOGICAL_PARTITION_COLOR_POINT_CALL,
+      RUNTIME_GET_PARENT_LOGICAL_REGION_CALL,
+      RUNTIME_HAS_PARENT_LOGICAL_PARTITION_CALL,
+      RUNTIME_GET_PARENT_LOGICAL_PARTITION_CALL,
+      RUNTIME_CREATE_ARGUMENT_MAP_CALL,
+      RUNTIME_EXECUTE_TASK_CALL,
+      RUNTIME_EXECUTE_INDEX_SPACE_CALL,
+      RUNTIME_REDUCE_FUTURE_MAP_CALL,
+      RUNTIME_CONSTRUCT_FUTURE_MAP_CALL,
+      RUNTIME_TRANSFORM_FUTURE_MAP_CALL,
+      RUNTIME_MAP_REGION_CALL,
+      RUNTIME_REMAP_REGION_CALL,
+      RUNTIME_UNMAP_REGION_CALL,
+      RUNTIME_UNMAP_ALL_REGIONS_CALL,
+      RUNTIME_GET_OUTPUT_REGION_CALL,
+      RUNTIME_GET_OUTPUT_REGIONS_CALL,
+      RUNTIME_FILL_FIELDS_CALL,
+      RUNTIME_DISCARD_FIELDS_CALL,
+      RUNTIME_ATTACH_EXTERNAL_RESOURCE_CALL,
+      RUNTIME_ATTACH_EXTERNAL_RESOURCES_CALL,
+      RUNTIME_DETACH_EXTERNAL_RESOURCE_CALL,
+      RUNTIME_DETACH_EXTERNAL_RESOURCES_CALL,
+      RUNTIME_PROGRESS_UNORDERED_CALL,
+      RUNTIME_ISSUE_COPY_OPERATION_CALL,
+      RUNTIME_CREATE_PREDICATE_CALL,
+      RUNTIME_PREDICATE_NOT_CALL,
+      RUNTIME_GET_PREDICATE_FUTURE_CALL,
+      RUNTIME_CREATE_LOCK_CALL,
+      RUNTIME_DESTROY_LOCK_CALL,
+      RUNTIME_ACQUIRE_GRANT_CALL,
+      RUNTIME_RELEASE_GRANT_CALL,
+      RUNTIME_CREATE_PHASE_BARRIER_CALL,
+      RUNTIME_DESTROY_PHASE_BARRIER_CALL,
+      RUNTIME_ADVANCE_PHASE_BARRIER_CALL,
+      RUNTIME_CREATE_DYNAMIC_COLLECTIVE_CALL,
+      RUNTIME_DESTROY_DYNAMIC_COLLECTIVE_CALL,
+      RUNTIME_ARRIVE_DYNAMIC_COLLECTIVE_CALL,
+      RUNTIME_DEFER_DYNAMIC_COLLECTIVE_CALL,
+      RUNTIME_GET_DYNAMIC_COLLECTIVE_CALL,
+      RUNTIME_ADVANCE_DYNAMIC_COLLECTIVE_CALL,
+      RUNTIME_ISSUE_ACQUIRE_CALL,
+      RUNTIME_ISSUE_RELEASE_CALL,
+      RUNTIME_ISSUE_MAPPING_FENCE_CALL,
+      RUNTIME_ISSUE_EXECUTION_FENCE_CALL,
+      RUNTIME_BEGIN_TRACE_CALL,
+      RUNTIME_END_TRACE_CALL,
+      RUNTIME_COMPLETE_FRAME_CALL,
+      RUNTIME_SELECT_TUNABLE_CALL,
+      RUNTIME_MUST_EPOCH_CALL,
+      RUNTIME_GET_LOCAL_TASK_CALL,
+      RUNTIME_GET_LOCAL_VARIABLE_CALL,
+      RUNTIME_SET_LOCAL_VARIABLE_CALL,
+      RUNTIME_ISSUE_TIMING_MEASUREMENT_CALL,
+      RUNTIME_GET_EXECUTING_PROCESSOR_CALL,
+      RUNTIME_GET_CURRENT_TASK_CALL,
+      RUNTIME_QUERY_AVAILABLE_MEMORY_CALL,
+      RUNTIME_RAISE_REGION_EXCEPTION_CALL,
+      RUNTIME_YIELD_CALL,
+      RUNTIME_CONCURRENT_TASK_BARRIER_CALL,
+      RUNTIME_PRINT_ONCE_CALL,
+      RUNTIME_LOG_ONCE_CALL,
+      RUNTIME_CONSENSUS_MATCH_CALL,
+      RUNTIME_GET_MAPPER_CALL,
       // Mapper runtime call kinds
       MAPPER_SEND_MESSAGE_CALL,
       MAPPER_BROADCAST_CALL,
@@ -1654,6 +1782,133 @@ namespace Legion {
 
 #define RUNTIME_CALL_DESCRIPTIONS(name)                               \
     const char *name[LAST_RUNTIME_CALL_KIND] = {                      \
+      "Runtime::create_index_space",                                  \
+      "Runtime::union_index_space",                                   \
+      "Runtime::intersect_index_spaces",                              \
+      "Runtime::subtract_index_spaces",                               \
+      "Runtime::create_shared_ownership",                             \
+      "Runtime::destroy_index_space",                                 \
+      "Runtime::destroy_index_partition",                             \
+      "Runtime::create_equal_partition",                              \
+      "Runtime::create_partition_by_weights",                         \
+      "Runtime::create_partition_by_union",                           \
+      "Runtime::create_partition_by_intersection",                    \
+      "Runtime::create_partition_by_difference",                      \
+      "Runtime::create_cross_product_partitions",                     \
+      "Runtime::create_association",                                  \
+      "Runtime::create_partition_by_restriction",                     \
+      "Runtime::create_partition_by_blockify",                        \
+      "Runtime::create_partition_by_domain",                          \
+      "Runtime::create_partition_by_field",                           \
+      "Runtime::create_partition_by_image",                           \
+      "Runtime::create_partition_by_image_range",                     \
+      "Runtime::create_partition_by_preimage",                        \
+      "Runtime::create_partition_by_preimage_range",                  \
+      "Runtime::create_pending_partition",                            \
+      "Runtime::create_index_space_union",                            \
+      "Runtime::create_index_space_intersection",                     \
+      "Runtime::create_index_space_difference",                       \
+      "Runtime::get_index_partition",                                 \
+      "Runtime::has_index_partition",                                 \
+      "Runtime::get_index_subspace",                                  \
+      "Runtime::has_index_subspace",                                  \
+      "Runtime::get_index_space_domain",                              \
+      "Runtime::get_index_partition_color_space",                     \
+      "Runtime::get_index_partition_color_space_name",                \
+      "Runtime::get_index_space_partition_colors",                    \
+      "Runtime::is_index_partition_disjoint",                         \
+      "Runtime::is_index_partition_complete",                         \
+      "Runtime::get_index_space_color",                               \
+      "Runtime::get_index_space_color_point",                         \
+      "Runtime::get_index_partition_color",                           \
+      "Runtime::get_index_partition_color_point",                     \
+      "Runtime::get_parent_index_space",                              \
+      "Runtime::has_parent_index_partition",                          \
+      "Runtime::get_parent_index_partition",                          \
+      "Runtime::get_index_space_depth",                               \
+      "Runtime::get_index_partition_depth",                           \
+      "Runtime::safe_cast",                                           \
+      "Runtime::create_field_space",                                  \
+      "Runtime::destroy_field_space",                                 \
+      "Runtime::get_field_size",                                      \
+      "Runtime::get_field_space_fields",                              \
+      "Runtime::create_logical_region",                               \
+      "Runtime::destroy_logical_region",                              \
+      "Runtime::reset_equivalence_sets",                              \
+      "Runtime::get_logical_partition",                               \
+      "Runtime::get_logical_partition_by_color",                      \
+      "Runtime::has_logical_partition_by_color",                      \
+      "Runtime::get_logical_partition_by_tree",                       \
+      "Runtime::get_logical_subregion",                               \
+      "Runtime::get_logical_subregion_by_color",                      \
+      "Runtime::has_logical_subregion_by_color",                      \
+      "Runtime::get_logical_subregion_by_tree",                       \
+      "Runtime::get_logical_region_color",                            \
+      "Runtime::get_logical_region_color_point",                      \
+      "Runtime::get_logical_partition_color",                         \
+      "Runtime::get_logical_partition_color_point",                   \
+      "Runtime::get_parent_logical_region",                           \
+      "Runtime::has_parent_logical_partition",                        \
+      "Runtime::get_parent_logical_partition",                        \
+      "Runtime::create_argument_map",                                 \
+      "Runtime::execute_task",                                        \
+      "Runtime::execute_index_space",                                 \
+      "Runtime::reduce_future_map",                                   \
+      "Runtime::construct_future_map",                                \
+      "Runtime::transform_future_map",                                \
+      "Runtime::map_region",                                          \
+      "Runtime::remap_region",                                        \
+      "Runtime::unmap_region",                                        \
+      "Runtime::unmap_all_regions",                                   \
+      "Runtime::get_output_region",                                   \
+      "Runtime::get_output_regions",                                  \
+      "Runtime::fill_fields",                                         \
+      "Runtime::discard_fields",                                      \
+      "Runtime::attach_external_resource",                            \
+      "Runtime::attach_external_resources",                           \
+      "Runtime::detach_external_resource",                            \
+      "Runtime::detach_external_resources",                           \
+      "Runtime::progress_unordered_operations",                       \
+      "Runtime::issue_copy_operation",                                \
+      "Runtime::create_predicate",                                    \
+      "Runtime::predicate_not",                                       \
+      "Runtime::get_predicate_future",                                \
+      "Runtime::create_lock",                                         \
+      "Runtime::destroy_lock",                                        \
+      "Runtime::acquire_grant",                                       \
+      "Runtime::release_grant",                                       \
+      "Runtime::create_phase_barrier",                                \
+      "Runtime::destroy_phase_barrier",                               \
+      "Runtime::advance_phase_barrier",                               \
+      "Runtime::create_dynamic_collective",                           \
+      "Runtime::destroy_dynamic_collective",                          \
+      "Runtime::arrive_dynamic_collective",                           \
+      "Runtime::defer_dynamic_collective_arrival",                    \
+      "Runtime::get_dynamic_collective_result",                       \
+      "Runtime::advance_dynamic_collective",                          \
+      "Runtime::issue_acquire",                                       \
+      "Runtime::issue_release",                                       \
+      "Runtime::issue_mapping_fence",                                 \
+      "Runtime::issue_execution_fence",                               \
+      "Runtime::begin_trace",                                         \
+      "Runtime::end_trace",                                           \
+      "Runtime::complete_frame",                                      \
+      "Runtime::execute_must_epoch",                                  \
+      "Runtime::select_tunable_value",                                \
+      "Runtime::get_local_task",                                      \
+      "Runtime::set_local_task_variable",                             \
+      "Runtime::get_local_task_variable",                             \
+      "Runtime::issue_timing_measurement",                            \
+      "Runtime::get_executing_processor",                             \
+      "Runtime::get_current_task",                                    \
+      "Runtime::query_available_memory",                              \
+      "Runtime::raise_region_exception",                              \
+      "Runtime::yield",                                               \
+      "Runtime::concurrent_task_barrier",                             \
+      "Runtime::print_once",                                          \
+      "Runtime::log_once",                                            \
+      "Runtime::consensus_match",                                     \
+      "Runtime::get_mapper",                                          \
       "MapperRuntime::send_message",                                  \
       "MapperRuntime::broadcast",                                     \
       "MapperRuntime::unpack_physical_instance",                      \

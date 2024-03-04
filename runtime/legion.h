@@ -10172,32 +10172,36 @@ namespace Legion {
                                       const void *extent, 
                                       size_t extent_size,
                                       PartitionKind part_kind, Color color,
-                                      const char *provenance);
+                                      const char *provenance,
+                                      const char *func_name,
+                                      bool blockify);
       IndexSpace create_index_space_union_internal(Context ctx,
                                       IndexPartition parent,
                                       const void *realm_color,size_t color_size,
                                       TypeTag type_tag, const char *provenance,
+                                      const char *func,
                                       const std::vector<IndexSpace> &handles);
       IndexSpace create_index_space_union_internal(Context ctx, 
                                       IndexPartition parent, 
                                       const void *realm_color,size_t color_size,
                                       TypeTag type_tag, const char *provenance,
-                                      IndexPartition handle);
+                                      const char *func, IndexPartition handle);
       IndexSpace create_index_space_intersection_internal(Context ctx,
                                       IndexPartition parent,
                                       const void *realm_color,size_t color_size,
                                       TypeTag type_tag, const char *provenance,
+                                      const char *func,
                                       const std::vector<IndexSpace> &handles);
       IndexSpace create_index_space_intersection_internal(Context ctx, 
                                       IndexPartition parent, 
                                       const void *realm_color,size_t color_size,
                                       TypeTag type_tag, const char *provenance,
-                                      IndexPartition handle);
+                                      const char *func, IndexPartition handle);
       IndexSpace create_index_space_difference_internal(Context ctx,
                                       IndexPartition paretn,
                                       const void *realm_color, size_t color_size,
                                       TypeTag type_tag, const char *provenance,
-                                      IndexSpace initial,
+                                      const char *func, IndexSpace initial,
                                       const std::vector<IndexSpace> &handles);
       IndexSpace get_index_subspace_internal(IndexPartition handle, 
                                       const void *realm_color,TypeTag type_tag);
@@ -10210,7 +10214,8 @@ namespace Legion {
       void get_index_space_color_internal(IndexSpace handle,
                                       void *realm_color, TypeTag type_tag);
       bool safe_cast_internal(Context ctx, LogicalRegion region,
-                                      const void *realm_point,TypeTag type_tag);
+                              const void *realm_point, TypeTag type_tag,
+                              const char *func_name);
       LogicalRegion get_logical_subregion_by_color_internal(
                                       LogicalPartition parent,
                                       const void *realm_color,TypeTag type_tag);
