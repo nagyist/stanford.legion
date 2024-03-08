@@ -5313,7 +5313,14 @@ namespace Legion {
                                             LogicalRegion region)
     //--------------------------------------------------------------------------
     {
-      AutoCall<Internal::RUNTIME_SAFE_CAST_CALL> call(ctx, __func__);
+      // Don't check against implicit_context here because this method might
+      // be called from OpenMP processors which don't have implicit_context set
+      if (ctx == NULL)
+        REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
+              "Invalid task context passed to runtime call Runtime::safe_cast")
+      Internal::AutoProvenance prov;
+      const unsigned long long start =
+        ctx->begin_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov);
       switch (point.get_dim())
       {
 #define DIMFUNC(DIM) \
@@ -5321,7 +5328,12 @@ namespace Legion {
           { \
             Point<DIM,coord_t> p(point); \
             if (ctx->safe_cast(region.get_index_space(),&p,TYPE_TAG_##DIM##D)) \
+            { \
+              ctx->end_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, \
+                  prov, start, (start == 0) ? 0 : \
+                  Realm::Clock::current_time_in_nanoseconds()); \
               return point; \
+            } \
             break; \
           }
         LEGION_FOREACH_N(DIMFUNC)
@@ -5329,6 +5341,8 @@ namespace Legion {
         default:
           assert(false);
       }
+      ctx->end_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov, start,
+          (start == 0) ? 0 : Realm::Clock::current_time_in_nanoseconds());
       return DomainPoint::nil();
     }
 

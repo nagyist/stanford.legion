@@ -49,10 +49,10 @@ namespace Legion {
       : DistributedCollectable(id, perform_registration, mapping),
         owner_task(owner), regions(reqs), output_reqs(out_reqs), depth(d),
         executing_processor(Processor::NO_PROC), inlined_tasks(0),
-        overhead_profiler(NULL), implicit_profiler(NULL), task_executed(false),
-        mutable_priority(false), children_complete_invoked(false),
-        children_commit_invoked(false), inline_task(inline_t),
-        implicit_task(implicit_t)
+        overhead_profiler(NULL), implicit_profiler(NULL),
+        safe_cast_semaphore(0), task_executed(false), mutable_priority(false),
+        children_complete_invoked(false), children_commit_invoked(false),
+        inline_task(inline_t), implicit_task(implicit_t)
     //--------------------------------------------------------------------------
     {
       if (implicit_task && (runtime->profiler != NULL))
@@ -373,15 +373,38 @@ namespace Legion {
                                 const void *realm_point, TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
-      // Check to see if we already have the pointer for the node
+      // We allow multiple threads to call in to safe_cast at the same
+      // time to handle when a processor has multiple threads such as
+      // with OpenMP processors. We don't even bother having a lock to
+      // look-up the node
+      IndexSpaceNode *node = NULL;
+      // Try to take the semaphore in read-only mode to do the look-up
+      int current = safe_cast_semaphore.load();
+      while (true)
+      {
+        if (current < 0)
+          current = safe_cast_semaphore.load();
+        else if (safe_cast_semaphore.compare_exchange_weak(current, current+1))
+          break;
+      }
+      // Read-only look-up
       std::map<IndexSpace,IndexSpaceNode*>::const_iterator finder =
         safe_cast_spaces.find(handle);
-      if (finder == safe_cast_spaces.end())
+      if (finder != safe_cast_spaces.end())
+        node = finder->second;
+      // Decrement the semaphore counter
+      safe_cast_semaphore.fetch_sub(1);
+      if (node == NULL)
       {
-        safe_cast_spaces[handle] = runtime->forest->get_node(handle);
-        finder = safe_cast_spaces.find(handle);
+        node = runtime->forest->get_node(handle);
+        // Take the semaphore in exclusive mode to update the data structure
+        current = 0;
+        while (!safe_cast_semaphore.compare_exchange_weak(current, -1))
+          current = 0;
+        safe_cast_spaces[handle] = node;
+        safe_cast_semaphore.store(0);
       }
-      return finder->second->contains_point(realm_point, type_tag);
+      return node->contains_point(realm_point, type_tag);
     }
 
     //--------------------------------------------------------------------------

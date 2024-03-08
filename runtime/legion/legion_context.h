@@ -715,7 +715,8 @@ namespace Legion {
                std::pair<void*,void (*)(void*)> > task_local_variables;
     protected:
       // Cache for accelerating safe casts
-      std::map<IndexSpace,IndexSpaceNode*> safe_cast_spaces; 
+      std::map<IndexSpace,IndexSpaceNode*> safe_cast_spaces;
+      std::atomic<int>                     safe_cast_semaphore;
     protected:
       // Map of task local instances including their unique events
       // from the profilters perspective
