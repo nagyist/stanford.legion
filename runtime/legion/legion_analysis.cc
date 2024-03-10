@@ -123,14 +123,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ PhysicalUser* PhysicalUser::unpack_user(Deserializer &derez,
-                          RegionTreeForest *forest, const AddressSpaceID source)
+                                                    const AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       RegionUsage usage;
       derez.deserialize(usage);
       IndexSpaceExpression *expr = 
-        IndexSpaceExpression::unpack_expression(derez, forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       UniqueID op_id;
       derez.deserialize(op_id);
       unsigned index;
@@ -1330,9 +1330,8 @@ namespace Legion {
             derez.deserialize(lhs_ptr);
             ApUserEvent lhs;
             derez.deserialize(lhs);
-            RegionTreeForest *forest = runtime->forest;
             IndexSpaceExpression *expr = 
-              IndexSpaceExpression::unpack_expression(derez, forest, source);
+              IndexSpaceExpression::unpack_expression(derez, source);
             size_t num_fields;
             derez.deserialize(num_fields);
             std::vector<CopySrcDstField> src_fields(num_fields);
@@ -1404,9 +1403,8 @@ namespace Legion {
             PrivilegeMode src_mode, dst_mode;
             derez.deserialize(src_mode);
             derez.deserialize(dst_mode);
-            RegionTreeForest *forest = runtime->forest;
             IndexSpaceExpression *expr =
-              IndexSpaceExpression::unpack_expression(derez, forest, source);
+              IndexSpaceExpression::unpack_expression(derez, source);
             FieldMaskSet<InstanceView> tracing_srcs, tracing_dsts;
             UniqueInst src_inst, dst_inst;
             src_inst.deserialize(derez);
@@ -1436,9 +1434,8 @@ namespace Legion {
             derez.deserialize(lhs_ptr);
             ApUserEvent lhs;
             derez.deserialize(lhs);
-            RegionTreeForest *forest = runtime->forest;
             IndexSpaceExpression *expr = 
-              IndexSpaceExpression::unpack_expression(derez, forest, source);
+              IndexSpaceExpression::unpack_expression(derez, source);
             size_t num_fields;
             derez.deserialize(num_fields);
             std::vector<CopySrcDstField> fields(num_fields);
@@ -1498,9 +1495,8 @@ namespace Legion {
             derez.deserialize(done);
             ApUserEvent lhs;
             derez.deserialize(lhs);
-            RegionTreeForest *forest = runtime->forest;
             IndexSpaceExpression *expr = 
-              IndexSpaceExpression::unpack_expression(derez, forest, source);
+              IndexSpaceExpression::unpack_expression(derez, source);
             UniqueInst inst;
             inst.deserialize(derez);
             FieldMask inst_mask;
@@ -1534,7 +1530,7 @@ namespace Legion {
             derez.deserialize(user_mask);
             bool update_validity;
             derez.deserialize<bool>(update_validity);
-            RegionNode *node = runtime->forest->get_node(handle);
+            RegionNode *node = runtime->get_node(handle);
             std::set<RtEvent> effects;
             tpl->record_op_inst(tlid, index, inst, node, usage,
                                 user_mask, update_validity, effects);
@@ -1999,7 +1995,7 @@ namespace Legion {
         return;
 
       if (shard_space.exists())
-        sharding_space = runtime->forest->get_node(shard_space);
+        sharding_space = runtime->get_node(shard_space);
       else if (func != nullptr) {
         sharding_space = launch_space;
       }
@@ -6114,8 +6110,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    CopyFillAggregator::CopyFillAggregator(RegionTreeForest *f, 
-                                           PhysicalAnalysis *a, 
+    CopyFillAggregator::CopyFillAggregator(PhysicalAnalysis *a, 
                                            CopyFillGuard *previous,
                                            bool t, PredEvent p)
 #ifndef NON_AGGRESSIVE_AGGREGATORS
@@ -6124,7 +6119,7 @@ namespace Legion {
 #else
       :  CopyFillGuard(Runtime::create_rt_user_event()), 
 #endif
-        forest(f), local_space(runtime->address_space), analysis(a), 
+        local_space(runtime->address_space), analysis(a), 
         collective_mapping(analysis->get_replicated_mapping()),
         src_index(analysis->index), dst_index(analysis->index),
 #ifndef NON_AGGRESSIVE_AGGREGATORS
@@ -6145,8 +6140,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    CopyFillAggregator::CopyFillAggregator(RegionTreeForest *f, 
-                                PhysicalAnalysis *a,
+    CopyFillAggregator::CopyFillAggregator(PhysicalAnalysis *a,
                                 unsigned src_idx, unsigned dst_idx,
                                 CopyFillGuard *previous, bool t, PredEvent p, 
                                 RtEvent alternative_precondition)
@@ -6156,7 +6150,7 @@ namespace Legion {
 #else
       : CopyFillGuard(Runtime::create_rt_user_event()),
 #endif
-        forest(f), local_space(runtime->address_space), analysis(a),
+        local_space(runtime->address_space), analysis(a),
         collective_mapping(analysis->get_replicated_mapping()),
         src_index(src_idx), dst_index(dst_idx),
 #ifndef NON_AGGRESSIVE_AGGREGATORS
@@ -6562,7 +6556,7 @@ namespace Legion {
                 it = deferred_exprs.begin(); it != deferred_exprs.end(); it++)
           {
             IndexSpaceExpression *overlap =
-             forest->intersect_index_spaces(it->first.first,it->first.second);
+             runtime->intersect_index_spaces(it->first.first,it->first.second);
             const size_t overlap_size = overlap->get_volume();
             if (overlap_size == 0)
               continue;
@@ -6584,7 +6578,7 @@ namespace Legion {
                    predicate_guard, trace_info, tracing_eq, across_helper);
               // Compute the difference
               IndexSpaceExpression *diff_expr = 
-                forest->subtract_index_spaces(it->first.first, overlap); 
+                runtime->subtract_index_spaces(it->first.first, overlap); 
               remainders.insert(diff_expr, it->second);
             }
             else // completely covers remainder expression
@@ -6648,7 +6642,7 @@ namespace Legion {
                 src_expressions.begin(); it != src_expressions.end(); it++)
           {
             IndexSpaceExpression *overlap = 
-              forest->intersect_index_spaces(it->first.first, it->first.second);
+              runtime->intersect_index_spaces(it->first.first, it->first.second);
             const size_t overlap_size = overlap->get_volume();
             if (overlap_size == 0)
               continue;
@@ -6670,7 +6664,7 @@ namespace Legion {
                     overlap, tracing_eq, redop, across_helper);
               // Compute the difference
               IndexSpaceExpression *diff_expr = 
-                forest->subtract_index_spaces(it->first.first, overlap);
+                runtime->subtract_index_spaces(it->first.first, overlap);
               remainders.insert(diff_expr, it->second);
             }
             else // completely covers remainder expression
@@ -7163,7 +7157,7 @@ namespace Legion {
               exprs.begin(); it != exprs.end(); it++)
         {
           IndexSpaceExpression *fill_expr = (it->second.size() == 1) ?
-            *(it->second.begin()) : forest->union_index_spaces(it->second);
+            *(it->second.begin()) : runtime->union_index_spaces(it->second);
           // See if we have any work to do for tracing
           const ApEvent result = target->fill_from(it->first.first,
                                                    precondition,
@@ -7264,7 +7258,7 @@ namespace Legion {
               for (std::vector<CopyUpdate*>::const_iterator it =
                     cit->second.begin(); it != cit->second.end(); it++)
                 union_exprs.insert((*it)->expr);
-              view_exprs[cit->first] = forest->union_index_spaces(union_exprs); 
+              view_exprs[cit->first] = runtime->union_index_spaces(union_exprs); 
             }
             else
               view_exprs[cit->first] = (*(cit->second.begin()))->expr;
@@ -7380,7 +7374,7 @@ namespace Legion {
                fused_exprs.begin(); it != fused_exprs.end(); it++)
           {
             IndexSpaceExpression *copy_expr = (it->second.size() == 1) ?
-                *(it->second.begin()) : forest->union_index_spaces(it->second);
+                *(it->second.begin()) : runtime->union_index_spaces(it->second);
             const ApEvent result = target->copy_from(it->first.first, 
                                     precondition, predicate_guard, redop,
                                     copy_expr, analysis->op, manage_dst_events ?
@@ -7792,7 +7786,7 @@ namespace Legion {
         {
           IndexSpaceExpression *remote_expr = (fit->elements.size() == 1) ?
             *(fit->elements.begin()) : 
-            runtime->forest->union_index_spaces(fit->elements);
+            runtime->union_index_spaces(fit->elements);
           for (FieldMaskSet<IndexSpaceExpression>::iterator it = 
                 exprs.begin(); it != exprs.end(); it++)
           {
@@ -7800,7 +7794,7 @@ namespace Legion {
             if (!overlap)
               continue;
             IndexSpaceExpression *diff = 
-              runtime->forest->subtract_index_spaces(it->first, remote_expr);
+              runtime->subtract_index_spaces(it->first, remote_expr);
             if (!diff->is_empty())
               to_add.insert(diff, overlap);
             it.filter(overlap);
@@ -7821,7 +7815,7 @@ namespace Legion {
           if (!overlap)
             continue;
           IndexSpaceExpression *diff = 
-            runtime->forest->subtract_index_spaces(it->first, first->first);
+            runtime->subtract_index_spaces(it->first, first->first);
           if (!diff->is_empty())
             to_add.insert(diff, overlap);
           it.filter(overlap);
@@ -8585,7 +8579,7 @@ namespace Legion {
         derez.deserialize(eq_masks[idx]);
       }
       IndexSpaceExpression *expr = 
-        IndexSpaceExpression::unpack_expression(derez,runtime->forest,previous);
+        IndexSpaceExpression::unpack_expression(derez, previous);
       RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -8800,7 +8794,7 @@ namespace Legion {
         derez.deserialize(eq_masks[idx]);
       }
       IndexSpaceExpression *expr = 
-        IndexSpaceExpression::unpack_expression(derez,runtime->forest,previous);
+        IndexSpaceExpression::unpack_expression(derez, previous);
       RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -9029,7 +9023,7 @@ namespace Legion {
         derez.deserialize(eq_masks[idx]);
       }
       IndexSpaceExpression *expr = 
-        IndexSpaceExpression::unpack_expression(derez,runtime->forest,previous);
+        IndexSpaceExpression::unpack_expression(derez, previous);
       RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -9496,7 +9490,7 @@ namespace Legion {
       bool record_valid;
       derez.deserialize(record_valid);
 
-      RegionNode *node = runtime->forest->get_node(handle);
+      RegionNode *node = runtime->get_node(handle);
       // This takes ownership of the remote operation
       UpdateAnalysis *analysis = new UpdateAnalysis(original_source,
         previous, op, index, usage, node, std::move(targets), 
@@ -9719,7 +9713,7 @@ namespace Legion {
       }
       LogicalRegion handle;
       derez.deserialize(handle);
-      RegionNode *region = runtime->forest->get_node(handle);
+      RegionNode *region = runtime->get_node(handle);
       RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -10037,7 +10031,7 @@ namespace Legion {
       }
       LogicalRegion handle;
       derez.deserialize(handle);
-      RegionNode *region = runtime->forest->get_node(handle);
+      RegionNode *region = runtime->get_node(handle);
       RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -10118,7 +10112,7 @@ namespace Legion {
         const std::vector<unsigned> &dst_idxes, 
         const PhysicalTraceInfo &t_info, const bool perf)
       : PhysicalAnalysis(o, dst_idx, 
-          runtime->forest->get_node(dst_req.region)->row_source,
+          runtime->get_node(dst_req.region)->row_source,
           true/*on heap*/, false/*immutable*/),
         src_mask(perf ? FieldMask() : initialize_mask(src_idxes)), 
         dst_mask(perf ? FieldMask() : initialize_mask(dst_idxes)),
@@ -10150,7 +10144,7 @@ namespace Legion {
         const std::vector<unsigned> &dst_idxes, 
         const PhysicalTraceInfo &t_info, const bool perf)
       : PhysicalAnalysis(src, prev, o, dst_idx,
-          runtime->forest->get_node(dst_reg)->row_source, true/*on heap*/),
+          runtime->get_node(dst_reg)->row_source, true/*on heap*/),
         src_mask(perf ? FieldMask() : initialize_mask(src_idxes)), 
         dst_mask(perf ? FieldMask() : initialize_mask(dst_idxes)),
         src_index(src_idx), dst_index(dst_idx), src_usage(src_use),
@@ -10205,7 +10199,7 @@ namespace Legion {
         assert(!aggregator_guard.exists());
 #endif
         aggregator_guard = Runtime::create_rt_user_event();
-        across_aggregator = new CopyFillAggregator(runtime->forest, this,
+        across_aggregator = new CopyFillAggregator(this,
             src_index, dst_index, NULL/*no previous guard*/, true/*track*/,
             pred_guard, aggregator_guard);
       }
@@ -10329,7 +10323,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(uninitialized_reported.exists());
 #endif
-        RegionNode *src_node = runtime->forest->get_node(src_region);
+        RegionNode *src_node = runtime->get_node(src_region);
         src_node->report_uninitialized_usage(op, src_index, src_usage, 
                                 uninitialized, uninitialized_reported);
       }
@@ -10500,7 +10494,7 @@ namespace Legion {
 
       std::vector<CopyAcrossHelper*> across_helpers;
       std::set<RtEvent> deferral_events, applied_events;
-      RegionNode *dst_node = runtime->forest->get_node(dst_handle);
+      RegionNode *dst_node = runtime->get_node(dst_handle);
       IndexSpaceExpression *dst_expr = dst_node->row_source;
       // Make sure that all our pointers are ready
       RtEvent ready_event;
@@ -10948,7 +10942,7 @@ namespace Legion {
         derez.deserialize(eq_masks[idx]);
       }
       IndexSpaceExpression *expr =
-        IndexSpaceExpression::unpack_expression(derez,runtime->forest,previous);
+        IndexSpaceExpression::unpack_expression(derez, previous);
       RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -11196,7 +11190,7 @@ namespace Legion {
       }
       LogicalRegion handle;
       derez.deserialize(handle);
-      RegionNode *region = runtime->forest->get_node(handle);
+      RegionNode *region = runtime->get_node(handle);
       RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -11379,7 +11373,7 @@ namespace Legion {
         derez.deserialize(eq_masks[idx]);
       }
       IndexSpaceExpression *expr =
-        IndexSpaceExpression::unpack_expression(derez,runtime->forest,previous);
+        IndexSpaceExpression::unpack_expression(derez, previous);
       RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -11739,7 +11733,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MakeCollectiveValid::visit_leaf(const FieldMask &mask,
-          InnerContext *context, RegionTreeForest *forest, RegionTreeID tid,
+          InnerContext *context, RegionTreeID tid,
           LegionMap<InstanceView*,FieldMaskSet<IndexSpaceExpression> > &updates)
     //--------------------------------------------------------------------------
     {
@@ -11751,7 +11745,7 @@ namespace Legion {
       {
         IndexSpaceExpression *valid_expr = fit->elements.empty() ? NULL :
             (fit->elements.size() == 1) ? *(fit->elements.begin()) :
-            forest->union_index_spaces(fit->elements);
+            runtime->union_index_spaces(fit->elements);
         for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
               needed_exprs.begin(); it != needed_exprs.end(); it++)
         {
@@ -11760,7 +11754,7 @@ namespace Legion {
             continue;
           IndexSpaceExpression *needed_expr = it->first;
           if (valid_expr != NULL)
-            needed_expr = forest->subtract_index_spaces(needed_expr,valid_expr);
+            needed_expr = runtime->subtract_index_spaces(needed_expr,valid_expr);
           if (!needed_expr->is_empty())
           {
             if (local_view == NULL)
@@ -11839,7 +11833,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void CollectiveAntiAlias::visit_leaf(const FieldMask &mask,
                   FieldMask &allvalid_mask,
-                  IndexSpaceExpression *expr, RegionTreeForest *forest,
+                  IndexSpaceExpression *expr,
                   const FieldMaskSet<IndexSpaceExpression> &partial_valid_exprs)
     //--------------------------------------------------------------------------
     {
@@ -11863,9 +11857,9 @@ namespace Legion {
           {
             IndexSpaceExpression *valid_expr =
                 (it->elements.size() == 1) ? *(it->elements.begin()) :
-                forest->union_index_spaces(it->elements);
+                runtime->union_index_spaces(it->elements);
             IndexSpaceExpression *overlap_expr =
-                forest->intersect_index_spaces(expr, valid_expr);
+                runtime->intersect_index_spaces(expr, valid_expr);
             if (overlap_expr->get_volume() < expr->get_volume())
               allvalid_mask -= it->set_mask;
           }
@@ -11885,7 +11879,7 @@ namespace Legion {
                                          CollectiveView *view,
                            LegionMap<LogicalView*,
                             FieldMaskSet<IndexSpaceExpression> > &non_dominated,
-                           IndexSpaceExpression *expr, RegionTreeForest *forest)
+                           IndexSpaceExpression *expr)
     //--------------------------------------------------------------------------
     {
       if (!valid_exprs.empty() && !(mask * valid_exprs.get_valid_mask()))
@@ -11912,9 +11906,9 @@ namespace Legion {
           {
             IndexSpaceExpression *valid_expr =
                 (it->elements.size() == 1) ? *(it->elements.begin()) :
-                forest->union_index_spaces(it->elements);
+                runtime->union_index_spaces(it->elements);
             IndexSpaceExpression *diff_expr =
-                forest->subtract_index_spaces(expr, valid_expr);
+                runtime->subtract_index_spaces(expr, valid_expr);
             if (!diff_expr->is_empty())
             {
               // Dominated some of the points but not all of them
@@ -11964,21 +11958,21 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     InitializeCollectiveReduction::InitializeCollectiveReduction(
-              AllreduceView *v, RegionTreeForest *f, IndexSpaceExpression *expr)
+              AllreduceView *v, IndexSpaceExpression *expr)
       : CollectiveRefinementTree<InitializeCollectiveReduction>(v),
-        forest(f), needed_expr(expr), view(v)
+        needed_expr(expr), view(v)
     //--------------------------------------------------------------------------
     {
     }
 
     //--------------------------------------------------------------------------
     InitializeCollectiveReduction::InitializeCollectiveReduction(
-          std::vector<DistributedID> &&insts, RegionTreeForest *f,
+          std::vector<DistributedID> &&insts,
           IndexSpaceExpression *expr, InstanceView *v,
           const FieldMaskSet<IndexSpaceExpression> &remainders,
           const FieldMask &covered)
       : CollectiveRefinementTree<InitializeCollectiveReduction>(
-          std::move(insts)), forest(f), needed_expr(expr), view(v),
+          std::move(insts)), needed_expr(expr), view(v),
         remainder_exprs(remainders), found_covered(covered)
     //--------------------------------------------------------------------------
     {
@@ -11990,7 +11984,7 @@ namespace Legion {
                                   std::vector<DistributedID> &&insts) const
     //--------------------------------------------------------------------------
     {
-      return new InitializeCollectiveReduction(std::move(insts), forest, 
+      return new InitializeCollectiveReduction(std::move(insts),
           needed_expr, new_view, remainder_exprs, found_covered);
     }
 
@@ -12013,14 +12007,14 @@ namespace Legion {
           if (expr != it->first)
           {
             IndexSpaceExpression *overlap_expr = 
-              forest->intersect_index_spaces(it->first, expr);
+              runtime->intersect_index_spaces(it->first, expr);
             const size_t overlap_volume = overlap_expr->get_volume();
             if (overlap_volume < it->first->get_volume())
             {
               if (overlap_volume > 0)
               {
                 IndexSpaceExpression *diff_expr =
-                  forest->subtract_index_spaces(it->first, expr);
+                  runtime->subtract_index_spaces(it->first, expr);
                 to_add.insert(diff_expr, overlap);
                 it.filter(overlap);
                 if (!it->second)
@@ -12066,14 +12060,14 @@ namespace Legion {
           if (expr != needed_expr)
           {
             IndexSpaceExpression *overlap_expr = 
-              forest->intersect_index_spaces(needed_expr, expr);
+              runtime->intersect_index_spaces(needed_expr, expr);
             const size_t overlap_volume = overlap_expr->get_volume();
             if (overlap_volume < needed_expr->get_volume())
             {
               if (overlap_volume > 0)
               {
                 IndexSpaceExpression *diff_expr =
-                  forest->subtract_index_spaces(needed_expr, expr);
+                  runtime->subtract_index_spaces(needed_expr, expr);
                 remainder_exprs.insert(diff_expr, remainder_mask);
               }
             }
@@ -12113,7 +12107,7 @@ namespace Legion {
             if (expr != it->first)
             {
               IndexSpaceExpression *expr_overlap = 
-                forest->intersect_index_spaces(expr, it->first);
+                runtime->intersect_index_spaces(expr, it->first);
               // If it's not completely contained within the bounds of 
               // un-filled remainder then that is a failure of the ABA
               if (expr_overlap->get_volume() < expr->get_volume())
@@ -12145,7 +12139,7 @@ namespace Legion {
         {
           // Fill aggregators never need to wait for any other
           // aggregators since we know they won't depend on each other
-          fill_aggregator = new CopyFillAggregator(forest, &analysis, 
+          fill_aggregator = new CopyFillAggregator(&analysis, 
               NULL/*no previous guard*/, false/*track events*/);
           analysis.input_aggregators[RtEvent::NO_RT_EVENT] = fill_aggregator;
         }
@@ -12551,7 +12545,7 @@ namespace Legion {
             assert(it->first != set_expr);
 #endif
             IndexSpaceExpression *remainder = 
-              runtime->forest->subtract_index_spaces(expr, it->first);
+              runtime->subtract_index_spaces(expr, it->first);
             if (!remainder->is_empty() && analysis.perform_analysis(this, 
                   remainder, false/*expr covers*/, overlap, 
                   deferral_events, applied_events, already_deferred))
@@ -12604,7 +12598,7 @@ namespace Legion {
               if (!expr_covers)
               {
                 IndexSpaceExpression *overlap = 
-                  runtime->forest->intersect_index_spaces(expr, it->second);
+                  runtime->intersect_index_spaces(expr, it->second);
                 if (overlap->is_empty())
                   continue;
               }
@@ -12657,7 +12651,7 @@ namespace Legion {
               if (!overlap)
                 continue;
               IndexSpaceExpression *expr_overlap = 
-                  runtime->forest->intersect_index_spaces(expr, it->first);   
+                  runtime->intersect_index_spaces(expr, it->first);   
               if (expr_overlap->is_empty())
                 continue;
               total_overlap |= overlap;
@@ -12687,7 +12681,7 @@ namespace Legion {
               if (it->second.get_valid_mask() * user_mask)
                 continue;
               IndexSpaceExpression *overlap = 
-                runtime->forest->intersect_index_spaces(it->first, expr);
+                runtime->intersect_index_spaces(it->first, expr);
               if (overlap->is_empty())
                 continue;
               analysis.record_restriction();
@@ -12761,7 +12755,7 @@ namespace Legion {
               FieldMask allvalid_mask = invalid_mask;
               FieldMaskSet<IndexSpaceExpression> no_partial_valid_exprs;
               alias_analysis.visit_leaves(invalid_mask, allvalid_mask,
-                  expr, runtime->forest, no_partial_valid_exprs);
+                  expr, no_partial_valid_exprs);
               if (!!allvalid_mask)
               {
                 invalid_mask -= allvalid_mask;
@@ -12810,9 +12804,9 @@ namespace Legion {
                 {
                   // See if they cover
                   IndexSpaceExpression *union_expr = 
-                    runtime->forest->union_index_spaces(exprs);
+                    runtime->union_index_spaces(exprs);
                   IndexSpaceExpression *intersection =
-                    runtime->forest->intersect_index_spaces(expr, union_expr);
+                    runtime->intersect_index_spaces(expr, union_expr);
                   if (intersection->get_volume() == expr->get_volume())
                     invalid_mask.unset_bit(fidx);
                   else // no point in checking the rest
@@ -12871,7 +12865,7 @@ namespace Legion {
                 if (!overlap)
                   continue;
                 IndexSpaceExpression *expr_overlap = 
-                  runtime->forest->intersect_index_spaces(expr, it->first);
+                  runtime->intersect_index_spaces(expr, it->first);
                 const size_t overlap_volume = expr_overlap->get_volume();
                 if (overlap_volume == expr->get_volume())
                 {
@@ -12898,7 +12892,7 @@ namespace Legion {
                                               partial_valid_instances);
             FieldMask allvalid_mask = invalid_mask;
             alias_analysis.visit_leaves(invalid_mask, allvalid_mask,
-                expr, runtime->forest, partial_valid_exprs);
+                expr, partial_valid_exprs);
             if (!!allvalid_mask)
             {
               invalid_mask -= allvalid_mask;
@@ -12959,7 +12953,7 @@ namespace Legion {
                     if (!overlap)
                       continue;
                     IndexSpaceExpression *expr_overlap = 
-                      runtime->forest->intersect_index_spaces(expr, it->first);
+                      runtime->intersect_index_spaces(expr, it->first);
                     const size_t overlap_volume = expr_overlap->get_volume();
                     if (overlap_volume == expr->get_volume())
                     {
@@ -13004,7 +12998,7 @@ namespace Legion {
                   if (!overlap)
                     continue;
                   IndexSpaceExpression *expr_overlap = 
-                    runtime->forest->intersect_index_spaces(expr, it->first);
+                    runtime->intersect_index_spaces(expr, it->first);
                   const size_t overlap_volume = expr_overlap->get_volume();
                   if (overlap_volume == expr->get_volume())
                   {
@@ -13037,9 +13031,9 @@ namespace Legion {
                     continue;
                   IndexSpaceExpression *union_expr = 
                     (it->elements.size() == 1) ? *(it->elements.begin()) :
-                    runtime->forest->union_index_spaces(it->elements);
+                    runtime->union_index_spaces(it->elements);
                   IndexSpaceExpression *expr_overlap =
-                    runtime->forest->intersect_index_spaces(expr, union_expr);
+                    runtime->intersect_index_spaces(expr, union_expr);
                   if (expr_overlap->get_volume() == expr->get_volume())
                   {
                     invalid_mask -= it->set_mask;
@@ -13108,7 +13102,7 @@ namespace Legion {
                   if ((it->second != set_expr) && (it->second != expr)) 
                   {
                     IndexSpaceExpression *intersection = 
-                      runtime->forest->intersect_index_spaces(expr, it->second);
+                      runtime->intersect_index_spaces(expr, it->second);
                     if (!intersection->is_empty())
                     {
                       AutoLock a_lock(analysis); 
@@ -13162,7 +13156,7 @@ namespace Legion {
                 if ((it->first != set_expr) && (it->first != expr))
                 {
                   IndexSpaceExpression *intersection = 
-                    runtime->forest->intersect_index_spaces(expr, it->first);
+                    runtime->intersect_index_spaces(expr, it->first);
                   if (!intersection->is_empty())
                   {
                     AutoLock a_lock(analysis);
@@ -13227,7 +13221,7 @@ namespace Legion {
                     if ((it->first != set_expr) && (it->first != expr))
                     {
                       IndexSpaceExpression *intersection = 
-                        runtime->forest->intersect_index_spaces(expr,it->first);
+                        runtime->intersect_index_spaces(expr,it->first);
                       if (!intersection->is_empty())
                       {
                         AutoLock a_lock(analysis);
@@ -13287,7 +13281,7 @@ namespace Legion {
                     if ((it->first != set_expr) && (it->first != expr))
                     {
                       IndexSpaceExpression *intersection = 
-                        runtime->forest->intersect_index_spaces(expr,it->first);
+                        runtime->intersect_index_spaces(expr,it->first);
                       if (!intersection->is_empty())
                       {
                         AutoLock a_lock(analysis);
@@ -13387,7 +13381,7 @@ namespace Legion {
                 {
                   // Check for partial overlap of restrction
                   IndexSpaceExpression *expr_overlap =
-                    runtime->forest->intersect_index_spaces(expr, rit->first);
+                    runtime->intersect_index_spaces(expr, rit->first);
                   if (expr_overlap->is_empty())
                     continue;
                   if (expr_overlap->get_volume() == expr->get_volume())
@@ -14161,7 +14155,7 @@ namespace Legion {
           // Don't actually need to subtract here since we don't care
           // about the difference size, just care about domination
           IndexSpaceExpression *overlap_expr = 
-            runtime->forest->intersect_index_spaces(it->first, expr);
+            runtime->intersect_index_spaces(it->first, expr);
           if (overlap_expr->get_volume() != expr->get_volume())
             continue;
           uninit -= it->second;
@@ -14205,7 +14199,7 @@ namespace Legion {
             continue;
           // Compute the union expression
           IndexSpaceExpression *union_expr = 
-            runtime->forest->union_index_spaces(it->first, expr);
+            runtime->union_index_spaces(it->first, expr);
           const size_t union_size = union_expr->get_volume();
 #ifdef DEBUG_LEGION
           assert(union_size <= set_expr->get_volume());
@@ -14557,7 +14551,7 @@ namespace Legion {
         if (!expr_covers)
         {
           IndexSpaceExpression *overlap_expr =
-            runtime->forest->intersect_index_spaces(expr, it->first);
+            runtime->intersect_index_spaces(expr, it->first);
           if (!overlap_expr->is_empty())
             restrictions.insert(overlap_expr, overlap);
         }
@@ -14576,8 +14570,8 @@ namespace Legion {
         if (!rit->elements.empty())
         {
           IndexSpaceExpression *union_expr = 
-            runtime->forest->union_index_spaces(rit->elements);
-          diff_expr = runtime->forest->subtract_index_spaces(expr, union_expr);
+            runtime->union_index_spaces(rit->elements);
+          diff_expr = runtime->subtract_index_spaces(expr, union_expr);
         }
         else
           diff_expr = expr;
@@ -14646,7 +14640,7 @@ namespace Legion {
             if (!overlap)
               continue;
             IndexSpaceExpression *union_expr = 
-              runtime->forest->union_index_spaces(it->first, expr);
+              runtime->union_index_spaces(it->first, expr);
             const size_t union_size = union_expr->get_volume();
 #ifdef DEBUG_LEGION
             assert(union_size <= set_expr->get_volume());
@@ -14933,7 +14927,7 @@ namespace Legion {
               if (!overlap)
                 continue;
               IndexSpaceExpression *diff = 
-                runtime->forest->subtract_index_spaces(it->first, expr);
+                runtime->subtract_index_spaces(it->first, expr);
               if (diff->is_empty())
               {
                 // filter expr covers, so remove it
@@ -15033,7 +15027,7 @@ namespace Legion {
               continue;
             if (diff_expr == NULL)
             {
-              diff_expr = runtime->forest->subtract_index_spaces(set_expr,expr);
+              diff_expr = runtime->subtract_index_spaces(set_expr,expr);
 #ifdef DEBUG_LEGION
               assert(!diff_expr->is_empty());
 #endif
@@ -15116,7 +15110,7 @@ namespace Legion {
         if (!overlap)
           continue;
         IndexSpaceExpression *expr_overlap = 
-          runtime->forest->intersect_index_spaces(it->first, expr);
+          runtime->intersect_index_spaces(it->first, expr);
         if (expr_overlap->is_empty())
           continue;
         if (expr_overlap->get_volume() == expr->get_volume())
@@ -15143,9 +15137,9 @@ namespace Legion {
           continue;
         }
         IndexSpaceExpression *union_expr =
-          runtime->forest->union_index_spaces(it->elements);
+          runtime->union_index_spaces(it->elements);
         IndexSpaceExpression *diff_expr =
-          runtime->forest->subtract_index_spaces(expr, union_expr);
+          runtime->subtract_index_spaces(expr, union_expr);
         if (!diff_expr->is_empty())
           filter_valid_instances(diff_expr, false/*covers*/, it->set_mask);
       }
@@ -15210,7 +15204,7 @@ namespace Legion {
                 if (full_diff == NULL)
                 {
                   full_diff = 
-                    runtime->forest->subtract_index_spaces(set_expr, expr);
+                    runtime->subtract_index_spaces(set_expr, expr);
 #ifdef DEBUG_LEGION
                   assert(!full_diff->is_empty());
 #endif
@@ -15233,7 +15227,7 @@ namespace Legion {
               else
               {
                 IndexSpaceExpression *diff_expr = 
-                  runtime->forest->subtract_index_spaces(it->second, expr);
+                  runtime->subtract_index_spaces(it->second, expr);
                 if (!diff_expr->is_empty())
                 {
                   if (diff_expr->get_volume() < it->second->get_volume())
@@ -15366,7 +15360,7 @@ namespace Legion {
                   it = reduced_sets.begin(); it != reduced_sets.end(); it++)
             {
               IndexSpaceExpression *union_expr = 
-                runtime->forest->union_index_spaces(it->elements);
+                runtime->union_index_spaces(it->elements);
               const size_t union_size = union_expr->get_volume();
               const size_t set_size = set_expr->get_volume();
 #ifdef DEBUG_LEGION
@@ -15546,9 +15540,9 @@ namespace Legion {
                 inst_mask -= it->set_mask;
                 IndexSpaceExpression *valid_expr = 
                   (it->elements.size() == 1) ? *(it->elements.begin()) :
-                  runtime->forest->union_index_spaces(it->elements);
+                  runtime->union_index_spaces(it->elements);
                 IndexSpaceExpression *needed_expr =
-                  runtime->forest->subtract_index_spaces(expr, valid_expr);
+                  runtime->subtract_index_spaces(expr, valid_expr);
                 if (needed_expr->is_empty())
                   continue;
                 needed_exprs.insert(needed_expr, it->set_mask);
@@ -15588,7 +15582,7 @@ namespace Legion {
                                                 partial_valid_instances);
               LegionMap<InstanceView*,
                 FieldMaskSet<IndexSpaceExpression> > updates;
-              alias_analysis.visit_leaves(needed_mask, context, runtime->forest,
+              alias_analysis.visit_leaves(needed_mask, context,
                   tree_id, updates);
               for (LegionMap<InstanceView*,
                     FieldMaskSet<IndexSpaceExpression> >::const_iterator 
@@ -15690,7 +15684,7 @@ namespace Legion {
             if (!expr_covers)
             {
               expr_overlap =
-                runtime->forest->intersect_index_spaces(expr, eit->first);
+                runtime->intersect_index_spaces(expr, eit->first);
               const size_t expr_volume = expr_overlap->get_volume();
               if (expr_volume == 0)
                 continue;
@@ -15722,7 +15716,7 @@ namespace Legion {
                 if (!prev_overlap)
                   continue;
                 IndexSpaceExpression *union_expr =
-                  runtime->forest->union_index_spaces(it->first, expr_overlap);
+                  runtime->union_index_spaces(it->first, expr_overlap);
                 to_add.insert(union_expr, prev_overlap);
                 it.filter(prev_overlap);
                 if (!it->second)
@@ -15787,7 +15781,7 @@ namespace Legion {
               if (!overlap)
                 continue;
               if (aggregator == NULL)
-                aggregator = new CopyFillAggregator(runtime->forest, analysis,
+                aggregator = new CopyFillAggregator(analysis,
                                                  previous_guard, track_events);
               aggregator->record_update(target, target_manager, *src_it,
                   overlap, it->first, trace_info, trace_info.recording ?
@@ -15826,7 +15820,7 @@ namespace Legion {
           {
             // Compute the intersection of the two index spaces 
             IndexSpaceExpression *overlap = 
-              runtime->forest->intersect_index_spaces(it->first.first, 
+              runtime->intersect_index_spaces(it->first.first, 
                                                       it->first.second);
             const size_t overlap_size = overlap->get_volume();
             if (overlap_size == 0)
@@ -15840,7 +15834,7 @@ namespace Legion {
             if (!finder->second)
               remainders.erase(finder);
             if (aggregator == NULL)
-              aggregator = new CopyFillAggregator(runtime->forest, analysis,
+              aggregator = new CopyFillAggregator(analysis,
                                                   previous_guard, track_events);
             if (overlap_size < it->first.first->get_volume())
             {
@@ -15854,7 +15848,7 @@ namespace Legion {
                     this : NULL, redop);
               // Compute the difference to add to the remainders
               IndexSpaceExpression *diff = 
-                runtime->forest->subtract_index_spaces(it->first.first,overlap);
+                runtime->subtract_index_spaces(it->first.first,overlap);
               remainders.insert(diff, it->second);
             }
             else
@@ -15907,7 +15901,7 @@ namespace Legion {
       if (!!total_fields)
       {
         if (aggregator == NULL)
-          aggregator = new CopyFillAggregator(runtime->forest, analysis,
+          aggregator = new CopyFillAggregator(analysis,
                                               previous_guard, track_events);
         if (total_fields != total_valid_instances.get_valid_mask())
         {
@@ -15956,7 +15950,7 @@ namespace Legion {
             if (it->first != expr)
             {
               IndexSpaceExpression *expr_overlap =
-                runtime->forest->intersect_index_spaces(it->first, expr);
+                runtime->intersect_index_spaces(it->first, expr);
               const size_t overlap_volume = expr_overlap->get_volume();
               if (overlap_volume > 0)
               {
@@ -15990,7 +15984,7 @@ namespace Legion {
       if (!cover_instances.empty())
       {
         if (aggregator == NULL)
-          aggregator = new CopyFillAggregator(runtime->forest, analysis,
+          aggregator = new CopyFillAggregator(analysis,
                                               previous_guard, track_events);
         aggregator->record_updates(target, target_manager, cover_instances,
             cover_instances.get_valid_mask(), expr, trace_info,
@@ -16006,7 +16000,7 @@ namespace Legion {
       if (!partial_instances.empty())
       {
         if (aggregator == NULL)
-          aggregator = new CopyFillAggregator(runtime->forest, analysis,
+          aggregator = new CopyFillAggregator(analysis,
                                               previous_guard, track_events);
         aggregator->record_partial_updates(target, target_manager, 
                                  partial_instances, update_mask, expr,
@@ -16054,7 +16048,7 @@ namespace Legion {
             // Collective reduction view path
             AllreduceView *allreduce_view = red_view->as_allreduce_view();
             InitializeCollectiveReduction alias_analysis(allreduce_view,
-                                                  runtime->forest, expr);
+                                                  expr);
             int fidx = reduction_mask.find_first_set();
             while (fidx >= 0)
             {
@@ -16076,7 +16070,7 @@ namespace Legion {
                   if (!expr_covers)
                   {
                     IndexSpaceExpression *overlap_expr = 
-                      runtime->forest->intersect_index_spaces(expr, it->second);
+                      runtime->intersect_index_spaces(expr, it->second);
                     if (overlap_expr->is_empty())
                       continue;
                     alias_analysis.visit_leaves(reduce_mask,
@@ -16160,7 +16154,7 @@ namespace Legion {
                       if (!expr_covers && (expr != it->second))
                       {
                         IndexSpaceExpression *overlap = 
-                          runtime->forest->intersect_index_spaces(expr, 
+                          runtime->intersect_index_spaces(expr, 
                                                                   it->second);
                         if (overlap->is_empty())
                           continue;
@@ -16175,7 +16169,7 @@ namespace Legion {
                             fit != found_exprs.end(); fit++)
                       {
                         IndexSpaceExpression *overlap = 
-                          runtime->forest->intersect_index_spaces(it->second,
+                          runtime->intersect_index_spaces(it->second,
                                                                   *fit);
                         if (overlap->is_empty())
                           continue;
@@ -16201,7 +16195,7 @@ namespace Legion {
                       if (expr != it->second)
                       {
                         IndexSpaceExpression *overlap = 
-                          runtime->forest->intersect_index_spaces(expr,
+                          runtime->intersect_index_spaces(expr,
                                                             it->second);
                         if (overlap->get_volume() < expr->get_volume())
                         {
@@ -16211,7 +16205,7 @@ namespace Legion {
                               it->second->get_volume())
                           {
                             IndexSpaceExpression *union_expr =
-                              runtime->forest->union_index_spaces(expr,
+                              runtime->union_index_spaces(expr,
                                                             it->second);
                             union_expr->add_nested_expression_reference(did);
                             if (it->second->
@@ -16273,11 +16267,11 @@ namespace Legion {
                     // See if the union dominates the expression, if not
                     // put in the difference
                     IndexSpaceExpression *union_expr = 
-                      runtime->forest->union_index_spaces(found_exprs);
+                      runtime->union_index_spaces(found_exprs);
                     if (union_expr->get_volume() < expr->get_volume())
                     {
                       IndexSpaceExpression *diff_expr =
-                        runtime->forest->subtract_index_spaces(expr,
+                        runtime->subtract_index_spaces(expr,
                                                           union_expr);
                       fill_exprs.insert(diff_expr, fill_mask);
                       red_view->add_nested_valid_ref(did);
@@ -16317,7 +16311,7 @@ namespace Legion {
               {
                 // Fill aggregators never need to wait for any other
                 // aggregators since we know they won't depend on each other
-                fill_aggregator = new CopyFillAggregator(runtime->forest,
+                fill_aggregator = new CopyFillAggregator(
                  &analysis, NULL/*no previous guard*/, false/*track events*/);
                 analysis.input_aggregators[RtEvent::NO_RT_EVENT] = 
                   fill_aggregator;
@@ -16508,7 +16502,7 @@ namespace Legion {
             }
           }
           if (aggregator == NULL)
-            aggregator = new CopyFillAggregator(runtime->forest, analysis,
+            aggregator = new CopyFillAggregator(analysis,
                                                 previous_guard, track_events);
           aggregator->record_reductions(target, target_manager, 
               finder->second, fidx, (across_helper == NULL) ? fidx : 
@@ -16591,7 +16585,7 @@ namespace Legion {
               if (track_exprs)
                 has_cover = true;
               IndexSpaceExpression *remainder = 
-                runtime->forest->subtract_index_spaces(set_expr, expr);
+                runtime->subtract_index_spaces(set_expr, expr);
               remainder->add_nested_expression_reference(did);
               it->second = remainder;
               if (set_expr->remove_nested_expression_reference(did))
@@ -16601,7 +16595,7 @@ namespace Legion {
             else
             {
               IndexSpaceExpression *overlap = 
-                runtime->forest->intersect_index_spaces(expr, it->second);
+                runtime->intersect_index_spaces(expr, it->second);
               const size_t overlap_size = overlap->get_volume();
               if (overlap_size == 0)
               {
@@ -16624,7 +16618,7 @@ namespace Legion {
               else
               {
                 IndexSpaceExpression *remainder = 
-                  runtime->forest->subtract_index_spaces(it->second, expr);
+                  runtime->subtract_index_spaces(it->second, expr);
                 remainder->add_nested_expression_reference(did);
                 if (it->second->remove_nested_expression_reference(did))
                   delete it->second;
@@ -16636,7 +16630,7 @@ namespace Legion {
           if (!to_record.empty())
           {
             if (aggregator == NULL)
-              aggregator = new CopyFillAggregator(runtime->forest, analysis,
+              aggregator = new CopyFillAggregator(analysis,
                                                   previous_guard, track_events);
             aggregator->record_reductions(target, target_manager, to_record,
                                     fidx, (across_helper == NULL) ? fidx : 
@@ -16735,7 +16729,7 @@ namespace Legion {
         else
         {
           IndexSpaceExpression *over = 
-            runtime->forest->intersect_index_spaces(rit->first, expr);
+            runtime->intersect_index_spaces(rit->first, expr);
           if (over->is_empty())
             continue;
           const size_t over_size = over->get_volume();
@@ -16758,7 +16752,7 @@ namespace Legion {
           if (it->first.first == it->first.second)
             continue;
           if (aggregator == NULL)
-            aggregator = new CopyFillAggregator(runtime->forest, analysis,
+            aggregator = new CopyFillAggregator(analysis,
                                 NULL/*no previous guard*/, true/*track*/);
           aggregator->record_update(it->first.first, NULL/*no manager*/,
               it->first.second, overlap, overlap_expr, trace_info,
@@ -16793,7 +16787,7 @@ namespace Legion {
         if (!expr_covers && (eit->first != expr))
         {
           overlap_expr = 
-            runtime->forest->intersect_index_spaces(eit->first, expr);
+            runtime->intersect_index_spaces(eit->first, expr);
           const size_t overlap_size = overlap_expr->get_volume();
           if (overlap_size == 0)
             continue;
@@ -16887,7 +16881,7 @@ namespace Legion {
           // Only partial covering, so compute the difference
           // and record that we'll pull valid instances from here
           to_add[eit->first] = 
-            runtime->forest->subtract_index_spaces(eit->first, expr);
+            runtime->subtract_index_spaces(eit->first, expr);
           // The intersection gets merged back into relased sets
           for (FieldMaskSet<InstanceView>::const_iterator it =
                 eit->second.begin(); it != eit->second.end(); it++)
@@ -16995,7 +16989,7 @@ namespace Legion {
           if (!expr_covers && (eit->first != expr))
           {
             overlap_expr = 
-              runtime->forest->intersect_index_spaces(eit->first, expr);
+              runtime->intersect_index_spaces(eit->first, expr);
             const size_t overlap_size = overlap_expr->get_volume();
             if (overlap_size == 0)
               continue;
@@ -17051,7 +17045,7 @@ namespace Legion {
             // Only partial covering, so compute the difference
             // and record that we'll pull valid instances from here
             to_add[eit->first] = 
-              runtime->forest->subtract_index_spaces(eit->first, expr);
+              runtime->subtract_index_spaces(eit->first, expr);
             FieldMaskSet<InstanceView> &updates = to_update[overlap_expr];
             // The intersection gets merged back into relased sets
             for (FieldMaskSet<InstanceView>::const_iterator it =
@@ -17258,7 +17252,7 @@ namespace Legion {
           {
             it->elements.insert(expr);
             IndexSpaceExpression *union_expr = 
-              runtime->forest->union_index_spaces(it->elements); 
+              runtime->union_index_spaces(it->elements); 
             if (union_expr->get_volume() < set_expr->get_volume())
             {
               ExprViewMaskSets::iterator restricted_finder =
@@ -17462,7 +17456,7 @@ namespace Legion {
           if (it->first != set_expr)
           {
             IndexSpaceExpression *intersection =
-              runtime->forest->intersect_index_spaces(it->first, expr);
+              runtime->intersect_index_spaces(it->first, expr);
             const size_t volume = intersection->get_volume();
             if (volume == 0)
               continue;
@@ -17474,7 +17468,7 @@ namespace Legion {
             if (volume < it->first->get_volume())
             {
               IndexSpaceExpression *diff = 
-                runtime->forest->subtract_index_spaces(it->first, intersection);
+                runtime->subtract_index_spaces(it->first, intersection);
               to_add.insert(diff, overlap);
             }
           }
@@ -17484,7 +17478,7 @@ namespace Legion {
             if (!it->second)
               to_delete.push_back(it->first);
             to_add.insert(
-              runtime->forest->subtract_index_spaces(it->first, expr), overlap);
+              runtime->subtract_index_spaces(it->first, expr), overlap);
           }
         }
         if (!to_add.empty())
@@ -17657,7 +17651,7 @@ namespace Legion {
           if (rit->second.get_valid_mask() * filter_mask)
             continue;
           IndexSpaceExpression *intersection = (rit->first == set_expr) ? expr :
-            runtime->forest->intersect_index_spaces(rit->first, expr);
+            runtime->intersect_index_spaces(rit->first, expr);
           const size_t volume = intersection->get_volume();
           if (volume == 0)
             continue;
@@ -17721,7 +17715,7 @@ namespace Legion {
           {
             // Only covers part, so compute diff and put them in the add set
             IndexSpaceExpression *diff = 
-              runtime->forest->subtract_index_spaces(rit->first, intersection);
+              runtime->subtract_index_spaces(rit->first, intersection);
             if (!(rit->second.get_valid_mask() - filter_mask))
             {
               // All the views are flowing into to_add
@@ -17928,7 +17922,7 @@ namespace Legion {
           if (rit->second.get_valid_mask() * filter_mask)
             continue;
           IndexSpaceExpression *intersection = (rit->first == set_expr) ? expr :
-            runtime->forest->intersect_index_spaces(rit->first, expr);
+            runtime->intersect_index_spaces(rit->first, expr);
           const size_t volume = intersection->get_volume();
           if (volume == 0)
             continue;
@@ -17992,7 +17986,7 @@ namespace Legion {
           {
             // Only covers part, so compute diff and put them in the add set
             IndexSpaceExpression *diff = 
-              runtime->forest->subtract_index_spaces(rit->first, intersection);
+              runtime->subtract_index_spaces(rit->first, intersection);
             if (!(rit->second.get_valid_mask() - filter_mask))
             {
               // All the views are flowing into to_add
@@ -18420,7 +18414,7 @@ namespace Legion {
               else
               {
                 IndexSpaceExpression *fill_expr = 
-                  runtime->forest->intersect_index_spaces(it->first, expr);
+                  runtime->intersect_index_spaces(it->first, expr);
                 if (fill_expr->is_empty())
                   continue;
                 phi_views[fill_expr].insert(deferred, overlap); 
@@ -18433,7 +18427,7 @@ namespace Legion {
                   // if we only had a partial covering then put the
                   // difference back into the partial expressions
                   IndexSpaceExpression *diff_expr = 
-                    runtime->forest->subtract_index_spaces(it->first,fill_expr);
+                    runtime->subtract_index_spaces(it->first,fill_expr);
                   to_add.insert(diff_expr, overlap);
                 }
               }
@@ -18480,12 +18474,12 @@ namespace Legion {
               if (!expr_covers)
               {
                 fill_expr = 
-                  runtime->forest->intersect_index_spaces(it->first, expr);
+                  runtime->intersect_index_spaces(it->first, expr);
                 if (fill_expr->is_empty())
                   continue;
               }
               if (aggregator == NULL)
-                aggregator = new CopyFillAggregator(runtime->forest, analysis,
+                aggregator = new CopyFillAggregator(analysis,
                         NULL/*no previous guard*/, true/*track*/, true_guard);
               aggregator->record_fill(inst_view, fill_view, overlap, fill_expr,
                                       true_guard, this);
@@ -18538,7 +18532,7 @@ namespace Legion {
               // If the predicated fill isn't covering then we need to
               // move this deferred view back to the partial valid views
               IndexSpaceExpression *diff = 
-                runtime->forest->subtract_index_spaces(set_expr, expr);
+                runtime->subtract_index_spaces(set_expr, expr);
               if (record_partial_valid_instance(it->first, diff, overlap,
                     false/*check total_valid*/))
                 need_partial_rebuild = true;
@@ -18548,7 +18542,7 @@ namespace Legion {
           {
             // Physical instance so we can just record the predicated fill
             if (aggregator == NULL)
-              aggregator = new CopyFillAggregator(runtime->forest, analysis,
+              aggregator = new CopyFillAggregator(analysis,
                       NULL/*no previous guard*/, true/*track*/, true_guard);
             aggregator->record_fill(it->first->as_instance_view(),
                                 fill_view, overlap, expr, true_guard, this);
@@ -18741,7 +18735,7 @@ namespace Legion {
             if (!expr_covers && (rit->first != expr))
             {
               IndexSpaceExpression *expr_overlap = 
-                runtime->forest->intersect_index_spaces(rit->first, expr);
+                runtime->intersect_index_spaces(rit->first, expr);
               const size_t overlap_size = expr_overlap->get_volume();
               if (overlap_size == 0)
                 continue;
@@ -18749,7 +18743,7 @@ namespace Legion {
               {
                 // Did not cover all of it so we have to compute the diff
                 IndexSpaceExpression *diff_expr = 
-                  runtime->forest->subtract_index_spaces(rit->first, expr);
+                  runtime->subtract_index_spaces(rit->first, expr);
 #ifdef DEBUG_LEGION
                 assert(diff_expr != NULL);
 #endif
@@ -18842,7 +18836,7 @@ namespace Legion {
                       it = filter_sets.begin(); it != filter_sets.end(); it++)
                 {
                   IndexSpaceExpression *diff = 
-                    runtime->forest->subtract_index_spaces(
+                    runtime->subtract_index_spaces(
                         it->first.first, it->first.second);
                   if (diff->get_volume() == it->first.first->get_volume())
                     continue;
@@ -18907,14 +18901,14 @@ namespace Legion {
             if (!expr_covers && (it->first != expr))
             {
               IndexSpaceExpression *expr_overlap = 
-                runtime->forest->intersect_index_spaces(it->first, expr);
+                runtime->intersect_index_spaces(it->first, expr);
               const size_t expr_size = expr_overlap->get_volume();
               if (expr_size == 0)
                 continue;
               if (expr_size < it->first->get_volume())
               {
                 IndexSpaceExpression *diff_expr = 
-                  runtime->forest->subtract_index_spaces(it->first, 
+                  runtime->subtract_index_spaces(it->first, 
                                                          expr_overlap);
 #ifdef DEBUG_LEGION
                 assert(!diff_expr->is_empty());
@@ -18983,7 +18977,7 @@ namespace Legion {
           {
             // Compute the difference and store it in the partial valid fields
             IndexSpaceExpression *diff_expr = 
-              runtime->forest->subtract_index_spaces(set_expr, expr);
+              runtime->subtract_index_spaces(set_expr, expr);
 #ifdef DEBUG_LEGION
             assert(!diff_expr->is_empty());
 #endif
@@ -19033,7 +19027,7 @@ namespace Legion {
           continue;
         // Check that the expressions overlap
         IndexSpaceExpression *overlap_expr = 
-          runtime->forest->intersect_index_spaces(expr, it->first->set_expr);
+          runtime->intersect_index_spaces(expr, it->first->set_expr);
         if (overlap_expr->is_empty())
           continue;
         it->first->clone_to_local(this, overlap, overlap_expr, applied_events,
@@ -19579,7 +19573,7 @@ namespace Legion {
       DistributedID did;
       derez.deserialize(did);
       IndexSpaceExpression *expr =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, 
+        IndexSpaceExpression::unpack_expression(derez,
                                         runtime->determine_owner(did));
       RegionTreeID tid;
       derez.deserialize(tid);
@@ -19924,7 +19918,7 @@ namespace Legion {
       for (unsigned idx1 = 0; idx1 < num_valid; idx1++)
       {
         IndexSpaceExpression *expr = 
-          IndexSpaceExpression::unpack_expression(derez,runtime->forest,source);
+          IndexSpaceExpression::unpack_expression(derez, source);
         size_t num_views;
         derez.deserialize(num_views);
         FieldMaskSet<LogicalView> &views = valid_updates[expr];
@@ -19946,7 +19940,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < num_initialized; idx++)
       {
         IndexSpaceExpression *expr = 
-          IndexSpaceExpression::unpack_expression(derez,runtime->forest,source);
+          IndexSpaceExpression::unpack_expression(derez, source);
         FieldMask mask;
         derez.deserialize(mask);
         initialized_updates.insert(expr, mask);
@@ -19956,7 +19950,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < num_invalidated; idx++)
       {
         IndexSpaceExpression *expr = 
-          IndexSpaceExpression::unpack_expression(derez,runtime->forest,source);
+          IndexSpaceExpression::unpack_expression(derez, source);
         FieldMask mask;
         derez.deserialize(mask);
         invalid_updates.insert(expr, mask);
@@ -19981,7 +19975,7 @@ namespace Legion {
             ready_events.insert(ready);
           IndexSpaceExpression *expr = 
             IndexSpaceExpression::unpack_expression(derez,
-                                                    runtime->forest, source);
+                                                    source);
           reductions.push_back(std::pair<InstanceView*,IndexSpaceExpression*>(
                 static_cast<InstanceView*>(view), expr));
         }
@@ -19991,7 +19985,7 @@ namespace Legion {
       for (unsigned idx1 = 0; idx1 < num_restrictions; idx1++)
       {
         IndexSpaceExpression *expr = 
-          IndexSpaceExpression::unpack_expression(derez,runtime->forest,source);
+          IndexSpaceExpression::unpack_expression(derez, source);
         size_t num_views;
         derez.deserialize(num_views);
         FieldMaskSet<InstanceView> &restrictions = restricted_updates[expr];
@@ -20013,7 +20007,7 @@ namespace Legion {
       for (unsigned idx1 = 0; idx1 < num_releases; idx1++)
       {
         IndexSpaceExpression *expr = 
-          IndexSpaceExpression::unpack_expression(derez,runtime->forest,source);
+          IndexSpaceExpression::unpack_expression(derez, source);
         size_t num_views;
         derez.deserialize(num_views);
         FieldMaskSet<InstanceView> &releases = released_updates[expr];
@@ -20313,7 +20307,7 @@ namespace Legion {
             if (!overlap)
               continue;
             IndexSpaceExpression *union_expr = 
-              runtime->forest->union_index_spaces(it->first, expr);
+              runtime->union_index_spaces(it->first, expr);
             const size_t union_volume = union_expr->get_volume();
 #ifdef DEBUG_LEGION
             // There shouldn't have been any overlap here
@@ -20577,7 +20571,7 @@ namespace Legion {
               {
                 // Check for expression overlap
                 IndexSpaceExpression *intersection = 
-                  runtime->forest->intersect_index_spaces(overlap_expr, 
+                  runtime->intersect_index_spaces(overlap_expr, 
                                                           it->first);
                 const size_t volume = intersection->get_volume();
                 if (volume == 0)
@@ -20608,7 +20602,7 @@ namespace Legion {
               {
                 // Check for expression overlap
                 IndexSpaceExpression *intersection = 
-                  runtime->forest->intersect_index_spaces(overlap_expr, 
+                  runtime->intersect_index_spaces(overlap_expr, 
                                                           it->first);
                 const size_t volume = intersection->get_volume();
                 if (volume == 0)
@@ -20641,7 +20635,7 @@ namespace Legion {
             if (!overlap_covers)
             {
               IndexSpaceExpression *intersection = 
-                runtime->forest->intersect_index_spaces(it->first,overlap_expr);
+                runtime->intersect_index_spaces(it->first,overlap_expr);
               const size_t volume = intersection->get_volume();
               if (volume == 0)
                 continue;
@@ -20695,7 +20689,7 @@ namespace Legion {
               else
               {
                 IndexSpaceExpression *intersection = 
-                  runtime->forest->intersect_index_spaces(it->second, 
+                  runtime->intersect_index_spaces(it->second, 
                                                           overlap_expr);
                 const size_t volume = intersection->get_volume();
                 if (volume > 0)
@@ -20726,7 +20720,7 @@ namespace Legion {
           if (!overlap_covers)
           {
             IndexSpaceExpression *intersection = 
-              runtime->forest->intersect_index_spaces(rit->first, overlap_expr);
+              runtime->intersect_index_spaces(rit->first, overlap_expr);
             const size_t volume = intersection->get_volume();
             if (volume == 0)
               continue;
@@ -20759,7 +20753,7 @@ namespace Legion {
           if (!overlap_covers)
           {
             IndexSpaceExpression *intersection = 
-              runtime->forest->intersect_index_spaces(rit->first, overlap_expr);
+              runtime->intersect_index_spaces(rit->first, overlap_expr);
             const size_t volume = intersection->get_volume();
             if (volume == 0)
               continue;
@@ -21135,9 +21129,9 @@ namespace Legion {
       AddressSpaceID target_space;
       derez.deserialize(target_space);
       IndexSpaceExpression *target_expr =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       IndexSpaceExpression *overlap =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       FieldMask mask;
       derez.deserialize(mask);
       RtUserEvent done_event;
@@ -21217,7 +21211,7 @@ namespace Legion {
       AddressSpaceID target_space;
       derez.deserialize(target_space);
       IndexSpaceExpression *expr = 
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       FieldMask mask;
       derez.deserialize(mask);
       RtUserEvent ready_event;
@@ -21236,7 +21230,7 @@ namespace Legion {
       TraceConditionSet *target;
       derez.deserialize(target);
       IndexSpaceExpression *expr =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       RegionTreeID tid;
       derez.deserialize(tid);
       TraceViewSet *previews = NULL;
@@ -22329,12 +22323,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const int depth = context->get_depth();
-      RegionTreeForest *forest = runtime->forest;
       // Find the canonical expression for this expr and then we can use that
       // to compare against the canonical expression of each of the existing
       // equivalence sets to see if we can find a match
       const size_t volume = expr->get_volume();
-      expr = expr->get_canonical_expression(forest); 
+      expr = expr->get_canonical_expression(); 
       // Need the lock since the equivalence set data structure might 
       // change at the same time that we're iterating over it
       // We're just reading though so we don't need exclusive access
@@ -22352,7 +22345,7 @@ namespace Legion {
         if (volume != it->first->set_expr->get_volume())
           continue;
         IndexSpaceExpression *set_expr = 
-          it->first->set_expr->get_canonical_expression(forest);
+          it->first->set_expr->get_canonical_expression();
         if (expr == set_expr)
         {
           // Found one, add it to the pending sets and add a reference
@@ -22446,7 +22439,7 @@ namespace Legion {
             if (expression == NULL)
             {
               IndexSpaceExpression *intersection = 
-                runtime->forest->intersect_index_spaces(
+                runtime->intersect_index_spaces(
                     eit->first->set_expr, target->set_expr);
               if (intersection->get_volume() == target->set_expr->get_volume())
                 intersection = target->set_expr;
@@ -22977,9 +22970,9 @@ namespace Legion {
 #endif
       // Make the equivalence set
       IndexSpaceExpression *expr = handle.exists() ? 
-        runtime->forest->get_node(handle) : (local_finder != to_notify.end()) ? 
+        runtime->get_node(handle) : (local_finder != to_notify.end()) ? 
         local_finder->second.begin()->first->create_from_rectangles(
-            runtime->forest, rectangles) :
+            rectangles) :
         local_target->get_tracker_expression()->create_from_rectangles(
             rectangles_set);
       void *location = 

@@ -396,7 +396,7 @@ namespace Legion {
       safe_cast_semaphore.fetch_sub(1);
       if (node == NULL)
       {
-        node = runtime->forest->get_node(handle);
+        node = runtime->get_node(handle);
         // Take the semaphore in exclusive mode to update the data structure
         current = 0;
         while (!safe_cast_semaphore.compare_exchange_weak(current, -1))
@@ -445,14 +445,14 @@ namespace Legion {
             (req.handle_type == LEGION_REGION_PROJECTION))
         {
           std::vector<LegionColor> path;
-          if (!runtime->forest->compute_index_path(req.parent.index_space,
+          if (!runtime->compute_index_path(req.parent.index_space,
                                             req.region.index_space, path))
             return ERROR_BAD_REGION_PATH;
         }
         else
         {
           std::vector<LegionColor> path;
-          if (!runtime->forest->compute_partition_path(req.parent.index_space,
+          if (!runtime->compute_partition_path(req.parent.index_space,
                                         req.partition.index_partition, path))
             return ERROR_BAD_PARTITION_PATH;
         }
@@ -510,7 +510,7 @@ namespace Legion {
         // Check to see if there is a path between
         // the index spaces
         std::vector<LegionColor> path;
-        if (!runtime->forest->compute_index_path(our_space,
+        if (!runtime->compute_index_path(our_space,
                          req.region.get_index_space(),path))
           return false;
       }
@@ -520,7 +520,7 @@ namespace Legion {
         if (our_tid != req.partition.get_tree_id())
           return false;
         std::vector<LegionColor> path;
-        if (!runtime->forest->compute_partition_path(our_space,
+        if (!runtime->compute_partition_path(our_space,
                      req.partition.get_index_partition(), path))
           return false;
       }
@@ -1063,8 +1063,8 @@ namespace Legion {
         return FutureMap();
       Domain launch_domain = launcher.launch_domain;
       if (!launch_domain.exists())
-        runtime->forest->find_domain(launch_space, launch_domain);
-      IndexSpaceNode *launch_node = runtime->forest->get_node(launch_space);
+        runtime->find_domain(launch_space, launch_domain);
+      IndexSpaceNode *launch_node = runtime->get_node(launch_space);
       FutureMapImpl *result = new FutureMapImpl(this,
           launch_node, runtime->get_available_distributed_id(),
           InnerContext::NO_FUTURE_COORDINATE, ApEvent::NO_AP_EVENT, provenance);
@@ -1133,7 +1133,7 @@ namespace Legion {
       {
         const RegionRequirement &child_req = child->regions[idx1];
         FieldSpaceNode *space = 
-          runtime->forest->get_node(child_req.parent.get_field_space());
+          runtime->get_node(child_req.parent.get_field_space());
         FieldMask mask = space->get_field_mask(child_req.privilege_fields);
         InstanceSet instances;
         parent_regions[idx1].impl->get_references(instances);
@@ -2072,7 +2072,7 @@ namespace Legion {
                       created_index_partitions.end(); /*nothing*/)
                 {
                   if ((pit->partition.get_tree_id() == it->first.get_tree_id()) 
-                        && runtime->forest->is_dominated_tree_only(it->first, 
+                        && runtime->is_dominated_tree_only(it->first, 
                                                                 pit->partition))
                   {
 #ifdef DEBUG_LEGION
@@ -2885,7 +2885,7 @@ namespace Legion {
         assert(root_space.exists());
 #endif
         // Create the equivalence set tree
-        IndexSpaceNode *root = runtime->forest->get_node(root_space);
+        IndexSpaceNode *root = runtime->get_node(root_space);
         // Normal contexts and control replication contexts will do 
         // different things here while creating the equivalence set tree
         EqKDTree *tree = create_equivalence_set_kd_tree(root);
@@ -2943,7 +2943,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(root_space.exists());
 #endif
-      IndexSpaceNode *root = runtime->forest->get_node(root_space);
+      IndexSpaceNode *root = runtime->get_node(root_space);
       EqKDTree *tree = create_equivalence_set_kd_tree(root);
       AutoLock priv_lock(privilege_lock);
       std::map<unsigned,EqKDRoot>::const_iterator finder =
@@ -2984,7 +2984,7 @@ namespace Legion {
         root_space = find_root_index_space(req_index);
       }
       // If we get here then we need to make the new tree
-      IndexSpaceNode *root = runtime->forest->get_node(root_space);
+      IndexSpaceNode *root = runtime->get_node(root_space);
       // Normal contexts and control replication contexts will do 
       // different things here while creating the equivalence set tree
       EqKDTree *tree = create_equivalence_set_kd_tree(root);
@@ -3141,7 +3141,7 @@ namespace Legion {
       // If we get here then we can make a new requirement
       // which has non-returnable privileges
       // Get the top level region for the region tree
-      RegionNode *top = runtime->forest->get_tree(req.parent.get_tree_id());
+      RegionNode *top = runtime->get_tree(req.parent.get_tree_id());
       const unsigned index = next_created_index++;
       RegionRequirement &new_req = created_requirements[index];
       new_req = RegionRequirement(top->handle, LEGION_READ_WRITE, 
@@ -3173,7 +3173,7 @@ namespace Legion {
         {
           // Check that there is a path between the parent and the child
           std::vector<LegionColor> path;
-          if (!runtime->forest->compute_index_path(req.parent, 
+          if (!runtime->compute_index_path(req.parent, 
                                                    req.handle, path))
             return ERROR_BAD_INDEX_PATH;
           // Now check that the privileges are less than or equal
@@ -3190,7 +3190,7 @@ namespace Legion {
       {
         // Still need to check that there is a path between the two
         std::vector<LegionColor> path;
-        if (!runtime->forest->compute_index_path(req.parent, req.handle, path))
+        if (!runtime->compute_index_path(req.parent, req.handle, path))
           return ERROR_BAD_INDEX_PATH;
         // No need to check privileges here since it is a created space
         // which means that the parent has all privileges.
@@ -3267,7 +3267,7 @@ namespace Legion {
           return ERROR_BAD_PARENT_REGION;
       }
       // Check that the parent is the root of the tree, if not it is bad
-      RegionNode *parent_region = runtime->forest->get_node(req.parent);
+      RegionNode *parent_region = runtime->get_node(req.parent);
       if (parent_region->parent != NULL)
         return ERROR_BAD_PARENT_REGION;
       // Otherwise we have privileges on these fields for all regions
@@ -3537,8 +3537,7 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(handle.id, runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
-      // Will take ownership of provenance if not NULL
-      runtime->forest->create_index_space(handle, bounds, did, provenance); 
+      runtime->create_index_space(handle, bounds, did, provenance);
       register_index_space_creation(handle);
       return handle;
     }
@@ -3587,7 +3586,7 @@ namespace Legion {
         return;
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
-      if (!runtime->forest->is_top_level_index_space(handle))
+      if (!runtime->is_top_level_index_space(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to create shared ownership for index space %x in " 
             "task %s (UID %lld) which is not a top-level index space. Legion "
@@ -3627,7 +3626,7 @@ namespace Legion {
       const IndexSpace handle(runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), spaces[0].get_type_tag());
       const DistributedID did = runtime->get_available_distributed_id();
-      runtime->forest->create_union_space(handle, did, provenance, spaces);
+      runtime->create_union_space(handle, did, provenance, spaces);
       register_index_space_creation(handle);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
@@ -3659,7 +3658,7 @@ namespace Legion {
       const IndexSpace handle(runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), spaces[0].get_type_tag());
       const DistributedID did = runtime->get_available_distributed_id();
-      runtime->forest->create_intersection_space(handle,did,provenance,spaces);
+      runtime->create_intersection_space(handle,did,provenance,spaces);
       register_index_space_creation(handle);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
@@ -3682,7 +3681,7 @@ namespace Legion {
       const IndexSpace handle(runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), left.get_type_tag());
       const DistributedID did = runtime->get_available_distributed_id();
-      runtime->forest->create_difference_space(handle, did, provenance,
+      runtime->create_difference_space(handle, did, provenance,
                                                left, right); 
       register_index_space_creation(handle);
       if (runtime->legion_spy_enabled)
@@ -3709,9 +3708,11 @@ namespace Legion {
       // Get a new creation operation
       CreationOp *creator_op = runtime->get_available_creation_op();
       const ApEvent ready = creator_op->get_completion_event();
-      IndexSpaceNode *node = runtime->forest->create_index_space(handle,
-          NULL/*domain*/, did, provenance, NULL/*collective map*/,
-          0/*expr id*/, ready);
+      IndexSpaceNode *node = runtime->create_node(handle,
+          NULL/*domain*/, true/*is domain*/, NULL/*parent*/,
+          0/*color*/, did, RtEvent::NO_RT_EVENT, provenance,
+          ready, 0/*expr id*/, NULL/*collective mapping*/, 
+          true/*add root reference*/);
       creator_op->initialize_index_space(this, node, future, provenance);
       register_index_space_creation(handle);
       add_to_dependence_queue(creator_op);
@@ -3731,7 +3732,7 @@ namespace Legion {
 #endif
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
-      if (!runtime->forest->is_top_level_index_space(handle))
+      if (!runtime->is_top_level_index_space(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
             "Illegal call to destroy index space %x in task %s (UID %lld) "
             "which is not a top-level index space. Legion only permits "
@@ -3852,7 +3853,7 @@ namespace Legion {
                   created_index_partitions.end(); /*nothing*/)
             {
               if ((handle.get_tree_id() == it->first.get_tree_id()) &&
-                  runtime->forest->is_dominated_tree_only(it->first, handle))
+                  runtime->is_dominated_tree_only(it->first, handle))
               {
                 sub_partitions.push_back(it->first);
 #ifdef DEBUG_LEGION
@@ -3918,8 +3919,7 @@ namespace Legion {
       PendingPartitionOp *part_op = 
         runtime->get_available_pending_partition_op();
       part_op->initialize_equal_partition(this, pid, granularity, provenance);
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this,pid,parent,
+      RtEvent safe = create_pending_partition_internal(pid, parent,
                     color_space, partition_color, LEGION_DISJOINT_COMPLETE_KIND,
                     did, provenance);
       // Now we can add the operation to the queue
@@ -3953,9 +3953,7 @@ namespace Legion {
         runtime->get_available_pending_partition_op();
       part_op->initialize_weight_partition(this, pid, weights, 
                                            granularity, provenance);
-      // Tell the region tree forest about this partition
-      RegionTreeForest *forest = runtime->forest;
-      const RtEvent safe = forest->create_pending_partition(this, pid, parent,
+      const RtEvent safe = create_pending_partition_internal(pid, parent,
                   color_space, partition_color, LEGION_DISJOINT_COMPLETE_KIND,
                   did, provenance);
       // Now we can add the operation to the queue
@@ -4010,10 +4008,10 @@ namespace Legion {
           (kind == LEGION_COMPUTE_INCOMPLETE_KIND))
       {
         // If one of these partitions is aliased then the result is aliased
-        IndexPartNode *p1 = runtime->forest->get_node(handle1);
+        IndexPartNode *p1 = runtime->get_node(handle1);
         if (p1->is_disjoint(true/*from app*/))
         {
-          IndexPartNode *p2 = runtime->forest->get_node(handle2);
+          IndexPartNode *p2 = runtime->get_node(handle2);
           if (!p2->is_disjoint(true/*from app*/))
           {
             if (kind == LEGION_COMPUTE_KIND)
@@ -4034,8 +4032,7 @@ namespace Legion {
             kind = LEGION_ALIASED_INCOMPLETE_KIND;
         }
       }
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,
+      RtEvent safe = create_pending_partition_internal(pid,
           parent, color_space, partition_color, kind, did, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4090,10 +4087,10 @@ namespace Legion {
           (kind == LEGION_COMPUTE_COMPLETE_KIND) ||
           (kind == LEGION_COMPUTE_INCOMPLETE_KIND))
       {
-        IndexPartNode *p1 = runtime->forest->get_node(handle1);
+        IndexPartNode *p1 = runtime->get_node(handle1);
         if (!p1->is_disjoint(true/*from app*/))
         {
-          IndexPartNode *p2 = runtime->forest->get_node(handle2);
+          IndexPartNode *p2 = runtime->get_node(handle2);
           if (p2->is_disjoint(true/*from app*/))
           {
             if (kind == LEGION_COMPUTE_KIND)
@@ -4114,8 +4111,7 @@ namespace Legion {
             kind = LEGION_DISJOINT_INCOMPLETE_KIND;
         }
       }
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,
+      RtEvent safe = create_pending_partition_internal(pid,
           parent, color_space, partition_color, kind, did, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4159,7 +4155,7 @@ namespace Legion {
         runtime->get_available_pending_partition_op();
       part_op->initialize_intersection_partition(this, pid, partition,
                                                  dominates, provenance);
-      IndexPartNode *part_node = runtime->forest->get_node(partition);
+      IndexPartNode *part_node = runtime->get_node(partition);
       // See if we can determine disjointness if we weren't told
       if ((kind == LEGION_COMPUTE_KIND) || 
           (kind == LEGION_COMPUTE_COMPLETE_KIND) ||
@@ -4175,8 +4171,7 @@ namespace Legion {
             kind = LEGION_DISJOINT_INCOMPLETE_KIND;
         }
       }
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,parent,
+      RtEvent safe = create_pending_partition_internal(pid, parent,
                      part_node->color_space->handle, partition_color, kind, did,
                      provenance);
       // Now we can add the operation to the queue
@@ -4235,7 +4230,7 @@ namespace Legion {
           (kind == LEGION_COMPUTE_COMPLETE_KIND) ||
           (kind == LEGION_COMPUTE_INCOMPLETE_KIND))
       {
-        IndexPartNode *p1 = runtime->forest->get_node(handle1);
+        IndexPartNode *p1 = runtime->get_node(handle1);
         if (p1->is_disjoint(true/*from app*/))
         {
           if (kind == LEGION_COMPUTE_KIND)
@@ -4246,8 +4241,7 @@ namespace Legion {
             kind = LEGION_DISJOINT_INCOMPLETE_KIND;
         }
       }
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid, 
+      RtEvent safe = create_pending_partition_internal(pid, 
                          parent, color_space, partition_color, kind, did,
                          provenance);
       // Now we can add the operation to the queue
@@ -4288,9 +4282,8 @@ namespace Legion {
         partition_color = color;
       PendingPartitionOp *part_op = 
         runtime->get_available_pending_partition_op();
-      // Tell the region tree forest about this partition
       std::set<RtEvent> safe_events;
-      runtime->forest->create_pending_cross_product(this, handle1, handle2, 
+      create_pending_cross_product_internal(handle1, handle2, 
            handles, kind, provenance, partition_color, safe_events);
       part_op->initialize_cross_product(this, handle1, handle2,
                                         partition_color, provenance);
@@ -4416,8 +4409,7 @@ namespace Legion {
         runtime->get_available_pending_partition_op();
       part_op->initialize_restricted_partition(this, pid, transform, 
                           transform_size, extent, extent_size, provenance);
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,
+      RtEvent safe = create_pending_partition_internal(pid,
           parent, color_space, part_color, part_kind, did, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4479,8 +4471,7 @@ namespace Legion {
         runtime->get_available_pending_partition_op();
       part_op->initialize_by_domain(this, pid, domains, 
                           perform_intersections, provenance);
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,
+      RtEvent safe = create_pending_partition_internal(pid,
           parent, color_space, part_color, part_kind, did, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4523,8 +4514,7 @@ namespace Legion {
       // Allocate the partition operation
       DependentPartitionOp *part_op = 
         runtime->get_available_dependent_partition_op();
-      // Tell the region tree forest about this partition 
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,
+      RtEvent safe = create_pending_partition_internal(pid,
           parent, color_space, part_color, part_kind, did, provenance);
       // Do this after creating the pending partition so the node exists
       // in case we need to look at it during initialization
@@ -4590,8 +4580,7 @@ namespace Legion {
       // Allocate the partition operation
       DependentPartitionOp *part_op = 
         runtime->get_available_dependent_partition_op();
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,
+      RtEvent safe = create_pending_partition_internal(pid,
           handle, color_space, part_color, part_kind, did, provenance);
       // Do this after creating the pending partition so the node exists
       // in case we need to look at it during initialization
@@ -4657,8 +4646,7 @@ namespace Legion {
       // Allocate the partition operation
       DependentPartitionOp *part_op = 
         runtime->get_available_dependent_partition_op();
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,
+      RtEvent safe = create_pending_partition_internal(pid,
           handle, color_space, part_color, part_kind, did, provenance);
       // Do this after creating the pending partition so the node exists
       // in case we need to look at it during initialization
@@ -4730,7 +4718,7 @@ namespace Legion {
           (part_kind == LEGION_COMPUTE_COMPLETE_KIND) ||
           (part_kind == LEGION_COMPUTE_INCOMPLETE_KIND))
       {
-        IndexPartNode *p = runtime->forest->get_node(projection);
+        IndexPartNode *p = runtime->get_node(projection);
         if (p->is_disjoint(true/*from app*/))
         {
           if (part_kind == LEGION_COMPUTE_KIND)
@@ -4741,8 +4729,7 @@ namespace Legion {
             part_kind = LEGION_DISJOINT_INCOMPLETE_KIND;
         }
       }
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid, 
+      RtEvent safe = create_pending_partition_internal(pid, 
                            handle.get_index_space(), color_space, 
                            part_color, part_kind, did, provenance);
       // Do this after creating the pending partition so the node exists
@@ -4809,8 +4796,7 @@ namespace Legion {
       // Allocate the partition operation
       DependentPartitionOp *part_op = 
         runtime->get_available_dependent_partition_op(); 
-      // Tell the region tree forest about this partition
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,
+      RtEvent safe = create_pending_partition_internal(pid,
                        handle.get_index_space(), color_space,
                        part_color, part_kind, did, provenance);
       // Do this after creating the pending partition so the node exists
@@ -4869,7 +4855,7 @@ namespace Legion {
       LegionColor part_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
         part_color = color;
-      RtEvent safe = runtime->forest->create_pending_partition(this, pid,
+      RtEvent safe = create_pending_partition_internal(pid,
                             parent, color_space, part_color, part_kind,
                             did, provenance);
       // Wait for any notifications to occur before returning
@@ -4901,8 +4887,7 @@ namespace Legion {
 #endif
       PendingPartitionOp *part_op = 
         runtime->get_available_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag);
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
       part_op->initialize_index_space_union(this, result, handles, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4924,8 +4909,7 @@ namespace Legion {
 #endif
       PendingPartitionOp *part_op = 
         runtime->get_available_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag);
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
       part_op->initialize_index_space_union(this, result, handle, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4948,8 +4932,7 @@ namespace Legion {
 #endif
       PendingPartitionOp *part_op = 
         runtime->get_available_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag); 
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag); 
       part_op->initialize_index_space_intersection(this, result, handles, prov);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4972,8 +4955,7 @@ namespace Legion {
 #endif
       PendingPartitionOp *part_op = 
         runtime->get_available_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag); 
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag); 
       part_op->initialize_index_space_intersection(this, result, handle, prov);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4997,8 +4979,7 @@ namespace Legion {
 #endif
       PendingPartitionOp *part_op = 
         runtime->get_available_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag); 
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag); 
       part_op->initialize_index_space_difference(this, result, initial,
                                                  handles, provenance);
       // Now we can add the operation to the queue
@@ -5011,14 +4992,14 @@ namespace Legion {
                                         const char *function_name)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *node = runtime->forest->get_node(pid);
+      IndexPartNode *node = runtime->get_node(pid);
       // Check containment first because our implementation of the algorithms
       // for disjointnss and completeness rely upon it.
       for (ColorSpaceIterator itr(node); itr; itr++)
       {
         IndexSpaceNode *child_node = node->get_child(*itr);
         IndexSpaceExpression *diff = 
-          runtime->forest->subtract_index_spaces(child_node, node->parent);
+          runtime->subtract_index_spaces(child_node, node->parent);
         if (!diff->is_empty())
         {
           const DomainPoint bad = 
@@ -5173,7 +5154,7 @@ namespace Legion {
         LegionSpy::log_field_space(space.id, runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
 
-      runtime->forest->create_field_space(space, did, provenance);
+      runtime->create_node(space, did, RtEvent::NO_RT_EVENT, provenance);
       register_field_space_creation(space);
       return space;
     }
@@ -5196,8 +5177,8 @@ namespace Legion {
         LegionSpy::log_field_space(space.id, runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
 
-      FieldSpaceNode *node =
-        runtime->forest->create_field_space(space, did, provenance);
+      FieldSpaceNode *node = runtime->create_node(space, did,
+          RtEvent::NO_RT_EVENT, provenance);
       register_field_space_creation(space);
       if (resulting_fields.size() < sizes.size())
         resulting_fields.resize(sizes.size(), LEGION_AUTO_GENERATE_ID);
@@ -5231,7 +5212,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const FieldSpace space = create_field_space(provenance);
-      FieldSpaceNode *node = runtime->forest->get_node(space);
+      FieldSpaceNode *node = runtime->get_node(space);
       if (resulting_fields.size() < sizes.size())
         resulting_fields.resize(sizes.size(), LEGION_AUTO_GENERATE_ID);
       for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
@@ -5376,7 +5357,7 @@ namespace Legion {
           return finder->second;
       }
       // Didn't find it, so have to make, retake the lock in exclusive mode
-      FieldSpaceNode *node = runtime->forest->get_node(handle);
+      FieldSpaceNode *node = runtime->get_node(handle);
       AutoLock priv_lock(privilege_lock);
       // Check to see if we lost the race
       std::map<FieldSpace,FieldAllocatorImpl*>::const_iterator finder = 
@@ -5432,7 +5413,7 @@ namespace Legion {
         allocate_local_field(space, field_size, fid, 
                              serdez_id, done_events, provenance);
       else
-        runtime->forest->allocate_field(space, field_size, fid,
+        runtime->allocate_field(space, field_size, fid,
                                         serdez_id, provenance);
       register_field_creation(space, fid, local);
       if (!done_events.empty())
@@ -5474,7 +5455,7 @@ namespace Legion {
         allocate_local_fields(space, sizes, resulting_fields,
                               serdez_id, done_events, provenance);
       else
-        runtime->forest->allocate_fields(space, sizes, resulting_fields,
+        runtime->allocate_fields(space, sizes, resulting_fields,
                                          serdez_id, provenance);
       register_all_field_creations(space, local, resulting_fields);
       if (!done_events.empty())
@@ -5514,7 +5495,7 @@ namespace Legion {
       // Tell the node that we're allocating a field of size zero
       // which will indicate that we'll fill in the size later
       RtEvent precondition;
-      FieldSpaceNode *node = runtime->forest->allocate_field(space, ready, fid, 
+      FieldSpaceNode *node = runtime->allocate_field(space, ready, fid, 
                                           serdez_id, provenance, precondition);
       creator_op->initialize_field(this, node, fid, field_size, provenance);
       register_field_creation(space, fid, local);
@@ -5550,7 +5531,7 @@ namespace Legion {
       std::vector<FieldID> fields(1, fid);
       std::vector<size_t> sizes(1, field_size);
       std::vector<unsigned> new_indexes;
-      if (!runtime->forest->allocate_local_fields(space, fields, sizes, 
+      if (!runtime->allocate_local_fields(space, fields, sizes, 
                   serdez_id, current_indexes, new_indexes, provenance))
         REPORT_LEGION_ERROR(ERROR_UNABLE_ALLOCATE_LOCAL_FIELD,
           "Unable to allocate local field in context of "
@@ -5647,7 +5628,7 @@ namespace Legion {
       // Tell the node that we're allocating a field of size zero
       // which will indicate that we'll fill in the size later
       RtEvent precondition;
-      FieldSpaceNode *node = runtime->forest->allocate_fields(space, ready, 
+      FieldSpaceNode *node = runtime->allocate_fields(space, ready, 
                     resulting_fields, serdez_id, provenance, precondition);
       creator_op->initialize_fields(this, node, resulting_fields, 
                                     sizes, provenance);
@@ -5683,7 +5664,7 @@ namespace Legion {
             infos.begin(); it != infos.end(); it++)
         current_indexes.insert(it->index);
       std::vector<unsigned> new_indexes;
-      if (!runtime->forest->allocate_local_fields(space, resulting_fields, 
+      if (!runtime->allocate_local_fields(space, resulting_fields, 
               sizes, serdez_id, current_indexes, new_indexes, provenance))
         REPORT_LEGION_ERROR(ERROR_UNABLE_ALLOCATE_LOCAL_FIELD,
           "Unable to allocate local field in context of "
@@ -5870,7 +5851,8 @@ namespace Legion {
             runtime->address_space, (provenance == NULL) ? 
             NULL : provenance->human_str());
       const DistributedID did = runtime->get_available_distributed_id();
-      runtime->forest->create_logical_region(region, did, provenance);
+      runtime->create_node(region, NULL/*parent*/, RtEvent::NO_RT_EVENT,
+          did, provenance);
       // Register the creation of a top-level region with the context
       const unsigned created_index =
         register_region_creation(region, task_local, output_region);
@@ -5898,7 +5880,7 @@ namespace Legion {
     {
       if (!handle.exists())
         return;
-      if (!runtime->forest->is_top_level_region(handle))
+      if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to create shared ownership for logical region "
             "(%x,%x,%x in task %s (UID %lld) which is not a top-level logical "
@@ -5929,7 +5911,7 @@ namespace Legion {
 #endif
       // Check to see if this is a top-level logical region, if not then
       // we shouldn't even be destroying it
-      if (!runtime->forest->is_top_level_region(handle))
+      if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
             "Illegal call to destroy logical region (%x,%x,%x in task %s "
             "(UID %lld) which is not a top-level logical region. Legion only "
@@ -6333,7 +6315,7 @@ namespace Legion {
                 "Logical region (%x,%x,%x) was leaked out of task tree rooted "
                 "by task %s", rit->first.index_space.id, 
                 rit->first.field_space.id, rit->first.tree_id, get_task_name())
-          runtime->forest->destroy_logical_region(rit->first, preconditions);
+          runtime->destroy_logical_region(rit->first, preconditions);
           // Remove any latent field spaces and therefore any created fields
           // since they might not be able to be cleaned up after this since
           // this region might be holding the last reference to the field space
@@ -6395,7 +6377,7 @@ namespace Legion {
           }
           else
             finder->second->ready_event.wait();
-          runtime->forest->free_field(it->first, it->second, preconditions);
+          runtime->free_field(it->first, it->second, preconditions);
         }
         for (std::map<FieldSpace,FieldAllocatorImpl*>::const_iterator it =
               leak_allocators.begin(); it != leak_allocators.end(); it++)
@@ -6413,7 +6395,7 @@ namespace Legion {
             REPORT_LEGION_WARNING(LEGION_WARNING_LEAKED_RESOURCE,
                 "Field space %x was leaked out of task tree rooted by task %s",
                 it->first.id, get_task_name())
-          runtime->forest->destroy_field_space(it->first, preconditions);
+          runtime->destroy_field_space(it->first, preconditions);
         }
         created_field_spaces.clear();
       }
@@ -6427,7 +6409,7 @@ namespace Legion {
             REPORT_LEGION_WARNING(LEGION_WARNING_LEAKED_RESOURCE,
                 "Index partition %x was leaked out of task tree rooted by "
                 "task %s", it->first.id, get_task_name())
-          runtime->forest->destroy_index_partition(it->first, preconditions);
+          runtime->destroy_index_partition(it->first, preconditions);
         }
         created_index_partitions.clear();
       }
@@ -6441,7 +6423,7 @@ namespace Legion {
             REPORT_LEGION_WARNING(LEGION_WARNING_LEAKED_RESOURCE,
                 "Index space %x was leaked out of task tree rooted by task %s",
                 it->first.id, get_task_name())
-          runtime->forest->destroy_index_space(it->first, 
+          runtime->destroy_index_space(it->first, 
                   runtime->address_space, preconditions);
         }
         created_index_spaces.clear();
@@ -6942,7 +6924,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Domain domain;
-      runtime->forest->find_domain(space, domain);
+      runtime->find_domain(space, domain);
       if (data.size() != domain.get_volume())
         REPORT_LEGION_ERROR(ERROR_FUTURE_MAP_COUNT_MISMATCH,
           "The number of buffers passed into a future map construction (%zd) "
@@ -6950,7 +6932,7 @@ namespace Legion {
           "in task %s (UID %lld)", data.size(), domain.get_volume(),
           get_task_name(), get_unique_id())
       const DistributedID did = runtime->get_available_distributed_id();
-      IndexSpaceNode *launch_node = runtime->forest->get_node(space);
+      IndexSpaceNode *launch_node = runtime->get_node(space);
       FutureMapImpl *impl = new FutureMapImpl(this, launch_node, did,
         NO_FUTURE_COORDINATE, ApEvent::NO_AP_EVENT, provenance);
       for (std::map<DomainPoint,UntypedBuffer>::const_iterator it =
@@ -6995,7 +6977,7 @@ namespace Legion {
       CreationOp *creation_op = runtime->get_available_creation_op();
       creation_op->initialize_map(this, provenance, futures);
       const DistributedID did = runtime->get_available_distributed_id();
-      IndexSpaceNode *launch_node = runtime->forest->get_node(space);
+      IndexSpaceNode *launch_node = runtime->get_node(space);
       if (futures.size() != launch_node->get_volume())
         REPORT_LEGION_ERROR(ERROR_FUTURE_MAP_COUNT_MISMATCH,
             "The number of futures passed into a future map construction (%zd) "
@@ -7030,7 +7012,7 @@ namespace Legion {
     {
       if (fm.impl == NULL)
         return fm;
-      IndexSpaceNode *new_node = runtime->forest->get_node(new_domain);
+      IndexSpaceNode *new_node = runtime->get_node(new_domain);
       return FutureMap(
           new TransformFutureMapImpl(fm.impl, new_node, fnptr, provenance));
     }
@@ -7043,7 +7025,7 @@ namespace Legion {
     {
       if (fm.impl == NULL)
         return fm;
-      IndexSpaceNode *new_node = runtime->forest->get_node(new_domain);
+      IndexSpaceNode *new_node = runtime->get_node(new_domain);
       return FutureMap(new TransformFutureMapImpl(fm.impl, new_node, 
                                       functor, own_func, provenance));
     }
@@ -7511,7 +7493,7 @@ namespace Legion {
         indexes[idx] = idx;
       // Compute the upper bound partition node from this launcher
       RegionTreeNode *node = compute_index_attach_upper_bound(launcher,indexes);
-      IndexSpaceNode *launch_space = runtime->forest->get_node(
+      IndexSpaceNode *launch_space = runtime->get_node(
        find_index_launch_space(Domain(Point<1>(0),
            Point<1>(indexes.size()-1)), provenance));
       IndexAttachOp *attach_op = runtime->get_available_index_attach_op();
@@ -7603,7 +7585,7 @@ namespace Legion {
               handle.field_space.id, handle.tree_id, get_task_name(),
               get_unique_id(), launcher.parent.index_space.id,
               launcher.parent.field_space.id, launcher.parent.tree_id)
-        previous_nodes[idx] = runtime->forest->get_node(handle);
+        previous_nodes[idx] = runtime->get_node(handle);
         depths[idx] = previous_nodes[idx]->get_depth();
         if (max_depth < depths[idx])
           max_depth = depths[idx];
@@ -7715,7 +7697,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < local_size; idx++)
         {
           IndexSpaceNode *child = 
-            runtime->forest->get_node(spaces[local_start+idx]);
+            runtime->get_node(spaces[local_start+idx]);
           if (child->parent == parent)
             continue;
           all_children = false;
@@ -10681,7 +10663,7 @@ namespace Legion {
         assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
 #endif
         // Make our equivalence set kd tree for look-ups
-        RegionNode *region_node = runtime->forest->get_node(req.region);
+        RegionNode *region_node = runtime->get_node(req.region);
         EqKDTree *tree = 
           region_node->row_source->create_equivalence_set_kd_tree(
                                                 get_total_shards());
@@ -10807,7 +10789,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // This is the normal equivalence set creation pathway for single tasks
-      IndexSpaceNode *node = runtime->forest->get_node(req.region.index_space);
+      IndexSpaceNode *node = runtime->get_node(req.region.index_space);
       EquivalenceSet *result =
         new EquivalenceSet(runtime->get_available_distributed_id(),
             runtime->address_space, node, req.region.get_tree_id(),
@@ -10829,8 +10811,8 @@ namespace Legion {
       {
         if (IS_NO_ACCESS(regions[idx]))
           continue;
-        RegionNode *node = runtime->forest->get_node(regions[idx].region);
-        runtime->forest->invalidate_current_context(tree_context, 
+        RegionNode *node = runtime->get_node(regions[idx].region);
+        runtime->invalidate_region_tree_context(tree_context, 
             regions[idx], false/*filter specific fields*/);
         std::map<unsigned,EqKDRoot>::iterator finder = 
           equivalence_set_trees.find(idx);
@@ -10871,7 +10853,7 @@ namespace Legion {
                 returnable_privileges.end());
 #endif
         // Always invalidate the logical contexts
-        RegionNode *node = runtime->forest->get_node(it->second.region);
+        RegionNode *node = runtime->get_node(it->second.region);
         if (invalidated_regions.find(it->second.region) == 
             invalidated_regions.end())
         {
@@ -10880,7 +10862,7 @@ namespace Legion {
           // if we had privileges on the whole region in this context
           // it would have merged the created_requirement and we wouldn't
           // have a non returnable privilege requirement in this context
-          runtime->forest->invalidate_current_context(tree_context,
+          runtime->invalidate_region_tree_context(tree_context,
               it->second, false/*filter specific fields*/);
           invalidated_regions.insert(it->second.region);
         }
@@ -10925,7 +10907,7 @@ namespace Legion {
         for (std::map<LogicalRegion,EqKDTree*>::const_iterator it =
               return_regions.begin(); it != return_regions.end(); it++)
         {
-          created_nodes.push_back(runtime->forest->get_node(it->first));
+          created_nodes.push_back(runtime->get_node(it->first));
           created_trees.push_back(it->second);
         }
         InnerContext *parent_ctx = find_parent_context();   
@@ -11005,7 +10987,7 @@ namespace Legion {
         if (tree != NULL)
         {
           std::vector<RtEvent> applied;
-          RegionNode *node = runtime->forest->get_node(req.region);
+          RegionNode *node = runtime->get_node(req.region);
           const FieldMask invalidate_mask =
             node->column_source->get_field_mask(req.privilege_fields);
           node->row_source->invalidate_equivalence_set_kd_tree(tree, tree_lock,
@@ -11191,7 +11173,7 @@ namespace Legion {
       AddressSpaceID creation_target_space;
       derez.deserialize(creation_target_space);
       IndexSpaceExpression *expr = 
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       FieldMask mask;
       derez.deserialize(mask);
       unsigned req_index;
@@ -13994,11 +13976,12 @@ namespace Legion {
         const ISBroadcast value = collective.first->get_value(false);
         handle = IndexSpace(value.space_id, value.tid, type_tag);
         double_buffer = value.double_buffer;
-        runtime->forest->create_index_space(handle, domain, value.did, 
-            provenance, &collective_mapping, value.expr_id,
-            ApEvent::NO_AP_EVENT, creation_bar);
+        runtime->create_node(handle, domain, true/*is domain*/,
+            NULL/*parent*/, 0/*color*/, value.did, creation_bar,
+            provenance, ApEvent::NO_AP_EVENT, value.expr_id,
+            &collective_mapping, true/*add root reference*/);
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->forest->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.space_id);
 #ifdef DEBUG_LEGION
         log_index.debug("Creating index space %x in task%s (ID %lld)",
                         handle.id, get_task_name(), get_unique_id());
@@ -14021,9 +14004,10 @@ namespace Legion {
         assert(handle.exists());
 #endif
         double_buffer = value.double_buffer;
-        runtime->forest->create_index_space(handle, domain, value.did,
-            provenance, &collective_mapping, value.expr_id,
-            ApEvent::NO_AP_EVENT, creation_bar);
+        runtime->create_node(handle, domain, true/*is domain*/,
+            NULL/*parent*/, 0/*color*/, value.did, creation_bar,
+            provenance, ApEvent::NO_AP_EVENT, value.expr_id, 
+            &collective_mapping, true/*add root reference*/);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
       }
@@ -14073,7 +14057,7 @@ namespace Legion {
           const IndexSpaceID space_id = runtime->get_unique_index_space_id(); 
           const DistributedID did = runtime->get_available_distributed_id();
           // We're the owner, so make it locally and then broadcast it
-          runtime->forest->record_pending_index_space(space_id);
+          runtime->record_pending_index_space(space_id);
           // Do our arrival on this generation, should be the last one
           ValueBroadcast<ISBroadcast> *collective = 
             new ValueBroadcast<ISBroadcast>(this, COLLECTIVE_LOC_3);
@@ -14138,12 +14122,13 @@ namespace Legion {
         const ISBroadcast value = collective.first->get_value(false);
         handle = IndexSpace(value.space_id, value.tid, type_tag);
         double_buffer = value.double_buffer;
-        node = runtime->forest->create_index_space(handle, NULL, value.did, 
-                                provenance, &collective_mapping, value.expr_id,
-                                ready, creation_bar);
+        node = runtime->create_node(handle, NULL, true/*is domain*/,
+            NULL/*parent*/, 0/*color*/, value.did, creation_bar,
+            provenance, ready, value.expr_id, &collective_mapping,
+            true/*add root reference*/);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->forest->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.space_id);
 #ifdef DEBUG_LEGION
         log_index.debug("Creating index space %x in task%s (ID %lld)",
                         handle.id, get_task_name(), get_unique_id());
@@ -14166,9 +14151,10 @@ namespace Legion {
         assert(handle.exists());
 #endif
         double_buffer = value.double_buffer;
-        node = runtime->forest->create_index_space(handle, NULL, value.did,
-                                provenance, &collective_mapping, value.expr_id,
-                                ready, creation_bar);
+        node = runtime->create_node(handle, NULL, true/*is domain*/,
+            NULL/*parent*/, 0/*color*/, value.did, creation_bar,
+            provenance, ready, value.expr_id, &collective_mapping,
+            true/*add root reference*/);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
       }
@@ -14321,11 +14307,11 @@ namespace Legion {
         const ISBroadcast value = collective.first->get_value(false);
         handle = IndexSpace(value.space_id, value.tid,spaces[0].get_type_tag());
         double_buffer = value.double_buffer;
-        runtime->forest->create_union_space(handle, value.did, provenance,
+        runtime->create_union_space(handle, value.did, provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->forest->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.space_id);
 #ifdef DEBUG_LEGION
         log_index.debug("Creating index space %x in task%s (ID %lld)",
                         handle.id, get_task_name(), get_unique_id());
@@ -14348,7 +14334,7 @@ namespace Legion {
         assert(handle.exists());
 #endif
         double_buffer = value.double_buffer;
-        runtime->forest->create_union_space(handle, value.did, provenance,
+        runtime->create_union_space(handle, value.did, provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -14421,11 +14407,11 @@ namespace Legion {
         const ISBroadcast value = collective.first->get_value(false);
         handle = IndexSpace(value.space_id, value.tid,spaces[0].get_type_tag());
         double_buffer = value.double_buffer;
-        runtime->forest->create_intersection_space(handle, value.did,provenance,
+        runtime->create_intersection_space(handle, value.did,provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->forest->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.space_id);
 #ifdef DEBUG_LEGION
         log_index.debug("Creating index space %x in task%s (ID %lld)",
                         handle.id, get_task_name(), get_unique_id());
@@ -14448,7 +14434,7 @@ namespace Legion {
         assert(handle.exists());
 #endif
         double_buffer = value.double_buffer;
-        runtime->forest->create_intersection_space(handle, value.did,provenance,
+        runtime->create_intersection_space(handle, value.did,provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -14511,11 +14497,11 @@ namespace Legion {
         const ISBroadcast value = collective.first->get_value(false);
         handle = IndexSpace(value.space_id, value.tid, left.get_type_tag());
         double_buffer = value.double_buffer;
-        runtime->forest->create_difference_space(handle, value.did, provenance,
+        runtime->create_difference_space(handle, value.did, provenance,
             left, right, creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->forest->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.space_id);
 #ifdef DEBUG_LEGION
         log_index.debug("Creating index space %x in task%s (ID %lld)",
                         handle.id, get_task_name(), get_unique_id());
@@ -14538,7 +14524,7 @@ namespace Legion {
         assert(handle.exists());
 #endif
         double_buffer = value.double_buffer;
-        runtime->forest->create_difference_space(handle, value.did, provenance,
+        runtime->create_difference_space(handle, value.did, provenance,
             left, right, creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -14576,7 +14562,7 @@ namespace Legion {
         return;
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
-      if (!runtime->forest->is_top_level_index_space(handle))
+      if (!runtime->is_top_level_index_space(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to create shared ownership for index space %x in " 
             "task %s (UID %lld) which is not a top-level index space. Legion "
@@ -14621,7 +14607,7 @@ namespace Legion {
 #endif
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
-      if (!runtime->forest->is_top_level_index_space(handle))
+      if (!runtime->is_top_level_index_space(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
             "Illegal call to destroy index space %x in task %s (UID %lld) "
             "which is not a top-level index space. Legion only permits "
@@ -14769,7 +14755,7 @@ namespace Legion {
                   created_index_partitions.end(); /*nothing*/)
             {
               if ((handle.get_tree_id() == it->first.get_tree_id()) &&
-                  runtime->forest->is_dominated_tree_only(it->first, handle))
+                  runtime->is_dominated_tree_only(it->first, handle))
               {
                 sub_partitions.push_back(it->first);
 #ifdef DEBUG_LEGION
@@ -14826,7 +14812,7 @@ namespace Legion {
           const IndexPartitionID pid = runtime->get_unique_index_partition_id();
           const DistributedID did = runtime->get_available_distributed_id();
           // We're the owner, so make it locally and then broadcast it
-          runtime->forest->record_pending_partition(pid);
+          runtime->record_pending_partition(pid);
           // Do our arrival on this generation, should be the last one
           ValueBroadcast<IPBroadcast> *collective = 
             new ValueBroadcast<IPBroadcast>(this, COLLECTIVE_LOC_7);
@@ -14879,7 +14865,7 @@ namespace Legion {
         pid.id = value.pid;
         double_buffer = value.double_buffer;
         // Have to do our registration before broadcasting
-        RtEvent safe_event = runtime->forest->create_pending_partition(this,
+        RtEvent safe_event = create_pending_partition_internal(
                                            pid, parent, color_space, 
                                            partition_color, part_kind,
                                            value.did, provenance,
@@ -14895,7 +14881,7 @@ namespace Legion {
         }
         // Signal that we're done our creation
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/, safe_event);
-        runtime->forest->revoke_pending_partition(value.pid);
+        runtime->revoke_pending_partition(value.pid);
       }
       else
       {
@@ -14922,7 +14908,7 @@ namespace Legion {
 #endif
         }
         // Do our registration
-        RtEvent safe_event = runtime->forest->create_pending_partition(this,
+        RtEvent safe_event = create_pending_partition_internal(
                                          pid, parent, color_space, 
                                          partition_color, part_kind,
                                          value.did, provenance,
@@ -15083,10 +15069,10 @@ namespace Legion {
           (kind == LEGION_COMPUTE_INCOMPLETE_KIND))
       {
         // If one of these partitions is aliased then the result is aliased
-        IndexPartNode *p1 = runtime->forest->get_node(handle1);
+        IndexPartNode *p1 = runtime->get_node(handle1);
         if (p1->is_disjoint(true/*from app*/))
         {
-          IndexPartNode *p2 = runtime->forest->get_node(handle2);
+          IndexPartNode *p2 = runtime->get_node(handle2);
           if (!p2->is_disjoint(true/*from app*/))
           {
             if (kind == LEGION_COMPUTE_KIND)
@@ -15175,10 +15161,10 @@ namespace Legion {
           (kind == LEGION_COMPUTE_COMPLETE_KIND) ||
           (kind == LEGION_COMPUTE_INCOMPLETE_KIND))
       {
-        IndexPartNode *p1 = runtime->forest->get_node(handle1);
+        IndexPartNode *p1 = runtime->get_node(handle1);
         if (!p1->is_disjoint(true/*from app*/))
         {
-          IndexPartNode *p2 = runtime->forest->get_node(handle2);
+          IndexPartNode *p2 = runtime->get_node(handle2);
           if (p2->is_disjoint(true/*from app*/))
           {
             if (kind == LEGION_COMPUTE_KIND)
@@ -15255,7 +15241,7 @@ namespace Legion {
         partition_color = color;
       else
         color_generated = true;
-      IndexPartNode *part_node = runtime->forest->get_node(partition);
+      IndexPartNode *part_node = runtime->get_node(partition);
       // See if we can determine disjointness if we weren't told
       if ((kind == LEGION_COMPUTE_KIND) || 
           (kind == LEGION_COMPUTE_COMPLETE_KIND) ||
@@ -15343,7 +15329,7 @@ namespace Legion {
           (kind == LEGION_COMPUTE_COMPLETE_KIND) ||
           (kind == LEGION_COMPUTE_INCOMPLETE_KIND))
       {
-        IndexPartNode *p1 = runtime->forest->get_node(handle1);
+        IndexPartNode *p1 = runtime->get_node(handle1);
         if (p1->is_disjoint(true/*from app*/))
         {
           if (kind == LEGION_COMPUTE_KIND)
@@ -15418,7 +15404,7 @@ namespace Legion {
         if (partition_color == INVALID_COLOR)
         {
           ValueBroadcast<LegionColor> color_collective(this, COLLECTIVE_LOC_15);
-          runtime->forest->create_pending_cross_product(this, handle1, handle2, 
+          create_pending_cross_product_internal(handle1, handle2, 
                                              handles, kind, provenance, 
                                              partition_color, safe_events,
                                              owner_shard->shard_id,
@@ -15426,7 +15412,7 @@ namespace Legion {
                                              &color_collective);
         }
         else
-          runtime->forest->create_pending_cross_product(this, handle1, handle2, 
+          create_pending_cross_product_internal(handle1, handle2, 
                                              handles, kind, provenance, 
                                              partition_color, safe_events,
                                              owner_shard->shard_id,
@@ -15445,7 +15431,7 @@ namespace Legion {
 #endif
         }
         // Now we can do the call from this node
-        runtime->forest->create_pending_cross_product(this, handle1, handle2, 
+        create_pending_cross_product_internal(handle1, handle2, 
                                            handles, kind, provenance,
                                            partition_color, safe_events,
                                            owner_shard->shard_id,
@@ -15673,7 +15659,7 @@ namespace Legion {
           break;
       }
       const DistributedID did = runtime->get_available_distributed_id();
-      IndexSpaceNode *color_node = runtime->forest->get_node(color_space); 
+      IndexSpaceNode *color_node = runtime->get_node(color_space); 
       FutureMap future_map(new FutureMapImpl(this, color_node, did,
                                  NO_FUTURE_COORDINATE, ApEvent::NO_AP_EVENT,
                                  provenance, true/*reg now*/));
@@ -16029,7 +16015,7 @@ namespace Legion {
           (part_kind == LEGION_COMPUTE_COMPLETE_KIND) ||
           (part_kind == LEGION_COMPUTE_INCOMPLETE_KIND))
       {
-        IndexPartNode *p = runtime->forest->get_node(projection);
+        IndexPartNode *p = runtime->get_node(projection);
         if (p->is_disjoint(true/*from app*/))
         {
           if (part_kind == LEGION_COMPUTE_KIND)
@@ -16238,8 +16224,7 @@ namespace Legion {
 #endif
       ReplPendingPartitionOp *part_op = 
         runtime->get_available_repl_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag);
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
       part_op->initialize_index_space_union(this, result, handles, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -16275,8 +16260,7 @@ namespace Legion {
 #endif
       ReplPendingPartitionOp *part_op = 
         runtime->get_available_repl_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag);
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag);
       part_op->initialize_index_space_union(this, result, handle, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -16314,8 +16298,7 @@ namespace Legion {
 #endif
       ReplPendingPartitionOp *part_op = 
         runtime->get_available_repl_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag); 
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag); 
       part_op->initialize_index_space_intersection(this, result, handles,
                                                    provenance);
       // Now we can add the operation to the queue
@@ -16352,8 +16335,7 @@ namespace Legion {
 #endif
       ReplPendingPartitionOp *part_op = 
         runtime->get_available_repl_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag); 
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag); 
       part_op->initialize_index_space_intersection(this, result, handle,
                                                    provenance);
       // Now we can add the operation to the queue
@@ -16394,8 +16376,7 @@ namespace Legion {
 #endif
       ReplPendingPartitionOp *part_op = 
         runtime->get_available_repl_pending_partition_op();
-      IndexSpace result = 
-        runtime->forest->instantiate_subspace(parent, realm_color, type_tag); 
+      IndexSpace result = instantiate_subspace(parent, realm_color, type_tag); 
       part_op->initialize_index_space_difference(this, result, initial,
                                                  handles, provenance);
       // Now we can add the operation to the queue
@@ -16408,13 +16389,13 @@ namespace Legion {
                                   PartitionKind kind, const char *function_name)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *node = runtime->forest->get_node(pid);
+      IndexPartNode *node = runtime->get_node(pid);
       // Check containment first
       for (ColorSpaceIterator itr(node, true/*local only*/); itr; itr++) 
       {
         IndexSpaceNode *child_node = node->get_child(*itr);
         IndexSpaceExpression *diff = 
-          runtime->forest->subtract_index_spaces(child_node, node->parent);
+          runtime->subtract_index_spaces(child_node, node->parent);
         if (!diff->is_empty())
         {
           const DomainPoint bad = 
@@ -16591,11 +16572,11 @@ namespace Legion {
         space = FieldSpace(value.space_id);
         double_buffer = value.double_buffer;
         // Need to register this before broadcasting
-        runtime->forest->create_field_space(space, value.did, provenance,
-                                      &collective_mapping, creation_bar);
+        runtime->create_node(space, value.did, creation_bar,
+            provenance, &collective_mapping);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/); 
-        runtime->forest->revoke_pending_field_space(value.space_id);
+        runtime->revoke_pending_field_space(value.space_id);
 #ifdef DEBUG_LEGION
         log_field.debug("Creating field space %x in task %s (ID %lld)", 
                         space.id, get_task_name(), get_unique_id());
@@ -16618,8 +16599,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(space.exists());
 #endif
-        runtime->forest->create_field_space(space, value.did, provenance,
-                                      &collective_mapping, creation_bar);
+        runtime->create_node(space, value.did, creation_bar,
+            provenance, &collective_mapping);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
       }
@@ -16725,7 +16706,7 @@ namespace Legion {
       if (local_shard)
       {
         const bool non_owner = (creator_shard != owner_shard->shard_id);
-        FieldSpaceNode *node = runtime->forest->get_node(space);
+        FieldSpaceNode *node = runtime->get_node(space);
         node->initialize_fields(sizes, resulting_fields, serdez_id, 
                                 provenance, true/*collective*/);
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -16832,7 +16813,7 @@ namespace Legion {
       const RtBarrier creation_bar = creation_barrier.next(this);
       // Get a new creation operation
       CreationOp *creator_op = runtime->get_available_creation_op();
-      FieldSpaceNode *node = runtime->forest->get_node(space);
+      FieldSpaceNode *node = runtime->get_node(space);
       // This deduplicates multiple shards on the same node
       if (local_shard)
       {
@@ -16872,7 +16853,7 @@ namespace Legion {
           const FieldSpaceID space = runtime->get_unique_field_space_id();
           const DistributedID did = runtime->get_available_distributed_id();
           // We're the owner, so make it locally and then broadcast it
-          runtime->forest->record_pending_field_space(space);
+          runtime->record_pending_field_space(space);
           // Do our arrival on this generation, should be the last one
           ValueBroadcast<FSBroadcast> *collective = 
             new ValueBroadcast<FSBroadcast>(this, COLLECTIVE_LOC_31);
@@ -17090,7 +17071,7 @@ namespace Legion {
       if (finder->second.second)
       {
         const bool non_owner = (finder->second.first != owner_shard->shard_id);
-        precondition = runtime->forest->allocate_field(space, field_size, fid, 
+        precondition = runtime->allocate_field(space, field_size, fid, 
                                              serdez_id, provenance, non_owner);
         if (runtime->legion_spy_enabled && !non_owner)
           LegionSpy::log_field_creation(space.id, fid, field_size,
@@ -17227,7 +17208,7 @@ namespace Legion {
         const ApEvent ready = creator_op->get_completion_event();
         const bool owner = (finder->second.first == owner_shard->shard_id);
         RtEvent precondition;
-        FieldSpaceNode *node = runtime->forest->allocate_field(space, ready,
+        FieldSpaceNode *node = runtime->allocate_field(space, ready,
             fid, serdez_id, provenance, precondition, !owner);
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/, precondition);
         creator_op->initialize_field(this, node, fid, field_size, 
@@ -17240,7 +17221,7 @@ namespace Legion {
       creation_bar.wait();
       if (!finder->second.second)
       {
-        FieldSpaceNode *node = runtime->forest->get_node(space);
+        FieldSpaceNode *node = runtime->get_node(space);
         creator_op->initialize_field(this, node, fid, field_size, 
                                      provenance, false/*owner*/);
       }
@@ -17396,7 +17377,7 @@ namespace Legion {
       if (finder->second.second)
       {
         const bool non_owner = (finder->second.first != owner_shard->shard_id);
-        precondition = runtime->forest->allocate_fields(space, sizes, 
+        precondition = runtime->allocate_fields(space, sizes, 
                   resulting_fields, serdez_id, provenance, non_owner);
         if (runtime->legion_spy_enabled && !non_owner)
           for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
@@ -17510,7 +17491,7 @@ namespace Legion {
         const ApEvent ready = creator_op->get_completion_event();
         const bool owner = (finder->second.first == owner_shard->shard_id);
         RtEvent precondition;
-        FieldSpaceNode *node = runtime->forest->allocate_fields(space, ready,
+        FieldSpaceNode *node = runtime->allocate_fields(space, ready,
                 resulting_fields, serdez_id, provenance, precondition, !owner);
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/, precondition);
         creator_op->initialize_fields(this, node, resulting_fields, 
@@ -17523,7 +17504,7 @@ namespace Legion {
       creation_bar.wait();
       if (!finder->second.second)
       {
-        FieldSpaceNode *node = runtime->forest->get_node(space);
+        FieldSpaceNode *node = runtime->get_node(space);
         creator_op->initialize_fields(this, node, resulting_fields, 
                                       sizes, provenance, false/*owner*/);
       }
@@ -17641,11 +17622,11 @@ namespace Legion {
         handle.tree_id = value.tid;
         double_buffer = value.double_buffer;
         // Have to register this before doing the broadcast
-        runtime->forest->create_logical_region(handle, value.did, provenance,
-            &collective_mapping, creation_bar);
+        runtime->create_node(handle, NULL/*parent*/, creation_bar,
+            value.did, provenance, &collective_mapping);
         // Arrive on the creation barrier
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->forest->revoke_pending_region_tree(value.tid);
+        runtime->revoke_pending_region_tree(value.tid);
 #ifdef DEBUG_LEGION
         log_region.debug("Creating logical region in task %s (ID %lld) with "
                          "index space %x and field space %x in new tree %d",
@@ -17671,8 +17652,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
-        runtime->forest->create_logical_region(handle, value.did, provenance,
-            &collective_mapping, creation_bar);
+        runtime->create_node(handle, NULL/*parent*/, creation_bar,
+            value.did, provenance, &collective_mapping);
         // Signal that we are done our creation
         Runtime::phase_barrier_arrive(creation_bar, 1/*count*/);
       }
@@ -17720,7 +17701,7 @@ namespace Legion {
           const RegionTreeID tid = runtime->get_unique_region_tree_id();
           const DistributedID did = runtime->get_available_distributed_id();
           // We're the owner, so make it locally and then broadcast it
-          runtime->forest->record_pending_region_tree(tid);
+          runtime->record_pending_region_tree(tid);
           // Do our arrival on this generation, should be the last one
           ValueBroadcast<LRBroadcast> *collective = 
             new ValueBroadcast<LRBroadcast>(this, COLLECTIVE_LOC_34);
@@ -17759,7 +17740,7 @@ namespace Legion {
       }
       if (!handle.exists())
         return;
-      if (!runtime->forest->is_top_level_region(handle))
+      if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to create shared ownership for logical region "
             "(%x,%x,%x in task %s (UID %lld) which is not a top-level logical "
@@ -17805,7 +17786,7 @@ namespace Legion {
 #endif
       // Check to see if this is a top-level logical region, if not then
       // we shouldn't even be destroying it
-      if (!runtime->forest->is_top_level_region(handle))
+      if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
             "Illegal call to destroy logical region (%x,%x,%x in task %s "
             "(UID %lld) which is not a top-level logical region. Legion only "
@@ -17931,7 +17912,7 @@ namespace Legion {
         if (finder != field_allocators.end())
           return finder->second;
       }
-      FieldSpaceNode *node = runtime->forest->get_node(handle);
+      FieldSpaceNode *node = runtime->get_node(handle);
       if (unordered)
       {
         // This next part is unsafe to perform in a control replicated
@@ -18515,7 +18496,7 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-      IndexSpaceNode *domain_node = runtime->forest->get_node(space);
+      IndexSpaceNode *domain_node = runtime->get_node(space);
       Domain domain;
       domain_node->get_domain(domain);
       FutureMap result;
@@ -18533,7 +18514,7 @@ namespace Legion {
           ImplicitShardingFunctor *functor = new
             ImplicitShardingFunctor(this, COLLECTIVE_LOC_101, map);
           functor->compute_sharding(data);
-          function = new ShardingFunction(functor, runtime->forest, 
+          function = new ShardingFunction(functor,
               shard_manager, sid, false, true/*own functor*/);
           if (!map->set_sharding_function(function, true/*own*/))
           {
@@ -18616,7 +18597,7 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-      IndexSpaceNode *domain_node = runtime->forest->get_node(space);
+      IndexSpaceNode *domain_node = runtime->get_node(space);
       CreationOp *creation_op = runtime->get_available_creation_op();
       creation_op->initialize_map(this, provenance, futures);
       FutureMap result;
@@ -18634,7 +18615,7 @@ namespace Legion {
           ImplicitShardingFunctor *functor = new
             ImplicitShardingFunctor(this, COLLECTIVE_LOC_102, map);
           functor->compute_sharding(futures);
-          function = new ShardingFunction(functor, runtime->forest,
+          function = new ShardingFunction(functor,
               shard_manager, sid, false, true/*own functor*/);
           if (!map->set_sharding_function(function, true/*own*/))
           {
@@ -19539,7 +19520,7 @@ namespace Legion {
       RegionTreeNode *result = indexes.empty() ? NULL :
         InnerContext::compute_index_attach_upper_bound(launcher, indexes);
       // Do the exchange between the shards
-      IndexAttachUpperBound exchange(this, COLLECTIVE_LOC_26, runtime->forest);
+      IndexAttachUpperBound exchange(this, COLLECTIVE_LOC_26);
       result = exchange.find_upper_bound(result);
       return result;
     }
@@ -20022,7 +20003,7 @@ namespace Legion {
         if (collective.second)
         {
           const ISBroadcast value = collective.first->get_value(false);
-          runtime->forest->revoke_pending_index_space(value.space_id);
+          runtime->revoke_pending_index_space(value.space_id);
         }
         else
         {
@@ -20041,7 +20022,7 @@ namespace Legion {
         if (collective.second == local_shard)
         {
           const IPBroadcast value = collective.first->get_value(false);
-          runtime->forest->revoke_pending_partition(value.pid);
+          runtime->revoke_pending_partition(value.pid);
         }
         else
         {
@@ -20060,7 +20041,7 @@ namespace Legion {
         if (collective.second)
         {
           const FSBroadcast value = collective.first->get_value(false);
-          runtime->forest->revoke_pending_field_space(value.space_id);
+          runtime->revoke_pending_field_space(value.space_id);
         }
         else
         {
@@ -20093,7 +20074,7 @@ namespace Legion {
         if (collective.second)
         {
           const LRBroadcast value = collective.first->get_value(false);
-          runtime->forest->revoke_pending_region_tree(value.tid);
+          runtime->revoke_pending_region_tree(value.tid);
         }
         else
         {
@@ -20816,7 +20797,7 @@ namespace Legion {
       {
         LogicalRegion handle;
         derez.deserialize(handle);
-        RegionNode *node = runtime->forest->get_node(handle);
+        RegionNode *node = runtime->get_node(handle);
         created_nodes[idx1] = node;
         size_t num_sets;
         derez.deserialize(num_sets);
@@ -21568,7 +21549,7 @@ namespace Legion {
                       created_index_partitions.end(); /*nothing*/)
                 {
                   if ((pit->partition.get_tree_id() == it->first.get_tree_id())
-                      && runtime->forest->is_dominated_tree_only(it->first, 
+                      && runtime->is_dominated_tree_only(it->first, 
                                                                 pit->partition))
                   {
 #ifdef DEBUG_LEGION
@@ -22395,7 +22376,7 @@ namespace Legion {
         handle = InnerContext::create_index_space(domain,
             NT_TemplateHelper::encode_tag<2,coord_t>(), provenance);
       }
-      IndexSpaceNode *node = runtime->forest->get_node(handle);
+      IndexSpaceNode *node = runtime->get_node(handle);
       AttachLaunchSpace *space = new AttachLaunchSpace(node);
       space->shard_sizes.swap(shard_sizes);
       index_attach_launch_spaces.push_back(space);
@@ -22602,7 +22583,7 @@ namespace Legion {
             to_remove.push_back(infos[idx].fid);
           }
           if (!to_remove.empty())
-            runtime->forest->remove_local_fields(it->first, to_remove);
+            runtime->remove_local_fields(it->first, to_remove);
         }
         local_field_infos.clear();
       } 
@@ -22899,7 +22880,7 @@ namespace Legion {
       {
         LogicalRegion handle;
         derez.deserialize(handle);
-        RegionNode *node = runtime->forest->get_node(handle);
+        RegionNode *node = runtime->get_node(handle);
         created_nodes[idx1] = node;
         EqKDTree *tree = node->row_source->create_equivalence_set_kd_tree(
                             src_mapping.empty() ? 1 : src_mapping.size());
@@ -23057,7 +23038,7 @@ namespace Legion {
             indexes[idx] = info.index;
           }
         }
-        runtime->forest->update_local_fields(handle, fields, field_sizes,
+        runtime->update_local_fields(handle, fields, field_sizes,
                                              serdez_ids, indexes, provenance);
         if ((provenance != NULL) && provenance->remove_reference())
           delete provenance;

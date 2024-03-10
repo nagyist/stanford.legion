@@ -167,8 +167,7 @@ namespace Legion {
         REDUCTION_CODE = 0x40,
       };
     public:
-      InstanceManager(RegionTreeForest *forest,
-                      DistributedID did, LayoutDescription *layout,
+      InstanceManager(DistributedID did, LayoutDescription *layout,
                       FieldSpaceNode *node, IndexSpaceExpression *domain,
                       RegionTreeID tree_id, bool register_now,
                       CollectiveMapping *mapping = NULL);
@@ -211,7 +210,6 @@ namespace Legion {
       bool conflicts(const LayoutConstraintSet &constraints,
                      const LayoutConstraint **conflict_constraint) const;
     public:
-      RegionTreeForest *const context;
       LayoutDescription *const layout;
       FieldSpaceNode *const field_space_node;
       IndexSpaceExpression *instance_domain;
@@ -325,7 +323,7 @@ namespace Legion {
         Serializer &rez;
       };
     public:
-      PhysicalManager(RegionTreeForest *ctx, DistributedID did,
+      PhysicalManager(DistributedID did,
                       MemoryManager *memory, PhysicalInstance inst, 
                       IndexSpaceExpression *instance_domain,
                       const void *piece_list, size_t piece_list_size,
@@ -597,10 +595,10 @@ namespace Legion {
     public:
       VirtualManager(DistributedID did, 
                      LayoutDescription *layout, CollectiveMapping *mapping);
-      VirtualManager(const VirtualManager &rhs);
+      VirtualManager(const VirtualManager &rhs) = delete;
       virtual ~VirtualManager(void);
     public:
-      VirtualManager& operator=(const VirtualManager &rhs);
+      VirtualManager& operator=(const VirtualManager &rhs) = delete;
     public:
       virtual void notify_local(void) { }
     public: 
@@ -629,8 +627,8 @@ namespace Legion {
                       const void *piece_list, size_t piece_list_size); 
       virtual ~InstanceBuilder(void);
     public:
-      void initialize(RegionTreeForest *forest);
-      PhysicalManager* create_physical_instance(RegionTreeForest *forest,
+      void initialize(void);
+      PhysicalManager* create_physical_instance(
             LayoutConstraintKind *unsat_kind,
                         unsigned *unsat_index, size_t *footprint = NULL,
                         RtEvent collection_done = RtEvent::NO_RT_EVENT);
@@ -639,7 +637,7 @@ namespace Legion {
                                       const Realm::ProfilingResponse &response,
                                       const void *orig, size_t orig_length);
     protected:
-      void compute_space_and_domain(RegionTreeForest *forest);
+      void compute_space_and_domain(void);
     protected:
       void compute_layout_parameters(void);
     protected:

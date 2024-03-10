@@ -1243,6 +1243,30 @@ namespace Legion {
       IndexSpace create_index_space_internal(const Domain *bounds,
                                              TypeTag type_tag,
                                              Provenance *provenance);
+      RtEvent create_pending_partition_internal(
+                                       IndexPartition pid,
+                                       IndexSpace parent,
+                                       IndexSpace color_space,
+                                       LegionColor &partition_color,
+                                       PartitionKind part_kind,
+                                       DistributedID did,
+                                       Provenance *provenance,
+                                       CollectiveMapping *mapping = NULL,
+                                       RtEvent initialized =
+                                                   RtEvent::NO_RT_EVENT);
+      void create_pending_cross_product_internal(IndexPartition handle1,
+                                        IndexPartition handle2,
+                  std::map<IndexSpace,IndexPartition> &user_handles,
+                                        PartitionKind kind,
+                                        Provenance *provenance,
+                                        LegionColor &part_color,
+                                        std::set<RtEvent> &safe_events,
+                                        ShardID shard = 0,
+                                        const ShardMapping *mapping = NULL,
+                          ValueBroadcast<LegionColor> *color_broadcast = NULL);
+      IndexSpace instantiate_subspace(IndexPartition parent, 
+                                      const void *realm_color,
+                                      TypeTag type_tag);
     public:
       // Find an index space name for a concrete launch domain
       IndexSpace find_index_launch_space(const Domain &domain,

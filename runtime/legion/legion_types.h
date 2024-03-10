@@ -2431,7 +2431,6 @@ namespace Legion {
     class BarrierAdvance;
 
     // region_tree.h
-    class RegionTreeForest;
     class CopyAcrossExecutor;
     class CopyAcrossUnstructured;
     class IndexSpaceExpression;
@@ -2737,7 +2736,6 @@ namespace Legion {
     template<typename OP>                                   \
     friend class Internal::Memoizable;                      \
     friend class Internal::ShardManager;                    \
-    friend class Internal::RegionTreeForest;                \
     friend class Internal::IndexSpaceNode;                  \
     template<int, typename>                                 \
     friend class Internal::IndexSpaceNodeT;                 \

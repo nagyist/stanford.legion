@@ -426,7 +426,7 @@ namespace Legion {
           }
           IndexSpace point_space = 
             ctx->find_index_launch_space(point_domain, provenance);
-          point_set = runtime->forest->get_node(point_space);
+          point_set = runtime->get_node(point_space);
           point_set->add_base_expression_reference(RUNTIME_REF);
         }
         else
@@ -4748,7 +4748,7 @@ namespace Legion {
       // Handle the case where there are no points for the local shard
       if (!local_space.exists())
         return;
-      IndexSpaceNode *local_points = runtime->forest->get_node(local_space);
+      IndexSpaceNode *local_points = runtime->get_node(local_space);
       Domain domain;
       local_points->get_domain(domain);
       std::vector<RtEvent> ready_events;
@@ -5138,7 +5138,7 @@ namespace Legion {
           if (privilege_only)
           {
             IndexSpaceNode *privilege_node =
-              runtime->forest->get_node(req.region.get_index_space());
+              runtime->get_node(req.region.get_index_space());
             return manager->create_piece_iterator(privilege_node);
           }
           else
@@ -5286,7 +5286,7 @@ namespace Legion {
                               (warning_string == NULL) ? "" : warning_string)
       // Get the index space to use for the accessor
       IndexSpaceNode *bounds = 
-        runtime->forest->get_node(req.region.get_index_space());
+        runtime->get_node(req.region.get_index_space());
       // Check to see if this is a padded field, if it is then we need to 
       // merge the padding into the resulting domain that is allowed
       // to be accessed by the accessor for bounds checks
@@ -5765,7 +5765,7 @@ namespace Legion {
                                        const bool global,
                                        const bool valid)
       : Collectable(), context(ctx), req(r), 
-        region(runtime->forest->get_node(req.region)), index(idx),
+        region(runtime->get_node(req.region)), index(idx),
         created_region(
           (req.flags & LEGION_CREATED_OUTPUT_REQUIREMENT_FLAG) && !valid),
         global_indexing(global)
@@ -8572,7 +8572,7 @@ namespace Legion {
         // Create the builder and initialize it before getting
         // the allocation privilege to avoid deadlock scenario
         InstanceBuilder builder(regions, constraints, this, creator_id);
-        builder.initialize(runtime->forest);
+        builder.initialize();
         // Acquire allocation privilege before doing anything
         const RtEvent wait_on = acquire_allocation_privilege();
         if (wait_on.exists())
@@ -8652,7 +8652,7 @@ namespace Legion {
         // Create the builder and initialize it before getting
         // the allocation privilege to avoid deadlock scenario
         InstanceBuilder builder(regions,*constraints, this, creator_id);
-        builder.initialize(runtime->forest);
+        builder.initialize();
         // Acquire allocation privilege before doing anything
         const RtEvent wait_on = acquire_allocation_privilege();
         if (wait_on.exists())
@@ -8742,7 +8742,7 @@ namespace Legion {
         // Create the builder and initialize it before getting
         // the allocation privilege to avoid deadlock scenario
         InstanceBuilder builder(regions, constraints, this, creator_id);
-        builder.initialize(runtime->forest); 
+        builder.initialize(); 
         // First get our allocation privileges so we're the only
         // one trying to do any allocations
         const RtEvent wait_on = acquire_allocation_privilege();
@@ -8844,7 +8844,7 @@ namespace Legion {
         // Create the builder and initialize it before getting
         // the allocation privilege to avoid deadlock scenario
         InstanceBuilder builder(regions,*constraints, this, creator_id);
-        builder.initialize(runtime->forest);
+        builder.initialize();
         // First get our allocation privileges so we're the only
         // one trying to do any allocations
         const RtEvent wait_on = acquire_allocation_privilege();
@@ -9759,18 +9759,17 @@ namespace Legion {
         if (tree_id != 0)
         {
           std::set<IndexSpaceExpression*> region_exprs;
-          RegionTreeForest *forest = runtime->forest;
           for (std::vector<LogicalRegion>::const_iterator it = 
                 regions.begin(); it != regions.end(); it++)
           {
             // If the region tree IDs don't match that is bad
             if (tree_id != it->get_tree_id())
               return false;
-            RegionNode *node = forest->get_node(*it);
+            RegionNode *node = runtime->get_node(*it);
             region_exprs.insert(node->row_source);
           }
           IndexSpaceExpression *space_expr = (region_exprs.size() == 1) ?
-            *(region_exprs.begin()) : forest->union_index_spaces(region_exprs);
+            *(region_exprs.begin()) : runtime->union_index_spaces(region_exprs);
           for (std::deque<PhysicalManager*>::const_iterator it =
                 candidates.begin(); it != candidates.end(); it++)
           {
@@ -9872,18 +9871,17 @@ namespace Legion {
         if (tree_id != 0)
         {
           std::set<IndexSpaceExpression*> region_exprs;
-          RegionTreeForest *forest = runtime->forest;
           for (std::vector<LogicalRegion>::const_iterator it = 
                 regions.begin(); it != regions.end(); it++)
           {
             // If the region tree IDs don't match that is bad
             if (tree_id != it->get_tree_id())
               return;
-            RegionNode *node = forest->get_node(*it);
+            RegionNode *node = runtime->get_node(*it);
             region_exprs.insert(node->row_source);
           }
           IndexSpaceExpression *space_expr = (region_exprs.size() == 1) ?
-            *(region_exprs.begin()) : forest->union_index_spaces(region_exprs);
+            *(region_exprs.begin()) : runtime->union_index_spaces(region_exprs);
           for (std::deque<PhysicalManager*>::const_iterator it = 
                 candidates.begin(); it != candidates.end(); it++)
           {
@@ -9965,18 +9963,17 @@ namespace Legion {
       if (!candidates.empty())
       {
         std::set<IndexSpaceExpression*> region_exprs;
-        RegionTreeForest *forest = runtime->forest;
         for (std::vector<LogicalRegion>::const_iterator it = 
               regions.begin(); it != regions.end(); it++)
         {
           // If the region tree IDs don't match that is bad
           if (tree_id != it->get_tree_id())
             return false;
-          RegionNode *node = forest->get_node(*it);
+          RegionNode *node = runtime->get_node(*it);
           region_exprs.insert(node->row_source);
         }
         IndexSpaceExpression *space_expr = (region_exprs.size() == 1) ?
-          *(region_exprs.begin()) : forest->union_index_spaces(region_exprs);
+          *(region_exprs.begin()) : runtime->union_index_spaces(region_exprs);
         for (std::deque<PhysicalManager*>::const_iterator it = 
               candidates.begin(); it != candidates.end(); it++)
         {
@@ -10026,7 +10023,7 @@ namespace Legion {
       // We don't need to acquire allocation privilege as this function
       // doesn't eagerly perform any instance collections.
 
-      RegionNode *node = runtime->forest->get_node(region);
+      RegionNode *node = runtime->get_node(region);
       FieldSpaceNode *fspace_node = node->get_column_source();
 
       const std::vector<FieldID> &fields =
@@ -10064,7 +10061,7 @@ namespace Legion {
       }
 
       PhysicalManager *manager =
-        new PhysicalManager(runtime->forest, did,
+        new PhysicalManager(did,
                             this,
                             PhysicalInstance::NO_INST,
                             node->get_row_source()->as_index_space_node(),
@@ -10395,7 +10392,7 @@ namespace Legion {
       // First, just try to make the instance as is, if it works we are done 
       size_t needed_size;
       PhysicalManager *result = builder.create_physical_instance(
-          runtime->forest, unsat_kind, unsat_index, &needed_size);
+          unsat_kind, unsat_index, &needed_size);
       if (footprint != NULL)
         *footprint = needed_size;
       if ((result != NULL) || (needed_size == 0))
@@ -10406,7 +10403,7 @@ namespace Legion {
       while (!collector.collection_complete())
       {
         const RtEvent collection_done = collector.perform_collection(); 
-        result = builder.create_physical_instance(runtime->forest,
+        result = builder.create_physical_instance(
                   unsat_kind, unsat_index, NULL, collection_done);
         if (result != NULL)
           break;
@@ -14910,7 +14907,7 @@ namespace Legion {
           padded_fields.insert(req.privilege_fields.begin(),
                                req.privilege_fields.end());
         FieldSpaceNode *fs = 
-          runtime->forest->get_node(req.region.get_field_space());
+          runtime->get_node(req.region.get_field_space());
         FieldMask padded_mask = fs->get_field_mask(padded_fields);
         for (unsigned idx = 0; idx < instances.size(); idx++)
         {
@@ -15891,7 +15888,7 @@ namespace Legion {
             result.get_tree_id(), idx, task->get_task_name(), 
             task->get_unique_id(), upper_bound.get_tree_id())
 #ifdef DEBUG_LEGION
-      if (!runtime->forest->is_subregion(result, upper_bound))
+      if (!runtime->is_subregion(result, upper_bound))
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
             "logical subregion which is not a subregion of the "
@@ -15899,7 +15896,7 @@ namespace Legion {
             "task %s (UID %lld)", projection_id, idx,
             task->get_task_name(), task->get_unique_id())
       const unsigned projection_depth = 
-        runtime->forest->get_projection_depth(result, upper_bound);
+        runtime->get_projection_depth(result, upper_bound);
       if (projection_depth > functor->get_depth())
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
@@ -15929,7 +15926,7 @@ namespace Legion {
             result.get_tree_id(), idx, task->get_task_name(), 
             task->get_unique_id(), upper_bound.get_tree_id())
 #ifdef DEBUG_LEGION
-      if (!runtime->forest->is_subregion(result, upper_bound))
+      if (!runtime->is_subregion(result, upper_bound))
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
             "logical subregion which is not a subregion of the "
@@ -15937,7 +15934,7 @@ namespace Legion {
             "task %s (UID %lld)", projection_id, idx,
             task->get_task_name(), task->get_unique_id())
       const unsigned projection_depth = 
-        runtime->forest->get_projection_depth(result, upper_bound);
+        runtime->get_projection_depth(result, upper_bound);
       if (projection_depth > functor->get_depth())
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
@@ -15967,7 +15964,7 @@ namespace Legion {
             result.get_tree_id(), idx, op->get_logging_name(), 
             op->get_unique_op_id(), upper_bound.get_tree_id())
 #ifdef DEBUG_LEGION
-      if (!runtime->forest->is_subregion(result, upper_bound))
+      if (!runtime->is_subregion(result, upper_bound))
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
             "logical subregion which is not a subregion of the "
@@ -15975,7 +15972,7 @@ namespace Legion {
             "operation %s (UID %lld)", projection_id, idx,
             op->get_logging_name(), op->get_unique_op_id())
       const unsigned projection_depth = 
-        runtime->forest->get_projection_depth(result, upper_bound);
+        runtime->get_projection_depth(result, upper_bound);
       if (projection_depth > functor->get_depth())
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
@@ -16005,7 +16002,7 @@ namespace Legion {
             result.get_tree_id(), idx, op->get_logging_name(), 
             op->get_unique_op_id(), upper_bound.get_tree_id())
 #ifdef DEBUG_LEGION
-      if (!runtime->forest->is_subregion(result, upper_bound))
+      if (!runtime->is_subregion(result, upper_bound))
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
             "logical subregion which is not a subregion of the "
@@ -16013,7 +16010,7 @@ namespace Legion {
             "operation %s (UID %lld)", projection_id, idx,
             op->get_logging_name(), op->get_unique_op_id())
       const unsigned projection_depth = 
-        runtime->forest->get_projection_depth(result, upper_bound);
+        runtime->get_projection_depth(result, upper_bound);
       if (projection_depth > functor->get_depth())
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
@@ -16260,7 +16257,6 @@ namespace Legion {
           ShardID local_shard, RegionTreeNode *root, const ProjectionInfo &info)
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = root->context;
       ProjectionNode *result = NULL;
       if (root->is_region())
         result = new ProjectionRegion(root->as_region_node());
@@ -16274,7 +16270,7 @@ namespace Legion {
       if (!local_space.exists())
         return result;
       Domain local_domain, launch_domain;
-      forest->find_domain(local_space, local_domain);
+      runtime->find_domain(local_space, local_domain);
       launch_space->get_domain(launch_domain);
       std::map<RegionTreeNode*,ProjectionNode*> node_map;
       node_map[root] = result;
@@ -16308,7 +16304,7 @@ namespace Legion {
                                          result);
           if (!result.exists())
             continue;
-          add_to_projection_tree(result, root, forest, node_map, local_shard);
+          add_to_projection_tree(result, root, node_map, local_shard);
         }
       }
       else
@@ -16338,7 +16334,7 @@ namespace Legion {
                                             result);
           if (!result.exists())
             continue;
-          add_to_projection_tree(result, root, forest, node_map, local_shard);
+          add_to_projection_tree(result, root, node_map, local_shard);
         }
       }
       return result;
@@ -16346,12 +16342,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ProjectionFunction::add_to_projection_tree(LogicalRegion r,
-                            RegionTreeNode *root, RegionTreeForest *context,
+                            RegionTreeNode *root,
                             std::map<RegionTreeNode*,ProjectionNode*> &node_map,
                             ShardID owner_shard)
     //--------------------------------------------------------------------------
     {
-      RegionNode *child = context->get_node(r);
+      RegionNode *child = runtime->get_node(r);
       std::map<RegionTreeNode*,ProjectionNode*>::const_iterator finder = 
         node_map.find(child);
       ProjectionRegion *current = NULL;
@@ -16474,8 +16470,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ShardingFunction::ShardingFunction(ShardingFunctor *func, 
-       RegionTreeForest *f, ShardManager *m, ShardingID id, bool skip, bool own)
-      : functor(func), forest(f), manager(m), sharding_id(id),
+       ShardManager *m, ShardingID id, bool skip, bool own)
+      : functor(func), manager(m), sharding_id(id),
         use_points(func->use_points()), skip_checks(skip), own_functor(own)
     //--------------------------------------------------------------------------
     {
@@ -16652,7 +16648,7 @@ namespace Legion {
         machine(m), runtime_system_memory(system), address_space(unique), 
         total_address_spaces(address_spaces.size()),
         runtime_stride(address_spaces.size()), profiler(NULL),
-        forest(new RegionTreeForest()), virtual_manager(NULL), 
+        virtual_manager(NULL), 
         num_utility_procs(local_utilities.empty() ? locals.size() : 
                           local_utilities.size()), input_args(args),
         initial_task_window_size(config.initial_task_window_size),
@@ -16893,7 +16889,6 @@ namespace Legion {
             free(input_args.argv[i]);
         free(input_args.argv);
       }
-      delete forest;
       delete external;
       delete mapper_runtime;
       // Avoid duplicate deletions on these for separate runtime
@@ -17849,7 +17844,7 @@ namespace Legion {
               const bool total_sharding_collective, const bool unpack_reference)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode *node = forest->get_node(handle);
+      IndexSpaceNode *node = runtime->get_node(handle);
       if (!node->check_valid_and_increment(APPLICATION_REF))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to add shared ownership to index space %x "
@@ -17881,7 +17876,7 @@ namespace Legion {
               const bool total_sharding_collective, const bool unpack_reference)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *node = forest->get_node(handle);
+      IndexPartNode *node = runtime->get_node(handle);
       if (!node->check_valid_and_increment(APPLICATION_REF))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to add shared ownership to index partition %x "
@@ -17913,7 +17908,7 @@ namespace Legion {
               const bool total_sharding_collective, const bool unpack_reference)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode *node = forest->get_node(handle);
+      FieldSpaceNode *node = runtime->get_node(handle);
       if (!node->check_global_and_increment(APPLICATION_REF))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to add shared ownership to field space %x "
@@ -17945,7 +17940,7 @@ namespace Legion {
               const bool total_sharding_collective, const bool unpack_reference)
     //--------------------------------------------------------------------------
     {
-      RegionNode *node = forest->get_node(handle);
+      RegionNode *node = runtime->get_node(handle);
       if (!node->check_global_and_increment(APPLICATION_REF))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to add shared ownership to logical region "
@@ -17974,6 +17969,7 @@ namespace Legion {
         node->unpack_global_ref();
     }
 
+#if 0
     //--------------------------------------------------------------------------
     IndexPartition Runtime::get_index_partition(IndexSpace parent, Color color)
     //--------------------------------------------------------------------------
@@ -18285,6 +18281,7 @@ namespace Legion {
     {
       return forest->get_parent_logical_partition(handle);
     }
+#endif
 
     //--------------------------------------------------------------------------
     ArgumentMap Runtime::create_argument_map(void)
@@ -19393,7 +19390,7 @@ namespace Legion {
             ReplicateContext::REPLICATE_ATTACH_INDEX_SPACE_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
-      forest->attach_semantic_information(handle, tag, address_space, 
+      get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
       if (implicit_context != NULL)
         implicit_context->post_semantic_attach();
@@ -19412,7 +19409,7 @@ namespace Legion {
             ReplicateContext::REPLICATE_ATTACH_INDEX_PARTITION_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
-      forest->attach_semantic_information(handle, tag, address_space, 
+      get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
       if (implicit_context != NULL)
         implicit_context->post_semantic_attach();
@@ -19431,7 +19428,7 @@ namespace Legion {
             ReplicateContext::REPLICATE_ATTACH_FIELD_SPACE_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
-      forest->attach_semantic_information(handle, tag, address_space, 
+      get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
       if (implicit_context != NULL)
         implicit_context->post_semantic_attach();
@@ -19451,7 +19448,7 @@ namespace Legion {
             sizeof(handle), tag, buffer, size, is_mutable, global, 
             &fid, sizeof(fid)))
         return;
-      forest->attach_semantic_information(handle, fid, tag, address_space, 
+      get_node(handle)->attach_semantic_information(fid, tag, address_space, 
                                           buffer, size, is_mutable, !global);
       if (implicit_context != NULL)
         implicit_context->post_semantic_attach();
@@ -19470,7 +19467,7 @@ namespace Legion {
             ReplicateContext::REPLICATE_ATTACH_LOGICAL_REGION_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
-      forest->attach_semantic_information(handle, tag, address_space, 
+      get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
       if (implicit_context != NULL)
         implicit_context->post_semantic_attach();
@@ -19489,7 +19486,7 @@ namespace Legion {
             ReplicateContext::REPLICATE_ATTACH_LOGICAL_PARTITION_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
-      forest->attach_semantic_information(handle, tag, address_space, 
+      get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
       if (implicit_context != NULL)
         implicit_context->post_semantic_attach();
@@ -19513,7 +19510,7 @@ namespace Legion {
                                                 bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return forest->retrieve_semantic_information(handle, tag, result, size,
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
                                                    can_fail, wait_until);
     }
 
@@ -19525,7 +19522,7 @@ namespace Legion {
                                                 bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return forest->retrieve_semantic_information(handle, tag, result, size, 
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
                                                    can_fail, wait_until);
     }
 
@@ -19537,7 +19534,7 @@ namespace Legion {
                                                 bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return forest->retrieve_semantic_information(handle, tag, result, size,
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
                                                    can_fail, wait_until);
     }
 
@@ -19549,7 +19546,7 @@ namespace Legion {
                                                 bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return forest->retrieve_semantic_information(handle, fid, tag, result, 
+      return get_node(handle)->retrieve_semantic_information(fid, tag, result, 
                                                    size, can_fail, wait_until);
     }
 
@@ -19561,7 +19558,7 @@ namespace Legion {
                                                 bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return forest->retrieve_semantic_information(handle, tag, result, size,
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
                                                    can_fail, wait_until);
     }
 
@@ -19573,7 +19570,7 @@ namespace Legion {
                                                 bool wait_until)
     //--------------------------------------------------------------------------
     {
-      return forest->retrieve_semantic_information(handle, tag, result, size,
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
                                                    can_fail, wait_until);
     }
 
@@ -23167,7 +23164,7 @@ namespace Legion {
     void Runtime::handle_index_space_request(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_node_request(forest, derez);
+      IndexSpaceNode::handle_node_request(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23175,14 +23172,14 @@ namespace Legion {
                                               AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_node_creation(forest, derez, source);
+      IndexSpaceNode::handle_node_creation(derez, source);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_index_space_return(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_node_return(forest, derez); 
+      IndexSpaceNode::handle_node_return(derez); 
     }
 
     //--------------------------------------------------------------------------
@@ -23190,7 +23187,7 @@ namespace Legion {
                                          AddressSpaceID source) 
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_index_space_set(forest, derez, source);
+      IndexSpaceNode::handle_index_space_set(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23198,14 +23195,14 @@ namespace Legion {
                                                    AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_node_child_request(forest, derez, source);
+      IndexSpaceNode::handle_node_child_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_index_space_child_response(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_node_child_response(forest, derez);
+      IndexSpaceNode::handle_node_child_response(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23213,7 +23210,7 @@ namespace Legion {
                                                     AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_colors_request(forest, derez, source);
+      IndexSpaceNode::handle_colors_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23228,7 +23225,7 @@ namespace Legion {
                                      Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      forest->handle_remote_expression_request(derez, source);
+      handle_remote_expression_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23236,7 +23233,7 @@ namespace Legion {
                                      Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      forest->handle_remote_expression_response(derez, source);
+      handle_remote_expression_response(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23244,7 +23241,7 @@ namespace Legion {
                                                           AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_generate_color_request(forest, derez, source);
+      IndexSpaceNode::handle_generate_color_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23259,21 +23256,21 @@ namespace Legion {
     void Runtime::handle_index_space_release_color(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_release_color(forest, derez);
+      IndexSpaceNode::handle_release_color(derez);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_index_partition_notification(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_notification(forest, derez);
+      IndexPartNode::handle_notification(derez);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_index_partition_request(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_node_request(forest, derez);
+      IndexPartNode::handle_node_request(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23281,14 +23278,14 @@ namespace Legion {
                                                   AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_node_creation(forest, derez, source);
+      IndexPartNode::handle_node_creation(derez, source);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_index_partition_return(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_node_return(forest, derez);
+      IndexPartNode::handle_node_return(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23296,7 +23293,7 @@ namespace Legion {
                                                        AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_node_child_request(forest, derez, source);
+      IndexPartNode::handle_node_child_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23304,21 +23301,21 @@ namespace Legion {
                                                         AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_node_child_response(forest, derez, source);
+      IndexPartNode::handle_node_child_response(derez, source);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_index_partition_child_replication(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_child_replication(forest, derez);
+      IndexPartNode::handle_child_replication(derez);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_index_partition_disjoint_update(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_node_disjoint_update(forest, derez);
+      IndexPartNode::handle_node_disjoint_update(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23326,7 +23323,7 @@ namespace Legion {
                                                             Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_shard_rects_request(forest, derez);
+      IndexPartNode::handle_shard_rects_request(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23334,7 +23331,7 @@ namespace Legion {
                                      Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_shard_rects_response(forest, derez, source);
+      IndexPartNode::handle_shard_rects_response(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23342,7 +23339,7 @@ namespace Legion {
                                      Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_remote_interference_request(forest, derez, source);
+      IndexPartNode::handle_remote_interference_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23358,14 +23355,14 @@ namespace Legion {
                                           AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_node_creation(forest, derez, source);
+      FieldSpaceNode::handle_node_creation(derez, source);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_field_space_request(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_node_request(forest, derez);
+      FieldSpaceNode::handle_node_request(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23380,28 +23377,28 @@ namespace Legion {
                                                        AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_allocator_request(forest, derez, source);
+      FieldSpaceNode::handle_allocator_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_field_space_allocator_response(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_allocator_response(forest, derez);
+      FieldSpaceNode::handle_allocator_response( derez);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_field_space_allocator_invalidation(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_allocator_invalidation(forest, derez);
+      FieldSpaceNode::handle_allocator_invalidation(derez);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_field_space_allocator_flush(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_allocator_flush(forest, derez);
+      FieldSpaceNode::handle_allocator_flush(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23409,28 +23406,28 @@ namespace Legion {
                                                     AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_allocator_free(forest, derez, source);
+      FieldSpaceNode::handle_allocator_free(derez, source);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_field_space_infos_request(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_infos_request(forest, derez);
+      FieldSpaceNode::handle_infos_request(derez);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_field_space_infos_response(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_infos_response(forest, derez);
+      FieldSpaceNode::handle_infos_response(derez);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_field_alloc_request(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_alloc_request(forest, derez);
+      FieldSpaceNode::handle_alloc_request(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23438,21 +23435,21 @@ namespace Legion {
                                            AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_field_size_update(forest, derez, source);
+      FieldSpaceNode::handle_field_size_update(derez, source);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_field_free(Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_field_free(forest, derez, source);
+      FieldSpaceNode::handle_field_free(derez, source);
     }
 
     //--------------------------------------------------------------------------
     void Runtime::handle_field_free_indexes(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_field_free_indexes(forest, derez);
+      FieldSpaceNode::handle_field_free_indexes(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23460,7 +23457,7 @@ namespace Legion {
                                                          AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_layout_invalidation(forest, derez, source);
+      FieldSpaceNode::handle_layout_invalidation(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23468,7 +23465,7 @@ namespace Legion {
                                                    AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_local_alloc_request(forest, derez, source);
+      FieldSpaceNode::handle_local_alloc_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23482,7 +23479,7 @@ namespace Legion {
     void Runtime::handle_local_field_free(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_local_free(forest, derez);
+      FieldSpaceNode::handle_local_free(derez);
     }
 
     //--------------------------------------------------------------------------
@@ -23496,7 +23493,7 @@ namespace Legion {
     void Runtime::handle_top_level_region_request(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      RegionNode::handle_top_level_request(forest, derez); 
+      RegionNode::handle_top_level_request(derez); 
     }
 
     //--------------------------------------------------------------------------
@@ -23504,7 +23501,7 @@ namespace Legion {
                                                  AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      RegionNode::handle_top_level_return(forest, derez, source);
+      RegionNode::handle_top_level_return(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -23521,7 +23518,7 @@ namespace Legion {
       assert(done.exists());
 #endif
       std::set<RtEvent> applied;
-      forest->destroy_index_space(handle, source, applied);
+      destroy_index_space(handle, source, applied);
       if (!applied.empty())
         Runtime::trigger_event(done, Runtime::merge_events(applied));
       else
@@ -23541,7 +23538,7 @@ namespace Legion {
       assert(done.exists());
 #endif
       std::set<RtEvent> applied;
-      forest->destroy_index_partition(handle, applied);
+      destroy_index_partition(handle, applied);
       if (!applied.empty())
         Runtime::trigger_event(done, Runtime::merge_events(applied));
       else
@@ -23561,7 +23558,7 @@ namespace Legion {
       assert(done.exists());
 #endif
       std::set<RtEvent> applied;
-      forest->destroy_field_space(handle, applied);
+      destroy_field_space(handle, applied);
       if (!applied.empty())
         Runtime::trigger_event(done, Runtime::merge_events(applied));
       else
@@ -23578,7 +23575,7 @@ namespace Legion {
       RtUserEvent done;
       derez.deserialize(done);
       std::set<RtEvent> applied;
-      forest->destroy_logical_region(handle, applied);
+      destroy_logical_region(handle, applied);
       if (done.exists())
       {
         if (!applied.empty())
@@ -24419,7 +24416,7 @@ namespace Legion {
                                                       AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_semantic_request(forest, derez, source);
+      IndexSpaceNode::handle_semantic_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24427,7 +24424,7 @@ namespace Legion {
                                                           AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_semantic_request(forest, derez, source);
+      IndexPartNode::handle_semantic_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24435,7 +24432,7 @@ namespace Legion {
                                                       AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_semantic_request(forest, derez, source);
+      FieldSpaceNode::handle_semantic_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24443,7 +24440,7 @@ namespace Legion {
                                                 AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_field_semantic_request(forest, derez, source);
+      FieldSpaceNode::handle_field_semantic_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24451,7 +24448,7 @@ namespace Legion {
                                                          AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      RegionNode::handle_semantic_request(forest, derez, source);
+      RegionNode::handle_semantic_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24459,7 +24456,7 @@ namespace Legion {
                                      Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      PartitionNode::handle_semantic_request(forest, derez, source);
+      PartitionNode::handle_semantic_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24475,7 +24472,7 @@ namespace Legion {
                                                    AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode::handle_semantic_info(forest, derez, source);
+      IndexSpaceNode::handle_semantic_info(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24483,7 +24480,7 @@ namespace Legion {
                                                        AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode::handle_semantic_info(forest, derez, source);
+      IndexPartNode::handle_semantic_info(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24491,7 +24488,7 @@ namespace Legion {
                                                    AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_semantic_info(forest, derez, source);
+      FieldSpaceNode::handle_semantic_info(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24499,7 +24496,7 @@ namespace Legion {
                                              AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode::handle_field_semantic_info(forest, derez, source);
+      FieldSpaceNode::handle_field_semantic_info(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24507,7 +24504,7 @@ namespace Legion {
                                                       AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      RegionNode::handle_semantic_info(forest, derez, source);
+      RegionNode::handle_semantic_info(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -24515,7 +24512,7 @@ namespace Legion {
                                                          AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      PartitionNode::handle_semantic_info(forest, derez, source);
+      PartitionNode::handle_semantic_info(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -26392,7 +26389,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(domain.exists());
 #endif
-      IndexSpaceNode *domain_node = forest->get_node(domain);
+      IndexSpaceNode *domain_node = get_node(domain);
       FutureMapImpl *result = new FutureMapImpl(ctx, domain_node, did,
            coord, completion, provenance, false/*register now*/);
       // Retake the lock and see if we lost the race
@@ -26440,7 +26437,10 @@ namespace Legion {
       const IndexSpace result(get_unique_index_space_id(),
                               get_unique_index_tree_id(), type_tag);
       const DistributedID did = get_available_distributed_id();
-      forest->create_index_space(result, &domain, did, provenance);
+      create_node(result, &domain, true/*is domain*/, NULL/*parent*/,
+          0/*color*/, did, RtEvent::NO_RT_EVENT, provenance,
+          ApEvent::NO_AP_EVENT, 0/*expr id*/, NULL/*mapping*/,
+          true/*add root reference*/);
       if (legion_spy_enabled)
         LegionSpy::log_top_index_space(result.id, address_space,
             (provenance == NULL) ? NULL : provenance->human.c_str());
@@ -26626,7 +26626,7 @@ namespace Legion {
       std::set<RtEvent> applied;
       for (std::map<std::pair<Domain,TypeTag>,IndexSpace>::const_iterator it =
             index_slice_spaces.begin(); it != index_slice_spaces.end(); it++)
-        forest->destroy_index_space(it->second, address_space, applied);
+        destroy_index_space(it->second, address_space, applied);
       for (std::map<ProjectionID,ProjectionFunction*>::const_iterator it =
            projection_functions.begin(); it != projection_functions.end(); it++)
         it->second->prepare_for_shutdown();
@@ -28018,7 +28018,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      forest->check_context_state(context);
+      check_region_tree_context(context);
 #endif
       AutoLock ctx_lock(context_lock);
       available_contexts.push_back(context);
@@ -28329,7 +28329,7 @@ namespace Legion {
       for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
             it != req.privilege_fields.end(); it++)
       {
-        if (!forest->has_field(sp, *it))
+        if (!has_field(sp, *it))
         {
           bad_field = *it;
           return ERROR_FIELD_SPACE_FIELD_MISMATCH;
@@ -28339,14 +28339,14 @@ namespace Legion {
       if ((req.handle_type == LEGION_SINGULAR_PROJECTION) || 
           (req.handle_type == LEGION_REGION_PROJECTION))
       {
-        if (!forest->has_node(req.region))
+        if (!has_node(req.region))
           return ERROR_INVALID_REGION_HANDLE;
         if (req.region.get_tree_id() != req.parent.get_tree_id())
           return ERROR_INVALID_REGION_HANDLE;
       }
       else
       {
-        if (!forest->has_node(req.partition))
+        if (!has_node(req.partition))
           return ERROR_INVALID_PARTITION_HANDLE;
         if (req.partition.get_tree_id() != req.parent.get_tree_id())
           return ERROR_INVALID_PARTITION_HANDLE;
@@ -28377,7 +28377,7 @@ namespace Legion {
       if ((req.handle_type == LEGION_PARTITION_PROJECTION) && 
           (IS_WRITE(req)))
       {
-        if (!forest->is_disjoint(req.partition))
+        if (!is_disjoint(req.partition))
           return ERROR_NON_DISJOINT_PARTITION;
       }
 
@@ -31273,8 +31273,7 @@ namespace Legion {
           }
         case LG_DISJOINTNESS_TASK_ID:
           {
-            RegionTreeForest *forest = runtime->forest;
-            IndexPartNode::handle_disjointness_computation(args, forest);
+            IndexPartNode::handle_disjointness_computation(args);
             break;
           }
         case LG_ISSUE_FRAME_TASK_ID:

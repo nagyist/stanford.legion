@@ -742,7 +742,7 @@ namespace Legion {
       if (sharding_space.exists())
       {
         Domain shard_domain;
-        runtime->forest->find_domain(sharding_space, shard_domain);
+        runtime->find_domain(sharding_space, shard_domain);
         owner_shard = sharding_function->find_owner(index_point, shard_domain);
       }
       else
@@ -861,7 +861,7 @@ namespace Legion {
       // See if we're going to be a local point or not
       Domain shard_domain = index_domain;
       if (sharding_space.exists())
-        runtime->forest->find_domain(sharding_space, shard_domain);
+        runtime->find_domain(sharding_space, shard_domain);
       if (!elide_future_return)
       {
         ShardID owner = sharding_function->find_owner(index_point,shard_domain);
@@ -886,7 +886,7 @@ namespace Legion {
       }
       else
         handle = ctx->find_index_launch_space(index_domain, get_provenance());
-      launch_space = runtime->forest->get_node(handle);
+      launch_space = runtime->get_node(handle);
       if (!output_regions.empty())
         output_bar = ctx->get_next_output_regions_barrier();
     }
@@ -1031,7 +1031,7 @@ namespace Legion {
         if (local_space.exists())
         {
           Domain local_domain;
-          runtime->forest->find_domain(local_space, local_domain);
+          runtime->find_domain(local_space, local_domain);
           enumerate_futures(local_domain);
         }
       }
@@ -1233,7 +1233,7 @@ namespace Legion {
       {
         // Update the total number of points we're actually repsonsible
         // for now with this shard
-        IndexSpaceNode *node = runtime->forest->get_node(internal_space);
+        IndexSpaceNode *node = runtime->get_node(internal_space);
         total_points = node->get_volume();
 #ifdef DEBUG_LEGION
         assert(total_points > 0);
@@ -1630,10 +1630,10 @@ namespace Legion {
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(ctx);
 #endif
-      IndexSpaceNode *launch_node = runtime->forest->get_node(launch_space);
+      IndexSpaceNode *launch_node = runtime->get_node(launch_space);
       IndexSpaceNode *shard_node = 
         ((launch_space == shard_space) || !shard_space.exists()) ?
-        launch_node : runtime->forest->get_node(shard_space);
+        launch_node : runtime->get_node(shard_space);
       const DistributedID future_map_did = repl_ctx->get_next_distributed_id();
       // Make a replicate future map 
       return repl_ctx->shard_manager->deduplicate_future_map_creation(repl_ctx,
@@ -1704,7 +1704,7 @@ namespace Legion {
           Domain launch_domain, sharding_domain;
           launch_space->get_domain(launch_domain);
           if (sharding_space.exists())
-            runtime->forest->find_domain(sharding_space, sharding_domain);
+            runtime->find_domain(sharding_space, sharding_domain);
           else
             sharding_domain = launch_domain;
           for (Domain::DomainPointIterator itr(launch_domain); itr; itr++)
@@ -1746,7 +1746,7 @@ namespace Legion {
 #endif
       Domain launch_domain;
       if (sharding_space.exists())
-        runtime->forest->find_domain(sharding_space, launch_domain);
+        runtime->find_domain(sharding_space, launch_domain);
       else
         launch_space->get_domain(launch_domain);
       const ShardID point_shard = 
@@ -1785,7 +1785,7 @@ namespace Legion {
       // going to be coming from a remote shard
       Domain launch_domain;
       if (sharding_space.exists())
-        runtime->forest->find_domain(sharding_space, launch_domain);
+        runtime->find_domain(sharding_space, launch_domain);
       else
         launch_space->get_domain(launch_domain);
       const ShardID next_shard = 
@@ -1877,13 +1877,12 @@ namespace Legion {
 #endif
       if (!repl_ctx->shard_manager->is_first_local_shard(repl_ctx->owner_shard))
         return;
-      RegionTreeForest *forest = runtime->forest;
       for (unsigned idx = 0; idx < output_regions.size(); ++idx)
       {
         const OutputOptions &options = output_region_options[idx];
         if (options.valid_requirement())
           continue;
-        IndexSpaceNode *parent = forest->get_node(
+        IndexSpaceNode *parent = runtime->get_node(
             output_regions[idx].parent.get_index_space());
 #ifdef DEBUG_LEGION
         validate_output_extents(idx, output_regions[idx],
@@ -1894,7 +1893,7 @@ namespace Legion {
           // For globally indexed output regions, we need to check
           // the alignment between outputs from adjacent point tasks
           // and compute the ranges of subregions via prefix sum.
-          IndexPartNode *part = runtime->forest->get_node(
+          IndexPartNode *part = runtime->get_node(
             output_regions[idx].partition.get_index_partition());
           Domain root_domain = compute_global_output_ranges(parent, part,
               output_region_extents[idx], local_output_extents[idx]);
@@ -1919,7 +1918,7 @@ namespace Legion {
     size_t ReplIndexTask::get_collective_points(void) const
     //--------------------------------------------------------------------------
     {
-      return runtime->forest->get_node(internal_space)->get_volume();
+      return runtime->get_node(internal_space)->get_volume();
     }
 
     //--------------------------------------------------------------------------
@@ -2042,7 +2041,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    source_version_info,
                                                    preconditions,
@@ -2289,7 +2288,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<RtEvent> map_applied_conditions;
-      RegionNode *node = runtime->forest->get_node(requirement.region);
+      RegionNode *node = runtime->get_node(requirement.region);
       FieldMask refinement_mask =
         node->column_source->get_field_mask(requirement.privilege_fields);
       parent_ctx->refine_equivalence_sets(parent_req_index,
@@ -2390,7 +2389,7 @@ namespace Legion {
       const RtEvent view_ready = initialize_fill_view();
       if (view_ready.exists())
         preconditions.insert(view_ready);
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions,
@@ -2667,7 +2666,7 @@ namespace Legion {
       }
       else // We have valid points, so it goes on the ready queue
       {
-        shard_points = runtime->forest->get_node(local_space);
+        shard_points = runtime->get_node(local_space);
         add_launch_space_reference(shard_points);
         IndexFillOp::trigger_ready();
       }
@@ -2720,7 +2719,7 @@ namespace Legion {
       }
       else
       {
-        shard_points = runtime->forest->get_node(local_space);
+        shard_points = runtime->get_node(local_space);
         add_launch_space_reference(shard_points);
         IndexFillOp::trigger_replay();
       }
@@ -2824,7 +2823,7 @@ namespace Legion {
       // Signal that all of our mapping dependences are satisfied
       Runtime::phase_barrier_arrive(collective_map_barrier, 1/*count*/);
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions,
@@ -2913,7 +2912,7 @@ namespace Legion {
       }
       else
         handle = ctx->find_index_launch_space(index_domain, get_provenance());
-      launch_space = runtime->forest->get_node(handle);
+      launch_space = runtime->get_node(handle);
       // Initialize our index domain of a single point
       index_domain = Domain(index_point, index_point);
     }
@@ -3020,7 +3019,7 @@ namespace Legion {
       if (sharding_space.exists())
       {
         Domain shard_domain;
-        runtime->forest->find_domain(sharding_space, shard_domain);
+        runtime->find_domain(sharding_space, shard_domain);
         owner_shard = sharding_function->find_owner(index_point, shard_domain);
       }
       else
@@ -3295,7 +3294,7 @@ namespace Legion {
       }
       else // If we have any valid points do the base call
       {
-        shard_points = runtime->forest->get_node(local_space);
+        shard_points = runtime->get_node(local_space);
         add_launch_space_reference(shard_points);
         IndexCopyOp::trigger_ready();
       }
@@ -3358,7 +3357,7 @@ namespace Legion {
       }
       else
       {
-        shard_points = runtime->forest->get_node(local_space);
+        shard_points = runtime->get_node(local_space);
         add_launch_space_reference(shard_points);
         std::vector<ApBarrier> copy_pre_barriers, copy_post_barriers;
         IndexCopyOp::trigger_replay();
@@ -3440,7 +3439,7 @@ namespace Legion {
         assert(copies[index].src_indirect_records.size() < points.size());
 #endif
         copies[index].src_indirect_records.emplace_back(
-            IndirectRecord(runtime->forest, req, insts));
+            IndirectRecord(req, insts));
         exchange.src_records.push_back(&records);
         if (copies[index].src_indirect_records.size() == points.size())
           return finalize_exchange(index, true/*sources*/);
@@ -3492,7 +3491,7 @@ namespace Legion {
         assert(copies[index].dst_indirect_records.size() < points.size());
 #endif
         copies[index].dst_indirect_records.emplace_back(
-            IndirectRecord(runtime->forest, req, insts));
+            IndirectRecord(req, insts));
         exchange.dst_records.push_back(&records);
         if (copies[index].dst_indirect_records.size() == points.size())
           return finalize_exchange(index, false/*sources*/);
@@ -3605,7 +3604,7 @@ namespace Legion {
 #endif
       Domain launch_domain;
       if (sharding_space.exists())
-        runtime->forest->find_domain(sharding_space,launch_domain);
+        runtime->find_domain(sharding_space,launch_domain);
       else
         launch_space->get_domain(launch_domain);
       const ShardID point_shard = 
@@ -3644,7 +3643,7 @@ namespace Legion {
       // going to be coming from a remote shard
       Domain launch_domain;
       if (sharding_space.exists())
-        runtime->forest->find_domain(sharding_space, launch_domain);
+        runtime->find_domain(sharding_space, launch_domain);
       else
         launch_space->get_domain(launch_domain);
       const ShardID next_shard = 
@@ -3772,7 +3771,7 @@ namespace Legion {
         std::set<RtEvent> preconditions;
         version_infos.resize(deletion_requirements.size());
         for (unsigned idx = 0; idx < deletion_requirements.size(); idx++)
-          runtime->forest->perform_versioning_analysis(this, idx,
+          perform_versioning_analysis(idx,
                                             deletion_requirements[idx],
                                             version_infos[idx],
                                             preconditions,
@@ -3813,9 +3812,9 @@ namespace Legion {
           for (unsigned idx = 0; idx < deletion_requirements.size(); idx++)
           {
             const VersionInfo &version_info = version_infos[idx];
-            runtime->forest->invalidate_fields(this, idx, 
+            invalidate_fields(idx, 
                 deletion_requirements[idx], version_info,
-                PhysicalTraceInfo(trace_info, idx), map_applied_conditions,
+                PhysicalTraceInfo(trace_info, idx),
                 &repl_ctx->shard_manager->get_collective_mapping(),
                 is_first_local_shard);
             // Make sure we keep the equivalence sets alive while the 
@@ -3885,13 +3884,13 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert(deletion_req_indexes.empty());
 #endif
-              runtime->forest->destroy_index_space(index_space,
+              runtime->destroy_index_space(index_space,
                     runtime->address_space, applied, &mapping);
               if (!sub_partitions.empty())
               {
                 for (std::vector<IndexPartition>::const_iterator it = 
                       sub_partitions.begin(); it != sub_partitions.end(); it++)
-                  runtime->forest->destroy_index_partition(*it, applied,
+                  runtime->destroy_index_partition(*it, applied,
                                                            &mapping);
               }
               break;
@@ -3901,13 +3900,13 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert(deletion_req_indexes.empty());
 #endif
-              runtime->forest->destroy_index_partition(index_part, applied,
+              runtime->destroy_index_partition(index_part, applied,
                                                        &mapping);
               if (!sub_partitions.empty())
               {
                 for (std::vector<IndexPartition>::const_iterator it = 
                       sub_partitions.begin(); it != sub_partitions.end(); it++)
-                  runtime->forest->destroy_index_partition(*it, applied,
+                  runtime->destroy_index_partition(*it, applied,
                                                            &mapping);
               }
               break;
@@ -3917,7 +3916,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert(deletion_req_indexes.empty());
 #endif
-              runtime->forest->destroy_field_space(field_space, applied,
+              runtime->destroy_field_space(field_space, applied,
                                                    &mapping);
               break;
             }
@@ -3926,7 +3925,7 @@ namespace Legion {
             break;
           case LOGICAL_REGION_DELETION:
             {
-              runtime->forest->destroy_logical_region(logical_region, 
+              runtime->destroy_logical_region(logical_region, 
                                                       applied, &mapping);
               break;
             }
@@ -3938,10 +3937,10 @@ namespace Legion {
       if (kind == FIELD_DELETION)
       {
         if (!local_fields.empty())
-          runtime->forest->free_local_fields(field_space, local_fields, 
+          runtime->free_local_fields(field_space, local_fields, 
                               local_field_indexes, &mapping);
         if (!global_fields.empty())
-          runtime->forest->free_fields(field_space, global_fields, applied, 
+          runtime->free_fields(field_space, global_fields, applied, 
                                    (repl_ctx->owner_shard->shard_id != 0));
         if (!local_fields.empty())
           parent_ctx->remove_deleted_local_fields(field_space, local_fields);
@@ -4114,7 +4113,7 @@ namespace Legion {
       {
         if (!needs_all_futures)
         {
-          IndexPartNode *partition = runtime->forest->get_node(pid);
+          IndexPartNode *partition = runtime->get_node(pid);
           const Domain future_map_domain = future_map.impl->get_domain();
           for (ColorSpaceIterator itr(partition,true/*local only*/); itr; itr++)
           {
@@ -4146,9 +4145,9 @@ namespace Legion {
       ApEvent ready_event;
       // One the first shard will perform the pending partition computations
       if (repl_ctx->shard_manager->is_first_local_shard(repl_ctx->owner_shard))
-        ready_event = thunk->perform(this, runtime->forest, sources);
+        ready_event = thunk->perform(this, sources);
       else if (thunk->is_cross_product())
-        ready_event = thunk->perform(this, runtime->forest, sources);
+        ready_event = thunk->perform(this, sources);
       if (ready_event.exists())
         record_completion_effect(ready_event);
       complete_execution();
@@ -4430,7 +4429,7 @@ namespace Legion {
         }
         else // If we have valid points then we do the base call
         {
-          shard_points = runtime->forest->get_node(local_space);
+          shard_points = runtime->get_node(local_space);
           add_launch_space_reference(shard_points);
           DependentPartitionOp::trigger_ready();
         }
@@ -4441,7 +4440,7 @@ namespace Legion {
         // and then perform the partition creation collective
         std::set<RtEvent> preconditions;
         // Path for a non-index space implementation
-        runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+        perform_versioning_analysis(0/*idx*/,
                                                      requirement,
                                                      version_info,
                                                      preconditions,
@@ -4491,7 +4490,7 @@ namespace Legion {
 #endif
       if (is_index_space)
       {
-        IndexSpaceNode *node = runtime->forest->get_node(handle);
+        IndexSpaceNode *node = runtime->get_node(handle);
         Domain domain;
         ApEvent domain_ready = node->get_domain(domain, false/*need tight*/);
         bool ready = false;
@@ -4607,7 +4606,7 @@ namespace Legion {
         if (first_local_shard)
         {
           const FieldID fid = *(requirement.privilege_fields.begin());
-          done_event = thunk->perform(this, runtime->forest, fid,
+          done_event = thunk->perform(this, fid,
                                       collective_ready, instances);
         }
         Runtime::phase_barrier_arrive(collective_done, 1/*count*/, done_event);
@@ -4621,7 +4620,7 @@ namespace Legion {
           assert(scatter->origin == gather->target);
 #endif
           const FieldID fid = *(requirement.privilege_fields.begin());
-          ApEvent done_event = thunk->perform(this, runtime->forest, fid,
+          ApEvent done_event = thunk->perform(this, fid,
                                     gather->get_ready_event(), instances, 
                                     &remote_targets, &deppart_results);
           scatter->broadcast_results(done_event);
@@ -4629,7 +4628,7 @@ namespace Legion {
         else if (first_local_shard)
         {
           const FieldID fid = *(requirement.privilege_fields.begin());
-          thunk->perform(this, runtime->forest, fid, scatter->get_done_event(),
+          thunk->perform(this, fid, scatter->get_done_event(),
                          instances, &remote_targets, &deppart_results);
         }
       }
@@ -4665,7 +4664,7 @@ namespace Legion {
                                             std::vector<ApEvent> &preconditions)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *node = runtime->forest->get_node(thunk->get_projection());
+      IndexPartNode *node = runtime->get_node(thunk->get_projection());
       if (node->is_owner() || ((node->collective_mapping != NULL) &&
             node->collective_mapping->contains(node->local_space)))
       {
@@ -4825,10 +4824,10 @@ namespace Legion {
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(ctx);
 #endif
-      IndexSpaceNode *launch_node = runtime->forest->get_node(launch_space);
+      IndexSpaceNode *launch_node = runtime->get_node(launch_space);
       IndexSpaceNode *shard_node = 
         ((launch_space == shard_space) || !shard_space.exists()) ?
-        launch_node : runtime->forest->get_node(shard_space);
+        launch_node : runtime->get_node(shard_space);
       const DistributedID future_map_did = repl_ctx->get_next_distributed_id();
       return repl_ctx->shard_manager->deduplicate_future_map_creation(repl_ctx,
           this, launch_node, shard_node, future_map_did, get_provenance());
@@ -4850,7 +4849,7 @@ namespace Legion {
       // First find all the tasks that we own on this shard
       Domain shard_domain = launch_domain;
       if (sharding_space.exists())
-        runtime->forest->find_domain(sharding_space, shard_domain);
+        runtime->find_domain(sharding_space, shard_domain);
       for (std::vector<SingleTask*>::const_iterator it = 
             single_tasks.begin(); it != single_tasks.end(); it++)
       {
@@ -5344,7 +5343,7 @@ namespace Legion {
       if (sharding_space.exists())
       {
         Domain shard_domain;
-        runtime->forest->find_domain(sharding_space, shard_domain);
+        runtime->find_domain(sharding_space, shard_domain);
         return shard_domain;
       }
       else
@@ -6093,7 +6092,7 @@ namespace Legion {
         Runtime::phase_barrier_arrive(collective_map_barrier, 1/*count*/);
       std::set<RtEvent> preconditions;
       // Compute the version numbers for this mapping operation
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement, 
                                                    version_info,
                                                    preconditions,
@@ -6361,7 +6360,7 @@ namespace Legion {
 #endif
       // Signal that all our mapping dependences are met
       Runtime::phase_barrier_arrive(collective_map_barrier, 1/*count*/);
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions,
@@ -6725,7 +6724,7 @@ namespace Legion {
 #endif
       // Signal that all our mapping dependences are met
       Runtime::phase_barrier_arrive(collective_map_barrier, 1/*count*/);
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions,
@@ -6929,11 +6928,11 @@ namespace Legion {
       size_t local_size = collective->get_spaces(spaces, local_start); 
       if (requirement.handle_type == LEGION_PARTITION_PROJECTION)
         requirement.projection = parent_ctx->compute_index_attach_projection(
-            runtime->forest->get_node(requirement.partition.index_partition),
+            runtime->get_node(requirement.partition.index_partition),
             this, local_start, local_size, spaces, false/*can use identity*/);
       else
         requirement.projection = parent_ctx->compute_index_attach_projection(
-            runtime->forest->get_node(requirement.region.index_space),
+            runtime->get_node(requirement.region.index_space),
             this, local_start, local_size, spaces, false/*can use identity*/);
       // Save this for later when we go to detach it
       resources.impl->set_projection(requirement.projection);
@@ -7000,7 +6999,7 @@ namespace Legion {
           // best for locality, but it will guarantee perfect local balance
           if (((check_count++) % total_shards) != local_shard)
             continue;
-          if (!runtime->forest->are_disjoint(spaces[idx1], spaces[idx2]))
+          if (!runtime->are_disjoint(spaces[idx1], spaces[idx2]))
             REPORT_LEGION_ERROR(ERROR_INDEX_SPACE_ATTACH,
                 "Index attach operation (UID %lld) in parent task %s "
                 "(UID %lld) has interfering attachments to regions (%d,%d,%d) "
@@ -7310,7 +7309,7 @@ namespace Legion {
       // Signal that all of our mapping dependences are satisfied
       Runtime::phase_barrier_arrive(collective_map_barrier, 1/*count*/);
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions,
@@ -7505,7 +7504,7 @@ namespace Legion {
       // Signal that all of our mapping dependences are satisfied
       Runtime::phase_barrier_arrive(collective_map_barrier, 1/*count*/);
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions,
@@ -9044,7 +9043,7 @@ namespace Legion {
                   LogicalRegion handle, InnerContext *context, bool first_shard)
     //--------------------------------------------------------------------------
     {
-      RegionNode *region = runtime->forest->get_node(handle);
+      RegionNode *region = runtime->get_node(handle);
       // Technically this is not correct to use the 'idx' as the op_ctx_index
       // but we know all the shards need to be initialized before any of them
       // can start running so there's no interference with the actual operation
@@ -11367,7 +11366,7 @@ namespace Legion {
       if (finder != sharding_functions.end())
         return finder->second;
       ShardingFunction *result = 
-        new ShardingFunction(functor, runtime->forest, this, sid, skip_checks);
+        new ShardingFunction(functor, this, sid, skip_checks);
       // Save the result for the future
       sharding_functions[sid] = result;
       return result;
@@ -15352,8 +15351,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     IndexAttachUpperBound::IndexAttachUpperBound(ReplicateContext *ctx,
-                               CollectiveIndexLocation loc, RegionTreeForest *f)
-      : AllGatherCollective<false>(loc, ctx), forest(f), node(NULL)
+                               CollectiveIndexLocation loc)
+      : AllGatherCollective<false>(loc, ctx), node(NULL)
     //--------------------------------------------------------------------------
     {
     }
@@ -15403,13 +15402,13 @@ namespace Legion {
         derez.deserialize(handle);
         if (!handle.exists())
           return;
-        next = forest->get_node(handle);
+        next = runtime->get_node(handle);
       }
       else
       {
         LogicalPartition handle;
         derez.deserialize(handle);
-        next = forest->get_node(handle);
+        next = runtime->get_node(handle);
       }
       if (node == NULL)
       {
@@ -16727,12 +16726,11 @@ namespace Legion {
       size_t num_children;
       derez.deserialize(num_children);
       children.resize(num_children);
-      RegionTreeForest *forest = runtime->forest;
       for (unsigned idx = 0; idx < num_children; idx++)
       {
         IndexPartition handle;
         derez.deserialize(handle);
-        children[idx] = forest->get_node(handle);
+        children[idx] = runtime->get_node(handle);
       }
       AutoLock r_lock(rendezvous_lock);
 #ifdef DEBUG_LEGION

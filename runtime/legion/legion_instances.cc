@@ -794,14 +794,13 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    InstanceManager::InstanceManager(RegionTreeForest *ctx,
-                                     DistributedID did, LayoutDescription *desc,
+    InstanceManager::InstanceManager(DistributedID did, LayoutDescription *desc,
                                      FieldSpaceNode *node, 
                                      IndexSpaceExpression *domain,
                                      RegionTreeID tid, bool register_now,
                                      CollectiveMapping *mapping)
       : DistributedCollectable(did, register_now, mapping),
-        context(ctx), layout(desc), field_space_node(node),
+        layout(desc), field_space_node(node),
         instance_domain(domain), tree_id(tid)
     //--------------------------------------------------------------------------
     {
@@ -923,7 +922,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PhysicalManager::PhysicalManager(RegionTreeForest *ctx, DistributedID did,
+    PhysicalManager::PhysicalManager(DistributedID did,
                         MemoryManager *memory, PhysicalInstance inst, 
                         IndexSpaceExpression *instance_domain,
                         const void *pl, size_t pl_size,
@@ -934,7 +933,7 @@ namespace Legion {
                         const ReductionOp *op /*= NULL*/,
                         CollectiveMapping *mapping /*=NULL*/,
                         ApEvent p_event /*= ApEvent::NO_AP_EVENT*/)
-      : InstanceManager(ctx, encode_instance_did(did, 
+      : InstanceManager(encode_instance_did(did, 
           (k == EXTERNAL_ATTACHED_INSTANCE_KIND), (redop_id > 0)), layout, node,
           // If we're on the owner node we need to produce the expression
           // that actually describes this points in this space
@@ -1383,7 +1382,7 @@ namespace Legion {
           context_views.erase(view_finder);
       }
       if (own_ctx->remove_subscriber_reference(this))
-        delete context;
+        delete own_ctx;
     }
 
     //--------------------------------------------------------------------------
@@ -1500,11 +1499,11 @@ namespace Legion {
         // If the region tree IDs don't match that is bad
         if (it->get_tree_id() != tree_id)
           return false;
-        RegionNode *node = context->get_node(*it);
+        RegionNode *node = runtime->get_node(*it);
         region_exprs.insert(node->row_source);
       }
       IndexSpaceExpression *space_expr = (region_exprs.size() == 1) ?
-        *(region_exprs.begin()) : context->union_index_spaces(region_exprs);
+        *(region_exprs.begin()) : runtime->union_index_spaces(region_exprs);
       return meets_expression(space_expr, tight_region_bounds, padding_delta);
     }
 
@@ -3003,7 +3002,7 @@ namespace Legion {
       PendingRemoteExpression pending;
       RtEvent domain_ready;
       IndexSpaceExpression *inst_domain = 
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source,
+        IndexSpaceExpression::unpack_expression(derez, source,
                                                 pending, domain_ready);
       size_t piece_list_size;
       derez.deserialize(piece_list_size);
@@ -3016,7 +3015,7 @@ namespace Legion {
       FieldSpace handle;
       derez.deserialize(handle);
       RtEvent fs_ready;
-      FieldSpaceNode *space_node = runtime->forest->get_node(handle, &fs_ready);
+      FieldSpaceNode *space_node = runtime->get_node(handle, &fs_ready);
       RegionTreeID tree_id;
       derez.deserialize(tree_id);
       LgEvent unique_event;
@@ -3053,9 +3052,9 @@ namespace Legion {
         }
         // If we fall through we need to refetch things that we didn't get
         if (domain_ready.exists())
-          inst_domain = runtime->forest->find_remote_expression(pending);
+          inst_domain = runtime->find_remote_expression(pending);
         if (fs_ready.exists())
-          space_node = runtime->forest->get_node(handle);
+          space_node = runtime->get_node(handle);
         if (layout_ready.exists())
           constraints = 
             runtime->find_layout_constraints(layout_id, false/*can fail*/);
@@ -3103,8 +3102,8 @@ namespace Legion {
         (const DeferPhysicalManagerArgs*)args; 
       IndexSpaceExpression *inst_domain = dargs->local_expr;
       if (inst_domain == NULL)
-        inst_domain = runtime->forest->find_remote_expression(dargs->pending);
-      FieldSpaceNode *space_node = runtime->forest->get_node(dargs->handle);
+        inst_domain = runtime->find_remote_expression(dargs->pending);
+      FieldSpaceNode *space_node = runtime->get_node(dargs->handle);
       LayoutConstraints *constraints = 
         runtime->find_layout_constraints(dargs->layout_id);
       create_remote_manager(dargs->did, dargs->mem,
@@ -3148,7 +3147,7 @@ namespace Legion {
         (redop == 0) ? NULL : runtime->get_reduction(redop);
       void *location = runtime->find_or_create_pending_collectable_location<
                                                         PhysicalManager>(did);
-      PhysicalManager *man = new(location) PhysicalManager(runtime->forest,
+      PhysicalManager *man = new(location) PhysicalManager(
                                             did, memory, inst, inst_domain, 
                                             piece_list, piece_list_size, 
                                             space_node, tree_id, layout, 
@@ -3596,7 +3595,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     VirtualManager::VirtualManager(DistributedID did,
                             LayoutDescription *desc, CollectiveMapping *mapping)
-      : InstanceManager(runtime->forest, did, desc,
+      : InstanceManager(did, desc,
                         NULL/*field space node*/,NULL/*index space expression*/,
                         0/*tree id*/, true/*register now*/, mapping)
     //--------------------------------------------------------------------------
@@ -3608,27 +3607,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    VirtualManager::VirtualManager(const VirtualManager &rhs)
-      : InstanceManager(NULL, 0, NULL, NULL, NULL, 0, false)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     VirtualManager::~VirtualManager(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    VirtualManager& VirtualManager::operator=(const VirtualManager &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -3684,12 +3665,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalManager* InstanceBuilder::create_physical_instance(
-        RegionTreeForest *forest, LayoutConstraintKind *unsat_kind,
+        LayoutConstraintKind *unsat_kind,
         unsigned *unsat_index, size_t *footprint, RtEvent precondition)
     //--------------------------------------------------------------------------
     {
       if (!valid)
-        initialize(forest);
+        initialize();
       // If there are no fields then we are done
       if (field_sizes.empty())
       {
@@ -3850,7 +3831,7 @@ namespace Legion {
         case LEGION_COMPACT_SPECIALIZE:
           {
             // Now we can make the manager
-            result = new PhysicalManager(forest, did, memory_manager,
+            result = new PhysicalManager(did, memory_manager,
                                          instance, instance_domain, 
                                          piece_list, piece_list_size,
                                          field_space_node, tree_id,
@@ -3864,7 +3845,7 @@ namespace Legion {
         case LEGION_AFFINE_REDUCTION_SPECIALIZE:
         case LEGION_COMPACT_REDUCTION_SPECIALIZE:
           {
-            result = new PhysicalManager(forest, did,
+            result = new PhysicalManager(did,
                                          memory_manager, instance, 
                                          instance_domain, piece_list,
                                          piece_list_size, field_space_node,
@@ -3942,16 +3923,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InstanceBuilder::initialize(RegionTreeForest *forest)
+    void InstanceBuilder::initialize(void)
     //--------------------------------------------------------------------------
     {
-      compute_space_and_domain(forest); 
+      compute_space_and_domain(); 
       compute_layout_parameters();
       valid = true;
     }
 
     //--------------------------------------------------------------------------
-    void InstanceBuilder::compute_space_and_domain(RegionTreeForest *forest)
+    void InstanceBuilder::compute_space_and_domain(void)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -3967,7 +3948,7 @@ namespace Legion {
         if (!it->exists())
           continue;
         if (field_space_node == NULL)
-          field_space_node = forest->get_node(it->get_field_space());
+          field_space_node = runtime->get_node(it->get_field_space());
         if (tree_id == 0)
           tree_id = it->get_tree_id();
 #ifdef DEBUG_LEGION
@@ -3975,10 +3956,10 @@ namespace Legion {
         assert(field_space_node->handle == it->get_field_space());
         assert(tree_id == it->get_tree_id());
 #endif
-        region_exprs.insert(forest->get_node(it->get_index_space()));
+        region_exprs.insert(runtime->get_node(it->get_index_space()));
       }
       instance_domain = (region_exprs.size() == 1) ? 
-        *(region_exprs.begin()) : forest->union_index_spaces(region_exprs);
+        *(region_exprs.begin()) : runtime->union_index_spaces(region_exprs);
     }
 
     //--------------------------------------------------------------------------

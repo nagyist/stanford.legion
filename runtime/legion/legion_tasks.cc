@@ -1584,7 +1584,7 @@ namespace Legion {
         std::vector<IndexTreeNode*> index_nodes(indexes.size());
         {
           FieldSpaceNode *field_space_node = 
-           runtime->forest->get_node(
+           runtime->get_node(
                logical_regions[indexes[0]].parent)->column_source;
           for (unsigned idx = 0; idx < indexes.size(); idx++)
           {
@@ -1592,10 +1592,10 @@ namespace Legion {
                 logical_regions[indexes[idx]].privilege_fields);
             if (logical_regions[indexes[idx]].handle_type == 
                 LEGION_PARTITION_PROJECTION)
-              index_nodes[idx] = runtime->forest->get_node(
+              index_nodes[idx] = runtime->get_node(
                 logical_regions[indexes[idx]].partition.get_index_partition());
             else
-              index_nodes[idx] = runtime->forest->get_node(
+              index_nodes[idx] = runtime->get_node(
                 logical_regions[indexes[idx]].region.get_index_space());
           }
         }
@@ -1611,7 +1611,7 @@ namespace Legion {
               continue;
             // No check for region overlap
             IndexTreeNode *common_ancestor = NULL;
-            if (runtime->forest->are_disjoint_tree_only(index_nodes[i],
+            if (runtime->are_disjoint_tree_only(index_nodes[i],
                   index_nodes[j], common_ancestor))
               continue;
 #ifdef DEBUG_LEGION
@@ -1686,7 +1686,7 @@ namespace Legion {
         FieldMask constraint_mask;
         if (!field_vec.empty())
         {
-          FieldSpaceNode *field_node = runtime->forest->get_node(
+          FieldSpaceNode *field_node = runtime->get_node(
                               regions[it->first].region.get_field_space());
           std::set<FieldID> field_set(field_vec.begin(), field_vec.end());
           constraint_mask = field_node->get_field_mask(field_set);
@@ -1791,7 +1791,7 @@ namespace Legion {
           {
             first = false;
             tree_id = req.region.get_tree_id();
-            field_space_node = runtime->forest->get_node(
+            field_space_node = runtime->get_node(
                                 req.region.get_field_space());
             const InstanceSet &insts = physical_instances[*iit];
             FieldMask colocation_mask;
@@ -2652,7 +2652,7 @@ namespace Legion {
         if ((regions.size() <= idx) && !is_output_valid(idx-regions.size()))
         {
           RtEvent output_ready;
-          runtime->forest->perform_versioning_analysis(this, idx, req,
+          Operation::perform_versioning_analysis(idx, req,
               version_info, ready_events, &output_ready);
 #ifdef DEBUG_LEGION
           assert(output_ready.exists());
@@ -2660,7 +2660,7 @@ namespace Legion {
           output_events.push_back(output_ready);
         }
         else
-          runtime->forest->perform_versioning_analysis(this, idx,
+          Operation::perform_versioning_analysis(idx,
               req, version_info, ready_events, NULL/*output region*/,
               IS_COLLECTIVE(req) || std::binary_search(
                 check_collective_regions.begin(),
@@ -2716,7 +2716,7 @@ namespace Legion {
         {
           InstanceSet current_valid;
           FieldMaskSet<ReplicatedView> collectives;
-          runtime->forest->physical_premap_region(this, idx, regions[idx],
+          physical_premap_region(idx, regions[idx],
                 version_infos[idx], current_valid, 
                 collectives, map_applied_conditions);
           if (regions[idx].is_no_access())
@@ -3066,10 +3066,10 @@ namespace Legion {
         }
         // Convert any sources first
         if (!output.source_instances[idx].empty())
-          runtime->forest->physical_convert_sources(this, regions[idx],
+          physical_convert_sources(regions[idx],
               output.source_instances[idx], source_instances[idx], acquired);
         int composite_idx = 
-          runtime->forest->physical_convert_mapping(this, regions[idx],
+          physical_convert_mapping(regions[idx],
                 output.chosen_instances[idx], result, bad_tree, missing_fields,
                 acquired, unacquired, !runtime->unsafe_mapper);
         if (free_acquired)
@@ -4194,15 +4194,11 @@ namespace Legion {
                 check_collective_regions.begin(),
                 check_collective_regions.end(), 0);
             region_preconditions.back() =
-              runtime->forest->physical_perform_updates_and_registration(
-                  regions[0], version_infos[0], this, 0, 
+              physical_perform_updates_and_registration(
+                  regions[0], version_infos[0], 0, 
                   init_precondition, single_task_termination,
                   physical_instances[0], source_instances[0],
                   PhysicalTraceInfo(trace_info, 0), map_applied_conditions,
-#ifdef DEBUG_LEGION
-                                        get_logging_name(),
-                                        unique_op_id,
-#endif
                                         check_collective,
                                         record_valid);
 #ifdef DEBUG_LEGION
@@ -4234,19 +4230,15 @@ namespace Legion {
                 check_collective_regions.begin(),
                 check_collective_regions.end(), idx);
             // apply the results of the mapping to the tree
-            reg_pre[idx] = runtime->forest->physical_perform_updates(
+            reg_pre[idx] = physical_perform_updates(
                                         logical_regions[idx], local_info,
-                                        this, idx, init_precondition,
+                                        idx, init_precondition,
                                         single_task_termination,
                                         physical_instances[idx],
                                         source_instances[idx],
                                         PhysicalTraceInfo(trace_info, idx),
                                         map_applied_conditions,
                                         analyses[idx],
-#ifdef DEBUG_LEGION
-                                        get_logging_name(),
-                                        unique_op_id,
-#endif
                                         check_collective,
                                         record_valid);
             if (IS_READ_ONLY(logical_regions[idx]))
@@ -4290,7 +4282,7 @@ namespace Legion {
                performed_regions.begin(); it != performed_regions.end(); it++)
           {
             region_preconditions[*it] = 
-              runtime->forest->physical_perform_registration(reg_pre[*it],
+              physical_perform_registration(reg_pre[*it],
                                     analyses[*it], 
                                     map_applied_conditions,
                                     logical_regions.is_output_created(*it));
@@ -4381,7 +4373,7 @@ namespace Legion {
         {
           InstanceSet postmap_valid;
           FieldMaskSet<ReplicatedView> collectives;
-          runtime->forest->physical_premap_region(this, idx, regions[idx], 
+          physical_premap_region(idx, regions[idx], 
                                                   get_version_info(idx),
                                                   postmap_valid, collectives,
                                                   map_applied_conditions);
@@ -4443,7 +4435,7 @@ namespace Legion {
         RegionTreeID bad_tree = 0;
         std::vector<PhysicalManager*> unacquired;
         bool had_composite = 
-          runtime->forest->physical_convert_postmapping(this, req,
+          physical_convert_postmapping(req,
                               output.chosen_instances[idx], result, bad_tree,
                               runtime->unsafe_mapper ? NULL : 
                                 get_acquired_instances_ref(),
@@ -4527,18 +4519,15 @@ namespace Legion {
         VersionInfo &local_version_info = get_version_info(idx);
         std::vector<PhysicalManager*> sources;
         if (!output.source_instances[idx].empty())
-          runtime->forest->physical_convert_sources(this, regions[idx],
+          physical_convert_sources(regions[idx],
               output.source_instances[idx], sources, 
               !runtime->unsafe_mapper ? get_acquired_instances_ref() : NULL);
-        runtime->forest->physical_perform_updates_and_registration(
-                          regions[idx], local_version_info, this, idx,
+        physical_perform_updates_and_registration(
+                          regions[idx], local_version_info, idx,
                           single_task_termination/*wait for task to be done*/,
                           ApEvent::NO_AP_EVENT/*done immediately*/, 
                           result, sources, PhysicalTraceInfo(trace_info, idx), 
                           map_applied_conditions,
-#ifdef DEBUG_LEGION
-                          get_logging_name(), unique_op_id,
-#endif
                           false/*check for collectives*/,
                           false/*track effects*/);
         regions[idx].privilege = mode; 
@@ -5339,7 +5328,7 @@ namespace Legion {
         input.sharding_is = sharding_space;
       else
         input.sharding_is = launch_space->handle;
-      runtime->forest->find_domain(internal_space, input.domain);
+      runtime->find_domain(internal_space, input.domain);
       output.verify_correctness = false;
       if (mapper == NULL)
         mapper = runtime->find_mapper(current_proc, map_id);
@@ -5380,7 +5369,7 @@ namespace Legion {
         // Check to make sure the domain is not empty
         Domain &d = slice.domain;
         if ((d == Domain::NO_DOMAIN) && slice.domain_is.exists())
-          runtime->forest->find_domain(slice.domain_is, d);
+          runtime->find_domain(slice.domain_is, d);
         bool empty = false;
 	size_t volume = d.get_volume();
 	if (volume == 0)
@@ -5417,8 +5406,7 @@ namespace Legion {
         std::vector<IndexSpace> slice_spaces(slices.size());
         for (unsigned idx = 0; idx < output.slices.size(); idx++)
           slice_spaces[idx] = output.slices[idx].domain_is;
-        runtime->forest->validate_slicing(internal_space, slice_spaces,
-                                          this, mapper);
+        validate_slicing(internal_space, slice_spaces);
       }
       trigger_slices(); 
       // If we succeeded and this is an intermediate slice task
@@ -5547,7 +5535,7 @@ namespace Legion {
       assert(internal_space.exists());
 #endif
       Domain result;
-      runtime->forest->find_domain(internal_space, result);
+      runtime->find_domain(internal_space, result);
       return result; 
     }
 
@@ -5642,7 +5630,7 @@ namespace Legion {
       else if (future_handles != NULL)
       {
         // Only pack the IDs for our local points
-        IndexSpaceNode *node = runtime->forest->get_node(internal_space);
+        IndexSpaceNode *node = runtime->get_node(internal_space);
         Domain local_domain;
         node->get_domain(local_domain);
         size_t local_size = local_domain.get_volume();
@@ -5701,7 +5689,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(launch_space == NULL);
 #endif
-      launch_space = runtime->forest->get_node(launch_handle);
+      launch_space = runtime->get_node(launch_handle);
       add_launch_space_reference(launch_space);
       derez.deserialize(sliced);
       derez.deserialize(redop);
@@ -8684,7 +8672,7 @@ namespace Legion {
     {
       size_t num_tasks = 0;
       if (sharding_space.exists())
-        num_tasks = runtime->forest->get_domain_volume(sharding_space);
+        num_tasks = runtime->get_domain_volume(sharding_space);
       else
         num_tasks = launch_space->get_volume();
 
@@ -8905,14 +8893,12 @@ namespace Legion {
     void IndexTask::finalize_output_regions(bool first_invocation)
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = runtime->forest;
-
       for (unsigned idx = 0; idx < output_regions.size(); ++idx)
       {
         const OutputOptions &options = output_region_options[idx];
         if (options.valid_requirement())
           continue;
-        IndexSpaceNode *parent= forest->get_node(
+        IndexSpaceNode *parent= runtime->get_node(
             output_regions[idx].parent.get_index_space());
 #ifdef DEBUG_LEGION
         validate_output_extents(idx, output_regions[idx],
@@ -8924,7 +8910,7 @@ namespace Legion {
           // the alignment between outputs from adjacent point tasks
           // and compute the ranges of subregions via prefix sum.
 
-          IndexPartNode *part = runtime->forest->get_node(
+          IndexPartNode *part = runtime->get_node(
             output_regions[idx].partition.get_index_partition());
           Domain root_domain = compute_global_output_ranges(parent, part,
               output_region_extents[idx], output_region_extents[idx]);
@@ -9007,7 +8993,7 @@ namespace Legion {
       assert(launch_sp.exists());
       assert(launch_space == NULL);
 #endif
-      launch_space = runtime->forest->get_node(launch_sp);
+      launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
       if (!launcher.launch_domain.exists())
         launch_space->get_domain(index_domain);
@@ -9137,7 +9123,7 @@ namespace Legion {
       assert(launch_sp.exists());
       assert(launch_space == NULL);
 #endif
-      launch_space = runtime->forest->get_node(launch_sp);
+      launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
       if (!launcher.launch_domain.exists())
         launch_space->get_domain(index_domain);
@@ -9319,7 +9305,7 @@ namespace Legion {
       { 
         for (unsigned idx = 0; idx < logical_regions.size(); idx++)
           TaskOp::log_requirement(unique_op_id, idx, logical_regions[idx]);
-        runtime->forest->log_launch_space(launch_space->handle, unique_op_id);
+        log_launch_space(launch_space->handle);
       }
     }
 
@@ -9337,7 +9323,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      size_t num_tasks = runtime->forest->get_domain_volume(launch_space);
+      size_t num_tasks = runtime->get_domain_volume(launch_space);
 #endif
       Provenance *provenance = get_provenance();
       output_region_options.resize(outputs.size());
@@ -9361,7 +9347,7 @@ namespace Legion {
               idx, get_task_name(), get_unique_op_id(), req.projection);
 
 #ifdef DEBUG_LEGION
-          IndexSpaceNode* node = runtime->forest->get_node(color_space);
+          IndexSpaceNode* node = runtime->get_node(color_space);
           Domain color_domain;
           node->get_domain(color_domain);
           // No need to wait on the ready event since it is tight
@@ -9439,7 +9425,7 @@ namespace Legion {
               provenance, true/*output region*/);
 
           LogicalPartition partition =
-            runtime->forest->get_logical_partition(region, pid);
+            runtime->get_logical_partition(region, pid);
 
           // Set the region and partition back to the output requirement
           // so the caller can use it for downstream tasks
@@ -9680,7 +9666,7 @@ namespace Legion {
           {
             // Get the domain that we will have to iterate over
             Domain local_domain;
-            runtime->forest->find_domain(internal_space, local_domain);
+            runtime->find_domain(internal_space, local_domain);
             // Handling the future map case
             if (predicate_false_future.impl != NULL)
             {
@@ -10827,7 +10813,7 @@ namespace Legion {
       else if (!elide_future_return)
       {
         Domain internal_domain;
-        runtime->forest->find_domain(internal_space, internal_domain);
+        runtime->find_domain(internal_space, internal_domain);
         enumerate_futures(internal_domain);
       }
       // Mark that this is origin mapped effectively in case we
@@ -10972,7 +10958,7 @@ namespace Legion {
                 IS_COLLECTIVE(regions[it->first]) &&
                 (point_reqs[it->first] == other_reqs[it->second]))
               continue;
-            if (!runtime->forest->are_disjoint(
+            if (!runtime->are_disjoint(
                   point_reqs[it->first].get_index_space(), 
                   other_reqs[it->second].get_index_space()))
             {
@@ -11863,7 +11849,7 @@ namespace Legion {
     {
       DETAILED_PROFILER(runtime, SLICE_ENUMERATE_POINTS_CALL);
       Domain internal_domain;
-      runtime->forest->find_domain(internal_space, internal_domain);
+      runtime->find_domain(internal_space, internal_domain);
       const size_t num_points = internal_domain.get_volume();
 #ifdef DEBUG_LEGION
       assert(num_points > 0);

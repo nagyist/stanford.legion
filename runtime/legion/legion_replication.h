@@ -1258,8 +1258,7 @@ namespace Legion {
     class IndexAttachUpperBound : public AllGatherCollective<false> {
     public:
       IndexAttachUpperBound(ReplicateContext *ctx,
-                            CollectiveIndexLocation loc,
-                            RegionTreeForest *forest);
+                            CollectiveIndexLocation loc);
       IndexAttachUpperBound(const IndexAttachUpperBound &rhs) = delete;
       virtual ~IndexAttachUpperBound(void);
     public:
@@ -1273,8 +1272,6 @@ namespace Legion {
       virtual void unpack_collective_stage(Deserializer &derez, int stage);
     public:
       RegionTreeNode* find_upper_bound(RegionTreeNode *node);
-    public:
-      RegionTreeForest *const forest;
     protected:
       RegionTreeNode *node;
     };

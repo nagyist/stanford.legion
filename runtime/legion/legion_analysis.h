@@ -823,7 +823,7 @@ namespace Legion {
     public:
       void pack_user(Serializer &rez, const AddressSpaceID target) const;
       static PhysicalUser* unpack_user(Deserializer &derez, 
-              RegionTreeForest *forest, const AddressSpaceID source);
+                                       const AddressSpaceID source);
     public:
       const RegionUsage usage;
       IndexSpaceExpression *const expr;
@@ -1796,10 +1796,10 @@ namespace Legion {
       };
       typedef LegionMap<ApEvent,FieldMaskSet<Update> > EventFieldUpdates;
     public:
-      CopyFillAggregator(RegionTreeForest *forest, PhysicalAnalysis *analysis,
+      CopyFillAggregator(PhysicalAnalysis *analysis,
                          CopyFillGuard *previous, bool track_events,
                          PredEvent pred_guard = PredEvent::NO_PRED_EVENT);
-      CopyFillAggregator(RegionTreeForest *forest, PhysicalAnalysis *analysis,
+      CopyFillAggregator(PhysicalAnalysis *analysis,
                          unsigned src_index, unsigned dst_idx,
                          CopyFillGuard *previous, bool track_events,
                          PredEvent pred_guard = PredEvent::NO_PRED_EVENT,
@@ -1921,7 +1921,6 @@ namespace Legion {
     public:
       static void handle_aggregation(const void *args); 
     public:
-      RegionTreeForest *const forest;
       const AddressSpaceID local_space;
       PhysicalAnalysis *const analysis;
       CollectiveMapping *const collective_mapping;
@@ -3017,7 +3016,7 @@ namespace Legion {
       void analyze(InstanceView *view, const FieldMask &mask,
                    const FieldMaskSet<IndexSpaceExpression> &exprs);
       void visit_leaf(const FieldMask &mask, InnerContext *context,
-         RegionTreeForest *forest, RegionTreeID tid,
+         RegionTreeID tid,
          LegionMap<InstanceView*,FieldMaskSet<IndexSpaceExpression> > &updates);
     public:
       InstanceView *const view;
@@ -3052,7 +3051,7 @@ namespace Legion {
       void analyze(InstanceView *view, const FieldMask &mask,
                    const FieldMaskSet<IndexSpaceExpression> &exprs);
       void visit_leaf(const FieldMask &mask, FieldMask &allvalid_mask,
-          IndexSpaceExpression *expr, RegionTreeForest *forest,
+          IndexSpaceExpression *expr,
           const FieldMaskSet<IndexSpaceExpression> &partial_valid_exprs);
       // This version used by TraceViewSet::dominates to find
       // non-dominating overlaps
@@ -3060,7 +3059,7 @@ namespace Legion {
           InnerContext *context, RegionTreeID tree_id, CollectiveView *view,
           LegionMap<LogicalView*,
                     FieldMaskSet<IndexSpaceExpression> > &non_dominated,
-          IndexSpaceExpression *expr, RegionTreeForest *forest);
+          IndexSpaceExpression *expr);
       // This version used by TraceViewSet::antialias_collective_view
       // to get the names of the new views to use for instances
       void visit_leaf(const FieldMask &mask, FieldMask &allvalid_mask,
@@ -3080,10 +3079,8 @@ namespace Legion {
       public LegionHeapify<InitializeCollectiveReduction> {
     public:
       InitializeCollectiveReduction(AllreduceView *view,
-                                    RegionTreeForest *forest,
                                     IndexSpaceExpression *expr);
       InitializeCollectiveReduction(std::vector<DistributedID> &&insts,
-                                    RegionTreeForest *forest,
                                     IndexSpaceExpression *expr,
                                     InstanceView *view,
                           const FieldMaskSet<IndexSpaceExpression> &remainders,
@@ -3105,7 +3102,6 @@ namespace Legion {
          DistributedID eq_did, std::map<unsigned,std::list<std::pair<
           InstanceView*,IndexSpaceExpression*> > > &reduction_instances);
     public:
-      RegionTreeForest *const forest;
       IndexSpaceExpression *const needed_expr;
       InstanceView *const view;
     protected:

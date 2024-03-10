@@ -270,7 +270,7 @@ namespace Legion {
       derez.deserialize(user_mask);
       IndexSpace handle;
       derez.deserialize(handle);
-      IndexSpaceNode *user_expr = runtime->forest->get_node(handle);
+      IndexSpaceNode *user_expr = runtime->get_node(handle);
       UniqueID op_id;
       derez.deserialize(op_id);
       size_t op_ctx_index;
@@ -405,9 +405,9 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ExprView::ExprView(RegionTreeForest *ctx, PhysicalManager *man, 
+    ExprView::ExprView(PhysicalManager *man, 
                        MaterializedView *view, IndexSpaceExpression *exp) 
-      : forest(ctx), manager(man), inst_view(view),
+      : manager(man), inst_view(view),
         view_expr(exp), view_volume(SIZE_MAX),
 #if defined(DEBUG_LEGION_GC) || defined(LEGION_GC)
         view_did(view->did),
@@ -813,7 +813,7 @@ namespace Legion {
             continue;
           }
           IndexSpaceExpression *expr_overlap = 
-            forest->intersect_index_spaces(it->first->view_expr, copy_expr);
+            runtime->intersect_index_spaces(it->first->view_expr, copy_expr);
           if (!expr_overlap->is_empty())
           {
             const bool copy_dominates = 
@@ -859,7 +859,7 @@ namespace Legion {
             continue;
           }
           IndexSpaceExpression *expr_overlap = 
-            forest->intersect_index_spaces(it->first->view_expr, expr);
+            runtime->intersect_index_spaces(it->first->view_expr, expr);
           if (!expr_overlap->is_empty())
           {
             const bool dominates = 
@@ -1064,7 +1064,7 @@ namespace Legion {
           if (!overlap_mask)
             continue;
           IndexSpaceExpression *overlap =
-            forest->intersect_index_spaces(expr, it->first->view_expr);
+            runtime->intersect_index_spaces(expr, it->first->view_expr);
           const size_t overlap_volume = overlap->get_volume();
           if (overlap_volume == 0)
             continue;
@@ -1117,7 +1117,7 @@ namespace Legion {
           if (!overlap_mask)
             continue;
           IndexSpaceExpression *overlap =
-            forest->intersect_index_spaces(user_expr, it->first->view_expr);
+            runtime->intersect_index_spaces(user_expr, it->first->view_expr);
           const size_t overlap_volume = overlap->get_volume();
           if (overlap_volume == user_volume)
           {
@@ -1401,7 +1401,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert(user_index == users.size());
 #endif
-              users.push_back(PhysicalUser::unpack_user(derez, forest, source));
+              users.push_back(PhysicalUser::unpack_user(derez, source));
               // Add a reference to prevent this being deleted
               // before we're done unpacking
               users.back()->add_reference();
@@ -1435,7 +1435,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert(user_index == users.size());
 #endif
-              users.push_back(PhysicalUser::unpack_user(derez, forest, source));
+              users.push_back(PhysicalUser::unpack_user(derez, source));
               // Add a reference to prevent this being deleted
               // before we're done unpacking
               users.back()->add_reference();
@@ -1454,7 +1454,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < num_subviews; idx++)
         {
           IndexSpaceExpression *subview_expr = 
-            IndexSpaceExpression::unpack_expression(derez, forest, source);
+            IndexSpaceExpression::unpack_expression(derez, source);
           FieldMask subview_mask;
           derez.deserialize(subview_mask);
           // See if we already have it in the cache
@@ -1467,7 +1467,7 @@ namespace Legion {
             subview = root->find_congruent_view(subview_expr);
             // If it's still NULL then we can make it
             if (subview == NULL)
-              subview = new ExprView(forest, manager, inst_view, subview_expr);
+              subview = new ExprView(manager, inst_view, subview_expr);
             expr_cache[subview_expr->expr_id] = subview;
           }
           else
@@ -1622,7 +1622,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Caller must be holding the lock
-      DETAILED_PROFILER(forest->runtime, 
+      DETAILED_PROFILER(runtime, 
                         MATERIALIZED_VIEW_FILTER_LOCAL_USERS_CALL);
       // Don't do this if we are in Legion Spy since we want to see
       // all of the dependences on an instance
@@ -3466,7 +3466,7 @@ namespace Legion {
       FieldMask copy_mask;
       derez.deserialize(copy_mask);
       IndexSpaceExpression *copy_expr = 
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       UniqueID op_id;
       derez.deserialize(op_id);
       unsigned index;
@@ -3514,7 +3514,7 @@ namespace Legion {
       FieldMask copy_mask;
       derez.deserialize(copy_mask);
       IndexSpaceExpression *copy_expr =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       UniqueID op_id;
       derez.deserialize(op_id);
       unsigned index;
@@ -3564,7 +3564,7 @@ namespace Legion {
       FieldMask mask;
       derez.deserialize(mask);
       IndexSpaceExpression *expr =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       RtUserEvent done;
       derez.deserialize(done);
 
@@ -3650,7 +3650,7 @@ namespace Legion {
 #endif
       if (is_logical_owner())
       {
-        current_users = new ExprView(runtime->forest, manager, this,
+        current_users = new ExprView(manager, this,
                                      manager->instance_domain);
         current_users->add_reference();
       }
@@ -3747,7 +3747,7 @@ namespace Legion {
           ExprView *target_view = current_users->find_congruent_view(user_expr);
           // Couldn't find a congruent view so we need to make one
           if (target_view == NULL)
-            target_view = new ExprView(runtime->forest, manager,this,user_expr);
+            target_view = new ExprView(manager,this,user_expr);
           expr_cache[user_expr->expr_id] = target_view;
           finder = expr_cache.find(user_expr->expr_id);
         }
@@ -3853,7 +3853,7 @@ namespace Legion {
             // See if we lost the race
             if (current_users == NULL)
             {
-              current_users = new ExprView(runtime->forest, manager, this, 
+              current_users = new ExprView(manager, this, 
                                            manager->instance_domain);
               current_users->add_reference();
             }
@@ -4213,7 +4213,7 @@ namespace Legion {
             // See if we lost the race
             if (current_users == NULL)
             {
-              current_users = new ExprView(runtime->forest, manager, this,
+              current_users = new ExprView(manager, this,
                                            manager->instance_domain);
               current_users->add_reference();
             }
@@ -4419,7 +4419,7 @@ namespace Legion {
         AutoLock v_lock(view_lock);
         if (current_users == NULL)
         {
-          current_users = new ExprView(runtime->forest, manager, this,
+          current_users = new ExprView(manager, this,
                                        manager->instance_domain);
           current_users->add_reference();
         }
@@ -4577,7 +4577,7 @@ namespace Legion {
         {
           target_view = current_users->find_congruent_view(user_expr);
           if (target_view == NULL)
-            target_view = new ExprView(runtime->forest, manager,this,user_expr);
+            target_view = new ExprView(manager,this,user_expr);
         }
         if (target_view != current_users)
         {
@@ -5963,7 +5963,7 @@ namespace Legion {
             continue;
           // Otherwise we need to check for dependences
           IndexSpaceExpression *expr_overlap = 
-            runtime->forest->intersect_index_spaces(user_expr, it->first->expr);
+            runtime->intersect_index_spaces(user_expr, it->first->expr);
           if (expr_overlap->is_empty())
             continue;
           wait_on.insert(uit->first);
@@ -5991,7 +5991,7 @@ namespace Legion {
           if (!overlap)
             continue;
           IndexSpaceExpression *expr_overlap = 
-            runtime->forest->intersect_index_spaces(user_expr, it->first->expr);
+            runtime->intersect_index_spaces(user_expr, it->first->expr);
           if (expr_overlap->is_empty())
             continue;
           wait_on.insert(uit->first);
@@ -6054,7 +6054,7 @@ namespace Legion {
           if (!overlap)
             continue;
           IndexSpaceExpression *expr_overlap = 
-            runtime->forest->intersect_index_spaces(user_expr, it->first->expr);
+            runtime->intersect_index_spaces(user_expr, it->first->expr);
           if (expr_overlap->is_empty())
             continue;
           // Have a precondition so we need to record it
@@ -6132,7 +6132,7 @@ namespace Legion {
           if (!overlap)
             continue;
           IndexSpaceExpression *expr_overlap = 
-            runtime->forest->intersect_index_spaces(user_expr, it->first->expr);
+            runtime->intersect_index_spaces(user_expr, it->first->expr);
           if (expr_overlap->is_empty())
             continue;
           // Have a precondition so we need to record it
@@ -6157,7 +6157,7 @@ namespace Legion {
           if (!overlap)
             continue;
           IndexSpaceExpression *expr_overlap = 
-            runtime->forest->intersect_index_spaces(user_expr, it->first->expr);
+            runtime->intersect_index_spaces(user_expr, it->first->expr);
           if (expr_overlap->is_empty())
             continue;
           // Have a precondition so we need to record it
@@ -7461,7 +7461,7 @@ namespace Legion {
         }
         // Fuse together the expressions for the group copy
         IndexSpaceExpression *fused_expression = 
-          runtime->forest->union_index_spaces(to_fuse); 
+          runtime->union_index_spaces(to_fuse); 
         ApUserEvent all_done;
         ApBarrier all_bar;
         ShardID owner_shard = 0;
@@ -7515,7 +7515,7 @@ namespace Legion {
         if (ready.exists())
           ready_events.insert(ready);
         sources[view] =
-          IndexSpaceExpression::unpack_expression(derez,runtime->forest,source);
+          IndexSpaceExpression::unpack_expression(derez, source);
       }
       ApEvent precondition;
       derez.deserialize(precondition);
@@ -9275,7 +9275,7 @@ namespace Legion {
       PredEvent predicate_guard;
       derez.deserialize(predicate_guard);
       IndexSpaceExpression *fill_expression =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       bool fill_restricted;
       derez.deserialize<bool>(fill_restricted);
       Operation *op = NULL;
@@ -9481,7 +9481,7 @@ namespace Legion {
       PredEvent predicate_guard;
       derez.deserialize(predicate_guard);
       IndexSpaceExpression *copy_expression =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       Operation *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -10416,7 +10416,7 @@ namespace Legion {
       PredEvent predicate_guard;
       derez.deserialize(predicate_guard);
       IndexSpaceExpression *copy_expression =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       bool copy_restricted;
       derez.deserialize(copy_restricted);
       Operation *op = NULL;
@@ -10707,7 +10707,7 @@ namespace Legion {
       PredEvent predicate_guard;
       derez.deserialize(predicate_guard);
       IndexSpaceExpression *copy_expression =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       bool copy_restricted;
       derez.deserialize(copy_restricted);
       Operation *op = NULL;
@@ -11079,7 +11079,7 @@ namespace Legion {
       PredEvent predicate_guard;
       derez.deserialize(predicate_guard);
       IndexSpaceExpression *copy_expression =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       std::set<RtEvent> ready_events;
       Operation *op = RemoteOp::unpack_remote_operation(derez); 
       unsigned index;
@@ -11408,7 +11408,7 @@ namespace Legion {
       PredEvent predicate_guard;
       derez.deserialize(predicate_guard);
       IndexSpaceExpression *copy_expression =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       bool copy_restricted;
       derez.deserialize(copy_restricted);
       Operation *op = NULL;
@@ -12105,7 +12105,7 @@ namespace Legion {
       PredEvent predicate_guard;
       derez.deserialize(predicate_guard);
       IndexSpaceExpression *copy_expression =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       Operation *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
@@ -12322,7 +12322,7 @@ namespace Legion {
       PredEvent predicate_guard;
       derez.deserialize(predicate_guard);
       IndexSpaceExpression *copy_expression =
-        IndexSpaceExpression::unpack_expression(derez, runtime->forest, source);
+        IndexSpaceExpression::unpack_expression(derez, source);
       Operation *op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);

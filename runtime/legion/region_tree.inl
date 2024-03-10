@@ -87,7 +87,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     ApEvent IndexSpaceExpression::issue_fill_internal(
-                                 RegionTreeForest *forest, Operation *op,
+                                 Operation *op,
                                  const Realm::IndexSpace<DIM,T> &space,
                                  const PhysicalTraceInfo &trace_info,
                                  const std::vector<CopySrcDstField> &dst_fields,
@@ -103,7 +103,7 @@ namespace Legion {
                                  int priority, bool replay)
     //--------------------------------------------------------------------------
     {
-      DETAILED_PROFILER(forest->runtime, REALM_ISSUE_FILL_CALL);
+      DETAILED_PROFILER(runtime, REALM_ISSUE_FILL_CALL);
 #ifdef DEBUG_LEGION
       // We should only have empty spaces for fills that are indirections
       if (space.empty())
@@ -189,7 +189,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     ApEvent IndexSpaceExpression::issue_copy_internal(
-                                 RegionTreeForest *forest, Operation *op,
+                                 Operation *op,
                                  const Realm::IndexSpace<DIM,T> &space,
                                  const PhysicalTraceInfo &trace_info,
                                  const std::vector<CopySrcDstField> &dst_fields,
@@ -205,7 +205,7 @@ namespace Legion {
                                  int priority, bool replay)
     //--------------------------------------------------------------------------
     {
-      DETAILED_PROFILER(forest->runtime, REALM_ISSUE_COPY_CALL);
+      DETAILED_PROFILER(runtime, REALM_ISSUE_COPY_CALL);
 #ifdef DEBUG_LEGION
       assert(!space.empty());
       // If we're doing any reductions with this copy then make sure they
@@ -760,7 +760,6 @@ namespace Legion {
     template<int DIM, typename T>
     inline IndexSpaceExpression* 
             IndexSpaceExpression::create_layout_expression_internal(
-                                     RegionTreeForest *context,
                                      const Realm::IndexSpace<DIM,T> &space,
                                      const Rect<DIM,T> *rects, size_t num_rects)
     //--------------------------------------------------------------------------
@@ -771,7 +770,7 @@ namespace Legion {
           return this;
         else
           // Make a new expression for the bounding box
-          return new InternalExpression<DIM,T>(&space.bounds,1/*size*/,context);
+          return new InternalExpression<DIM,T>(&space.bounds,1/*size*/);
       }
       else
       {
@@ -779,7 +778,7 @@ namespace Legion {
         assert(num_rects > 0);
 #endif
         // Make a realm expression from the rectangles
-        return new InternalExpression<DIM,T>(rects, num_rects, context);
+        return new InternalExpression<DIM,T>(rects, num_rects);
       }
     }
 
@@ -888,7 +887,7 @@ namespace Legion {
     template<int DIM, typename T>
     inline IndexSpaceExpression* 
               IndexSpaceExpression::create_from_rectangles_internal(
-                        RegionTreeForest *forest, const std::set<Domain> &rects)
+                                                const std::set<Domain> &rects)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -913,13 +912,13 @@ namespace Legion {
       if (total_volume == get_volume())
         return this;
       InternalExpression<DIM,T> *result = new InternalExpression<DIM,T>(
-          &rectangles.front(), rectangles.size(), forest);
+          &rectangles.front(), rectangles.size());
       // Do a little test to see if there is already a canonical expression
       // that we know about that matches this expression if so we'll use that
       // Note that we don't need to explicitly delete it if it is not the
       // canonical expression since it has a live expression reference that
       // will be cleaned up after this meta-task is done running
-      return result->get_canonical_expression(forest);
+      return result->get_canonical_expression();
     }
 
     //--------------------------------------------------------------------------
@@ -1097,20 +1096,19 @@ namespace Legion {
     
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceOperationT<DIM,T>::IndexSpaceOperationT(OperationKind kind,
-                                                      RegionTreeForest *ctx)
+    IndexSpaceOperationT<DIM,T>::IndexSpaceOperationT(OperationKind kind)
       : IndexSpaceOperation(NT_TemplateHelper::encode_tag<DIM,T>(),
-                            kind, ctx), is_index_space_tight(false)
+                            kind), is_index_space_tight(false)
     //--------------------------------------------------------------------------
     {
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceOperationT<DIM,T>::IndexSpaceOperationT(RegionTreeForest *ctx, 
+    IndexSpaceOperationT<DIM,T>::IndexSpaceOperationT(
         IndexSpaceExprID eid, DistributedID did,
         IndexSpaceOperation *origin, TypeTag tag, Deserializer &derez)
-      : IndexSpaceOperation(tag, ctx, eid, did, origin),
+      : IndexSpaceOperation(tag, eid, did, origin),
         is_index_space_tight(false)
     //--------------------------------------------------------------------------
     {
@@ -1283,12 +1281,12 @@ namespace Legion {
         new_expr_id = expr_id;
       AutoLock i_lock(inter_lock, 1, false/*exclusive*/);
       if (is_index_space_tight.load())
-        return context->create_node(handle, &tight_index_space, false/*domain*/,
+        return runtime->create_node(handle, &tight_index_space, false/*domain*/,
                           NULL/*parent*/, 0/*color*/, did, initialized,
                           provenance, realm_index_space_ready, new_expr_id,
                           collective_mapping, true/*add root ref*/);
       else
-        return context->create_node(handle, &realm_index_space, false/*domain*/,
+        return runtime->create_node(handle, &realm_index_space, false/*domain*/,
                           NULL/*parent*/, 0/*color*/, did, initialized,
                           provenance, realm_index_space_ready, new_expr_id,
                           collective_mapping, true/*add root ref*/);
@@ -1300,7 +1298,7 @@ namespace Legion {
                                                   const std::set<Domain> &rects)
     //--------------------------------------------------------------------------
     {
-      return create_from_rectangles_internal<DIM,T>(context, rects);
+      return create_from_rectangles_internal<DIM,T>(rects);
     }
 
     //--------------------------------------------------------------------------
@@ -1354,7 +1352,7 @@ namespace Legion {
       Realm::IndexSpace<DIM,T> local_space;
       ApEvent space_ready = get_realm_index_space(local_space, true/*tight*/);
       if (space_ready.exists() && precondition.exists())
-        return issue_fill_internal(context, op, local_space, trace_info, 
+        return issue_fill_internal(op, local_space, trace_info, 
             dst_fields, fill_value, fill_size, 
 #ifdef LEGION_SPY
             fill_uid, handle, tree_id,
@@ -1362,7 +1360,7 @@ namespace Legion {
             Runtime::merge_events(&trace_info, space_ready, precondition),
             pred_guard, unique_event, collective, priority, replay);
       else if (space_ready.exists())
-        return issue_fill_internal(context, op, local_space, trace_info, 
+        return issue_fill_internal(op, local_space, trace_info, 
                                    dst_fields, fill_value, fill_size,
 #ifdef LEGION_SPY
                                    fill_uid, handle, tree_id,
@@ -1370,7 +1368,7 @@ namespace Legion {
                                    space_ready, pred_guard, unique_event,
                                    collective, priority, replay);
       else
-        return issue_fill_internal(context, op, local_space, trace_info, 
+        return issue_fill_internal(op, local_space, trace_info, 
                                    dst_fields, fill_value, fill_size,
 #ifdef LEGION_SPY
                                    fill_uid, handle, tree_id,
@@ -1399,7 +1397,7 @@ namespace Legion {
       Realm::IndexSpace<DIM,T> local_space;
       ApEvent space_ready = get_realm_index_space(local_space, true/*tight*/);
       if (space_ready.exists() && precondition.exists())
-        return issue_copy_internal(context, op, local_space, trace_info,
+        return issue_copy_internal(op, local_space, trace_info,
             dst_fields, src_fields, reservations,
 #ifdef LEGION_SPY
             src_tree_id, dst_tree_id,
@@ -1407,7 +1405,7 @@ namespace Legion {
             Runtime::merge_events(&trace_info, precondition, space_ready),
             pred_guard, src_unique, dst_unique, collective, priority, replay);
       else if (space_ready.exists())
-        return issue_copy_internal(context, op, local_space, trace_info,
+        return issue_copy_internal(op, local_space, trace_info,
                 dst_fields, src_fields, reservations,
 #ifdef LEGION_SPY
                 src_tree_id, dst_tree_id,
@@ -1415,7 +1413,7 @@ namespace Legion {
                 space_ready, pred_guard, src_unique, dst_unique,
                 collective, priority, replay);
       else
-        return issue_copy_internal(context, op, local_space, trace_info,
+        return issue_copy_internal(op, local_space, trace_info,
                 dst_fields, src_fields, reservations,
 #ifdef LEGION_SPY
                 src_tree_id, dst_tree_id,
@@ -1467,7 +1465,7 @@ namespace Legion {
       get_realm_index_space(local_is, true/*tight*/);
       // No need to wait for the index space to be ready since we
       // are never actually going to look at the sparsity map
-      return create_layout_expression_internal(context, local_is,
+      return create_layout_expression_internal(local_is,
                       static_cast<const Rect<DIM,T>*>(piece_list),
                       piece_list_size / sizeof(Rect<DIM,T>));
     }
@@ -1583,9 +1581,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceUnion<DIM,T>::IndexSpaceUnion(
-                            const std::vector<IndexSpaceExpression*> &to_union,
-                            RegionTreeForest *ctx)
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::UNION_OP_KIND, ctx),
+                            const std::vector<IndexSpaceExpression*> &to_union)
+      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::UNION_OP_KIND),
         sub_expressions(to_union)
     //--------------------------------------------------------------------------
     {
@@ -1597,7 +1594,7 @@ namespace Legion {
       {
         IndexSpaceExpression *sub = sub_expressions[idx];
 #ifdef DEBUG_LEGION
-        assert(sub->get_canonical_expression(this->context) == sub);
+        assert(sub->get_canonical_expression() == sub);
 #endif
         // Add the parent and the reference
         sub->add_derived_operation(this);
@@ -1656,16 +1653,6 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceUnion<DIM,T>::IndexSpaceUnion(const IndexSpaceUnion<DIM,T> &rhs)
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::UNION_OP_KIND, NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
     IndexSpaceUnion<DIM,T>::~IndexSpaceUnion(void)
     //--------------------------------------------------------------------------
     {
@@ -1673,17 +1660,6 @@ namespace Legion {
       for (unsigned idx = 0; idx < sub_expressions.size(); idx++)
         if (sub_expressions[idx]->remove_tree_expression_reference(this->did))
           delete sub_expressions[idx];
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    IndexSpaceUnion<DIM,T>& IndexSpaceUnion<DIM,T>::operator=(
-                                              const IndexSpaceUnion<DIM,T> &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -1728,15 +1704,14 @@ namespace Legion {
     void IndexSpaceUnion<DIM,T>::remove_operation(void)
     //--------------------------------------------------------------------------
     {
-      this->context->remove_union_operation(this, sub_expressions);
+      runtime->remove_union_operation(this, sub_expressions);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceIntersection<DIM,T>::IndexSpaceIntersection(
-                            const std::vector<IndexSpaceExpression*> &to_inter,
-                            RegionTreeForest *ctx)
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::INTERSECT_OP_KIND,ctx),
+                            const std::vector<IndexSpaceExpression*> &to_inter)
+      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::INTERSECT_OP_KIND),
         sub_expressions(to_inter)
     //--------------------------------------------------------------------------
     {
@@ -1748,7 +1723,7 @@ namespace Legion {
       {
         IndexSpaceExpression *sub = sub_expressions[idx];
 #ifdef DEBUG_LEGION
-        assert(sub->get_canonical_expression(this->context) == sub);
+        assert(sub->get_canonical_expression() == sub);
 #endif
         // Add the parent and the reference
         sub->add_derived_operation(this);
@@ -1806,17 +1781,6 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceIntersection<DIM,T>::IndexSpaceIntersection(
-                                      const IndexSpaceIntersection<DIM,T> &rhs)
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::INTERSECT_OP_KIND,NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
     IndexSpaceIntersection<DIM,T>::~IndexSpaceIntersection(void)
     //--------------------------------------------------------------------------
     {
@@ -1824,17 +1788,6 @@ namespace Legion {
       for (unsigned idx = 0; idx < sub_expressions.size(); idx++)
         if (sub_expressions[idx]->remove_tree_expression_reference(this->did))
           delete sub_expressions[idx];
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    IndexSpaceIntersection<DIM,T>& IndexSpaceIntersection<DIM,T>::operator=(
-                                       const IndexSpaceIntersection<DIM,T> &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -1879,22 +1832,22 @@ namespace Legion {
     void IndexSpaceIntersection<DIM,T>::remove_operation(void)
     //--------------------------------------------------------------------------
     {
-      this->context->remove_intersection_operation(this, sub_expressions);
+      runtime->remove_intersection_operation(this, sub_expressions);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceDifference<DIM,T>::IndexSpaceDifference(IndexSpaceExpression *l,
-                IndexSpaceExpression *r, RegionTreeForest *ctx) 
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::DIFFERENCE_OP_KIND,ctx)
+                IndexSpaceExpression *r) 
+      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::DIFFERENCE_OP_KIND)
         , lhs(l), rhs(r)
     //--------------------------------------------------------------------------
     {
       // Add an resource ref that will be removed by the OperationCreator
       this->add_base_resource_ref(REGION_TREE_REF);
 #ifdef DEBUG_LEGION
-      assert(lhs->get_canonical_expression(this->context) == lhs);
-      assert(rhs->get_canonical_expression(this->context) == rhs);
+      assert(lhs->get_canonical_expression() == lhs);
+      assert(rhs->get_canonical_expression() == rhs);
 #endif
       if (lhs == rhs)
       {
@@ -1963,18 +1916,6 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceDifference<DIM,T>::IndexSpaceDifference(
-                                      const IndexSpaceDifference<DIM,T> &rhs)
-     : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::DIFFERENCE_OP_KIND,
-                                   NULL), lhs(NULL), rhs(NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
     IndexSpaceDifference<DIM,T>::~IndexSpaceDifference(void)
     //--------------------------------------------------------------------------
     {
@@ -1983,17 +1924,6 @@ namespace Legion {
         delete rhs;
       if ((lhs != NULL) && lhs->remove_tree_expression_reference(this->did))
         delete lhs;
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    IndexSpaceDifference<DIM,T>& IndexSpaceDifference<DIM,T>::operator=(
-                                         const IndexSpaceDifference<DIM,T> &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -2041,7 +1971,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
        if ((lhs != NULL) && (rhs != NULL))
-        this->context->remove_subtraction_operation(this, lhs, rhs);
+        runtime->remove_subtraction_operation(this, lhs, rhs);
     }
 
     /////////////////////////////////////////////////////////////
@@ -2051,9 +1981,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     InternalExpression<DIM,T>::InternalExpression(
-           const Rect<DIM,T> *rects, size_t num_rects, RegionTreeForest *forest)
+           const Rect<DIM,T> *rects, size_t num_rects)
       : IndexSpaceOperationT<DIM,T>(
-          IndexSpaceOperation::INSTANCE_EXPRESSION_KIND, forest)
+          IndexSpaceOperation::INSTANCE_EXPRESSION_KIND)
     //--------------------------------------------------------------------------
     {
       // This is another kind of live expression made by the region tree
@@ -2115,32 +2045,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    InternalExpression<DIM,T>::InternalExpression(
-                                           const InternalExpression<DIM,T> &rhs)
-      : IndexSpaceOperationT<DIM,T>(
-          IndexSpaceOperation::INSTANCE_EXPRESSION_KIND, NULL)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
     InternalExpression<DIM,T>::~InternalExpression(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    InternalExpression<DIM,T>& InternalExpression<DIM,T>::operator=(
-                                           const InternalExpression<DIM,T> &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -2189,23 +2096,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    RemoteExpression<DIM,T>::RemoteExpression(RegionTreeForest *forest,
+    RemoteExpression<DIM,T>::RemoteExpression(
         IndexSpaceExprID eid, DistributedID did,
         IndexSpaceOperation *origin, TypeTag tag, Deserializer &derez)
-      : IndexSpaceOperationT<DIM,T>(forest, eid, did, origin, tag, derez)
+      : IndexSpaceOperationT<DIM,T>(eid, did, origin, tag, derez)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    RemoteExpression<DIM,T>::RemoteExpression(const RemoteExpression<DIM,T> &rs)
-      : IndexSpaceOperationT<DIM,T>(
-          IndexSpaceOperation::REMOTE_EXPRESSION_KIND, rs.context)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
     }
 
     //--------------------------------------------------------------------------
@@ -2213,17 +2109,6 @@ namespace Legion {
     RemoteExpression<DIM,T>::~RemoteExpression(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    RemoteExpression<DIM,T>& RemoteExpression<DIM,T>::operator=(
-                                             const RemoteExpression<DIM,T> &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -2260,11 +2145,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceNodeT<DIM,T>::IndexSpaceNodeT(RegionTreeForest *ctx, 
+    IndexSpaceNodeT<DIM,T>::IndexSpaceNodeT(
         IndexSpace handle, IndexPartNode *parent, LegionColor color,
         DistributedID did, IndexSpaceExprID expr_id, RtEvent init, unsigned dep,
         Provenance *prov, CollectiveMapping *mapping, bool tree_valid)
-      : IndexSpaceNode(ctx, handle, parent, color, did, expr_id, init,
+      : IndexSpaceNode(handle, parent, color, did, expr_id, init,
           dep, prov, mapping, tree_valid), linearization(NULL)
     //--------------------------------------------------------------------------
     {
@@ -2672,7 +2557,7 @@ namespace Legion {
 #endif
       Realm::IndexSpace<DIM,T> local_space;
       const ApEvent ready = get_realm_index_space(local_space, false/*tight*/);
-      return context->create_node(new_handle, &local_space, false/*domain*/,
+      return runtime->create_node(new_handle, &local_space, false/*domain*/,
                               NULL/*parent*/, 0/*color*/, did, initialized,
                               provenance, ready, new_expr_id,
                               collective_mapping, true/*add root reference*/);
@@ -2684,7 +2569,7 @@ namespace Legion {
                                                   const std::set<Domain> &rects)
     //--------------------------------------------------------------------------
     {
-      return create_from_rectangles_internal<DIM,T>(context, rects);
+      return create_from_rectangles_internal<DIM,T>(rects);
     }
 
     //--------------------------------------------------------------------------
@@ -2796,7 +2681,7 @@ namespace Legion {
       std::vector<Realm::IndexSpace<DIM,T> > spaces(handles.size());
       for (unsigned idx = 0; idx < handles.size(); idx++)
       {
-        IndexSpaceNode *node = context->get_node(handles[idx]);
+        IndexSpaceNode *node = runtime->get_node(handles[idx]);
         if (handles[idx].get_type_tag() != handle.get_type_tag())
         {
           TaskContext *ctx = op->get_context();
@@ -2870,7 +2755,7 @@ namespace Legion {
                         "task %s (UID %lld)", ctx->get_task_name(),
                         ctx->get_unique_id())
       }
-      IndexPartNode *partition = context->get_node(part_handle);
+      IndexPartNode *partition = runtime->get_node(part_handle);
       std::set<ApEvent> preconditions;
       std::vector<Realm::IndexSpace<DIM,T> > spaces(partition->total_children);
       unsigned subspace_index = 0;
@@ -2933,7 +2818,7 @@ namespace Legion {
       std::vector<Realm::IndexSpace<DIM,T> > spaces(handles.size());
       for (unsigned idx = 0; idx < handles.size(); idx++)
       {
-        IndexSpaceNode *node = context->get_node(handles[idx]);
+        IndexSpaceNode *node = runtime->get_node(handles[idx]);
         if (handles[idx].get_type_tag() != handle.get_type_tag())
         {
           TaskContext *ctx = op->get_context();
@@ -2967,7 +2852,7 @@ namespace Legion {
       ApEvent rhs_ready(Realm::IndexSpace<DIM,T>::compute_union(
             spaces, rhs_space, union_requests, precondition));
       IndexSpaceNodeT<DIM,T> *lhs_node = 
-        static_cast<IndexSpaceNodeT<DIM,T>*>(context->get_node(init));
+        static_cast<IndexSpaceNodeT<DIM,T>*>(runtime->get_node(init));
       Realm::IndexSpace<DIM,T> lhs_space, result_space;
       ApEvent lhs_ready = lhs_node->get_realm_index_space(lhs_space, false);
       ApEvent result(Realm::IndexSpace<DIM,T>::compute_difference(
@@ -4922,7 +4807,7 @@ namespace Legion {
       Realm::IndexSpace<DIM,T> local_space;
       ApEvent space_ready = get_realm_index_space(local_space, true/*tight*/);
       if (precondition.exists() && space_ready.exists())
-        return issue_fill_internal(context, op, local_space, trace_info, 
+        return issue_fill_internal(op, local_space, trace_info, 
                                    dst_fields, fill_value, fill_size,
 #ifdef LEGION_SPY
                                    fill_uid, handle, tree_id,
@@ -4930,7 +4815,7 @@ namespace Legion {
             Runtime::merge_events(&trace_info, space_ready, precondition),
             pred_guard, unique_event, collective, priority, replay);
       else if (space_ready.exists())
-        return issue_fill_internal(context, op, local_space, trace_info, 
+        return issue_fill_internal(op, local_space, trace_info, 
                                    dst_fields, fill_value, fill_size,
 #ifdef LEGION_SPY
                                    fill_uid, handle, tree_id,
@@ -4938,7 +4823,7 @@ namespace Legion {
                                    space_ready, pred_guard, unique_event,
                                    collective, priority, replay);
       else
-        return issue_fill_internal(context, op, local_space, trace_info, 
+        return issue_fill_internal(op, local_space, trace_info, 
                                    dst_fields, fill_value, fill_size,
 #ifdef LEGION_SPY
                                    fill_uid, handle, tree_id,
@@ -4967,7 +4852,7 @@ namespace Legion {
       Realm::IndexSpace<DIM,T> local_space;
       ApEvent space_ready = get_realm_index_space(local_space, true/*tight*/);
       if (precondition.exists() && space_ready.exists())
-        return issue_copy_internal(context, op, local_space, trace_info,
+        return issue_copy_internal(op, local_space, trace_info,
             dst_fields, src_fields, reservations,
 #ifdef LEGION_SPY
             src_tree_id, dst_tree_id,
@@ -4975,7 +4860,7 @@ namespace Legion {
             Runtime::merge_events(&trace_info, space_ready, precondition),
             pred_guard, src_unique, dst_unique, collective, priority, replay);
       else if (space_ready.exists())
-        return issue_copy_internal(context, op, local_space, trace_info, 
+        return issue_copy_internal(op, local_space, trace_info, 
                 dst_fields, src_fields, reservations, 
 #ifdef LEGION_SPY
                 src_tree_id, dst_tree_id,
@@ -4983,7 +4868,7 @@ namespace Legion {
                 space_ready, pred_guard, src_unique, dst_unique,
                 collective, priority, replay);
       else
-        return issue_copy_internal(context, op, local_space, trace_info, 
+        return issue_copy_internal(op, local_space, trace_info, 
                 dst_fields, src_fields, reservations,
 #ifdef LEGION_SPY
                 src_tree_id, dst_tree_id,
@@ -5034,7 +4919,7 @@ namespace Legion {
       get_realm_index_space(local_is, true/*tight*/);
       // No need to wait for the index space to be ready since we
       // are never actually going to look at the sparsity map
-      return create_layout_expression_internal(context, local_is,
+      return create_layout_expression_internal(local_is,
                       static_cast<const Rect<DIM,T>*>(piece_list),
                       piece_list_size / sizeof(Rect<DIM,T>));
     }
@@ -5260,7 +5145,7 @@ namespace Legion {
         assert(slice_spaces[idx].get_type_tag() == handle.get_type_tag());
 #endif
         slice_nodes[idx] = static_cast<IndexSpaceNodeT<DIM,T>*>(
-                            context->get_node(slice_spaces[idx]));
+                            runtime->get_node(slice_spaces[idx]));
       }
       // Iterate over the points and make sure that they exist in exactly
       // one slice space, no more, no less
@@ -5319,7 +5204,7 @@ namespace Legion {
       get_realm_index_space(local_space, true/*tight*/);
       Domain sharding_domain;
       if (shard_space != handle)
-        context->find_domain(shard_space, sharding_domain);
+        runtime->find_domain(shard_space, sharding_domain);
       else
         sharding_domain = local_space;
       std::vector<Realm::Point<DIM,T> > index_points; 
@@ -5374,7 +5259,7 @@ namespace Legion {
       get_realm_index_space(local_space, true/*tight*/);
       Domain sharding_domain;
       if (shard_space.exists() && (shard_space != handle))
-        context->find_domain(shard_space, sharding_domain);
+        runtime->find_domain(shard_space, sharding_domain);
       else
         sharding_domain = local_space;
       if (!func->functor->is_invertible())
@@ -5425,7 +5310,7 @@ namespace Legion {
       get_realm_index_space(local_space, true/*tight*/);
       Domain sharding_domain;
       if (shard_space.exists() && (shard_space != handle))
-        context->find_domain(shard_space, sharding_domain);
+        runtime->find_domain(shard_space, sharding_domain);
       else
         sharding_domain = local_space;
       if (!func->functor->is_invertible())
@@ -6722,7 +6607,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* EqKDTreeT<DIM,T>::create_from_rectangles(
-               RegionTreeForest *forest, const std::vector<Domain> &rects) const
+               const std::vector<Domain> &rects) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -6732,13 +6617,13 @@ namespace Legion {
       for (unsigned idx = 0; idx < rects.size(); idx++)
         rectangles[idx] = rects[idx];
       InternalExpression<DIM,T> *result = new InternalExpression<DIM,T>(
-          &rectangles.front(), rectangles.size(), forest);
+          &rectangles.front(), rectangles.size());
       // Do a little test to see if there is already a canonical expression
       // that we know about that matches this expression if so we'll use that
       // Note that we don't need to explicitly delete it if it is not the
       // canonical expression since it has a live expression reference that
       // will be cleaned up after this meta-task is done running
-      return result->get_canonical_expression(forest);
+      return result->get_canonical_expression();
     }
 
     //--------------------------------------------------------------------------
@@ -10225,14 +10110,14 @@ namespace Legion {
 #ifdef DEFINE_NT_TEMPLATES
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexPartNodeT<DIM,T>::IndexPartNodeT(RegionTreeForest *ctx, 
+    IndexPartNodeT<DIM,T>::IndexPartNodeT(
                                         IndexPartition p,
                                         IndexSpaceNode *par, IndexSpaceNode *cs,
                                         LegionColor c, bool disjoint, 
                                         int complete, DistributedID did,
                                         RtEvent init, CollectiveMapping *map,
                                         Provenance *prov)
-      : IndexPartNode(ctx, p, par, cs, c, disjoint, complete, did,
+      : IndexPartNode(p, par, cs, c, disjoint, complete, did,
                       init, map, prov), kd_root(NULL),
         kd_remote(NULL), dense_shard_rects(NULL), sparse_shard_rects(NULL)
     //--------------------------------------------------------------------------
@@ -10241,13 +10126,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexPartNodeT<DIM,T>::IndexPartNodeT(RegionTreeForest *ctx, 
+    IndexPartNodeT<DIM,T>::IndexPartNodeT(
                                         IndexPartition p, IndexSpaceNode *par,
                                         IndexSpaceNode *cs, LegionColor c, 
                                         int comp, DistributedID did,
                                         RtEvent init, CollectiveMapping *map,
                                         Provenance *prov)
-      : IndexPartNode(ctx, p, par, cs, c, comp, did,
+      : IndexPartNode(p, par, cs, c, comp, did,
                       init, map, prov), kd_root(NULL),
         kd_remote(NULL), dense_shard_rects(NULL), sparse_shard_rects(NULL)
     //--------------------------------------------------------------------------

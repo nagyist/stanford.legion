@@ -51,11 +51,10 @@ IndexSpaceValue::~IndexSpaceValue()
 
 IndexSpaceValue IndexSpaceValue::operator&(const IndexSpaceValue &other) const
 {
-  RegionTreeForest *forest = runtime->forest;
 
   if (expr != nullptr || other.expr != nullptr)
   {
-    return IndexSpaceValue(forest->intersect_index_spaces(as_expr(),
+    return IndexSpaceValue(runtime->intersect_index_spaces(as_expr(),
                                                           other.as_expr()));
   }
 

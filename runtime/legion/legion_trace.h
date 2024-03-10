@@ -584,7 +584,7 @@ namespace Legion {
         const RtUserEvent done_event;
       };
     public:
-      TraceConditionSet(PhysicalTrace *trace, RegionTreeForest *forest, 
+      TraceConditionSet(PhysicalTrace *trace,
                         unsigned parent_req_index, IndexSpaceExpression *expr,
                         const FieldMask &mask, RegionTreeID tree_id);
       TraceConditionSet(const TraceConditionSet &rhs) = delete;
@@ -627,7 +627,6 @@ namespace Legion {
                         const FieldMask &invalid_mask);
     public:
       InnerContext *const context;
-      RegionTreeForest *const forest;
       IndexSpaceExpression *const condition_expr;
       const FieldMask condition_mask;
       const RegionTreeID tree_id;

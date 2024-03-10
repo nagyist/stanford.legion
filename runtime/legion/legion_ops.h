@@ -701,6 +701,7 @@ namespace Legion {
       void log_mapping_decision(unsigned index, const RegionRequirement &req,
                                 const InstanceSet &targets,
                                 bool postmapping = false) const;
+      void log_launch_space(IndexSpace handle) const;
       void log_virtual_mapping(unsigned index, 
                                const RegionRequirement &req) const;
 #ifdef DEBUG_LEGION
@@ -723,6 +724,81 @@ namespace Legion {
       {
         return (node != NULL) && node->remove_base_valid_ref(CONTEXT_REF);
       }
+    protected:
+      void perform_dependence_analysis(unsigned idx,
+                                       const RegionRequirement &req,
+                                       const ProjectionInfo &projection_info,
+                                       LogicalAnalysis &logical_analysis);
+      void perform_versioning_analysis(unsigned idx,
+                                       const RegionRequirement &req,
+                                       VersionInfo &version_info,
+                                       std::set<RtEvent> &ready_events,
+                                       RtEvent *output_region_ready = NULL,
+                                       bool collective_rendezvous = false);  
+      void physical_premap_region(unsigned index,
+                                  RegionRequirement &req,
+                                  const VersionInfo &version_info,
+                                  InstanceSet &valid_instances,
+                                  FieldMaskSet<ReplicatedView> &collectives,
+                                  std::set<RtEvent> &map_applied_events);
+      void physical_convert_sources(
+                               const RegionRequirement &req,
+                               const std::vector<MappingInstance> &sources,
+                               std::vector<PhysicalManager*> &result,
+                               std::map<PhysicalManager*,unsigned> *acquired);
+      int physical_convert_mapping(
+                               const RegionRequirement &req,
+                               std::vector<MappingInstance> &chosen,
+                               InstanceSet &result, RegionTreeID &bad_tree,
+                               std::vector<FieldID> &missing_fields,
+                               std::map<PhysicalManager*,unsigned> *acquired,
+                               std::vector<PhysicalManager*> &unacquired,
+                               const bool do_acquire_checks,
+                               const bool allow_partial_virtual = false);
+      bool physical_convert_postmapping(
+                               const RegionRequirement &req,
+                               std::vector<MappingInstance> &chosen,
+                               InstanceSet &result, RegionTreeID &bad_tree,
+                               std::map<PhysicalManager*,unsigned> *acquired,
+                               std::vector<PhysicalManager*> &unacquired,
+                               const bool do_acquire_checks);
+      void perform_missing_acquires(
+                               std::map<PhysicalManager*,unsigned> &acquired,
+                               const std::vector<PhysicalManager*> &unacquired);
+      // Return a runtime event for when it's safe to perform
+      // the registration for this equivalence set
+      RtEvent physical_perform_updates(const RegionRequirement &req,
+                                const VersionInfo &version_info,
+                                unsigned index,
+                                ApEvent precondition, ApEvent term_event,
+                                const InstanceSet &targets,
+                                const std::vector<PhysicalManager*> &sources,
+                                const PhysicalTraceInfo &trace_info,
+                                std::set<RtEvent> &map_applied_events,
+                                UpdateAnalysis *&analysis,
+                                const bool collective_rendezvous,
+                                const bool record_valid = true,
+                                const bool check_initialized = true,
+                                const bool defer_copies = true);
+      // Return an event for when the copy-out effects of the 
+      // registration are done (e.g. for restricted coherence)
+      ApEvent physical_perform_registration(RtEvent precondition,
+                               UpdateAnalysis *analysis,
+                               std::set<RtEvent> &map_applied_events,
+                               bool symbolic = false);
+      // Same as the two above merged together
+      ApEvent physical_perform_updates_and_registration(
+                                   const RegionRequirement &req,
+                                   const VersionInfo &version_info,
+                                   unsigned index,
+                                   ApEvent precondition, ApEvent term_event,
+                                   const InstanceSet &targets,
+                                   const std::vector<PhysicalManager*> &sources,
+                                   const PhysicalTraceInfo &trace_info,
+                                   std::set<RtEvent> &map_applied_events,
+                                   const bool collective_rendezvous,
+                                   const bool record_valid = true,
+                                   const bool check_initialized = true);
     protected:
       mutable LocalLock op_lock;
       GenerationID gen;
@@ -1623,19 +1699,106 @@ namespace Legion {
         std::vector<IndirectRecord> dst_indirect_records;
         std::map<Reservation,bool> atomic_locks;
       };
-
+    protected:
+      ApEvent copy_across(const RegionRequirement &src_req,
+                          const RegionRequirement &dst_req,
+                          const VersionInfo &src_version_info,
+                          const VersionInfo &dst_version_info,
+                          const InstanceSet &src_targets,
+                          const InstanceSet &dst_targets, 
+                          const std::vector<PhysicalManager*> &sources,
+                          unsigned src_index, unsigned dst_index,
+                          ApEvent precondition, ApEvent src_ready,
+                          ApEvent dst_ready, PredEvent pred_guard,
+                          const std::map<Reservation,bool> &reservations,
+                          const PhysicalTraceInfo &trace_info,
+                          std::set<RtEvent> &map_applied_events);
+      ApEvent gather_across(const RegionRequirement &src_req,
+                            const RegionRequirement &idx_req,
+                            const RegionRequirement &dst_req,
+                            std::vector<IndirectRecord> &records,
+                            const InstanceSet &src_targets,
+                            const InstanceSet &idx_targets,
+                            const InstanceSet &dst_targets,
+                            unsigned src_index,
+                            unsigned idx_index, unsigned dst_index,
+                            const bool gather_is_range,
+                            const ApEvent init_precondition, 
+                            const ApEvent src_ready,
+                            const ApEvent dst_ready,
+                            const ApEvent idx_ready,
+                            const PredEvent pred_guard,
+                            const ApEvent collective_precondition,
+                            const ApEvent collective_postcondition,
+                            const ApUserEvent local_precondition,
+                            const std::map<Reservation,bool> &reservations,
+                            const PhysicalTraceInfo &trace_info,
+                            std::set<RtEvent> &map_applied_events,
+                            const bool possible_src_out_of_range,
+                            const bool compute_preimages);
+      ApEvent scatter_across(const RegionRequirement &src_req,
+                             const RegionRequirement &idx_req,
+                             const RegionRequirement &dst_req,
+                             const InstanceSet &src_targets,
+                             const InstanceSet &idx_targets,
+                             const InstanceSet &dst_targets,
+                             std::vector<IndirectRecord> &records,
+                             unsigned src_index,
+                             unsigned idx_index, unsigned dst_index,
+                             const bool scatter_is_range,
+                             const ApEvent init_precondition, 
+                             const ApEvent src_ready,
+                             const ApEvent dst_ready,
+                             const ApEvent idx_ready,
+                             const PredEvent pred_guard,
+                             const ApEvent collective_precondition,
+                             const ApEvent collective_postcondition,
+                             const ApUserEvent local_precondition,
+                             const std::map<Reservation,bool> &reservations,
+                             const PhysicalTraceInfo &trace_info,
+                             std::set<RtEvent> &map_applied_events,
+                             const bool possible_dst_out_of_range,
+                             const bool possible_dst_aliasing,
+                             const bool compute_preimages);
+      ApEvent indirect_across(const RegionRequirement &src_req,
+                              const RegionRequirement &src_idx_req,
+                              const RegionRequirement &dst_req,
+                              const RegionRequirement &dst_idx_req,
+                              const InstanceSet &src_targets,
+                              const InstanceSet &dst_targets,
+                              std::vector<IndirectRecord> &src_records,
+                              const InstanceSet &src_idx_target,
+                              std::vector<IndirectRecord> &dst_records,
+                              const InstanceSet &dst_idx_target,
+                              unsigned src_index, unsigned dst_index,
+                              unsigned src_idx_index, unsigned dst_idx_index,
+                              const bool both_are_range,
+                              const ApEvent init_precondition, 
+                              const ApEvent src_ready,
+                              const ApEvent dst_ready,
+                              const ApEvent src_idx_ready,
+                              const ApEvent dst_idx_ready,
+                              const PredEvent pred_guard,
+                              const ApEvent collective_precondition,
+                              const ApEvent collective_postcondition,
+                              const ApUserEvent local_precondition,
+                              const std::map<Reservation,bool> &reservations,
+                              const PhysicalTraceInfo &trace_info,
+                              std::set<RtEvent> &map_applied_events,
+                              const bool possible_src_out_of_range,
+                              const bool possible_dst_out_of_range,
+                              const bool possible_dst_aliasing,
+                              const bool compute_preimages);
     protected:
       template<typename T>
       void initialize_copies_with_launcher(const T &launcher);
       void initialize_copies_with_copies(std::vector<SingleCopy> &other);
-
     private: // used internally for initialization
       template <typename T> class InitField;
       struct InitInfo;
 
       void initialize_copies(InitInfo &info);
       std::vector<RegionRequirement> &get_reqs_by_type(ReqType type);
-
     public: // per-operand and per-copy data
       LegionVector<Operand> operands;
       std::vector<SingleCopy> copies;
@@ -2003,7 +2166,7 @@ namespace Legion {
                                       LogicalRegion handle, 
                                       const bool unordered,
                                       Provenance *provenance,
-                                      const bool skip_dep_analysis = false);
+                                      const bool skip_dep_analysis = false); 
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -2015,6 +2178,12 @@ namespace Legion {
         { return deletion_requirements[idx]; }
     protected:
       void log_deletion_requirements(void);
+      void invalidate_fields(unsigned index,
+                             const RegionRequirement &req,
+                             const VersionInfo &version_info,
+                             const PhysicalTraceInfo &trace_info,
+                             CollectiveMapping *collective_mapping,
+                             const bool collective_first_local);
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
@@ -2456,6 +2625,19 @@ namespace Legion {
       virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
                                          std::set<RtEvent> &applied) const;
     protected:
+      ApEvent acquire_restrictions(const RegionRequirement &req,
+                                   const VersionInfo &version_info,
+                                   unsigned index,
+                                   ApEvent precondition, ApEvent term_event,
+                                   InstanceSet &restricted_instances,
+                                   const PhysicalTraceInfo &trace_info,
+                                   std::set<RtEvent> &map_applied_events
+#ifdef DEBUG_LEGION
+                                   , const char *log_name
+                                   , UniqueID uid
+#endif
+                                   );
+    protected:
       RegionRequirement requirement;
       PhysicalRegion    restricted_region;
       VersionInfo       version_info;
@@ -2569,6 +2751,20 @@ namespace Legion {
       virtual void handle_profiling_update(int count);
       virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
                                          std::set<RtEvent> &applied) const;
+    protected:
+      ApEvent release_restrictions(const RegionRequirement &req,
+                                   const VersionInfo &version_info,
+                                   unsigned index,
+                                   ApEvent precondition, ApEvent term_event,
+                                   InstanceSet &restricted_instances,
+                                   const std::vector<PhysicalManager*> &sources,
+                                   const PhysicalTraceInfo &trace_info,
+                                   std::set<RtEvent> &map_applied_events
+#ifdef DEBUG_LEGION
+                                   , const char *log_name
+                                   , UniqueID uid
+#endif
+                                   );
     protected:
       RegionRequirement requirement;
       PhysicalRegion    restricted_region;
@@ -3027,7 +3223,6 @@ namespace Legion {
         virtual ~PendingPartitionThunk(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures) = 0;
         virtual void perform_logging(PendingPartitionOp* op) = 0;
         virtual bool is_cross_product(void) const { return false; }
@@ -3039,9 +3234,8 @@ namespace Legion {
         virtual ~EqualPartitionThunk(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->create_equal_partition(op, pid, granularity); }
+        { return op->create_equal_partition(pid, granularity); }
         virtual void perform_logging(PendingPartitionOp* op);
       protected:
         IndexPartition pid;
@@ -3054,9 +3248,8 @@ namespace Legion {
         virtual ~WeightPartitionThunk(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->create_partition_by_weights(op, pid, 
+        { return op->create_partition_by_weights(pid, 
                                         futures, granularity); }
         virtual void perform_logging(PendingPartitionOp *op);
       protected:
@@ -3071,9 +3264,8 @@ namespace Legion {
         virtual ~UnionPartitionThunk(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->create_partition_by_union(op, pid, handle1, handle2); }
+        { return op->create_partition_by_union(pid, handle1, handle2); }
         virtual void perform_logging(PendingPartitionOp* op);
       protected:
         IndexPartition pid;
@@ -3088,9 +3280,8 @@ namespace Legion {
         virtual ~IntersectionPartitionThunk(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->create_partition_by_intersection(op, pid, handle1,
+        { return op->create_partition_by_intersection(pid, handle1,
                                                           handle2); }
         virtual void perform_logging(PendingPartitionOp* op);
       protected:
@@ -3105,10 +3296,8 @@ namespace Legion {
         virtual ~IntersectionWithRegionThunk(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->create_partition_by_intersection(op, pid, 
-                                                          part, dominates); }
+        { return op->create_partition_by_intersection(pid, part, dominates); }
         virtual void perform_logging(PendingPartitionOp* op);
       protected:
         IndexPartition pid;
@@ -3123,9 +3312,8 @@ namespace Legion {
         virtual ~DifferencePartitionThunk(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->create_partition_by_difference(op, pid, handle1,
+        { return op->create_partition_by_difference(pid, handle1,
                                                         handle2); }
         virtual void perform_logging(PendingPartitionOp* op);
       protected:
@@ -3143,9 +3331,8 @@ namespace Legion {
           { free(transform); free(extent); }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->create_partition_by_restriction(pid, 
+        { return op->create_partition_by_restriction(pid, 
                                               transform, extent); }
         virtual void perform_logging(PendingPartitionOp *op);
       protected:
@@ -3161,9 +3348,8 @@ namespace Legion {
         virtual ~FutureMapThunk(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->create_partition_by_domain(op, pid, futures,
+        { return op->create_partition_by_domain(pid, futures,
                             future_map_domain, perform_intersections); }
         virtual void perform_logging(PendingPartitionOp *op);
       protected:
@@ -3180,9 +3366,8 @@ namespace Legion {
         virtual ~CrossProductThunk(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->create_cross_product_partitions(op, base, source, 
+        { return op->create_cross_product_partitions(base, source, 
                                 part_color, local_shard, shard_mapping); }
         virtual void perform_logging(PendingPartitionOp* op);
         virtual bool is_cross_product(void) const { return true; }
@@ -3203,12 +3388,11 @@ namespace Legion {
         virtual ~ComputePendingSpace(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
         { if (is_partition)
-            return forest->compute_pending_space(op, target, handle, is_union);
+            return op->compute_pending_space(target, handle, is_union);
           else
-            return forest->compute_pending_space(op, target, 
+            return op->compute_pending_space(target, 
                                                  handles, is_union); }
         virtual void perform_logging(PendingPartitionOp* op);
       protected:
@@ -3225,9 +3409,8 @@ namespace Legion {
         virtual ~ComputePendingDifference(void) { }
       public:
         virtual ApEvent perform(PendingPartitionOp *op,
-            RegionTreeForest *forest,
             const std::map<DomainPoint,FutureImpl*> &futures)
-        { return forest->compute_pending_space(op, target, initial, handles); }
+        { return op->compute_pending_space(target, initial, handles); }
         virtual void perform_logging(PendingPartitionOp* op);
       protected:
         IndexSpace target, initial;
@@ -3302,6 +3485,46 @@ namespace Legion {
                                         Provenance *provenance);
       void perform_logging(void);
     public:
+      ApEvent create_equal_partition(IndexPartition pid, 
+                                     size_t granularity);
+      ApEvent create_partition_by_weights(IndexPartition pid,
+              const std::map<DomainPoint,FutureImpl*> &futures,
+                                          size_t granularity);
+      ApEvent create_partition_by_union(IndexPartition pid,
+                                        IndexPartition handle1,
+                                        IndexPartition handle2);
+      ApEvent create_partition_by_intersection(IndexPartition pid,
+                                               IndexPartition handle1,
+                                               IndexPartition handle2);
+      ApEvent create_partition_by_intersection(IndexPartition pid,
+                                               IndexPartition part,
+                                               const bool dominates);
+      ApEvent create_partition_by_difference(IndexPartition pid,
+                                           IndexPartition handle1,
+                                           IndexPartition handle2);
+      ApEvent create_partition_by_restriction(IndexPartition pid,
+                                              const void *transform,
+                                              const void *extent);
+      ApEvent create_partition_by_domain(IndexPartition pid,
+                          const std::map<DomainPoint,FutureImpl*> &futures,
+                                         const Domain &future_map_domain,
+                                         bool perform_intersections);
+      ApEvent create_cross_product_partitions(IndexPartition base,
+                                              IndexPartition source,
+                                              LegionColor part_color,
+                                              ShardID shard = 0,
+                                              const ShardMapping *mapping=NULL);
+    public:
+      ApEvent compute_pending_space(IndexSpace result,
+                                    const std::vector<IndexSpace> &handles,
+                                    bool is_union);
+      ApEvent compute_pending_space(IndexSpace result,
+                                    IndexPartition handle,
+                                    bool is_union);
+      ApEvent compute_pending_space(IndexSpace result,
+                                    IndexSpace initial,
+                                    const std::vector<IndexSpace> &handles);
+    public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
@@ -3354,7 +3577,7 @@ namespace Legion {
         virtual ~DepPartThunk(void) { }
       public:
         virtual ApEvent perform(DependentPartitionOp *op,
-            RegionTreeForest *forest, FieldID fid, ApEvent instances_ready,
+            FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
             const std::map<DomainPoint,Domain> *remote_targets = NULL,
             std::vector<DeppartResult> *results = NULL) = 0;
@@ -3371,7 +3594,7 @@ namespace Legion {
           : pid(p) { }
       public:
         virtual ApEvent perform(DependentPartitionOp *op,
-            RegionTreeForest *forest, FieldID fid, ApEvent instances_ready,
+            FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
             const std::map<DomainPoint,Domain> *remote_targets = NULL,
             std::vector<DeppartResult> *results = NULL);
@@ -3388,7 +3611,7 @@ namespace Legion {
           : pid(p), projection(proj) { }
       public:
         virtual ApEvent perform(DependentPartitionOp *op,
-            RegionTreeForest *forest, FieldID fid, ApEvent instances_ready,
+            FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
             const std::map<DomainPoint,Domain> *remote_targets = NULL,
             std::vector<DeppartResult> *results = NULL);
@@ -3408,7 +3631,7 @@ namespace Legion {
           : pid(p), projection(proj) { }
       public:
         virtual ApEvent perform(DependentPartitionOp *op,
-            RegionTreeForest *forest, FieldID fid, ApEvent instances_ready,
+            FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
             const std::map<DomainPoint,Domain> *remote_targets = NULL,
             std::vector<DeppartResult> *results = NULL);
@@ -3428,7 +3651,7 @@ namespace Legion {
           : pid(p), projection(proj) { }
       public:
         virtual ApEvent perform(DependentPartitionOp *op,
-            RegionTreeForest *forest, FieldID fid, ApEvent instances_ready,
+            FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
             const std::map<DomainPoint,Domain> *remote_targets = NULL,
             std::vector<DeppartResult> *results = NULL);
@@ -3446,7 +3669,7 @@ namespace Legion {
           : pid(p), projection(proj) { }
       public:
         virtual ApEvent perform(DependentPartitionOp *op,
-            RegionTreeForest *forest, FieldID fid, ApEvent instances_ready,
+            FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
             const std::map<DomainPoint,Domain> *remote_targets = NULL,
             std::vector<DeppartResult> *results = NULL);
@@ -3464,7 +3687,7 @@ namespace Legion {
           : domain(d), range(r) { }
       public:
         virtual ApEvent perform(DependentPartitionOp *op,
-            RegionTreeForest *forest, FieldID fid, ApEvent instances_ready,
+            FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
             const std::map<DomainPoint,Domain> *remote_targets = NULL,
             std::vector<DeppartResult> *results = NULL);
@@ -3600,6 +3823,41 @@ namespace Legion {
       void activate_dependent_op(void);
       void deactivate_dependent_op(void);
       void finalize_partition_profiling(void);
+      void find_open_complete_partitions(
+                        std::vector<LogicalPartition> &partitions) const;
+      ApEvent create_partition_by_field(FieldID fid,
+                                        IndexPartition pending,
+                    const std::vector<FieldDataDescriptor> &instances,
+                          std::vector<DeppartResult> *results,
+                                        ApEvent instances_ready);
+      ApEvent create_partition_by_image(FieldID fid,
+                                        IndexPartition pending,
+                                        IndexPartition projection,
+                      std::vector<FieldDataDescriptor> &instances,
+                                        ApEvent instances_ready);
+      ApEvent create_partition_by_image_range(FieldID fid,
+                                              IndexPartition pending,
+                                              IndexPartition projection,
+                            std::vector<FieldDataDescriptor> &instances,
+                                              ApEvent instances_ready);
+      ApEvent create_partition_by_preimage(FieldID fid,
+                                           IndexPartition pending,
+                                           IndexPartition projection,
+                    const std::vector<FieldDataDescriptor> &instances,
+                    const std::map<DomainPoint,Domain> *remote_targets,
+                          std::vector<DeppartResult> *results,
+                                           ApEvent instances_ready);
+      ApEvent create_partition_by_preimage_range(FieldID fid,
+                                                 IndexPartition pending,
+                                                 IndexPartition projection,
+                    const std::vector<FieldDataDescriptor> &instances,
+                    const std::map<DomainPoint,Domain> *remote_targets,
+                          std::vector<DeppartResult> *results,
+                                                 ApEvent instances_ready);
+      ApEvent create_association(FieldID fid,
+                                 IndexSpace domain, IndexSpace range,
+                    const std::vector<FieldDataDescriptor> &instances,
+                                 ApEvent instances_ready);
     public:
       void handle_point_commit(RtEvent point_committed);
     public:
@@ -3774,6 +4032,10 @@ namespace Legion {
     public:
       virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
                                          std::set<RtEvent> &applied) const;
+    protected:
+      void fill_fields(FillView *fill_view,
+                       ApEvent precondition,
+                       const PhysicalTraceInfo &trace_info);
     public:
       VersionInfo version_info;
       unsigned parent_req_index;
@@ -3928,6 +4190,7 @@ namespace Legion {
       void check_privilege(void);
       void compute_parent_index(void);
       void log_requirement(void);
+      void discard_fields(const PhysicalTraceInfo &trace_info);
     public:
       RegionRequirement requirement;
       VersionInfo version_info;
@@ -3991,6 +4254,11 @@ namespace Legion {
                                     const Realm::ProfilingRequestSet &requests,
                                     PhysicalInstance &instance) const;
       void attach_ready(bool point);
+      InstanceRef create_external_instance(
+                                const RegionRequirement &req,
+                                const std::vector<FieldID> &field_set);
+      ApEvent attach_external(const ApEvent termination_event,
+                              const PhysicalTraceInfo &trace_info);
     public:
       ExternalResource resource;
       RegionRequirement requirement;
@@ -4162,6 +4430,11 @@ namespace Legion {
     protected:
       void compute_parent_index(void);
       void log_requirement(void);
+      ApEvent detach_external(const InstanceSet &target_instances,
+                              const ApEvent termination_event,
+                              const PhysicalTraceInfo &trace_info,
+                              RtEvent filter_precondition,
+                              const bool second_analysis);
     public:
       PhysicalRegion region;
       RegionRequirement requirement;

@@ -2316,7 +2316,7 @@ namespace Legion {
                         const RegionRequirement &req, ShardID local_shard,
                         RegionTreeNode *root, const ProjectionInfo &proj_info);
       static void add_to_projection_tree(LogicalRegion region,
-                  RegionTreeNode *root, RegionTreeForest *context, 
+                  RegionTreeNode *root,
                   std::map<RegionTreeNode*,ProjectionNode*> &node_map,
                   ShardID owner_shard);
     public:
@@ -2394,7 +2394,7 @@ namespace Legion {
         IndexSpace full_space, shard_space;
       };
     public:
-      ShardingFunction(ShardingFunctor *functor, RegionTreeForest *forest,
+      ShardingFunction(ShardingFunctor *functor,
                        ShardManager *manager, ShardingID sharding_id, 
                        bool skip_checks = false, bool own_functor = false);
       ShardingFunction(const ShardingFunction &rhs) = delete;
@@ -2412,7 +2412,6 @@ namespace Legion {
                             IndexSpace sharding_space);
     public:
       ShardingFunctor *const functor;
-      RegionTreeForest *const forest;
       ShardManager *const manager;
       const ShardingID sharding_id;
       const bool use_points;
@@ -2618,7 +2617,6 @@ namespace Legion {
       // on the number of available control replication contexts
       const unsigned runtime_stride; // stride for uniqueness
       LegionProfiler *profiler;
-      RegionTreeForest *const forest;
       VirtualManager *virtual_manager;
       Processor utility_group;
       const size_t num_utility_procs;
@@ -2715,6 +2713,8 @@ namespace Legion {
               const bool total_sharding_collective = false,
               const bool unpack_reference = false);
     public:
+      size_t get_domain_volume(IndexSpace handle);
+      void find_domain(IndexSpace handle, Domain &launch_domain);
       IndexPartition get_index_partition(IndexSpace parent, Color color);
       bool has_index_partition(IndexSpace parent, Color color); 
       IndexSpace get_index_subspace(IndexPartition p, 
@@ -2740,10 +2740,107 @@ namespace Legion {
       IndexPartition get_parent_index_partition(IndexSpace handle);
       unsigned get_index_space_depth(IndexSpace handle);
       unsigned get_index_partition_depth(IndexPartition handle);
+      bool compute_index_path(IndexSpace parent, IndexSpace child,
+                              std::vector<LegionColor> &path);
+      bool compute_partition_path(IndexSpace parent, IndexPartition child,
+                                  std::vector<LegionColor> &path);
+      unsigned get_projection_depth(LogicalRegion result, LogicalRegion upper);
+      unsigned get_projection_depth(LogicalRegion result, 
+                                    LogicalPartition upper);
+      bool is_top_level_index_space(IndexSpace handle);
     public:
+      void destroy_index_space(IndexSpace handle, AddressSpaceID source,
+                               std::set<RtEvent> &applied_events,
+                               const CollectiveMapping *mapping = NULL);
+      void destroy_index_partition(IndexPartition handle,
+                               std::set<RtEvent> &applied,
+                               const CollectiveMapping *mapping = NULL);
+      void destroy_field_space(FieldSpace handle,
+                               std::set<RtEvent> &applied,
+                               const CollectiveMapping *mapping = NULL);
+      void destroy_logical_region(LogicalRegion handle,
+                                  std::set<RtEvent> &applied,
+                                  const CollectiveMapping *mapping = NULL);
+    public:
+      void get_all_fields(FieldSpace handle, std::set<FieldID> &fields);
+      void get_all_regions(FieldSpace handle, std::set<LogicalRegion> &regions);
+      size_t get_coordinate_size(IndexSpace handle, bool range);
       size_t get_field_size(FieldSpace handle, FieldID fid);
+      CustomSerdezID get_field_serdez(FieldSpace handle, FieldID fid);
       void get_field_space_fields(FieldSpace handle, 
                                   std::vector<FieldID> &fields);
+    public:
+      // Return true if local is set to true and we actually performed the 
+      // allocation.  It is an error if the field already existed and the
+      // allocation was not local.
+      RtEvent allocate_field(FieldSpace handle, size_t field_size, 
+                             FieldID fid, CustomSerdezID serdez_id,
+                             Provenance *provenance,
+                             bool sharded_non_owner = false);
+      FieldSpaceNode* allocate_field(FieldSpace handle, ApEvent ready,
+                                     FieldID fid, CustomSerdezID serdez_id,
+                                     Provenance *provenance,
+                                     RtEvent &precondition,
+                                     bool sharded_non_owner = false);
+      void free_field(FieldSpace handle, FieldID fid, 
+                      std::set<RtEvent> &applied,
+                      bool sharded_non_owner = false);
+      RtEvent allocate_fields(FieldSpace handle, 
+                           const std::vector<size_t> &sizes,
+                           const std::vector<FieldID> &resulting_fields,
+                           CustomSerdezID serdez_id,
+                           Provenance *provenance,
+                           bool sharded_non_owner = false);
+      FieldSpaceNode* allocate_fields(FieldSpace handle, ApEvent ready, 
+                           const std::vector<FieldID> &resulting_fields,
+                           CustomSerdezID serdez_id, 
+                           Provenance *provenance, RtEvent &precondition,
+                           bool sharded_non_owner = false);
+      void free_fields(FieldSpace handle, 
+                       const std::vector<FieldID> &to_free,
+                       std::set<RtEvent> &applied,
+                       bool sharded_non_owner = false);
+      void free_field_indexes(FieldSpace handle,
+                       const std::vector<FieldID> &to_free, 
+                       RtEvent freed, bool sharded_non_owner = false);
+    public:
+      bool allocate_local_fields(FieldSpace handle, 
+                                 const std::vector<FieldID> &resulting_fields,
+                                 const std::vector<size_t> &sizes,
+                                 CustomSerdezID serdez_id,
+                                 const std::set<unsigned> &allocated_indexes,
+                                 std::vector<unsigned> &new_indexes,
+                                 Provenance *provenance);
+      void free_local_fields(FieldSpace handle,
+                             const std::vector<FieldID> &to_free,
+                             const std::vector<unsigned> &indexes,
+                             const CollectiveMapping *mapping = NULL);
+      void update_local_fields(FieldSpace handle,
+                               const std::vector<FieldID> &fields,
+                               const std::vector<size_t> &sizes,
+                               const std::vector<CustomSerdezID> &serdez_ids,
+                               const std::vector<unsigned> &indexes,
+                               Provenance *provenance);
+      void remove_local_fields(FieldSpace handle,
+                               const std::vector<FieldID> &to_remove);
+    public:
+      bool is_subregion(LogicalRegion child, LogicalRegion parent);
+      bool is_subregion(LogicalRegion child, LogicalPartition parent);
+      bool is_disjoint(IndexPartition handle);
+      bool is_disjoint(LogicalPartition handle);
+    public:
+      bool are_disjoint(IndexSpace one, IndexSpace two);
+      bool are_disjoint(IndexSpace one, IndexPartition two);
+      bool are_disjoint(IndexPartition one, IndexPartition two); 
+      // Can only use the region tree for proving disjointness here
+      bool are_disjoint_tree_only(IndexTreeNode *one, IndexTreeNode *two,
+                                  IndexTreeNode *&common_ancestor);
+    public:
+      bool check_types(TypeTag t1, TypeTag t2, bool &diff_dims);
+      bool is_dominated(IndexSpace src, IndexSpace dst);
+      bool is_dominated_tree_only(IndexSpace test, IndexPartition dominator);
+      bool is_dominated_tree_only(IndexPartition test, IndexSpace dominator);
+      bool is_dominated_tree_only(IndexPartition test,IndexPartition dominator);
     public:
       LogicalPartition get_logical_partition(LogicalRegion parent,
                                              IndexPartition handle);
@@ -2771,6 +2868,185 @@ namespace Legion {
       LogicalRegion get_parent_logical_region(LogicalPartition handle);
       bool has_parent_logical_partition(LogicalRegion handle);
       LogicalPartition get_parent_logical_partition(LogicalRegion handle);
+      bool is_top_level_region(LogicalRegion handle);
+    public:
+      IndexSpaceNode* create_index_space(IndexSpace handle, 
+                              const Domain *domain,
+                              DistributedID did, 
+                              Provenance *provenance,
+                              CollectiveMapping *mapping = NULL,
+                              IndexSpaceExprID expr_id = 0,
+                              ApEvent ready = ApEvent::NO_AP_EVENT,
+                              RtEvent initialized = RtEvent::NO_RT_EVENT);
+      IndexSpaceNode* create_union_space(IndexSpace handle, DistributedID did,
+                              Provenance *provenance,
+                              const std::vector<IndexSpace> &sources,
+                              RtEvent initialized = RtEvent::NO_RT_EVENT,
+                              CollectiveMapping *mapping = NULL,
+                              IndexSpaceExprID expr_id = 0);
+      IndexSpaceNode* create_intersection_space(IndexSpace handle, 
+                              DistributedID did, Provenance *provenance,
+                              const std::vector<IndexSpace> &sources,
+                              RtEvent initialized = RtEvent::NO_RT_EVENT,
+                              CollectiveMapping *mapping = NULL,
+                              IndexSpaceExprID expr_id = 0);
+      IndexSpaceNode* create_difference_space(IndexSpace handle,
+                              DistributedID did, Provenance *provenance,
+                              IndexSpace left, IndexSpace right,
+                              RtEvent initialized = RtEvent::NO_RT_EVENT,
+                              CollectiveMapping *mapping = NULL,
+                              IndexSpaceExprID expr_id = 0);
+    public:
+      // We know the domain of the index space
+      IndexSpaceNode* create_node(IndexSpace is, const void *bounds, 
+                                  bool is_domain, IndexPartNode *par, 
+                                  LegionColor color, DistributedID did,
+                                  RtEvent initialized, Provenance *provenance,
+                                  ApEvent is_ready = ApEvent::NO_AP_EVENT,
+                                  IndexSpaceExprID expr_id = 0,
+                                  CollectiveMapping *mapping = NULL,
+                                  const bool add_root_reference = false,
+                                  unsigned depth = UINT_MAX,
+                                  const bool tree_valid = true);
+      IndexSpaceNode* create_node(IndexSpace is,
+                                  IndexPartNode &par, LegionColor color,
+                                  DistributedID did, RtEvent initialized,
+                                  Provenance *provenance,
+                                  IndexSpaceExprID expr_id = 0,
+                                  CollectiveMapping *mapping = NULL,
+                                  unsigned depth = UINT_MAX);
+      // We know the disjointness of the index partition
+      IndexPartNode*  create_node(IndexPartition p, IndexSpaceNode *par,
+                                  IndexSpaceNode *color_space, 
+                                  LegionColor color, bool disjoint,int complete,
+                                  DistributedID did, Provenance *provenance,
+                                  RtEvent init,
+                                  CollectiveMapping *mapping = NULL);
+      // Give the event for when the disjointness information is ready
+      IndexPartNode*  create_node(IndexPartition p, IndexSpaceNode *par,
+                                  IndexSpaceNode *color_space,
+                                  LegionColor color, int complete,
+                                  DistributedID did, Provenance *provenance,
+                                  RtEvent init,
+                                  CollectiveMapping *mapping = NULL);
+      FieldSpaceNode* create_node(FieldSpace space, DistributedID did,
+                                  RtEvent init, Provenance *provenance,
+                                  CollectiveMapping *mapping = NULL);
+      FieldSpaceNode* create_node(FieldSpace space, DistributedID did,
+                                  RtEvent initialized, Provenance *provenance,
+                                  CollectiveMapping *mapping,
+                                  Deserializer &derez);
+      RegionNode*     create_node(LogicalRegion r, PartitionNode *par,
+                                  RtEvent initialized, DistributedID did,
+                                  Provenance *provenance = NULL,
+                                  CollectiveMapping *mapping = NULL);
+      PartitionNode*  create_node(LogicalPartition p, RegionNode *par);
+    public:
+      void record_pending_index_space(IndexSpaceID space);
+      void record_pending_partition(IndexPartitionID pid);
+      void record_pending_field_space(FieldSpaceID space);
+      void record_pending_region_tree(RegionTreeID tree);
+    public:
+      void revoke_pending_index_space(IndexSpaceID space);
+      void revoke_pending_partition(IndexPartitionID pid);
+      void revoke_pending_field_space(FieldSpaceID space);
+      void revoke_pending_region_tree(RegionTreeID tree);
+    public:
+      IndexSpaceNode* get_node(IndexSpace space, RtEvent *defer = NULL, 
+                        const bool can_fail = false, const bool first = true);
+      IndexPartNode*  get_node(IndexPartition part, RtEvent *defer = NULL, 
+                        const bool can_fail = false, const bool first = true,
+                        const bool local_only = false);
+      FieldSpaceNode* get_node(FieldSpace space, 
+                               RtEvent *defer = NULL, bool first = true);
+      RegionNode*     get_node(LogicalRegion handle, 
+                               bool need_check = true, bool first = true);
+      PartitionNode*  get_node(LogicalPartition handle, bool need_check = true);
+      RegionNode*     get_tree(RegionTreeID tid, bool first = true);
+      // Request but don't block
+      RtEvent find_or_request_node(IndexSpace space, AddressSpaceID target);
+    public:
+      bool has_node(IndexSpace space);
+      bool has_node(IndexPartition part);
+      bool has_node(FieldSpace space);
+      bool has_node(LogicalRegion handle);
+      bool has_node(LogicalPartition handle);
+      bool has_tree(RegionTreeID tid);
+      bool has_field(FieldSpace space, FieldID fid);
+    public:
+      void remove_node(IndexSpace space);
+      void remove_node(IndexPartition part);
+      void remove_node(FieldSpace space);
+      void remove_node(LogicalRegion handle, bool top);
+      void remove_node(LogicalPartition handle);
+    public:
+      // These three methods a something pretty awesome and crazy
+      // We want to do common sub-expression elimination on index space
+      // unions, intersections, and difference operations to avoid repeating
+      // expensive Realm dependent partition calls where possible, by 
+      // running everything through this interface we first check to see
+      // if these operations have been requested before and if so will 
+      // return the common sub-expression, if not we will actually do 
+      // the computation and memoize it for the future
+      //
+      // Note that you do not need to worry about reference counting
+      // expressions returned from these methods inside of tasks because 
+      // we implicitly add references to them and store them in the 
+      // implicit_live_expression data structure and then remove the 
+      // references after the meta-task or runtime call is done executing.
+
+      IndexSpaceExpression* union_index_spaces(IndexSpaceExpression *lhs,
+                                              IndexSpaceExpression *rhs);
+      IndexSpaceExpression* union_index_spaces(
+                                 const std::set<IndexSpaceExpression*> &exprs);
+    protected:
+      // Internal version
+      IndexSpaceExpression* union_index_spaces(
+                               const std::vector<IndexSpaceExpression*> &exprs,
+                               OperationCreator *creator = NULL);
+    public:
+      IndexSpaceExpression* intersect_index_spaces(
+                                              IndexSpaceExpression *lhs,
+                                              IndexSpaceExpression *rhs);
+      IndexSpaceExpression* intersect_index_spaces(
+                                 const std::set<IndexSpaceExpression*> &exprs);
+    protected:
+      IndexSpaceExpression* intersect_index_spaces(
+                               const std::vector<IndexSpaceExpression*> &exprs,
+                               OperationCreator *creator = NULL);
+    public:
+      IndexSpaceExpression* subtract_index_spaces(IndexSpaceExpression *lhs,
+                  IndexSpaceExpression *rhs, OperationCreator *creator = NULL);
+    protected:
+      // You don't call this method directly, call 
+      // IndexSpaceExpression::get_canonical_expression instead
+      friend class IndexSpaceExpression;
+      IndexSpaceExpression* find_canonical_expression(IndexSpaceExpression *ex);
+    public:
+      void remove_canonical_expression(IndexSpaceExpression *expr, size_t vol);
+    public:
+      // Methods for removing index space expression when they are done
+      void remove_union_operation(IndexSpaceOperation *expr, 
+                            const std::vector<IndexSpaceExpression*> &exprs);
+      void remove_intersection_operation(IndexSpaceOperation *expr, 
+                            const std::vector<IndexSpaceExpression*> &exprs);
+      void remove_subtraction_operation(IndexSpaceOperation *expr,
+                       IndexSpaceExpression *lhs, IndexSpaceExpression *rhs);
+    public:
+      // Remote expression methods
+      IndexSpaceExpression* find_or_request_remote_expression(
+              IndexSpaceExprID remote_expr_id, 
+              IndexSpaceExpression *origin, RtEvent *wait_for = NULL);
+      IndexSpaceExpression* find_remote_expression(
+              const PendingRemoteExpression &pending_expression);
+      void unregister_remote_expression(IndexSpaceExprID remote_expr_id);
+      void handle_remote_expression_request(Deserializer &derez,
+                                            AddressSpaceID source);
+      void handle_remote_expression_response(Deserializer &derez,
+                                             AddressSpaceID source);
+    protected:
+      IndexSpaceExpression* unpack_expression_value(Deserializer &derez,
+                                                    AddressSpaceID source);
     public:
       ArgumentMap create_argument_map(void);
     public:
@@ -4070,6 +4346,9 @@ namespace Legion {
       void free_repl_summary_op(ReplTraceSummaryOp *op);
     public:
       ContextID allocate_region_tree_context(void);
+      void invalidate_region_tree_context(ContextID ctx,
+          const RegionRequirement &req, bool filter_specific_fields);
+      void check_region_tree_context(ContextID ctx);
       void free_region_tree_context(ContextID tree_ctx); 
       inline AddressSpaceID get_runtime_owner(UniqueID uid) const
         { return (uid % total_address_spaces); } 
@@ -4233,6 +4512,54 @@ namespace Legion {
       std::atomic<unsigned> unique_sharding_id;
       std::atomic<unsigned> unique_redop_id;
       std::atomic<unsigned> unique_serdez_id;
+    protected:
+      mutable LocalLock lookup_lock;
+      mutable LocalLock lookup_is_op_lock;
+      mutable LocalLock congruence_lock;
+    private:
+      // The lookup lock must be held when accessing these
+      // data structures
+      std::map<IndexSpace,IndexSpaceNode*>     index_nodes;
+      std::map<IndexPartition,IndexPartNode*>  index_parts;
+      std::map<FieldSpace,FieldSpaceNode*>     field_nodes;
+      std::map<LogicalRegion,RegionNode*>     region_nodes;
+      std::map<LogicalPartition,PartitionNode*> part_nodes;
+      std::map<RegionTreeID,RegionNode*>        tree_nodes;
+    private:
+      // pending events for requested nodes
+      std::map<IndexSpace,RtEvent>       index_space_requests;
+      std::map<IndexPartition,RtEvent>    index_part_requests;
+      std::map<FieldSpace,RtEvent>       field_space_requests;
+      std::map<RegionTreeID,RtEvent>     region_tree_requests;
+    private:
+      std::map<IndexSpaceID,RtUserEvent> pending_index_spaces;
+      std::map<IndexPartitionID,RtUserEvent> pending_partitions;
+      std::map<FieldSpaceID,RtUserEvent> pending_field_spaces;
+      std::map<RegionTreeID,RtUserEvent> pending_region_trees;
+    private:
+      // Index space operations
+      std::map<IndexSpaceExprID/*first*/,ExpressionTrieNode*> union_ops;
+      std::map<IndexSpaceExprID/*first*/,ExpressionTrieNode*> intersection_ops;
+      std::map<IndexSpaceExprID/*lhs*/,ExpressionTrieNode*> difference_ops;
+      // Remote expressions
+      std::map<IndexSpaceExprID,IndexSpaceExpression*> remote_expressions;
+      std::map<IndexSpaceExprID,RtEvent> pending_remote_expressions;
+      static constexpr unsigned MAX_EXPRESSION_FANOUT = 32;
+      static inline bool compare_expressions(IndexSpaceExpression *one,
+                                             IndexSpaceExpression *two)
+        { return (one->expr_id < two->expr_id); }
+      struct CompareExpressions {
+      public:
+        inline bool operator()(IndexSpaceExpression *one,
+                               IndexSpaceExpression *two) const
+        { return compare_expressions(one, two); }
+      };
+    private:
+      // In order for the symbolic analysis to work, we need to know that
+      // we don't have multiple symbols for congruent expressions. This data
+      // structure is used to find congruent expressions where they exist
+      std::map<std::pair<size_t,TypeTag>,
+               std::vector<IndexSpaceExpression*> > canonical_expressions;
     protected:
       mutable LocalLock library_lock;
       struct LibraryMapperIDs {

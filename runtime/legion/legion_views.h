@@ -893,7 +893,7 @@ namespace Legion {
       typedef LegionMap<ApEvent,FieldMaskSet<PhysicalUser> > EventFieldUsers;
       typedef FieldMaskSet<PhysicalUser> EventUsers;
     public:
-      ExprView(RegionTreeForest *ctx, PhysicalManager *manager,
+      ExprView(PhysicalManager *manager,
                MaterializedView *view, IndexSpaceExpression *expr); 
       ExprView(const ExprView &rhs) = delete;
       virtual ~ExprView(void);
@@ -1044,7 +1044,6 @@ namespace Legion {
       static void verify_current_to_filter(const FieldMask &dominated,
                                   EventFieldUsers &current_to_filter);
     public:
-      RegionTreeForest *const forest;
       PhysicalManager *const manager;
       MaterializedView *const inst_view;
       IndexSpaceExpression *const view_expr;
@@ -2251,7 +2250,7 @@ namespace Legion {
           // Neither one covers so we actually need to do the
           // full intersection test and see if next covers
           IndexSpaceExpression *overlap = 
-            forest->intersect_index_spaces(expr, user->expr);
+            runtime->intersect_index_spaces(expr, user->expr);
           if (overlap->is_empty())
             return false;
         }
@@ -2303,7 +2302,7 @@ namespace Legion {
       if (!user->covers && !next_covers)
       {
         IndexSpaceExpression *overlap = 
-          forest->intersect_index_spaces(expr, user->expr);
+          runtime->intersect_index_spaces(expr, user->expr);
         if (overlap->is_empty())
           return false;
       }

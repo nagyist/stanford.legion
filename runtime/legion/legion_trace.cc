@@ -685,7 +685,6 @@ namespace Legion {
          const unsigned index, const std::vector<StaticDependence> &dependences)
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = runtime->forest;
       const bool is_replicated = (context->get_replication_id() > 0);
       for (std::vector<StaticDependence>::const_iterator it =
             dependences.begin(); it != dependences.end(); it++)
@@ -699,7 +698,7 @@ namespace Legion {
             operations[index - it->previous_offset];
         unsigned parent_index = op->find_parent_index(it->current_req_index);
         LogicalRegion root_region = context->find_logical_region(parent_index);
-        FieldSpaceNode *fs = forest->get_node(root_region.get_field_space());
+        FieldSpaceNode *fs = runtime->get_node(root_region.get_field_space());
         const FieldMask mask = fs->get_field_mask(it->dependent_fields);
         if (is_replicated && !it->shard_only)
         {
@@ -709,7 +708,7 @@ namespace Legion {
           req.privilege_fields = it->dependent_fields;
 #ifdef DEBUG_LEGION_COLLECTIVES
           MergeCloseOp *close_op = context->get_merge_close_op(op,
-                                    forest->get_node(root_region));
+                                    runtime->get_node(root_region));
 #else
           MergeCloseOp *close_op = context->get_merge_close_op();
 #endif
@@ -717,7 +716,7 @@ namespace Legion {
           close_op->update_close_mask(mask);
           register_close(close_op, it->current_req_index,
 #ifdef DEBUG_LEGION_COLLECTIVES
-                         forest->get_node(root_region),
+                         runtime->get_node(root_region),
 #endif
                          req);
           // Mark that we are starting our dependence analysis
@@ -1797,7 +1796,6 @@ namespace Legion {
           }
           FieldMaskSet<IndexSpaceExpression> to_add;
           std::vector<IndexSpaceExpression*> to_delete;
-          RegionTreeForest *forest = runtime->forest;
           for (FieldMaskSet<IndexSpaceExpression>::iterator it =
                 finder->second.begin(); it != finder->second.end(); it++)
           {
@@ -1810,7 +1808,7 @@ namespace Legion {
               {
                 // Not the same expression, so compute the union
                 IndexSpaceExpression *union_expr = 
-                  forest->union_index_spaces(it->first, expr);
+                  runtime->union_index_spaces(it->first, expr);
                 const size_t union_volume = union_expr->get_volume();
                 if (it->first->get_volume() < union_volume)
                 {
@@ -2014,7 +2012,6 @@ namespace Legion {
         // We need intersection tests as part of filtering
         FieldMaskSet<IndexSpaceExpression> to_add;
         std::vector<IndexSpaceExpression*> to_delete;
-        RegionTreeForest *forest = runtime->forest;
         for (FieldMaskSet<IndexSpaceExpression>::iterator it =
               finder->second.begin(); it != finder->second.end(); it++)
         {
@@ -2024,7 +2021,7 @@ namespace Legion {
           IndexSpaceExpression *intersection = expr;
           if (it->first != total_expr)
           {
-            intersection = forest->intersect_index_spaces(it->first, expr);
+            intersection = runtime->intersect_index_spaces(it->first, expr);
             const size_t volume = intersection->get_volume();
             if (volume == 0)
               continue;
@@ -2037,7 +2034,7 @@ namespace Legion {
           {
             // Only dominated part of it so compute the difference
             IndexSpaceExpression *diff = 
-              forest->subtract_index_spaces(it->first, intersection);
+              runtime->subtract_index_spaces(it->first, intersection);
             to_add.insert(diff, overlap);
           }
           // No matter what we're removing these fields for this expr
@@ -2147,7 +2144,6 @@ namespace Legion {
 #endif
       if (expr_volume == total_expr->get_volume())
         expr = total_expr;
-      RegionTreeForest *forest = runtime->forest;
       ViewExprs::const_iterator finder = conditions.find(view);
       if (finder != conditions.end() && 
           !(finder->second.get_valid_mask() * non_dominated))
@@ -2175,7 +2171,7 @@ namespace Legion {
           if ((it->first != total_expr) && (it->first != expr))
           {
             IndexSpaceExpression *intersection = 
-              forest->intersect_index_spaces(it->first, expr);
+              runtime->intersect_index_spaces(it->first, expr);
             const size_t volume = intersection->get_volume();
             if (volume == 0)
               continue;
@@ -2218,7 +2214,7 @@ namespace Legion {
         FieldMask dominated = non_dominated;
         FieldMaskSet<IndexSpaceExpression> empty_exprs;
         alias_analysis.visit_leaves(non_dominated, dominated,
-                                    expr, forest, empty_exprs);
+                                    expr, empty_exprs);
         if (!!dominated)
           non_dominated -= dominated;
       }
@@ -2243,7 +2239,7 @@ namespace Legion {
             if ((it->first != total_expr) && (it->first != expr))
             {
               IndexSpaceExpression *intersection = 
-                forest->intersect_index_spaces(it->first, expr);
+                runtime->intersect_index_spaces(it->first, expr);
               const size_t volume = intersection->get_volume();
               if (volume == 0)
                 continue;
@@ -2284,7 +2280,6 @@ namespace Legion {
 #endif
       if (expr_volume == total_expr->get_volume())
         expr = total_expr;
-      RegionTreeForest *forest = runtime->forest;
       ViewExprs::const_iterator finder = conditions.find(view);
       if (finder != conditions.end() && 
           !(finder->second.get_valid_mask() * mask))
@@ -2316,7 +2311,7 @@ namespace Legion {
           if ((it->first != total_expr) && (it->first != expr))
           {
             IndexSpaceExpression *intersection = 
-              forest->intersect_index_spaces(it->first, expr);
+              runtime->intersect_index_spaces(it->first, expr);
             const size_t volume = intersection->get_volume();
             if (volume == 0)
               continue;
@@ -2324,7 +2319,7 @@ namespace Legion {
             if (volume < expr->get_volume())
             {
               IndexSpaceExpression *diff = 
-                forest->subtract_index_spaces(expr, intersection);
+                runtime->subtract_index_spaces(expr, intersection);
               non_dominated[view].insert(diff, overlap);
             }
           } 
@@ -2375,7 +2370,7 @@ namespace Legion {
             if (it->first.first != it->first.second)
             {
               IndexSpaceExpression *overlap_expr = 
-                forest->intersect_index_spaces(it->first.first,
+                runtime->intersect_index_spaces(it->first.first,
                                                it->first.second);
               if (overlap_expr->is_empty())
                 continue;
@@ -2401,7 +2396,7 @@ namespace Legion {
           FieldMask dominated_mask; 
           alias_analysis.visit_leaves(it->second, dominated_mask,
               context, tree_id, collective_view, non_dominated, 
-              it->first, forest);
+              it->first);
           // Remove any fields that were diffed
           if (!!dominated_mask)
           {
@@ -2437,7 +2432,7 @@ namespace Legion {
                 it != join.end(); it++)
           {
             IndexSpaceExpression *difference = 
-              forest->subtract_index_spaces(it->first.first, it->first.second);
+              runtime->subtract_index_spaces(it->first.first, it->first.second);
             if (difference->get_volume() < it->first.first->get_volume())
             {
               FieldMaskSet<IndexSpaceExpression>::iterator finder =
@@ -2459,7 +2454,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldMask independent = mask;
-      RegionTreeForest *forest = runtime->forest;
       for (ViewExprs::const_iterator vit =
             conditions.begin(); vit != conditions.end(); vit++)
       {
@@ -2472,7 +2466,7 @@ namespace Legion {
           if (!overlap)
             continue;
           IndexSpaceExpression *overlap_expr = 
-            forest->intersect_index_spaces(it->first, expr);
+            runtime->intersect_index_spaces(it->first, expr);
           if (!overlap_expr->is_empty())
           {
             independent -= overlap;
@@ -2619,13 +2613,12 @@ namespace Legion {
       LegionMap<std::pair<IndexSpaceExpression*,IndexSpaceExpression*>,
                 FieldMask> overlaps;
       unique_join_on_field_mask_sets(left_exprs, right_exprs, overlaps);
-      RegionTreeForest *forest = runtime->forest;
       for (LegionMap<std::pair<IndexSpaceExpression*,IndexSpaceExpression*>,
                      FieldMask>::const_iterator it = 
             overlaps.begin(); it != overlaps.end(); it++)
       {
         IndexSpaceExpression *overlap = 
-          forest->intersect_index_spaces(it->first.first, it->first.second);
+          runtime->intersect_index_spaces(it->first.first, it->first.second);
         if (!overlap->is_empty())
         {
           if (condition != NULL)
@@ -2719,7 +2712,6 @@ namespace Legion {
             dst_views.swap(src_views);
           continue;
         }
-        RegionTreeForest *forest = runtime->forest;
         // Do pair-wise intersection tests for overlapping of the expressions
         std::vector<IndexSpaceExpression*> disjoint_expressions;
         std::vector<std::vector<IndexSpaceExpression*> > disjoint_components;
@@ -2733,7 +2725,7 @@ namespace Legion {
             IndexSpaceExpression *expr = disjoint_expressions[idx];
             // Compute the intersection
             IndexSpaceExpression *intersection =
-              forest->intersect_index_spaces(expr, current);
+              runtime->intersect_index_spaces(expr, current);
             const size_t volume = intersection->get_volume();
             if (volume == 0)
               continue;
@@ -2751,7 +2743,7 @@ namespace Legion {
                     disjoint_components[idx].end());
                 components.push_back(*isit);
                 disjoint_expressions[idx] =
-                  forest->subtract_index_spaces(expr, intersection);
+                  runtime->subtract_index_spaces(expr, intersection);
               }
               else // Congruent so we are done
                 disjoint_components[idx].push_back(*isit);
@@ -2762,7 +2754,7 @@ namespace Legion {
             {
               // We dominate the expression so add ourselves and compute diff
               disjoint_components[idx].push_back(*isit); 
-              current = forest->subtract_index_spaces(current, intersection);
+              current = runtime->subtract_index_spaces(current, intersection);
 #ifdef DEBUG_LEGION
               assert(!current->is_empty());
 #endif
@@ -2779,8 +2771,8 @@ namespace Legion {
                   disjoint_components[idx].end());
               components.push_back(*isit);
               disjoint_expressions[idx] =
-                forest->subtract_index_spaces(expr, intersection);
-              current = forest->subtract_index_spaces(current, intersection);
+                runtime->subtract_index_spaces(expr, intersection);
+              current = runtime->subtract_index_spaces(current, intersection);
 #ifdef DEBUG_LEGION
               assert(!current->is_empty());
 #endif
@@ -2856,7 +2848,6 @@ namespace Legion {
       }
       else
       {
-        RegionTreeForest *forest = runtime->forest;
         for (ViewExprs::const_iterator vit = 
               conditions.begin(); vit != conditions.end(); vit++)
         {
@@ -2870,7 +2861,7 @@ namespace Legion {
             if (!overlap)
               continue;
             IndexSpaceExpression *expr_overlap = 
-              forest->intersect_index_spaces(it->first, expr); 
+              runtime->intersect_index_spaces(it->first, expr); 
             const size_t volume = expr_overlap->get_volume();
             if (volume > 0)
             {
@@ -2934,7 +2925,6 @@ namespace Legion {
                          AddressSpaceID source, std::set<RtEvent> &ready_events)
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = runtime->forest;
       for (unsigned idx1 = 0; idx1 < num_views; idx1++)
       {
         DistributedID did;
@@ -2948,7 +2938,7 @@ namespace Legion {
         for (unsigned idx2 = 0; idx2 < num_exprs; idx2++)
         {
           IndexSpaceExpression *expr = 
-            IndexSpaceExpression::unpack_expression(derez, forest, source);
+            IndexSpaceExpression::unpack_expression(derez, source);
           FieldMask mask;
           derez.deserialize(mask);
           if (exprs.insert(expr, mask))
@@ -2977,8 +2967,7 @@ namespace Legion {
     void TraceViewSet::dump(void) const
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = runtime->forest;
-      RegionNode *region = forest->get_tree(tree_id);
+      RegionNode *region = runtime->get_tree(tree_id);
       for (ViewExprs::const_iterator vit = 
             conditions.begin(); vit != conditions.end(); ++vit)
       {
@@ -3391,11 +3380,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     TraceConditionSet::TraceConditionSet(PhysicalTrace *trace,
-                   RegionTreeForest *f, unsigned parent_req_idx, 
+                   unsigned parent_req_idx, 
                    IndexSpaceExpression *expr,
                    const FieldMask &mask, RegionTreeID tid)
       : EqSetTracker(set_lock), context(trace->logical_trace->context),
-        forest(f), condition_expr(expr), condition_mask(mask), tree_id(tid),
+        condition_expr(expr), condition_mask(mask), tree_id(tid),
         parent_req_index(parent_req_idx), precondition_views(NULL),
         anticondition_views(NULL), postcondition_views(NULL)
     //--------------------------------------------------------------------------
@@ -4156,7 +4145,6 @@ namespace Legion {
       // their fields will be the one to own the preconditions
       std::vector<RtEvent> ready_events;
       conditions.reserve(current_sets.size()); 
-      RegionTreeForest *forest = runtime->forest;
       std::map<EquivalenceSet*,unsigned>::const_iterator req_it =
         parent_req_indexes.begin();
       for (FieldMaskSet<EquivalenceSet>::const_iterator it = 
@@ -4165,7 +4153,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(req_it->first == it->first);
 #endif
-        TraceConditionSet *condition = new TraceConditionSet(trace, forest,
+        TraceConditionSet *condition = new TraceConditionSet(trace,
            req_it->second, it->first->set_expr, it->second, it->first->tree_id);
         condition->add_reference();
         // This looks redundant because it is a bit since we're just going
@@ -7340,7 +7328,6 @@ namespace Legion {
     bool PhysicalTemplate::are_read_only_users(InstUsers &inst_users)
     //--------------------------------------------------------------------------
     {
-      RegionTreeForest *forest = runtime->forest;
       for (InstUsers::const_iterator vit = 
             inst_users.begin(); vit != inst_users.end(); vit++)
       {
@@ -7358,7 +7345,7 @@ namespace Legion {
           if (vit->mask * it->second)
             continue;
           IndexSpaceExpression *intersect = 
-            forest->intersect_index_spaces(vit->expr, it->first);
+            runtime->intersect_index_spaces(vit->expr, it->first);
           if (intersect->is_empty())
             continue;
           // Not immutable
@@ -7990,7 +7977,7 @@ namespace Legion {
             PendingRemoteExpression pending;
             RtEvent expr_ready;
             IndexSpaceExpression *user_expr = 
-              IndexSpaceExpression::unpack_expression(derez, runtime->forest, 
+              IndexSpaceExpression::unpack_expression(derez,
                                     source, pending, expr_ready);
             if (expr_ready.exists())
             {
@@ -8014,13 +8001,12 @@ namespace Legion {
             size_t num_users;
             derez.deserialize(num_users);
             InstUsers inst_users(num_users);
-            RegionTreeForest *forest = runtime->forest;
             for (unsigned vidx = 0; vidx < num_users; vidx++)
             {
               InstanceUser &user = inst_users[vidx];
               user.instance.deserialize(derez);
               user.expr = 
-                 IndexSpaceExpression::unpack_expression(derez, forest, source);
+                 IndexSpaceExpression::unpack_expression(derez, source);
               derez.deserialize(user.mask);
             }
             std::atomic<bool> *result;
@@ -8284,7 +8270,7 @@ namespace Legion {
             else
             {
               IndexSpaceExpression *expr = 
-                runtime->forest->find_remote_expression(dargs->pending);
+                runtime->find_remote_expression(dargs->pending);
               if (dargs->target->handle_update_mutated_inst(dargs->inst,
                               expr, derez, applied, dargs->done, dargs))
                 return;

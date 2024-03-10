@@ -1941,7 +1941,7 @@ namespace Legion {
       const IndexSpace result(runtime->get_unique_index_space_id(),
                     runtime->get_unique_index_tree_id(), type_tag);
       const DistributedID did = runtime->get_available_distributed_id();
-      runtime->forest->create_index_space(result, &domain, did, provenance);
+      runtime->create_index_space(result, &domain, did, provenance);
       if ((provenance != NULL) && provenance->remove_reference())
         delete provenance;
       resume_mapper_call(ctx, MAPPER_CREATE_INDEX_SPACE_CALL);
@@ -1973,7 +1973,7 @@ namespace Legion {
           runtime->get_unique_index_tree_id(), sources[0].get_type_tag());
       const DistributedID did = runtime->get_available_distributed_id();
       AutoProvenance prov(provenance);
-      runtime->forest->create_union_space(result, did, prov, sources);
+      runtime->create_union_space(result, did, prov, sources);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(result.get_id(),
                     runtime->address_space, provenance);
@@ -2006,7 +2006,7 @@ namespace Legion {
           runtime->get_unique_index_tree_id(), sources[0].get_type_tag());
       const DistributedID did = runtime->get_available_distributed_id();
       AutoProvenance prov(provenance);
-      runtime->forest->create_intersection_space(result, did, prov, sources);
+      runtime->create_intersection_space(result, did, prov, sources);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(result.get_id(),
                     runtime->address_space, provenance);
@@ -2030,7 +2030,7 @@ namespace Legion {
           runtime->get_unique_index_tree_id(), left.get_type_tag());
       const DistributedID did = runtime->get_available_distributed_id();
       AutoProvenance prov(provenance);
-      runtime->forest->create_difference_space(result, did, prov,
+      runtime->create_difference_space(result, did, prov,
                                                left, right);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(result.get_id(),
@@ -2047,7 +2047,7 @@ namespace Legion {
       if (!handle.exists())
         return true;
       pause_mapper_call(ctx);
-      IndexSpaceNode *node = runtime->forest->get_node(handle);
+      IndexSpaceNode *node = runtime->get_node(handle);
       bool result = node->is_empty();
       resume_mapper_call(ctx, MAPPER_INDEX_SPACE_EMPTY_CALL);
       return result;
@@ -2065,10 +2065,10 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_DYNAMIC_TYPE_MISMATCH,
                         "Dynamic type mismatch in 'index_spaces_overlap' "
                         "performed in mapper %s", get_mapper_name())
-      IndexSpaceNode *n1 = runtime->forest->get_node(one);
-      IndexSpaceNode *n2 = runtime->forest->get_node(two);
+      IndexSpaceNode *n1 = runtime->get_node(one);
+      IndexSpaceNode *n2 = runtime->get_node(two);
       IndexSpaceExpression *overlap = 
-        runtime->forest->intersect_index_spaces(n1, n2);
+        runtime->intersect_index_spaces(n1, n2);
       const bool result = !overlap->is_empty();
       resume_mapper_call(ctx, MAPPER_INDEX_SPACES_OVERLAP_CALL);
       return result;
@@ -2088,10 +2088,10 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_DYNAMIC_TYPE_MISMATCH,
                         "Dynamic type mismatch in 'index_spaces_dominates' "
                         "performed in mapper %s", get_mapper_name())
-      IndexSpaceNode *n1 = runtime->forest->get_node(left);
-      IndexSpaceNode *n2 = runtime->forest->get_node(right);
+      IndexSpaceNode *n1 = runtime->get_node(left);
+      IndexSpaceNode *n2 = runtime->get_node(right);
       IndexSpaceExpression *difference =
-        runtime->forest->subtract_index_spaces(n1, n2);
+        runtime->subtract_index_spaces(n1, n2);
       const bool result = difference->is_empty();
       resume_mapper_call(ctx, MAPPER_INDEX_SPACE_DOMINATES_CALL);
       return result;

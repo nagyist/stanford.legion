@@ -650,6 +650,8 @@ namespace Legion {
       void trigger_slices(void);
       void clone_multi_from(MultiTask *task, IndexSpace is, Processor p,
                             bool recurse, bool stealable); 
+      void validate_slicing(IndexSpace input_space,
+                            const std::vector<IndexSpace> &slice_spaces);
       inline RtBarrier get_concurrent_task_barrier(void) const
         { return concurrent_task_barrier; }
     public:

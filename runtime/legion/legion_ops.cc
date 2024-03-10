@@ -1263,11 +1263,10 @@ namespace Legion {
       return 0;
     }
 
-    void
-    Operation::analyze_region_requirements(
-      IndexSpaceNode *launch_space,
-      ShardingFunction *func,
-      IndexSpace shard_space)
+    //--------------------------------------------------------------------------
+    void Operation::analyze_region_requirements(IndexSpaceNode *launch_space,
+        ShardingFunction *func, IndexSpace shard_space)
+    //--------------------------------------------------------------------------
     {
       LogicalAnalysis logical_analysis(this, get_output_offset());
 
@@ -1281,15 +1280,13 @@ namespace Legion {
                                        func,
                                        shard_space);
 
-        runtime->forest->perform_dependence_analysis(this,
-                                                     i,
-                                                     req,
-                                                     projection_info,
-                                                     logical_analysis);
+        perform_dependence_analysis(i, req, projection_info, logical_analysis);
       }
     }
 
+    //--------------------------------------------------------------------------
     unsigned Operation::get_output_offset() const
+    //--------------------------------------------------------------------------
     {
       return LogicalAnalysis::NO_OUTPUT_OFFSET;
     }
@@ -1449,8 +1446,8 @@ namespace Legion {
       if (!runtime->legion_spy_enabled && (runtime->profiler == NULL))
         return;
       FieldSpaceNode *node = (req.handle_type != LEGION_PARTITION_PROJECTION) ?
-        runtime->forest->get_node(req.region.get_field_space()) : 
-        runtime->forest->get_node(req.partition.get_field_space());
+        runtime->get_node(req.region.get_field_space()) : 
+        runtime->get_node(req.partition.get_field_space());
       for (unsigned idx = 0; idx < targets.size(); idx++)
       {
         const InstanceRef &inst = targets[idx];
@@ -2876,8 +2873,8 @@ namespace Legion {
       ContextID ctx = context->get_physical_tree_context();
       RegionTreeNode *child_node = req->handle_type == 
         LEGION_PARTITION_PROJECTION ?
-        static_cast<RegionTreeNode*>(runtime->forest->get_node(req->partition)) :
-        static_cast<RegionTreeNode*>(runtime->forest->get_node(req->region));
+        static_cast<RegionTreeNode*>(runtime->get_node(req->partition)) :
+        static_cast<RegionTreeNode*>(runtime->get_node(req->region));
       FieldMask user_mask =
         child_node->column_source->get_field_mask(req->privilege_fields);
       TreeStateLogger::capture_state(req, idx,
@@ -3791,8 +3788,7 @@ namespace Legion {
       for (LegionMap<LogicalRegion,RegionVersioning>::const_iterator pit =
             to_perform.begin(); pit != to_perform.end(); pit++)
       {
-        IndexSpaceNode *expr =
-          runtime->forest->get_node(pit->first.get_index_space());
+        IndexSpaceNode *expr = runtime->get_node(pit->first.get_index_space());
         std::vector<RtEvent> preconditions;
         LegionList<FieldSet<std::pair<AddressSpaceID,EqSetTracker*> > >
           fields;
@@ -4791,7 +4787,7 @@ namespace Legion {
     {
       // Compute the version numbers for this mapping operation
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement, 
                                                    version_info,
                                                    preconditions);
@@ -4839,19 +4835,15 @@ namespace Legion {
         region.impl->get_references(mapped_instances);
       // Then we can register our mapped instances
       ApEvent map_complete_event =
-        runtime->forest->physical_perform_updates_and_registration(
+        physical_perform_updates_and_registration(
                                                 requirement, version_info,
-                                                this, 0/*idx*/,
+                                                0/*idx*/,
                                                 init_precondition,
                                                 termination_event, 
                                                 mapped_instances,
                                                 source_instances,
                                                 trace_info,
                                                 map_applied_conditions,
-#ifdef DEBUG_LEGION
-                                                get_logging_name(),
-                                                unique_op_id,
-#endif
                                                 false/*no dynamic rendezvous*/,
                                                 record_valid);
 #ifdef DEBUG_LEGION
@@ -5276,7 +5268,7 @@ namespace Legion {
       {
         InstanceSet valid_instances;
         FieldMaskSet<ReplicatedView> collectives;
-        runtime->forest->physical_premap_region(this, 0/*idx*/, requirement,
+        physical_premap_region(0/*idx*/, requirement,
             version_info, valid_instances, collectives, map_applied_conditions);
         if (!requirement.is_no_access())
         {
@@ -5293,7 +5285,7 @@ namespace Legion {
       mapper->invoke_map_inline(this, input, output);
       copy_fill_priority = output.copy_fill_priority;
       if (!output.source_instances.empty())
-        runtime->forest->physical_convert_sources(this, requirement,
+        physical_convert_sources(requirement,
             output.source_instances, source_instances, 
             !runtime->unsafe_mapper ? &acquired_instances : NULL);
       if (!output.profiling_requests.empty())
@@ -5313,7 +5305,7 @@ namespace Legion {
       RegionTreeID bad_tree = 0;
       std::vector<FieldID> missing_fields;
       std::vector<PhysicalManager*> unacquired;
-      int virtual_index = runtime->forest->physical_convert_mapping(this,
+      int virtual_index = physical_convert_mapping(
                                 requirement, output.chosen_instances, 
                                 chosen_instances, bad_tree, missing_fields,
                                 &acquired_instances, unacquired, 
@@ -5489,7 +5481,7 @@ namespace Legion {
         {
           FieldMask padding_mask;
           FieldSpaceNode *fs = 
-            runtime->forest->get_node(requirement.region.get_field_space());
+            runtime->get_node(requirement.region.get_field_space());
           if (!constraints->field_constraint.field_set.empty())
           {
             std::set<FieldID> field_set;
@@ -6223,9 +6215,9 @@ namespace Legion {
         for (unsigned fidx = 0; fidx < src_fields.size(); fidx++)
         {
           const size_t src_size = 
-            runtime->forest->get_field_size(src_space, src_fields[fidx]);
+            runtime->get_field_size(src_space, src_fields[fidx]);
           const size_t dst_size = 
-            runtime->forest->get_field_size(dst_space, dst_fields[fidx]);
+            runtime->get_field_size(dst_space, dst_fields[fidx]);
           if (src_size != dst_size)
             REPORT_LEGION_ERROR(ERROR_FIELD_SIZE_MISMATCH,
                 "Different field sizes are not permitted for region-to-region "
@@ -6236,9 +6228,9 @@ namespace Legion {
                 get_unique_id(), parent_ctx->get_task_name(),
                 parent_ctx->get_unique_id())
           const CustomSerdezID src_serdez =
-            runtime->forest->get_field_serdez(src_space, src_fields[fidx]);
+            runtime->get_field_serdez(src_space, src_fields[fidx]);
           const CustomSerdezID dst_serdez =
-            runtime->forest->get_field_serdez(dst_space, dst_fields[fidx]);
+            runtime->get_field_serdez(dst_space, dst_fields[fidx]);
            if (src_serdez != dst_serdez)
             REPORT_LEGION_ERROR(ERROR_FIELD_SERDEZ_MISMATCH,
                 "Field with different serdez modes are not permitted for "
@@ -6256,12 +6248,12 @@ namespace Legion {
           // as the size of the source coordinate type
           const RegionRequirement &src_idx_req = src_indirect_requirements[idx];
           const FieldID fid = *src_idx_req.privilege_fields.begin();
-          const size_t idx_size = runtime->forest->get_field_size(
+          const size_t idx_size = runtime->get_field_size(
               src_idx_req.parent.get_field_space(), fid);
           const IndexSpace src_space =
             src_requirements[idx].parent.get_index_space();
           const size_t coord_size = 
-            runtime->forest->get_coordinate_size(src_space, false/*range*/);
+            runtime->get_coordinate_size(src_space, false/*range*/);
           if (idx_size != coord_size)
             REPORT_LEGION_ERROR(ERROR_TYPE_FIELD_MISMATCH,
                 "The source indirect field for a copy operation has the "
@@ -6272,7 +6264,7 @@ namespace Legion {
                 "%s (UID %lld).", fid, idx, idx_size, coord_size,
                 get_unique_id(), parent_ctx->get_task_name(),
                 parent_ctx->get_unique_id())
-          const CustomSerdezID idx_serdez = runtime->forest->get_field_serdez(
+          const CustomSerdezID idx_serdez = runtime->get_field_serdez(
               src_idx_req.parent.get_field_space(), fid);
           if (idx_serdez != 0)
             REPORT_LEGION_ERROR(ERROR_SERDEZ_FIELD_DISALLOWED,
@@ -6294,7 +6286,7 @@ namespace Legion {
             IndexSpace dst_space = 
               dst_requirements[idx].parent.get_index_space();
             bool diff_dims = false;
-            if (!runtime->forest->check_types(src_space.get_type_tag(),
+            if (!runtime->check_types(src_space.get_type_tag(),
                                   dst_space.get_type_tag(), diff_dims))
               REPORT_LEGION_ERROR(ERROR_TYPE_MISMATCH,
                             "Copy launcher index space mismatch at index "
@@ -6315,7 +6307,7 @@ namespace Legion {
             IndexSpace dst_space = 
               dst_requirements[idx].parent.get_index_space();
             bool diff_dims = false;
-            if (!runtime->forest->check_types(src_indirect_space.get_type_tag(),
+            if (!runtime->check_types(src_indirect_space.get_type_tag(),
                                            dst_space.get_type_tag(), diff_dims))
               REPORT_LEGION_ERROR(ERROR_TYPE_MISMATCH,
                             "Copy launcher index space mismatch at index "
@@ -6336,12 +6328,12 @@ namespace Legion {
           // as the size of the source coordinate type
           const RegionRequirement &dst_idx_req = dst_indirect_requirements[idx];
           const FieldID fid = *dst_idx_req.privilege_fields.begin();
-          const size_t idx_size = runtime->forest->get_field_size(
+          const size_t idx_size = runtime->get_field_size(
               dst_idx_req.parent.get_field_space(), fid);
           const IndexSpace dst_space =
             dst_requirements[idx].parent.get_index_space();
           const size_t coord_size = 
-            runtime->forest->get_coordinate_size(dst_space, false/*range*/);
+            runtime->get_coordinate_size(dst_space, false/*range*/);
           if (idx_size != coord_size)
             REPORT_LEGION_ERROR(ERROR_TYPE_FIELD_MISMATCH,
                 "The destination indirect field for a copy operation has the "
@@ -6352,7 +6344,7 @@ namespace Legion {
                 "%s (UID %lld).", fid, idx, idx_size, coord_size,
                 get_unique_id(), parent_ctx->get_task_name(),
                 parent_ctx->get_unique_id())
-          const CustomSerdezID idx_serdez = runtime->forest->get_field_serdez(
+          const CustomSerdezID idx_serdez = runtime->get_field_serdez(
               dst_idx_req.parent.get_field_space(), fid);
           if (idx_serdez != 0)
             REPORT_LEGION_ERROR(ERROR_SERDEZ_FIELD_DISALLOWED,
@@ -6373,7 +6365,7 @@ namespace Legion {
             // Just check compatibility here since it's really hard to
             // prove that we're actually going to write everything
             bool diff_dims = false;
-            if (!runtime->forest->check_types(src_space.get_type_tag(), 
+            if (!runtime->check_types(src_space.get_type_tag(), 
                           dst_indirect_space.get_type_tag(), diff_dims))
               REPORT_LEGION_ERROR(ERROR_TYPE_MISMATCH,
                             "Copy launcher index space mismatch at index "
@@ -6397,7 +6389,7 @@ namespace Legion {
             // Just check compatibility here since it's really hard to
             // prove that we're actually going to write everything
             bool diff_dims = false;
-            if (!runtime->forest->check_types(src_indirect_space.get_type_tag(),
+            if (!runtime->check_types(src_indirect_space.get_type_tag(),
                                   dst_indirect_space.get_type_tag(), diff_dims))
               REPORT_LEGION_ERROR(ERROR_TYPE_MISMATCH,
                             "Copy launcher index space mismatch at index "
@@ -6664,7 +6656,7 @@ namespace Legion {
       // Do our versioning analysis and then add it to the ready queue
       std::set<RtEvent> preconditions;
       for (unsigned idx = 0; idx < src_requirements.size(); idx++)
-        runtime->forest->perform_versioning_analysis(this, idx,
+        perform_versioning_analysis(idx,
                                                      src_requirements[idx],
                                                      copies[idx].src->version,
                                                      preconditions);
@@ -6676,7 +6668,7 @@ namespace Legion {
         // so that we can get the version numbers correct
         if (is_reduce_req)
           dst_requirements[idx].privilege = LEGION_READ_WRITE;
-        runtime->forest->perform_versioning_analysis(this, offset + idx,
+        perform_versioning_analysis(offset + idx,
                                                      dst_requirements[idx],
                                                      copies[idx].dst->version,
                                                      preconditions);
@@ -6688,7 +6680,7 @@ namespace Legion {
       if (!src_indirect_requirements.empty())
       {
         for (unsigned idx = 0; idx < src_indirect_requirements.size(); idx++)
-          runtime->forest->perform_versioning_analysis(this, offset + idx,
+          perform_versioning_analysis(offset + idx,
                                                  src_indirect_requirements[idx],
                                                  copies[idx].gather->version,
                                                  preconditions);
@@ -6697,7 +6689,7 @@ namespace Legion {
       if (!dst_indirect_requirements.empty())
       {
         for (unsigned idx = 0; idx < dst_indirect_requirements.size(); idx++)
-          runtime->forest->perform_versioning_analysis(this, offset + idx,
+          perform_versioning_analysis(offset + idx,
                                                  dst_indirect_requirements[idx],
                                                  copies[idx].scatter->version,
                                                  preconditions);
@@ -6751,7 +6743,7 @@ namespace Legion {
         {
           InstanceSet valid_instances;
           FieldMaskSet<ReplicatedView> collectives;
-          runtime->forest->physical_premap_region(this, idx, 
+          physical_premap_region(idx, 
                                                   src_requirements[idx],
                                                   copies[idx].src->version,
                                                   valid_instances, collectives,
@@ -6771,7 +6763,7 @@ namespace Legion {
           const bool is_reduce_req = IS_REDUCE(dst_requirements[idx]);
           if (is_reduce_req)
             dst_requirements[idx].privilege = LEGION_READ_WRITE;
-          runtime->forest->physical_premap_region(this, 
+          physical_premap_region(
                                                   idx+src_requirements.size(),
                                                   dst_requirements[idx],
                                                   copies[idx].dst->version,
@@ -6792,7 +6784,7 @@ namespace Legion {
           {
             InstanceSet valid_instances;
             FieldMaskSet<ReplicatedView> collectives;
-            runtime->forest->physical_premap_region(this, offset+idx, 
+            physical_premap_region(offset+idx, 
                                                 src_indirect_requirements[idx],
                                                 copies[idx].gather->version,
                                                 valid_instances, collectives,
@@ -6812,7 +6804,7 @@ namespace Legion {
           {
             InstanceSet valid_instances;
             FieldMaskSet<ReplicatedView> collectives;
-            runtime->forest->physical_premap_region(this, offset+idx, 
+            physical_premap_region(offset+idx, 
                                                 dst_indirect_requirements[idx],
                                                 copies[idx].scatter->version,
                                                 valid_instances, collectives,
@@ -6918,10 +6910,10 @@ namespace Legion {
           const bool record_valid = (output.untracked_valid_srcs.find(idx) ==
                                      output.untracked_valid_srcs.end());
           src_ready = 
-            runtime->forest->physical_perform_updates_and_registration(
+            physical_perform_updates_and_registration(
                                               src_requirements[idx],
                                               copies[idx].src->version,
-                                              this, idx,
+                                              idx,
                                               init_precondition,
                                               src_indirect ? 
                                                 collective_postcondition :
@@ -6930,10 +6922,6 @@ namespace Legion {
                                               src_sources,
                                               src_info,
                                               map_applied_conditions,
-#ifdef DEBUG_LEGION
-                                              get_logging_name(),
-                                              unique_op_id,
-#endif
                                               false/*check collective*/,
                                               record_valid);
         }
@@ -6945,7 +6933,7 @@ namespace Legion {
 #endif
           src_targets.clear();
           if (!output.src_source_instances[idx].empty())
-            runtime->forest->physical_convert_sources(this, 
+            physical_convert_sources(
                 src_requirements[idx], output.src_source_instances[idx], 
                 across_sources,
                !runtime->unsafe_mapper ? &acquired_instances : NULL);
@@ -6964,9 +6952,9 @@ namespace Legion {
         // as they will do later when the realm copies are recorded.
         PhysicalTraceInfo dst_info(trace_info,dst_idx,false/*update_validity*/);
         dst_ready =
-          runtime->forest->physical_perform_updates_and_registration(
+          physical_perform_updates_and_registration(
                                           dst_requirements[idx],
-                                          copies[idx].dst->version, this,
+                                          copies[idx].dst->version,
                                           dst_idx,
                                           init_precondition,
                                           dst_indirect ? 
@@ -6978,10 +6966,6 @@ namespace Legion {
                                           (src_virtual >= 0) ?
                                             perform_ready_events :
                                             map_applied_conditions,
-#ifdef DEBUG_LEGION
-                                          get_logging_name(),
-                                          unique_op_id,
-#endif
                                           false/*check collective*/,
                                           true/*record valid*/,
                       // Only check initialized if we don't have an indirection.
@@ -7011,9 +6995,9 @@ namespace Legion {
           const bool record_valid = (output.untracked_valid_ind_srcs.find(idx) 
                                     == output.untracked_valid_ind_srcs.end());
           gather_ready =
-            runtime->forest->physical_perform_updates_and_registration(
+            physical_perform_updates_and_registration(
                                        src_indirect_requirements[idx],
-                                       copies[idx].gather->version, this,
+                                       copies[idx].gather->version,
                                        gather_idx,
                                        init_precondition,
                                        local_postcondition,
@@ -7021,10 +7005,6 @@ namespace Legion {
                                        gather_sources,
                                        gather_info,
                                        map_applied_conditions,
-#ifdef DEBUG_LEGION
-                                       get_logging_name(),
-                                       unique_op_id,
-#endif
                                        false/*check collective*/,
                                        record_valid);
           log_mapping_decision(gather_idx, src_indirect_requirements[idx],
@@ -7089,9 +7069,9 @@ namespace Legion {
                                     == output.untracked_valid_ind_dsts.end());
           PhysicalTraceInfo scatter_info(trace_info, scatter_idx);
           scatter_ready =
-            runtime->forest->physical_perform_updates_and_registration(
+            physical_perform_updates_and_registration(
                                       dst_indirect_requirements[idx],
-                                      copies[idx].scatter->version, this,
+                                      copies[idx].scatter->version,
                                       scatter_idx,
                                       init_precondition,
                                       local_postcondition,
@@ -7099,10 +7079,6 @@ namespace Legion {
                                       scatter_sources,
                                       scatter_info,
                                       map_applied_conditions,
-#ifdef DEBUG_LEGION
-                                      get_logging_name(),
-                                      unique_op_id,
-#endif
                                       false/*check collective*/,
                                       record_valid);
           log_mapping_decision(scatter_idx, dst_indirect_requirements[idx],
@@ -7256,10 +7232,10 @@ namespace Legion {
           assert(!local_precondition.exists());
 #endif
           // Normal copy across
-          copy_post = runtime->forest->copy_across( 
+          copy_post = copy_across( 
               src_requirements[index], dst_requirements[index],
               copies[index].src->version, copies[index].dst->version,
-              src_targets, dst_targets, across_sources, this, index,
+              src_targets, dst_targets, across_sources, index,
               trace_info.dst_index, init_precondition, src_ready, dst_ready,
               predication_guard, copies[index].atomic_locks,
               trace_info, applied_conditions);
@@ -7270,10 +7246,10 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(!copies[index].src_indirect_records.empty());
 #endif
-          copy_post = runtime->forest->gather_across(
+          copy_post = gather_across(
               src_requirements[index], src_indirect_requirements[index],
               dst_requirements[index], copies[index].src_indirect_records,
-              src_targets, (*gather_targets), dst_targets, this, index, 
+              src_targets, (*gather_targets), dst_targets, index, 
               src_requirements.size() + dst_requirements.size() + index,
               src_requirements.size() + index, copies[index].gather_is_range,
               init_precondition, src_ready, dst_ready, gather_ready,
@@ -7291,10 +7267,10 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(!copies[index].dst_indirect_records.empty());
 #endif
-          copy_post = runtime->forest->scatter_across(
+          copy_post = scatter_across(
               src_requirements[index], dst_indirect_requirements[index],
               dst_requirements[index], src_targets, (*scatter_targets),
-              dst_targets, copies[index].dst_indirect_records, this, index,
+              dst_targets, copies[index].dst_indirect_records, index,
               src_requirements.size() + dst_requirements.size() + index,
               src_requirements.size() + index, copies[index].scatter_is_range,
               init_precondition, src_ready, dst_ready, scatter_ready,
@@ -7313,12 +7289,12 @@ namespace Legion {
           assert(!copies[index].dst_indirect_records.empty());
 #endif
           // Full indirection copy
-          copy_post = runtime->forest->indirect_across(
+          copy_post = indirect_across(
               src_requirements[index], src_indirect_requirements[index],
               dst_requirements[index], dst_indirect_requirements[index],
               src_targets, dst_targets, copies[index].src_indirect_records,
               (*gather_targets), copies[index].dst_indirect_records,
-              (*scatter_targets), this, index,
+              (*scatter_targets), index,
               src_requirements.size() + index,
               src_requirements.size() + dst_requirements.size() + index,
               src_requirements.size() + dst_requirements.size() +
@@ -7470,7 +7446,7 @@ namespace Legion {
     {
       collective_pre = local_pre;
       collective_post = local_post;
-      records.emplace_back(IndirectRecord(runtime->forest, req, insts));
+      records.emplace_back(IndirectRecord(req, insts));
       return RtEvent::NO_RT_EVENT;
     }
 
@@ -7977,9 +7953,9 @@ namespace Legion {
       std::vector<FieldID> missing_fields;
       std::vector<PhysicalManager*> unacquired;
       if (!input.empty())
-        runtime->forest->physical_convert_sources(this, req, input, sources,
+        physical_convert_sources(req, input, sources,
             !runtime->unsafe_mapper ? &acquired_instances : NULL);
-      int composite_idx = runtime->forest->physical_convert_mapping(this,
+      int composite_idx = physical_convert_mapping(
                               req, output, targets, bad_tree, missing_fields,
                               &acquired_instances, unacquired, 
                               !runtime->unsafe_mapper);
@@ -8272,7 +8248,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(launch_sp.exists());
 #endif
-      launch_space = runtime->forest->get_node(launch_sp);
+      launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
       if (!launcher.launch_domain.exists())
         launch_space->get_domain(index_domain);
@@ -8472,7 +8448,7 @@ namespace Legion {
                                       unique_op_id, copy_kind,
                                       collective_src_indirect_points,
                                       collective_dst_indirect_points);
-        runtime->forest->log_launch_space(launch_space->handle, unique_op_id);
+        log_launch_space(launch_space->handle);
       }
       if (runtime->check_privileges)
         perform_type_checking();
@@ -8987,7 +8963,7 @@ namespace Legion {
         assert(copies[index].src_indirect_records.size() < points.size());
 #endif
         copies[index].src_indirect_records.emplace_back(
-            IndirectRecord(runtime->forest, req, insts));
+            IndirectRecord(req, insts));
         exchange.src_records.push_back(&records);
         if (copies[index].src_indirect_records.size() == points.size())
           return finalize_exchange(index, true/*sources*/);
@@ -9024,7 +9000,7 @@ namespace Legion {
         assert(copies[index].dst_indirect_records.size() < points.size());
 #endif
         copies[index].dst_indirect_records.emplace_back(
-            IndirectRecord(runtime->forest, req, insts));
+            IndirectRecord(req, insts));
         exchange.dst_records.push_back(&records);
         if (copies[index].dst_indirect_records.size() == points.size())
           return finalize_exchange(index, false/*sources*/);
@@ -9113,7 +9089,7 @@ namespace Legion {
             // Can skip comparing against ourself
             if (same_point && (it->first == it->second))
               continue;
-            if (!runtime->forest->are_disjoint(
+            if (!runtime->are_disjoint(
                   point_reqs[it->first].get_index_space(), 
                   other_reqs[it->second].get_index_space()))
             {
@@ -9479,7 +9455,7 @@ namespace Legion {
       if (!intra_space_mapping_dependences.empty())
         preconditions.swap(intra_space_mapping_dependences);
       for (unsigned idx = 0; idx < src_requirements.size(); idx++)
-        runtime->forest->perform_versioning_analysis(this, idx,
+        perform_versioning_analysis(idx,
             src_requirements[idx], copies[idx].src->version, preconditions);
       for (unsigned idx = 0; idx < dst_requirements.size(); idx++)
       {
@@ -9488,7 +9464,7 @@ namespace Legion {
         // so that we can get the version numbers correct
         if (is_reduce_req)
           dst_requirements[idx].privilege = LEGION_READ_WRITE;
-        runtime->forest->perform_versioning_analysis(this,
+        perform_versioning_analysis(
             src_requirements.size() + idx, dst_requirements[idx],
             copies[idx].dst->version, preconditions);
         // Switch the privileges back when we are done
@@ -9499,7 +9475,7 @@ namespace Legion {
       {
         const size_t offset = src_requirements.size() + dst_requirements.size();
         for (unsigned idx = 0; idx < src_indirect_requirements.size(); idx++)
-          runtime->forest->perform_versioning_analysis(this, offset + idx, 
+          perform_versioning_analysis(offset + idx, 
            src_indirect_requirements[idx], copies[idx].gather->version,
            preconditions);
       }
@@ -9508,7 +9484,7 @@ namespace Legion {
         const size_t offset = src_requirements.size() + 
           dst_requirements.size() + src_indirect_requirements.size();
         for (unsigned idx = 0; idx < dst_indirect_requirements.size(); idx++)
-          runtime->forest->perform_versioning_analysis(this, offset + idx, 
+          perform_versioning_analysis(offset + idx, 
            dst_indirect_requirements[idx], copies[idx].scatter->version,
            preconditions);
         if (!src_indirect_requirements.empty())
@@ -10408,7 +10384,7 @@ namespace Legion {
       // Free up the indexes for these fields since we know that they
       // will be deleted at a finite time in the future
       const std::vector<FieldID> field_vec(1,fid);
-      runtime->forest->free_field_indexes(handle, field_vec,
+      runtime->free_field_indexes(handle, field_vec,
                                           mapped_event, non_owner_shard);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_deletion_operation(parent_ctx->get_unique_id(),
@@ -10444,7 +10420,7 @@ namespace Legion {
       // Free up the indexes for these fields since we know that they
       // will be deleted at a finite time in the future
       const std::vector<FieldID> field_vec(to_free.begin(), to_free.end());
-      runtime->forest->free_field_indexes(handle, field_vec,
+      runtime->free_field_indexes(handle, field_vec,
                                           mapped_event, non_owner_shard);
       // If we are unordered do this analysis here since we are not going
       // to go through the normal logical dependence analysis stage
@@ -10546,7 +10522,7 @@ namespace Legion {
         // We still need to perform the invalidations in this path as well
         const ContextID ctx = parent_ctx->get_logical_tree_context();
         for (unsigned idx = 0; idx < deletion_requirements.size(); idx++)
-          runtime->forest->invalidate_current_context(ctx,
+          runtime->invalidate_region_tree_context(ctx,
               deletion_requirements[idx], (kind == FIELD_DELETION));
         return;
       }
@@ -10590,7 +10566,7 @@ namespace Legion {
       // have been recorded in the tree
       const ContextID ctx = parent_ctx->get_logical_tree_context();
       for (unsigned idx = 0; idx < deletion_requirements.size(); idx++)
-        runtime->forest->invalidate_current_context(ctx,
+        runtime->invalidate_region_tree_context(ctx,
             deletion_requirements[idx], (kind == FIELD_DELETION));
       // Now pretend like this is going to be a mapping fence on everyone
       // who came before, although we will never actually record ourselves
@@ -10646,7 +10622,7 @@ namespace Legion {
         std::set<RtEvent> preconditions;
         version_infos.resize(deletion_requirements.size());
         for (unsigned idx = 0; idx < deletion_requirements.size(); idx++)
-          runtime->forest->perform_versioning_analysis(this, idx,
+          perform_versioning_analysis(idx,
                                             deletion_requirements[idx],
                                             version_infos[idx],
                                             preconditions);
@@ -10672,9 +10648,9 @@ namespace Legion {
         for (unsigned idx = 0; idx < deletion_requirements.size(); idx++)
         {
           const VersionInfo &version_info = version_infos[idx];
-          runtime->forest->invalidate_fields(this, idx, 
+          invalidate_fields(idx, 
               deletion_requirements[idx], version_info,
-              PhysicalTraceInfo(trace_info, idx), map_applied_conditions,
+              PhysicalTraceInfo(trace_info, idx),
               NULL/*no collective map*/, false/*not collective*/);
           // Make sure we keep the equivalence sets alive while the 
           // invalidation analysis is running since we're about to 
@@ -10723,13 +10699,13 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             assert(deletion_req_indexes.empty());
 #endif
-            runtime->forest->destroy_index_space(index_space, 
+            runtime->destroy_index_space(index_space, 
                         runtime->address_space, preconditions);
             if (!sub_partitions.empty())
             {
               for (std::vector<IndexPartition>::const_iterator it = 
                     sub_partitions.begin(); it != sub_partitions.end(); it++)
-                runtime->forest->destroy_index_partition(*it, preconditions);
+                runtime->destroy_index_partition(*it, preconditions);
             }
             break;
           }
@@ -10738,12 +10714,12 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             assert(deletion_req_indexes.empty());
 #endif
-            runtime->forest->destroy_index_partition(index_part, preconditions);
+            runtime->destroy_index_partition(index_part, preconditions);
             if (!sub_partitions.empty())
             {
               for (std::vector<IndexPartition>::const_iterator it = 
                     sub_partitions.begin(); it != sub_partitions.end(); it++)
-                runtime->forest->destroy_index_partition(*it, preconditions);
+                runtime->destroy_index_partition(*it, preconditions);
             }
             break;
           }
@@ -10752,16 +10728,16 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             assert(deletion_req_indexes.empty());
 #endif
-            runtime->forest->destroy_field_space(field_space, preconditions);
+            runtime->destroy_field_space(field_space, preconditions);
             break;
           }
         case FIELD_DELETION:
           {
             if (!local_fields.empty())
-              runtime->forest->free_local_fields(field_space, 
+              runtime->free_local_fields(field_space, 
                             local_fields, local_field_indexes);
             if (!global_fields.empty())
-              runtime->forest->free_fields(field_space, global_fields, 
+              runtime->free_fields(field_space, global_fields, 
                                            preconditions);
             if (!local_fields.empty())
               parent_ctx->remove_deleted_local_fields(field_space,local_fields);
@@ -10769,7 +10745,7 @@ namespace Legion {
           }
         case LOGICAL_REGION_DELETION:
           {
-            runtime->forest->destroy_logical_region(logical_region,
+            runtime->destroy_logical_region(logical_region,
                                                     preconditions);
             break;
           }
@@ -11136,8 +11112,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION_COLLECTIVES
         trace->register_close(this, creator_req_idx,
             (req.handle_type == LEGION_SINGULAR_PROJECTION) ?
-            (RegionTreeNode*) runtime->forest->get_node(req.region) :
-            (RegionTreeNode*) runtime->forest->get_node(req.partition), req);
+            (RegionTreeNode*) runtime->get_node(req.region) :
+            (RegionTreeNode*) runtime->get_node(req.partition), req);
 #else
         trace->register_close(this, creator_req_idx, req);
 #endif
@@ -11201,8 +11177,8 @@ namespace Legion {
       // Populate our privilege fields 
       RegionTreeNode *node = 
         (requirement.handle_type == LEGION_SINGULAR_PROJECTION) ? 
-        (RegionTreeNode*)runtime->forest->get_node(requirement.region) :
-        (RegionTreeNode*)runtime->forest->get_node(requirement.partition);
+        (RegionTreeNode*)runtime->get_node(requirement.region) :
+        (RegionTreeNode*)runtime->get_node(requirement.partition);
       node->column_source->get_field_set(close_mask, parent_ctx,
                                          requirement.privilege_fields);
       // Do our logging
@@ -11303,7 +11279,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions);
@@ -11321,19 +11297,15 @@ namespace Legion {
       ApUserEvent close_event = Runtime::create_ap_user_event(&trace_info);
       std::vector<PhysicalManager*> dummy_sources;
       ApEvent instances_ready =
-        runtime->forest->physical_perform_updates_and_registration(
+        physical_perform_updates_and_registration(
                                               requirement, version_info,
-                                              this, 0/*idx*/,
+                                              0/*idx*/,
                                               ApEvent::NO_AP_EVENT,
                                               close_event,
                                               target_instances, 
                                               dummy_sources,
                                               trace_info,
                                               map_applied_conditions,
-#ifdef DEBUG_LEGION
-                                              get_logging_name(),
-                                              unique_op_id,
-#endif
                                               false/*check collective*/,
                                               true/*record valid*/,
                                               false/*check initialized*/);
@@ -11627,7 +11599,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement, 
                                                    source_version_info,
                                                    preconditions);
@@ -11646,7 +11618,7 @@ namespace Legion {
       FieldMaskSet<EquivalenceSet> sources;
       source_version_info.swap(sources);
       IndexSpaceExpression *expr = 
-        runtime->forest->get_node(requirement.region.get_index_space()); 
+        runtime->get_node(requirement.region.get_index_space()); 
       CloneAnalysis *analysis = new CloneAnalysis(expr, 
           parent_ctx->owner_task, parent_idx, std::move(sources));
       analysis->add_reference();
@@ -11978,7 +11950,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<RtEvent> map_applied_conditions;
-      RegionNode *node = runtime->forest->get_node(requirement.region);
+      RegionNode *node = runtime->get_node(requirement.region);
       FieldMask refinement_mask =
         node->column_source->get_field_mask(requirement.privilege_fields);
       parent_ctx->refine_equivalence_sets(parent_req_index,
@@ -12295,7 +12267,7 @@ namespace Legion {
       }
 
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions);
@@ -12318,8 +12290,8 @@ namespace Legion {
       const ApEvent init_precondition = compute_sync_precondition(trace_info);
       ApUserEvent acquire_post = Runtime::create_ap_user_event(&trace_info);
       ApEvent acquire_complete = 
-        runtime->forest->acquire_restrictions(requirement, version_info,
-                                              this, 0/*idx*/, init_precondition,
+        acquire_restrictions(requirement, version_info,
+                                              0/*idx*/, init_precondition,
                                               acquire_post,restricted_instances,
                                               trace_info, map_applied_conditions
 #ifdef DEBUG_LEGION
@@ -13094,7 +13066,7 @@ namespace Legion {
       }
 
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions);
@@ -13118,8 +13090,8 @@ namespace Legion {
       const ApEvent init_precondition = compute_sync_precondition(trace_info); 
       ApUserEvent release_post = Runtime::create_ap_user_event(&trace_info);
       ApEvent release_complete = 
-        runtime->forest->release_restrictions(requirement, version_info,
-                                              this, 0/*idx*/, init_precondition,
+        release_restrictions(requirement, version_info,
+                                              0/*idx*/, init_precondition,
                                               release_post,restricted_instances,
                                               source_instances, trace_info,
                                               map_applied_conditions
@@ -13528,7 +13500,7 @@ namespace Legion {
         profiling_reported = Runtime::create_rt_user_event();
       }
       if (!output.source_instances.empty())
-        runtime->forest->physical_convert_sources(this, requirement,
+        physical_convert_sources(requirement,
             output.source_instances, src_instances,
             !runtime->unsafe_mapper ? &acquired_instances : NULL);
     }
@@ -14361,7 +14333,7 @@ namespace Legion {
       }
       if (!launch_domain.exists())
       {
-        runtime->forest->find_domain(launcher.launch_space, launch_domain);
+        runtime->find_domain(launcher.launch_space, launch_domain);
 #ifdef DEBUG_LEGION
         assert(launch_domain.exists());
 #endif
@@ -14390,7 +14362,7 @@ namespace Legion {
               IndexSpace domain, IndexSpace shard_space)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode *launch_node = runtime->forest->get_node(domain);
+      IndexSpaceNode *launch_node = runtime->get_node(domain);
       return FutureMap(new FutureMapImpl(ctx, this, launch_node,
               runtime->get_available_distributed_id(), get_provenance()));
     }
@@ -15015,7 +14987,6 @@ namespace Legion {
 #endif
       if (multi_tasks > 0)
       {
-        RegionTreeForest *forest = runtime->forest;
         if ((single_tasks > 0) || (multi_tasks > 1))
         {
           Realm::ProfilingRequestSet no_reqs;
@@ -15038,7 +15009,7 @@ namespace Legion {
                   else \
                   { \
                     Domain domain; \
-                    forest->find_domain( \
+                    runtime->find_domain( \
                         launcher.index_tasks[idx].launch_space, domain); \
                     const DomainT<DIM,coord_t> domaint = domain; \
                     subspaces[idx] = domaint; \
@@ -15072,7 +15043,7 @@ namespace Legion {
         {
           launch_domain = launcher.index_tasks[0].launch_domain;
           if (!launch_domain.exists())
-            forest->find_domain(
+            runtime->find_domain(
                 launcher.index_tasks[0].launch_space, launch_domain);
         }
       }
@@ -15231,7 +15202,7 @@ namespace Legion {
             TaskOp *src_task = find_task_by_index(src_index);
             const RegionRequirement &src_req = src_task->regions[src_idx];
             IndexSpaceNode *src_node = 
-              runtime->forest->get_node(src_req.region.get_index_space());
+              runtime->get_node(src_req.region.get_index_space());
             // Scan through all the dependences this internal operation
             // had on other tasks inside the must epoch launch and see
             // which ones we actually interfere with so we can record
@@ -15242,9 +15213,9 @@ namespace Legion {
               TaskOp *dst_task = find_task_by_index(it->first);
               const RegionRequirement &dst_req = dst_task->regions[it->second];
               IndexSpaceNode *dst_node =
-                runtime->forest->get_node(dst_req.region.get_index_space());
+                runtime->get_node(dst_req.region.get_index_space());
               IndexTreeNode *dummy = NULL;
-              if (runtime->forest->are_disjoint_tree_only(src_node, 
+              if (runtime->are_disjoint_tree_only(src_node, 
                                                   dst_node, dummy))
                 continue;
               // Update the dependence type
@@ -15292,11 +15263,11 @@ namespace Legion {
 #endif
         // Check to see if the regions actually do interfere
         IndexSpaceNode *src_node = 
-          runtime->forest->get_node(src_req.region.get_index_space());
+          runtime->get_node(src_req.region.get_index_space());
         IndexSpaceNode *dst_node = 
-          runtime->forest->get_node(dst_req.region.get_index_space());
+          runtime->get_node(dst_req.region.get_index_space());
         IndexTreeNode *dummy = NULL;
-        if (runtime->forest->are_disjoint_tree_only(src_node, dst_node, dummy))
+        if (runtime->are_disjoint_tree_only(src_node, dst_node, dummy))
           return false;
         // Update the dependence type
         dtype = check_dependence_type<true/*reductions interfere*/>(
@@ -15934,7 +15905,7 @@ namespace Legion {
     {
       // Perform the partitioning operation
       const ApEvent ready_event =
-        thunk->perform(this, runtime->forest, sources);
+        thunk->perform(this, sources);
       if (ready_event.exists())
         record_completion_effect(ready_event);
       complete_execution();
@@ -16172,9 +16143,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const size_t field_size = 
-        runtime->forest->get_field_size(handle.get_field_space(), fid);
+        runtime->get_field_size(handle.get_field_space(), fid);
       const size_t coord_size = 
-        runtime->forest->get_coordinate_size(color_space, false/*range*/);
+        runtime->get_coordinate_size(color_space, false/*range*/);
       if (field_size != coord_size)
         REPORT_LEGION_ERROR(ERROR_TYPE_FIELD_MISMATCH,
             "The field size for partition-by-field operation does not "
@@ -16185,7 +16156,7 @@ namespace Legion {
             "parent task %s (UID %lld).", fid, field_size, 
             color_space.get_id(), pid.get_id(), coord_size, get_unique_id(),
             parent_ctx->get_task_name(), parent_ctx->get_unique_id())
-      const CustomSerdezID serdez = runtime->forest->get_field_serdez(
+      const CustomSerdezID serdez = runtime->get_field_serdez(
           handle.get_field_space(), fid);
       if (serdez != 0)
         REPORT_LEGION_ERROR(ERROR_SERDEZ_FIELD_DISALLOWED,
@@ -16242,8 +16213,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const size_t field_size = 
-        runtime->forest->get_field_size(projection.get_field_space(), fid);
-      const size_t coord_size = runtime->forest->get_coordinate_size(
+        runtime->get_field_size(projection.get_field_space(), fid);
+      const size_t coord_size = runtime->get_coordinate_size(
                                           pid_parent, false/*range*/);
       if (field_size != coord_size)
         REPORT_LEGION_ERROR(ERROR_TYPE_FIELD_MISMATCH,
@@ -16255,7 +16226,7 @@ namespace Legion {
             fid, field_size, pid.get_id(), coord_size, 
             get_unique_id(), parent_ctx->get_task_name(), 
             parent_ctx->get_unique_id())
-      const CustomSerdezID serdez = runtime->forest->get_field_serdez(
+      const CustomSerdezID serdez = runtime->get_field_serdez(
           projection.get_field_space(), fid);
       if (serdez != 0)
         REPORT_LEGION_ERROR(ERROR_SERDEZ_FIELD_DISALLOWED,
@@ -16312,8 +16283,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const size_t field_size = 
-        runtime->forest->get_field_size(projection.get_field_space(), fid);
-      const size_t coord_size = runtime->forest->get_coordinate_size(
+        runtime->get_field_size(projection.get_field_space(), fid);
+      const size_t coord_size = runtime->get_coordinate_size(
                                             pid_parent, true/*range*/);
       if (field_size != coord_size)
         REPORT_LEGION_ERROR(ERROR_TYPE_FIELD_MISMATCH,
@@ -16325,7 +16296,7 @@ namespace Legion {
             fid, field_size, pid.get_id(), coord_size, 
             get_unique_id(), parent_ctx->get_task_name(), 
             parent_ctx->get_unique_id())
-      const CustomSerdezID serdez = runtime->forest->get_field_serdez(
+      const CustomSerdezID serdez = runtime->get_field_serdez(
           projection.get_field_space(), fid);
       if (serdez != 0)
         REPORT_LEGION_ERROR(ERROR_SERDEZ_FIELD_DISALLOWED,
@@ -16380,9 +16351,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const size_t field_size = 
-        runtime->forest->get_field_size(handle.get_field_space(), fid);
-      IndexSpace proj_parent = runtime->forest->get_parent_index_space(proj);
-      const size_t coord_size = runtime->forest->get_coordinate_size(
+        runtime->get_field_size(handle.get_field_space(), fid);
+      IndexSpace proj_parent = runtime->get_parent_index_space(proj);
+      const size_t coord_size = runtime->get_coordinate_size(
                                                  proj_parent, false/*range*/);
       if (field_size != coord_size)
         REPORT_LEGION_ERROR(ERROR_TYPE_FIELD_MISMATCH,
@@ -16394,7 +16365,7 @@ namespace Legion {
             fid, field_size, proj.get_id(), coord_size, 
             get_unique_id(), parent_ctx->get_task_name(), 
             parent_ctx->get_unique_id())
-      const CustomSerdezID serdez = runtime->forest->get_field_serdez(
+      const CustomSerdezID serdez = runtime->get_field_serdez(
           handle.get_field_space(), fid);
       if (serdez != 0)
         REPORT_LEGION_ERROR(ERROR_SERDEZ_FIELD_DISALLOWED,
@@ -16449,9 +16420,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const size_t field_size = 
-        runtime->forest->get_field_size(handle.get_field_space(), fid);
-      IndexSpace proj_parent = runtime->forest->get_parent_index_space(proj);
-      const size_t coord_size = runtime->forest->get_coordinate_size(
+        runtime->get_field_size(handle.get_field_space(), fid);
+      IndexSpace proj_parent = runtime->get_parent_index_space(proj);
+      const size_t coord_size = runtime->get_coordinate_size(
                                                  proj_parent, true/*range*/);
       if (field_size != coord_size)
         REPORT_LEGION_ERROR(ERROR_TYPE_FIELD_MISMATCH,
@@ -16463,7 +16434,7 @@ namespace Legion {
             fid, field_size, proj.get_id(), coord_size, 
             get_unique_id(), parent_ctx->get_task_name(), 
             parent_ctx->get_unique_id())
-      const CustomSerdezID serdez = runtime->forest->get_field_serdez(
+      const CustomSerdezID serdez = runtime->get_field_serdez(
           handle.get_field_space(), fid);
       if (serdez != 0)
         REPORT_LEGION_ERROR(ERROR_SERDEZ_FIELD_DISALLOWED,
@@ -16516,9 +16487,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const size_t field_size =
-        runtime->forest->get_field_size(domain.get_field_space(), fid);
+        runtime->get_field_size(domain.get_field_space(), fid);
       const size_t coord_size = 
-        runtime->forest->get_coordinate_size(range, false/*range*/);
+        runtime->get_coordinate_size(range, false/*range*/);
       if (field_size != coord_size)
         REPORT_LEGION_ERROR(ERROR_TYPE_FIELD_MISMATCH,
             "The field size for create-by-association operation does not "
@@ -16528,7 +16499,7 @@ namespace Legion {
             "in parent task %s (UID %lld).", fid, field_size,
             range.get_id(), coord_size, get_unique_id(),
             parent_ctx->get_task_name(), parent_ctx->get_unique_id())
-      const CustomSerdezID serdez = runtime->forest->get_field_serdez(
+      const CustomSerdezID serdez = runtime->get_field_serdez(
           domain.get_field_space(), fid);
       if (serdez != 0)
         REPORT_LEGION_ERROR(ERROR_SERDEZ_FIELD_DISALLOWED,
@@ -16566,7 +16537,7 @@ namespace Legion {
                                   requirement.parent.index_space.id);
         LegionSpy::log_requirement_projection(unique_op_id, 0/*idx*/, 
                                               requirement.projection);
-        runtime->forest->log_launch_space(launch_space->handle, unique_op_id);
+        log_launch_space(launch_space->handle);
       }
       else
         LegionSpy::log_logical_requirement(unique_op_id, 0/*idx*/,
@@ -16637,7 +16608,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(requirement.handle_type == LEGION_PARTITION_PROJECTION);
 #endif
-        partition_node = runtime->forest->get_node(
+        partition_node = runtime->get_node(
             requirement.partition.get_index_partition());
       }
       else
@@ -16650,8 +16621,7 @@ namespace Legion {
         Mapper::SelectPartitionProjectionInput input;
         Mapper::SelectPartitionProjectionOutput output;
         // Find the open complete projections, and then invoke the mapper call
-        runtime->forest->find_open_complete_partitions(this, 0/*idx*/, 
-                          requirement, input.open_complete_partitions);
+        find_open_complete_partitions(input.open_complete_partitions);
         // Invoke the mapper
         if (mapper == NULL)
         {
@@ -16662,7 +16632,7 @@ namespace Legion {
         // Check the output
         if (output.chosen_partition == LogicalPartition::NO_PART)
           return;
-        partition_node = runtime->forest->get_node(
+        partition_node = runtime->get_node(
             output.chosen_partition.get_index_partition());
         // Make sure that it is complete, and then update our information
         // We also allow the mapper to pick the same projection partition 
@@ -16750,7 +16720,7 @@ namespace Legion {
       {
         std::set<RtEvent> preconditions;
         // Path for a non-index space implementation
-        runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+        perform_versioning_analysis(0/*idx*/,
                                                      requirement,
                                                      version_info,
                                                      preconditions);
@@ -16785,19 +16755,15 @@ namespace Legion {
       // Then we can register our mapped_instances
       ApUserEvent part_done = Runtime::create_ap_user_event(&trace_info);
       ApEvent instances_ready =
-        runtime->forest->physical_perform_updates_and_registration(
+        physical_perform_updates_and_registration(
                                                 requirement, version_info,
-                                                this, 0/*idx*/,
+                                                0/*idx*/,
                                                 ApEvent::NO_AP_EVENT,
                                                 part_done,
                                                 mapped_instances,
                                                 source_instances,
                                                 trace_info,
                                                 map_applied_conditions,
-#ifdef DEBUG_LEGION
-                                                get_logging_name(),
-                                                unique_op_id,
-#endif
                                                 false/*check collective*/,
                                                 record_valid);
       ApEvent done_event = trigger_thunk(requirement.region.get_index_space(),
@@ -16838,7 +16804,7 @@ namespace Legion {
       assert(requirement.privilege_fields.size() == 1);
       assert(mapped_insts.size() == 1);
 #endif
-      IndexSpaceNode *node = runtime->forest->get_node(handle);
+      IndexSpaceNode *node = runtime->get_node(handle);
       Domain domain;
       ApEvent domain_ready = node->get_domain(domain, false/*need tight*/);
       if (is_index_space)
@@ -16869,7 +16835,7 @@ namespace Legion {
         if (ready)
         {
           const FieldID fid = *(requirement.privilege_fields.begin());
-          ApEvent done_event = thunk->perform(this, runtime->forest, fid,
+          ApEvent done_event = thunk->perform(this, fid,
               Runtime::merge_events(&info, index_preconditions), instances);
           Runtime::trigger_event(&info, intermediate_index_event, done_event);
           complete_execution();
@@ -16897,7 +16863,7 @@ namespace Legion {
           else
             instances_ready = domain_ready;
         }
-        return thunk->perform(this, runtime->forest, fid,
+        return thunk->perform(this, fid,
                               instances_ready, instances);
       }
     }
@@ -16921,7 +16887,7 @@ namespace Legion {
       {
         InstanceSet valid_instances;
         FieldMaskSet<ReplicatedView> collectives;
-        runtime->forest->physical_premap_region(this, 0/*idx*/, requirement,
+        physical_premap_region(0/*idx*/, requirement,
             version_info, valid_instances, collectives, map_applied_conditions);
         prepare_for_mapping(valid_instances, collectives,
                             input.valid_instances, input.valid_collectives);
@@ -16930,7 +16896,7 @@ namespace Legion {
       mapper->invoke_map_partition(this, input, output);
       copy_fill_priority = output.copy_fill_priority;
       if (!output.source_instances.empty())
-        runtime->forest->physical_convert_sources(this, requirement,
+        physical_convert_sources(requirement,
             output.source_instances, source_instances, 
             !runtime->unsafe_mapper ? &acquired_instances : NULL);
       if (!output.profiling_requests.empty())
@@ -16950,7 +16916,7 @@ namespace Legion {
       RegionTreeID bad_tree = 0;
       std::vector<FieldID> missing_fields;
       std::vector<PhysicalManager*> unacquired;
-      int virtual_index = runtime->forest->physical_convert_mapping(this,
+      int virtual_index = physical_convert_mapping(
                                 requirement, output.chosen_instances, 
                                 mapped_instances, bad_tree, missing_fields,
                                 &acquired_instances, unacquired, 
@@ -17177,7 +17143,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ApEvent DependentPartitionOp::ByFieldThunk::perform(
-           DependentPartitionOp *op, RegionTreeForest *forest, FieldID fid,
+           DependentPartitionOp *op, FieldID fid,
            ApEvent instances_ready, std::vector<FieldDataDescriptor> &instances,
            const std::map<DomainPoint,Domain> *remote_targets,
            std::vector<DeppartResult> *results)
@@ -17186,13 +17152,13 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert((remote_targets == NULL) || remote_targets->empty());
 #endif
-      return forest->create_partition_by_field(op, fid, pid, instances,
+      return op->create_partition_by_field(fid, pid, instances,
                                                results, instances_ready);
     }
 
     //--------------------------------------------------------------------------
     ApEvent DependentPartitionOp::ByImageThunk::perform(
-           DependentPartitionOp *op, RegionTreeForest *forest, FieldID fid,
+           DependentPartitionOp *op, FieldID fid,
            ApEvent instances_ready, std::vector<FieldDataDescriptor> &instances,
            const std::map<DomainPoint,Domain> *remote_targets,
            std::vector<DeppartResult> *results)
@@ -17203,13 +17169,13 @@ namespace Legion {
       assert(remote_targets == NULL);
       assert(results == NULL);
 #endif
-      return forest->create_partition_by_image(op, fid, pid, projection, 
+      return op->create_partition_by_image(fid, pid, projection, 
                                                instances, instances_ready);
     }
 
     //--------------------------------------------------------------------------
     ApEvent DependentPartitionOp::ByImageRangeThunk::perform(
-           DependentPartitionOp *op, RegionTreeForest *forest, FieldID fid,
+           DependentPartitionOp *op, FieldID fid,
            ApEvent instances_ready, std::vector<FieldDataDescriptor> &instances,
            const std::map<DomainPoint,Domain> *remote_targets,
            std::vector<DeppartResult> *results)
@@ -17220,37 +17186,37 @@ namespace Legion {
       assert(remote_targets == NULL);
       assert(results == NULL);
 #endif
-      return forest->create_partition_by_image_range(op, fid, pid, projection,
+      return op->create_partition_by_image_range(fid, pid, projection,
                                                   instances, instances_ready);
     }
 
     //--------------------------------------------------------------------------
     ApEvent DependentPartitionOp::ByPreimageThunk::perform(
-           DependentPartitionOp *op, RegionTreeForest *forest, FieldID fid,
+           DependentPartitionOp *op, FieldID fid,
            ApEvent instances_ready, std::vector<FieldDataDescriptor> &instances,
            const std::map<DomainPoint,Domain> *remote_targets,
            std::vector<DeppartResult> *results)
     //--------------------------------------------------------------------------
     {
-      return forest->create_partition_by_preimage(op, fid, pid, projection, 
+      return op->create_partition_by_preimage(fid, pid, projection, 
                       instances, remote_targets, results, instances_ready);
     }
 
     //--------------------------------------------------------------------------
     ApEvent DependentPartitionOp::ByPreimageRangeThunk::perform(
-           DependentPartitionOp *op, RegionTreeForest *forest, FieldID fid,
+           DependentPartitionOp *op, FieldID fid,
            ApEvent instances_ready, std::vector<FieldDataDescriptor> &instances,
            const std::map<DomainPoint,Domain> *remote_targets,
            std::vector<DeppartResult> *results)
     //--------------------------------------------------------------------------
     {
-      return forest->create_partition_by_preimage_range(op, fid, pid,projection,
+      return op->create_partition_by_preimage_range(fid, pid,projection,
                            instances, remote_targets, results, instances_ready);
     }
 
     //--------------------------------------------------------------------------
     ApEvent DependentPartitionOp::AssociationThunk::perform(
-           DependentPartitionOp *op, RegionTreeForest *forest, FieldID fid,
+           DependentPartitionOp *op, FieldID fid,
            ApEvent instances_ready, std::vector<FieldDataDescriptor> &instances,
            const std::map<DomainPoint,Domain> *remote_targets,
            std::vector<DeppartResult> *results)
@@ -17261,7 +17227,7 @@ namespace Legion {
       assert(remote_targets == NULL);
       assert(results == NULL);
 #endif
-      return forest->create_association(op, fid, domain, range, 
+      return op->create_association(fid, domain, range, 
                                         instances, instances_ready);
     }
 
@@ -17797,7 +17763,7 @@ namespace Legion {
     {
       // Perform the version analysis for our point
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                         requirement, version_info, preconditions);
       // Then put ourselves in the queue of operations ready to map
       if (!preconditions.empty())
@@ -18334,7 +18300,7 @@ namespace Legion {
       const RtEvent view_ready = initialize_fill_view();
       if (view_ready.exists())
         preconditions.insert(view_ready);
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions);
@@ -18351,10 +18317,7 @@ namespace Legion {
       const PhysicalTraceInfo trace_info(this, 0/*index*/);
       // This is NULL for now until we implement tracing for fills
       const ApEvent init_precondition = compute_sync_precondition(trace_info);
-      runtime->forest->fill_fields(this, requirement, 0/*idx*/, 
-                                   get_fill_view(), version_info, 
-                                   init_precondition, true_guard, false_guard,
-                                   trace_info, map_applied_conditions);
+      fill_fields(get_fill_view(), init_precondition, trace_info);
 #ifdef DEBUG_LEGION
       dump_physical_state(&requirement, 0);
 #endif
@@ -18698,7 +18661,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(launch_sp.exists());
 #endif
-      launch_space = runtime->forest->get_node(launch_sp);
+      launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
       if (!launcher.launch_domain.exists())
         launch_space->get_domain(index_domain);
@@ -18760,7 +18723,7 @@ namespace Legion {
         if ((future.impl != NULL) &&
             future.impl->get_ready_event().exists())
           LegionSpy::log_future_use(unique_op_id, future.impl->did); 
-        runtime->forest->log_launch_space(launch_space->handle, unique_op_id);
+        log_launch_space(launch_space->handle);
       }
     }
 
@@ -19033,7 +18996,7 @@ namespace Legion {
         for (unsigned idx2 = 0; idx2 < idx1; idx2++)
         {
           const RegionRequirement &req2 = points[idx2]->get_requirement();
-          if (!runtime->forest->are_disjoint(req1.region.get_index_space(), 
+          if (!runtime->are_disjoint(req1.region.get_index_space(), 
                                              req2.region.get_index_space()))
           {
             const DomainPoint &p1 = points[idx1]->get_domain_point();
@@ -19322,7 +19285,7 @@ namespace Legion {
       std::set<RtEvent> preconditions;
       if (view_ready.exists())
         preconditions.insert(view_ready);
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                         requirement, version_info, preconditions);
       if (!preconditions.empty())
         enqueue_ready_operation(Runtime::merge_events(preconditions));
@@ -19552,7 +19515,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::set<RtEvent> preconditions;  
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions);
@@ -19567,8 +19530,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const PhysicalTraceInfo trace_info(this, 0/*idx*/);
-      runtime->forest->discard_fields(this, 0/*idx*/, requirement,
-                version_info, trace_info, map_applied_conditions);
+      discard_fields(trace_info);
       if (!map_applied_conditions.empty())
         complete_mapping(finalize_complete_mapping(
               Runtime::merge_events(map_applied_conditions)));
@@ -19961,10 +19923,15 @@ namespace Legion {
     void AttachOp::create_external_instance(void)
     //--------------------------------------------------------------------------
     {
+#ifdef DEBUG_LEGION
+      assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
+#endif
+      RegionNode *attach_node = runtime->get_node(requirement.region);
       external_instances.resize(1);
       external_instances[0] = 
-        runtime->forest->create_external_instance(this, requirement,
-                  layout_constraint_set.field_constraint.field_set);
+        attach_node->column_source->create_external_instance(
+          requirement.privilege_fields, 
+          layout_constraint_set.field_constraint.field_set, attach_node, this);
     }
 
     //--------------------------------------------------------------------------
@@ -19998,7 +19965,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     { 
       std::set<RtEvent> preconditions;  
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement,
                                                    version_info,
                                                    preconditions,
@@ -20026,14 +19993,7 @@ namespace Legion {
     { 
       const PhysicalTraceInfo trace_info(this, 0/*idx*/);
       ApUserEvent attach_post = Runtime::create_ap_user_event(&trace_info);
-      ApEvent attach_event = runtime->forest->attach_external(this, 0/*idx*/,
-                                                         requirement,
-                                                         external_instances,
-                                                         version_info,
-                                                         attach_post,
-                                                         trace_info,
-                                                         map_applied_conditions,
-                                                         restricted);
+      ApEvent attach_event = attach_external(attach_post, trace_info);
       log_mapping_decision(0/*idx*/, requirement, external_instances);
       Runtime::trigger_event(&trace_info, attach_post, attach_event);
       record_completion_effect(attach_post);
@@ -20477,7 +20437,7 @@ namespace Legion {
         LegionSpy::log_attach_operation(parent_ctx->get_unique_id(),
                                         unique_op_id, false/*restricted*/);
         if (launch_space != NULL)
-          runtime->forest->log_launch_space(launch_space->handle, unique_op_id);
+          log_launch_space(launch_space->handle);
       }
       resources = ExternalResources(result);
       return resources;
@@ -20510,11 +20470,11 @@ namespace Legion {
         spaces[idx] = points[idx]->get_requirement().region.get_index_space();
       if (requirement.handle_type == LEGION_PARTITION_PROJECTION)
         requirement.projection = parent_ctx->compute_index_attach_projection(
-            runtime->forest->get_node(requirement.partition.index_partition),
+            runtime->get_node(requirement.partition.index_partition),
             this, 0/*start*/, spaces.size(), spaces);
       else
         requirement.projection = parent_ctx->compute_index_attach_projection(
-            runtime->forest->get_node(requirement.region.index_space),
+            runtime->get_node(requirement.region.index_space),
             this, 0/*start*/, spaces.size(), spaces);
       // Save this for later when we go to detach it
       resources.impl->set_projection(requirement.projection);
@@ -20812,7 +20772,7 @@ namespace Legion {
       {
         for (unsigned idx2 = 0; idx2 < idx1; idx2++)
         {
-          if (!runtime->forest->are_disjoint(spaces[idx1], spaces[idx2]))
+          if (!runtime->are_disjoint(spaces[idx1], spaces[idx2]))
             REPORT_LEGION_ERROR(ERROR_INDEX_SPACE_ATTACH,
                 "Index attach operation (UID %lld) in parent task %s "
                 "(UID %lld) has interfering attachments to regions (%d,%d,%d) "
@@ -21269,7 +21229,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::set<RtEvent> preconditions;
-      runtime->forest->perform_versioning_analysis(this, 0/*idx*/,
+      perform_versioning_analysis(0/*idx*/,
                                                    requirement, 
                                                    version_info,
                                                    preconditions,
@@ -21326,19 +21286,15 @@ namespace Legion {
         requirement.privilege = LEGION_READ_ONLY;
         std::vector<PhysicalManager*> dummy_sources;
         UpdateAnalysis *analysis = NULL;
-        filter_precondition = runtime->forest->physical_perform_updates(
+        filter_precondition = physical_perform_updates(
                                                 requirement, version_info,
-                                                this, 0/*idx*/, 
+                                                0/*idx*/, 
                                                 ApEvent::NO_AP_EVENT, 
                                                 detach_post,
                                                 references, dummy_sources,
                                                 trace_info,
                                                 map_applied_conditions,
                                                 analysis,
-#ifdef DEBUG_LEGION
-                                                get_logging_name(),
-                                                unique_op_id,
-#endif
                                                 false/*check collective*/,
                                                 false/*record valid*/,
                                                 false/*check initialized*/);
@@ -21347,10 +21303,7 @@ namespace Legion {
         requirement.privilege = LEGION_READ_WRITE;
       }
       
-      detach_event = 
-        runtime->forest->detach_external(requirement, this, 0/*idx*/,
-                                         version_info, references, detach_post,
-                                         trace_info, map_applied_conditions,
+      detach_event = detach_external(references, detach_post, trace_info,
                                          filter_precondition, flush);
       Runtime::trigger_event(&trace_info, detach_post, detach_event);
       record_completion_effect(detach_post);
@@ -21579,7 +21532,7 @@ namespace Legion {
       {
         LegionSpy::log_detach_operation(parent_ctx->get_unique_id(),
                                         unique_op_id, unordered);
-        runtime->forest->log_launch_space(launch_space->handle, unique_op_id);
+        log_launch_space(launch_space->handle);
       }
       return result;
     }
