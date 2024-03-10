@@ -20627,7 +20627,7 @@ namespace Legion {
       return IndexSpaceT<DIM,T>(create_index_space_difference_internal(ctx,
             IndexPartition(parent), &color, sizeof(color),
             Internal::NT_TemplateHelper::encode_tag<COLOR_DIM,COLOR_T>(), 
-            provenance, __func__< IndexSpace(initial), untyped_handles));
+            provenance, __func__, IndexSpace(initial), untyped_handles));
     }
 
     //--------------------------------------------------------------------------
