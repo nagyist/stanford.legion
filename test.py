@@ -424,7 +424,7 @@ def run_test_legion_jupyter_cxx(launcher, root_dir, tmp_dir, bin_dir, env, threa
 
 def run_test_legion_prof_cxx(launcher, root_dir, tmp_dir, bin_dir, env, thread_count, timelimit):
     # Filter all calls less than 100us to keep the python tractable
-    flags = ['-lg:prof','1', '-lg:prof_logfile', 'prof_%.gz', '-lg:prof_call_threshold', '100']
+    flags = ['-lg:prof','1', '-lg:prof_logfile', 'prof_%.gz', '-lg:prof_call_threshold', '500']
     from tools.test_prof import run_prof_test
     for test_file, test_flags in legion_cxx_prof_tests:
         prof_test = [[test_file, test_flags],]
