@@ -13726,7 +13726,7 @@ namespace Legion {
             "application use case to the Legion developers mailing list.",
             did, current_samples.size(),
             SAMPLES_PER_MIGRATION_TEST, analysis.index,
-            (analysis.op->get_operation_kind() == Operation::TASK_OP_KIND) ?
+            (analysis.op->get_operation_kind() == TASK_OP_KIND) ?
               static_cast<TaskOp*>(analysis.op)->get_task_name() :
             analysis.op->get_logging_name(), analysis.op->get_unique_op_id())
         // Reset the data structures for the next run

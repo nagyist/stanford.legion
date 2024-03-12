@@ -2425,6 +2425,61 @@ namespace Legion {
     };
 
     /**
+     * The operation factory class helps with the creation and 
+     * reuse of operations. It will 
+     */
+    template<typename OP, typename WRAP = OP, bool CAN_DELETE = false>
+    class OperationFactory {
+    public:
+      OperationFactory(void) { }
+      OperationFactory(const OperationFactory &rhs) = delete;
+      ~OperationFactory(void);
+    public:
+      OperationFactory& operator=(const OperationFactory &rhs) = delete;
+    public:
+      void create(OP *&op);
+      void recycle(OP *op);
+    private:
+      std::vector<OP*> available;
+    };
+
+    /*
+     * Specialization for when CAN_DELETE is true
+     */
+    template<typename OP, typename WRAP>
+    class OperationFactory<OP,WRAP,true> {
+    public:
+      OperationFactory(void) { }
+      OperationFactory(const OperationFactory &rhs) = delete;
+      ~OperationFactory(void);
+    public:
+      OperationFactory& operator=(const OperationFactory &rhs) = delete;
+    public:
+      void create(OP *&op);
+      void recycle(OP *op);
+    private:
+      std::deque<OP*> available;
+    };
+
+    /*
+     * Specialization for when OP == WRAP
+     */
+    template<typename OP>
+    class OperationFactory<OP,OP,false> {
+    public:
+      OperationFactory(void) { }
+      OperationFactory(const OperationFactory &rhs) = delete;
+      ~OperationFactory(void);
+    public:
+      OperationFactory& operator=(const OperationFactory &rhs) = delete;
+    public:
+      void create(OP *&op);
+      void recycle(OP *op);
+    private:
+      std::vector<OP*> available;
+    }; 
+
+    /**
      * \class Runtime 
      * This is the actual implementation of the Legion runtime functionality
      * that implements the underlying interface for the Runtime 
@@ -4178,172 +4233,33 @@ namespace Legion {
         { total_outstanding_tasks.fetch_sub(1); }
 #endif
     public:
-      template<typename T>
-      inline T* get_available(LocalLock &local_lock, std::deque<T*> &queue);
-      template<typename T, typename WRAP>
-      inline T* get_available(LocalLock &local_lock, std::deque<T*> &queue);
-      template<typename T>
-      inline void free_available(std::deque<T*> &queue);
-      template<bool CAN_BE_DELETED, typename T>
-      inline void release_operation(std::deque<T*> &queue, T* operation);
-    public:
-      IndividualTask*       get_available_individual_task(void);
-      PointTask*            get_available_point_task(void);
-      IndexTask*            get_available_index_task(void);
-      SliceTask*            get_available_slice_task(void);
-      MapOp*                get_available_map_op(void);
-      CopyOp*               get_available_copy_op(void);
-      IndexCopyOp*          get_available_index_copy_op(void);
-      PointCopyOp*          get_available_point_copy_op(void);
-      FenceOp*              get_available_fence_op(void);
-      FrameOp*              get_available_frame_op(void);
-      CreationOp*           get_available_creation_op(void);
-      DeletionOp*           get_available_deletion_op(void);
-      MergeCloseOp*         get_available_merge_close_op(void);
-      PostCloseOp*          get_available_post_close_op(void);
-      VirtualCloseOp*       get_available_virtual_close_op(void);
-      RefinementOp*         get_available_refinement_op(void);
-      ResetOp*              get_available_reset_op(void);
-      DynamicCollectiveOp*  get_available_dynamic_collective_op(void);
-      FuturePredOp*         get_available_future_pred_op(void);
-      NotPredOp*            get_available_not_pred_op(void);
-      AndPredOp*            get_available_and_pred_op(void);
-      OrPredOp*             get_available_or_pred_op(void);
-      AcquireOp*            get_available_acquire_op(void);
-      ReleaseOp*            get_available_release_op(void);
-      TraceCaptureOp*       get_available_capture_op(void);
-      TraceCompleteOp*      get_available_trace_op(void);
-      TraceReplayOp*        get_available_replay_op(void);
-      TraceBeginOp*         get_available_begin_op(void);
-      TraceSummaryOp*       get_available_summary_op(void);
-      MustEpochOp*          get_available_epoch_op(void);
-      PendingPartitionOp*   get_available_pending_partition_op(void);
-      DependentPartitionOp* get_available_dependent_partition_op(void);
-      PointDepPartOp*       get_available_point_dep_part_op(void);
-      FillOp*               get_available_fill_op(void);
-      IndexFillOp*          get_available_index_fill_op(void);
-      PointFillOp*          get_available_point_fill_op(void);
-      DiscardOp*            get_available_discard_op(void);
-      AttachOp*             get_available_attach_op(void);
-      IndexAttachOp*        get_available_index_attach_op(void);
-      PointAttachOp*        get_available_point_attach_op(void);
-      DetachOp*             get_available_detach_op(void);
-      IndexDetachOp*        get_available_index_detach_op(void);
-      PointDetachOp*        get_available_point_detach_op(void);
-      TimingOp*             get_available_timing_op(void);
-      TunableOp*            get_available_tunable_op(void);
-      AllReduceOp*          get_available_all_reduce_op(void);
-    public: // Control replication operations
-      ReplIndividualTask*   get_available_repl_individual_task(void);
-      ReplIndexTask*        get_available_repl_index_task(void);
-      ReplMergeCloseOp*     get_available_repl_merge_close_op(void);
-      ReplVirtualCloseOp*   get_available_repl_virtual_close_op(void);
-      ReplRefinementOp*     get_available_repl_refinement_op(void);
-      ReplResetOp*          get_available_repl_reset_op(void);
-      ReplFillOp*           get_available_repl_fill_op(void);
-      ReplIndexFillOp*      get_available_repl_index_fill_op(void);
-      ReplDiscardOp*        get_available_repl_discard_op(void);
-      ReplCopyOp*           get_available_repl_copy_op(void);
-      ReplIndexCopyOp*      get_available_repl_index_copy_op(void);
-      ReplDeletionOp*       get_available_repl_deletion_op(void);
-      ReplPendingPartitionOp* get_available_repl_pending_partition_op(void);
-      ReplDependentPartitionOp* get_available_repl_dependent_partition_op(void);
-      ReplMustEpochOp*      get_available_repl_epoch_op(void);
-      ReplTimingOp*         get_available_repl_timing_op(void);
-      ReplTunableOp*        get_available_repl_tunable_op(void);
-      ReplAllReduceOp*      get_available_repl_all_reduce_op(void);
-      ReplFenceOp*          get_available_repl_fence_op(void);
-      ReplMapOp*            get_available_repl_map_op(void);
-      ReplAttachOp*         get_available_repl_attach_op(void);
-      ReplIndexAttachOp*    get_available_repl_index_attach_op(void);
-      ReplDetachOp*         get_available_repl_detach_op(void);
-      ReplIndexDetachOp*    get_available_repl_index_detach_op(void);
-      ReplAcquireOp*        get_available_repl_acquire_op(void);
-      ReplReleaseOp*        get_available_repl_release_op(void);
-      ReplTraceCaptureOp*   get_available_repl_capture_op(void);
-      ReplTraceCompleteOp*  get_available_repl_trace_op(void);
-      ReplTraceReplayOp*    get_available_repl_replay_op(void);
-      ReplTraceBeginOp*     get_available_repl_begin_op(void);
-      ReplTraceSummaryOp*   get_available_repl_summary_op(void);
-    public:
-      void free_individual_task(IndividualTask *task);
-      void free_point_task(PointTask *task);
-      void free_index_task(IndexTask *task);
-      void free_slice_task(SliceTask *task);
-      void free_map_op(MapOp *op);
-      void free_copy_op(CopyOp *op);
-      void free_index_copy_op(IndexCopyOp *op);
-      void free_point_copy_op(PointCopyOp *op);
-      void free_fence_op(FenceOp *op);
-      void free_frame_op(FrameOp *op);
-      void free_creation_op(CreationOp *op);
-      void free_deletion_op(DeletionOp *op);
-      void free_merge_close_op(MergeCloseOp *op); 
-      void free_post_close_op(PostCloseOp *op);
-      void free_virtual_close_op(VirtualCloseOp *op);
-      void free_refinement_op(RefinementOp *op);
-      void free_reset_op(ResetOp *op);
-      void free_dynamic_collective_op(DynamicCollectiveOp *op);
-      void free_future_predicate_op(FuturePredOp *op);
-      void free_not_predicate_op(NotPredOp *op);
-      void free_and_predicate_op(AndPredOp *op);
-      void free_or_predicate_op(OrPredOp *op);
-      void free_acquire_op(AcquireOp *op);
-      void free_release_op(ReleaseOp *op);
-      void free_capture_op(TraceCaptureOp *op);
-      void free_trace_op(TraceCompleteOp *op);
-      void free_replay_op(TraceReplayOp *op);
-      void free_begin_op(TraceBeginOp *op);
-      void free_summary_op(TraceSummaryOp *op);
-      void free_epoch_op(MustEpochOp *op);
-      void free_pending_partition_op(PendingPartitionOp *op);
-      void free_dependent_partition_op(DependentPartitionOp* op);
-      void free_point_dep_part_op(PointDepPartOp *op);
-      void free_fill_op(FillOp *op);
-      void free_index_fill_op(IndexFillOp *op);
-      void free_point_fill_op(PointFillOp *op);
-      void free_discard_op(DiscardOp *op);
-      void free_attach_op(AttachOp *op);
-      void free_index_attach_op(IndexAttachOp *op);
-      void free_point_attach_op(PointAttachOp *op);
-      void free_detach_op(DetachOp *op);
-      void free_index_detach_op(IndexDetachOp *op);
-      void free_point_detach_op(PointDetachOp *op);
-      void free_timing_op(TimingOp *op);
-      void free_tunable_op(TunableOp *op);
-      void free_all_reduce_op(AllReduceOp *op);
-    public: // Control replication operations
-      void free_repl_individual_task(ReplIndividualTask *task);
-      void free_repl_index_task(ReplIndexTask *task);
-      void free_repl_merge_close_op(ReplMergeCloseOp *op);
-      void free_repl_virtual_close_op(ReplVirtualCloseOp *op);
-      void free_repl_refinement_op(ReplRefinementOp *op);
-      void free_repl_reset_op(ReplResetOp *op);
-      void free_repl_fill_op(ReplFillOp *op);
-      void free_repl_index_fill_op(ReplIndexFillOp *op);
-      void free_repl_discard_op(ReplDiscardOp *op);
-      void free_repl_copy_op(ReplCopyOp *op);
-      void free_repl_index_copy_op(ReplIndexCopyOp *op);
-      void free_repl_deletion_op(ReplDeletionOp *op);
-      void free_repl_pending_partition_op(ReplPendingPartitionOp *op);
-      void free_repl_dependent_partition_op(ReplDependentPartitionOp *op);
-      void free_repl_epoch_op(ReplMustEpochOp *op);
-      void free_repl_timing_op(ReplTimingOp *op);
-      void free_repl_tunable_op(ReplTunableOp *op);
-      void free_repl_all_reduce_op(ReplAllReduceOp *op);
-      void free_repl_fence_op(ReplFenceOp *op);
-      void free_repl_map_op(ReplMapOp *op);
-      void free_repl_attach_op(ReplAttachOp *op);
-      void free_repl_index_attach_op(ReplIndexAttachOp *op);
-      void free_repl_detach_op(ReplDetachOp *op);
-      void free_repl_index_detach_op(ReplIndexDetachOp *op);
-      void free_repl_acquire_op(ReplAcquireOp *op);
-      void free_repl_release_op(ReplReleaseOp *op);
-      void free_repl_capture_op(ReplTraceCaptureOp *op);
-      void free_repl_trace_op(ReplTraceCompleteOp *op);
-      void free_repl_replay_op(ReplTraceReplayOp *op);
-      void free_repl_begin_op(ReplTraceBeginOp *op);
-      void free_repl_summary_op(ReplTraceSummaryOp *op);
+      template<typename OP>
+      inline OP* get_operation(void)
+      {
+        OP *result = NULL;
+        {
+          AutoLock op_lock(operation_lock);
+          operation_industry.create(result);
+#ifdef DEBUG_LEGION
+          assert(outstanding_operations.find(result) == 
+              outstanding_operations.end());
+          outstanding_operations.insert(result);
+#endif
+        }
+        result->activate();
+        return result;
+      }
+      template<typename OP>
+      inline void free_operation(OP *op)
+      {
+        AutoLock op_lock(operation_lock);
+#ifdef DEBUG_LEGION
+        std::set<Operation*>::iterator finder = outstanding_operations.find(op);
+        assert(finder != outstanding_operations.end());
+        outstanding_operations.erase(finder);
+#endif
+        operation_industry.recycle(op);
+      }
     public:
       ContextID allocate_region_tree_context(void);
       void invalidate_region_tree_context(ContextID ctx,
@@ -4726,143 +4642,101 @@ namespace Legion {
       std::map<AllocationType,AllocationTracker> allocation_manager;
       std::atomic<unsigned long long> allocation_tracing_count;
 #endif
-    protected:
-      mutable LocalLock individual_task_lock;
-      mutable LocalLock point_task_lock;
-      mutable LocalLock index_task_lock;
-      mutable LocalLock slice_task_lock;
-      mutable LocalLock map_op_lock;
-      mutable LocalLock copy_op_lock;
-      mutable LocalLock fence_op_lock;
-      mutable LocalLock frame_op_lock;
-      mutable LocalLock creation_op_lock;
-      mutable LocalLock deletion_op_lock;
-      mutable LocalLock merge_close_op_lock;
-      mutable LocalLock post_close_op_lock;
-      mutable LocalLock virtual_close_op_lock;
-      mutable LocalLock refinement_op_lock;
-      mutable LocalLock reset_op_lock;
-      mutable LocalLock dynamic_collective_op_lock;
-      mutable LocalLock future_pred_op_lock;
-      mutable LocalLock not_pred_op_lock;
-      mutable LocalLock and_pred_op_lock;
-      mutable LocalLock or_pred_op_lock;
-      mutable LocalLock acquire_op_lock;
-      mutable LocalLock release_op_lock;
-      mutable LocalLock capture_op_lock;
-      mutable LocalLock trace_op_lock;
-      mutable LocalLock replay_op_lock;
-      mutable LocalLock begin_op_lock;
-      mutable LocalLock summary_op_lock;
-      mutable LocalLock epoch_op_lock;
-      mutable LocalLock pending_partition_op_lock;
-      mutable LocalLock dependent_partition_op_lock;
-      mutable LocalLock fill_op_lock;
-      mutable LocalLock discard_op_lock;
-      mutable LocalLock attach_op_lock;
-      mutable LocalLock detach_op_lock;
-      mutable LocalLock timing_op_lock;
-      mutable LocalLock tunable_op_lock;
-      mutable LocalLock all_reduce_op_lock;
-    protected:
-      std::deque<IndividualTask*>       available_individual_tasks;
-      std::deque<PointTask*>            available_point_tasks;
-      std::deque<IndexTask*>            available_index_tasks;
-      std::deque<SliceTask*>            available_slice_tasks;
-      std::deque<MapOp*>                available_map_ops;
-      std::deque<CopyOp*>               available_copy_ops;
-      std::deque<IndexCopyOp*>          available_index_copy_ops;
-      std::deque<PointCopyOp*>          available_point_copy_ops;
-      std::deque<FenceOp*>              available_fence_ops;
-      std::deque<FrameOp*>              available_frame_ops;
-      std::deque<CreationOp*>           available_creation_ops;
-      std::deque<DeletionOp*>           available_deletion_ops;
-      std::deque<MergeCloseOp*>         available_merge_close_ops;
-      std::deque<PostCloseOp*>          available_post_close_ops;
-      std::deque<VirtualCloseOp*>       available_virtual_close_ops;
-      std::deque<RefinementOp*>         available_refinement_ops;
-      std::deque<ResetOp*>              available_reset_ops;
-      std::deque<DynamicCollectiveOp*>  available_dynamic_collective_ops;
-      std::deque<FuturePredOp*>         available_future_pred_ops;
-      std::deque<NotPredOp*>            available_not_pred_ops;
-      std::deque<AndPredOp*>            available_and_pred_ops;
-      std::deque<OrPredOp*>             available_or_pred_ops;
-      std::deque<AcquireOp*>            available_acquire_ops;
-      std::deque<ReleaseOp*>            available_release_ops;
-      std::deque<TraceCaptureOp*>       available_capture_ops;
-      std::deque<TraceCompleteOp*>      available_trace_ops;
-      std::deque<TraceReplayOp*>        available_replay_ops;
-      std::deque<TraceBeginOp*>         available_begin_ops;
-      std::deque<TraceSummaryOp*>       available_summary_ops;
-      std::deque<MustEpochOp*>          available_epoch_ops;
-      std::deque<PendingPartitionOp*>   available_pending_partition_ops;
-      std::deque<DependentPartitionOp*> available_dependent_partition_ops;
-      std::deque<PointDepPartOp*>       available_point_dep_part_ops;
-      std::deque<FillOp*>               available_fill_ops;
-      std::deque<IndexFillOp*>          available_index_fill_ops;
-      std::deque<PointFillOp*>          available_point_fill_ops;
-      std::deque<DiscardOp*>            available_discard_ops;
-      std::deque<AttachOp*>             available_attach_ops;
-      std::deque<IndexAttachOp*>        available_index_attach_ops;
-      std::deque<PointAttachOp*>        available_point_attach_ops;
-      std::deque<DetachOp*>             available_detach_ops;
-      std::deque<IndexDetachOp*>        available_index_detach_ops;
-      std::deque<PointDetachOp*>        available_point_detach_ops;
-      std::deque<TimingOp*>             available_timing_ops;
-      std::deque<TunableOp*>            available_tunable_ops;
-      std::deque<AllReduceOp*>          available_all_reduce_ops;
-    protected: // Control replication operations
-      std::deque<ReplIndividualTask*>   available_repl_individual_tasks;
-      std::deque<ReplIndexTask*>        available_repl_index_tasks;
-      std::deque<ReplMergeCloseOp*>     available_repl_merge_close_ops;
-      std::deque<ReplVirtualCloseOp*>   available_repl_virtual_close_ops;
-      std::deque<ReplRefinementOp*>     available_repl_refinement_ops;
-      std::deque<ReplResetOp*>          available_repl_reset_ops;
-      std::deque<ReplFillOp*>           available_repl_fill_ops;
-      std::deque<ReplIndexFillOp*>      available_repl_index_fill_ops;
-      std::deque<ReplDiscardOp*>        available_repl_discard_ops;
-      std::deque<ReplCopyOp*>           available_repl_copy_ops;
-      std::deque<ReplIndexCopyOp*>      available_repl_index_copy_ops;
-      std::deque<ReplDeletionOp*>       available_repl_deletion_ops;
-      std::deque<ReplPendingPartitionOp*> 
-                                        available_repl_pending_partition_ops;
-      std::deque<ReplDependentPartitionOp*> 
-                                        available_repl_dependent_partition_ops;
-      std::deque<ReplMustEpochOp*>      available_repl_must_epoch_ops;
-      std::deque<ReplTimingOp*>         available_repl_timing_ops;
-      std::deque<ReplTunableOp*>        available_repl_tunable_ops;
-      std::deque<ReplAllReduceOp*>      available_repl_all_reduce_ops;
-      std::deque<ReplFenceOp*>          available_repl_fence_ops;
-      std::deque<ReplMapOp*>            available_repl_map_ops;
-      std::deque<ReplAttachOp*>         available_repl_attach_ops;
-      std::deque<ReplIndexAttachOp*>    available_repl_index_attach_ops;
-      std::deque<ReplDetachOp*>         available_repl_detach_ops;
-      std::deque<ReplIndexDetachOp*>    available_repl_index_detach_ops;
-      std::deque<ReplAcquireOp*>        available_repl_acquire_ops;
-      std::deque<ReplReleaseOp*>        available_repl_release_ops;
-      std::deque<ReplTraceCaptureOp*>   available_repl_capture_ops;
-      std::deque<ReplTraceCompleteOp*>  available_repl_trace_ops;
-      std::deque<ReplTraceReplayOp*>    available_repl_replay_ops;
-      std::deque<ReplTraceBeginOp*>     available_repl_begin_ops;
-      std::deque<ReplTraceSummaryOp*>   available_repl_summary_ops;
+    private:
+      mutable LocalLock operation_lock;
+      /**
+       * Make a type that provides overloads for making each of the
+       * different kinds of operations that we might want to use
+       */
+      template<typename... Factories>
+      class OperationIndustry : public Factories... {
+      public:
+        using Factories::create...;
+        using Factories::recycle...;
+      };
+      OperationIndustry<
+        OperationFactory<IndividualTask,Predicated<IndividualTask> >,
+        OperationFactory<PointTask,Memoizable<PointTask>,true>,
+        OperationFactory<IndexTask,Predicated<IndexTask> >,
+        OperationFactory<SliceTask,Memoizable<SliceTask>,true>,
+        OperationFactory<MapOp>,
+        OperationFactory<CopyOp,Predicated<CopyOp> >,
+        OperationFactory<IndexCopyOp,Predicated<IndexCopyOp> >,
+        OperationFactory<PointCopyOp,Memoizable<PointCopyOp> >,
+        OperationFactory<FenceOp,Memoizable<FenceOp> >,
+        OperationFactory<FrameOp>,
+        OperationFactory<CreationOp>,
+        OperationFactory<DeletionOp>,
+        OperationFactory<MergeCloseOp>,
+        OperationFactory<PostCloseOp>,
+        OperationFactory<VirtualCloseOp>,
+        OperationFactory<RefinementOp>,
+        OperationFactory<ResetOp>,
+        OperationFactory<DynamicCollectiveOp,Memoizable<DynamicCollectiveOp> >,
+        OperationFactory<FuturePredOp>,
+        OperationFactory<NotPredOp>,
+        OperationFactory<AndPredOp>,
+        OperationFactory<OrPredOp>,
+        OperationFactory<AcquireOp,Predicated<AcquireOp> >,
+        OperationFactory<ReleaseOp,Predicated<ReleaseOp> >,
+        OperationFactory<TraceCaptureOp>,
+        OperationFactory<TraceCompleteOp>,
+        OperationFactory<TraceReplayOp>,
+        OperationFactory<TraceBeginOp>,
+        OperationFactory<TraceSummaryOp>,
+        OperationFactory<MustEpochOp>,
+        OperationFactory<PendingPartitionOp>,
+        OperationFactory<DependentPartitionOp>,
+        OperationFactory<PointDepPartOp,PointDepPartOp,true>,
+        OperationFactory<FillOp,Predicated<FillOp> >,
+        OperationFactory<IndexFillOp,Predicated<IndexFillOp> >,
+        OperationFactory<PointFillOp,Memoizable<PointFillOp>,true>,
+        OperationFactory<DiscardOp>,
+        OperationFactory<AttachOp>,
+        OperationFactory<IndexAttachOp>,
+        OperationFactory<PointAttachOp,PointAttachOp,true>,
+        OperationFactory<DetachOp>,
+        OperationFactory<IndexDetachOp>,
+        OperationFactory<PointDetachOp,PointDetachOp,true>,
+        OperationFactory<TimingOp>,
+        OperationFactory<TunableOp>,
+        OperationFactory<AllReduceOp,Memoizable<AllReduceOp> >,
+        OperationFactory<ReplIndividualTask,Predicated<ReplIndividualTask> >,
+        OperationFactory<ReplIndexTask,Predicated<ReplIndexTask> >,
+        OperationFactory<ReplMergeCloseOp>,
+        OperationFactory<ReplVirtualCloseOp>,
+        OperationFactory<ReplRefinementOp>,
+        OperationFactory<ReplResetOp>,
+        OperationFactory<ReplFillOp,Predicated<ReplFillOp> >,
+        OperationFactory<ReplIndexFillOp,Predicated<ReplIndexFillOp> >,
+        OperationFactory<ReplCopyOp,Predicated<ReplCopyOp> >,
+        OperationFactory<ReplIndexCopyOp,Predicated<ReplIndexCopyOp> >,
+        OperationFactory<ReplDeletionOp>,
+        OperationFactory<ReplPendingPartitionOp>,
+        OperationFactory<ReplDependentPartitionOp>,
+        OperationFactory<ReplMustEpochOp>,
+        OperationFactory<ReplTimingOp>,
+        OperationFactory<ReplTunableOp>,
+        OperationFactory<ReplAllReduceOp,Memoizable<ReplAllReduceOp> >,
+        OperationFactory<ReplFenceOp,Memoizable<ReplFenceOp> >,
+        OperationFactory<ReplMapOp>,
+        OperationFactory<ReplDiscardOp>,
+        OperationFactory<ReplAttachOp>,
+        OperationFactory<ReplIndexAttachOp>,
+        OperationFactory<ReplDetachOp>,
+        OperationFactory<ReplIndexDetachOp>,
+        OperationFactory<ReplAcquireOp,Predicated<ReplAcquireOp> >,
+        OperationFactory<ReplReleaseOp,Predicated<ReplReleaseOp> >,
+        OperationFactory<ReplTraceCaptureOp>,
+        OperationFactory<ReplTraceCompleteOp>,
+        OperationFactory<ReplTraceBeginOp>,
+        OperationFactory<ReplTraceReplayOp>,
+        OperationFactory<ReplTraceSummaryOp>
+      > operation_industry; 
 #ifdef DEBUG_LEGION
-      TreeStateLogger *tree_state_logger;
-      // For debugging purposes keep track of
-      // some of the outstanding tasks
-      std::set<IndividualTask*> out_individual_tasks;
-      std::set<PointTask*>      out_point_tasks;
-      std::set<IndexTask*>      out_index_tasks;
-      std::set<SliceTask*>      out_slice_tasks;
-      std::set<MustEpochOp*>    out_must_epoch;
+      std::set<Operation*> outstanding_operations;
     public:
-      // These are debugging method for the above data
-      // structures.  They are not called anywhere in
-      // actual code.
-      void print_out_individual_tasks(FILE *f = stdout, int cnt = -1);
-      void print_out_index_tasks(FILE *f = stdout, int cnt = -1);
-      void print_out_slice_tasks(FILE *f = stdout, int cnt = -1);
-      void print_out_point_tasks(FILE *f = stdout, int cnt = -1);
-      void print_outstanding_tasks(FILE *f = stdout, int cnt = -1);
+      TreeStateLogger *tree_state_logger;
 #endif
     public:
       LayoutConstraintID register_layout(
@@ -5124,105 +4998,6 @@ namespace Legion {
           "Dynamic type mismatch in '%s'", context)
       }
     };
-
-    //--------------------------------------------------------------------------
-    template<typename T>
-    inline T* Runtime::get_available(LocalLock &local_lock, 
-                                     std::deque<T*> &queue)
-    //--------------------------------------------------------------------------
-    {
-      T *result = NULL;
-      {
-        AutoLock l_lock(local_lock);
-        if (!queue.empty())
-        {
-          result = queue.front();
-          queue.pop_front();
-        }
-      }
-      // Couldn't find one so make one
-      if (result == NULL)
-      {
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<T,HasAllocType<T>::value>::trace_allocation();
-#endif
-        void *ptr = legion_alloc_aligned<T,false/*bytes*/>(1/*count*/);
-        result = new(ptr) T();
-      }
-#ifdef DEBUG_LEGION
-      assert(result != NULL);
-#endif
-      result->activate();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T, typename WRAP>
-    inline T* Runtime::get_available(LocalLock &local_lock, 
-                                     std::deque<T*> &queue)
-    //--------------------------------------------------------------------------
-    {
-      static_assert(sizeof(T) == sizeof(WRAP), "wrapper sizes should match");
-      T *result = NULL;
-      {
-        AutoLock l_lock(local_lock);
-        if (!queue.empty())
-        {
-          result = queue.front();
-          queue.pop_front();
-        }
-      }
-      // Couldn't find one so make one
-      if (result == NULL)
-      {
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<T,HasAllocType<T>::value>::trace_allocation();
-#endif
-        void *ptr = legion_alloc_aligned<T,false/*bytes*/>(1/*count*/);
-        result = new(ptr) WRAP();
-      }
-#ifdef DEBUG_LEGION
-      assert(result != NULL);
-#endif
-      result->activate();
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T>
-    inline void Runtime::free_available(std::deque<T*> &queue)
-    //--------------------------------------------------------------------------
-    {
-      for (typename std::deque<T*>::const_iterator it = 
-            queue.begin(); it != queue.end(); it++)
-      {
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<T,HasAllocType<T>::value>::trace_free();
-#endif
-        // Do explicit deletion to keep valgrind happy
-        (*it)->~T();
-        free(*it);
-      }
-      queue.clear();
-    }
-
-    //--------------------------------------------------------------------------
-    template<bool CAN_BE_DELETED, typename T>
-    inline void Runtime::release_operation(std::deque<T*> &queue, T* operation)
-    //--------------------------------------------------------------------------
-    {
-      if (CAN_BE_DELETED && (queue.size() == LEGION_MAX_RECYCLABLE_OBJECTS))
-      {
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<T,HasAllocType<T>::value>::trace_free();
-#endif
-        // Do explicit deletion to keep valgrind happy
-        operation->~T();
-        free(operation);
-      }
-      else
-        queue.push_front(operation);
-    }
 
     //--------------------------------------------------------------------------
     template<typename T>

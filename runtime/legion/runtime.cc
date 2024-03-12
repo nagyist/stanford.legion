@@ -10561,7 +10561,7 @@ namespace Legion {
               REALM_MEMORY_KINDS(MEM_NAMES) 
 #undef MEM_NAMES
             };
-            if (op->get_operation_kind() == Operation::TASK_OP_KIND)
+            if (op->get_operation_kind() == TASK_OP_KIND)
             {
               TaskOp *task = static_cast<TaskOp*>(op);
               REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
@@ -10642,7 +10642,7 @@ namespace Legion {
               REALM_MEMORY_KINDS(MEM_NAMES) 
 #undef MEM_NAMES
             };
-            if (op->get_operation_kind() == Operation::TASK_OP_KIND)
+            if (op->get_operation_kind() == TASK_OP_KIND)
             {
               TaskOp *task = static_cast<TaskOp*>(op);
               REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
@@ -10738,7 +10738,7 @@ namespace Legion {
               REALM_MEMORY_KINDS(MEM_NAMES) 
 #undef MEM_NAMES
             };
-            if (op->get_operation_kind() == Operation::TASK_OP_KIND)
+            if (op->get_operation_kind() == TASK_OP_KIND)
             {
               TaskOp *task = static_cast<TaskOp*>(op);
               REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
@@ -16631,6 +16631,292 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
+    // Operation Factory
+    /////////////////////////////////////////////////////////////
+
+    // template overrides to help with allocations
+
+    //--------------------------------------------------------------------------
+    template<>
+    ApEvent Memoizable<AllReduceOp>::compute_sync_precondition(
+                                              const TraceInfo &trace_info) const
+    //--------------------------------------------------------------------------
+    {
+      return this->execution_fence_event;
+    }
+
+    //--------------------------------------------------------------------------
+    template<>
+    ApEvent Memoizable<DynamicCollectiveOp>::compute_sync_precondition(
+                                              const TraceInfo &trace_info) const
+    //--------------------------------------------------------------------------
+    {
+      return this->execution_fence_event;
+    }
+
+    //--------------------------------------------------------------------------
+    template<>
+    ApEvent Memoizable<FenceOp>::compute_sync_precondition(
+                                              const TraceInfo &trace_info) const
+    //--------------------------------------------------------------------------
+    {
+      return this->execution_fence_event;
+    }
+
+    //--------------------------------------------------------------------------
+    template<>
+    ApEvent Memoizable<ReplAllReduceOp>::compute_sync_precondition(
+                                              const TraceInfo &trace_info) const
+    //--------------------------------------------------------------------------
+    {
+      return this->execution_fence_event;
+    }
+
+    //--------------------------------------------------------------------------
+    template<>
+    ApEvent Memoizable<ReplFenceOp>::compute_sync_precondition(
+                                              const TraceInfo &trace_info) const
+    //--------------------------------------------------------------------------
+    {
+      return this->execution_fence_event;
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename OP, typename WRAP, bool CAN_DELETE>
+    OperationFactory<OP,WRAP,CAN_DELETE>::~OperationFactory(void)
+    //--------------------------------------------------------------------------
+    {
+      static_assert(std::is_base_of<OP,WRAP>::value, "must be derived");
+      for (typename std::vector<OP*>::const_iterator it =
+            available.begin(); it != available.end(); it++)
+      {
+#ifdef LEGION_TRACE_ALLOCATION
+        HandleAllocation<OP,HasAllocType<OP>::value>::trace_free();
+#endif
+        // Do explicit deletion to keep valgrind happy
+        (*it)->~OP();
+        free(*it);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename OP, typename WRAP, bool CAN_DELETE>
+    void OperationFactory<OP,WRAP,CAN_DELETE>::create(OP *&op)
+    //--------------------------------------------------------------------------
+    {
+      if (!available.empty())
+      {
+        op = available.back();
+        available.pop_back();
+      }
+      else
+      {
+        static_assert(sizeof(OP) == sizeof(WRAP), "wrapper sizes should match");
+#ifdef LEGION_TRACE_ALLOCATION
+        HandleAllocation<OP,HasAllocType<OP>::value>::trace_allocation();
+#endif
+        void *ptr = legion_alloc_aligned<WRAP,false/*bytes*/>(1/*count*/);
+        op = new(ptr) WRAP();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename OP, typename WRAP, bool CAN_DELETE>
+    void OperationFactory<OP,WRAP,CAN_DELETE>::recycle(OP *op)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(dynamic_cast<WRAP*>(op) != NULL);
+#endif
+      available.push_back(op);
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename OP, typename WRAP>
+    OperationFactory<OP,WRAP,true>::~OperationFactory(void)
+    //--------------------------------------------------------------------------
+    {
+      static_assert(std::is_base_of<OP,WRAP>::value, "must be derived");
+      for (typename std::deque<OP*>::const_iterator it =
+            available.begin(); it != available.end(); it++)
+      {
+#ifdef LEGION_TRACE_ALLOCATION
+        HandleAllocation<OP,HasAllocType<OP>::value>::trace_free();
+#endif
+        // Do explicit deletion to keep valgrind happy
+        (*it)->~OP();
+        free(*it);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename OP, typename WRAP>
+    void OperationFactory<OP,WRAP,true>::create(OP *&op)
+    //--------------------------------------------------------------------------
+    {
+      if (!available.empty())
+      {
+        op = available.back();
+        available.pop_back();
+      }
+      else
+      {
+        static_assert(sizeof(OP) == sizeof(WRAP), "wrapper sizes should match");
+#ifdef LEGION_TRACE_ALLOCATION
+        HandleAllocation<OP,HasAllocType<OP>::value>::trace_allocation();
+#endif
+        void *ptr = legion_alloc_aligned<WRAP,false/*bytes*/>(1/*count*/);
+        op = new(ptr) WRAP();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename OP, typename WRAP>
+    void OperationFactory<OP,WRAP,true>::recycle(OP *op)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(dynamic_cast<WRAP*>(op) != NULL);
+#endif
+      available.push_back(op);
+      if (available.size() > LEGION_MAX_RECYCLABLE_OBJECTS)
+      {
+        op = available.front();
+        available.pop_front();
+#ifdef LEGION_TRACE_ALLOCATION
+        HandleAllocation<OP,HasAllocType<OP>::value>::trace_free();
+#endif
+        // Do explicit deletion to keep valgrind happy
+        op->~OP();
+        free(op);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename OP>
+    OperationFactory<OP,OP,false>::~OperationFactory(void)
+    //--------------------------------------------------------------------------
+    {
+      for (typename std::vector<OP*>::const_iterator it =
+            available.begin(); it != available.end(); it++)
+      {
+#ifdef LEGION_TRACE_ALLOCATION
+        HandleAllocation<OP,HasAllocType<OP>::value>::trace_free();
+#endif
+        // Do explicit deletion to keep valgrind happy
+        (*it)->~OP();
+        free(*it);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename OP>
+    void OperationFactory<OP,OP,false>::create(OP *&op)
+    //--------------------------------------------------------------------------
+    {
+      if (!available.empty())
+      {
+        op = available.back();
+        available.pop_back();
+      }
+      else
+      {
+#ifdef LEGION_TRACE_ALLOCATION
+        HandleAllocation<OP,HasAllocType<OP>::value>::trace_allocation();
+#endif
+        void *ptr = legion_alloc_aligned<OP,false/*bytes*/>(1/*count*/);
+        op = new(ptr) OP();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename OP>
+    void OperationFactory<OP,OP,false>::recycle(OP *op)
+    //--------------------------------------------------------------------------
+    {
+      available.push_back(op);
+    }
+
+    // explicit instantiations
+    template class OperationFactory<IndividualTask,Predicated<IndividualTask> >;
+    template class OperationFactory<PointTask,Memoizable<PointTask>,true>;
+    template class OperationFactory<IndexTask,Predicated<IndexTask> >;
+    template class OperationFactory<SliceTask,Memoizable<SliceTask>,true>;
+    template class OperationFactory<MapOp>;
+    template class OperationFactory<CopyOp,Predicated<CopyOp> >;
+    template class OperationFactory<IndexCopyOp,Predicated<IndexCopyOp> >;
+    template class OperationFactory<PointCopyOp,Memoizable<PointCopyOp> >;
+    template class OperationFactory<FenceOp,Memoizable<FenceOp> >;
+    template class OperationFactory<FrameOp>;
+    template class OperationFactory<CreationOp>;
+    template class OperationFactory<DeletionOp>;
+    template class OperationFactory<MergeCloseOp>;
+    template class OperationFactory<PostCloseOp>;
+    template class OperationFactory<VirtualCloseOp>;
+    template class OperationFactory<RefinementOp>;
+    template class OperationFactory<ResetOp>;
+    template class OperationFactory<DynamicCollectiveOp,Memoizable<DynamicCollectiveOp> >;
+    template class OperationFactory<FuturePredOp>;
+    template class OperationFactory<NotPredOp>;
+    template class OperationFactory<AndPredOp>;
+    template class OperationFactory<OrPredOp>;
+    template class OperationFactory<AcquireOp,Predicated<AcquireOp> >;
+    template class OperationFactory<ReleaseOp,Predicated<ReleaseOp> >;
+    template class OperationFactory<TraceCaptureOp>;
+    template class OperationFactory<TraceCompleteOp>;
+    template class OperationFactory<TraceReplayOp>;
+    template class OperationFactory<TraceBeginOp>;
+    template class OperationFactory<TraceSummaryOp>;
+    template class OperationFactory<MustEpochOp>;
+    template class OperationFactory<PendingPartitionOp>;
+    template class OperationFactory<DependentPartitionOp>;
+    template class OperationFactory<PointDepPartOp,PointDepPartOp,true>;
+    template class OperationFactory<FillOp,Predicated<FillOp> >;
+    template class OperationFactory<IndexFillOp,Predicated<IndexFillOp> >;
+    template class OperationFactory<PointFillOp,Memoizable<PointFillOp>,true>;
+    template class OperationFactory<DiscardOp>;
+    template class OperationFactory<AttachOp>;
+    template class OperationFactory<IndexAttachOp>;
+    template class OperationFactory<PointAttachOp,PointAttachOp,true>;
+    template class OperationFactory<DetachOp>;
+    template class OperationFactory<IndexDetachOp>;
+    template class OperationFactory<PointDetachOp,PointDetachOp,true>;
+    template class OperationFactory<TimingOp>;
+    template class OperationFactory<TunableOp>;
+    template class OperationFactory<AllReduceOp,Memoizable<AllReduceOp> >;
+    template class OperationFactory<ReplIndividualTask,Predicated<ReplIndividualTask> >;
+    template class OperationFactory<ReplIndexTask,Predicated<ReplIndexTask> >;
+    template class OperationFactory<ReplMergeCloseOp>;
+    template class OperationFactory<ReplVirtualCloseOp>;
+    template class OperationFactory<ReplRefinementOp>;
+    template class OperationFactory<ReplResetOp>;
+    template class OperationFactory<ReplFillOp,Predicated<ReplFillOp> >;
+    template class OperationFactory<ReplIndexFillOp,Predicated<ReplIndexFillOp> >;
+    template class OperationFactory<ReplCopyOp,Predicated<ReplCopyOp> >;
+    template class OperationFactory<ReplIndexCopyOp,Predicated<ReplIndexCopyOp> >;
+    template class OperationFactory<ReplDeletionOp>;
+    template class OperationFactory<ReplPendingPartitionOp>;
+    template class OperationFactory<ReplDependentPartitionOp>;
+    template class OperationFactory<ReplMustEpochOp>;
+    template class OperationFactory<ReplTimingOp>;
+    template class OperationFactory<ReplTunableOp>;
+    template class OperationFactory<ReplAllReduceOp,Memoizable<ReplAllReduceOp> >;
+    template class OperationFactory<ReplFenceOp,Memoizable<ReplFenceOp> >;
+    template class OperationFactory<ReplMapOp>;
+    template class OperationFactory<ReplDiscardOp>;
+    template class OperationFactory<ReplAttachOp>;
+    template class OperationFactory<ReplIndexAttachOp>;
+    template class OperationFactory<ReplDetachOp>;
+    template class OperationFactory<ReplIndexDetachOp>;
+    template class OperationFactory<ReplAcquireOp,Predicated<ReplAcquireOp> >;
+    template class OperationFactory<ReplReleaseOp,Predicated<ReplReleaseOp> >;
+    template class OperationFactory<ReplTraceCaptureOp>;
+    template class OperationFactory<ReplTraceCompleteOp>;
+    template class OperationFactory<ReplTraceBeginOp>;
+    template class OperationFactory<ReplTraceReplayOp>;
+    template class OperationFactory<ReplTraceSummaryOp>;
+
+    /////////////////////////////////////////////////////////////
     // Legion Runtime 
     /////////////////////////////////////////////////////////////
 
@@ -16866,6 +17152,9 @@ namespace Legion {
     Runtime::~Runtime(void)
     //--------------------------------------------------------------------------
     {
+#ifdef DEBUG_LEGION
+      assert(outstanding_operations.empty());
+#endif
       // Make sure we don't send anymore messages
       for (unsigned idx = 0; idx < LEGION_MAX_NUM_NODES; idx++)
       {
@@ -16913,78 +17202,6 @@ namespace Legion {
         delete it->second;
       }
       proc_managers.clear(); 
-      free_available(available_individual_tasks);
-      free_available(available_point_tasks);
-      free_available(available_index_tasks);
-      free_available(available_slice_tasks);
-      free_available(available_map_ops);
-      free_available(available_copy_ops);
-      free_available(available_fence_ops);
-      free_available(available_frame_ops);
-      free_available(available_creation_ops);
-      free_available(available_deletion_ops);
-      free_available(available_merge_close_ops);
-      free_available(available_post_close_ops);
-      free_available(available_virtual_close_ops);
-      free_available(available_refinement_ops);
-      free_available(available_reset_ops);
-      free_available(available_dynamic_collective_ops);
-      free_available(available_future_pred_ops);
-      free_available(available_not_pred_ops);
-      free_available(available_and_pred_ops);
-      free_available(available_or_pred_ops);
-      free_available(available_acquire_ops);
-      free_available(available_release_ops);
-      free_available(available_capture_ops);
-      free_available(available_trace_ops);
-      free_available(available_replay_ops);
-      free_available(available_begin_ops);
-      free_available(available_summary_ops);
-      free_available(available_epoch_ops);
-      free_available(available_pending_partition_ops);
-      free_available(available_dependent_partition_ops);
-      free_available(available_fill_ops);
-      free_available(available_discard_ops);
-      free_available(available_attach_ops);
-      free_available(available_index_attach_ops);
-      free_available(available_point_attach_ops);
-      free_available(available_detach_ops);
-      free_available(available_index_detach_ops);
-      free_available(available_point_detach_ops);
-      free_available(available_timing_ops);
-      free_available(available_tunable_ops);
-      free_available(available_all_reduce_ops);
-      free_available(available_repl_individual_tasks);
-      free_available(available_repl_index_tasks);
-      free_available(available_repl_merge_close_ops);
-      free_available(available_repl_virtual_close_ops);
-      free_available(available_repl_refinement_ops);
-      free_available(available_repl_reset_ops);
-      free_available(available_repl_fill_ops);
-      free_available(available_repl_index_fill_ops);
-      free_available(available_repl_discard_ops);
-      free_available(available_repl_copy_ops);
-      free_available(available_repl_index_copy_ops);
-      free_available(available_repl_deletion_ops);
-      free_available(available_repl_pending_partition_ops);
-      free_available(available_repl_dependent_partition_ops);
-      free_available(available_repl_must_epoch_ops);
-      free_available(available_repl_timing_ops);
-      free_available(available_repl_tunable_ops);
-      free_available(available_repl_all_reduce_ops);
-      free_available(available_repl_fence_ops);
-      free_available(available_repl_map_ops);
-      free_available(available_repl_attach_ops);
-      free_available(available_repl_index_attach_ops);
-      free_available(available_repl_detach_ops);
-      free_available(available_repl_index_detach_ops);
-      free_available(available_repl_acquire_ops);
-      free_available(available_repl_release_ops);
-      free_available(available_repl_capture_ops);
-      free_available(available_repl_trace_ops);
-      free_available(available_repl_replay_ops);
-      free_available(available_repl_begin_ops);
-      free_available(available_repl_summary_ops);
       for (std::map<TaskID,TaskImpl*>::const_iterator it = 
             task_table.begin(); it != task_table.end(); it++)
       {
@@ -17181,7 +17398,7 @@ namespace Legion {
                                     machine, LG_MESSAGE_ID,
                                     lg_task_descriptions, LAST_SEND_KIND, 
                                     lg_message_descriptions,
-                                    Operation::LAST_OP_KIND,
+                                    LAST_OP_KIND,
                                     Operation::op_names,
                                     config.serializer_type.c_str(),
                                     config.prof_logfile.c_str(),
@@ -17798,7 +18015,7 @@ namespace Legion {
       map_context->add_base_gc_ref(RUNTIME_REF);
       TaskLauncher launcher(tid, arg, Predicate::TRUE_PRED, map_id);
       // Get an individual task to be the top-level task
-      IndividualTask *mapper_task = get_available_individual_task();
+      IndividualTask *mapper_task = get_operation<IndividualTask>();
       Future f = mapper_task->initialize_task(map_context, launcher, 
                           NULL/*provenance*/, true/*top level*/);
       mapper_task->set_current_proc(proc);
@@ -26710,126 +26927,89 @@ namespace Legion {
     }
 #endif
 
+#if 0
     //--------------------------------------------------------------------------
     IndividualTask* Runtime::get_available_individual_task(void)
     //--------------------------------------------------------------------------
     {
-      IndividualTask *result = get_available<IndividualTask,
-                     Predicated<IndividualTask> >(individual_task_lock, 
-                                         available_individual_tasks);
-#ifdef DEBUG_LEGION
-      AutoLock i_lock(individual_task_lock);
-      out_individual_tasks.insert(result);
-#endif
-      return result;
+      return available_individual_tasks.get();
     }
 
     //--------------------------------------------------------------------------
     PointTask* Runtime::get_available_point_task(void)
     //--------------------------------------------------------------------------
     {
-      PointTask *result = get_available<PointTask,Memoizable<PointTask> >(
-                                    point_task_lock, available_point_tasks);
-#ifdef DEBUG_LEGION
-      AutoLock p_lock(point_task_lock);
-      out_point_tasks.insert(result);
-#endif
-      return result;
+      return available_point_tasks.get();
     }
 
     //--------------------------------------------------------------------------
     IndexTask* Runtime::get_available_index_task(void)
     //--------------------------------------------------------------------------
     {
-      IndexTask *result = get_available<IndexTask,Predicated<IndexTask> >(
-                                    index_task_lock, available_index_tasks);
-#ifdef DEBUG_LEGION
-      AutoLock i_lock(index_task_lock);
-      out_index_tasks.insert(result);
-#endif
-      return result;
+      return available_index_tasks.get();
     }
 
     //--------------------------------------------------------------------------
     SliceTask* Runtime::get_available_slice_task(void)
     //--------------------------------------------------------------------------
     {
-      SliceTask *result = get_available<SliceTask,Memoizable<SliceTask> >(
-                                    slice_task_lock, available_slice_tasks);
-#ifdef DEBUG_LEGION
-      AutoLock s_lock(slice_task_lock);
-      out_slice_tasks.insert(result);
-#endif
-      return result;
+      return available_slice_tasks.get();
     }
 
     //--------------------------------------------------------------------------
     MapOp* Runtime::get_available_map_op(void)
     //--------------------------------------------------------------------------
     {
-      return get_available(map_op_lock, available_map_ops);
+      return available_map_ops.get();
     }
 
     //--------------------------------------------------------------------------
     CopyOp* Runtime::get_available_copy_op(void)
     //--------------------------------------------------------------------------
     {
-      return get_available<CopyOp,Predicated<CopyOp> >(
-                        copy_op_lock, available_copy_ops);
+      return available_copy_ops.get();
     }
 
     //--------------------------------------------------------------------------
     IndexCopyOp* Runtime::get_available_index_copy_op(void)
     //--------------------------------------------------------------------------
     {
-      return get_available<IndexCopyOp,Predicated<IndexCopyOp> >(
-                            copy_op_lock, available_index_copy_ops);
+      return available_index_copy_ops.get();
     }
 
     //--------------------------------------------------------------------------
     PointCopyOp* Runtime::get_available_point_copy_op(void)
     //--------------------------------------------------------------------------
     {
-      return get_available<PointCopyOp,Memoizable<PointCopyOp> >(
-                    copy_op_lock, available_point_copy_ops);
-    }
-
-    //--------------------------------------------------------------------------
-    template<>
-    ApEvent Memoizable<FenceOp>::compute_sync_precondition(
-                                              const TraceInfo &trace_info) const
-    //--------------------------------------------------------------------------
-    {
-      return this->execution_fence_event;
-    }
+      return available_point_copy_ops.get();
+    } 
 
     //--------------------------------------------------------------------------
     FenceOp* Runtime::get_available_fence_op(void)
     //--------------------------------------------------------------------------
     {
-      return get_available<FenceOp,Memoizable<FenceOp> >(
-                      fence_op_lock, available_fence_ops);
+      return available_fence_ops.get();
     }
 
     //--------------------------------------------------------------------------
     FrameOp* Runtime::get_available_frame_op(void)
     //--------------------------------------------------------------------------
     {
-      return get_available(frame_op_lock, available_frame_ops);
+      return available_frame_ops.get();
     }
 
     //--------------------------------------------------------------------------
     CreationOp* Runtime::get_available_creation_op(void)
     //--------------------------------------------------------------------------
     {
-      return get_available(creation_op_lock, available_creation_ops);
+      return available_creation_ops.get();
     }
 
     //--------------------------------------------------------------------------
     DeletionOp* Runtime::get_available_deletion_op(void)
     //--------------------------------------------------------------------------
     {
-      return get_available(deletion_op_lock, available_deletion_ops);
+      return available_deletion_ops.get();
     }
 
     //--------------------------------------------------------------------------
@@ -26865,16 +27045,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return get_available(reset_op_lock, available_reset_ops);
-    }
-
-    //--------------------------------------------------------------------------
-    template<>
-    ApEvent Memoizable<DynamicCollectiveOp>::compute_sync_precondition(
-                                              const TraceInfo &trace_info) const
-    //--------------------------------------------------------------------------
-    {
-      return this->execution_fence_event;
-    }
+    } 
 
     //--------------------------------------------------------------------------
     DynamicCollectiveOp* Runtime::get_available_dynamic_collective_op(void)
@@ -27085,16 +27256,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return get_available(tunable_op_lock, available_tunable_ops);
-    }
-
-    //--------------------------------------------------------------------------
-    template<>
-    ApEvent Memoizable<AllReduceOp>::compute_sync_precondition(
-                                              const TraceInfo &trace_info) const
-    //--------------------------------------------------------------------------
-    {
-      return this->execution_fence_event;
-    }
+    } 
 
     //--------------------------------------------------------------------------
     AllReduceOp* Runtime::get_available_all_reduce_op(void)
@@ -27228,30 +27390,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<>
-    ApEvent Memoizable<ReplAllReduceOp>::compute_sync_precondition(
-                                              const TraceInfo &trace_info) const
-    //--------------------------------------------------------------------------
-    {
-      return this->execution_fence_event;
-    }
-
-    //--------------------------------------------------------------------------
     ReplAllReduceOp* Runtime::get_available_repl_all_reduce_op(void)
     //--------------------------------------------------------------------------
     {
       return get_available<ReplAllReduceOp, Memoizable<ReplAllReduceOp> >(
                         all_reduce_op_lock, available_repl_all_reduce_ops);
-    }
-
-    //--------------------------------------------------------------------------
-    template<>
-    ApEvent Memoizable<ReplFenceOp>::compute_sync_precondition(
-                                              const TraceInfo &trace_info) const
-    //--------------------------------------------------------------------------
-    {
-      return this->execution_fence_event;
-    }
+    } 
 
     //--------------------------------------------------------------------------
     ReplFenceOp* Runtime::get_available_repl_fence_op(void) 
@@ -27989,6 +28133,7 @@ namespace Legion {
       AutoLock a_lock(all_reduce_op_lock);
       release_operation<false>(available_all_reduce_ops, op);
     }
+#endif
 
     //--------------------------------------------------------------------------
     ContextID Runtime::allocate_region_tree_context(void)
@@ -28686,206 +28831,6 @@ namespace Legion {
           assert(false); // should never get here
       }
       return NULL;
-    }
-#endif
-
-#ifdef DEBUG_LEGION
-    //--------------------------------------------------------------------------
-    void Runtime::print_out_individual_tasks(FILE *f, int cnt /*= -1*/)
-    //--------------------------------------------------------------------------
-    {
-      // Build a map of the tasks based on their task IDs
-      // so we can print them out in the order that they were created.
-      // No need to hold the lock because we'll only ever call this
-      // in the debugger.
-      std::map<UniqueID,IndividualTask*> out_tasks;
-      for (std::set<IndividualTask*>::const_iterator it = 
-            out_individual_tasks.begin(); it !=
-            out_individual_tasks.end(); it++)
-      {
-        out_tasks[(*it)->get_unique_id()] = *it;
-      }
-      for (std::map<UniqueID,IndividualTask*>::const_iterator it = 
-            out_tasks.begin(); (it != out_tasks.end()); it++)
-      {
-        ApEvent completion = it->second->get_completion_event();
-        fprintf(f,"Outstanding Individual Task %lld: %p %s (" IDFMT ")\n",
-                it->first, it->second, it->second->get_task_name(),
-                completion.id); 
-        if (cnt > 0)
-          cnt--;
-        else if (cnt == 0)
-          break;
-      }
-      fflush(f);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::print_out_index_tasks(FILE *f, int cnt /*= -1*/)
-    //--------------------------------------------------------------------------
-    {
-      // Build a map of the tasks based on their task IDs
-      // so we can print them out in the order that they were created.
-      // No need to hold the lock because we'll only ever call this
-      // in the debugger.
-      std::map<UniqueID,IndexTask*> out_tasks;
-      for (std::set<IndexTask*>::const_iterator it = 
-            out_index_tasks.begin(); it !=
-            out_index_tasks.end(); it++)
-      {
-        out_tasks[(*it)->get_unique_id()] = *it;
-      }
-      for (std::map<UniqueID,IndexTask*>::const_iterator it = 
-            out_tasks.begin(); (it != out_tasks.end()); it++)
-      {
-        ApEvent completion = it->second->get_completion_event();
-        fprintf(f,"Outstanding Index Task %lld: %p %s (" IDFMT ")\n",
-                it->first, it->second, it->second->get_task_name(),
-                completion.id); 
-        if (cnt > 0)
-          cnt--;
-        else if (cnt == 0)
-          break;
-      }
-      fflush(f);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::print_out_slice_tasks(FILE *f, int cnt /*= -1*/)
-    //--------------------------------------------------------------------------
-    {
-      // Build a map of the tasks based on their task IDs
-      // so we can print them out in the order that they were created.
-      // No need to hold the lock because we'll only ever call this
-      // in the debugger.
-      std::map<UniqueID,SliceTask*> out_tasks;
-      for (std::set<SliceTask*>::const_iterator it = 
-            out_slice_tasks.begin(); it !=
-            out_slice_tasks.end(); it++)
-      {
-        out_tasks[(*it)->get_unique_id()] = *it;
-      }
-      for (std::map<UniqueID,SliceTask*>::const_iterator it = 
-            out_tasks.begin(); (it != out_tasks.end()); it++)
-      {
-        ApEvent completion = it->second->get_completion_event();
-        fprintf(f,"Outstanding Slice Task %lld: %p %s (" IDFMT ")\n",
-                it->first, it->second, it->second->get_task_name(),
-                completion.id); 
-        if (cnt > 0)
-          cnt--;
-        else if (cnt == 0)
-          break;
-      }
-      fflush(f);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::print_out_point_tasks(FILE *f, int cnt /*= -1*/)
-    //--------------------------------------------------------------------------
-    {
-      // Build a map of the tasks based on their task IDs
-      // so we can print them out in the order that they were created.
-      // No need to hold the lock because we'll only ever call this
-      // in the debugger.
-      std::map<UniqueID,PointTask*> out_tasks;
-      for (std::set<PointTask*>::const_iterator it = 
-            out_point_tasks.begin(); it !=
-            out_point_tasks.end(); it++)
-      {
-        out_tasks[(*it)->get_unique_id()] = *it;
-      }
-      for (std::map<UniqueID,PointTask*>::const_iterator it = 
-            out_tasks.begin(); (it != out_tasks.end()); it++)
-      {
-        ApEvent completion = it->second->get_completion_event();
-        fprintf(f,"Outstanding Point Task %lld: %p %s (" IDFMT ")\n",
-                it->first, it->second, it->second->get_task_name(),
-                completion.id); 
-        if (cnt > 0)
-          cnt--;
-        else if (cnt == 0)
-          break;
-      }
-      fflush(f);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::print_outstanding_tasks(FILE *f, int cnt /*= -1*/)
-    //--------------------------------------------------------------------------
-    {
-      std::map<UniqueID,TaskOp*> out_tasks;
-      for (std::set<IndividualTask*>::const_iterator it = 
-            out_individual_tasks.begin(); it !=
-            out_individual_tasks.end(); it++)
-      {
-        out_tasks[(*it)->get_unique_id()] = *it;
-      }
-      for (std::set<IndexTask*>::const_iterator it = 
-            out_index_tasks.begin(); it !=
-            out_index_tasks.end(); it++)
-      {
-        out_tasks[(*it)->get_unique_id()] = *it;
-      }
-      for (std::set<SliceTask*>::const_iterator it = 
-            out_slice_tasks.begin(); it !=
-            out_slice_tasks.end(); it++)
-      {
-        out_tasks[(*it)->get_unique_id()] = *it;
-      }
-      for (std::set<PointTask*>::const_iterator it = 
-            out_point_tasks.begin(); it !=
-            out_point_tasks.end(); it++)
-      {
-        out_tasks[(*it)->get_unique_id()] = *it;
-      }
-      for (std::map<UniqueID,TaskOp*>::const_iterator it = 
-            out_tasks.begin(); it != out_tasks.end(); it++)
-      {
-        ApEvent completion = it->second->get_completion_event();
-        switch (it->second->get_task_kind())
-        {
-          case TaskOp::INDIVIDUAL_TASK_KIND:
-            {
-              fprintf(f,"Outstanding Individual Task %lld: %p %s (" 
-                        IDFMT ")\n",
-                it->first, it->second, it->second->get_task_name(),
-                completion.id);
-              break;
-            }
-          case TaskOp::POINT_TASK_KIND:
-            {
-              fprintf(f,"Outstanding Point Task %lld: %p %s (" 
-                        IDFMT ")\n",
-                it->first, it->second, it->second->get_task_name(),
-                completion.id);
-              break;
-            }
-          case TaskOp::INDEX_TASK_KIND:
-            {
-              fprintf(f,"Outstanding Index Task %lld: %p %s (" 
-                        IDFMT ")\n",
-                it->first, it->second, it->second->get_task_name(),
-                completion.id);
-              break;
-            }
-          case TaskOp::SLICE_TASK_KIND:
-            {
-              fprintf(f,"Outstanding Slice Task %lld: %p %s (" 
-                        IDFMT ")\n",
-                it->first, it->second, it->second->get_task_name(),
-                completion.id);
-              break;
-            }
-          default:
-            assert(false);
-        }
-        if (cnt > 0)
-          cnt--;
-        else if (cnt == 0)
-          break;
-      }
-      fflush(f);
     }
 #endif
 
@@ -29726,7 +29671,7 @@ namespace Legion {
       // Add a reference to the top level context
       top_context->add_base_gc_ref(RUNTIME_REF);
       // Get an individual task to be the top-level task
-      IndividualTask *top_task = get_available_individual_task();
+      IndividualTask *top_task = get_operation<IndividualTask>();
       AutoProvenance provenance(launcher.provenance);
       // Mark that this task is the top-level task
       Future result = top_task->initialize_task(top_context, launcher,
@@ -29773,7 +29718,7 @@ namespace Legion {
                                           task_name);
       }
       // Get an individual task to be the top-level task
-      IndividualTask *top_task = get_available_individual_task();
+      IndividualTask *top_task = get_operation<IndividualTask>();
       // Get a remote task to serve as the top of the top-level task
       TopLevelContext *top_context = new TopLevelContext(proxy, 
           0/*id*/, get_unique_implicit_top_level_task_id(), 0/*did*/, mapping);

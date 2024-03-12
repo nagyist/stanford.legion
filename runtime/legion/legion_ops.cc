@@ -1147,7 +1147,11 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     const char *const 
-      Operation::op_names[Operation::LAST_OP_KIND] = OPERATION_NAMES;
+      Operation::op_names[] = {
+#define LEGION_OPERATION_NAMES(kind, name) name,
+      LEGION_OPERATION_KINDS(LEGION_OPERATION_NAMES)
+#undef LEGION_OPERATION_NAMES
+    };
 
     //--------------------------------------------------------------------------
     Operation::Operation(void)
@@ -4716,7 +4720,7 @@ namespace Legion {
       }
       // Now return this operation to the queue
       if (freeop)
-        runtime->free_map_op(this);
+        runtime->free_operation(this);
     } 
 
     //--------------------------------------------------------------------------
@@ -4727,7 +4731,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind MapOp::get_operation_kind(void) const
+    OpKind MapOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return MAP_OP_KIND;
@@ -6482,7 +6486,7 @@ namespace Legion {
       }
       // Return this operation to the runtime
       if (freeop)
-        runtime->free_copy_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -6493,7 +6497,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind CopyOp::get_operation_kind(void) const
+    OpKind CopyOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return COPY_OP_KIND;
@@ -8488,7 +8492,7 @@ namespace Legion {
         delete launch_space;
       // Return this operation to the runtime
       if (freeop)
-        runtime->free_index_copy_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -8793,7 +8797,7 @@ namespace Legion {
       for (Domain::DomainPointIterator itr(launch_domain); 
             itr; itr++, point_idx++)
       {
-        PointCopyOp *point = runtime->get_available_point_copy_op();
+        PointCopyOp *point = runtime->get_operation<PointCopyOp>();
         point->initialize(this, itr.p);
         points[point_idx] = point;
       }
@@ -9410,7 +9414,7 @@ namespace Legion {
       CopyOp::deactivate(false/*free*/);
       intra_space_mapping_dependences.clear();
       if (freeop)
-        runtime->free_point_copy_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -9742,7 +9746,7 @@ namespace Legion {
       execution_preconditions.clear();
       result = Future(); // clear out our future reference
       if (freeop)
-        runtime->free_fence_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -9753,7 +9757,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind FenceOp::get_operation_kind(void) const
+    OpKind FenceOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return FENCE_OP_KIND;
@@ -9895,7 +9899,7 @@ namespace Legion {
       assert(false);
       return *new VersionInfo();
     }
-    
+
     /////////////////////////////////////////////////////////////
     // Frame Operation 
     /////////////////////////////////////////////////////////////
@@ -9942,7 +9946,7 @@ namespace Legion {
     {
       FenceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_frame_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -9953,7 +9957,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind FrameOp::get_operation_kind(void) const
+    OpKind FrameOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return FRAME_OP_KIND;
@@ -10102,7 +10106,7 @@ namespace Legion {
       futures.clear();
       fields.clear();
       if (freeop)
-        runtime->free_creation_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -10113,7 +10117,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind CreationOp::get_operation_kind(void) const
+    OpKind CreationOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return CREATION_OP_KIND;
@@ -10493,7 +10497,7 @@ namespace Legion {
       dependences.clear();
       // Return this to the available deletion ops on the queue
       if (freeop)
-        runtime->free_deletion_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -10504,7 +10508,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind DeletionOp::get_operation_kind(void) const
+    OpKind DeletionOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DELETION_OP_KIND;
@@ -11136,7 +11140,7 @@ namespace Legion {
       close_mask.clear();
       version_info.clear();
       if (freeop)
-        runtime->free_merge_close_op(this);
+        runtime->free_operation(this);
     }
     
     //--------------------------------------------------------------------------
@@ -11147,7 +11151,7 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    Operation::OpKind MergeCloseOp::get_operation_kind(void) const
+    OpKind MergeCloseOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return MERGE_CLOSE_OP_KIND;
@@ -11245,7 +11249,7 @@ namespace Legion {
       }
       target_instances.clear();
       if (freeop)
-        runtime->free_post_close_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -11256,7 +11260,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind PostCloseOp::get_operation_kind(void) const
+    OpKind PostCloseOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return POST_CLOSE_OP_KIND;
@@ -11567,7 +11571,7 @@ namespace Legion {
       CloseOp::deactivate(false/*free*/);
       source_version_info.clear();
       if (freeop)
-        runtime->free_virtual_close_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -11578,7 +11582,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind VirtualCloseOp::get_operation_kind(void) const
+    OpKind VirtualCloseOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return VIRTUAL_CLOSE_OP_KIND;
@@ -11681,7 +11685,7 @@ namespace Legion {
       InternalOp::deactivate(false/*free*/);
       refinement_mask.clear();
       if (freeop)
-        runtime->free_refinement_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -11692,7 +11696,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RefinementOp::get_operation_kind(void) const
+    OpKind RefinementOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return REFINEMENT_OP_KIND;
@@ -11895,7 +11899,7 @@ namespace Legion {
       Operation::deactivate(false/*free*/);
       requirement.privilege_fields.clear();
       if (freeop)
-        runtime->free_reset_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -11906,7 +11910,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind ResetOp::get_operation_kind(void) const
+    OpKind ResetOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return RESET_OP_KIND;
@@ -12175,7 +12179,7 @@ namespace Legion {
       }
       // Return this operation to the runtime
       if (freeop)
-        runtime->free_acquire_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -12186,7 +12190,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind AcquireOp::get_operation_kind(void) const
+    OpKind AcquireOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return ACQUIRE_OP_KIND;
@@ -12971,7 +12975,7 @@ namespace Legion {
       }
       // Return this operation to the runtime
       if (freeop)
-        runtime->free_release_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -12982,7 +12986,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind ReleaseOp::get_operation_kind(void) const
+    OpKind ReleaseOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return RELEASE_OP_KIND;
@@ -13666,7 +13670,7 @@ namespace Legion {
       // Free the future
       future = Future();
       if (freeop)
-        runtime->free_dynamic_collective_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -13677,7 +13681,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind DynamicCollectiveOp::get_operation_kind(void) const
+    OpKind DynamicCollectiveOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DYNAMIC_COLLECTIVE_OP_KIND;
@@ -13764,7 +13768,7 @@ namespace Legion {
       future = Future();
       predicate = Predicate();
       if (freeop)
-        runtime->free_future_predicate_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -13775,7 +13779,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind FuturePredOp::get_operation_kind(void) const
+    OpKind FuturePredOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return FUTURE_PRED_OP_KIND;
@@ -13948,7 +13952,7 @@ namespace Legion {
       previous = Predicate();
       to_set = Predicate();
       if (freeop)
-        runtime->free_not_predicate_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -13959,7 +13963,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind NotPredOp::get_operation_kind(void) const
+    OpKind NotPredOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return NOT_PRED_OP_KIND;
@@ -14055,7 +14059,7 @@ namespace Legion {
       previous.clear();
       to_set = Predicate();
       if (freeop)
-        runtime->free_and_predicate_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -14066,7 +14070,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind AndPredOp::get_operation_kind(void) const
+    OpKind AndPredOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return AND_PRED_OP_KIND;
@@ -14183,7 +14187,7 @@ namespace Legion {
       previous.clear();
       to_set = Predicate();
       if (freeop)
-        runtime->free_or_predicate_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -14194,7 +14198,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind OrPredOp::get_operation_kind(void) const
+    OpKind OrPredOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return OR_PRED_OP_KIND;
@@ -14380,7 +14384,7 @@ namespace Legion {
       Provenance *provenance = get_provenance();
       for (unsigned idx = 0; idx < launcher.single_tasks.size(); idx++)
       {
-        indiv_tasks[idx] = runtime->get_available_individual_task();
+        indiv_tasks[idx] = runtime->get_operation<IndividualTask>();
         indiv_tasks[idx]->initialize_task(ctx, launcher.single_tasks[idx],
                                           provenance,
                                           false/*top level*/,
@@ -14398,7 +14402,7 @@ namespace Legion {
         if (!launch_space.exists())
           launch_space = ctx->find_index_launch_space(
               launcher.index_tasks[idx].launch_domain, get_provenance());
-        index_tasks[idx] = runtime->get_available_index_task();
+        index_tasks[idx] = runtime->get_operation<IndexTask>();
         index_tasks[idx]->initialize_task(ctx, launcher.index_tasks[idx],
                                 launch_space, provenance, false/*track*/);
         index_tasks[idx]->set_must_epoch(this, 
@@ -14488,7 +14492,7 @@ namespace Legion {
       completion_effects.clear();
       // Return this operation to the free list
       if (freeop)
-        runtime->free_epoch_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -14499,7 +14503,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind MustEpochOp::get_operation_kind(void) const
+    OpKind MustEpochOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return MUST_EPOCH_OP_KIND;
@@ -15524,7 +15528,7 @@ namespace Legion {
     int MustEpochOp::find_operation_index(Operation *op, GenerationID op_gen)
     //--------------------------------------------------------------------------
     {
-      if (op->get_operation_kind() != Operation::TASK_OP_KIND)
+      if (op->get_operation_kind() != TASK_OP_KIND)
         return -1;
       for (unsigned idx = 0; idx < indiv_tasks.size(); idx++)
       {
@@ -15929,7 +15933,7 @@ namespace Legion {
       future_map = FutureMap(); // clear any references
       sources.clear();
       if (freeop)
-        runtime->free_pending_partition_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -15940,7 +15944,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind PendingPartitionOp::get_operation_kind(void) const
+    OpKind PendingPartitionOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return PENDING_PARTITION_OP_KIND;
@@ -16684,7 +16688,7 @@ namespace Legion {
               itr; itr++, point_idx++)
         {
           PointDepPartOp *point = 
-            runtime->get_available_point_dep_part_op();
+            runtime->get_operation<PointDepPartOp>();
           point->initialize(this, itr.p);
           points[point_idx] = point;
         }
@@ -17368,7 +17372,7 @@ namespace Legion {
       if (remove_launch_space_reference(launch_space))
         delete launch_space;
       if (freeop)
-        runtime->free_dependent_partition_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -17379,7 +17383,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind DependentPartitionOp::get_operation_kind(void) const
+    OpKind DependentPartitionOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DEPENDENT_PARTITION_OP_KIND;
@@ -17788,7 +17792,7 @@ namespace Legion {
     {
       DependentPartitionOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_point_dep_part_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -18079,7 +18083,7 @@ namespace Legion {
         mapper_data_size = 0;
       }
       if (freeop)
-        runtime->free_fill_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -18090,7 +18094,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind FillOp::get_operation_kind(void) const
+    OpKind FillOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return FILL_OP_KIND;
@@ -18755,7 +18759,7 @@ namespace Legion {
         delete launch_space;
       // Return the operation to the runtime
       if (freeop)
-        runtime->free_index_fill_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -18952,7 +18956,7 @@ namespace Legion {
       for (Domain::DomainPointIterator itr(launch_domain); 
             itr; itr++, point_idx++)
       {
-        PointFillOp *point = runtime->get_available_point_fill_op();
+        PointFillOp *point = runtime->get_operation<PointFillOp>();
         point->initialize(this, itr.p);
         points[point_idx] = point;
       }
@@ -19241,7 +19245,7 @@ namespace Legion {
     {
       FillOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_point_fill_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -19424,7 +19428,7 @@ namespace Legion {
       version_info.clear();
       map_applied_conditions.clear();
       if (free)
-        runtime->free_discard_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -19435,7 +19439,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind DiscardOp::get_operation_kind(void) const
+    OpKind DiscardOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DISCARD_OP_KIND;
@@ -19884,7 +19888,7 @@ namespace Legion {
       if (external_resource != NULL)
         delete external_resource;
       if (freeop)
-        runtime->free_attach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -19895,7 +19899,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind AttachOp::get_operation_kind(void) const
+    OpKind AttachOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return ATTACH_OP_KIND;
@@ -20365,7 +20369,7 @@ namespace Legion {
       points.clear();
       map_applied_conditions.clear();
       if (freeop)
-        runtime->free_index_attach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -20376,7 +20380,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind IndexAttachOp::get_operation_kind(void) const
+    OpKind IndexAttachOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return ATTACH_OP_KIND;
@@ -20426,7 +20430,7 @@ namespace Legion {
       points.resize(indexes.size());
       for (unsigned idx = 0; idx < indexes.size(); idx++)
       {
-        points[idx] = runtime->get_available_point_attach_op();
+        points[idx] = runtime->get_operation<PointAttachOp>();
         const DomainPoint index_point = Point<1>(indexes[idx]);
         PhysicalRegionImpl *region = points[idx]->initialize(this, ctx,
             launcher, index_point, indexes[idx]);
@@ -20854,7 +20858,7 @@ namespace Legion {
     {
       AttachOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_point_attach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -21166,7 +21170,7 @@ namespace Legion {
       map_applied_conditions.clear();
       result = Future(); // clear any references on the future
       if (freeop)
-        runtime->free_detach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -21177,7 +21181,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind DetachOp::get_operation_kind(void) const
+    OpKind DetachOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DETACH_OP_KIND;
@@ -21463,7 +21467,7 @@ namespace Legion {
       point_effects.clear();
       result = Future();
       if (freeop)
-        runtime->free_index_detach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -21474,7 +21478,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind IndexDetachOp::get_operation_kind(void) const
+    OpKind IndexDetachOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DETACH_OP_KIND;
@@ -21519,7 +21523,7 @@ namespace Legion {
       flush = flsh;
       for (unsigned idx = 0; idx < regions.size(); idx++)
       {
-        PointDetachOp *point = runtime->get_available_point_detach_op();
+        PointDetachOp *point = runtime->get_operation<PointDetachOp>();
         const DomainPoint index_point = Point<1>(idx);
         point->initialize_detach(this, ctx, regions[idx], index_point, flush); 
         points.push_back(point);
@@ -21769,7 +21773,7 @@ namespace Legion {
     {
       DetachOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_point_detach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -21962,7 +21966,7 @@ namespace Legion {
       preconditions.clear();
       result = Future();
       if (freeop)
-        runtime->free_timing_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -21973,7 +21977,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind TimingOp::get_operation_kind(void) const
+    OpKind TimingOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TIMING_OP_KIND;
@@ -22119,7 +22123,7 @@ namespace Legion {
       if (instance != NULL)
         delete instance;
       if (freeop)
-        runtime->free_tunable_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -22130,7 +22134,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind TunableOp::get_operation_kind(void) const
+    OpKind TunableOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TUNABLE_OP_KIND;
@@ -22313,7 +22317,7 @@ namespace Legion {
       if (serdez_redop_instance != NULL)
         delete serdez_redop_instance;
       if (freeop)
-        runtime->free_all_reduce_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -22324,7 +22328,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind AllReduceOp::get_operation_kind(void) const
+    OpKind AllReduceOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return ALL_REDUCE_OP_KIND;
@@ -22714,7 +22718,7 @@ namespace Legion {
         return Runtime::merge_events(NULL, postconditions);
       else
         return ApEvent::NO_AP_EVENT;
-    }
+    } 
 
     ///////////////////////////////////////////////////////////// 
     // Remote Op 
@@ -22971,7 +22975,7 @@ namespace Legion {
     /*static*/ RemoteOp* RemoteOp::unpack_remote_operation(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      Operation::OpKind kind;
+      OpKind kind;
       derez.deserialize(kind);
       Operation *remote_ptr;
       derez.deserialize(remote_ptr);
@@ -23193,7 +23197,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteMapOp::get_operation_kind(void) const
+    OpKind RemoteMapOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return MAP_OP_KIND;
@@ -23318,7 +23322,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteCopyOp::get_operation_kind(void) const
+    OpKind RemoteCopyOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return COPY_OP_KIND;
@@ -23476,7 +23480,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteCloseOp::get_operation_kind(void) const
+    OpKind RemoteCloseOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return POST_CLOSE_OP_KIND;
@@ -23601,7 +23605,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteAcquireOp::get_operation_kind(void) const
+    OpKind RemoteAcquireOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return ACQUIRE_OP_KIND;
@@ -23698,7 +23702,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteReleaseOp::get_operation_kind(void) const
+    OpKind RemoteReleaseOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return RELEASE_OP_KIND;
@@ -23823,7 +23827,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteFillOp::get_operation_kind(void) const
+    OpKind RemoteFillOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return FILL_OP_KIND;
@@ -23898,7 +23902,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteDiscardOp::get_operation_kind(void) const
+    OpKind RemoteDiscardOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DISCARD_OP_KIND;
@@ -24000,7 +24004,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemotePartitionOp::get_operation_kind(void) const
+    OpKind RemotePartitionOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DEPENDENT_PARTITION_OP_KIND;
@@ -24107,7 +24111,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteAttachOp::get_operation_kind(void) const
+    OpKind RemoteAttachOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return ATTACH_OP_KIND;
@@ -24181,7 +24185,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteDetachOp::get_operation_kind(void) const
+    OpKind RemoteDetachOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DETACH_OP_KIND;
@@ -24266,7 +24270,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteDeletionOp::get_operation_kind(void) const
+    OpKind RemoteDeletionOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return DELETION_OP_KIND;
@@ -24340,7 +24344,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteReplayOp::get_operation_kind(void) const
+    OpKind RemoteReplayOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_REPLAY_OP_KIND;
@@ -24414,7 +24418,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteSummaryOp::get_operation_kind(void) const
+    OpKind RemoteSummaryOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_SUMMARY_OP_KIND;

@@ -2776,7 +2776,7 @@ namespace Legion {
       fprintf(stderr,"!!! PLEASE CUSTOMIZE YOUR MAPPER TO YOUR      !!!\n");
       fprintf(stderr,"!!! APPLICATION AND TO YOUR TARGET MACHINE    !!!\n");
       InnerContext *context = op->get_context();
-      if (op->get_operation_kind() == Operation::TASK_OP_KIND)
+      if (op->get_operation_kind() == TASK_OP_KIND)
       {
         TaskOp *task = static_cast<TaskOp*>(op);
         if (context->get_owner_task() != NULL) 

@@ -536,7 +536,7 @@ namespace Legion {
       {
         case INDIVIDUAL_TASK_KIND:
           {
-            IndividualTask *task = runtime->get_available_individual_task();
+            IndividualTask *task = runtime->get_operation<IndividualTask>();
             std::set<RtEvent> ready_events;
             if (task->unpack_task(derez, current, ready_events))
             {
@@ -558,7 +558,7 @@ namespace Legion {
           }
         case SLICE_TASK_KIND:
           {
-            SliceTask *task = runtime->get_available_slice_task();
+            SliceTask *task = runtime->get_operation<SliceTask>();
             std::set<RtEvent> ready_events;
             if (task->unpack_task(derez, current, ready_events))
             {
@@ -602,7 +602,7 @@ namespace Legion {
       {
         case INDIVIDUAL_TASK_KIND:
           {
-            IndividualTask *task = runtime->get_available_individual_task();
+            IndividualTask *task = runtime->get_operation<IndividualTask>();
             std::set<RtEvent> ready_events;
             task->unpack_task(derez, target_proc, ready_events);
             if (!ready_events.empty())
@@ -616,7 +616,7 @@ namespace Legion {
           }
         case SLICE_TASK_KIND:
           {
-            SliceTask *task = runtime->get_available_slice_task();
+            SliceTask *task = runtime->get_operation<SliceTask>();
             std::set<RtEvent> ready_events;
             task->unpack_task(derez, target_proc, ready_events);
             if (!ready_events.empty())
@@ -886,7 +886,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind TaskOp::get_operation_kind(void) const
+    OpKind TaskOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TASK_OP_KIND;
@@ -2168,7 +2168,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind RemoteTaskOp::get_operation_kind(void) const
+    OpKind RemoteTaskOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TASK_OP_KIND;
@@ -5883,7 +5883,7 @@ namespace Legion {
       predicate_false_future = Future();
       valid_output_regions.clear();
       if (freeop)
-        runtime->free_individual_task(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -6999,7 +6999,7 @@ namespace Legion {
             this->get_unique_op_id());
       SingleTask::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_point_task(this);
+        runtime->free_operation(this);
     } 
 
     //--------------------------------------------------------------------------
@@ -8661,7 +8661,7 @@ namespace Legion {
       assert(pending_intra_space_dependences.empty());
 #endif
       if (freeop)
-        runtime->free_index_task(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -10128,7 +10128,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DETAILED_PROFILER(runtime, INDEX_CLONE_AS_SLICE_CALL);
-      SliceTask *result = runtime->get_available_slice_task(); 
+      SliceTask *result = runtime->get_operation<SliceTask>(); 
       result->initialize_base_task(parent_ctx, Predicate::TRUE_PRED,
                                    this->task_id, get_provenance());
       result->clone_multi_from(this, is, p, recurse, stealable);
@@ -11223,7 +11223,7 @@ namespace Legion {
       unique_intra_space_deps.clear();
       concurrent_points.clear();
       if (freeop)
-        runtime->free_slice_task(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -11556,7 +11556,7 @@ namespace Legion {
       set_provenance(Provenance::deserialize(derez));
       for (unsigned idx = 0; idx < num_points; idx++)
       {
-        PointTask *point = runtime->get_available_point_task(); 
+        PointTask *point = runtime->get_operation<PointTask>(); 
         point->slice_owner = this;
         point->unpack_task(derez, current, ready_events);
         point->parent_ctx = parent_ctx;
@@ -11652,7 +11652,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DETAILED_PROFILER(runtime, SLICE_CLONE_AS_SLICE_CALL);
-      SliceTask *result = runtime->get_available_slice_task(); 
+      SliceTask *result = runtime->get_operation<SliceTask>(); 
       result->initialize_base_task(parent_ctx, Predicate::TRUE_PRED,
                                    this->task_id, get_provenance());
       result->clone_multi_from(this, is, p, recurse, stealable);
@@ -11824,7 +11824,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DETAILED_PROFILER(runtime, SLICE_CLONE_AS_POINT_CALL);
-      PointTask *result = runtime->get_available_point_task();
+      PointTask *result = runtime->get_operation<PointTask>();
       result->initialize_base_task(parent_ctx, Predicate::TRUE_PRED,
                                    this->task_id, get_provenance());
       result->clone_task_op_from(this, this->target_proc, 

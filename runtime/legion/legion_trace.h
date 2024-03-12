@@ -100,7 +100,7 @@ namespace Legion {
       public:
         LegionVector<DependenceRecord> dependences;
         LegionVector<CloseInfo> closes;
-        Operation::OpKind kind;
+        OpKind kind;
         unsigned region_count;
       };
       class StaticTranslator {

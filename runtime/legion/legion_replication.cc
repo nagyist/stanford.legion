@@ -645,7 +645,7 @@ namespace Legion {
         delete sharding_collective;
 #endif
       if (freeop)
-        runtime->free_repl_individual_task(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -1003,7 +1003,7 @@ namespace Legion {
 #endif
       unique_intra_space_deps.clear();
       if (freeop)
-        runtime->free_repl_index_task(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -1967,7 +1967,7 @@ namespace Legion {
     {
       MergeCloseOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_merge_close_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -2025,7 +2025,7 @@ namespace Legion {
       ReplCollectiveVersioning<
         CollectiveVersioning<VirtualCloseOp> >::deactivate(false/*free*/);
       if (free)
-        runtime->free_repl_virtual_close_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -2126,7 +2126,7 @@ namespace Legion {
     {
       RefinementOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_refinement_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -2256,7 +2256,7 @@ namespace Legion {
     {
       ResetOp::deactivate(false/*free*/); 
       if (freeop)
-        runtime->free_repl_reset_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -2354,7 +2354,7 @@ namespace Legion {
       if (collective != NULL)
         delete collective;
       if (freeop)
-        runtime->free_repl_fill_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -2545,7 +2545,7 @@ namespace Legion {
       if (collective != NULL)
         delete collective;
       if (freeop)
-        runtime->free_repl_index_fill_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -2794,7 +2794,7 @@ namespace Legion {
       ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> >::deactivate(
                                                                 false/*free*/);
       if (free)
-        runtime->free_repl_discard_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -2940,7 +2940,7 @@ namespace Legion {
 #endif
       CopyOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_copy_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -3137,7 +3137,7 @@ namespace Legion {
       unique_intra_space_deps.clear();
       remove_launch_space_reference(shard_points);
       if (freeop)
-        runtime->free_repl_index_copy_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -3721,7 +3721,7 @@ namespace Legion {
       ReplCollectiveVersioning<CollectiveVersioning<DeletionOp> >::deactivate(
                                                               false/*freeop*/);
       if (freeop)
-        runtime->free_repl_deletion_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -4096,7 +4096,7 @@ namespace Legion {
     {
       PendingPartitionOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_pending_partition_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -4214,7 +4214,7 @@ namespace Legion {
 #endif
       remove_launch_space_reference(shard_points);
       if (freeop)
-        runtime->free_repl_dependent_partition_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -4746,7 +4746,7 @@ namespace Legion {
         delete sharding_collective;
 #endif
       if (freeop)
-        runtime->free_repl_epoch_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -4769,7 +4769,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < launcher.single_tasks.size(); idx++)
       {
         ReplIndividualTask *task = 
-          runtime->get_available_repl_individual_task();
+          runtime->get_operation<ReplIndividualTask>();
         task->initialize_task(ctx, launcher.single_tasks[idx],
                               provenance, false/*top level*/,
                               true/*must epoch*/);
@@ -4795,7 +4795,7 @@ namespace Legion {
         if (!launch_space.exists())
           launch_space = ctx->find_index_launch_space(
                           launcher.index_tasks[idx].launch_domain, provenance);
-        ReplIndexTask *task = runtime->get_available_repl_index_task();
+        ReplIndexTask *task = runtime->get_operation<ReplIndexTask>();
         task->initialize_task(ctx, launcher.index_tasks[idx],
                               launch_space, provenance, false/*track*/);
         task->set_must_epoch(this, indiv_tasks.size()+idx, true/*register*/);
@@ -5400,7 +5400,7 @@ namespace Legion {
         timing_collective = NULL;
       }
       if (freeop)
-        runtime->free_repl_timing_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -5522,7 +5522,7 @@ namespace Legion {
         value_broadcast = NULL;
       }
       if (freeop)
-        runtime->free_repl_tunable_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -5652,7 +5652,7 @@ namespace Legion {
       if (broadcast_collective != NULL)
         delete broadcast_collective;
       if (freeop)
-        runtime->free_repl_all_reduce_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -5853,7 +5853,7 @@ namespace Legion {
           local_precondition = Runtime::merge_events(NULL, broadcast_events);
       }
       return local_precondition;
-    }
+    } 
 
     /////////////////////////////////////////////////////////////
     // Repl Fence Op 
@@ -5887,7 +5887,7 @@ namespace Legion {
     {
       FenceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_fence_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -6002,7 +6002,7 @@ namespace Legion {
       Runtime::phase_barrier_arrive(execution_fence_barrier, 
                                     1/*count*/, complete_event);
       FenceOp::complete_replay(pre, execution_fence_barrier);
-    }
+    } 
 
     /////////////////////////////////////////////////////////////
     // Repl Map Op 
@@ -6210,7 +6210,7 @@ namespace Legion {
       ReplCollectiveViewCreator<
         CollectiveViewCreator<MapOp> >::deactivate(false);
       if (freeop)
-        runtime->free_repl_map_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -6326,7 +6326,7 @@ namespace Legion {
       if (single_broadcast != NULL)
         delete single_broadcast;
       if (freeop)
-        runtime->free_repl_attach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -6687,7 +6687,7 @@ namespace Legion {
       ReplCollectiveViewCreator<
         CollectiveViewCreator<DetachOp> >::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_detach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -6882,7 +6882,7 @@ namespace Legion {
       if (participants != NULL)
         delete participants;
       if (freeop)
-        runtime->free_repl_index_attach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -7075,7 +7075,7 @@ namespace Legion {
       if (participants != NULL)
         delete participants;
       if (freeop)
-        runtime->free_repl_index_detach_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -7275,7 +7275,7 @@ namespace Legion {
       ReplCollectiveViewCreator<
         CollectiveViewCreator<AcquireOp> >::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_acquire_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -7470,7 +7470,7 @@ namespace Legion {
       ReplCollectiveViewCreator<
         CollectiveViewCreator<ReleaseOp> >::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_release_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -7715,7 +7715,7 @@ namespace Legion {
     {
       ReplTraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_capture_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -7726,7 +7726,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind ReplTraceCaptureOp::get_operation_kind(void) const
+    OpKind ReplTraceCaptureOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_CAPTURE_OP_KIND;
@@ -7920,7 +7920,7 @@ namespace Legion {
     {
       ReplTraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_trace_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -7931,7 +7931,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind ReplTraceCompleteOp::get_operation_kind(void) const
+    OpKind ReplTraceCompleteOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_COMPLETE_OP_KIND; 
@@ -8172,7 +8172,7 @@ namespace Legion {
     {
       ReplTraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_replay_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -8183,7 +8183,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind ReplTraceReplayOp::get_operation_kind(void) const
+    OpKind ReplTraceReplayOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_REPLAY_OP_KIND;
@@ -8386,7 +8386,7 @@ namespace Legion {
     {
       ReplTraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_begin_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -8397,7 +8397,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind ReplTraceBeginOp::get_operation_kind(void) const
+    OpKind ReplTraceBeginOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_BEGIN_OP_KIND;
@@ -8469,7 +8469,7 @@ namespace Legion {
     {
       ReplTraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_repl_summary_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -8480,7 +8480,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind ReplTraceSummaryOp::get_operation_kind(void) const
+    OpKind ReplTraceSummaryOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_SUMMARY_OP_KIND;
@@ -14865,7 +14865,7 @@ namespace Legion {
         {
           switch ((*it)->get_operation_kind())
           {
-            case Operation::DELETION_OP_KIND:
+            case DELETION_OP_KIND:
               {
 #ifdef DEBUG_LEGION
                 ReplDeletionOp *op = dynamic_cast<ReplDeletionOp*>(*it);
@@ -14878,7 +14878,7 @@ namespace Legion {
                     field_deletions, logical_region_deletions); 
                 break; 
               }
-            case Operation::DETACH_OP_KIND:
+            case DETACH_OP_KIND:
               {
                 ReplDetachOp *op = dynamic_cast<ReplDetachOp*>(*it);
                 if (op == NULL)

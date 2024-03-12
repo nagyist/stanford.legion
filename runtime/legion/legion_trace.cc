@@ -376,13 +376,13 @@ namespace Legion {
       if (source_finder->second == target_finder->second)
       {
 #ifdef DEBUG_LEGION
-        assert(target->get_operation_kind() == Operation::REFINEMENT_OP_KIND);
+        assert(target->get_operation_kind() == REFINEMENT_OP_KIND);
 #endif
         return true;
       }
       OperationInfo &info = replay_info.back();
       DependenceRecord record(target_finder->second);
-      if (source->get_operation_kind() == Operation::MERGE_CLOSE_OP_KIND)
+      if (source->get_operation_kind() == MERGE_CLOSE_OP_KIND)
       {
 #ifdef DEBUG_LEGION
         bool found = false;
@@ -445,7 +445,7 @@ namespace Legion {
       if (target_finder == op_map.end())
       {
         // If this is a close operation then we still need to update the mask
-        if (source->get_operation_kind() == Operation::MERGE_CLOSE_OP_KIND)
+        if (source->get_operation_kind() == MERGE_CLOSE_OP_KIND)
         {
 #ifdef DEBUG_LEGION
           assert(!replay_info.empty());
@@ -488,14 +488,14 @@ namespace Legion {
       if (source_finder->second == target_finder->second)
       {
 #ifdef DEBUG_LEGION
-        assert(target->get_operation_kind() == Operation::REFINEMENT_OP_KIND);
+        assert(target->get_operation_kind() == REFINEMENT_OP_KIND);
 #endif
         return true;
       }
       OperationInfo &info = replay_info.back();
       DependenceRecord record(target_finder->second, target_idx, source_idx,
                               validates, dtype, dep_mask);
-      if (source->get_operation_kind() == Operation::MERGE_CLOSE_OP_KIND)
+      if (source->get_operation_kind() == MERGE_CLOSE_OP_KIND)
       {
 #ifdef DEBUG_LEGION
         bool found = false;
@@ -801,7 +801,7 @@ namespace Legion {
     {
       TraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_capture_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -812,7 +812,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind TraceCaptureOp::get_operation_kind(void) const
+    OpKind TraceCaptureOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_CAPTURE_OP_KIND;
@@ -923,7 +923,7 @@ namespace Legion {
     {
       TraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_trace_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -934,7 +934,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind TraceCompleteOp::get_operation_kind(void) const
+    OpKind TraceCompleteOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_COMPLETE_OP_KIND; 
@@ -1102,7 +1102,7 @@ namespace Legion {
     {
       TraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_replay_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -1113,7 +1113,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind TraceReplayOp::get_operation_kind(void) const
+    OpKind TraceReplayOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_REPLAY_OP_KIND;
@@ -1247,7 +1247,7 @@ namespace Legion {
     {
       TraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_begin_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -1258,7 +1258,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind TraceBeginOp::get_operation_kind(void) const
+    OpKind TraceBeginOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_BEGIN_OP_KIND;
@@ -1327,7 +1327,7 @@ namespace Legion {
     {
       TraceOp::deactivate(false/*free*/);
       if (freeop)
-        runtime->free_summary_op(this);
+        runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
@@ -1338,7 +1338,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Operation::OpKind TraceSummaryOp::get_operation_kind(void) const
+    OpKind TraceSummaryOp::get_operation_kind(void) const
     //--------------------------------------------------------------------------
     {
       return TRACE_SUMMARY_OP_KIND;
@@ -4257,7 +4257,7 @@ namespace Legion {
           InnerContext* context, Operation *invalidator, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      TraceSummaryOp *op = runtime->get_available_summary_op();
+      TraceSummaryOp *op = runtime->get_operation<TraceSummaryOp>();
       op->initialize_summary(context, this, invalidator, provenance);
 #ifdef LEGION_SPY
       LegionSpy::log_summary_op_creator(op->get_unique_op_id(),
@@ -4944,7 +4944,7 @@ namespace Legion {
       {
         unsigned slice_index = -1U;
         if (!round_robin_for_tasks && 
-            (it->second.second == Operation::TASK_OP_KIND) &&
+            (it->second.second == TASK_OP_KIND) &&
             (it->first.index_point.get_dim() > 0))
         {
           CachedMappings::iterator finder = cached_mappings.find(it->first);
@@ -6356,7 +6356,7 @@ namespace Legion {
                                      unsigned op_kind, const TraceLocalID &tlid)
     //--------------------------------------------------------------------------
     {
-      const bool fence = (op_kind == Operation::FENCE_OP_KIND);
+      const bool fence = (op_kind == FENCE_OP_KIND);
       AutoLock tpl_lock(template_lock);
 #ifdef DEBUG_LEGION
       assert(is_recording());
@@ -8877,7 +8877,7 @@ namespace Legion {
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(context); 
 #endif
-      ReplTraceSummaryOp *op = runtime->get_available_repl_summary_op();
+      ReplTraceSummaryOp *op = runtime->get_operation<ReplTraceSummaryOp>();
       op->initialize_summary(repl_ctx, this, invalidator, provenance);
 #ifdef LEGION_SPY
       LegionSpy::log_summary_op_creator(op->get_unique_op_id(),

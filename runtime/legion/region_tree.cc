@@ -1686,7 +1686,7 @@ namespace Legion {
         // operation since that is an internal kind of operation
         if (!is_parent_nonexclusive_virtual_mapping(idx) &&
             (get_must_epoch_op() == NULL) &&
-            (get_operation_kind() != Operation::RESET_OP_KIND))
+            (get_operation_kind() != RESET_OP_KIND))
           refinement_mask = user_mask;
         FieldMaskSet<RefinementOp> refinements;
         parent_node->register_logical_user(req.parent, *user, path,
