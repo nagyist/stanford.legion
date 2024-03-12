@@ -2528,6 +2528,7 @@ namespace Legion {
             unsafe_launch(false),
             unsafe_mapper(false),
             safe_mapper(false),
+            safe_tracing(false),
             disable_independence_tests(false),
 #ifdef LEGION_SPY
             legion_spy_enabled(true),
@@ -2582,6 +2583,7 @@ namespace Legion {
         bool unsafe_launch;
         bool unsafe_mapper;
         bool safe_mapper;
+        bool safe_tracing;
         bool disable_independence_tests;
         bool legion_spy_enabled;
         bool enable_test_mapper;
@@ -2701,6 +2703,7 @@ namespace Legion {
       const bool resilient_mode;
       const bool unsafe_launch;
       const bool unsafe_mapper;
+      const bool safe_tracing;
       const bool disable_independence_tests;
       const bool legion_spy_enabled;
       const bool supply_default_mapper;
@@ -4665,11 +4668,9 @@ namespace Legion {
         OperationFactory<OrPredOp>,
         OperationFactory<AcquireOp,Predicated<AcquireOp> >,
         OperationFactory<ReleaseOp,Predicated<ReleaseOp> >,
-        OperationFactory<TraceCaptureOp>,
-        OperationFactory<TraceCompleteOp>,
-        OperationFactory<TraceReplayOp>,
         OperationFactory<TraceBeginOp>,
-        OperationFactory<TraceSummaryOp>,
+        OperationFactory<TraceRecurrentOp>,
+        OperationFactory<TraceCompleteOp>,
         OperationFactory<MustEpochOp>,
         OperationFactory<PendingPartitionOp>,
         OperationFactory<DependentPartitionOp>,
@@ -4713,11 +4714,9 @@ namespace Legion {
         OperationFactory<ReplIndexDetachOp>,
         OperationFactory<ReplAcquireOp,Predicated<ReplAcquireOp> >,
         OperationFactory<ReplReleaseOp,Predicated<ReplReleaseOp> >,
-        OperationFactory<ReplTraceCaptureOp>,
-        OperationFactory<ReplTraceCompleteOp>,
         OperationFactory<ReplTraceBeginOp>,
-        OperationFactory<ReplTraceReplayOp>,
-        OperationFactory<ReplTraceSummaryOp>
+        OperationFactory<ReplTraceRecurrentOp>,
+        OperationFactory<ReplTraceCompleteOp>
       > operation_industry; 
 #ifdef DEBUG_LEGION
       std::set<Operation*> outstanding_operations;
@@ -6284,6 +6283,7 @@ namespace Legion {
         case SEND_CONTROL_REPLICATION_MASK_EXCHANGE:
         case SEND_CONTROL_REPLICATION_PREDICATE_EXCHANGE:
         case SEND_CONTROL_REPLICATION_CROSS_PRODUCT_EXCHANGE:
+        case SEND_CONTROL_REPLICATION_TRACING_SET_DEDUPLICATION:
         case SEND_CONTROL_REPLICATION_SLOW_BARRIER:
           break;
         case SEND_SHUTDOWN_NOTIFICATION:

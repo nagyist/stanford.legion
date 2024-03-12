@@ -3122,6 +3122,9 @@ namespace Legion {
       // Just use this method of indirecting into template land
       virtual IndexSpaceExpression* create_from_rectangles(
                           const std::vector<Domain> &rectangles) const = 0;
+      virtual void find_trace_local_sets(unsigned req_index,
+                          ShardID local_shard, const FieldMask &mask,
+                          std::map<EquivalenceSet*,unsigned> &sets) const = 0;
     public:
       template<int DIM, typename T>
       inline EqKDTreeT<DIM,T>* as_eq_kd_tree(void);
@@ -3203,6 +3206,9 @@ namespace Legion {
       // Just use this method of indirecting into template land
       virtual IndexSpaceExpression* create_from_rectangles(
                           const std::vector<Domain> &rectangles) const;
+      virtual void find_trace_local_sets(unsigned req_index,
+                          ShardID local_shard, const FieldMask &mask,
+                          std::map<EquivalenceSet*,unsigned> &sets) const = 0;
     public:
       const Rect<DIM,T> bounds;
     };
@@ -3268,6 +3274,9 @@ namespace Legion {
           ShardID local_shard = 0);
       virtual unsigned cancel_subscription(EqSetTracker *tracker,
                                  AddressSpaceID space, const FieldMask &mask);
+      virtual void find_trace_local_sets(unsigned req_index,
+                          ShardID local_shard, const FieldMask &mask,
+                          std::map<EquivalenceSet*,unsigned> &sets) const;
     public:
       void find_all_previous_sets(FieldMask mask,
          std::map<EquivalenceSet*,LegionMap<Domain,FieldMask> > &creation_srcs);
@@ -3385,6 +3394,9 @@ namespace Legion {
           ShardID local_shard = 0);
       virtual unsigned cancel_subscription(EqSetTracker *tracker,
                                AddressSpaceID space, const FieldMask &mask);
+      virtual void find_trace_local_sets(unsigned req_index,
+                          ShardID local_shard, const FieldMask &mask,
+                          std::map<EquivalenceSet*,unsigned> &sets) const;
     protected:
       std::vector<EqKDTreeT<DIM,T>*> children;
     };
@@ -3452,6 +3464,9 @@ namespace Legion {
           ShardID local_shard = 0);
       virtual unsigned cancel_subscription(EqSetTracker *tracker,
                                AddressSpaceID space, const FieldMask &mask);
+      virtual void find_trace_local_sets(unsigned req_index,
+                          ShardID local_shard, const FieldMask &mask,
+                          std::map<EquivalenceSet*,unsigned> &sets) const;
     protected:
       // Make these methods virtual so they can be overloaded by the sparse
       // version of this class that inherits from this class as well

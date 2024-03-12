@@ -455,8 +455,6 @@ namespace Legion {
       LG_FREE_EAGER_INSTANCE_TASK_ID,
       LG_MALLOC_INSTANCE_TASK_ID,
       LG_FREE_INSTANCE_TASK_ID,
-      LG_DEFER_TRACE_PRECONDITION_TASK_ID,
-      LG_DEFER_TRACE_POSTCONDITION_TASK_ID,
       LG_DEFER_TRACE_UPDATE_TASK_ID,
       LG_FINALIZE_OUTPUT_ID,
       LG_DEFER_DELETE_FUTURE_INSTANCE_TASK_ID,
@@ -568,8 +566,6 @@ namespace Legion {
         "Free Eager Instance",                                    \
         "Malloc Instance",                                        \
         "Free Instance",                                          \
-        "Defer Trace Precondition Test",                          \
-        "Defer Trace Postcondition Test",                         \
         "Defer Trace Update",                                     \
         "Finalize Output Region Instance",                        \
         "Defer Delete Future Instance",                           \
@@ -1078,6 +1074,7 @@ namespace Legion {
       SEND_CONTROL_REPLICATION_MASK_EXCHANGE,
       SEND_CONTROL_REPLICATION_PREDICATE_EXCHANGE,
       SEND_CONTROL_REPLICATION_CROSS_PRODUCT_EXCHANGE,
+      SEND_CONTROL_REPLICATION_TRACING_SET_DEDUPLICATION,
       SEND_CONTROL_REPLICATION_SLOW_BARRIER,
       SEND_SHUTDOWN_NOTIFICATION,
       SEND_SHUTDOWN_RESPONSE,
@@ -1402,6 +1399,7 @@ namespace Legion {
         "Control Replication Collective Mask Exchange",               \
         "Control Replication Collective Predicate Exchange",          \
         "Control Replication Collective Cross Product Exchange",      \
+        "Control Replication Collective Tracing Set Deduplication",   \
         "Control Replication Collective Slow Barrier",                \
         "Send Shutdown Notification",                                 \
         "Send Shutdown Response",                                     \
@@ -2165,11 +2163,9 @@ namespace Legion {
     __op__(TIMING_OP_KIND, "Timing")                                  \
     __op__(TUNABLE_OP_KIND, "Tunable")                                \
     __op__(ALL_REDUCE_OP_KIND, "All-Reduce")                          \
-    __op__(TRACE_CAPTURE_OP_KIND, "Trace Capture")                    \
-    __op__(TRACE_COMPLETE_OP_KIND, "Trace Complete")                  \
-    __op__(TRACE_REPLAY_OP_KIND, "Trace Replay")                      \
     __op__(TRACE_BEGIN_OP_KIND, "Trace Begin")                        \
-    __op__(TRACE_SUMMARY_OP_KIND, "Trace Summary")                    \
+    __op__(TRACE_RECURRENT_OP_KIND, "Trace Recurrent")                \
+    __op__(TRACE_COMPLETE_OP_KIND, "Trace Complete")                  \
     __op__(TASK_OP_KIND, "Task")                                      \
     __op__(LAST_OP_KIND, "Last")
 
@@ -2261,7 +2257,7 @@ namespace Legion {
       COLLECTIVE_LOC_64 = 64,
       COLLECTIVE_LOC_65 = 65,
       COLLECTIVE_LOC_66 = 66,
-      //COLLECTIVE_LOC_67 = 67,
+      COLLECTIVE_LOC_67 = 67,
       //COLLECTIVE_LOC_68 = 68,
       //COLLECTIVE_LOC_69 = 69,
       COLLECTIVE_LOC_70 = 70,
@@ -2289,7 +2285,7 @@ namespace Legion {
       COLLECTIVE_LOC_92 = 92,
       COLLECTIVE_LOC_93 = 93,
       COLLECTIVE_LOC_94 = 94,
-      COLLECTIVE_LOC_95 = 95,
+      //COLLECTIVE_LOC_95 = 95,
       COLLECTIVE_LOC_96 = 96,
       COLLECTIVE_LOC_97 = 97,
       COLLECTIVE_LOC_98 = 98,
@@ -2447,11 +2443,9 @@ namespace Legion {
 
     // legion_trace.h
     class LogicalTrace;
-    class TraceCaptureOp;
-    class TraceCompleteOp;
-    class TraceReplayOp;
     class TraceBeginOp;
-    class TraceSummaryOp;
+    class TraceRecurrentOp;
+    class TraceCompleteOp;
     class PhysicalTrace;
     class TraceViewSet;
     class TraceConditionSet;
@@ -2605,11 +2599,9 @@ namespace Legion {
     class ReplAcquireOp;
     class ReplReleaseOp;
     class ReplTraceOp;
-    class ReplTraceCaptureOp;
-    class ReplTraceCompleteOp;
-    class ReplTraceReplayOp;
     class ReplTraceBeginOp;
-    class ReplTraceSummaryOp;
+    class ReplTraceRecurrentOp;
+    class ReplTraceCompleteOp;
     class ShardMapping;
     class CollectiveMapping;
     class ShardManager;
@@ -2745,7 +2737,7 @@ namespace Legion {
     friend class Internal::TimingOp;                        \
     friend class Internal::TunableOp;                       \
     friend class Internal::AllReduceOp;                     \
-    friend class Internal::TraceSummaryOp;                  \
+    friend class Internal::TraceRecurrentOp;                \
     friend class Internal::ExternalMappable;                \
     friend class Internal::ExternalTask;                    \
     friend class Internal::TaskOp;                          \
