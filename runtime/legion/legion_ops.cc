@@ -9423,6 +9423,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void PointCopyOp::trigger_replay(void)
+    //--------------------------------------------------------------------------
+    {
+      memo_state = MEMO_REPLAY;
+      tpl->register_operation(this);
+      CopyOp::trigger_replay();
+    }
+
+    //--------------------------------------------------------------------------
     void PointCopyOp::complete_replay(ApEvent precondition,
                                       ApEvent postcondition)
     //--------------------------------------------------------------------------
@@ -19239,6 +19248,15 @@ namespace Legion {
     {
       // should never be called
       assert(false);
+    }
+
+    //--------------------------------------------------------------------------
+    void PointFillOp::trigger_replay(void)
+    //--------------------------------------------------------------------------
+    {
+      memo_state = MEMO_REPLAY;
+      tpl->register_operation(this);
+      FillOp::trigger_replay();
     }
 
     //--------------------------------------------------------------------------

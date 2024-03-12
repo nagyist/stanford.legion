@@ -1848,6 +1848,7 @@ namespace Legion {
       virtual void trigger_prepipeline_stage(void);
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
+      virtual void trigger_replay(void);
       // trigger_mapping same as base class
       virtual void complete_replay(ApEvent precondition,
                                    ApEvent postcondition);
@@ -4035,6 +4036,7 @@ namespace Legion {
       virtual void trigger_prepipeline_stage(void);
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
+      virtual void trigger_replay(void);
       // trigger_mapping same as base class
       virtual void complete_replay(ApEvent precondition,
                                    ApEvent postcondition);

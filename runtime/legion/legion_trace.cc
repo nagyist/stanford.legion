@@ -1374,7 +1374,7 @@ namespace Legion {
                                                         PhysicalTrace *physical)
     //--------------------------------------------------------------------------
     {
-      return new PhysicalTemplate(physical, execution_fence_event);
+      return new PhysicalTemplate(physical, get_completion_event());
     }
 
     /////////////////////////////////////////////////////////////
@@ -1538,7 +1538,7 @@ namespace Legion {
                                                         PhysicalTrace *physical)
     //--------------------------------------------------------------------------
     {
-      return new PhysicalTemplate(physical, execution_fence_event);
+      return new PhysicalTemplate(physical, get_completion_event());
     }
 
     /////////////////////////////////////////////////////////////
