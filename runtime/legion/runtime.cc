@@ -16978,10 +16978,7 @@ namespace Legion {
         legion_ldb_enabled(!config.ldb_file.empty()),
         replay_file(legion_ldb_enabled ? config.ldb_file : config.replay_file),
 #ifdef DEBUG_LEGION
-        logging_region_tree_state(config.logging_region_tree_state),
         verbose_logging(config.verbose_logging),
-        logical_logging_only(config.logical_logging_only),
-        physical_logging_only(config.physical_logging_only),
 #endif
         check_privileges(config.check_privileges),
         dump_free_ranges(config.dump_free_ranges),
@@ -17129,18 +17126,6 @@ namespace Legion {
         }
       }
 #endif 
-#ifdef DEBUG_LEGION
-      if (logging_region_tree_state)
-      {
-	tree_state_logger = new TreeStateLogger(address_space, 
-                                                verbose_logging,
-                                                logical_logging_only,
-                                                physical_logging_only);
-	assert(tree_state_logger != NULL);
-      } else {
-	tree_state_logger = NULL;
-      }
-#endif
 #ifdef DEBUG_SHUTDOWN_HANG
       outstanding_counts = std::vector<std::atomic<int> >(LG_LAST_TASK_ID);
       for (unsigned idx = 0; idx < outstanding_counts.size(); idx++)
@@ -17258,10 +17243,6 @@ namespace Legion {
         delete it->second;
       }
       memory_managers.clear();
-#ifdef DEBUG_LEGION
-      if (logging_region_tree_state)
-	delete tree_state_logger;
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -29394,11 +29375,7 @@ namespace Legion {
         .add_option_string("-lg:replay", config.replay_file, !filter)
         .add_option_string("-lg:ldb", config.ldb_file, !filter)
 #ifdef DEBUG_LEGION
-        .add_option_bool("-lg:tree",config.logging_region_tree_state, !filter)
         .add_option_bool("-lg:verbose",config.verbose_logging, !filter)
-        .add_option_bool("-lg:logical_only",config.logical_logging_only,!filter)
-        .add_option_bool("-lg:physical_only",
-                         config.physical_logging_only,!filter)
 #endif
         .add_option_int("-lg:prof", config.num_profiling_nodes, !filter)
         .add_option_string("-lg:serializer", config.serializer_type, !filter)
@@ -29431,11 +29408,7 @@ namespace Legion {
         .add_option_string("-hl:replay", config.replay_file, !filter)
         .add_option_string("-hl:ldb", config.ldb_file, !filter)
 #ifdef DEBUG_LEGION
-        .add_option_bool("-hl:tree",config.logging_region_tree_state,!filter)
         .add_option_bool("-hl:verbose",config.verbose_logging,!filter)
-        .add_option_bool("-hl:logical_only",config.logical_logging_only,!filter)
-        .add_option_bool("-hl:physical_only",
-                         config.physical_logging_only,!filter)
 #endif
         .add_option_int("-hl:prof", config.num_profiling_nodes, !filter)
         .add_option_string("-hl:serializer", config.serializer_type, !filter)
@@ -29471,12 +29444,6 @@ namespace Legion {
         else
           *argc = 1;
       }
-#ifdef DEBUG_LEGION
-      if (config.logging_region_tree_state)
-        REPORT_LEGION_WARNING(LEGION_WARNING_REGION_TREE_STATE_LOGGING,
-            "Region tree state logging is disabled.  To enable region "
-            "tree state logging compile in debug mode.")
-#endif
       if (config.initial_task_window_hysteresis > 100)
         REPORT_LEGION_ERROR(ERROR_LEGION_CONFIGURATION,
             "Illegal task window hysteresis value of %d which is not a value "

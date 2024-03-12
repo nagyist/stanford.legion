@@ -2862,34 +2862,6 @@ namespace Legion {
       rez.serialize<bool>(tracing);
     }
 
-#ifdef DEBUG_LEGION
-    //--------------------------------------------------------------------------
-    void Operation::dump_physical_state(RegionRequirement *req, unsigned idx,
-                                        bool before, bool closing)
-    //--------------------------------------------------------------------------
-    {
-      if ((req->handle_type == LEGION_PARTITION_PROJECTION &&
-           req->partition == LogicalPartition::NO_PART) ||
-          (req->handle_type != LEGION_PARTITION_PROJECTION &&
-           req->region == LogicalRegion::NO_REGION))
-        return;
-      InnerContext *context = find_physical_context(idx);
-      ContextID ctx = context->get_physical_tree_context();
-      RegionTreeNode *child_node = req->handle_type == 
-        LEGION_PARTITION_PROJECTION ?
-        static_cast<RegionTreeNode*>(runtime->get_node(req->partition)) :
-        static_cast<RegionTreeNode*>(runtime->get_node(req->region));
-      FieldMask user_mask =
-        child_node->column_source->get_field_mask(req->privilege_fields);
-      TreeStateLogger::capture_state(req, idx,
-                                     get_logging_name(), unique_op_id,
-                                     child_node, ctx,
-                                     before/*before*/, false/*premap*/,
-                                     closing/*closing*/, false/*logical*/,
-                   FieldMask(LEGION_FIELD_MASK_FIELD_ALL_ONES), user_mask);
-    }
-#endif
-
     //--------------------------------------------------------------------------
     void Operation::MappingDependenceTracker::issue_stage_triggers(
                       Operation *op, MustEpochOp *must_epoch)
@@ -4854,7 +4826,6 @@ namespace Legion {
       if (!IS_NO_ACCESS(requirement) && !requirement.privilege_fields.empty())
       {
         assert(!mapped_instances.empty());
-        dump_physical_state(&requirement, 0);
       } 
 #endif
       log_mapping_decision(0/*idx*/, requirement, mapped_instances);
@@ -7323,11 +7294,6 @@ namespace Legion {
           copy_post = execution_fence_event;
       }
       Runtime::trigger_event(&trace_info, local_postcondition, copy_post);
-#ifdef DEBUG_LEGION
-      dump_physical_state(&src_requirements[index], index);
-      dump_physical_state(&dst_requirements[index], 
-                          index+ src_requirements.size());
-#endif
     }
 
     //--------------------------------------------------------------------------
@@ -12305,9 +12271,6 @@ namespace Legion {
                                               );
       Runtime::trigger_event(&trace_info, acquire_post, acquire_complete);
       record_completion_effect(acquire_post);
-#ifdef DEBUG_LEGION
-      dump_physical_state(&requirement, 0);
-#endif
       log_mapping_decision(0/*idx*/, requirement, restricted_instances);
 #ifdef LEGION_SPY
       if (runtime->legion_spy_enabled)
@@ -13106,9 +13069,6 @@ namespace Legion {
                                               );
       Runtime::trigger_event(&trace_info, release_post, release_complete);
       record_completion_effect(release_post);
-#ifdef DEBUG_LEGION
-      dump_physical_state(&requirement, 0);
-#endif
       log_mapping_decision(0/*idx*/, requirement, restricted_instances);
 #ifdef LEGION_SPY
       if (runtime->legion_spy_enabled)
@@ -18322,9 +18282,6 @@ namespace Legion {
       // This is NULL for now until we implement tracing for fills
       const ApEvent init_precondition = compute_sync_precondition(trace_info);
       fill_fields(get_fill_view(), init_precondition, trace_info);
-#ifdef DEBUG_LEGION
-      dump_physical_state(&requirement, 0);
-#endif
       if (set_view)
       {
 #ifdef DEBUG_LEGION

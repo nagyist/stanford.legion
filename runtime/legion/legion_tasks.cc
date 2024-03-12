@@ -4201,9 +4201,6 @@ namespace Legion {
                   PhysicalTraceInfo(trace_info, 0), map_applied_conditions,
                                         check_collective,
                                         record_valid);
-#ifdef DEBUG_LEGION
-            dump_physical_state(&regions[0], 0);
-#endif
           }
         }
         else
@@ -4286,10 +4283,6 @@ namespace Legion {
                                     analyses[*it], 
                                     map_applied_conditions,
                                     logical_regions.is_output_created(*it));
-#ifdef DEBUG_LEGION
-            RegionRequirement *req = &logical_regions[*it];
-            dump_physical_state(req, *it);
-#endif
           }
         }
         if (perform_postmap)

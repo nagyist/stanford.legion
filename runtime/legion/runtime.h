@@ -2537,10 +2537,7 @@ namespace Legion {
             enable_test_mapper(false),
             slow_config_ok(false),
 #ifdef DEBUG_LEGION
-            logging_region_tree_state(false),
             verbose_logging(false),
-            logical_logging_only(false),
-            physical_logging_only(false),
             check_privileges(true),
 #else
             check_privileges(false),
@@ -2592,10 +2589,7 @@ namespace Legion {
         std::string ldb_file;
         bool slow_config_ok;
 #ifdef DEBUG_LEGION
-        bool logging_region_tree_state;
         bool verbose_logging;
-        bool logical_logging_only;
-        bool physical_logging_only;
 #endif
         bool check_privileges;
         bool dump_free_ranges;
@@ -2714,10 +2708,7 @@ namespace Legion {
       const bool legion_ldb_enabled;
       const std::string replay_file;
 #ifdef DEBUG_LEGION
-      const bool logging_region_tree_state;
       const bool verbose_logging;
-      const bool logical_logging_only;
-      const bool physical_logging_only;
 #endif
       const bool check_privileges;
       const bool dump_free_ranges;
@@ -4400,11 +4391,6 @@ namespace Legion {
       mutable LocalLock mapper_info_lock;
       // For every mapper remember its mapper ID and processor
       std::map<Mapper*,MapperInfo> mapper_infos;
-#ifdef DEBUG_LEGION
-    protected:
-      friend class TreeStateLogger;
-      TreeStateLogger *get_tree_state_logger(void) { return tree_state_logger; }
-#endif
     protected:
       std::atomic<unsigned> unique_index_space_id;
       std::atomic<unsigned> unique_index_partition_id;
@@ -4735,8 +4721,6 @@ namespace Legion {
       > operation_industry; 
 #ifdef DEBUG_LEGION
       std::set<Operation*> outstanding_operations;
-    public:
-      TreeStateLogger *tree_state_logger;
 #endif
     public:
       LayoutConstraintID register_layout(

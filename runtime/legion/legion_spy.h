@@ -1673,38 +1673,6 @@ namespace Legion {
 #endif
     }; // namespace LegionSpy
 
-    class TreeStateLogger {
-    public:
-      TreeStateLogger(void);
-      TreeStateLogger(AddressSpaceID sid, bool verbose,
-                      bool logical_only, bool physical_only);
-      ~TreeStateLogger(void);
-    public:
-      void log(const char *fmt, ...);
-      void down(void);
-      void up(void);
-      void start_block(const char *ftm, ...);
-      void finish_block(void);
-      unsigned get_depth(void) const { return depth; }
-    public:
-      static void capture_state(const RegionRequirement *req, 
-                                unsigned idx, const char *task_name, 
-                                long long uid, RegionTreeNode *node, 
-                                ContextID ctx, bool before, 
-                                bool pre_map, bool closing, bool logical, 
-                                FieldMask capture_mask, FieldMask working_mask);
-    private:
-      void println(const char *fmt, va_list args);
-    public:
-      const bool verbose;
-      const bool logical_only;
-      const bool physical_only;
-    private:
-      FILE *tree_state_log;
-      char block_buffer[128];
-      unsigned depth;
-      Reservation logger_lock;
-    };
   }; // namespace Internal
 }; // namespace Legion
 

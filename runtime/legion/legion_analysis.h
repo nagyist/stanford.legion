@@ -862,13 +862,6 @@ namespace Legion {
                      const FieldMask &mask);
       void remove_child(RegionTreeNode *child);
     public:
-      void print_state(TreeStateLogger *logger, 
-                       const FieldMask &capture_mask,
-                       RegionNode *node) const;
-      void print_state(TreeStateLogger *logger, 
-                       const FieldMask &capture_mask,
-                       PartitionNode *node) const;
-    public:
       typedef FieldMaskSet<RegionTreeNode,UNTRACKED_ALLOC,true/*ordered*/>
         OrderedFieldMaskChildren;
       OrderedFieldMaskChildren open_children;

@@ -2564,9 +2564,6 @@ namespace Legion {
     class ProjectionInfo;
 
 
-    // legion_spy.h
-    class TreeStateLogger;
-
     // legion_profiling.h
     class LegionProfiler;
     class LegionProfInstance;
@@ -2799,7 +2796,6 @@ namespace Legion {
     friend class Internal::LayoutDescription;               \
     friend class Internal::InstanceManager;                 \
     friend class Internal::PhysicalManager;                 \
-    friend class Internal::TreeStateLogger;                 \
     friend class Internal::MapperManager;                   \
     friend class Internal::InstanceRef;                     \
     friend class Internal::LegionHandshakeImpl;             \

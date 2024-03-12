@@ -629,12 +629,6 @@ namespace Legion {
       void log_launch_space(IndexSpace handle) const;
       void log_virtual_mapping(unsigned index, 
                                const RegionRequirement &req) const;
-#ifdef DEBUG_LEGION
-    protected:
-      virtual void dump_physical_state(RegionRequirement *req, unsigned idx,
-                                       bool before = false,
-                                       bool closing = false);
-#endif
     public:
       // Pack the needed parts of this operation for a remote operation
       virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,

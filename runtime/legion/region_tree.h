@@ -4405,17 +4405,6 @@ namespace Legion {
     public:
       virtual size_t get_num_children(void) const = 0;
       virtual void send_node(Serializer &rez, AddressSpaceID target) = 0;
-      virtual void print_logical_context(ContextID ctx, 
-                                         TreeStateLogger *logger,
-                                         const FieldMask &mask) = 0;
-      virtual void print_context_header(TreeStateLogger *logger) = 0;
-#ifdef DEBUG_LEGION
-    public:
-      // These methods are only ever called by a debugger
-      virtual void dump_logical_context(ContextID ctx, 
-                                        TreeStateLogger *logger,
-                                        const FieldMask &mask) = 0;
-#endif
     public:
       // Logical helper operations
       typedef FieldMaskSet<LogicalUser,UNTRACKED_ALLOC,true/*deterministic*/>
@@ -4533,23 +4522,6 @@ namespace Legion {
       static void handle_top_level_return(
                                    Deserializer &derez, AddressSpaceID source);
     public:
-      // Logging calls
-      virtual void print_logical_context(ContextID ctx, 
-                                         TreeStateLogger *logger,
-                                         const FieldMask &mask);
-      virtual void print_context_header(TreeStateLogger *logger);
-      void print_logical_state(LogicalState &state,
-                               const FieldMask &capture_mask,
-                               FieldMaskSet<PartitionNode> &to_traverse,
-                               TreeStateLogger *logger);
-#ifdef DEBUG_LEGION
-    public:
-      // These methods are only ever called by a debugger
-      virtual void dump_logical_context(ContextID ctx, 
-                                        TreeStateLogger *logger,
-                                        const FieldMask &mask);
-#endif
-    public:
       // Support for refinements and versioning
       void perform_versioning_analysis(ContextID ctx, 
                                        InnerContext *parent_ctx,
@@ -4646,23 +4618,6 @@ namespace Legion {
                                    Deserializer &derez, AddressSpaceID source);
       static void handle_semantic_info(
                                    Deserializer &derez, AddressSpaceID source);
-    public:
-      // Logging calls
-      virtual void print_logical_context(ContextID ctx, 
-                                         TreeStateLogger *logger,
-                                         const FieldMask &mask);
-      virtual void print_context_header(TreeStateLogger *logger);
-      void print_logical_state(LogicalState &state,
-                               const FieldMask &capture_mask,
-                               FieldMaskSet<RegionNode> &to_traverse,
-                               TreeStateLogger *logger);
-#ifdef DEBUG_LEGION
-    public:
-      // These methods are only ever called by a debugger
-      virtual void dump_logical_context(ContextID ctx, 
-                                        TreeStateLogger *logger,
-                                        const FieldMask &mask);
-#endif
     public:
       const LogicalPartition handle;
       RegionNode *const parent;
