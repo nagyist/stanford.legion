@@ -5320,7 +5320,8 @@ namespace Legion {
               "Invalid task context passed to runtime call Runtime::safe_cast")
       Internal::AutoProvenance prov;
       const unsigned long long start =
-        ctx->begin_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov);
+        ctx->begin_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov) ?
+        Realm::Clock::current_time_in_nanoseconds() : 0;
       switch (point.get_dim())
       {
 #define DIMFUNC(DIM) \
