@@ -328,7 +328,7 @@ def test_prof(filename, debug, verbose, short, timelimit, py_exe_path, legion_pr
 
     prof_dir = tempfile.mkdtemp(dir=os.path.dirname(os.path.abspath(filename)))
     prof_log = os.path.join(prof_dir, 'prof_%.gz')
-    prof_flags = ['-hl:prof', '1024', '-hl:prof_logfile', prof_log]
+    prof_flags = ['-lg:prof', '1', '-lg:prof_logfile', prof_log, '-lg:prof_call_threshold', '100']
 
     runs_with = find_labeled_flags(filename, 'runs-with', short)
     try:
