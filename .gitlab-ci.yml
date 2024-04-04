@@ -62,9 +62,13 @@ cache: &global_cache
   # cmake gets confused and can't figure out library arch
   EXTRA_CMAKE_ARGS: "-DCMAKE_LIBRARY_ARCHITECTURE=x86_64-linux-gnu"
 .icc212: &icc212
-  CC: "/opt/intel/oneapi/compiler/2023.1.0/linux/bin/intel64/icc"
-  CXX: "/opt/intel/oneapi/compiler/2023.1.0/linux/bin/intel64/icpc"
-  F90: "/opt/intel/oneapi/compiler/2023.1.0/linux/bin/intel64/ifort"
+  CC: "/opt/intel/oneapi/compiler/2023.1.0/linux/bin/icx"
+  CXX: "/opt/intel/oneapi/compiler/2023.1.0/linux/bin/icpx"
+  F90: "/opt/intel/oneapi/compiler/2023.1.0/linux/bin/ifx"
+  # work around obnoxious warnings about -g without -O0
+  EXTRA_CMAKE_ARGS: "-DCMAKE_CXX_FLAGS_DEBUG='-g -O0'"
+  # for libsvml.so, auto-linked by newer Intel compilers
+  LD_LIBRARY_PATH: "/opt/intel/oneapi/compiler/2023.1.0/linux/compiler/lib/intel64_lin"
 .macos_clang: &macos_clang # on macOS, we don't control the compiler version
   CC:  "clang"
   CXX: "clang++"
@@ -104,6 +108,10 @@ cache: &global_cache
   CXX_STANDARD: "17"
 .cxx17_hardened: &cxx17_hardened
   CXXFLAGS: "-D_FORTIFY_SOURCE=2 -D_GLIBCXX_ASSERTIONS"
+  CXX_STANDARD: "17"
+.cxx17_precise: &cxx17_precise
+  # Intel compilers turn on some overly aggressive optimizations by default
+  CXXFLAGS: "-fp-model=precise -no-ansi-alias"
   CXX_STANDARD: "17"
 .cxx20_normal: &cxx20_normal
   CXXFLAGS: ""
@@ -563,11 +571,16 @@ before_script:
       if [[ "$USE_CCACHE" -eq 1 ]]; then
         ccache --show-stats
       fi
-  retry:
-    max: 0
-    when:
-      - runner_system_failure
-      - unknown_failure
+  artifacts:
+    name: "$CI_JOB_NAME"
+    when: always
+    paths:
+      - language/test_output/
+  # retry:
+  #   max: 0
+  #   when:
+  #     - runner_system_failure
+  #     - unknown_failure
 
 # Some additional tests are only run on certain configurations.
 .external_tests: &external_tests
@@ -1321,15 +1334,15 @@ hpcsdk2211_cxx17_debug_cmake_legion:
   variables:
     <<: [*hpcsdk2211, *debug, *cxx17_normal, *cmake, *legion, *ctest, *short, *libdw]
 
-# Intel compiler (icc/icpc) tests:
+# Intel compiler (icx/icpx) tests:
 icc212_cxx17_release_legion:
   <<: [*linux, *image_icc, *tests]
   variables:
-    <<: [*icc212, *release, *cxx17_normal, *legion]
+    <<: [*icc212, *release, *cxx17_precise, *legion]
 icc212_cxx17_debug_cmake_legion:
   <<: [*linux, *image_icc, *tests]
   variables:
-    <<: [*icc212, *debug, *cxx17_normal, *cmake, *legion, *ctest, *libdw]
+    <<: [*icc212, *debug, *cxx17_precise, *cmake, *legion, *ctest, *short, *libdw]
 
 # MSVC (Realm only):
 msvc169_realm:

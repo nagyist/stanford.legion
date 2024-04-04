@@ -3323,7 +3323,11 @@ namespace Legion {
 #endif
 #ifdef DEBUG_LEGION
         // Should only be reducing to instances that this future instance owns
-        assert(own_instance);
+        // Might also happen if we have an "external" (not really external but
+        // made-using-malloc instance) that is bigger than the copy and we 
+        // make an intermediate instance to handle that.
+        assert(own_instance ||
+            (own_dst && external_allocation && (redop->sizeof_rhs < size)));
 #endif
         std::vector<Realm::CopySrcDstField> srcs(1);
         std::vector<Realm::CopySrcDstField> dsts(1);
@@ -12920,6 +12924,11 @@ namespace Legion {
               runtime->handle_control_replicate_trace_event_response(derez);
               break;
             }
+          case SEND_REPL_TRACE_EVENT_TRIGGER:
+            {
+              runtime->handle_control_replicate_trace_event_trigger(derez);
+              break;
+            }
           case SEND_REPL_TRACE_FRONTIER_REQUEST:
             {
               runtime->handle_control_replicate_trace_frontier_request(derez,
@@ -13071,6 +13080,11 @@ namespace Legion {
             {
               runtime->handle_remote_context_find_collective_view_response(
                                                                     derez);
+              break;
+            }
+          case SEND_REMOTE_CONTEXT_REFINE_EQUIVALENCE_SETS:
+            {
+              runtime->handle_remote_context_refine_equivalence_sets(derez);
               break;
             }
           case SEND_COMPUTE_EQUIVALENCE_SETS_REQUEST: 
@@ -13228,12 +13242,6 @@ namespace Legion {
             {
               runtime->handle_equivalence_set_remote_filters(derez,
                                               remote_address_space);
-              break;
-            }
-          case SEND_EQUIVALENCE_SET_REMOTE_CLONES:
-            {
-              runtime->handle_equivalence_set_remote_clones(derez,
-                                            remote_address_space);
               break;
             }
           case SEND_EQUIVALENCE_SET_REMOTE_INSTANCES:
@@ -16896,7 +16904,6 @@ namespace Legion {
     template class OperationFactory<DeletionOp>;
     template class OperationFactory<MergeCloseOp>;
     template class OperationFactory<PostCloseOp>;
-    template class OperationFactory<VirtualCloseOp>;
     template class OperationFactory<RefinementOp>;
     template class OperationFactory<ResetOp>;
     template class OperationFactory<DynamicCollectiveOp,Memoizable<DynamicCollectiveOp> >;
@@ -16929,7 +16936,6 @@ namespace Legion {
     template class OperationFactory<ReplIndividualTask,Predicated<ReplIndividualTask> >;
     template class OperationFactory<ReplIndexTask,Predicated<ReplIndexTask> >;
     template class OperationFactory<ReplMergeCloseOp>;
-    template class OperationFactory<ReplVirtualCloseOp>;
     template class OperationFactory<ReplRefinementOp>;
     template class OperationFactory<ReplResetOp>;
     template class OperationFactory<ReplFillOp,Predicated<ReplFillOp> >;
@@ -22132,6 +22138,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_trace_event_trigger(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_TRACE_EVENT_TRIGGER,
+                                      rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
     void Runtime::send_control_replicate_trace_frontier_request(
                                          AddressSpaceID target, Serializer &rez) 
     //--------------------------------------------------------------------------
@@ -22365,6 +22380,15 @@ namespace Legion {
           SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_RESPONSE, rez, 
               true/*flush*/, true/*response*/);
     } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_refine_equivalence_sets(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_REMOTE_CONTEXT_REFINE_EQUIVALENCE_SETS, rez, true/*flush*/);
+    }
 
     //--------------------------------------------------------------------------
     void Runtime::send_compute_equivalence_sets_request(AddressSpaceID target,
@@ -22616,15 +22640,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       find_messenger(target)->send_message(SEND_EQUIVALENCE_SET_REMOTE_FILTERS,
-                                                            rez, true/*flush*/);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_equivalence_set_remote_clones(AddressSpaceID target,
-                                                     Serializer &rez)
-    //--------------------------------------------------------------------------
-    {
-      find_messenger(target)->send_message(SEND_EQUIVALENCE_SET_REMOTE_CLONES,
                                                             rez, true/*flush*/);
     }
 
@@ -24520,6 +24535,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_trace_event_trigger(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_trace_event_trigger(derez);
+    }
+
+    //--------------------------------------------------------------------------
     void Runtime::handle_control_replicate_trace_frontier_request(
                                      Deserializer &derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
@@ -24800,6 +24823,14 @@ namespace Legion {
     } 
 
     //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_refine_equivalence_sets(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_refine_equivalence_sets(derez);
+    }
+
+    //--------------------------------------------------------------------------
     void Runtime::handle_compute_equivalence_sets_request(Deserializer &derez,
                                                           AddressSpaceID source)
     //--------------------------------------------------------------------------
@@ -25012,14 +25043,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FilterAnalysis::handle_remote_filters(derez, source);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_equivalence_set_remote_clones(Deserializer &derez,
-                                                       AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      CloneAnalysis::handle_remote_clones(derez, source);
     }
 
     //--------------------------------------------------------------------------
@@ -27049,13 +27072,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    VirtualCloseOp* Runtime::get_available_virtual_close_op(void)
-    //--------------------------------------------------------------------------
-    {
-      return get_available(virtual_close_op_lock, available_virtual_close_ops);
-    }
-
-    //--------------------------------------------------------------------------
     RefinementOp* Runtime::get_available_refinement_op(void)
     //--------------------------------------------------------------------------
     {
@@ -27297,14 +27313,6 @@ namespace Legion {
       return get_available(merge_close_op_lock, available_repl_merge_close_ops);
     }
 
-    //--------------------------------------------------------------------------
-    ReplVirtualCloseOp* Runtime::get_available_repl_virtual_close_op(void)
-    //-------------------------------------------------------------------------- 
-    {
-      return get_available(virtual_close_op_lock,
-                available_repl_virtual_close_ops);
-    }
-    
     //--------------------------------------------------------------------------
     ReplRefinementOp* Runtime::get_available_repl_refinement_op(void)
     //-------------------------------------------------------------------------- 
@@ -27625,14 +27633,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::free_virtual_close_op(VirtualCloseOp *op)
-    //--------------------------------------------------------------------------
-    {
-      AutoLock v_lock(virtual_close_op_lock);
-      release_operation<false>(available_virtual_close_ops, op);
-    }
-
-    //--------------------------------------------------------------------------
     void Runtime::free_refinement_op(RefinementOp *op)
     //--------------------------------------------------------------------------
     {
@@ -27870,14 +27870,6 @@ namespace Legion {
     {
       AutoLock m_lock(merge_close_op_lock);
       release_operation<false>(available_repl_merge_close_ops, op);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::free_repl_virtual_close_op(ReplVirtualCloseOp *op)
-    //--------------------------------------------------------------------------
-    {
-      AutoLock v_lock(virtual_close_op_lock);
-      release_operation<false>(available_repl_virtual_close_ops, op);
     }
 
     //--------------------------------------------------------------------------

@@ -2077,36 +2077,9 @@ namespace Legion {
       virtual void deactivate(bool free = true);
     public:
       void set_repl_close_info(RtBarrier mapped_barrier);
-      virtual void trigger_mapping(void); 
+      virtual void trigger_ready(void);
     protected:
       RtBarrier mapped_barrier;
-    };
-
-    /**
-     * \class ReplVirtualCloseOp
-     * A virtual close operation is aware that it is being
-     * executed in a control replicated context
-     */
-    class ReplVirtualCloseOp :
-      public ReplCollectiveVersioning<CollectiveVersioning<VirtualCloseOp> > {
-    public:
-      ReplVirtualCloseOp(void);
-      ReplVirtualCloseOp(const ReplVirtualCloseOp &rhs) = delete;
-      virtual ~ReplVirtualCloseOp(void);
-    public:
-      ReplVirtualCloseOp& operator=(const ReplVirtualCloseOp &rhs) = delete;
-    public:
-      virtual void activate(void);
-      virtual void deactivate(bool free = true);
-    public:
-      virtual void trigger_dependence_analysis(void);
-      virtual void trigger_ready(void);
-      virtual bool perform_collective_analysis(CollectiveMapping *&mapping,
-                                               bool &first_local);
-      virtual RtEvent perform_collective_versioning_analysis(unsigned index,
-                       LogicalRegion handle, EqSetTracker *tracker,
-                       const FieldMask &mask, unsigned parent_req_index);
-      virtual bool is_collective_first_local_shard(void) const;
     };
 
     /**
@@ -3217,7 +3190,11 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
     protected:
+      void perform_template_creation_barrier(void);
+    protected:
       LogicalTrace *previous;
+      SlowBarrier *slow_barrier;
+      CollectiveID slow_barrier_id;
       bool has_blocking_call;
       bool has_intermediate_fence;
       bool remove_trace_reference;
@@ -3454,6 +3431,8 @@ namespace Legion {
       void send_trace_event_response(ShardedPhysicalTemplate *physical_template,
                           AddressSpaceID template_source, ApEvent event,
                           ApBarrier result, RtUserEvent done_event);
+      RtEvent send_trace_event_trigger(TraceID trace_id, AddressSpaceID target,
+          ApUserEvent lhs, ApEvent rhs, const TraceLocalID &tlid);
       void send_trace_frontier_request(
                           ShardedPhysicalTemplate *physical_template,
                           ShardID shard_source, AddressSpaceID template_source, 
@@ -3491,6 +3470,7 @@ namespace Legion {
       static void handle_trace_event_request(Deserializer &derez,
                                              AddressSpaceID request_source);
       static void handle_trace_event_response(Deserializer &derez);
+      static void handle_trace_event_trigger(Deserializer &derez);
       static void handle_trace_frontier_request(Deserializer &derez,
                                                 AddressSpaceID request_source);
       static void handle_trace_frontier_response(Deserializer &derez);

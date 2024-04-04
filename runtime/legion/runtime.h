@@ -3514,6 +3514,8 @@ namespace Legion {
                                                       Serializer &rez);
       void send_control_replicate_trace_event_response(AddressSpaceID target,
                                                        Serializer &rez);
+      void send_control_replicate_trace_event_trigger(AddressSpaceID target,
+                                                      Serializer &rez);
       void send_control_replicate_trace_frontier_request(AddressSpaceID target,
                                                       Serializer &rez);
       void send_control_replicate_trace_frontier_response(AddressSpaceID target,
@@ -3566,6 +3568,8 @@ namespace Legion {
                                                   Serializer &rez);
       void send_remote_context_collective_rendezvous(AddressSpaceID target,
                                                      Serializer &rez);
+      void send_remote_context_refine_equivalence_sets(AddressSpaceID target,
+                                                       Serializer &rez);
       void send_compute_equivalence_sets_request(AddressSpaceID target, 
                                                  Serializer &rez);
       void send_compute_equivalence_sets_response(AddressSpaceID target,
@@ -3617,8 +3621,6 @@ namespace Legion {
                                                   Serializer &rez);
       void send_equivalence_set_remote_filters(AddressSpaceID target,
                                                Serializer &rez);
-      void send_equivalence_set_remote_clones(AddressSpaceID target,
-                                              Serializer &rez);
       void send_equivalence_set_remote_instances(AddressSpaceID target,
                                                  Serializer &rez);
       void send_instance_request(AddressSpaceID target, Serializer &rez);
@@ -3937,6 +3939,8 @@ namespace Legion {
                                                       AddressSpaceID source);
       void handle_remote_context_find_collective_view_response(
                                                       Deserializer &derez);
+      void handle_remote_context_refine_equivalence_sets(
+                                                      Deserializer &derez);
       void handle_compute_equivalence_sets_request(Deserializer &derez, 
                                                    AddressSpaceID source);
       void handle_compute_equivalence_sets_response(Deserializer &derez);
@@ -3983,8 +3987,6 @@ namespace Legion {
                                                     AddressSpaceID source);
       void handle_equivalence_set_remote_filters(Deserializer &derez,
                                                  AddressSpaceID source);
-      void handle_equivalence_set_remote_clones(Deserializer &derez,
-                                                AddressSpaceID source);
       void handle_equivalence_set_remote_instances(Deserializer &derez);
       void handle_instance_request(Deserializer &derez, AddressSpaceID source);
       void handle_instance_response(Deserializer &derez,AddressSpaceID source);
@@ -4035,6 +4037,7 @@ namespace Legion {
       void handle_control_replicate_trace_event_request(Deserializer &derez,
                                                         AddressSpaceID source);
       void handle_control_replicate_trace_event_response(Deserializer &derez);
+      void handle_control_replicate_trace_event_trigger(Deserializer &derez);
       void handle_control_replicate_trace_frontier_request(Deserializer &derez,
                                                         AddressSpaceID source);
       void handle_control_replicate_trace_frontier_response(
@@ -4660,7 +4663,6 @@ namespace Legion {
         OperationFactory<DeletionOp>,
         OperationFactory<MergeCloseOp>,
         OperationFactory<PostCloseOp>,
-        OperationFactory<VirtualCloseOp>,
         OperationFactory<RefinementOp>,
         OperationFactory<ResetOp>,
         OperationFactory<DynamicCollectiveOp,Memoizable<DynamicCollectiveOp> >,
@@ -4693,7 +4695,6 @@ namespace Legion {
         OperationFactory<ReplIndividualTask,Predicated<ReplIndividualTask> >,
         OperationFactory<ReplIndexTask,Predicated<ReplIndexTask> >,
         OperationFactory<ReplMergeCloseOp>,
-        OperationFactory<ReplVirtualCloseOp>,
         OperationFactory<ReplRefinementOp>,
         OperationFactory<ReplResetOp>,
         OperationFactory<ReplFillOp,Predicated<ReplFillOp> >,
@@ -6006,6 +6007,8 @@ namespace Legion {
           break;
         case SEND_REPL_TRACE_EVENT_RESPONSE:
           break;
+        case SEND_REPL_TRACE_EVENT_TRIGGER:
+          break;
         case SEND_REPL_TRACE_FRONTIER_REQUEST:
           break;
         case SEND_REPL_TRACE_FRONTIER_RESPONSE:
@@ -6059,6 +6062,8 @@ namespace Legion {
         case SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_REQUEST:
           break;
         case SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_RESPONSE:
+          break;
+        case SEND_REMOTE_CONTEXT_REFINE_EQUIVALENCE_SETS:
           break;
         case SEND_COMPUTE_EQUIVALENCE_SETS_REQUEST:
           break;
@@ -6115,8 +6120,6 @@ namespace Legion {
         case SEND_EQUIVALENCE_SET_REMOTE_OVERWRITES:
           return THROUGHPUT_VIRTUAL_CHANNEL;
         case SEND_EQUIVALENCE_SET_REMOTE_FILTERS:
-          return THROUGHPUT_VIRTUAL_CHANNEL;
-        case SEND_EQUIVALENCE_SET_REMOTE_CLONES:
           return THROUGHPUT_VIRTUAL_CHANNEL;
         case SEND_EQUIVALENCE_SET_REMOTE_INSTANCES:
           break;

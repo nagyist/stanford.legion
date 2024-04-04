@@ -206,8 +206,7 @@ namespace Legion {
       virtual bool is_recording(void) const = 0;
       virtual void add_recorder_reference(void) = 0;
       virtual bool remove_recorder_reference(void) = 0;
-      virtual void pack_recorder(Serializer &rez, 
-                                 std::set<RtEvent> &applied) = 0; 
+      virtual void pack_recorder(Serializer &rez) = 0;
     public:
       virtual void record_completion_event(ApEvent lhs,
                              unsigned op_kind, const TraceLocalID &tlid) = 0;
@@ -355,9 +354,10 @@ namespace Legion {
         REMOTE_TRACE_BARRIER_ARRIVAL,
       };
     public:
-      RemoteTraceRecorder( AddressSpaceID origin,AddressSpace local,
+      RemoteTraceRecorder(AddressSpaceID origin,
                           const TraceLocalID &tlid, PhysicalTemplate *tpl, 
-                          RtUserEvent applied_event);
+                          DistributedID repl_did, TraceID tid,
+                          std::set<RtEvent> &applied_events);
       RemoteTraceRecorder(const RemoteTraceRecorder &rhs) = delete;
       virtual ~RemoteTraceRecorder(void);
     public:
@@ -366,8 +366,7 @@ namespace Legion {
       virtual bool is_recording(void) const { return true; }
       virtual void add_recorder_reference(void);
       virtual bool remove_recorder_reference(void);
-      virtual void pack_recorder(Serializer &rez, 
-                                 std::set<RtEvent> &applied);
+      virtual void pack_recorder(Serializer &rez); 
     public:
       virtual void record_completion_event(ApEvent lhs, unsigned op_kind,
                                            const TraceLocalID &tlid);
@@ -480,8 +479,8 @@ namespace Legion {
       virtual void record_future_allreduce(const TraceLocalID &tlid,
           const std::vector<Memory> &target_memories, size_t future_size);
     public:
-      static RemoteTraceRecorder* unpack_remote_recorder(Deserializer &derez,
-                                                    const TraceLocalID &tlid);
+      static PhysicalTraceRecorder* unpack_remote_recorder(Deserializer &derez,
+          const TraceLocalID &tlid, std::set<RtEvent> &applied_events);
       static void handle_remote_update(Deserializer &derez, 
                                        AddressSpaceID source);
       static void handle_remote_response(Deserializer &derez);
@@ -490,12 +489,12 @@ namespace Legion {
       static void unpack_src_dst_field(Deserializer &derez, CopySrcDstField &f);
     public:
       const AddressSpaceID origin_space;
-      const AddressSpaceID local_space;
       PhysicalTemplate *const remote_tpl;
-      const RtUserEvent applied_event;
+      const DistributedID repl_did;
+      const TraceID trace_id;
     protected:
       mutable LocalLock applied_lock;
-      std::set<RtEvent> applied_events;
+      std::set<RtEvent> &applied_events;
     };
 
     /**
@@ -764,8 +763,9 @@ namespace Legion {
                           RegionNode *node, Operation *op,
                           std::set<RtEvent> &applied) const;
     public:
-      void pack_trace_info(Serializer &rez, std::set<RtEvent> &applied) const;
-      static PhysicalTraceInfo unpack_trace_info(Deserializer &derez);
+      void pack_trace_info(Serializer &rez) const;
+      static PhysicalTraceInfo unpack_trace_info(Deserializer &derez,
+          std::set<RtEvent> &applied_events);
     private:
       inline void sanity_check(void) const
         {
@@ -1181,7 +1181,7 @@ namespace Legion {
       virtual PartitionRefinementTracker* as_partition_tracker(void)
         { return NULL; }
       virtual RefinementTracker* clone(void) const = 0;
-      virtual void initialize_already_refined(void) = 0;
+      virtual void initialize_no_refine(void) = 0;
       virtual bool update_child(RegionTreeNode *child, 
                                 const RegionUsage &usage,
                                 bool &allow_refinement) = 0;
@@ -1235,7 +1235,7 @@ namespace Legion {
     public:
       virtual RegionRefinementTracker* as_region_tracker(void) { return this; }
       virtual RefinementTracker* clone(void) const;
-      virtual void initialize_already_refined(void);
+      virtual void initialize_no_refine(void);
       virtual bool update_child(RegionTreeNode *child, 
                                 const RegionUsage &usage,
                                 bool &allow_refinement);
@@ -1289,7 +1289,7 @@ namespace Legion {
       virtual PartitionRefinementTracker* as_partition_tracker(void)
         { return this; }
       virtual RefinementTracker* clone(void) const;
-      virtual void initialize_already_refined(void);
+      virtual void initialize_no_refine(void);
       virtual bool update_child(RegionTreeNode *child, 
                                 const RegionUsage &usage,
                                 bool &allow_refinement);
@@ -1362,7 +1362,7 @@ namespace Legion {
       void sanity_check(void) const;
 #endif
     public:
-      void initialize_refined_fields(const FieldMask &mask);
+      void initialize_no_refine_fields(const FieldMask &mask);
       void update_refinement_child(ContextID ctx, RegionTreeNode *child,
                                    const RegionUsage &usage,
                                    FieldMask &refinement_mask);
@@ -2111,7 +2111,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false) = 0;
       virtual RtEvent perform_remote(RtEvent precondition, 
@@ -2284,7 +2283,8 @@ namespace Legion {
     public:
       RemoteCollectiveAnalysis(size_t ctx_index, unsigned req_index,
                                IndexSpaceID match_space, RemoteOp *op,
-                               Deserializer &derez);
+                               Deserializer &derez,
+                               std::set<RtEvent> &applied_events);
       virtual ~RemoteCollectiveAnalysis(void);
       virtual size_t get_context_index(void) const { return context_index; }
       virtual unsigned get_requirement_index(void) const
@@ -2296,7 +2296,8 @@ namespace Legion {
       virtual void add_analysis_reference(void) { add_reference(); }
       virtual bool remove_analysis_reference(void) 
         { return remove_reference(); }
-      static RemoteCollectiveAnalysis* unpack(Deserializer &derez);
+      static RemoteCollectiveAnalysis* unpack(Deserializer &derez,
+          std::set<RtEvent> &applied_events);
     public:
       const size_t context_index;
       const unsigned requirement_index;
@@ -2369,7 +2370,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false);
       virtual RtEvent perform_remote(RtEvent precondition,
@@ -2413,7 +2413,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false);
       virtual RtEvent perform_remote(RtEvent precondition,
@@ -2456,7 +2455,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false);
       virtual RtEvent perform_remote(RtEvent precondition,
@@ -2511,7 +2509,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false);
       virtual RtEvent perform_remote(RtEvent precondition, 
@@ -2579,7 +2576,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false);
       virtual RtEvent perform_remote(RtEvent precondition, 
@@ -2622,7 +2618,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false);
       virtual RtEvent perform_remote(RtEvent precondition,
@@ -2694,7 +2689,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false);
       virtual RtEvent perform_remote(RtEvent precondition,
@@ -2814,7 +2808,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false);
       virtual RtEvent perform_remote(RtEvent precondition, 
@@ -2881,7 +2874,6 @@ namespace Legion {
                                     IndexSpaceExpression *expr,
                                     const bool expr_covers,
                                     const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
                                     std::set<RtEvent> &applied_events,
                                     const bool already_deferred = false);
       virtual RtEvent perform_remote(RtEvent precondition, 
@@ -2893,41 +2885,6 @@ namespace Legion {
     public:
       FieldMaskSet<InstanceView> filter_views;
       const bool remove_restriction;
-    };
-
-    /**
-     * \class CloneAnalysis
-     * For cloning into an equivalence set from a set of other equivalence
-     * sets. This usually is done by VirtualCloseOps.
-     */
-    class CloneAnalysis : public PhysicalAnalysis,
-                          public LegionHeapify<CloneAnalysis> {
-    public:
-      CloneAnalysis(IndexSpaceExpression *expr, Operation *op,
-                    unsigned index, FieldMaskSet<EquivalenceSet> &&sources);
-      CloneAnalysis(AddressSpaceID src, AddressSpaceID prev,
-                    IndexSpaceExpression *expr, Operation *op,
-                    unsigned index, FieldMaskSet<EquivalenceSet> &&sources);
-      CloneAnalysis(const CloneAnalysis &rhs) = delete;
-      virtual ~CloneAnalysis(void);
-    public:
-      CloneAnalysis& operator=(const CloneAnalysis &rhs) = delete;
-    public:
-      virtual bool perform_analysis(EquivalenceSet *set,
-                                    IndexSpaceExpression *expr,
-                                    const bool expr_covers,
-                                    const FieldMask &mask,
-                                    std::set<RtEvent> &deferral_events,
-                                    std::set<RtEvent> &applied_events,
-                                    const bool already_deferred = false);
-      virtual RtEvent perform_remote(RtEvent precondition, 
-                                     std::set<RtEvent> &applied_events,
-                                     const bool already_deferred = false);
-    public:
-      static void handle_remote_clones(Deserializer &derez,
-                                       AddressSpaceID previous);
-    public:
-      const FieldMaskSet<EquivalenceSet> sources;
     };
 
     /**
@@ -3117,12 +3074,14 @@ namespace Legion {
         static const LgTaskID TASK_ID = LG_FINALIZE_EQ_SETS_TASK_ID;
       public:
         LgFinalizeEqSetsArgs(EqSetTracker *t, RtUserEvent c, UniqueID uid,
-                             InnerContext *ctx, unsigned parent_req_index,
+                             InnerContext *enclosing, InnerContext *outermost,
+                             unsigned parent_req_index,
                              IndexSpaceExpression *expr);
       public:
         EqSetTracker *const tracker;
         const RtUserEvent compute;
-        InnerContext *const context;
+        InnerContext *const enclosing;
+        InnerContext *const outermost;
         IndexSpaceExpression *const expr;
         const unsigned parent_req_index;
       };
@@ -3221,8 +3180,8 @@ namespace Legion {
           const FieldMask &mask, bool filter_invalidations,
           std::map<EquivalenceSet*,LegionList<SourceState> > &creation_sources);
       void finalize_equivalence_sets(RtUserEvent compute_event,
-          InnerContext *context, unsigned parent_req_index,
-          IndexSpaceExpression *expr, UniqueID opid);
+          InnerContext *enclosing, InnerContext *outermost,
+          unsigned parent_req_index, IndexSpaceExpression *expr, UniqueID opid);
       void record_equivalence_sets(VersionInfo *version_info,
                                    const FieldMask &mask) const;
       void find_cancellations(const FieldMask &mask,
@@ -3372,67 +3331,52 @@ namespace Legion {
                                 IndexSpaceExpression *expr,
                                 const bool expr_covers, 
                                 const FieldMask &user_mask,
-                                std::set<RtEvent> &deferral_events,
                                 std::set<RtEvent> &applied_events,
                                 const bool already_deferred = false);
       void find_invalid_instances(InvalidInstAnalysis &analysis,
                                 IndexSpaceExpression *expr,
                                 const bool expr_covers, 
                                 const FieldMask &user_mask,
-                                std::set<RtEvent> &deferral_events,
                                 std::set<RtEvent> &applied_events,
                                 const bool already_deferred = false);
       void find_antivalid_instances(AntivalidInstAnalysis &analysis,
                                 IndexSpaceExpression *expr,
                                 const bool expr_covers, 
                                 const FieldMask &user_mask,
-                                std::set<RtEvent> &deferral_events,
                                 std::set<RtEvent> &applied_events,
                                 const bool already_deferred = false);
       void update_set(UpdateAnalysis &analysis, IndexSpaceExpression *expr,
-                      const bool expr_covers, FieldMask user_mask,
-                      std::set<RtEvent> &deferral_events,
+                      const bool expr_covers, const FieldMask &user_mask,
                       std::set<RtEvent> &applied_events,
                       const bool already_deferred = false);
       void acquire_restrictions(AcquireAnalysis &analysis, 
                                 IndexSpaceExpression *expr,
                                 const bool expr_covers, 
                                 const FieldMask &acquire_mask,
-                                std::set<RtEvent> &deferral_events,
                                 std::set<RtEvent> &applied_events,
                                 const bool already_deferred = false);
       void release_restrictions(ReleaseAnalysis &analysis,
                                 IndexSpaceExpression *expr,
                                 const bool expr_covers, 
                                 const FieldMask &release_mask,
-                                std::set<RtEvent> &deferral_events,
                                 std::set<RtEvent> &applied_events,
                                 const bool already_deferred = false);
       void issue_across_copies(CopyAcrossAnalysis &analysis,
                                const FieldMask &src_mask, 
                                IndexSpaceExpression *expr,
                                const bool expr_covers,
-                               std::set<RtEvent> &deferral_events,
                                std::set<RtEvent> &applied_events,
                                const bool already_deferred = false);
       void overwrite_set(OverwriteAnalysis &analysis, 
                          IndexSpaceExpression *expr, const bool expr_covers,
                          const FieldMask &overwrite_mask,
-                         std::set<RtEvent> &deferral_events,
                          std::set<RtEvent> &applied_events,
                          const bool already_deferred = false);
       void filter_set(FilterAnalysis &analysis, 
                       IndexSpaceExpression *expr, const bool expr_covers,
                       const FieldMask &filter_mask, 
-                      std::set<RtEvent> &deferral_events,
                       std::set<RtEvent> &applied_events,
                       const bool already_deferred = false);
-      void clone_set(CloneAnalysis &analysis,
-                     IndexSpaceExpression *expr, const bool expr_covers,
-                     const FieldMask &clone_mask,
-                     std::set<RtEvent> &deferral_events,
-                     std::vector<RtEvent> &applied_events,
-                     const bool already_deferred = false);
     public:
       void initialize_collective_references(unsigned local_valid_refs);
       void remove_read_only_guard(CopyFillGuard *guard);
@@ -3695,7 +3639,8 @@ namespace Legion {
                           std::vector<RtEvent> &applied_events,
                           const bool invalidate_overlap,
                           const bool record_invalidate,
-                          const bool filter_invalidations);
+                          const bool filter_invalidations,
+                          const bool need_dst_lock = true);
       void clone_to_remote(DistributedID target, AddressSpaceID target_space,
                     IndexSpaceExpression *target_expr, 
                     IndexSpaceExpression *overlap, FieldMask mask,
@@ -3906,7 +3851,7 @@ namespace Legion {
       inline const FieldMask& get_version_mask(void) const
         { return equivalence_sets.get_valid_mask(); }
     public:
-      void perform_versioning_analysis(InnerContext *parent_ctx,
+      void perform_versioning_analysis(InnerContext *outermost,
                                        VersionInfo *version_info,
                                        RegionNode *region_node,
                                        const FieldMask &version_mask,
@@ -3916,7 +3861,7 @@ namespace Legion {
                                        RtEvent *output_region_ready,
                                        bool collective_rendezvous);
       RtEvent finalize_output_equivalence_set(EquivalenceSet *set,
-                                       InnerContext *context,
+                                       InnerContext *enclosing,
                                        unsigned parent_req_index);
     public:
       virtual void add_subscription_reference(unsigned count = 1);

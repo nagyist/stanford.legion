@@ -4206,18 +4206,20 @@ namespace Legion {
         std::vector<EqSetTracker*> targets(1, this);
         std::vector<AddressSpaceID> target_spaces(1, space);
         InnerContext *context = owner->trace->logical_trace->context;
+        InnerContext *outermost =
+          context->find_parent_physical_context(parent_req_index);
         RtEvent ready = context->compute_equivalence_sets(parent_req_index,
             targets, target_spaces, space, condition_expr, invalid_mask);
         if (ready.exists() && !ready.has_triggered())
         {
           // Launch a meta-task to finalize this trace condition set
           LgFinalizeEqSetsArgs args(this, compute_event, op->get_unique_op_id(),
-              context, parent_req_index, condition_expr);
+              context, outermost, parent_req_index, condition_expr);
           runtime->issue_runtime_meta_task(args, 
                           LG_LATENCY_DEFERRED_PRIORITY, ready);
         }
         else
-          finalize_equivalence_sets(compute_event, context,
+          finalize_equivalence_sets(compute_event, context, outermost,
               parent_req_index, condition_expr, op->get_unique_op_id());
         ready_events.insert(compute_event);
       }
@@ -5547,7 +5549,7 @@ namespace Legion {
                                                const std::vector<unsigned> &gen)
     //--------------------------------------------------------------------------
     {
-      const size_t replay_parallelism = trace->get_replay_targets().size();
+      const size_t replay_parallelism = runtime->max_replay_parallelism;
       slices.resize(replay_parallelism);
       std::map<TraceLocalID, unsigned> slice_indices_by_owner;
       std::vector<unsigned> slice_indices_by_inst;
@@ -6898,15 +6900,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PhysicalTemplate::pack_recorder(Serializer &rez,
-                                         std::set<RtEvent> &applied_events)
+    void PhysicalTemplate::pack_recorder(Serializer &rez)
     //--------------------------------------------------------------------------
     {
       rez.serialize(runtime->address_space);
       rez.serialize(this);
-      RtUserEvent remote_applied = Runtime::create_rt_user_event();
-      rez.serialize(remote_applied);
-      applied_events.insert(remote_applied);
+      rez.serialize<DistributedID>(0); // no coll
     }
 
     //--------------------------------------------------------------------------
@@ -7730,7 +7729,7 @@ namespace Legion {
       }
       else
         replay_precondition = RtEvent::NO_RT_EVENT;
-      remaining_replays.store(trace->get_replay_targets().size());
+      remaining_replays.store(slices.size());
       total_logical.store(0);
       // Check to see if we have a finished transitive reduction result
       check_finalize_transitive_reduction();
@@ -7767,9 +7766,9 @@ namespace Legion {
       const std::vector<Processor> &replay_targets = 
         trace->get_replay_targets();
 #ifdef DEBUG_LEGION
-      assert(remaining_replays.load() == replay_targets.size());
+      assert(remaining_replays.load() == slices.size());
 #endif
-      for (unsigned idx = 0; idx < replay_targets.size(); ++idx)
+      for (unsigned idx = 0; idx < slices.size(); ++idx)
       {
         ReplaySliceArgs args(this, idx, trace->is_recurrent());
         if (runtime->replay_on_cpus)
@@ -8049,6 +8048,49 @@ namespace Legion {
       if (repl_ctx->remove_base_resource_ref(TRACE_REF))
         delete repl_ctx;
     } 
+
+    //--------------------------------------------------------------------------
+    void ShardedPhysicalTemplate::record_trigger_event(ApUserEvent lhs,
+                                          ApEvent rhs, const TraceLocalID &tlid)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(lhs.exists());
+#endif
+      const AddressSpaceID event_space = find_event_space(lhs);
+      if ((event_space == runtime->address_space) &&
+          record_shard_event_trigger(lhs, rhs, tlid))
+        return;
+      RtEvent done = repl_ctx->shard_manager->send_trace_event_trigger(
+          trace->logical_trace->tid, event_space, lhs, rhs, tlid);
+      if (done.exists())
+        done.wait();
+    }
+
+    //--------------------------------------------------------------------------
+    bool ShardedPhysicalTemplate::record_shard_event_trigger(ApUserEvent lhs,
+        ApEvent rhs, const TraceLocalID &tlid)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(lhs.exists());
+#endif
+      AutoLock tpl_lock(template_lock);
+#ifdef DEBUG_LEGION
+      assert(is_recording());
+#endif
+      std::map<ApEvent,unsigned>::const_iterator finder = event_map.find(lhs);
+      if (finder == event_map.end())
+        return false;
+#ifdef DEBUG_LEGION
+      assert(finder->second != NO_INDEX);
+#endif
+      const unsigned rhs_ =
+        rhs.exists() ? find_event(rhs, tpl_lock) : fence_completion_id;
+      events.push_back(ApEvent());
+      insert_instruction(new TriggerEvent(*this, finder->second, rhs_, tlid));
+      return true;
+    }
 
     //--------------------------------------------------------------------------
     void ShardedPhysicalTemplate::record_merge_events(ApEvent &lhs,
@@ -9075,6 +9117,16 @@ namespace Legion {
       }
     }
 #endif
+
+    //--------------------------------------------------------------------------
+    void ShardedPhysicalTemplate::pack_recorder(Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      rez.serialize(runtime->address_space);
+      rez.serialize(this);
+      rez.serialize(repl_ctx->shard_manager->did);
+      rez.serialize(trace->logical_trace->tid);
+    }
 
     //--------------------------------------------------------------------------
     void ShardedPhysicalTemplate::initialize_replay(ApEvent completion,
@@ -10125,14 +10177,22 @@ namespace Legion {
                             const bool recurrent_replay)
     //--------------------------------------------------------------------------
     {
+      std::map<TraceLocalID,MemoizableOp*>::const_iterator finder =
+        operations.find(owner);
+      if (finder == operations.end())
+      {
+        // Remote copy, should still be able to find the owner op here
+        TraceLocalID local = owner; 
+        local.index_point = DomainPoint();
+        finder = operations.find(local);
+      }
 #ifdef DEBUG_LEGION
-      assert(operations.find(owner) != operations.end());
-      assert(operations.find(owner)->second != NULL);
+      assert(finder != operations.end());
+      assert(finder->second != NULL);
 #endif
-      MemoizableOp *op = operations[owner];
       ApEvent precondition = events[precondition_idx];
-      const PhysicalTraceInfo trace_info(op, -1U);
-      events[lhs] = expr->issue_copy(op, trace_info, dst_fields, 
+      const PhysicalTraceInfo trace_info(finder->second, -1U);
+      events[lhs] = expr->issue_copy(finder->second, trace_info, dst_fields,
                                      src_fields, reservations,
 #ifdef LEGION_SPY
                                      src_tree_id, dst_tree_id,
@@ -10210,16 +10270,24 @@ namespace Legion {
                               const bool recurrent_replay)
     //--------------------------------------------------------------------------
     {
+      std::map<TraceLocalID,MemoizableOp*>::const_iterator finder =
+        operations.find(owner);
+      if (finder == operations.end())
+      {
+        // Remote copy, should still be able to find the owner op here
+        TraceLocalID local = owner; 
+        local.index_point = DomainPoint();
+        finder = operations.find(local);
+      }
 #ifdef DEBUG_LEGION
-      assert(operations.find(owner) != operations.end());
-      assert(operations.find(owner)->second != NULL);
+      assert(finder != operations.end());
+      assert(finder->second != NULL);
 #endif
-      MemoizableOp *op = operations[owner];
       ApEvent copy_pre = events[copy_precondition];
       ApEvent src_indirect_pre = events[src_indirect_precondition];
       ApEvent dst_indirect_pre = events[dst_indirect_precondition];
-      const PhysicalTraceInfo trace_info(op, -1U);
-      events[lhs] = executor->execute(op, PredEvent::NO_PRED_EVENT,
+      const PhysicalTraceInfo trace_info(finder->second, -1U);
+      events[lhs] = executor->execute(finder->second, PredEvent::NO_PRED_EVENT,
                                       copy_pre, src_indirect_pre,
                                       dst_indirect_pre, trace_info,
                                       true/*replay*/, recurrent_replay);
@@ -10289,14 +10357,22 @@ namespace Legion {
                             const bool recurrent_replay)
     //--------------------------------------------------------------------------
     {
+      std::map<TraceLocalID,MemoizableOp*>::const_iterator finder =
+        operations.find(owner);
+      if (finder == operations.end())
+      {
+        // Remote copy, should still be able to find the owner op here
+        TraceLocalID local = owner; 
+        local.index_point = DomainPoint();
+        finder = operations.find(local);
+      }
 #ifdef DEBUG_LEGION
-      assert(operations.find(owner) != operations.end());
-      assert(operations.find(owner)->second != NULL);
+      assert(finder != operations.end());
+      assert(finder->second != NULL);
 #endif
-      MemoizableOp *op = operations[owner];
       ApEvent precondition = events[precondition_idx];
-      const PhysicalTraceInfo trace_info(op, -1U);
-      events[lhs] = expr->issue_fill(op, trace_info, fields, 
+      const PhysicalTraceInfo trace_info(finder->second, -1U);
+      events[lhs] = expr->issue_fill(finder->second, trace_info, fields,
                                      fill_value, fill_size,
 #ifdef LEGION_SPY
                                      fill_uid, handle, tree_id,

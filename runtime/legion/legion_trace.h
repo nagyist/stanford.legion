@@ -932,8 +932,7 @@ namespace Legion {
       virtual void add_recorder_reference(void) { /*do nothing*/ }
       virtual bool remove_recorder_reference(void) 
         { /*do nothing, never delete*/ return false; }
-      virtual void pack_recorder(Serializer &rez, 
-                                 std::set<RtEvent> &applied);
+      virtual void pack_recorder(Serializer &rez); 
     public:
       void record_premap_output(MemoizableOp *memo,
                                 const Mapper::PremapTaskOutput &output,
@@ -1309,6 +1308,7 @@ namespace Legion {
         return continuation_pre;
       }
     public:
+      virtual void pack_recorder(Serializer &rez);
       virtual size_t get_sharded_template_index(void) const
         { return template_index; }
       virtual void initialize_replay(ApEvent fence_completion, bool recurrent);
@@ -1316,6 +1316,8 @@ namespace Legion {
       virtual RtEvent refresh_managed_barriers(void);
       virtual void finish_replay(std::set<ApEvent> &postconditions);
       virtual ApEvent get_completion_for_deletion(void) const;
+      virtual void record_trigger_event(ApUserEvent lhs, ApEvent rhs,
+                                        const TraceLocalID &tlid);
       using PhysicalTemplate::record_merge_events;
       virtual void record_merge_events(ApEvent &lhs, 
                                        const std::set<ApEvent>& rhs,
@@ -1379,6 +1381,8 @@ namespace Legion {
       void record_trace_shard_frontier(unsigned frontier, ApBarrier result);
       void handle_trace_update(Deserializer &derez, AddressSpaceID source);
       static void handle_deferred_trace_update(const void *args);
+      bool record_shard_event_trigger(ApUserEvent lhs, ApEvent rhs,
+                                      const TraceLocalID &tlid);
     protected:
       bool handle_update_mutated_inst(const UniqueInst &inst, 
                             IndexSpaceExpression *ex, Deserializer &derez, 

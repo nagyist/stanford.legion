@@ -1179,7 +1179,8 @@ namespace Legion {
       void finalize_output_eqkd_tree(unsigned req_index);
       // This method must be called while holding the privilege lock
       IndexSpace find_root_index_space(unsigned req_index);
-      RtEvent report_equivalence_sets(const CollectiveMapping &target_mapping,
+      RtEvent report_equivalence_sets(unsigned req_index,
+          const CollectiveMapping &target_mapping,
           const std::vector<EqSetTracker*> &targets,
           const AddressSpaceID creation_target_space, const FieldMask &mask,
           std::vector<unsigned> &new_target_references,
@@ -1748,12 +1749,10 @@ namespace Legion {
       virtual MergeCloseOp* get_merge_close_op(void);
       virtual RefinementOp* get_refinement_op(void);
 #endif
-      virtual VirtualCloseOp* get_virtual_close_op(void);
     public:
       virtual void pack_inner_context(Serializer &rez) const;
       static InnerContext* unpack_inner_context(Deserializer &derez);
     public:
-      bool nonexclusive_virtual_mapping(unsigned index);
       virtual InnerContext* find_parent_physical_context(unsigned index);
     public:
       // Override by RemoteTask and TopLevelTask
@@ -1767,10 +1766,11 @@ namespace Legion {
       virtual EquivalenceSet* create_initial_equivalence_set(unsigned idx1,
                                                   const RegionRequirement &req);
       virtual void refine_equivalence_sets(unsigned req_index, 
-                                           IndexSpaceNode *node,
-                                           const FieldMask &refinement_mask,
-                                           std::vector<RtEvent> &applied_events,
-                                           bool sharded = false);
+                                       IndexSpaceNode *node,
+                                       const FieldMask &refinement_mask,
+                                       std::vector<RtEvent> &applied_events,
+                                       bool sharded = false, bool first = true,
+                                       const CollectiveMapping *mapping = NULL);
       virtual void invalidate_region_tree_contexts(const bool is_top_level_task,
                             std::set<RtEvent> &applied,
                             const ShardMapping *mapping = NULL,
@@ -2204,8 +2204,6 @@ namespace Legion {
       virtual InnerContext* find_parent_context(void);
       virtual UniqueID get_unique_id(void) const { return root_uid; }
     public:
-      virtual InnerContext* find_outermost_local_context(
-                          InnerContext *previous = NULL);
       virtual InnerContext* find_top_context(InnerContext *previous = NULL);
     public:
       virtual void receive_created_region_contexts(
@@ -2650,10 +2648,11 @@ namespace Legion {
       virtual EquivalenceSet* create_initial_equivalence_set(unsigned idx1,
                                                   const RegionRequirement &req);
       virtual void refine_equivalence_sets(unsigned req_index,
-                                           IndexSpaceNode *node,
-                                           const FieldMask &refinement_mask,
-                                           std::vector<RtEvent> &applied_events,
-                                           bool sharded = false);
+                                       IndexSpaceNode *node,
+                                       const FieldMask &refinement_mask,
+                                       std::vector<RtEvent> &applied_events,
+                                       bool sharded = false, bool first = true,
+                                       const CollectiveMapping *mapping = NULL);
       virtual void receive_created_region_contexts(
                           const std::vector<RegionNode*> &created_regions,
                           const std::vector<EqKDTree*> &created_trees,
@@ -3087,7 +3086,6 @@ namespace Legion {
       virtual MergeCloseOp* get_merge_close_op(void);
       virtual RefinementOp* get_refinement_op(void);
 #endif
-      virtual VirtualCloseOp* get_virtual_close_op(void);
     public:
       virtual void pack_task_context(Serializer &rez) const;
     public:
@@ -3279,6 +3277,7 @@ namespace Legion {
 #endif
     public:
       const DomainPoint& get_shard_point(void) const; 
+      ShardedPhysicalTemplate* find_current_shard_template(TraceID tid) const;
     public:
       static void register_attach_detach_sharding_functor(void);
       ShardingFunction* get_attach_detach_sharding_function(void);
@@ -3319,6 +3318,10 @@ namespace Legion {
       ShardTask *const owner_shard;
       ShardManager *const shard_manager;
       const size_t total_shards;
+    protected:
+      // Need an extra trace lock here for when we go to look-up traces
+      // to find the current template
+      mutable LocalLock trace_lock;
     protected: 
       typedef ReplBarrier<RtBarrier,false> RtReplBar;
       typedef ReplBarrier<ApBarrier,false> ApReplBar;
@@ -3541,6 +3544,12 @@ namespace Legion {
       virtual CollectiveResult* find_or_create_collective_view(
           RegionTreeID tid, const std::vector<DistributedID> &instances, 
           RtEvent &ready);
+      virtual void refine_equivalence_sets(unsigned req_index, 
+                                       IndexSpaceNode *node,
+                                       const FieldMask &refinement_mask,
+                                       std::vector<RtEvent> &applied_events,
+                                       bool sharded = false, bool first = true,
+                                       const CollectiveMapping *mapping = NULL);
       virtual void invalidate_region_tree_contexts(const bool is_top_level_task,
                           std::set<RtEvent> &applied,
                           const ShardMapping *shard_mapping = NULL,
@@ -3568,6 +3577,7 @@ namespace Legion {
       static void handle_find_collective_view_request(Deserializer &derez,
                                                       AddressSpaceID source);
       static void handle_find_collective_view_response(Deserializer &derez);
+      static void handle_refine_equivalence_sets(Deserializer &derez);
     protected:
       DistributedID parent_context_did;
       std::atomic<InnerContext*> parent_ctx;

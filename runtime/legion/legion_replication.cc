@@ -1978,7 +1978,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplMergeCloseOp::trigger_mapping(void)
+    void ReplMergeCloseOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1986,109 +1986,21 @@ namespace Legion {
 #endif
       Runtime::phase_barrier_arrive(mapped_barrier, 1/*count*/);
       // Then complete the mapping once the barrier has triggered
-      complete_mapping(mapped_barrier);
-      complete_execution();
-    }
-
-    /////////////////////////////////////////////////////////////
-    // Repl Virtual Close Op 
-    /////////////////////////////////////////////////////////////
-
-    //--------------------------------------------------------------------------
-    ReplVirtualCloseOp::ReplVirtualCloseOp(void)
-      : ReplCollectiveVersioning<CollectiveVersioning<VirtualCloseOp> >()
-    //--------------------------------------------------------------------------
-    {
-    }
-
-    //--------------------------------------------------------------------------
-    ReplVirtualCloseOp::~ReplVirtualCloseOp(void)
-    //--------------------------------------------------------------------------
-    {
-    }
-
-    //--------------------------------------------------------------------------
-    void ReplVirtualCloseOp::activate(void)
-    //--------------------------------------------------------------------------
-    {
-      ReplCollectiveVersioning<
-        CollectiveVersioning<VirtualCloseOp> >::activate();
-    }
-
-    //--------------------------------------------------------------------------
-    void ReplVirtualCloseOp::deactivate(bool free)
-    //--------------------------------------------------------------------------
-    {
-      ReplCollectiveVersioning<
-        CollectiveVersioning<VirtualCloseOp> >::deactivate(false/*free*/);
-      if (free)
-        runtime->free_operation(this);
-    }
-
-    //--------------------------------------------------------------------------
-    void ReplVirtualCloseOp::trigger_dependence_analysis(void)
-    //--------------------------------------------------------------------------
-    {
-      create_collective_rendezvous(0/*requirement index*/);
-      VirtualCloseOp::trigger_dependence_analysis();
-    }
-
-    //--------------------------------------------------------------------------
-    void ReplVirtualCloseOp::trigger_ready(void)
-    //--------------------------------------------------------------------------
-    {
-      std::set<RtEvent> preconditions;
-      perform_versioning_analysis(0/*idx*/,
-                                                   requirement,
-                                                   source_version_info,
-                                                   preconditions,
-                                                   NULL/*output region*/,
-                                                   true/*rendezvous*/);
-      if (!preconditions.empty())
-        enqueue_ready_operation(Runtime::merge_events(preconditions));
+      // A small performance optimization here: if we have a physical trace
+      // and we're replaying it then we don't need to actually do the 
+      // synchronization across the shards since we know all the shards
+      // can replay independently
+      if ((trace != NULL) && trace->has_physical_trace())
+      {
+        PhysicalTrace *physical = trace->get_physical_trace();
+        if (physical->is_replaying())
+          complete_mapping();
+        else
+          complete_mapping(mapped_barrier);
+      }
       else
-        enqueue_ready_operation(); 
-    }
-
-    //--------------------------------------------------------------------------
-    bool ReplVirtualCloseOp::perform_collective_analysis(
-                                 CollectiveMapping *&mapping, bool &first_local)
-    //--------------------------------------------------------------------------
-    {
-#ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
-#else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
-      mapping = &(repl_ctx->shard_manager->get_collective_mapping()); 
-      mapping->add_reference();
-      first_local = is_collective_first_local_shard();
-      return true;
-    }
-
-    //--------------------------------------------------------------------------
-    RtEvent ReplVirtualCloseOp::perform_collective_versioning_analysis(
-        unsigned index, LogicalRegion handle, EqSetTracker *tracker,
-        const FieldMask &mask, unsigned parent_req_index)
-    //--------------------------------------------------------------------------
-    {
-      return rendezvous_collective_versioning_analysis(index, handle, tracker,
-          runtime->address_space, mask, parent_req_index);
-    }
-
-    //--------------------------------------------------------------------------
-    bool ReplVirtualCloseOp::is_collective_first_local_shard(void) const
-    //--------------------------------------------------------------------------
-    {
-#ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
-#else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
-#endif
-      return repl_ctx->shard_manager->is_first_local_shard(
-          repl_ctx->owner_shard);
+        complete_mapping(mapped_barrier);
+      complete_execution();
     }
 
     /////////////////////////////////////////////////////////////
@@ -8728,6 +8640,9 @@ namespace Legion {
       remove_trace_reference = remove_ref;
       initialize_begin(ctx, trace);
       initialize_complete(ctx);
+      // Check to see if we need a slow barrier ID
+      if (trace->has_physical_trace())
+        slow_barrier_id = ctx->get_next_collective_index(COLLECTIVE_LOC_95);
     }
 
     //--------------------------------------------------------------------------
@@ -8736,6 +8651,8 @@ namespace Legion {
     {
       ReplTraceBegin<ReplTraceComplete<ReplRecurrentOp> >::activate();
       previous = NULL;
+      slow_barrier = NULL;
+      slow_barrier_id = 0;
       has_blocking_call = false;
       has_intermediate_fence = false;
       remove_trace_reference = false;
@@ -8746,6 +8663,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ReplTraceBegin<ReplTraceComplete<ReplRecurrentOp> >::deactivate(false);
+      if (slow_barrier != NULL)
+        delete slow_barrier;
       if (freeop)
         runtime->free_operation(this);
     }
@@ -8870,6 +8789,10 @@ namespace Legion {
           PhysicalTrace *physical = trace->get_physical_trace();
           const bool replaying = physical->begin_physical_trace(this,
               map_applied_conditions, execution_preconditions);
+          if (!replaying)
+            // have to do the slow barrier here to make sure that
+            // all the shards have made their templates for recording
+            perform_template_creation_barrier();
           // Tell the parent whether we are replaying
           parent_ctx->record_physical_trace_replay(mapped_event, replaying);
           fence_before = true;
@@ -8888,6 +8811,10 @@ namespace Legion {
         const bool replaying = physical->replay_physical_trace(this,
             map_applied_conditions, execution_preconditions,
             has_blocking_call, has_intermediate_fence);
+        if (!replaying && fence_before)
+          // Have to do the slow barrier here to make sure that
+          // all the shards have made their templates for recording
+          perform_template_creation_barrier();
         // Tell the parent whether we are replaying
         parent_ctx->record_physical_trace_replay(mapped_event, replaying);
       }
@@ -8914,6 +8841,24 @@ namespace Legion {
       }
       else
         ReplTraceOp::trigger_mapping();
+    }
+
+    //--------------------------------------------------------------------------
+    void ReplTraceRecurrentOp::perform_template_creation_barrier(void)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(slow_barrier_id > 0);
+      assert(slow_barrier == NULL);
+      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      assert(repl_ctx != NULL);
+#else
+      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+#endif
+      slow_barrier = new SlowBarrier(repl_ctx, slow_barrier_id);
+      slow_barrier->perform_collective_async();
+      map_applied_conditions.insert(
+          slow_barrier->perform_collective_wait(false));
     }
 
     /////////////////////////////////////////////////////////////
@@ -11114,6 +11059,73 @@ namespace Legion {
 
       physical_template->record_trace_shard_event(event, result);
       Runtime::trigger_event(done_event);
+    }
+
+    //--------------------------------------------------------------------------
+    RtEvent ShardManager::send_trace_event_trigger(TraceID tid, 
+        AddressSpaceID target, ApUserEvent lhs, ApEvent rhs,
+        const TraceLocalID &tlid)
+    //--------------------------------------------------------------------------
+    {
+      if (target != local_space)
+      {
+#ifdef DEBUG_LEGION
+        assert(collective_mapping != NULL);
+        assert(collective_mapping->contains(target));
+#endif
+        const RtUserEvent done = Runtime::create_rt_user_event();
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize(did);
+          rez.serialize(tid);
+          rez.serialize(lhs);
+          rez.serialize(rhs);
+          tlid.serialize(rez);
+          rez.serialize(done);
+        }
+        runtime->send_control_replicate_trace_event_trigger(target, rez);
+        return done;
+      }
+      else
+      {
+        for (std::vector<ShardTask*>::const_iterator it = 
+              local_shards.begin(); it != local_shards.end(); it++)
+        {
+          ReplicateContext *ctx = (*it)->get_replicate_context();
+          ShardedPhysicalTemplate *tpl = ctx->find_current_shard_template(tid); 
+          if (tpl->record_shard_event_trigger(lhs, rhs, tlid))
+            return RtEvent::NO_RT_EVENT;
+        }
+        // Should never get here, we shold always find it
+        assert(false);
+        return RtEvent::NO_RT_EVENT;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void ShardManager::handle_trace_event_trigger(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      DistributedID repl_id;
+      derez.deserialize(repl_id);
+      TraceID tid;
+      derez.deserialize(tid);
+      ApUserEvent lhs;
+      derez.deserialize(lhs);
+      ApEvent rhs;
+      derez.deserialize(rhs);
+      TraceLocalID tlid;
+      tlid.deserialize(derez);
+      RtUserEvent done_event;
+      derez.deserialize(done_event);
+
+      ShardManager *manager = runtime->find_shard_manager(repl_id);
+      RtEvent done = manager->send_trace_event_trigger(tid,
+          runtime->address_space, lhs, rhs, tlid);
+      Runtime::trigger_event(done_event, done);
     }
 
     //--------------------------------------------------------------------------
@@ -15332,20 +15344,29 @@ namespace Legion {
       // Only need to do this if we have ops, if we didn't have ops then
       // it's impossible for anyone else to have them all too
       const size_t total_shards = manager->total_shards;
-      find_ready_ops(total_shards, index_space_counts,
-                     index_space_deletions, ready_ops);
-      find_ready_ops(total_shards, index_partition_counts,
-                     index_partition_deletions, ready_ops);
-      find_ready_ops(total_shards, field_space_counts,
-                     field_space_deletions, ready_ops);
-      find_ready_ops(total_shards, field_counts,
-                     field_deletions, ready_ops);
-      find_ready_ops(total_shards, logical_region_counts,
-                     logical_region_deletions, ready_ops);
+      // The order in which we add these operations is actually important
+      // We need to do them in the order in which they might actually depend
+      // on themselves based on how they were issued
+      // Do detach operations first since they should preced all deletions
       find_ready_ops(total_shards, region_detach_counts,
                      region_detachments, ready_ops);
       find_ready_ops(total_shards, partition_detach_counts,
                      partition_detachments, ready_ops);
+      // Next do field deletions since they should precede deletions of
+      // logical regions and field spaces
+      find_ready_ops(total_shards, field_counts,
+                     field_deletions, ready_ops);
+      // Then do logical region deletions which should precede field
+      // space deletions
+      find_ready_ops(total_shards, logical_region_counts,
+                     logical_region_deletions, ready_ops);
+      find_ready_ops(total_shards, field_space_counts,
+                     field_space_deletions, ready_ops);
+      // Do index partition deletions before index space deletions
+      find_ready_ops(total_shards, index_partition_counts,
+                     index_partition_deletions, ready_ops);
+      find_ready_ops(total_shards, index_space_counts,
+                     index_space_deletions, ready_ops);
     }
 
     /////////////////////////////////////////////////////////////
