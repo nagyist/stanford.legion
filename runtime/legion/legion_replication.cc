@@ -120,7 +120,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     CloseCheckReduction::CloseCheckValue::CloseCheckValue(Operation *op,
                           RtBarrier bar, RegionTreeNode *node, bool read)
-      : operation_index(op->get_ctx_index()), barrier(bar),
+      : operation_index(op->get_context_index()), barrier(bar),
         is_region(node->is_region()), read_only(read)
     //--------------------------------------------------------------------------
     {
@@ -11311,6 +11311,50 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void ShardManager::send_find_trace_local_sets(ShardID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(target < address_spaces->size());
+#endif
+      AddressSpaceID target_space = (*address_spaces)[target];
+      // Check to see if this is a local shard
+      if (target_space == runtime->address_space)
+      {
+        Deserializer derez(rez.get_buffer(), rez.get_used_bytes());
+        // Have to unpack the preample we already know
+        DistributedID local_repl;
+        derez.deserialize(local_repl);     
+        handle_find_trace_local_sets(derez, target_space);
+      }
+      else
+        runtime->send_control_replicate_find_trace_local_sets(
+            target_space, rez); 
+    }
+
+    //--------------------------------------------------------------------------
+    void ShardManager::handle_find_trace_local_sets(Deserializer &derez,
+                                                    AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      // Figure out which shard we are going to
+      ShardID target;
+      derez.deserialize(target);
+      for (std::vector<ShardTask*>::const_iterator it = 
+            local_shards.begin(); it != local_shards.end(); it++)
+      {
+        if ((*it)->shard_id == target)
+        {
+          (*it)->handle_find_trace_local_sets(derez, source);
+          return;
+        }
+      }
+      // Should never get here
+      assert(false);
+    }
+
+    //--------------------------------------------------------------------------
     ShardID ShardManager::find_collective_owner(RegionTreeID tid) const
     //--------------------------------------------------------------------------
     {
@@ -11698,8 +11742,19 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    /*static*/ void ShardManager::process_find_trace_local_sets(
+        Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DistributedID repl_id;
+      derez.deserialize(repl_id);
+      ShardManager *manager = runtime->find_shard_manager(repl_id);
+      manager->handle_find_trace_local_sets(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
     /*static*/ void ShardManager::process_compute_equivalence_sets(
-                                          Deserializer &derez)
+                                                            Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DistributedID repl_id;

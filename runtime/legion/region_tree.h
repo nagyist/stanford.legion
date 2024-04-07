@@ -2368,6 +2368,19 @@ namespace Legion {
                                         std::vector<RtEvent> &invalidated,
           std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
                                         ShardID local_shard) = 0;
+      virtual void find_trace_local_sets_kd_tree(EqKDTree *tree,
+                                        LocalLock *tree_lock,
+                                        const FieldMask &mask,
+                                        unsigned req_index,
+                                        ShardID local_shard,
+          std::map<EquivalenceSet*,unsigned> &current_sets) = 0;
+      virtual void find_shard_trace_local_sets_kd_tree(EqKDTree *tree,
+                                        LocalLock *tree_lock,
+                                        const FieldMask &mask,
+                                        unsigned req_index,
+          std::map<EquivalenceSet*,unsigned> &current_sets,
+          LegionMap<ShardID,FieldMask> &remote_shards,
+                                        ShardID local_shard) = 0;
     public:
       const IndexSpace handle;
       IndexPartNode *const parent;
@@ -2706,6 +2719,19 @@ namespace Legion {
                                         const FieldMask &mask,
                                         std::vector<RtEvent> &invalidated,
           std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
+                                        ShardID local_shard);
+      virtual void find_trace_local_sets_kd_tree(EqKDTree *tree,
+                                        LocalLock *tree_lock,
+                                        const FieldMask &mask,
+                                        unsigned req_index,
+                                        ShardID local_shard,
+          std::map<EquivalenceSet*,unsigned> &current_sets);
+      virtual void find_shard_trace_local_sets_kd_tree(EqKDTree *tree,
+                                        LocalLock *tree_lock,
+                                        const FieldMask &mask,
+                                        unsigned req_index,
+          std::map<EquivalenceSet*,unsigned> &current_sets,
+          LegionMap<ShardID,FieldMask> &remote_shards,
                                         ShardID local_shard);
     public:
       bool contains_point(const Point<DIM,T> &point);
@@ -3122,9 +3148,6 @@ namespace Legion {
       // Just use this method of indirecting into template land
       virtual IndexSpaceExpression* create_from_rectangles(
                           const std::vector<Domain> &rectangles) const = 0;
-      virtual void find_trace_local_sets(unsigned req_index,
-                          ShardID local_shard, const FieldMask &mask,
-                          std::map<EquivalenceSet*,unsigned> &sets) const = 0;
     public:
       template<int DIM, typename T>
       inline EqKDTreeT<DIM,T>* as_eq_kd_tree(void);
@@ -3206,9 +3229,13 @@ namespace Legion {
       // Just use this method of indirecting into template land
       virtual IndexSpaceExpression* create_from_rectangles(
                           const std::vector<Domain> &rectangles) const;
-      virtual void find_trace_local_sets(unsigned req_index,
-                          ShardID local_shard, const FieldMask &mask,
-                          std::map<EquivalenceSet*,unsigned> &sets) const = 0;
+      virtual void find_trace_local_sets(const Rect<DIM,T> &rect,
+          const FieldMask &mask, unsigned req_index, ShardID local_shard,
+          std::map<EquivalenceSet*,unsigned> &current_sets) const = 0;
+      virtual void find_shard_trace_local_sets(const Rect<DIM,T> &rect,
+          const FieldMask &mask, unsigned req_index,
+          std::map<EquivalenceSet*,unsigned> &current_sets,
+          LegionMap<ShardID,FieldMask> &remote_shards, ShardID local_shard) = 0;
     public:
       const Rect<DIM,T> bounds;
     };
@@ -3274,9 +3301,13 @@ namespace Legion {
           ShardID local_shard = 0);
       virtual unsigned cancel_subscription(EqSetTracker *tracker,
                                  AddressSpaceID space, const FieldMask &mask);
-      virtual void find_trace_local_sets(unsigned req_index,
-                          ShardID local_shard, const FieldMask &mask,
-                          std::map<EquivalenceSet*,unsigned> &sets) const;
+      virtual void find_trace_local_sets(const Rect<DIM,T> &rect,
+          const FieldMask &mask, unsigned req_index, ShardID local_shard,
+          std::map<EquivalenceSet*,unsigned> &current_sets) const;
+      virtual void find_shard_trace_local_sets(const Rect<DIM,T> &rect,
+          const FieldMask &mask, unsigned req_index,
+          std::map<EquivalenceSet*,unsigned> &current_sets,
+          LegionMap<ShardID,FieldMask> &remote_shards, ShardID local_shard);
     public:
       void find_all_previous_sets(FieldMask mask,
          std::map<EquivalenceSet*,LegionMap<Domain,FieldMask> > &creation_srcs);
@@ -3394,9 +3425,13 @@ namespace Legion {
           ShardID local_shard = 0);
       virtual unsigned cancel_subscription(EqSetTracker *tracker,
                                AddressSpaceID space, const FieldMask &mask);
-      virtual void find_trace_local_sets(unsigned req_index,
-                          ShardID local_shard, const FieldMask &mask,
-                          std::map<EquivalenceSet*,unsigned> &sets) const;
+      virtual void find_trace_local_sets(const Rect<DIM,T> &rect,
+          const FieldMask &mask, unsigned req_index, ShardID local_shard,
+          std::map<EquivalenceSet*,unsigned> &current_sets) const;
+      virtual void find_shard_trace_local_sets(const Rect<DIM,T> &rect,
+          const FieldMask &mask, unsigned req_index,
+          std::map<EquivalenceSet*,unsigned> &current_sets,
+          LegionMap<ShardID,FieldMask> &remote_shards, ShardID local_shard);
     protected:
       std::vector<EqKDTreeT<DIM,T>*> children;
     };
@@ -3464,9 +3499,13 @@ namespace Legion {
           ShardID local_shard = 0);
       virtual unsigned cancel_subscription(EqSetTracker *tracker,
                                AddressSpaceID space, const FieldMask &mask);
-      virtual void find_trace_local_sets(unsigned req_index,
-                          ShardID local_shard, const FieldMask &mask,
-                          std::map<EquivalenceSet*,unsigned> &sets) const;
+      virtual void find_trace_local_sets(const Rect<DIM,T> &rect,
+          const FieldMask &mask, unsigned req_index, ShardID local_shard,
+          std::map<EquivalenceSet*,unsigned> &current_sets) const;
+      virtual void find_shard_trace_local_sets(const Rect<DIM,T> &rect,
+          const FieldMask &mask, unsigned req_index,
+          std::map<EquivalenceSet*,unsigned> &current_sets,
+          LegionMap<ShardID,FieldMask> &remote_shards, ShardID local_shard);
     protected:
       // Make these methods virtual so they can be overloaded by the sparse
       // version of this class that inherits from this class as well

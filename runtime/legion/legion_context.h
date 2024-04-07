@@ -1172,8 +1172,6 @@ namespace Legion {
                       EquivalenceSet *set, const FieldMask &mask);
       EqKDTree* find_equivalence_set_kd_tree(unsigned req_index,
           LocalLock *&tree_lock, bool return_null_if_doesnt_exist = false);
-      void find_trace_local_sets(unsigned req_index, const FieldMask &mask,
-          std::map<EquivalenceSet*,unsigned> &current_sets);
       EqKDTree* find_or_create_output_set_kd_tree(unsigned req_index,
                                                   LocalLock *&tree_lock);
       void finalize_output_eqkd_tree(unsigned req_index);
@@ -1771,6 +1769,11 @@ namespace Legion {
                                        std::vector<RtEvent> &applied_events,
                                        bool sharded = false, bool first = true,
                                        const CollectiveMapping *mapping = NULL);
+      virtual void find_trace_local_sets(unsigned req_index,
+                            const FieldMask &mask,
+                            std::map<EquivalenceSet*,unsigned> &current_sets,
+                            IndexSpaceNode *node = NULL,
+                            const CollectiveMapping *mapping = NULL);
       virtual void invalidate_region_tree_contexts(const bool is_top_level_task,
                             std::set<RtEvent> &applied,
                             const ShardMapping *mapping = NULL,
@@ -2653,6 +2656,11 @@ namespace Legion {
                                        std::vector<RtEvent> &applied_events,
                                        bool sharded = false, bool first = true,
                                        const CollectiveMapping *mapping = NULL);
+      virtual void find_trace_local_sets(unsigned req_index,
+                            const FieldMask &mask,
+                            std::map<EquivalenceSet*,unsigned> &current_sets,
+                            IndexSpaceNode *node = NULL,
+                            const CollectiveMapping *mapping = NULL);
       virtual void receive_created_region_contexts(
                           const std::vector<RegionNode*> &created_regions,
                           const std::vector<EqKDTree*> &created_trees,
@@ -3099,6 +3107,8 @@ namespace Legion {
       void handle_resource_update(Deserializer &derez,
                                   std::set<RtEvent> &applied);
       void handle_trace_update(Deserializer &derez, AddressSpaceID source);
+      void handle_find_trace_local_sets(Deserializer &derez,
+                                        AddressSpaceID source);
       ApBarrier handle_find_trace_shard_event(size_t temp_index, ApEvent event,
                                               ShardID remote_shard);
       ApBarrier handle_find_trace_shard_frontier(size_t temp_index, 
@@ -3550,6 +3560,11 @@ namespace Legion {
                                        std::vector<RtEvent> &applied_events,
                                        bool sharded = false, bool first = true,
                                        const CollectiveMapping *mapping = NULL);
+      virtual void find_trace_local_sets(unsigned req_index,
+                            const FieldMask &mask,
+                            std::map<EquivalenceSet*,unsigned> &current_sets,
+                            IndexSpaceNode *node = NULL,
+                            const CollectiveMapping *mapping = NULL);
       virtual void invalidate_region_tree_contexts(const bool is_top_level_task,
                           std::set<RtEvent> &applied,
                           const ShardMapping *shard_mapping = NULL,
@@ -3578,6 +3593,9 @@ namespace Legion {
                                                       AddressSpaceID source);
       static void handle_find_collective_view_response(Deserializer &derez);
       static void handle_refine_equivalence_sets(Deserializer &derez);
+      static void handle_find_trace_local_sets_request(Deserializer &derez,
+          AddressSpaceID source);
+      static void handle_find_trace_local_sets_response(Deserializer &derez);
     protected:
       DistributedID parent_context_did;
       std::atomic<InnerContext*> parent_ctx;

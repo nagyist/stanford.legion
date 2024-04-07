@@ -718,7 +718,7 @@ namespace Legion {
                                    const bool check_initialized = true);
     protected:
       mutable LocalLock op_lock;
-      GenerationID gen;
+      std::atomic<GenerationID> gen;
       UniqueID unique_op_id;
       // The issue index of this operation in the context
       uint64_t context_index;
