@@ -7141,7 +7141,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InnerContext::unmap_all_regions(void)
+    void InnerContext::unmap_all_regions(bool external)
     //--------------------------------------------------------------------------
     {
       for (std::vector<PhysicalRegion>::const_iterator it = 
@@ -7158,6 +7158,8 @@ namespace Legion {
         if (it->is_mapped())
           it->impl->unmap_region();
       }
+      if (!external)
+        inline_regions.clear();
     }
 
     //--------------------------------------------------------------------------
@@ -11968,7 +11970,7 @@ namespace Legion {
         }
       } 
       // Unmap any of our mapped regions before issuing any close operations
-      unmap_all_regions();
+      unmap_all_regions(false/*external*/);
       const std::deque<InstanceSet> &physical_instances = 
         owner_task->get_physical_instances();
       // Note that this loop doesn't handle create regions
@@ -12093,7 +12095,7 @@ namespace Legion {
     {
       owner_task->handle_post_mapped();
       owner_task->record_inner_termination(ApEvent::NO_AP_EVENT);
-      unmap_all_regions();
+      unmap_all_regions(false/*external*/);
       TaskContext::handle_mispredication();
     }
 
@@ -24730,7 +24732,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LeafContext::unmap_all_regions(void)
+    void LeafContext::unmap_all_regions(bool external)
     //--------------------------------------------------------------------------
     {
       REPORT_LEGION_ERROR(ERROR_ILLEGAL_UNMAP_OPERATION,

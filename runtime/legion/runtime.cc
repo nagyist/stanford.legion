@@ -2840,15 +2840,20 @@ namespace Legion {
         {
           // Pack our local visible copy by value so that the subscriber
           // will have it's own local copy of the data
-          FutureInstanceTracker &tracker = instances[local_visible_memory];
-          if (!tracker.instance->pack_instance(rez, tracker.ready_event,
-                                               false/*move ownership*/))
+          std::map<Memory,FutureInstanceTracker>::iterator finder =
+            local_visible_memory.exists() ?
+              instances.find(local_visible_memory) : instances.begin();
+#ifdef DEBUG_LEGION
+          assert(finder != instances.end());
+#endif
+          if (!finder->second.instance->pack_instance(rez,
+                finder->second.ready_event, false/*move ownership*/))
           {
             // Couldn't pack this by value so we need to pack up events
-            rez.serialize(tracker.ready_event);
+            rez.serialize(finder->second.ready_event);
             const ApUserEvent read_done = Runtime::create_ap_user_event(NULL);
             rez.serialize(read_done);
-            tracker.read_events.push_back(read_done);
+            finder->second.read_events.push_back(read_done);
           }
         }
       }
@@ -12444,9 +12449,9 @@ namespace Legion {
               runtime->handle_slice_remote_commit(derez);
               break;
             }
-          case SLICE_VERIFY_CONCURRENT_EXECUTION:
+          case SLICE_RENDEZVOUS_CONCURRENT_MAPPED:
             {
-              runtime->handle_slice_verify_concurrent_execution(derez);
+              runtime->handle_slice_rendezvous_concurrent_mapped(derez);
               break;
             }
           case SLICE_CONCURRENT_ALLREDUCE_REQUEST:
@@ -13606,7 +13611,7 @@ namespace Legion {
           case SEND_CONTROL_REPLICATION_CREATE_FILL_VIEW:
           case SEND_CONTROL_REPLICATION_VERSIONING_RENDEZVOUS:
           case SEND_CONTROL_REPLICATION_VIEW_RENDEZVOUS:
-          case SEND_CONTROL_REPLICATION_CONCURRENT_EXECUTION_VALIDATION:
+          case SEND_CONTROL_REPLICATION_CONCURRENT_MAPPING_RENDEZVOUS:
           case SEND_CONTROL_REPLICATION_CONCURRENT_ALLREDUCE:
           case SEND_CONTROL_REPLICATION_PROJECTION_TREE_EXCHANGE:
           case SEND_CONTROL_REPLICATION_TIMEOUT_MATCH_EXCHANGE:
@@ -21357,11 +21362,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::send_slice_verify_concurrent_execution(Processor target,
-                                                         Serializer &rez)
+    void Runtime::send_slice_rendezvous_concurrent_mapped(Processor target,
+                                                          Serializer &rez)
     //--------------------------------------------------------------------------
     {
-      find_messenger(target)->send_message(SLICE_VERIFY_CONCURRENT_EXECUTION,
+      find_messenger(target)->send_message(SLICE_RENDEZVOUS_CONCURRENT_MAPPED,
                                                             rez, true/*flush*/);
     }
 
@@ -23945,10 +23950,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_slice_verify_concurrent_execution(Deserializer &derez)
+    void Runtime::handle_slice_rendezvous_concurrent_mapped(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      SliceTask::handle_verify_concurrent_execution(derez);
+      SliceTask::handle_rendezvous_concurrent_mapped(derez);
     }
 
     //--------------------------------------------------------------------------

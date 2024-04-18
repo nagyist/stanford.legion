@@ -472,7 +472,7 @@ namespace Legion {
                                    Provenance *provenance,
                                    bool internal = false) = 0;
       virtual void unmap_region(PhysicalRegion region) = 0;
-      virtual void unmap_all_regions(void) = 0;
+      virtual void unmap_all_regions(bool external = true) = 0;
       virtual void fill_fields(const FillLauncher &launcher,
                                Provenance *provenance) = 0;
       virtual void fill_fields(const IndexFillLauncher &launcher,
@@ -1579,7 +1579,7 @@ namespace Legion {
                                    Provenance *provenance,
                                    bool internal = false);
       virtual void unmap_region(PhysicalRegion region);
-      virtual void unmap_all_regions(void);
+      virtual void unmap_all_regions(bool external = true);
       virtual void fill_fields(const FillLauncher &launcher,
                                Provenance *provenance);
       virtual void fill_fields(const IndexFillLauncher &launcher,
@@ -4002,7 +4002,7 @@ namespace Legion {
                                    Provenance *provenance,
                                    bool internal = false);
       virtual void unmap_region(PhysicalRegion region);
-      virtual void unmap_all_regions(void);
+      virtual void unmap_all_regions(bool external = true);
       virtual void fill_fields(const FillLauncher &launcher,
                                Provenance *provenance);
       virtual void fill_fields(const IndexFillLauncher &launcher,
