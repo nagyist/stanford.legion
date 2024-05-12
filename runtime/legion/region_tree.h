@@ -790,10 +790,8 @@ namespace Legion {
       bool is_dominated_tree_only(IndexPartition test, IndexSpace dominator);
       bool is_dominated_tree_only(IndexPartition test,IndexPartition dominator);
     public:
-      bool compute_index_path(IndexSpace parent, IndexSpace child,
-                              std::vector<LegionColor> &path);
-      bool compute_partition_path(IndexSpace parent, IndexPartition child,
-                                  std::vector<LegionColor> &path); 
+      bool has_index_path(IndexSpace parent, IndexSpace child);
+      bool has_partition_path(IndexSpace parent, IndexPartition child);
    private:
       void initialize_path(IndexTreeNode *child,
                            IndexTreeNode *parent,
@@ -1350,7 +1348,7 @@ namespace Legion {
 #endif
                            ApEvent precondition, PredEvent pred_guard,
                            LgEvent unique_event,
-                           CollectiveKind collective = COLLECTIVE_NONE,
+                           CollectiveKind collective, bool record_effect,
                            int priority = 0, bool replay = false) = 0;
       virtual ApEvent issue_copy(Operation *op,
                            const PhysicalTraceInfo &trace_info,
@@ -1363,7 +1361,7 @@ namespace Legion {
 #endif
                            ApEvent precondition, PredEvent pred_guard,
                            LgEvent src_unique, LgEvent dst_unique,
-                           CollectiveKind collective = COLLECTIVE_NONE,
+                           CollectiveKind collective, bool record_effect,
                            int priority = 0, bool replay = false) = 0;
       virtual CopyAcrossUnstructured* create_across_unstructured(
                            const std::map<Reservation,bool> &reservations,
@@ -1447,7 +1445,7 @@ namespace Legion {
 #endif
                                ApEvent precondition, PredEvent pred_guard,
                                LgEvent unique_event, CollectiveKind collective,
-                               int priority, bool replay);
+                               bool record_effect, int priority, bool replay);
       template<int DIM, typename T>
       inline ApEvent issue_copy_internal(Operation*op,
                                const Realm::IndexSpace<DIM,T> &space,
@@ -1461,7 +1459,7 @@ namespace Legion {
 #endif
                                ApEvent precondition, PredEvent pred_guard,
                                LgEvent src_unique, LgEvent dst_unique,
-                               CollectiveKind collective,
+                               CollectiveKind collective, bool record_effect,
                                int priority, bool replay);
       template<int DIM, typename T>
       inline Realm::InstanceLayoutGeneric* create_layout_internal(
@@ -1677,7 +1675,7 @@ namespace Legion {
 #endif
                            ApEvent precondition, PredEvent pred_guard,
                            LgEvent unique_event,
-                           CollectiveKind collective = COLLECTIVE_NONE,
+                           CollectiveKind collective, bool record_effect,
                            int priority = 0, bool replay = false);
       virtual ApEvent issue_copy(Operation *op,
                            const PhysicalTraceInfo &trace_info,
@@ -1690,7 +1688,7 @@ namespace Legion {
 #endif
                            ApEvent precondition, PredEvent pred_guard,
                            LgEvent src_unique, LgEvent dst_unique,
-                           CollectiveKind collective = COLLECTIVE_NONE,
+                           CollectiveKind collective, bool record_effect,
                            int priority = 0, bool replay = false);
       virtual CopyAcrossUnstructured* create_across_unstructured(
                            const std::map<Reservation,bool> &reservations,
@@ -2629,7 +2627,7 @@ namespace Legion {
 #endif
                            ApEvent precondition, PredEvent pred_guard,
                            LgEvent unique_event,
-                           CollectiveKind collective = COLLECTIVE_NONE,
+                           CollectiveKind collective, bool record_effect,
                            int priority = 0, bool replay = false);
       virtual ApEvent issue_copy(Operation *op,
                            const PhysicalTraceInfo &trace_info,
@@ -2642,7 +2640,7 @@ namespace Legion {
 #endif
                            ApEvent precondition, PredEvent pred_guard,
                            LgEvent src_unique, LgEvent dst_unique,
-                           CollectiveKind collective = COLLECTIVE_NONE,
+                           CollectiveKind collective, bool record_effect,
                            int priority = 0, bool replay = false);
       virtual CopyAcrossUnstructured* create_across_unstructured(
                            const std::map<Reservation,bool> &reservations,
