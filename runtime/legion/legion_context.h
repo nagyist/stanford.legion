@@ -615,6 +615,8 @@ namespace Legion {
                             unsigned long long stop);
       inline void begin_wait(bool from_application);
       inline void end_wait(bool from_application); 
+      void start_profiling_range(void);
+      void stop_profiling_range(const char *provenance);
     public:
       void* get_local_task_variable(LocalVariableID id);
       void set_local_task_variable(LocalVariableID id, const void *value,
@@ -697,6 +699,8 @@ namespace Legion {
       // Map of task local instances including their unique events
       // from the profilters perspective
       std::map<PhysicalInstance,LgEvent> task_local_instances;
+    protected:
+      std::vector<long long> user_profiling_ranges;
     protected:
       bool task_executed;
       bool mutable_priority;
@@ -3388,7 +3392,8 @@ namespace Legion {
       virtual DomainPoint get_shard_point(void) const;
       virtual Domain get_shard_domain(void) const;
       virtual bool has_trace(void) const;
-      virtual const std::string& get_provenance_string(bool human = true) const;
+      virtual const std::string_view& get_provenance_string(
+          bool human = true) const;
     public:
       RemoteContext *const owner;
       uint64_t context_index;

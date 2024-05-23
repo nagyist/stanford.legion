@@ -150,7 +150,8 @@ namespace Legion {
       virtual void set_context_index(uint64_t index);
       virtual bool has_parent_task(void) const;
       virtual const Task* get_parent_task(void) const;
-      virtual const std::string& get_provenance_string(bool human = true) const;
+      virtual const std::string_view& get_provenance_string(
+          bool human = true) const;
       virtual const char* get_task_name(void) const;
       virtual bool is_reducing_future(void) const;
       virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
@@ -337,7 +338,8 @@ namespace Legion {
       virtual int get_depth(void) const;
       virtual bool has_parent_task(void) const;
       virtual const Task* get_parent_task(void) const;
-      virtual const std::string& get_provenance_string(bool human = true) const;
+      virtual const std::string_view& get_provenance_string(
+          bool human = true) const;
       virtual const char* get_task_name(void) const;
       virtual Domain get_slice_domain(void) const;
       virtual ShardID get_shard_id(void) const;
@@ -480,6 +482,8 @@ namespace Legion {
       virtual void handle_future_size(size_t return_type_size,
                                       bool has_return_type_size,
                                       std::set<RtEvent> &applied_events) = 0;
+      virtual ApEvent order_concurrent_launch(ApEvent start, VariantImpl *impl)
+        { assert(false); return start; }
       virtual void record_output_extent(unsigned idx,
           const DomainPoint &color, const DomainPoint &extents) 
         { assert(false); }
@@ -564,11 +568,6 @@ namespace Legion {
       // It does NOT encapsulate the 'effects_complete' of this task
       // Only the actual operation completion event captures that
       ApUserEvent                           single_task_termination;
-      // For concurrent index space tasks, this event will represent when
-      // all the point tasks have actually mapped, which is a necessary 
-      // precondition for any of the point tasks in the concurrent index
-      // space task to start running
-      ApEvent                               concurrent_mapped_event;
     protected:
       TaskContext*                          execution_context;
       RemoteTraceRecorder*                  remote_trace_recorder;
@@ -725,7 +724,13 @@ namespace Legion {
       // on the same node but moved it to a different processor
       bool first_mapping;
     protected:
-      ApUserEvent concurrent_mapped;
+      union ConcurrentPrecondition {
+        ConcurrentPrecondition(void) 
+          : interpreted(RtUserEvent::NO_RT_USER_EVENT) { }
+        RtUserEvent interpreted;
+        RtBarrier traced;
+      } concurrent_precondition;
+      std::vector<RtEvent> concurrent_preconditions;
       std::map<Processor,DomainPoint> concurrent_processors;
       uint64_t concurrent_lamport_clock;
       VariantID concurrent_variant;
@@ -937,6 +942,7 @@ namespace Legion {
                                  bool own_functor);
       virtual void handle_mispredication(void);
     public:
+      virtual ApEvent order_concurrent_launch(ApEvent start, VariantImpl *impl);
       virtual void concurrent_allreduce(ProcessorManager *manager,
           uint64_t lamport_clock, VariantID vid, bool poisoned);
       virtual void perform_concurrent_task_barrier(void);
@@ -990,6 +996,22 @@ namespace Legion {
       std::map<AddressSpaceID,RemoteTask*> remote_instances;
     protected:
       RtBarrier concurrent_task_barrier;
+      // This is the concurrent precondition event that we need to signal
+      // when the preconditions are met for this point task. For non-traced
+      // execution this will be a user event that we signal. For traced
+      // code (either recording or replaying) this will be a barrier that
+      // we will arrive on for each point task.
+      union ConcurrentPrecondition {
+        ConcurrentPrecondition(void)
+          : interpreted(RtUserEvent::NO_RT_USER_EVENT) { }
+        RtUserEvent interpreted;
+        RtBarrier traced;
+      } concurrent_precondition;
+      // This is the postcondition event that need to wait for before
+      // doing the concurrent lamport max all-reduce. It ensures that
+      // the preconditions for all the points in the concurrent task
+      // have been met and therefore it's safe to do the lamport protocol
+      RtEvent concurrent_postcondition;
     };
 
     /**
@@ -1251,9 +1273,9 @@ namespace Legion {
       virtual FutureMap create_future_map(TaskContext *ctx,
                     IndexSpace launch_space, IndexSpace shard_space);
       // Also virtual for control replication override
-      virtual ApEvent rendezvous_concurrent_mapped(
-          const DomainPoint &point, Processor target);
-      virtual ApEvent rendezvous_concurrent_mapped(
+      virtual void rendezvous_concurrent_mapped(
+          const DomainPoint &point, Processor target, RtEvent precondition);
+      virtual void rendezvous_concurrent_mapped(RtEvent precondition,
           std::vector<std::pair<Processor,DomainPoint> > &targets);
       virtual void concurrent_allreduce(SliceTask *slice,
           AddressSpaceID slice_space, size_t points, uint64_t lamport_clock,
@@ -1421,8 +1443,8 @@ namespace Legion {
           const DomainPoint &color, const DomainPoint &extent);
       void record_output_registered(RtEvent registered,
                                     std::set<RtEvent> &applied_events);
-      ApEvent rendezvous_concurrent_mapped(const DomainPoint &point,
-                                           Processor target);
+      void rendezvous_concurrent_mapped(const DomainPoint &point,
+          Processor target, RtEvent precondition);
       void concurrent_allreduce(PointTask *point, ProcessorManager *manager,
           uint64_t lamport_clock, VariantID vid, bool poisoned);
       void finish_concurrent_allreduce(uint64_t lamport_clock, bool poisoned,
