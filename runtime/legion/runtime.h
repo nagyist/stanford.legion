@@ -353,6 +353,8 @@ namespace Legion {
                              bool check_extent = false,
                              bool silence_warnings = false, 
                              const char *warning_string = NULL);
+      void get_memories(std::set<Memory> &memories,
+                        bool silence_warnings, const char *warning_string);
       PhysicalInstance get_instance(Memory::Kind kind,
                              size_t extent_in_bytes, bool check_extent,
                              bool silence_warnings, const char *warning_string);
@@ -1797,7 +1799,7 @@ namespace Legion {
       };
     public:
       VirtualChannel(VirtualChannelKind kind,AddressSpaceID local_address_space,
-               size_t max_message_size, bool profile, LegionProfiler *profiler);
+               size_t max_message_size, bool profile);
       VirtualChannel(const VirtualChannel &rhs);
       ~VirtualChannel(void);
     public:
@@ -1857,8 +1859,6 @@ namespace Legion {
       unsigned partial_messages;
       std::map<unsigned/*message id*/,PartialMessage> *partial_assembly;
       mutable bool observed_recent;
-    private:
-      LegionProfiler *const profiler;
     }; 
 
     /**
@@ -3013,7 +3013,8 @@ namespace Legion {
       RegionNode*     get_node(LogicalRegion handle, 
                                bool need_check = true, bool first = true);
       PartitionNode*  get_node(LogicalPartition handle, bool need_check = true);
-      RegionNode*     get_tree(RegionTreeID tid, bool first = true);
+      RegionNode*     get_tree(RegionTreeID tid, bool can_fail = false,
+                               bool first = true);
       // Request but don't block
       RtEvent find_or_request_node(IndexSpace space, AddressSpaceID target);
     public:

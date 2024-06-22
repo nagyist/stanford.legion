@@ -238,7 +238,7 @@ def check_preconditions(preconditions, op):
     return None
 
 def add_preconditions(preconditions, op):
-    for pre in src_preconditions:
+    for pre in preconditions:
         pre.physical_outgoing.add(op)
         op.physical_incoming.add(pre)
 
@@ -5644,7 +5644,7 @@ class EquivalenceSet(object):
             fill.record_version_number(self)
             preconditions = inst.find_verification_copy_dependences(
                 self.field, self.point, op, req.index, False, 0, self.version_number)
-            add_precondition(preconditions, fill, self.depth)
+            add_preconditions(preconditions, fill)
             inst.add_verification_copy_user(self.field, 
                 self.point, fill, req.index, False, 0, self.version_number)
             return True
@@ -7086,9 +7086,9 @@ class Operation(object):
         all_reqs = list()
         # Find all non-projection requirements, and ensure that they are
         # compatible with themselves (as they will be used by all point tasks)
-        for req in itervalues(self.reqs):
-            if not req.is_projection():
-                if len(self.points) > 1:
+        if len(self.points) > 1:
+            for req in itervalues(self.reqs):
+                if not req.is_projection() and not req.is_collective():
                     dep_type = compute_dependence_type(req, req)
                     if dep_type == TRUE_DEPENDENCE or dep_type == ANTI_DEPENDENCE:
                         print(("Non index region requirement %d of index space "

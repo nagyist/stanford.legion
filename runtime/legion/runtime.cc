@@ -1098,6 +1098,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void FutureImpl::get_memories(std::set<Memory> &memories,
+                              bool silence_warnings, const char *warning_string)
+    //--------------------------------------------------------------------------
+    {
+      // Wait for the future to be ready
+      memories.clear();
+      wait(silence_warnings, warning_string);
+      AutoLock f_lock(future_lock,1,false/*exclusive*/);
+      for (std::map<Memory,FutureInstanceTracker>::const_iterator it =
+            instances.begin(); it != instances.end(); it++)
+        memories.insert(it->first);
+    }
+
+    //--------------------------------------------------------------------------
     PhysicalInstance FutureImpl::get_instance(Memory::Kind memkind, 
                               size_t extent_in_bytes, bool check_extent, 
                               bool silence_warnings, const char *warning_string)
@@ -11549,7 +11563,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     VirtualChannel::VirtualChannel(VirtualChannelKind kind, 
         AddressSpaceID local_address_space, size_t max_message_size, 
-        bool profile_outgoing, LegionProfiler *prof)
+        bool profile_outgoing)
       : sending_buffer((char*)malloc(max_message_size)), 
         sending_buffer_size(max_message_size), 
         ordered_channel((kind != DEFAULT_VIRTUAL_CHANNEL) &&
@@ -11561,7 +11575,7 @@ namespace Legion {
         response_priority((kind == THROUGHPUT_VIRTUAL_CHANNEL) ?
             LG_THROUGHPUT_RESPONSE_PRIORITY : (kind == UPDATE_VIRTUAL_CHANNEL) ?
             LG_LATENCY_MESSAGE_PRIORITY : LG_LATENCY_RESPONSE_PRIORITY),
-        partial_messages(0), observed_recent(true), profiler(prof)
+        partial_messages(0), observed_recent(true)
     //--------------------------------------------------------------------------
     //
     {
@@ -11611,7 +11625,7 @@ namespace Legion {
       : sending_buffer(NULL), sending_buffer_size(0), 
         ordered_channel(false), profile_outgoing_messages(false),
         request_priority(rhs.request_priority),
-        response_priority(rhs.response_priority), profiler(NULL)
+        response_priority(rhs.response_priority)
     //--------------------------------------------------------------------------
     {
       // should never be called
@@ -11950,6 +11964,8 @@ namespace Legion {
                                          AddressSpaceID remote_address_space)
     //--------------------------------------------------------------------------
     {
+      // Pull this onto the stack before we do anything else
+      LegionProfiler *profiler = runtime->profiler;
       // If we have a profiler we need to increment our requests count
       if (profiler != NULL)
 #ifdef DEBUG_LEGION
@@ -13746,8 +13762,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < MAX_NUM_VIRTUAL_CHANNELS; idx++)
       {
         new (channels+idx) VirtualChannel((VirtualChannelKind)idx,
-          runtime->address_space, max_message_size, always_flush, 
-          runtime->profiler);
+          runtime->address_space, max_message_size, always_flush); 
       }
     }
 
@@ -17243,6 +17258,11 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(outstanding_operations.empty());
 #endif
+      if (profiler != NULL)
+      {
+        delete profiler;
+        profiler = NULL;
+      }
       // Make sure we don't send anymore messages
       for (unsigned idx = 0; idx < LEGION_MAX_NUM_NODES; idx++)
       {
@@ -17252,12 +17272,7 @@ namespace Legion {
           delete manager;
           message_managers[idx].store(NULL);
         }
-      }
-      if (profiler != NULL)
-      {
-        delete profiler;
-        profiler = NULL;
-      }
+      } 
       // Free any input arguments
       if (input_args.argc > 0)
       {
@@ -17409,13 +17424,10 @@ namespace Legion {
       virtual_layout_id = LEGION_MAX_APPLICATION_LAYOUT_ID + ++already_used;
       register_layout(virtual_registrar, virtual_layout_id,
           get_next_static_distributed_id(next_static_did), mapping);
-      // Round this up to the nearest number of nodes
-      unsigned remainder = already_used % total_address_spaces;
-      if (remainder == 0)
-        unique_constraint_id += already_used;
-      else
-        unique_constraint_id += 
-          (already_used + total_address_spaces - remainder);
+      // Bump up our unique constraint ID if we already used the IDs statically
+      while (unique_constraint_id <=
+          (LEGION_MAX_APPLICATION_LAYOUT_ID + already_used))
+        unique_constraint_id += runtime_stride;
       pending_constraints.clear();
       return mapping;
     }
@@ -28600,14 +28612,22 @@ namespace Legion {
       if ((req.handle_type == LEGION_SINGULAR_PROJECTION) || 
           (req.handle_type == LEGION_REGION_PROJECTION))
       {
-        if (!has_node(req.region))
+        if (get_tree(req.region.get_tree_id(),
+              true/*can fail*/) == NULL)
+          return ERROR_INVALID_REGION_HANDLE;
+        if (get_node(req.region.get_index_space(), 
+              NULL/*do not defer*/, true/*can fail*/) == NULL)
           return ERROR_INVALID_REGION_HANDLE;
         if (req.region.get_tree_id() != req.parent.get_tree_id())
           return ERROR_INVALID_REGION_HANDLE;
       }
       else
       {
-        if (!has_node(req.partition))
+        if (get_tree(req.partition.get_tree_id(), 
+              true/*can fail*/) == NULL)
+          return ERROR_INVALID_PARTITION_HANDLE;
+        if (get_node(req.partition.get_index_partition(),
+              NULL/*do not defer*/, true/*can fail*/) == NULL)
           return ERROR_INVALID_PARTITION_HANDLE;
         if (req.partition.get_tree_id() != req.parent.get_tree_id())
           return ERROR_INVALID_PARTITION_HANDLE;
@@ -29796,25 +29816,6 @@ namespace Legion {
                               const char *task_name, CollectiveMapping *mapping)
     //--------------------------------------------------------------------------
     {
-      // Save the top-level task name if necessary
-      if (task_name != NULL)
-        attach_semantic_information(top_task_id, 
-            LEGION_NAME_SEMANTIC_TAG, task_name, 
-            strlen(task_name) + 1, true/*mutable*/);
-      // Record a fake variant if we're profiling
-      if (profiler != NULL)
-      {
-        if (task_name == NULL)
-        {
-          char implicit_name[64];
-          snprintf(implicit_name, 64, "implicit_variant_%d", top_task_id);
-          profiler->register_task_variant(top_task_id, 0/*variant ID*/, 
-                                          implicit_name);
-        }
-        else
-          profiler->register_task_variant(top_task_id, 0/*variant ID*/, 
-                                          task_name);
-      }
       // Get an individual task to be the top-level task
       IndividualTask *top_task = get_operation<IndividualTask>();
       // Get a remote task to serve as the top of the top-level task
@@ -29887,6 +29888,24 @@ namespace Legion {
             "Implicit top-level tasks are not allowed to be started inside "
             "of Legion tasks. Only external computations are permitted "
             "to create new implicit top-level tasks.")
+      // Save the top-level task name if necessary
+      // Record a fake variant if we're profiling
+      if (task_name != NULL)
+      {
+        attach_semantic_information(top_task_id,
+            LEGION_NAME_SEMANTIC_TAG, task_name,
+            strlen(task_name) + 1, true/*mutable*/, false/*send to owner*/);
+        if (profiler != NULL)
+          profiler->register_task_variant(top_task_id, 0/*variant ID*/,
+                                          task_name);
+      }
+      else if (profiler != NULL)
+      {
+        char implicit_name[64];
+        snprintf(implicit_name, 64, "implicit_variant_%d", top_task_id);
+        profiler->register_task_variant(top_task_id, 0/*variant ID*/,
+                                        implicit_name);
+      }
       // Find a proxy processor for us to use for this task 
       // We might already even be on a Realm processor
       Processor proxy = Processor::get_executing_processor();
