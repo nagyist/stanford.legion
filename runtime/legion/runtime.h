@@ -1360,6 +1360,9 @@ namespace Legion {
     protected:
       void increment_active_mappers(void);
       void decrement_active_mappers(void);
+    protected:
+      void increment_progress_tasks(void);
+      void decrement_progress_tasks(void);
     public:
       // Immutable state
       const Processor local_proc;
@@ -1379,6 +1382,15 @@ namespace Legion {
       bool outstanding_task_scheduler;
       unsigned total_active_contexts;
       unsigned total_active_mappers;
+      // Progress tasks are tasks that have to be mapped in order
+      // to guarantee forward progress of the program, these include
+      // slices from dependent index space task launches, slices from
+      // collectively mapped index task launches, and concurrent
+      // index space task launches. If we have a progress task then
+      // we need to keep calling select_tasks_to_map until the mapper
+      // maps these tasks regardless of whether their context is
+      // active or not to avoid hanging waiting for them to map
+      unsigned total_progress_tasks;
       struct ContextState {
       public:
         ContextState(void)
@@ -1807,16 +1819,15 @@ namespace Legion {
     public:
       void package_message(Serializer &rez, MessageKind k, bool flush,
                            RtEvent flush_precondition,
-                           Processor target, 
-                           bool response, bool shutdown);
+                           Processor target, bool response);
       void process_message(const void *args, size_t arglen, 
                            AddressSpaceID remote_address_space);
       void confirm_shutdown(ShutdownManager *shutdown_manager, bool phase_one);
     private:
       void send_message(bool complete, Processor target, 
-                        MessageKind kind, bool response, bool shutdown,
+                        MessageKind kind, bool response,
                         RtEvent send_precondition);
-      bool handle_messages(unsigned num_messages,
+      void handle_messages(unsigned num_messages,
                            AddressSpaceID remote_address_space,
                            const char *args, size_t arglen) const;
       static void buffer_messages(unsigned num_messages,
@@ -1889,7 +1900,7 @@ namespace Legion {
       MessageManager& operator=(const MessageManager &rhs) = delete;
     public:
       inline void send_message(MessageKind message, Serializer &rez, bool flush,
-                        bool response = false, bool shutdown = false,
+                        bool response = false,
                         RtEvent flush_precondition = RtEvent::NO_RT_EVENT);
       void receive_message(const void *args, size_t arglen);
       void confirm_shutdown(ShutdownManager *shutdown_manager,
@@ -2553,7 +2564,8 @@ namespace Legion {
             serializer_type("binary"),
             prof_footprint_threshold(128 << 20),
             prof_target_latency(100),
-            prof_call_threshold(0) { }
+            prof_call_threshold(0),
+            prof_self_profile(false) { }
       public:
         int delay_start;
         int legion_collective_radix;
@@ -2607,6 +2619,7 @@ namespace Legion {
         size_t prof_footprint_threshold;
         size_t prof_target_latency;
         size_t prof_call_threshold;
+        bool prof_self_profile;
       public:
         bool parse_alloc_percentage_override_argument(const std::string& s);
       };
@@ -5034,7 +5047,7 @@ namespace Legion {
       assert(target.exists());
 #endif
       DETAILED_PROFILER(this, REALM_SPAWN_META_CALL);
-      if ((T::TASK_ID < LG_BEGIN_SHUTDOWN_TASK_IDS) && (profiler != NULL))
+      if (profiler != NULL)
       {
         Realm::ProfilingRequestSet requests;
         profiler->add_meta_request(requests, T::TASK_ID, args.provenance);

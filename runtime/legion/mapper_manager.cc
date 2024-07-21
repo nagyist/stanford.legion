@@ -3079,7 +3079,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (profile_mapper)
-        runtime->profiler->record_runtime_call(kind, info->pause_time,
+        implicit_profiler->record_runtime_call(kind, info->pause_time,
             Realm::Clock::current_time_in_nanoseconds());
       // See if we are ready to be woken up
       RtEvent wait_on;
@@ -3119,7 +3119,7 @@ namespace Legion {
 #endif
       // Record our finish time when we're done
       if (profile_mapper)
-        runtime->profiler->record_mapper_call(mapper_id, processor, info->kind,
+        implicit_profiler->record_mapper_call(mapper_id, processor, info->kind,
             (info->operation == NULL) ? 0 : info->operation->get_unique_op_id(),
             info->start_time, Realm::Clock::current_time_in_nanoseconds());
       // Set this flag asynchronously without the lock, there will
@@ -3380,7 +3380,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (profile_mapper)
-        runtime->profiler->record_runtime_call(kind, info->pause_time,
+        implicit_profiler->record_runtime_call(kind, info->pause_time,
             Realm::Clock::current_time_in_nanoseconds());
     }
 
@@ -3390,7 +3390,7 @@ namespace Legion {
     {
       // Record our finish time when we are done
       if (profile_mapper)
-        runtime->profiler->record_mapper_call(mapper_id, processor, info->kind,
+        implicit_profiler->record_mapper_call(mapper_id, processor, info->kind,
             (info->operation == NULL) ? 0 : info->operation->get_unique_op_id(),
             info->start_time, Realm::Clock::current_time_in_nanoseconds());
       std::vector<RtUserEvent> to_trigger;

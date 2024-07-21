@@ -2657,22 +2657,22 @@ namespace Legion {
             dense_volume = tight_space.bounds.volume();
             sparse_volume = tight_space.volume();
           }
-        runtime->profiler->record_index_space_size(
+        implicit_profiler->register_index_space_size(
                           handle.get_id(), dense_volume, sparse_volume, !is_dense);
         // Iterate over the rectangles and print them out
         for (Realm::IndexSpaceIterator<DIM,T> itr(tight_space);
               itr.valid; itr.step())
         {
           if (itr.rect.volume() == 1)
-            runtime->profiler->record_index_space_point(
+            implicit_profiler->record_index_space_point(
                 handle.get_id(), Point<DIM,T>(itr.rect.lo));
           else
-            runtime->profiler->record_index_space_rect(
+            implicit_profiler->record_index_space_rect(
                 handle.get_id(), Rect<DIM,T>(itr.rect));
         }
       }
       else
-        runtime->profiler->record_empty_index_space(handle.get_id());
+        implicit_profiler->register_empty_index_space(handle.get_id());
     }
 
     //--------------------------------------------------------------------------
