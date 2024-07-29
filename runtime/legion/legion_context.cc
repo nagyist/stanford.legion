@@ -820,6 +820,10 @@ namespace Legion {
         if (callback_owned)
           delete callback_functor;
       }
+      // Clear the thread local task context to prevent users from
+      // calling back into this context now that the task has finished
+      implicit_context = NULL;
+      implicit_profiler = NULL;
     }
 
     //--------------------------------------------------------------------------

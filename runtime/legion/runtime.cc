@@ -29982,8 +29982,6 @@ namespace Legion {
       ctx->end_task(NULL, 0, false/*owned*/, PhysicalInstance::NO_INST, 
           NULL/*callback functor*/, NULL/*resource*/,  NULL/*freefunc*/,
           NULL/*metadataptr*/, 0/*metadatasize*/, effects);
-      implicit_context = NULL;
-      implicit_profiler = NULL;
     }
 
     //--------------------------------------------------------------------------
