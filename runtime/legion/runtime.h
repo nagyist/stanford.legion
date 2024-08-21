@@ -1803,7 +1803,7 @@ namespace Legion {
         PartialMessage(void)
           : buffer(NULL), size(0), index(0), messages(0), total(0) { }
       public:
-        char *buffer;
+        uint8_t *buffer;
         size_t size;
         size_t index;
         unsigned messages;
@@ -1829,10 +1829,10 @@ namespace Legion {
                         RtEvent send_precondition);
       void handle_messages(unsigned num_messages,
                            AddressSpaceID remote_address_space,
-                           const char *args, size_t arglen) const;
+                           const uint8_t *args, size_t arglen) const;
       static void buffer_messages(unsigned num_messages,
                                   const void *args, size_t arglen,
-                                  char *&receiving_buffer,
+                                  uint8_t *&receiving_buffer,
                                   size_t &receiving_buffer_size,
                                   size_t &receiving_index,
                                   unsigned &received_messages,
@@ -1840,7 +1840,7 @@ namespace Legion {
       void filter_unordered_events(void);
     private:
       mutable LocalLock channel_lock;
-      char *const sending_buffer;
+      uint8_t *const sending_buffer;
       unsigned sending_index;
       const size_t sending_buffer_size;
       RtEvent last_message_event;
@@ -1863,7 +1863,7 @@ namespace Legion {
       // that they are ordered for ordered virtual
       // channels, for un-ordered virtual channels then
       // we know that we do need the lock
-      char *receiving_buffer;
+      uint8_t *receiving_buffer;
       size_t receiving_buffer_size;
       size_t receiving_index;
       unsigned received_messages;
@@ -2537,6 +2537,7 @@ namespace Legion {
             verify_partitions(false),
             runtime_warnings(false),
             warnings_backtrace(false),
+            warnings_are_errors(false),
             report_leaks(false),
             record_registration(false),
             stealing_disabled(false),
@@ -2593,6 +2594,7 @@ namespace Legion {
         bool verify_partitions;
         bool runtime_warnings;
         bool warnings_backtrace;
+        bool warnings_are_errors;
         bool report_leaks;
         bool record_registration;
         bool stealing_disabled;
@@ -2714,6 +2716,7 @@ namespace Legion {
       const bool verify_partitions;
       const bool runtime_warnings;
       const bool warnings_backtrace;
+      const bool warnings_are_errors;
       const bool report_leaks;
       const bool record_registration;
       const bool stealing_disabled;
@@ -3645,6 +3648,8 @@ namespace Legion {
                                                Serializer &rez);
       void send_equivalence_set_remote_instances(AddressSpaceID target,
                                                  Serializer &rez);
+      void send_equivalence_set_filter_invalidations(AddressSpaceID target,
+                                                     Serializer &rez);
       void send_instance_request(AddressSpaceID target, Serializer &rez);
       void send_instance_response(AddressSpaceID target, Serializer &rez);
       void send_external_create_request(AddressSpaceID target, Serializer &rez);
@@ -4014,6 +4019,7 @@ namespace Legion {
       void handle_equivalence_set_remote_filters(Deserializer &derez,
                                                  AddressSpaceID source);
       void handle_equivalence_set_remote_instances(Deserializer &derez);
+      void handle_equivalence_set_filter_invalidations(Deserializer &derez);
       void handle_instance_request(Deserializer &derez, AddressSpaceID source);
       void handle_instance_response(Deserializer &derez,AddressSpaceID source);
       void handle_external_create_request(Deserializer &derez,
@@ -6162,6 +6168,8 @@ namespace Legion {
         case SEND_EQUIVALENCE_SET_REMOTE_FILTERS:
           return THROUGHPUT_VIRTUAL_CHANNEL;
         case SEND_EQUIVALENCE_SET_REMOTE_INSTANCES:
+          break;
+        case SEND_EQUIVALENCE_SET_FILTER_INVALIDATIONS:
           break;
         case SEND_INSTANCE_REQUEST:
           break;
