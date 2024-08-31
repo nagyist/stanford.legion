@@ -452,8 +452,6 @@ namespace Legion {
                        const FieldMask &mask, unsigned parent_req_index);
     public:
       virtual void report_uninitialized_usage(const unsigned index,
-                                              LogicalRegion handle,
-                                              const RegionUsage usage,
                                               const char *field_string,
                                               RtUserEvent reported);
       // Get a reference to our data structure for tracking acquired instances
@@ -4570,8 +4568,6 @@ namespace Legion {
                                Realm::ProfilingRequestSet &requests,
                                bool fill, unsigned count = 1);
       virtual void report_uninitialized_usage(const unsigned index,
-                                              LogicalRegion handle,
-                                              const RegionUsage usage,
                                               const char *field_string,
                                               RtUserEvent reported);
       virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
