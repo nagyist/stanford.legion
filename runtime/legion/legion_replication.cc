@@ -1064,7 +1064,7 @@ namespace Legion {
 #endif 
       // Now we can do the normal prepipeline stage
       IndexTask::trigger_prepipeline_stage();
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
       {
         // Check that all the mappers agreed on the set of 
         // collective view region requirements
@@ -1618,7 +1618,7 @@ namespace Legion {
           output_bar = ctx->get_next_output_regions_barrier();
         }
       }
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
         collective_check_id = ctx->get_next_collective_index(COLLECTIVE_LOC_76);
       if (concurrent_task)
       {
@@ -4292,7 +4292,7 @@ namespace Legion {
     void ReplDependentPartitionOp::select_partition_projection(void)
     //--------------------------------------------------------------------------
     {
-      if (thunk->is_image() || runtime->unsafe_mapper)
+      if (thunk->is_image() || !runtime->safe_mapper)
         DependentPartitionOp::select_partition_projection();
       else
       {
@@ -5598,7 +5598,7 @@ namespace Legion {
     void ReplTunableOp::initialize_replication(ReplicateContext *repl_ctx)
     //--------------------------------------------------------------------------
     {
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
         assert(value_broadcast == NULL);
@@ -5622,7 +5622,7 @@ namespace Legion {
                                        void *buffer, size_t size) const
     //--------------------------------------------------------------------------
     {
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
         assert(value_broadcast != NULL);
@@ -6078,7 +6078,7 @@ namespace Legion {
     {
       // Mark that this is collective
       requirement.prop |= LEGION_COLLECTIVE_MASK;
-      if (!remap_region && !runtime->unsafe_mapper)
+      if (!remap_region && runtime->safe_mapper)
       {
         mapping_check = ctx->get_next_collective_index(COLLECTIVE_LOC_74);
         sources_check = ctx->get_next_collective_index(COLLECTIVE_LOC_104);
@@ -6168,7 +6168,7 @@ namespace Legion {
     {
       const bool result = 
         MapOp::invoke_mapper(mapped_instances, source_instances);
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx =
@@ -7468,7 +7468,7 @@ namespace Legion {
                                                bool first_local_shard)
     //--------------------------------------------------------------------------
     {
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
         sources_check = context->get_next_collective_index(COLLECTIVE_LOC_23);
       is_first_local_shard = first_local_shard;
       if (restricted_region.impl == NULL)
@@ -7642,7 +7642,7 @@ namespace Legion {
       ReleaseOp::invoke_mapper(source_instances);
       // If we're checking the mapping then do that now to make sure
       // all the shards have the same source instances
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx =dynamic_cast<ReplicateContext*>(parent_ctx);

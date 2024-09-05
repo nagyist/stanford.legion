@@ -3039,7 +3039,7 @@ namespace Legion {
       // Iterate over each one of the chosen instances
       bool has_virtual = false;
       // If we're doing safe mapping, then sort these in order for determinism
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
         std::sort(chosen.begin(), chosen.end());
       for (std::vector<MappingInstance>::const_iterator it = chosen.begin();
             it != chosen.end(); it++)
@@ -3137,7 +3137,7 @@ namespace Legion {
       // Iterate over each one of the chosen instances
       bool has_composite = false;
       // If we're doing safe mapping, then sort these in order for determinism
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
         std::sort(chosen.begin(), chosen.end());
       for (std::vector<MappingInstance>::const_iterator it = chosen.begin();
             it != chosen.end(); it++)

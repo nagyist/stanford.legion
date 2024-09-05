@@ -17133,9 +17133,9 @@ namespace Legion {
         resilient_mode(config.resilient_mode),
         unsafe_launch(config.unsafe_launch),
 #ifdef DEBUG_LEGION
-        unsafe_mapper(config.unsafe_mapper),
+        safe_mapper(!config.unsafe_mapper),
 #else
-        unsafe_mapper(!config.safe_mapper),
+        safe_mapper(config.safe_mapper),
 #endif
         safe_tracing(config.safe_tracing),
         disable_independence_tests(config.disable_independence_tests),

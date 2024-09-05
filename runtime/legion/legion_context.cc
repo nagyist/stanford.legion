@@ -1221,7 +1221,7 @@ namespace Legion {
                       "(UID %lld).", child_mapper->get_mapper_name(),
                       output.chosen_variant, child->get_task_name(), 
                       child->get_unique_id())
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
         child->validate_variant_selection(child_mapper, variant_impl,
          executing_processor.kind(), physical_instances, "select_task_variant");
       return variant_impl;

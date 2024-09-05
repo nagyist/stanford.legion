@@ -2797,7 +2797,7 @@ namespace Legion {
                 "tasks in concurrent index space task launches.",
                 mapper->get_mapper_name(), get_task_name(), get_unique_id())
         } 
-        if (!runtime->unsafe_mapper)
+        if (runtime->safe_mapper)
           validate_target_processors(output.target_procs);
         // Save the target processors from the output
         target_processors = output.target_procs;
@@ -3035,7 +3035,7 @@ namespace Legion {
       // If we're doing safety checks, we need the set of memories
       // visible from all the target processors
       std::set<Memory> visible_memories;
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
       {
         if (target_processors.size() > 1)
         {
@@ -3065,7 +3065,7 @@ namespace Legion {
         bool free_acquired = false;
         std::map<PhysicalManager*,unsigned> *acquired = NULL;
         // Get the acquired instances only if we are checking
-        if (!runtime->unsafe_mapper)
+        if (runtime->safe_mapper)
         {
           if (this->must_epoch != NULL)
           {
@@ -3089,7 +3089,7 @@ namespace Legion {
         int composite_idx = 
           physical_convert_mapping(regions[idx],
                 output.chosen_instances[idx], result, bad_tree, missing_fields,
-                acquired, unacquired, !runtime->unsafe_mapper);
+                acquired, unacquired, runtime->safe_mapper);
         if (free_acquired)
           delete acquired;
         if (bad_tree > 0)
@@ -3180,7 +3180,7 @@ namespace Legion {
         }
         log_mapping_decision(idx, regions[idx], physical_instances[idx]);
         // Skip checks if the mapper promises it is safe
-        if (runtime->unsafe_mapper)
+        if (!runtime->safe_mapper)
           continue;
         // If this is anything other than a virtual mapping, check that
         // the instances align with the privileges
@@ -3267,7 +3267,7 @@ namespace Legion {
       if (!output_regions.empty())
       {
         // Now we prepare output instances
-        if (!runtime->unsafe_mapper)
+        if (runtime->safe_mapper)
           for (unsigned idx = 0; idx < output_regions.size(); idx++)
           {
             Memory target = output.output_targets[idx];
@@ -3297,7 +3297,7 @@ namespace Legion {
       if (variant_impl->needs_padding)
         variant_impl->find_padded_locks(this, regions, physical_instances);
       // Now that we have our physical instances we can validate the variant
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
         assert(!target_processors.empty());
@@ -3821,7 +3821,7 @@ namespace Legion {
                           get_unique_id()) 
         }
       }
-      if (!runtime->unsafe_mapper)
+      if (runtime->safe_mapper)
       {
         // Check that all the processors exist
         bool has_local = false;
@@ -4432,9 +4432,9 @@ namespace Legion {
         bool had_composite = 
           physical_convert_postmapping(req,
                               output.chosen_instances[idx], result, bad_tree,
-                              runtime->unsafe_mapper ? NULL : 
+                              !runtime->safe_mapper ? NULL : 
                                 get_acquired_instances_ref(),
-                              unacquired, !runtime->unsafe_mapper);
+                              unacquired, runtime->safe_mapper);
         if (bad_tree > 0)
           REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                         "Invalid mapper output from 'postmap_task' invocation "
@@ -4484,7 +4484,7 @@ namespace Legion {
                           get_task_name(), get_unique_id());
           continue;
         }
-        if (!runtime->unsafe_mapper)
+        if (runtime->safe_mapper)
         {
           std::vector<LogicalRegion> regions_to_check(1, 
                                         regions[idx].region);
@@ -4516,7 +4516,7 @@ namespace Legion {
         if (!output.source_instances[idx].empty())
           physical_convert_sources(regions[idx],
               output.source_instances[idx], sources, 
-              !runtime->unsafe_mapper ? get_acquired_instances_ref() : NULL);
+              runtime->safe_mapper ? get_acquired_instances_ref() : NULL);
         physical_perform_updates_and_registration(
                           regions[idx], local_version_info, idx,
                           single_task_termination/*wait for task to be done*/,
@@ -7940,7 +7940,7 @@ namespace Legion {
                       output.chosen_variant, get_task_name(),
                       get_unique_id(), input.shard_variant)
       SingleTask::finalize_map_task_output(input, output, must_epoch_owner);
-      if (!is_leaf() && !regions.empty() && !runtime->unsafe_mapper)
+      if (!is_leaf() && !regions.empty() && runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
         assert(mapper != NULL);

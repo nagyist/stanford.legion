@@ -2731,7 +2731,7 @@ namespace Legion {
       const bool stealing_disabled;
       const bool resilient_mode;
       const bool unsafe_launch;
-      const bool unsafe_mapper;
+      const bool safe_mapper;
       const bool safe_tracing;
       const bool disable_independence_tests;
       const bool legion_spy_enabled;

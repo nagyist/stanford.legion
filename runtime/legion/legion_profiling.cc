@@ -2373,7 +2373,7 @@ namespace Legion {
         false,
 #endif
         runtime->program_order_execution,
-        !runtime->unsafe_mapper,
+        runtime->safe_mapper,
         runtime->check_privileges,
         runtime->safe_control_replication > 0,
         runtime->verify_partitions,

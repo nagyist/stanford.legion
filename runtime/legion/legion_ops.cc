@@ -5111,7 +5111,7 @@ namespace Legion {
       if (!output.source_instances.empty())
         physical_convert_sources(requirement,
             output.source_instances, source_instances, 
-            !runtime->unsafe_mapper ? &acquired_instances : NULL);
+            runtime->safe_mapper ? &acquired_instances : NULL);
       if (!output.profiling_requests.empty())
       {
         filter_copy_request_kinds(mapper,
@@ -5133,7 +5133,7 @@ namespace Legion {
                                 requirement, output.chosen_instances, 
                                 chosen_instances, bad_tree, missing_fields,
                                 &acquired_instances, unacquired, 
-                                !runtime->unsafe_mapper);
+                                runtime->safe_mapper);
       if (bad_tree > 0)
         REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                       "Invalid mapper output from invocation of 'map_inline' "
@@ -5211,7 +5211,7 @@ namespace Legion {
         output.track_valid_region = true;
       }
       // If we are doing unsafe mapping, then we can return
-      if (runtime->unsafe_mapper)
+      if (!runtime->safe_mapper)
         return output.track_valid_region;
       // If this requirement doesn't have a no access flag then we
       // need to check to make sure that the instances are visible
@@ -6752,7 +6752,7 @@ namespace Legion {
             physical_convert_sources(
                 src_requirements[idx], output.src_source_instances[idx], 
                 across_sources,
-               !runtime->unsafe_mapper ? &acquired_instances : NULL);
+                runtime->safe_mapper ? &acquired_instances : NULL);
           // This is a bit weird but we don't currently have any mechanism
           // for passing the reservations that we find in these cases through
           // to the CopyAcrossAnalysis and through the CopyFillAggregator so
@@ -7729,11 +7729,11 @@ namespace Legion {
       std::vector<PhysicalManager*> unacquired;
       if (!input.empty())
         physical_convert_sources(req, input, sources,
-            !runtime->unsafe_mapper ? &acquired_instances : NULL);
+            runtime->safe_mapper ? &acquired_instances : NULL);
       int composite_idx = physical_convert_mapping(
                               req, output, targets, bad_tree, missing_fields,
                               &acquired_instances, unacquired, 
-                              !runtime->unsafe_mapper);
+                              runtime->safe_mapper);
       if (bad_tree > 0)
         REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                       "Invalid mapper output from invocation of 'map_copy' "
@@ -7849,7 +7849,7 @@ namespace Legion {
                         get_req_type_name<REQ_TYPE>(), ridx,
                         parent_ctx->get_task_name(), parent_ctx->get_unique_id())
       }
-      if (runtime->unsafe_mapper)
+      if (!runtime->safe_mapper)
         return composite_idx;
       std::vector<LogicalRegion> regions_to_check(1, req.region);
       for (unsigned idx = 0; idx < targets.size(); idx++)
@@ -12930,7 +12930,7 @@ namespace Legion {
       if (!output.source_instances.empty())
         physical_convert_sources(requirement,
             output.source_instances, src_instances,
-            !runtime->unsafe_mapper ? &acquired_instances : NULL);
+            runtime->safe_mapper ? &acquired_instances : NULL);
     }
 
     //--------------------------------------------------------------------------
@@ -16030,7 +16030,7 @@ namespace Legion {
         // Make sure that it is complete, and then update our information
         // We also allow the mapper to pick the same projection partition 
         // if the partition operation is an image or image-range
-        if (!runtime->unsafe_mapper && !partition_node->is_complete(false) &&
+        if (runtime->safe_mapper && !partition_node->is_complete(false) &&
               !thunk->safe_projection(partition_node->handle))
           REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                         "Invalid mapper output from invocation of "
@@ -16307,7 +16307,7 @@ namespace Legion {
       if (!output.source_instances.empty())
         physical_convert_sources(requirement,
             output.source_instances, source_instances, 
-            !runtime->unsafe_mapper ? &acquired_instances : NULL);
+            runtime->safe_mapper ? &acquired_instances : NULL);
       if (!output.profiling_requests.empty())
       {
         filter_copy_request_kinds(mapper,
@@ -16329,7 +16329,7 @@ namespace Legion {
                                 requirement, output.chosen_instances, 
                                 mapped_instances, bad_tree, missing_fields,
                                 &acquired_instances, unacquired, 
-                                !runtime->unsafe_mapper);
+                                runtime->safe_mapper);
       if (bad_tree > 0)
         REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                       "Invalid mapper output from invocation of 'map_partition'"
@@ -16398,7 +16398,7 @@ namespace Legion {
                       parent_ctx->get_unique_id())
       } 
       // If we are doing unsafe mapping, then we can return
-      if (runtime->unsafe_mapper)
+      if (!runtime->safe_mapper)
         return output.track_valid_region;
       // Iterate over the instances and make sure they are all valid
       // for the given logical region which we are mapping
