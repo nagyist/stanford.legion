@@ -2068,7 +2068,7 @@ namespace Legion {
         static const LgTaskID TASK_ID = LG_INDEX_SPACE_DEFER_CHILD_TASK_ID;
       public:
         DeferChildArgs(IndexSpaceNode *proxy, LegionColor child, 
-                       std::atomic<IndexPartitionID> *tar,
+                       DistributedID *tar,
                        RtUserEvent trig, AddressSpaceID src)
           : LgTaskArgs<DeferChildArgs>(implicit_provenance),
             proxy_this(proxy), child_color(child), target(tar), 
@@ -2076,7 +2076,7 @@ namespace Legion {
       public:
         IndexSpaceNode *const proxy_this;
         const LegionColor child_color;
-        std::atomic<IndexPartitionID> *const target;
+        DistributedID *const target;
         const RtUserEvent to_trigger;
         const AddressSpaceID source;
       };

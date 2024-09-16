@@ -247,7 +247,7 @@ extern "C" {
    * @see Legion::IndexSpace
    */
   typedef struct legion_index_space_t {
-    legion_index_space_id_t id;
+    legion_distributed_id_t id;
     legion_index_tree_id_t tid;
     legion_type_tag_t type_tag;
   } legion_index_space_t;
@@ -256,7 +256,7 @@ extern "C" {
    * @see Legion::IndexPartition
    */
   typedef struct legion_index_partition_t {
-    legion_index_partition_id_t id;
+    legion_distributed_id_t id;
     legion_index_tree_id_t tid;
     legion_type_tag_t type_tag;
   } legion_index_partition_t;
@@ -265,7 +265,7 @@ extern "C" {
    * @see Legion::FieldSpace
    */
   typedef struct legion_field_space_t {
-    legion_field_space_id_t id;
+    legion_distributed_id_t id;
   } legion_field_space_t;
 
   /**

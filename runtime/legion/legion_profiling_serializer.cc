@@ -151,21 +151,21 @@ namespace Legion {
 
       ss << "IndexSpacePointDesc {"
          << "id:" << INDEX_SPACE_POINT_ID                    << delim
-         << "unique_id:IDType:"          << sizeof(IDType)   << delim
+         << "unique_id:unsigned long long:"          << sizeof(unsigned long long)   << delim
          << "dim:unsigned:"              << sizeof(unsigned) << delim
 	 << "rem:point:"                 << sizeof(unsigned long long)
          << "}" << std::endl;
 
       ss << "IndexSpaceRectDesc {"
          << "id:" << INDEX_SPACE_RECT_ID                       << delim
-         << "unique_id:IDType:"            << sizeof(IDType)   << delim
+         << "unique_id:unsigned long long:"            << sizeof(unsigned long long)   << delim
          << "dim:unsigned:"               << sizeof(unsigned)  << delim
          << "rem:array:"                  << sizeof(unsigned long long)
          << "}" << std::endl;
 
       ss << "IndexSpaceEmptyDesc {"
          << "id:" << INDEX_SPACE_EMPTY_ID                      << delim
-         << "unique_id:IDType:"           << sizeof(unsigned long long)
+         << "unique_id:unsigned long long:"           << sizeof(unsigned long long)
 	 << "}" << std::endl;
 
       ss << "FieldDesc {"
@@ -220,8 +220,8 @@ namespace Legion {
 
       ss << "LogicalRegionDesc {"
          << "id:" << LOGICAL_REGION_ID                          << delim
-	 << "ispace_id:IDType:"            << sizeof(IDType)    << delim
-	 << "fspace_id:unsigned:"          << sizeof(unsigned)  << delim
+	 << "ispace_id:unsigned long long:"            << sizeof(unsigned long long)    << delim
+	 << "fspace_id:unsigned long long:"          << sizeof(unsigned long long)  << delim
 	 << "tree_id:unsigned:"            << sizeof(unsigned)  << delim
 	 << "name:string:"                 << "-1"
          << "}" << std::endl;
@@ -229,8 +229,8 @@ namespace Legion {
       ss << "PhysicalInstRegionDesc {"
          << "id:" << PHYSICAL_INST_REGION_ID                      << delim
          << "inst_uid:unsigned long long:" << sizeof(LgEvent)     << delim
-	 << "ispace_id:IDType:"            << sizeof(IDType)      << delim
-	 << "fspace_id:unsigned:"          << sizeof(unsigned)    << delim
+	 << "ispace_id:unsigned long long:"            << sizeof(unsigned long long)      << delim
+	 << "fspace_id:unsigned long long:"          << sizeof(unsigned long long)    << delim
 	 << "tree_id:unsigned:"            << sizeof(unsigned)
          << "}" << std::endl;
 
@@ -238,7 +238,7 @@ namespace Legion {
          << "id:" << PHYSICAL_INST_LAYOUT_ID                  << delim
          << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
          << "field_id:unsigned:"        << sizeof(unsigned)   << delim
-         << "fspace_id:unsigned:"       << sizeof(unsigned)   << delim
+         << "fspace_id:unsigned long long:"       << sizeof(unsigned long long)   << delim
          << "has_align:bool:"           << sizeof(bool)       << delim
          << "eqk:unsigned:"             << sizeof(unsigned)   << delim
          << "align_desc:unsigned:"      << sizeof(unsigned)
@@ -846,8 +846,10 @@ namespace Legion {
     {
       int ID = INDEX_SUBSPACE_ID;
       lp_fwrite(f, (char*)&ID, sizeof(ID));
-      lp_fwrite(f, (char*)&(index_subspace_desc.parent_id), sizeof(IDType));
-      lp_fwrite(f, (char*)&(index_subspace_desc.unique_id), sizeof(IDType));
+      lp_fwrite(f, (char*)&(index_subspace_desc.parent_id), 
+          sizeof(index_subspace_desc.parent_id));
+      lp_fwrite(f, (char*)&(index_subspace_desc.unique_id),
+          sizeof(index_subspace_desc.unique_id));
     }
 
     //--------------------------------------------------------------------------
@@ -857,8 +859,10 @@ namespace Legion {
     {
       int ID = INDEX_PARTITION_ID;
       lp_fwrite(f, (char*)&ID, sizeof(ID));
-      lp_fwrite(f, (char*)&(index_part_desc.parent_id), sizeof(IDType));
-      lp_fwrite(f, (char*)&(index_part_desc.unique_id), sizeof(IDType));
+      lp_fwrite(f, (char*)&(index_part_desc.parent_id),
+          sizeof(index_part_desc.parent_id));
+      lp_fwrite(f, (char*)&(index_part_desc.unique_id),
+          sizeof(index_part_desc.unique_id));
       lp_fwrite(f, (char*)&(index_part_desc.disjoint), sizeof(bool));
       lp_fwrite(f, (char*)&(index_part_desc.point), sizeof(LegionColor));
     }
@@ -870,8 +874,8 @@ namespace Legion {
     {
       int ID = LOGICAL_REGION_ID;
       lp_fwrite(f, (char*)&ID, sizeof(ID));
-      lp_fwrite(f, (char*)&(lr_desc.ispace_id), sizeof(IDType));
-      lp_fwrite(f, (char*)&(lr_desc.fspace_id), sizeof(unsigned));
+      lp_fwrite(f, (char*)&(lr_desc.ispace_id), sizeof(lr_desc.ispace_id));
+      lp_fwrite(f, (char*)&(lr_desc.fspace_id), sizeof(lr_desc.fspace_id));
       lp_fwrite(f, (char*)&(lr_desc.tree_id), sizeof(unsigned));
       lp_fwrite(f, lr_desc.name, strlen(lr_desc.name)+1);
     }
@@ -885,8 +889,10 @@ namespace Legion {
       lp_fwrite(f, (char*)&ID, sizeof(ID));
       lp_fwrite(f, (char*)&(phy_instance_rdesc.inst_uid.id), 
                 sizeof(phy_instance_rdesc.inst_uid.id));
-      lp_fwrite(f, (char*)&(phy_instance_rdesc.ispace_id), sizeof(IDType));
-      lp_fwrite(f, (char*)&(phy_instance_rdesc.fspace_id), sizeof(unsigned));
+      lp_fwrite(f, (char*)&(phy_instance_rdesc.ispace_id),
+          sizeof(phy_instance_rdesc.ispace_id));
+      lp_fwrite(f, (char*)&(phy_instance_rdesc.fspace_id),
+          sizeof(phy_instance_rdesc.fspace_id));
       lp_fwrite(f, (char*)&(phy_instance_rdesc.tree_id), sizeof(unsigned));
     }
 
@@ -917,9 +923,9 @@ namespace Legion {
       lp_fwrite(f, (char*)&(phy_instance_layout_rdesc.inst_uid.id),
                 sizeof(phy_instance_layout_rdesc.inst_uid.id));
       lp_fwrite(f, (char*)&(phy_instance_layout_rdesc.field_id),
-                sizeof(unsigned));
+                sizeof(phy_instance_layout_rdesc.field_id));
       lp_fwrite(f, (char*)&(phy_instance_layout_rdesc.fspace_id),
-                sizeof(unsigned));
+                sizeof(phy_instance_layout_rdesc.fspace_id));
       lp_fwrite(f, (char*)&(phy_instance_layout_rdesc.has_align),
                 sizeof(bool));
       lp_fwrite(f, (char*)&(phy_instance_layout_rdesc.eqk),
@@ -1899,7 +1905,7 @@ namespace Legion {
                            const LegionProfInstance::LogicalRegionDesc &lr_desc)
     //--------------------------------------------------------------------------
     {
-      log_prof.print("Logical Region Desc %llu %u %u %s",
+      log_prof.print("Logical Region Desc %llu %llu %u %s",
 		     lr_desc.ispace_id,
 		     lr_desc.fspace_id,
 		     lr_desc.tree_id,
@@ -1911,7 +1917,7 @@ namespace Legion {
            const LegionProfInstance::PhysicalInstRegionDesc &phy_instance_rdesc)
     //--------------------------------------------------------------------------
     {
-      log_prof.print("Physical Inst Region Desc "  IDFMT " %llu %u %u",
+      log_prof.print("Physical Inst Region Desc " IDFMT " %llu %llu %u",
                      phy_instance_rdesc.inst_uid.id,
 		     phy_instance_rdesc.ispace_id,
 		     phy_instance_rdesc.fspace_id,
@@ -1952,7 +1958,7 @@ namespace Legion {
               &phy_instance_layout_rdesc)
     //--------------------------------------------------------------------------
     {
-      log_prof.print("Physical Inst Layout Desc " IDFMT " %u %u %u %u "
+      log_prof.print("Physical Inst Layout Desc " IDFMT " %u %llu %u %u "
                      "%u",
                      phy_instance_layout_rdesc.inst_uid.id,
                      phy_instance_layout_rdesc.field_id,

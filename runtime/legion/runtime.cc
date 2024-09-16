@@ -17157,9 +17157,6 @@ namespace Legion {
               address_space, total_address_spaces, legion_collective_radix)),
         local_procs(locals), local_utils(local_utilities),
         proc_spaces(processor_spaces),
-        unique_index_space_id((unique == 0) ? runtime_stride : unique),
-        unique_index_partition_id((unique == 0) ? runtime_stride : unique), 
-        unique_field_space_id((unique == 0) ? runtime_stride : unique),
         unique_index_tree_id((unique == 0) ? runtime_stride : unique),
         unique_region_tree_id((unique == 0) ? runtime_stride : unique),
         unique_field_id(LEGION_MAX_APPLICATION_FIELD_ID + 
@@ -18220,7 +18217,7 @@ namespace Legion {
       IndexSpaceNode *node = runtime->get_node(handle);
       if (!node->check_valid_and_increment(APPLICATION_REF))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to add shared ownership to index space %x "
+            "Illegal call to add shared ownership to index space %llu "
             "which has already been deleted", handle.get_id())
       if (!node->is_owner())
       {
@@ -18252,7 +18249,7 @@ namespace Legion {
       IndexPartNode *node = runtime->get_node(handle);
       if (!node->check_valid_and_increment(APPLICATION_REF))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to add shared ownership to index partition %x "
+            "Illegal call to add shared ownership to index partition %llu "
             "which has already been deleted", handle.get_id())
       if (!node->is_owner())
       {
@@ -18284,7 +18281,7 @@ namespace Legion {
       FieldSpaceNode *node = runtime->get_node(handle);
       if (!node->check_global_and_increment(APPLICATION_REF))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to add shared ownership to field space %x "
+            "Illegal call to add shared ownership to field space %llu "
             "which has already been deleted", handle.get_id())
       if (!node->is_owner())
       {
@@ -18317,7 +18314,7 @@ namespace Legion {
       if (!node->check_global_and_increment(APPLICATION_REF))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to add shared ownership to logical region "
-            "(%x,%x,%x) which has already been deleted", 
+            "(%llu,%llu,%u) which has already been deleted", 
             handle.index_space.get_id(), handle.field_space.get_id(),
             handle.tree_id)
       if (!node->is_owner())
@@ -26922,7 +26919,7 @@ namespace Legion {
           ApEvent::NO_AP_EVENT, 0/*expr id*/, NULL/*mapping*/,
           true/*add root reference*/);
       if (legion_spy_enabled)
-        LegionSpy::log_top_index_space(result.id, address_space,
+        LegionSpy::log_top_index_space(result.get_id(), address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
       // Overwrite and leak for now, don't care too much as this 
       // should occur infrequently
@@ -28463,46 +28460,27 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexSpaceID Runtime::get_unique_index_space_id(void)
+    DistributedID Runtime::get_unique_index_space_id(void)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceID result = unique_index_space_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
-      // check for overflow
-      // If we have overflow on the number of partitions created
-      // then we are really in a bad place.
-      assert(result <= unique_index_space_id); 
-#endif
-      return result;
+      const DistributedID did = get_available_distributed_id();
+      return LEGION_DISTRIBUTED_HELP_ENCODE(did, INDEX_SPACE_NODE_DC);
     }
 
     //--------------------------------------------------------------------------
-    IndexPartitionID Runtime::get_unique_index_partition_id(void)
+    DistributedID Runtime::get_unique_index_partition_id(void)
     //--------------------------------------------------------------------------
     {
-      IndexPartitionID result =
-        unique_index_partition_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
-      // check for overflow
-      // If we have overflow on the number of partitions created
-      // then we are really in a bad place.
-      assert(result <= unique_index_partition_id); 
-#endif
-      return result;
+      const DistributedID did = get_available_distributed_id();
+      return LEGION_DISTRIBUTED_HELP_ENCODE(did, INDEX_PART_NODE_DC);
     }
 
     //--------------------------------------------------------------------------
-    FieldSpaceID Runtime::get_unique_field_space_id(void)
+    DistributedID Runtime::get_unique_field_space_id(void)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceID result = unique_field_space_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
-      // check for overflow
-      // If we have overflow on the number of field spaces
-      // created then we are really in a bad place.
-      assert(result <= unique_field_space_id);
-#endif
-      return result;
+      const DistributedID did = get_available_distributed_id();
+      return LEGION_DISTRIBUTED_HELP_ENCODE(did, FIELD_SPACE_DC);
     }
 
     //--------------------------------------------------------------------------

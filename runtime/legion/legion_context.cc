@@ -1590,10 +1590,10 @@ namespace Legion {
           {
             if (local_regions.find(rit->region) != local_regions.end())
               REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-                  "Local logical region (%x,%x,%x) in task %s (UID %lld) was "
+                  "Local logical region (%llu,%llu,%u) in task %s (UID %lld) was "
                   "not deleted by this task. Local regions can only be deleted "
-                  "by the task that made them.", rit->region.index_space.id,
-                  rit->region.field_space.id, rit->region.tree_id, 
+                  "by the task that made them.", rit->region.index_space.get_id(),
+                  rit->region.field_space.get_id(), rit->region.tree_id, 
                   get_task_name(), get_unique_id())
             // Deletion keeps going up
             deleted_regions.push_back(*rit);
@@ -1711,9 +1711,9 @@ namespace Legion {
               local_finder = local_fields.find(key);
             if (local_finder != local_fields.end())
               REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-                  "Local field %d in field space %x in task %s (UID %lld) was "
+                  "Local field %d in field space %llu in task %s (UID %lld) was "
                   "not deleted by this task. Local fields can only be deleted "
-                  "by the task that made them.", fit->fid, fit->space.id,
+                  "by the task that made them.", fit->fid, fit->space.get_id(),
                   get_task_name(), get_unique_id())
             deleted_fields.push_back(*fit);
           }
@@ -3517,11 +3517,11 @@ namespace Legion {
                         runtime->get_unique_index_tree_id(), type_tag);
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_index.debug("Creating index space %x in task%s (ID %lld)", 
-                      handle.id, get_task_name(), get_unique_id()); 
+      log_index.debug("Creating index space %llu in task%s (ID %lld)", 
+                      handle.get_id(), get_task_name(), get_unique_id()); 
 #endif
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_top_index_space(handle.id, runtime->address_space,
+        LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
       runtime->create_index_space(handle, bounds, did, provenance);
       register_index_space_creation(handle);
@@ -3574,7 +3574,7 @@ namespace Legion {
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_index_space(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to create shared ownership for index space %x in " 
+            "Illegal call to create shared ownership for index space %llu in " 
             "task %s (UID %lld) which is not a top-level index space. Legion "
             "only permits top-level index spaces to have shared ownership.", 
             handle.get_id(), get_task_name(), get_unique_id())
@@ -3685,11 +3685,11 @@ namespace Legion {
                         runtime->get_unique_index_tree_id(), type_tag);
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_index.debug("Creating index space %x in task%s (ID %lld)", 
-                      handle.id, get_task_name(), get_unique_id()); 
+      log_index.debug("Creating index space %llu in task%s (ID %lld)", 
+                      handle.get_id(), get_task_name(), get_unique_id()); 
 #endif
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_top_index_space(handle.id, runtime->address_space,
+        LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
       // Get a new creation operation
       CreationOp *creator_op = runtime->get_operation<CreationOp>();
@@ -3713,14 +3713,14 @@ namespace Legion {
       if (!handle.exists())
         return;
 #ifdef DEBUG_LEGION
-      log_index.debug("Destroying index space %x in task %s (ID %lld)", 
-                      handle.id, get_task_name(), get_unique_id());
+      log_index.debug("Destroying index space %llu in task %s (ID %lld)", 
+                      handle.get_id(), get_task_name(), get_unique_id());
 #endif
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_index_space(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-            "Illegal call to destroy index space %x in task %s (UID %lld) "
+            "Illegal call to destroy index space %llu in task %s (UID %lld) "
             "which is not a top-level index space. Legion only permits "
             "top-level index spaces to be destroyed.", handle.get_id(),
             get_task_name(), get_unique_id())
@@ -3814,8 +3814,8 @@ namespace Legion {
       if (!handle.exists())
         return;
 #ifdef DEBUG_LEGION
-      log_index.debug("Destroying index partition %x in task %s (ID %lld)",
-                      handle.id, get_task_name(), get_unique_id());
+      log_index.debug("Destroying index partition %llu in task %s (ID %lld)",
+                      handle.get_id(), get_task_name(), get_unique_id());
 #endif
       std::vector<IndexPartition> sub_partitions;
       {
@@ -3895,8 +3895,8 @@ namespace Legion {
                          parent.get_tree_id(), parent.get_type_tag());
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_index.debug("Creating equal partition %d with parent index space %x "
-                      "in task %s (ID %lld)", pid.id, parent.id,
+      log_index.debug("Creating equal partition %llud with parent index space %llu "
+                      "in task %s (ID %lld)", pid.get_id(), parent.get_id(),
                       get_task_name(), get_unique_id());
 #endif
       LegionColor partition_color = INVALID_COLOR;
@@ -3928,8 +3928,8 @@ namespace Legion {
                                parent.get_tree_id(), parent.get_type_tag());
       const DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_index.debug("Creating partition %d by weights with parent index "
-                      "space %x in task %s (ID %lld)", pid.id, parent.id,
+      log_index.debug("Creating partition %llu by weights with parent index "
+                      "space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
                       get_task_name(), get_unique_id());
 #endif
       LegionColor partition_color = INVALID_COLOR;
@@ -3967,19 +3967,19 @@ namespace Legion {
                          parent.get_tree_id(), parent.get_type_tag());
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_index.debug("Creating union partition %d with parent index "
-                      "space %x in task %s (ID %lld)", pid.id, parent.id,
+      log_index.debug("Creating union partition %llu with parent index "
+                      "space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
                       get_task_name(), get_unique_id());
       if (parent.get_tree_id() != handle1.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-          "IndexPartition %d is not part of the same "
-                        "index tree as IndexSpace %d in create "
-                        "partition by union!", handle1.id, parent.id)
+          "IndexPartition %llu is not part of the same "
+                        "index tree as IndexSpace %llu in create "
+                        "partition by union!", handle1.get_id(), parent.get_id())
       if (parent.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-          "IndexPartition %d is not part of the same "
-                        "index tree as IndexSpace %d in create "
-                        "partition by union!", handle2.id, parent.id)
+          "IndexPartition %llu is not part of the same "
+                        "index tree as IndexSpace %llu in create "
+                        "partition by union!", handle2.get_id(), parent.get_id())
 #endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
@@ -4047,19 +4047,19 @@ namespace Legion {
                          parent.get_tree_id(), parent.get_type_tag());
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_index.debug("Creating intersection partition %d with parent "
-                      "index space %x in task %s (ID %lld)", pid.id, parent.id,
+      log_index.debug("Creating intersection partition %llu with parent "
+                      "index space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
                       get_task_name(), get_unique_id());
       if (parent.get_tree_id() != handle1.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-          "IndexPartition %d is not part of the same "
-                        "index tree as IndexSpace %d in create partition by "
-                        "intersection!", handle1.id, parent.id)
+          "IndexPartition %llu is not part of the same "
+                        "index tree as IndexSpace %llu in create partition by "
+                        "intersection!", handle1.get_id(), parent.get_id())
       if (parent.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-          "IndexPartition %d is not part of the same "
-                        "index tree as IndexSpace %d in create partition by "
-                        "intersection!", handle2.id, parent.id)
+          "IndexPartition %llu is not part of the same "
+                        "index tree as IndexSpace %llu in create partition by "
+                        "intersection!", handle2.get_id(), parent.get_id())
 #endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
@@ -4125,14 +4125,14 @@ namespace Legion {
                          parent.get_tree_id(), parent.get_type_tag());
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_index.debug("Creating intersection partition %d with parent "
-                      "index space %x in task %s (ID %lld)", pid.id, parent.id,
+      log_index.debug("Creating intersection partition %llu with parent "
+                      "index space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
                       get_task_name(), get_unique_id());
       if (parent.get_type_tag() != partition.get_type_tag())
         REPORT_LEGION_ERROR(ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %d does not have the same type as the "
-            "parent index space %x in task %s (UID %lld)", partition.id,
-            parent.id, get_task_name(), get_unique_id())
+            "IndexPartition %llu does not have the same type as the "
+            "parent index space %llu in task %s (UID %lld)", partition.get_id(),
+            parent.get_id(), get_task_name(), get_unique_id())
 #endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
@@ -4188,21 +4188,21 @@ namespace Legion {
                          parent.get_tree_id(), parent.get_type_tag());
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_index.debug("Creating difference partition %d with parent "
-                      "index space %x in task %s (ID %lld)", pid.id, parent.id,
+      log_index.debug("Creating difference partition %llu with parent "
+                      "index space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
                       get_task_name(), get_unique_id());
       if (parent.get_tree_id() != handle1.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-          "IndexPartition %d is not part of the same "
-                              "index tree as IndexSpace %d in create "
+          "IndexPartition %llu is not part of the same "
+                              "index tree as IndexSpace %llu in create "
                               "partition by difference!",
-                              handle1.id, parent.id)
+                              handle1.get_id(), parent.get_id())
       if (parent.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-          "IndexPartition %d is not part of the same "
-                              "index tree as IndexSpace %d in create "
+          "IndexPartition %llu is not part of the same "
+                              "index tree as IndexSpace %llu in create "
                               "partition by difference!",
-                              handle2.id, parent.id)
+                              handle2.get_id(), parent.get_id())
 #endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
@@ -4255,10 +4255,10 @@ namespace Legion {
                       get_task_name(), get_unique_id());
       if (handle1.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-          "IndexPartition %d is not part of the same "
-                              "index tree as IndexPartition %d in create "
+          "IndexPartition %llu is not part of the same "
+                              "index tree as IndexPartition %llu in create "
                               "cross product partitions!",
-                              handle1.id, handle2.id)
+                              handle1.get_id(), handle2.get_id())
 #endif
       PartitionKind verify_kind = LEGION_COMPUTE_KIND;
       if (runtime->verify_partitions)
@@ -5112,11 +5112,11 @@ namespace Legion {
       FieldSpace space(runtime->get_unique_field_space_id());
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_field.debug("Creating field space %x in task %s (ID %lld)", 
-                      space.id, get_task_name(), get_unique_id());
+      log_field.debug("Creating field space %llu in task %s (ID %lld)", 
+                      space.get_id(), get_task_name(), get_unique_id());
 #endif
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_field_space(space.id, runtime->address_space,
+        LegionSpy::log_field_space(space.get_id(), runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
 
       runtime->create_node(space, did, RtEvent::NO_RT_EVENT, provenance);
@@ -5135,11 +5135,11 @@ namespace Legion {
       FieldSpace space(runtime->get_unique_field_space_id());
       DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
-      log_field.debug("Creating field space %x in task %s (ID %lld)", 
-                      space.id, get_task_name(), get_unique_id());
+      log_field.debug("Creating field space %llu in task %s (ID %lld)", 
+                      space.get_id(), get_task_name(), get_unique_id());
 #endif
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_field_space(space.id, runtime->address_space,
+        LegionSpy::log_field_space(space.get_id(), runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
 
       FieldSpaceNode *node = runtime->create_node(space, did,
@@ -5160,7 +5160,7 @@ namespace Legion {
             get_unique_id(), resulting_fields[idx])
 #endif
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_field_creation(space.id, resulting_fields[idx],
+          LegionSpy::log_field_creation(space.get_id(), resulting_fields[idx],
              sizes[idx], (provenance == NULL) ? NULL : provenance->human_str());
       }
       node->initialize_fields(sizes, resulting_fields, serdez_id, provenance);
@@ -5235,8 +5235,8 @@ namespace Legion {
       if (!handle.exists())
         return;
 #ifdef DEBUG_LEGION
-      log_field.debug("Destroying field space %x in task %s (ID %lld)", 
-                      handle.id, get_task_name(), get_unique_id());
+      log_field.debug("Destroying field space %llu in task %s (ID %lld)", 
+                      handle.get_id(), get_task_name(), get_unique_id());
 #endif
       // Check to see if this is one that we should be allowed to destory
       {
@@ -5370,7 +5370,7 @@ namespace Legion {
           "bound set in legion_config.h", get_task_name(), get_unique_id(), fid)
 #endif
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_field_creation(space.id, fid, field_size,
+        LegionSpy::log_field_creation(space.get_id(), fid, field_size,
             (provenance == NULL) ? NULL : provenance->human_str());
 
       std::set<RtEvent> done_events;
@@ -5412,7 +5412,7 @@ namespace Legion {
             get_unique_id(), resulting_fields[idx])
 #endif
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_field_creation(space.id, resulting_fields[idx],
+          LegionSpy::log_field_creation(space.get_id(), resulting_fields[idx],
              sizes[idx], (provenance == NULL) ? NULL : provenance->human_str());
       }
       std::set<RtEvent> done_events;
@@ -5807,12 +5807,12 @@ namespace Legion {
       LogicalRegion region(tid, index_space, field_space);
 #ifdef DEBUG_LEGION
       log_region.debug("Creating logical region in task %s (ID %lld) with "
-                       "index space %x and field space %x in new tree %d",
+                       "index space %llu and field space %llu in new tree %d",
                        get_task_name(), get_unique_id(), 
-                       index_space.id, field_space.id, tid);
+                       index_space.get_id(), field_space.get_id(), tid);
 #endif
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_top_region(index_space.id, field_space.id, tid,
+        LegionSpy::log_top_region(index_space.get_id(), field_space.get_id(), tid,
             runtime->address_space, (provenance == NULL) ? 
             NULL : provenance->human_str());
       const DistributedID did = runtime->get_available_distributed_id();
@@ -5848,9 +5848,9 @@ namespace Legion {
       if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to create shared ownership for logical region "
-            "(%x,%x,%x in task %s (UID %lld) which is not a top-level logical "
+            "(%llu,%llu,%u in task %s (UID %lld) which is not a top-level logical "
             "region. Legion only permits top-level logical regions to have "
-            "shared ownerships.", handle.index_space.id, handle.field_space.id,
+            "shared ownerships.", handle.index_space.get_id(), handle.field_space.get_id(),
             handle.tree_id, get_task_name(), get_unique_id())
       runtime->create_shared_ownership(handle);
       AutoLock priv_lock(privilege_lock);
@@ -5870,18 +5870,18 @@ namespace Legion {
       if (!handle.exists())
         return;
 #ifdef DEBUG_LEGION
-      log_region.debug("Deleting logical region (%x,%x) in task %s (ID %lld)",
-                       handle.index_space.id, handle.field_space.id, 
+      log_region.debug("Deleting logical region (%llu,%llu) in task %s (ID %lld)",
+                       handle.index_space.get_id(), handle.field_space.get_id(), 
                        get_task_name(), get_unique_id());
 #endif
       // Check to see if this is a top-level logical region, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-            "Illegal call to destroy logical region (%x,%x,%x in task %s "
+            "Illegal call to destroy logical region (%llu,%llu,%u in task %s "
             "(UID %lld) which is not a top-level logical region. Legion only "
             "permits top-level logical regions to be destroyed.", 
-            handle.index_space.id, handle.field_space.id, handle.tree_id,
+            handle.index_space.get_id(), handle.field_space.get_id(), handle.tree_id,
             get_task_name(), get_unique_id())
       // Check to see if this is one that we should be allowed to destory
       {
@@ -5910,9 +5910,9 @@ namespace Legion {
           if (finder->second == 0)
           {
             REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
-                "Duplicate deletions were performed for region (%x,%x,%x) "
-                "in task tree rooted by %s", handle.index_space.id, 
-                handle.field_space.id, handle.tree_id, get_task_name())
+                "Duplicate deletions were performed for region (%llu,%llu,%u) "
+                "in task tree rooted by %s", handle.index_space.get_id(), 
+                handle.field_space.get_id(), handle.tree_id, get_task_name())
             return;
           }
           if (--finder->second > 0)
@@ -6214,9 +6214,9 @@ namespace Legion {
         for (std::vector<DeletedRegion>::const_iterator it = 
               deleted_regions.begin(); it != deleted_regions.end(); it++)
           REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed for region (%x,%x,%x) "
+              "Duplicate deletions were performed for region (%llu,%llu,%u) "
               "in task tree rooted by %s (provenance %s)", 
-              it->region.index_space.id, it->region.field_space.id, 
+              it->region.index_space.get_id(), it->region.field_space.get_id(), 
               it->region.tree_id, get_task_name(), (it->provenance != NULL) ?
               it->provenance->human_str() : "unknown")
         deleted_regions.clear();
@@ -6227,8 +6227,8 @@ namespace Legion {
               deleted_fields.begin(); it != deleted_fields.end(); it++)
           REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
               "Duplicate deletions were performed on field %d of "
-              "field space %x in task tree rooted by %s (provenance %s)", 
-              it->fid, it->space.id, get_task_name(), 
+              "field space %llu in task tree rooted by %s (provenance %s)", 
+              it->fid, it->space.get_id(), get_task_name(), 
               (it->provenance != NULL) ? it->provenance->human_str() :
               "unknown")
         deleted_fields.clear();
@@ -6239,8 +6239,8 @@ namespace Legion {
               deleted_field_spaces.begin(); it != 
               deleted_field_spaces.end(); it++)
           REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed on field space %x "
-              "in task tree rooted by %s (provenance %s)", it->space.id,
+              "Duplicate deletions were performed on field space %llu "
+              "in task tree rooted by %s (provenance %s)", it->space.get_id(),
               get_task_name(), (it->provenance != NULL) ?
               it->provenance->human_str() : "unknown")
         deleted_field_spaces.clear();
@@ -6251,8 +6251,8 @@ namespace Legion {
               deleted_index_spaces.begin(); it != 
               deleted_index_spaces.end(); it++)
           REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed on index space %x "
-              "in task tree rooted by %s (provenance %s)", it->space.id,
+              "Duplicate deletions were performed on index space %llu "
+              "in task tree rooted by %s (provenance %s)", it->space.get_id(),
               get_task_name(), (it->provenance != NULL) ?
               it->provenance->human_str() : "unknown")
         deleted_index_spaces.clear();
@@ -6263,8 +6263,8 @@ namespace Legion {
               deleted_index_partitions.begin(); it !=
               deleted_index_partitions.end(); it++)
           REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed on index partition %x "
-              "in task tree rooted by %s (provenance %s)", it->partition.id,
+              "Duplicate deletions were performed on index partition %llu "
+              "in task tree rooted by %s (provenance %s)", it->partition.get_id(),
               get_task_name(), (it->provenance != NULL) ?
               it->provenance->human_str() : "unknown")
         deleted_index_partitions.clear();
@@ -6277,9 +6277,9 @@ namespace Legion {
         {
           if (runtime->report_leaks)
             REPORT_LEGION_WARNING(LEGION_WARNING_LEAKED_RESOURCE,
-                "Logical region (%x,%x,%x) was leaked out of task tree rooted "
-                "by task %s", rit->first.index_space.id, 
-                rit->first.field_space.id, rit->first.tree_id, get_task_name())
+                "Logical region (%llu,%llu,%u) was leaked out of task tree rooted "
+                "by task %s", rit->first.index_space.get_id(),
+                rit->first.field_space.get_id(), rit->first.tree_id, get_task_name())
           runtime->destroy_logical_region(rit->first, preconditions);
           // Remove any latent field spaces and therefore any created fields
           // since they might not be able to be cleaned up after this since
@@ -6328,8 +6328,8 @@ namespace Legion {
         {
           if (runtime->report_leaks)
             REPORT_LEGION_WARNING(LEGION_WARNING_LEAKED_RESOURCE,
-                "Field %d of field space %x was leaked out of task tree rooted "
-                "by task %s", it->second, it->first.id, get_task_name())
+                "Field %d of field space %llu was leaked out of task tree rooted "
+                "by task %s", it->second, it->first.get_id(), get_task_name())
           std::map<FieldSpace,FieldAllocatorImpl*>::const_iterator finder =
               leak_allocators.find(it->first);
           if (finder == leak_allocators.end())
@@ -6358,8 +6358,8 @@ namespace Legion {
         {
           if (runtime->report_leaks)
             REPORT_LEGION_WARNING(LEGION_WARNING_LEAKED_RESOURCE,
-                "Field space %x was leaked out of task tree rooted by task %s",
-                it->first.id, get_task_name())
+                "Field space %llu was leaked out of task tree rooted by task %s",
+                it->first.get_id(), get_task_name())
           runtime->destroy_field_space(it->first, preconditions);
         }
         created_field_spaces.clear();
@@ -6372,8 +6372,8 @@ namespace Legion {
         {
           if (runtime->report_leaks)
             REPORT_LEGION_WARNING(LEGION_WARNING_LEAKED_RESOURCE,
-                "Index partition %x was leaked out of task tree rooted by "
-                "task %s", it->first.id, get_task_name())
+                "Index partition %llu was leaked out of task tree rooted by "
+                "task %s", it->first.get_id(), get_task_name())
           runtime->destroy_index_partition(it->first, preconditions);
         }
         created_index_partitions.clear();
@@ -6386,8 +6386,8 @@ namespace Legion {
         {
           if (runtime->report_leaks)
             REPORT_LEGION_WARNING(LEGION_WARNING_LEAKED_RESOURCE,
-                "Index space %x was leaked out of task tree rooted by task %s",
-                it->first.id, get_task_name())
+                "Index space %llu was leaked out of task tree rooted by task %s",
+                it->first.get_id(), get_task_name())
           runtime->destroy_index_space(it->first, 
                   runtime->address_space, preconditions);
         }
@@ -7006,20 +7006,20 @@ namespace Legion {
       PhysicalRegion result = map_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
       log_run.debug("Registering a map operation for region "
-                    "(%x,%x,%x) in task %s (ID %lld)",
-                    launcher.requirement.region.index_space.id, 
-                    launcher.requirement.region.field_space.id, 
+                    "(%llu,%llu,%u) in task %s (ID %lld)",
+                    launcher.requirement.region.index_space.get_id(), 
+                    launcher.requirement.region.field_space.get_id(), 
                     launcher.requirement.region.tree_id, 
                     get_task_name(), get_unique_id());
 #endif
       if (current_trace != NULL)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%x,%x,%x) inside of trace %d of parent task %s "
+                      "(%llu,%llu,%u) inside of trace %d of parent task %s "
                       "(ID %lld). It is illegal to perform inline mapping "
                       "operations inside of traces.",
-                      launcher.requirement.region.index_space.id, 
-                      launcher.requirement.region.field_space.id, 
+                      launcher.requirement.region.index_space.get_id(), 
+                      launcher.requirement.region.field_space.get_id(), 
                       launcher.requirement.region.tree_id, 
                       current_trace->tid, get_task_name(), get_unique_id())
       bool parent_conflict = false, inline_conflict = false;  
@@ -7028,25 +7028,25 @@ namespace Legion {
       if (parent_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%x,%x,%x) that conflicts with mapped region " 
-                      "(%x,%x,%x) at index %d of parent task %s "
+                      "(%llu,%llu,%u) that conflicts with mapped region " 
+                      "(%llu,%llu,%u) at index %d of parent task %s "
                       "(ID %lld) that would ultimately result in "
                       "deadlock. Instead you receive this error message.",
-                      launcher.requirement.region.index_space.id,
-                      launcher.requirement.region.field_space.id,
+                      launcher.requirement.region.index_space.get_id(),
+                      launcher.requirement.region.field_space.get_id(),
                       launcher.requirement.region.tree_id,
-                      regions[index].region.index_space.id,
-                      regions[index].region.field_space.id,
+                      regions[index].region.index_space.get_id(),
+                      regions[index].region.field_space.get_id(),
                       regions[index].region.tree_id,
                       index, get_task_name(), get_unique_id())
       if (inline_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
-                      "Attempted an inline mapping of region (%x,%x,%x) "
+                      "Attempted an inline mapping of region (%llu,%llu,%u) "
                       "that conflicts with previous inline mapping in "
                       "task %s (ID %lld) that would ultimately result in "
                       "deadlock.  Instead you receive this error message.",
-                      launcher.requirement.region.index_space.id,
-                      launcher.requirement.region.field_space.id,
+                      launcher.requirement.region.index_space.get_id(),
+                      launcher.requirement.region.field_space.get_id(),
                       launcher.requirement.region.tree_id,
                       get_task_name(), get_unique_id())
       register_inline_mapped_region(result);
@@ -7068,10 +7068,10 @@ namespace Legion {
         const RegionRequirement &req = region.impl->get_requirement();
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%x,%x,%x) inside of trace %d of parent task %s "
+                      "(%llu,%llu,%u) inside of trace %d of parent task %s "
                       "(ID %lld). It is illegal to perform inline mapping "
-                      "operations inside of traces.", req.region.index_space.id,
-                      req.region.field_space.id, req.region.tree_id, 
+                      "operations inside of traces.", req.region.index_space.get_id(),
+                      req.region.field_space.get_id(), req.region.tree_id, 
                       current_trace->tid, get_task_name(), get_unique_id())
       }
       MapOp *map_op = runtime->get_operation<MapOp>();
@@ -7417,28 +7417,28 @@ namespace Legion {
       if (parent_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                       "Attempted an external attach operation on region "
-                      "(%x,%x,%x) that conflicts with mapped region " 
-                      "(%x,%x,%x) at index %d of parent task %s (ID %lld) "
+                      "(%llu,%llu,%u) that conflicts with mapped region " 
+                      "(%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
                       "that would ultimately result in deadlock. Instead you "
                       "receive this error message. Try unmapping the region "
                       "before invoking 'attach_external_resource'.",
-                      launcher.handle.index_space.id, 
-                      launcher.handle.field_space.id, 
+                      launcher.handle.index_space.get_id(), 
+                      launcher.handle.field_space.get_id(), 
                       launcher.handle.tree_id, 
-                      regions[index].region.index_space.id,
-                      regions[index].region.field_space.id,
+                      regions[index].region.index_space.get_id(),
+                      regions[index].region.field_space.get_id(),
                       regions[index].region.tree_id, index, 
                       get_task_name(), get_unique_id())
       if (inline_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                       "Attempted an external attach operation on region "
-                      "(%x,%x,%x) that conflicts with previous inline "
+                      "(%llu,%llu,%u) that conflicts with previous inline "
                       "mapping in task %s (ID %lld) "
                       "that would ultimately result in deadlock. Instead you "
                       "receive this error message. Try unmapping the region "
                       "before invoking 'attach_external_resource'.",
-                      launcher.handle.index_space.id, 
-                      launcher.handle.field_space.id, launcher.handle.tree_id,
+                      launcher.handle.index_space.get_id(), 
+                      launcher.handle.field_space.get_id(), launcher.handle.tree_id,
                       get_task_name(), get_unique_id())
       // Add this region to the list of inline mapped regions if it is mapped
       if (result.is_mapped())
@@ -7474,31 +7474,31 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "partition (%x,%x,%x) that conflicts with mapped region"
-                        " (%x,%x,%x) at index %d of parent task %s (ID %lld) "
+                        "partition (%llu,%llu,%u) that conflicts with mapped region"
+                        " (%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
-                        req.partition.index_partition.id, 
-                        req.partition.field_space.id, 
+                        req.partition.index_partition.get_id(), 
+                        req.partition.field_space.get_id(), 
                         req.partition.tree_id, 
-                        regions[index].region.index_space.id,
-                        regions[index].region.field_space.id,
+                        regions[index].region.index_space.get_id(),
+                        regions[index].region.field_space.get_id(),
                         regions[index].region.tree_id, index, 
                         get_task_name(), get_unique_id())
         else
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "region (%x,%x,%x) that conflicts with mapped region "
-                        "(%x,%x,%x) at index %d of parent task %s (ID %lld) "
+                        "region (%llu,%llu,%u) that conflicts with mapped region "
+                        "(%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
-                        req.region.index_space.id, 
-                        req.region.field_space.id, 
+                        req.region.index_space.get_id(), 
+                        req.region.field_space.get_id(), 
                         req.region.tree_id, 
-                        regions[index].region.index_space.id,
-                        regions[index].region.field_space.id,
+                        regions[index].region.index_space.get_id(),
+                        regions[index].region.field_space.get_id(),
                         regions[index].region.tree_id, index, 
                         get_task_name(), get_unique_id())
       }
@@ -7507,24 +7507,24 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "partition (%x,%x,%x) that conflicts with previous "
+                        "partition (%llu,%llu,%u) that conflicts with previous "
                         "inline mapping in task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
-                        req.partition.index_partition.id, 
-                        req.partition.field_space.id, req.partition.tree_id,
+                        req.partition.index_partition.get_id(), 
+                        req.partition.field_space.get_id(), req.partition.tree_id,
                         get_task_name(), get_unique_id())
         else
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "region (%x,%x,%x) that conflicts with previous inline "
+                        "region (%llu,%llu,%u) that conflicts with previous inline "
                         "mapping in task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
-                        req.region.index_space.id, 
-                        req.region.field_space.id, req.region.tree_id,
+                        req.region.index_space.get_id(), 
+                        req.region.field_space.get_id(), req.region.tree_id,
                         get_task_name(), get_unique_id())
       }
       add_to_dependence_queue(attach_op, launcher.static_dependences);
@@ -7545,13 +7545,13 @@ namespace Legion {
         LogicalRegion handle = launcher.handles[index];
         if (handle.get_tree_id() != launcher.parent.get_tree_id())
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-              "Handle (%d,%d,%d) of index attach operation in parent task %s "
+              "Handle (%llu,%llu,%u) of index attach operation in parent task %s "
               "(UID %lld) does not come from the same region tree as the "
-              "parent region (%d,%d,%d). All regions for an index space "
-              "attach must be from the same tree.", handle.index_space.id,
-              handle.field_space.id, handle.tree_id, get_task_name(),
-              get_unique_id(), launcher.parent.index_space.id,
-              launcher.parent.field_space.id, launcher.parent.tree_id)
+              "parent region (%llu,%llu,%u). All regions for an index space "
+              "attach must be from the same tree.", handle.index_space.get_id(),
+              handle.field_space.get_id(), handle.tree_id, get_task_name(),
+              get_unique_id(), launcher.parent.index_space.get_id(),
+              launcher.parent.field_space.get_id(), launcher.parent.tree_id)
         previous_nodes[idx] = runtime->get_node(handle);
         depths[idx] = previous_nodes[idx]->get_depth();
         if (max_depth < depths[idx])
@@ -7603,14 +7603,14 @@ namespace Legion {
             const LogicalRegion h1 = launcher.handles[it->second.front()];
             const LogicalRegion h2 = launcher.handles[it->second[idx]];
             REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-              "Logical region handle (%d,%d,%d) from index %d of index attach "
+              "Logical region handle (%llu,%llu,%u) from index %d of index attach "
               "operation in parent task %s (UID %lld) is not region-tree "
-              "disjoint with logical region handle (%d,%d,%d) from index %d. "
+              "disjoint with logical region handle (%llu,%llu,%u) from index %d. "
               "All regions in index space attach operations must be "
-              "region-tree disjoint.", h1.index_space.id,
-              h1.field_space.id, h1.tree_id, it->second.front(),
-              get_task_name(), get_unique_id(), h2.index_space.id,
-              h2.field_space.id, h2.tree_id, it->second[idx])
+              "region-tree disjoint.", h1.index_space.get_id(),
+              h1.field_space.get_id(), h1.tree_id, it->second.front(),
+              get_task_name(), get_unique_id(), h2.index_space.get_id(),
+              h2.field_space.get_id(), h2.tree_id, it->second[idx])
           }
         }
         previous_nodes.swap(next_nodes);
@@ -13674,20 +13674,20 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid, type_tag);
+        handle = IndexSpace(value.did, value.tid, type_tag);
         double_buffer = value.double_buffer;
         runtime->create_node(handle, domain, true/*is domain*/,
             NULL/*parent*/, 0/*color*/, value.did, creation_bar,
             provenance, ApEvent::NO_AP_EVENT, value.expr_id,
             &collective_mapping, true/*add root reference*/);
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.did);
 #ifdef DEBUG_LEGION
-        log_index.debug("Creating index space %x in task%s (ID %lld)",
-                        handle.id, get_task_name(), get_unique_id());
+        log_index.debug("Creating index space %llu in task%s (ID %lld)",
+                        handle.get_id(), get_task_name(), get_unique_id());
 #endif
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(handle.id, runtime->address_space,
+          LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
       else
@@ -13699,7 +13699,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid, type_tag);
+        handle = IndexSpace(value.did, value.tid, type_tag);
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -13754,16 +13754,15 @@ namespace Legion {
       {
         if (owner_shard->shard_id == index_space_allocator_shard)
         {
-          const IndexSpaceID space_id = runtime->get_unique_index_space_id(); 
-          const DistributedID did = runtime->get_available_distributed_id();
+          const DistributedID did = runtime->get_unique_index_space_id(); 
           // We're the owner, so make it locally and then broadcast it
-          runtime->record_pending_index_space(space_id);
+          runtime->record_pending_index_space(did);
           // Do our arrival on this generation, should be the last one
           ValueBroadcast<ISBroadcast> *collective = 
             new ValueBroadcast<ISBroadcast>(this, COLLECTIVE_LOC_3);
-          collective->broadcast(ISBroadcast(space_id,
+          collective->broadcast(ISBroadcast(did,
                 runtime->get_unique_index_tree_id(),
-                runtime->get_unique_index_space_expr_id(), did, double_next));
+                runtime->get_unique_index_space_expr_id(), double_next));
           pending_index_spaces.push_back(
               std::pair<ValueBroadcast<ISBroadcast>*,bool>(collective, true));
         }
@@ -13820,7 +13819,7 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid, type_tag);
+        handle = IndexSpace(value.did, value.tid, type_tag);
         double_buffer = value.double_buffer;
         node = runtime->create_node(handle, NULL, true/*is domain*/,
             NULL/*parent*/, 0/*color*/, value.did, creation_bar,
@@ -13828,13 +13827,13 @@ namespace Legion {
             true/*add root reference*/);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.did);
 #ifdef DEBUG_LEGION
-        log_index.debug("Creating index space %x in task%s (ID %lld)",
-                        handle.id, get_task_name(), get_unique_id());
+        log_index.debug("Creating index space %llu in task%s (ID %lld)",
+                        handle.get_id(), get_task_name(), get_unique_id());
 #endif
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(handle.id, runtime->address_space,
+          LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
       else
@@ -13846,7 +13845,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid, type_tag);
+        handle = IndexSpace(value.did, value.tid, type_tag);
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -14005,19 +14004,19 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid,spaces[0].get_type_tag());
+        handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
         double_buffer = value.double_buffer;
         runtime->create_union_space(handle, value.did, provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.did);
 #ifdef DEBUG_LEGION
-        log_index.debug("Creating index space %x in task%s (ID %lld)",
-                        handle.id, get_task_name(), get_unique_id());
+        log_index.debug("Creating index space %llu in task%s (ID %lld)",
+                        handle.get_id(), get_task_name(), get_unique_id());
 #endif
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(handle.id, runtime->address_space,
+          LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
       else
@@ -14029,7 +14028,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid,spaces[0].get_type_tag());
+        handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -14105,19 +14104,19 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid,spaces[0].get_type_tag());
+        handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
         double_buffer = value.double_buffer;
         runtime->create_intersection_space(handle, value.did,provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.did);
 #ifdef DEBUG_LEGION
-        log_index.debug("Creating index space %x in task%s (ID %lld)",
-                        handle.id, get_task_name(), get_unique_id());
+        log_index.debug("Creating index space %llu in task%s (ID %lld)",
+                        handle.get_id(), get_task_name(), get_unique_id());
 #endif
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(handle.id, runtime->address_space,
+          LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
       else
@@ -14129,7 +14128,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid,spaces[0].get_type_tag());
+        handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -14195,19 +14194,19 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid, left.get_type_tag());
+        handle = IndexSpace(value.did, value.tid, left.get_type_tag());
         double_buffer = value.double_buffer;
         runtime->create_difference_space(handle, value.did, provenance,
             left, right, creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
-        runtime->revoke_pending_index_space(value.space_id);
+        runtime->revoke_pending_index_space(value.did);
 #ifdef DEBUG_LEGION
-        log_index.debug("Creating index space %x in task%s (ID %lld)",
-                        handle.id, get_task_name(), get_unique_id());
+        log_index.debug("Creating index space %llu in task%s (ID %lld)",
+                        handle.get_id(), get_task_name(), get_unique_id());
 #endif
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_index_space(handle.id, runtime->address_space,
+          LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
       else
@@ -14219,7 +14218,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.space_id, value.tid, left.get_type_tag());
+        handle = IndexSpace(value.did, value.tid, left.get_type_tag());
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -14264,7 +14263,7 @@ namespace Legion {
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_index_space(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
-            "Illegal call to create shared ownership for index space %x in " 
+            "Illegal call to create shared ownership for index space %llu in " 
             "task %s (UID %lld) which is not a top-level index space. Legion "
             "only permits top-level index spaces to have shared ownership.", 
             handle.get_id(), get_task_name(), get_unique_id())
@@ -14302,14 +14301,14 @@ namespace Legion {
         return;
 #ifdef DEBUG_LEGION
       if (owner_shard->shard_id == 0)
-        log_index.debug("Destroying index space %x in task %s (ID %lld)", 
-                        handle.id, get_task_name(), get_unique_id());
+        log_index.debug("Destroying index space %llu in task %s (ID %lld)", 
+                        handle.get_id(), get_task_name(), get_unique_id());
 #endif
       // Check to see if this is a top-level index space, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_index_space(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-            "Illegal call to destroy index space %x in task %s (UID %lld) "
+            "Illegal call to destroy index space %llu in task %s (UID %lld) "
             "which is not a top-level index space. Legion only permits "
             "top-level index spaces to be destroyed.", handle.get_id(),
             get_task_name(), get_unique_id())
@@ -14430,8 +14429,8 @@ namespace Legion {
         return;
 #ifdef DEBUG_LEGION
       if (owner_shard->shard_id == 0)
-        log_index.debug("Destroying index partition %x in task %s (ID %lld)", 
-                        handle.id, get_task_name(), get_unique_id());
+        log_index.debug("Destroying index partition %llu in task %s (ID %lld)", 
+                        handle.get_id(), get_task_name(), get_unique_id());
 #endif
       std::vector<IndexPartition> sub_partitions;
       {
@@ -14509,14 +14508,13 @@ namespace Legion {
       {
         if (owner_shard->shard_id == index_partition_allocator_shard)
         {
-          const IndexPartitionID pid = runtime->get_unique_index_partition_id();
-          const DistributedID did = runtime->get_available_distributed_id();
+          const DistributedID did = runtime->get_unique_index_partition_id();
           // We're the owner, so make it locally and then broadcast it
-          runtime->record_pending_partition(pid);
+          runtime->record_pending_partition(did);
           // Do our arrival on this generation, should be the last one
           ValueBroadcast<IPBroadcast> *collective = 
             new ValueBroadcast<IPBroadcast>(this, COLLECTIVE_LOC_7);
-          collective->broadcast(IPBroadcast(pid, did, double_next));
+          collective->broadcast(IPBroadcast(did, double_next));
           pending_index_partitions.push_back(
               std::pair<ValueBroadcast<IPBroadcast>*,ShardID>(collective, 
                                         index_partition_allocator_shard));
@@ -14562,7 +14560,7 @@ namespace Legion {
       if (is_owner)
       {
         const IPBroadcast value = collective.first->get_value(false);
-        pid.id = value.pid;
+        pid.did = value.did;
         double_buffer = value.double_buffer;
         // Have to do our registration before broadcasting
         RtEvent safe_event = create_pending_partition_internal(
@@ -14581,7 +14579,7 @@ namespace Legion {
         }
         // Signal that we're done our creation
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/, safe_event);
-        runtime->revoke_pending_partition(value.pid);
+        runtime->revoke_pending_partition(value.did);
       }
       else
       {
@@ -14592,7 +14590,7 @@ namespace Legion {
           done.wait();
         }
         const IPBroadcast value = collective.first->get_value(false);
-        pid.id = value.pid;
+        pid.did = value.did;
         double_buffer = value.double_buffer;
 #ifdef DEBUG_LEGION
         assert(pid.exists());
@@ -14664,8 +14662,8 @@ namespace Legion {
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
             LEGION_DISJOINT_COMPLETE_KIND, partition_color, color_generated))
-        log_index.debug("Creating equal partition %d with parent index space %x"
-                        " in task %s (ID %lld)", pid.id, parent.id,
+        log_index.debug("Creating equal partition %llu with parent index space %llu"
+                        " in task %s (ID %lld)", pid.get_id(), parent.get_id(),
                         get_task_name(), get_unique_id());
       part_op->initialize_equal_partition(this, pid, granularity, provenance);
       // Now we can add the operation to the queue
@@ -14707,8 +14705,8 @@ namespace Legion {
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
             LEGION_DISJOINT_COMPLETE_KIND, partition_color, color_generated))
-        log_index.debug("Creating equal partition %d with parent index space %x"
-                        " in task %s (ID %lld)", pid.id, parent.id,
+        log_index.debug("Creating equal partition %llu with parent index space %llu"
+                        " in task %s (ID %lld)", pid.get_id(), parent.get_id(),
                         get_task_name(), get_unique_id());
       part_op->initialize_weight_partition(this, pid, weights, 
                                            granularity, provenance);
@@ -14748,14 +14746,14 @@ namespace Legion {
 #ifdef DEBUG_LEGION 
       if (parent.get_tree_id() != handle1.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEX_TREE_MISMATCH,
-                        "IndexPartition %d is not part of the same "
-                        "index tree as IndexSpace %d in create "
-                        "partition by union!", handle1.id, parent.id)
+                        "IndexPartition %llu is not part of the same "
+                        "index tree as IndexSpace %llu in create "
+                        "partition by union!", handle1.get_id(), parent.get_id())
       if (parent.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEX_TREE_MISMATCH,
-                        "IndexPartition %d is not part of the same "
-                        "index tree as IndexSpace %d in create "
-                        "partition by union!", handle2.id, parent.id)
+                        "IndexPartition %llu is not part of the same "
+                        "index tree as IndexSpace %llu in create "
+                        "partition by union!", handle2.get_id(), parent.get_id())
 #endif
       LegionColor partition_color = INVALID_COLOR;
       bool color_generated = false;
@@ -14798,8 +14796,8 @@ namespace Legion {
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
             kind, partition_color, color_generated))
-        log_index.debug("Creating union partition %d with parent index "
-                        "space %x in task %s (ID %lld)", pid.id, parent.id,
+        log_index.debug("Creating union partition %llu with parent index "
+                        "space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
                         get_task_name(), get_unique_id());
       part_op->initialize_union_partition(this, pid, handle1, 
                                           handle2, provenance);
@@ -14841,14 +14839,14 @@ namespace Legion {
 #ifdef DEBUG_LEGION 
       if (parent.get_tree_id() != handle1.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEX_TREE_MISMATCH,
-                        "IndexPartition %d is not part of the same "
-                        "index tree as IndexSpace %d in create partition by "
-                        "intersection!", handle1.id, parent.id)
+                        "IndexPartition %llu is not part of the same "
+                        "index tree as IndexSpace %llu in create partition by "
+                        "intersection!", handle1.get_id(), parent.get_id())
       if (parent.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEX_TREE_MISMATCH,
-                        "IndexPartition %d is not part of the same "
-                        "index tree as IndexSpace %d in create partition by "
-                        "intersection!", handle2.id, parent.id)
+                        "IndexPartition %llu is not part of the same "
+                        "index tree as IndexSpace %llu in create partition by "
+                        "intersection!", handle2.get_id(), parent.get_id())
 #endif
       LegionColor partition_color = INVALID_COLOR;
       bool color_generated = false;
@@ -14890,9 +14888,9 @@ namespace Legion {
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
             kind, partition_color, color_generated))
-        log_index.debug("Creating intersection partition %d with parent "
-                        "index space %x in task %s (ID %lld)", pid.id, 
-                        parent.id, get_task_name(), get_unique_id());
+        log_index.debug("Creating intersection partition %llu with parent "
+                        "index space %llu in task %s (ID %lld)", pid.get_id(), 
+                        parent.get_id(), get_task_name(), get_unique_id());
       part_op->initialize_intersection_partition(this, pid, handle1,
                                                  handle2, provenance);
       // Now we can add the operation to the queue
@@ -14931,9 +14929,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       if (parent.get_type_tag() != partition.get_type_tag())
         REPORT_LEGION_ERROR(ERROR_INDEXPARTITION_NOT_SAME_INDEX_TREE,
-            "IndexPartition %d does not have the same type as the "
-            "parent index space %x in task %s (UID %lld)", partition.id,
-            parent.id, get_task_name(), get_unique_id())
+            "IndexPartition %llu does not have the same type as the "
+            "parent index space %llu in task %s (UID %lld)", partition.get_id(),
+            parent.get_id(), get_task_name(), get_unique_id())
 #endif
       LegionColor partition_color = INVALID_COLOR;
       bool color_generated = false;
@@ -14963,9 +14961,9 @@ namespace Legion {
       if (create_shard_partition(part_op, pid, parent,
             part_node->color_space->handle, provenance, kind, partition_color,
             color_generated))
-        log_index.debug("Creating intersection partition %d with parent "
-                        "index space %x in task %s (ID %lld)", pid.id, 
-                        parent.id, get_task_name(), get_unique_id());
+        log_index.debug("Creating intersection partition %llu with parent "
+                        "index space %llu in task %s (ID %lld)", pid.get_id(),
+                        parent.get_id(), get_task_name(), get_unique_id());
       part_op->initialize_intersection_partition(this, pid, partition,
                                                  dominates, provenance);
       // Now we can add the operation to the queue
@@ -15007,16 +15005,16 @@ namespace Legion {
 #ifdef DEBUG_LEGION 
       if (parent.get_tree_id() != handle1.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEX_TREE_MISMATCH,
-                            "IndexPartition %d is not part of the same "
-                            "index tree as IndexSpace %d in create "
+                            "IndexPartition %llu is not part of the same "
+                            "index tree as IndexSpace %llu in create "
                             "partition by difference!",
-                            handle1.id, parent.id)
+                            handle1.get_id(), parent.get_id())
       if (parent.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEX_TREE_MISMATCH,
-                            "IndexPartition %d is not part of the same "
-                            "index tree as IndexSpace %d in create "
+                            "IndexPartition %llu is not part of the same "
+                            "index tree as IndexSpace %llu in create "
                             "partition by difference!",
-                            handle2.id, parent.id)
+                            handle2.get_id(), parent.get_id())
 #endif
       LegionColor partition_color = INVALID_COLOR;
       bool color_generated = false;
@@ -15045,9 +15043,9 @@ namespace Legion {
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
             kind, partition_color, color_generated))
-        log_index.debug("Creating difference partition %d with parent "
-                        "index space %x in task %s (ID %lld)", pid.id, 
-                        parent.id, get_task_name(), get_unique_id());
+        log_index.debug("Creating difference partition %llu with parent "
+                        "index space %llu in task %s (ID %lld)", pid.get_id(),
+                        parent.get_id(), get_task_name(), get_unique_id());
       part_op->initialize_difference_partition(this, pid, handle1, 
                                                handle2, provenance);
       // Now we can add the operation to the queue
@@ -15088,10 +15086,10 @@ namespace Legion {
                       get_task_name(), get_unique_id());
       if (handle1.get_tree_id() != handle2.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INDEX_TREE_MISMATCH,
-                            "IndexPartition %d is not part of the same "
-                            "index tree as IndexPartition %d in create "
+                            "IndexPartition %llu is not part of the same "
+                            "index tree as IndexPartition %llu in create "
                             "cross product partitions!",
-                            handle1.id, handle2.id)
+                            handle1.get_id(), handle2.get_id())
 #endif
       LegionColor partition_color = INVALID_COLOR;
       if (color != LEGION_AUTO_GENERATE_ID)
@@ -16220,20 +16218,20 @@ namespace Legion {
       if (collective.second)
       {
         const FSBroadcast value = collective.first->get_value(false);
-        space = FieldSpace(value.space_id);
+        space = FieldSpace(value.did);
         double_buffer = value.double_buffer;
         // Need to register this before broadcasting
         runtime->create_node(space, value.did, creation_bar,
             provenance, &collective_mapping);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/); 
-        runtime->revoke_pending_field_space(value.space_id);
+        runtime->revoke_pending_field_space(value.did);
 #ifdef DEBUG_LEGION
-        log_field.debug("Creating field space %x in task %s (ID %lld)", 
-                        space.id, get_task_name(), get_unique_id());
+        log_field.debug("Creating field space %llu in task %s (ID %lld)", 
+                        space.get_id(), get_task_name(), get_unique_id());
 #endif
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_field_space(space.id, runtime->address_space,
+          LegionSpy::log_field_space(space.get_id(), runtime->address_space,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
       else
@@ -16245,7 +16243,7 @@ namespace Legion {
           done.wait();
         }
         const FSBroadcast value = collective.first->get_value(false);
-        space = FieldSpace(value.space_id);
+        space = FieldSpace(value.did);
         double_buffer = value.double_buffer;
 #ifdef DEBUG_LEGION
         assert(space.exists());
@@ -16363,7 +16361,7 @@ namespace Legion {
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
         if (runtime->legion_spy_enabled && !non_owner)
           for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
-            LegionSpy::log_field_creation(space.id, resulting_fields[idx],
+            LegionSpy::log_field_creation(space.get_id(), resulting_fields[idx],
              sizes[idx], (provenance == NULL) ? NULL : provenance->human_str());
       }
       else
@@ -16501,14 +16499,13 @@ namespace Legion {
       {
         if (owner_shard->shard_id == field_space_allocator_shard)
         {
-          const FieldSpaceID space = runtime->get_unique_field_space_id();
-          const DistributedID did = runtime->get_available_distributed_id();
+          const DistributedID did = runtime->get_unique_field_space_id();
           // We're the owner, so make it locally and then broadcast it
-          runtime->record_pending_field_space(space);
+          runtime->record_pending_field_space(did);
           // Do our arrival on this generation, should be the last one
           ValueBroadcast<FSBroadcast> *collective = 
             new ValueBroadcast<FSBroadcast>(this, COLLECTIVE_LOC_31);
-          collective->broadcast(FSBroadcast(space, did, double_next));
+          collective->broadcast(FSBroadcast(did, double_next));
           pending_field_spaces.push_back(
               std::pair<ValueBroadcast<FSBroadcast>*,bool>(collective, true));
         }
@@ -16567,8 +16564,8 @@ namespace Legion {
         return;
 #ifdef DEBUG_LEGION
       if (owner_shard->shard_id == 0)
-        log_field.debug("Destroying field space %x in task %s (ID %lld)", 
-                        handle.id, get_task_name(), get_unique_id());
+        log_field.debug("Destroying field space %llu in task %s (ID %lld)", 
+                        handle.get_id(), get_task_name(), get_unique_id());
 #endif
       // Check to see if this is one that we should be allowed to destory
       {
@@ -16725,7 +16722,7 @@ namespace Legion {
         precondition = runtime->allocate_field(space, field_size, fid, 
                                              serdez_id, provenance, non_owner);
         if (runtime->legion_spy_enabled && !non_owner)
-          LegionSpy::log_field_creation(space.id, fid, field_size,
+          LegionSpy::log_field_creation(space.get_id(), fid, field_size,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
       const RtBarrier creation_bar = creation_barrier.next(this);
@@ -17032,7 +17029,7 @@ namespace Legion {
                   resulting_fields, serdez_id, provenance, non_owner);
         if (runtime->legion_spy_enabled && !non_owner)
           for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
-            LegionSpy::log_field_creation(space.id, resulting_fields[idx],
+            LegionSpy::log_field_creation(space.get_id(), resulting_fields[idx],
              sizes[idx], (provenance == NULL) ? NULL : provenance->human_str());
       }
       const RtBarrier creation_bar = creation_barrier.next(this);
@@ -17280,12 +17277,12 @@ namespace Legion {
         runtime->revoke_pending_region_tree(value.tid);
 #ifdef DEBUG_LEGION
         log_region.debug("Creating logical region in task %s (ID %lld) with "
-                         "index space %x and field space %x in new tree %d",
-                         get_task_name(), get_unique_id(), index_space.id, 
-                         field_space.id, handle.tree_id);
+                         "index space %llu and field space %llu in new tree %d",
+                         get_task_name(), get_unique_id(), index_space.get_id(), 
+                         field_space.get_id(), handle.tree_id);
 #endif
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_top_region(index_space.id, field_space.id,
+          LegionSpy::log_top_region(index_space.get_id(), field_space.get_id(),
               handle.tree_id, runtime->address_space,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
@@ -17394,9 +17391,9 @@ namespace Legion {
       if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to create shared ownership for logical region "
-            "(%x,%x,%x in task %s (UID %lld) which is not a top-level logical "
+            "(%llu,%llu,%u in task %s (UID %lld) which is not a top-level logical "
             "region. Legion only permits top-level logical regions to have "
-            "shared ownerships.", handle.index_space.id, handle.field_space.id,
+            "shared ownerships.", handle.index_space.get_id(), handle.field_space.get_id(),
             handle.tree_id, get_task_name(), get_unique_id())
       if (shard_manager->is_total_sharding() &&
           shard_manager->is_first_local_shard(owner_shard))
@@ -17431,18 +17428,18 @@ namespace Legion {
         return;
 #ifdef DEBUG_LEGION
       if (owner_shard->shard_id == 0)
-        log_region.debug("Deleting logical region (%x,%x) in task %s (ID %lld)",
-                         handle.index_space.id, handle.field_space.id, 
+        log_region.debug("Deleting logical region (%llu,%llu) in task %s (ID %lld)",
+                         handle.index_space.get_id(), handle.field_space.get_id(), 
                          get_task_name(), get_unique_id());
 #endif
       // Check to see if this is a top-level logical region, if not then
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-            "Illegal call to destroy logical region (%x,%x,%x in task %s "
+            "Illegal call to destroy logical region (%llu,%llu,%u in task %s "
             "(UID %lld) which is not a top-level logical region. Legion only "
             "permits top-level logical regions to be destroyed.", 
-            handle.index_space.id, handle.field_space.id, handle.tree_id,
+            handle.index_space.get_id(), handle.field_space.get_id(), handle.tree_id,
             get_task_name(), get_unique_id())
       // Check to see if this is one that we should be allowed to destory
       {
@@ -17471,9 +17468,9 @@ namespace Legion {
           if (finder->second == 0)
           {
             REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
-                "Duplicate deletions were performed for region (%x,%x,%x) "
-                "in task tree rooted by %s", handle.index_space.id, 
-                handle.field_space.id, handle.tree_id, get_task_name())
+                "Duplicate deletions were performed for region (%llu,%llu,%u) "
+                "in task tree rooted by %s", handle.index_space.get_id(), 
+                handle.field_space.get_id(), handle.tree_id, get_task_name())
             return;
           }
           if (--finder->second > 0)
@@ -18340,9 +18337,9 @@ namespace Legion {
       PhysicalRegion result = map_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
       log_run.debug("Registering a map operation for region "
-                    "(%x,%x,%x) in task %s (ID %lld)",
-                    launcher.requirement.region.index_space.id, 
-                    launcher.requirement.region.field_space.id, 
+                    "(%llu,%llu,%u) in task %s (ID %lld)",
+                    launcher.requirement.region.index_space.get_id(), 
+                    launcher.requirement.region.field_space.get_id(), 
                     launcher.requirement.region.tree_id, 
                     get_task_name(), get_unique_id());
 #endif
@@ -18350,11 +18347,11 @@ namespace Legion {
       if (current_trace != NULL)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%x,%x,%x) inside of trace %d of parent task %s "
+                      "(%llu,%llu,%u) inside of trace %d of parent task %s "
                       "(ID %lld). It is illegal to perform inline mapping "
                       "operations inside of traces.",
-                      launcher.requirement.region.index_space.id, 
-                      launcher.requirement.region.field_space.id, 
+                      launcher.requirement.region.index_space.get_id(), 
+                      launcher.requirement.region.field_space.get_id(), 
                       launcher.requirement.region.tree_id, 
                       current_trace->tid, get_task_name(), get_unique_id())
       bool parent_conflict = false, inline_conflict = false;  
@@ -18363,25 +18360,25 @@ namespace Legion {
       if (parent_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
           "Attempted an inline mapping of region "
-                      "(%x,%x,%x) that conflicts with mapped region " 
-                      "(%x,%x,%x) at index %d of parent task %s "
+                      "(%llu,%llu,%u) that conflicts with mapped region " 
+                      "(%llu,%llu,%u) at index %d of parent task %s "
                       "(ID %lld) that would ultimately result in "
                       "deadlock. Instead you receive this error message.",
-                      launcher.requirement.region.index_space.id,
-                      launcher.requirement.region.field_space.id,
+                      launcher.requirement.region.index_space.get_id(),
+                      launcher.requirement.region.field_space.get_id(),
                       launcher.requirement.region.tree_id,
-                      regions[index].region.index_space.id,
-                      regions[index].region.field_space.id,
+                      regions[index].region.index_space.get_id(),
+                      regions[index].region.field_space.get_id(),
                       regions[index].region.tree_id,
                       index, get_task_name(), get_unique_id())
       if (inline_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
-          "Attempted an inline mapping of region (%x,%x,%x) "
+          "Attempted an inline mapping of region (%llu,%llu,%u) "
                       "that conflicts with previous inline mapping in "
                       "task %s (ID %lld) that would ultimately result in "
                       "deadlock.  Instead you receive this error message.",
-                      launcher.requirement.region.index_space.id,
-                      launcher.requirement.region.field_space.id,
+                      launcher.requirement.region.index_space.get_id(),
+                      launcher.requirement.region.field_space.get_id(),
                       launcher.requirement.region.tree_id,
                       get_task_name(), get_unique_id())
       register_inline_mapped_region(result);
@@ -18421,10 +18418,10 @@ namespace Legion {
         const RegionRequirement &req = region.impl->get_requirement();
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%x,%x,%x) inside of trace %d of parent task %s "
+                      "(%llu,%llu,%u) inside of trace %d of parent task %s "
                       "(ID %lld). It is illegal to perform inline mapping "
-                      "operations inside of traces.", req.region.index_space.id,
-                      req.region.field_space.id, req.region.tree_id, 
+                      "operations inside of traces.", req.region.index_space.get_id(),
+                      req.region.field_space.get_id(), req.region.tree_id, 
                       current_trace->tid, get_task_name(), get_unique_id())
       }
       ReplMapOp *map_op = runtime->get_operation<ReplMapOp>();
@@ -19011,28 +19008,28 @@ namespace Legion {
       if (parent_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
           "Attempted an attach hdf5 file operation on region "
-                      "(%x,%x,%x) that conflicts with mapped region " 
-                      "(%x,%x,%x) at index %d of parent task %s (ID %lld) "
+                      "(%llu,%llu,%u) that conflicts with mapped region " 
+                      "(%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
                       "that would ultimately result in deadlock. Instead you "
                       "receive this error message. Try unmapping the region "
                       "before invoking attach_external_resource.",
-                      launcher.handle.index_space.id, 
-                      launcher.handle.field_space.id, 
+                      launcher.handle.index_space.get_id(), 
+                      launcher.handle.field_space.get_id(), 
                       launcher.handle.tree_id, 
-                      regions[index].region.index_space.id,
-                      regions[index].region.field_space.id,
+                      regions[index].region.index_space.get_id(),
+                      regions[index].region.field_space.get_id(),
                       regions[index].region.tree_id, index, 
                       get_task_name(), get_unique_id())
       if (inline_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
           "Attempted an attach hdf5 file operation on region "
-                      "(%x,%x,%x) that conflicts with previous inline "
+                      "(%llu,%llu,%u) that conflicts with previous inline "
                       "mapping in task %s (ID %lld) "
                       "that would ultimately result in deadlock. Instead you "
                       "receive this error message. Try unmapping the region "
                       "before invoking attach_external_resource.",
-                      launcher.handle.index_space.id, 
-                      launcher.handle.field_space.id, 
+                      launcher.handle.index_space.get_id(), 
+                      launcher.handle.field_space.get_id(), 
                       launcher.handle.tree_id, get_task_name(), 
                       get_unique_id())
       // If we're counting this region as mapped we need to register it
@@ -19105,31 +19102,31 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "partition (%x,%x,%x) that conflicts with mapped region"
-                        " (%x,%x,%x) at index %d of parent task %s (ID %lld) "
+                        "partition (%llu,%llu,%u) that conflicts with mapped region"
+                        " (%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
-                        req.partition.index_partition.id, 
-                        req.partition.field_space.id, 
+                        req.partition.index_partition.get_id(), 
+                        req.partition.field_space.get_id(), 
                         req.partition.tree_id, 
-                        regions[index].region.index_space.id,
-                        regions[index].region.field_space.id,
+                        regions[index].region.index_space.get_id(),
+                        regions[index].region.field_space.get_id(),
                         regions[index].region.tree_id, index, 
                         get_task_name(), get_unique_id())
         else
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "region (%x,%x,%x) that conflicts with mapped region "
-                        "(%x,%x,%x) at index %d of parent task %s (ID %lld) "
+                        "region (%llu,%llu,%u) that conflicts with mapped region "
+                        "(%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
-                        req.region.index_space.id, 
-                        req.region.field_space.id, 
+                        req.region.index_space.get_id(), 
+                        req.region.field_space.get_id(), 
                         req.region.tree_id, 
-                        regions[index].region.index_space.id,
-                        regions[index].region.field_space.id,
+                        regions[index].region.index_space.get_id(),
+                        regions[index].region.field_space.get_id(),
                         regions[index].region.tree_id, index, 
                         get_task_name(), get_unique_id())
       }
@@ -19138,24 +19135,24 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "partition (%x,%x,%x) that conflicts with previous "
+                        "partition (%llu,%llu,%u) that conflicts with previous "
                         "inline mapping in task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
-                        req.partition.index_partition.id, 
-                        req.partition.field_space.id, req.partition.tree_id,
+                        req.partition.index_partition.get_id(), 
+                        req.partition.field_space.get_id(), req.partition.tree_id,
                         get_task_name(), get_unique_id())
         else
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "region (%x,%x,%x) that conflicts with previous inline "
+                        "region (%llu,%llu,%u) that conflicts with previous inline "
                         "mapping in task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
-                        req.region.index_space.id, 
-                        req.region.field_space.id, req.region.tree_id,
+                        req.region.index_space.get_id(), 
+                        req.region.field_space.get_id(), req.region.tree_id,
                         get_task_name(), get_unique_id())
       }
       add_to_dependence_queue(attach_op, launcher.static_dependences);
@@ -19658,7 +19655,7 @@ namespace Legion {
         if (collective.second)
         {
           const ISBroadcast value = collective.first->get_value(false);
-          runtime->revoke_pending_index_space(value.space_id);
+          runtime->revoke_pending_index_space(value.did);
         }
         else
         {
@@ -19677,7 +19674,7 @@ namespace Legion {
         if (collective.second == local_shard)
         {
           const IPBroadcast value = collective.first->get_value(false);
-          runtime->revoke_pending_partition(value.pid);
+          runtime->revoke_pending_partition(value.did);
         }
         else
         {
@@ -19696,7 +19693,7 @@ namespace Legion {
         if (collective.second)
         {
           const FSBroadcast value = collective.first->get_value(false);
-          runtime->revoke_pending_field_space(value.space_id);
+          runtime->revoke_pending_field_space(value.did);
         }
         else
         {
@@ -20886,10 +20883,10 @@ namespace Legion {
           {
             if (local_regions.find(rit->region) != local_regions.end())
               REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-                  "Local logical region (%x,%x,%x) in task %s (UID %lld) was "
+                  "Local logical region (%llu,%llu,%u) in task %s (UID %lld) was "
                   "not deleted by this task. Local regions can only be deleted "
-                  "by the task that made them.", rit->region.index_space.id,
-                  rit->region.field_space.id, rit->region.tree_id, 
+                  "by the task that made them.", rit->region.index_space.get_id(),
+                  rit->region.field_space.get_id(), rit->region.tree_id, 
                   get_task_name(), get_unique_id())
             // Deletion keeps going up
             deleted_regions.push_back(*rit);
@@ -20951,9 +20948,9 @@ namespace Legion {
               local_finder = local_fields.find(key);
             if (local_finder != local_fields.end())
               REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-                  "Local field %d in field space %x in task %s (UID %lld) was "
+                  "Local field %d in field space %llu in task %s (UID %lld) was "
                   "not deleted by this task. Local fields can only be deleted "
-                  "by the task that made them.", fit->fid, fit->space.id,
+                  "by the task that made them.", fit->fid, fit->space.get_id(),
                   get_task_name(), get_unique_id())
             deleted_fields.push_back(*fit);
           }

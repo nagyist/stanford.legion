@@ -2179,34 +2179,30 @@ namespace Legion {
     public: 
       struct ISBroadcast {
       public:
-        ISBroadcast(void) : expr_id(0), did(0), double_buffer(false) { }
-        ISBroadcast(IndexSpaceID i, IndexTreeID t, IndexSpaceExprID e, 
-                    DistributedID d, bool db)
-          : space_id(i), tid(t), expr_id(e), did(d), double_buffer(db) { }
+        ISBroadcast(void) : did(0), expr_id(0), double_buffer(false) { }
+        ISBroadcast(DistributedID d, IndexTreeID t, IndexSpaceExprID e, bool db)
+          : did(d), tid(t), expr_id(e), double_buffer(db) { }
       public:
-        IndexSpaceID space_id;
+        DistributedID did;
         IndexTreeID tid;
         IndexSpaceExprID expr_id;
-        DistributedID did;
         bool double_buffer;
       };
       struct IPBroadcast {
       public:
         IPBroadcast(void) : did(0), double_buffer(false) { }
-        IPBroadcast(IndexPartitionID p, DistributedID d, bool db) 
-          : pid(p), did(d), double_buffer(db) { }
+        IPBroadcast(DistributedID d, bool db) 
+          : did(d), double_buffer(db) { }
       public:
-        IndexPartitionID pid;
         DistributedID did;
         bool double_buffer;
       };
       struct FSBroadcast { 
       public:
         FSBroadcast(void) : did(0), double_buffer(false) { }
-        FSBroadcast(FieldSpaceID i, DistributedID d, bool db) 
-          : space_id(i), did(d), double_buffer(db) { }
+        FSBroadcast(DistributedID d, bool db) 
+          : did(d), double_buffer(db) { }
       public:
-        FieldSpaceID space_id;
         DistributedID did;
         bool double_buffer;
       };

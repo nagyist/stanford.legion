@@ -88,7 +88,7 @@ namespace Legion {
     protected:
       // Only the runtime should be allowed to make these
       FRIEND_ALL_RUNTIME_CLASSES
-      IndexSpace(IndexSpaceID id, IndexTreeID tid, TypeTag tag);
+      IndexSpace(DistributedID id, IndexTreeID tid, TypeTag tag);
     public:
       IndexSpace(void);
     public:
@@ -97,15 +97,15 @@ namespace Legion {
       inline bool operator<(const IndexSpace &rhs) const;
       inline bool operator>(const IndexSpace &rhs) const;
       inline std::size_t hash(void) const;
-      inline IndexSpaceID get_id(void) const { return id; }
+      inline DistributedID get_id(void) const;
       inline IndexTreeID get_tree_id(void) const { return tid; }
-      inline bool exists(void) const { return (id != 0); }
+      inline bool exists(void) const { return (did != 0); }
       inline TypeTag get_type_tag(void) const { return type_tag; }
       inline int get_dim(void) const;
     protected:
       friend std::ostream& operator<<(std::ostream& os, 
                                       const IndexSpace& is);
-      IndexSpaceID id;
+      DistributedID did;
       IndexTreeID tid;
       TypeTag type_tag;
     };
@@ -124,7 +124,7 @@ namespace Legion {
     protected:
       // Only the runtime should be allowed to make these
       FRIEND_ALL_RUNTIME_CLASSES
-      IndexSpaceT(IndexSpaceID id, IndexTreeID tid);
+      IndexSpaceT(DistributedID id, IndexTreeID tid);
     public:
       IndexSpaceT(void);
       explicit IndexSpaceT(const IndexSpace &rhs);
@@ -144,7 +144,7 @@ namespace Legion {
     protected:
       // Only the runtime should be allowed to make these
       FRIEND_ALL_RUNTIME_CLASSES
-      IndexPartition(IndexPartitionID id, IndexTreeID tid, TypeTag tag);
+      IndexPartition(DistributedID id, IndexTreeID tid, TypeTag tag);
     public:
       IndexPartition(void);
     public:
@@ -153,15 +153,15 @@ namespace Legion {
       inline bool operator<(const IndexPartition &rhs) const;
       inline bool operator>(const IndexPartition &rhs) const;
       inline std::size_t hash(void) const;
-      inline IndexPartitionID get_id(void) const { return id; }
+      inline DistributedID get_id(void) const;
       inline IndexTreeID get_tree_id(void) const { return tid; }
-      inline bool exists(void) const { return (id != 0); }
+      inline bool exists(void) const { return (did != 0); }
       inline TypeTag get_type_tag(void) const { return type_tag; }
       inline int get_dim(void) const;
     protected:
       friend std::ostream& operator<<(std::ostream& os, 
                                       const IndexPartition& ip);
-      IndexPartitionID id;
+      DistributedID did;
       IndexTreeID tid;
       TypeTag type_tag;
     };
@@ -180,7 +180,7 @@ namespace Legion {
     protected:
       // Only the runtime should be allowed to make these
       FRIEND_ALL_RUNTIME_CLASSES
-      IndexPartitionT(IndexPartitionID id, IndexTreeID tid);
+      IndexPartitionT(DistributedID id, IndexTreeID tid);
     public:
       IndexPartitionT(void);
       explicit IndexPartitionT(const IndexPartition &rhs);
@@ -203,7 +203,7 @@ namespace Legion {
     protected:
       // Only the runtime should be allowed to make these
       FRIEND_ALL_RUNTIME_CLASSES
-      FieldSpace(FieldSpaceID id);
+      FieldSpace(DistributedID id);
     public:
       FieldSpace(void);
     public:
@@ -212,11 +212,11 @@ namespace Legion {
       inline bool operator<(const FieldSpace &rhs) const;
       inline bool operator>(const FieldSpace &rhs) const;
       inline std::size_t hash(void) const;
-      inline FieldSpaceID get_id(void) const { return id; }
-      inline bool exists(void) const { return (id != 0); }
+      inline DistributedID get_id(void) const;
+      inline bool exists(void) const { return (did != 0); }
     private:
       friend std::ostream& operator<<(std::ostream& os, const FieldSpace& fs);
-      FieldSpaceID id;
+      DistributedID did;
     };
 
     /**

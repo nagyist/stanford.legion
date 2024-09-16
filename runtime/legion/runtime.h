@@ -3018,14 +3018,14 @@ namespace Legion {
                                   CollectiveMapping *mapping = NULL);
       PartitionNode*  create_node(LogicalPartition p, RegionNode *par);
     public:
-      void record_pending_index_space(IndexSpaceID space);
-      void record_pending_partition(IndexPartitionID pid);
-      void record_pending_field_space(FieldSpaceID space);
+      void record_pending_index_space(DistributedID space);
+      void record_pending_partition(DistributedID pid);
+      void record_pending_field_space(DistributedID space);
       void record_pending_region_tree(RegionTreeID tree);
     public:
-      void revoke_pending_index_space(IndexSpaceID space);
-      void revoke_pending_partition(IndexPartitionID pid);
-      void revoke_pending_field_space(FieldSpaceID space);
+      void revoke_pending_index_space(DistributedID space);
+      void revoke_pending_partition(DistributedID pid);
+      void revoke_pending_field_space(DistributedID space);
       void revoke_pending_region_tree(RegionTreeID tree);
     public:
       IndexSpaceNode* get_node(IndexSpace space, RtEvent *defer = NULL, 
@@ -4318,9 +4318,9 @@ namespace Legion {
       void find_visible_memories(Processor proc, std::set<Memory> &visible);
       Memory find_local_memory(Processor proc, Memory::Kind mem_kind);
     public:
-      IndexSpaceID       get_unique_index_space_id(void);
-      IndexPartitionID   get_unique_index_partition_id(void);
-      FieldSpaceID       get_unique_field_space_id(void);
+      DistributedID      get_unique_index_space_id(void);
+      DistributedID      get_unique_index_partition_id(void);
+      DistributedID      get_unique_field_space_id(void);
       IndexTreeID        get_unique_index_tree_id(void);
       RegionTreeID       get_unique_region_tree_id(void);
       UniqueID           get_unique_operation_id(void);
@@ -4447,9 +4447,6 @@ namespace Legion {
       // For every mapper remember its mapper ID and processor
       std::map<Mapper*,MapperInfo> mapper_infos;
     protected:
-      std::atomic<unsigned> unique_index_space_id;
-      std::atomic<unsigned> unique_index_partition_id;
-      std::atomic<unsigned> unique_field_space_id;
       std::atomic<unsigned> unique_index_tree_id;
       std::atomic<unsigned> unique_region_tree_id;
       std::atomic<unsigned> unique_field_id; 
@@ -4490,9 +4487,9 @@ namespace Legion {
       std::map<FieldSpace,RtEvent>       field_space_requests;
       std::map<RegionTreeID,RtEvent>     region_tree_requests;
     private:
-      std::map<IndexSpaceID,RtUserEvent> pending_index_spaces;
-      std::map<IndexPartitionID,RtUserEvent> pending_partitions;
-      std::map<FieldSpaceID,RtUserEvent> pending_field_spaces;
+      std::map<DistributedID,RtUserEvent> pending_index_spaces;
+      std::map<DistributedID,RtUserEvent> pending_partitions;
+      std::map<DistributedID,RtUserEvent> pending_field_spaces;
       std::map<RegionTreeID,RtUserEvent> pending_region_trees;
     private:
       // Index space operations

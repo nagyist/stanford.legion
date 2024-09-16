@@ -278,7 +278,7 @@ namespace Legion {
         runtime->create_node(pid, parent_node, color_node, partition_color,
             complete, did, provenance, initialized, mapping);
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_index_partition(parent.id, pid.id, -1/*unknown*/,
+          LegionSpy::log_index_partition(parent.get_id(), pid.get_id(), -1/*unknown*/,
               complete, partition_color, runtime->address_space, 
               (provenance == NULL) ? NULL : provenance->human_str());
       }
@@ -296,7 +296,7 @@ namespace Legion {
         runtime->create_node(pid, parent_node, color_node, partition_color,
             disjoint, complete, did, provenance, initialized, mapping);
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_index_partition(parent.id, pid.id, disjoint ? 1 : 0,
+          LegionSpy::log_index_partition(parent.get_id(), pid.get_id(), disjoint ? 1 : 0,
               complete, partition_color, runtime->address_space,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
@@ -1066,9 +1066,9 @@ namespace Legion {
       if (node->parent == NULL)
         REPORT_LEGION_ERROR(ERROR_PARENT_INDEX_PARTITION_REQUESTED,
           "Parent index partition requested for "
-                            "index space %x with no parent. Use "
+                            "index space %llu with no parent. Use "
                             "has_parent_index_partition to check "
-                            "before requesting a parent.", handle.id)
+                            "before requesting a parent.", handle.get_id())
       return node->parent->handle;
     }
 
@@ -1346,7 +1346,7 @@ namespace Legion {
       FieldSpaceNode *node = get_node(handle);
       if (!node->has_field(fid))
         REPORT_LEGION_ERROR(ERROR_FIELD_SPACE_HAS_NO_FIELD,
-          "FieldSpace %x has no field %d", handle.id, fid)
+          "FieldSpace %llu has no field %d", handle.get_id(), fid)
       return node->get_field_size(fid);
     }
 
@@ -1358,7 +1358,7 @@ namespace Legion {
       FieldSpaceNode *node = get_node(handle);
       if (!node->has_field(fid))
         REPORT_LEGION_ERROR(ERROR_FIELD_SPACE_HAS_NO_FIELD,
-          "FieldSpace %x has no field %d", handle.id, fid)
+          "FieldSpace %llu has no field %d", handle.get_id(), fid)
       return node->get_field_serdez(fid);
     }
 
@@ -1485,8 +1485,8 @@ namespace Legion {
       if (!color_space->contains_point(realm_color, type_tag))
         REPORT_LEGION_ERROR(ERROR_INVALID_INDEX_SPACE_COLOR,
                             "Invalid color space color for child %lld of "
-                            "logical partition (%d,%d,%d)", color,
-                            parent.index_partition.id, parent.field_space.id,
+                            "logical partition (%llu,%llu,%u)", color,
+                            parent.index_partition.get_id(), parent.field_space.get_id(),
                             parent.tree_id)
       IndexSpaceNode *index_node = parent_node->row_source->get_child(color);
       LogicalRegion result(parent.tree_id, index_node->handle,
@@ -1577,11 +1577,11 @@ namespace Legion {
       if (node->parent == NULL)
         REPORT_LEGION_ERROR(ERROR_PARENT_LOGICAL_PARTITION_REQUESTED,
           "Parent logical partition requested for "
-                            "logical region (%x,%x,%d) with no parent. "
+                            "logical region (%llu,%llu,%u) with no parent. "
                             "Use has_parent_logical_partition to check "
                             "before requesting a parent.", 
-                            handle.index_space.id,
-                            handle.field_space.id,
+                            handle.index_space.get_id(),
+                            handle.field_space.get_id(),
                             handle.tree_id)
       return node->parent->handle;
     }
@@ -3380,8 +3380,8 @@ namespace Legion {
         if (complete < 0)
           result->initialize_disjoint_complete_notifications();
         else if ((implicit_profiler != NULL) && result->is_owner())
-          implicit_profiler->register_index_partition(parent->handle.id,
-              p.id, disjoint, result->color);
+          implicit_profiler->register_index_partition(parent->handle.get_id(),
+              p.get_id(), disjoint, result->color);
         result->register_with_runtime();
       }
       return result;
@@ -3709,7 +3709,7 @@ namespace Legion {
         if (first)
         {
           AutoLock l_lock(lookup_lock);
-          std::map<IndexSpaceID,RtUserEvent>::iterator finder = 
+          std::map<DistributedID,RtUserEvent>::iterator finder = 
             pending_index_spaces.find(space.get_id());
           if (finder != pending_index_spaces.end())
           {
@@ -3735,7 +3735,7 @@ namespace Legion {
           return NULL;
         else
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
-            "Unable to find entry for index space %x.", space.id)
+            "Unable to find entry for index space %llu.", space.get_id())
       }
       // Retake the lock and get something to wait on
       {
@@ -3792,8 +3792,8 @@ namespace Legion {
         }
         if (!wait_on.exists())
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
-            "Unable to find entry for index space %x."
-                          "This is definitely a runtime bug.", space.id)
+            "Unable to find entry for index space %llu."
+                          "This is definitely a runtime bug.", space.get_id())
         wait_on.wait();
         return get_node(space, NULL, can_fail, false/*first*/);
       }
@@ -3853,7 +3853,7 @@ namespace Legion {
         if (first)
         {
           AutoLock l_lock(lookup_lock);
-          std::map<IndexPartitionID,RtUserEvent>::iterator finder = 
+          std::map<DistributedID,RtUserEvent>::iterator finder = 
             pending_partitions.find(part.get_id());
           if (finder != pending_partitions.end())
           {
@@ -3879,7 +3879,7 @@ namespace Legion {
           return NULL;
         else
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
-            "Unable to find entry for index partition %x.",part.id)
+            "Unable to find entry for index partition %llu.",part.get_id())
       }
       {
         // Retake the lock in exclusive mode and make
@@ -3936,8 +3936,8 @@ namespace Legion {
         }
         if (!wait_on.exists())
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
-            "Unable to find entry for index partition %x. "
-                          "This is definitely a runtime bug.", part.id)
+            "Unable to find entry for index partition %llu. "
+                          "This is definitely a runtime bug.", part.get_id())
         wait_on.wait();
         return get_node(part, NULL, can_fail, false/*first*/);
       }
@@ -3993,7 +3993,7 @@ namespace Legion {
         if (first)
         {
           AutoLock l_lock(lookup_lock);
-          std::map<FieldSpaceID,RtUserEvent>::iterator finder = 
+          std::map<DistributedID,RtUserEvent>::iterator finder =
             pending_field_spaces.find(space.get_id());
           if (finder != pending_field_spaces.end())
           {
@@ -4017,7 +4017,7 @@ namespace Legion {
         }
         else
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
-            "Unable to find entry for field space %x.", space.id)
+            "Unable to find entry for field space %llu.", space.get_id())
       }
       {
         // Retake the lock in exclusive mode and 
@@ -4072,8 +4072,8 @@ namespace Legion {
         }
         if (!wait_on.exists())
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
-            "Unable to find entry for field space %x. "
-                          "This is definitely a runtime bug.", space.id)
+            "Unable to find entry for field space %llu. "
+                          "This is definitely a runtime bug.", space.get_id())
         wait_on.wait();
         return get_node(space, NULL, false/*first*/);
       }
@@ -4436,7 +4436,7 @@ namespace Legion {
       AddressSpace owner = IndexSpaceNode::get_owner_space(space);
       if (owner == address_space)
         REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
-          "Unable to find entry for index space %x.", space.id)
+          "Unable to find entry for index space %llu.", space.get_id())
       AutoLock l_lock(lookup_lock);
       // Check to make sure we didn't loose the race
       std::map<IndexSpace,IndexSpaceNode*>::const_iterator finder = 
@@ -4553,7 +4553,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::record_pending_index_space(IndexSpaceID space)
+    void Runtime::record_pending_index_space(DistributedID space)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -4568,7 +4568,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::record_pending_partition(IndexPartitionID pid)
+    void Runtime::record_pending_partition(DistributedID pid)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -4583,7 +4583,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::record_pending_field_space(FieldSpaceID space)
+    void Runtime::record_pending_field_space(DistributedID space)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -4613,13 +4613,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::revoke_pending_index_space(IndexSpaceID space)
+    void Runtime::revoke_pending_index_space(DistributedID space)
     //--------------------------------------------------------------------------
     {
       RtUserEvent to_trigger;
       {
         AutoLock l_lock(lookup_lock);
-        std::map<IndexSpaceID,RtUserEvent>::iterator finder = 
+        std::map<DistributedID,RtUserEvent>::iterator finder = 
           pending_index_spaces.find(space);
 #ifdef DEBUG_LEGION
         assert(finder != pending_index_spaces.end());
@@ -4632,13 +4632,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::revoke_pending_partition(IndexPartitionID pid)
+    void Runtime::revoke_pending_partition(DistributedID pid)
     //--------------------------------------------------------------------------
     {
       RtUserEvent to_trigger;
       {
         AutoLock l_lock(lookup_lock);
-        std::map<IndexPartitionID,RtUserEvent>::iterator finder = 
+        std::map<DistributedID,RtUserEvent>::iterator finder = 
           pending_partitions.find(pid);
 #ifdef DEBUG_LEGION
         assert(finder != pending_partitions.end());
@@ -4651,13 +4651,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::revoke_pending_field_space(FieldSpaceID space)
+    void Runtime::revoke_pending_field_space(DistributedID space)
     //--------------------------------------------------------------------------
     {
       RtUserEvent to_trigger;
       {
         AutoLock l_lock(lookup_lock);
-        std::map<FieldSpaceID,RtUserEvent>::iterator finder = 
+        std::map<DistributedID,RtUserEvent>::iterator finder = 
           pending_field_spaces.find(space);
 #ifdef DEBUG_LEGION
         assert(finder != pending_field_spaces.end());
@@ -7632,7 +7632,7 @@ namespace Legion {
     /*static*/ AddressSpaceID IndexSpaceNode::get_owner_space(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
-      return (handle.id % runtime->total_address_spaces);
+      return (handle.get_id() % runtime->total_address_spaces);
     }
 
     //--------------------------------------------------------------------------
@@ -7804,11 +7804,11 @@ namespace Legion {
               (next_uncollected_color > 0))
             REPORT_LEGION_ERROR(ERROR_MIXED_PARTITION_COLOR_ALLOCATION_MODES,
                 "Illegal request for Legion to generated a color for index "
-                "space %d after a child was already registered with an "
+                "space %llu after a child was already registered with an "
                 "explicit color. Colors of partitions must either be "
                 "completely specified by the user or completely generated "
                 "by the runtime. Mixing of allocation modes is not allowed.",
-                handle.id)
+                handle.get_id())
           // If we made it here then there are no other children registered
           // so we record an empty entry to mark that we're generating colors
           remote_colors[INVALID_COLOR] = IndexPartition::NO_PART;
@@ -7939,11 +7939,11 @@ namespace Legion {
           return NULL;
         REPORT_LEGION_ERROR(ERROR_INVALID_PARTITION_COLOR,
           "Unable to find entry for color %lld in "
-                        "index space %x.", c, handle.id)
+                        "index space %llu.", c, handle.get_id())
       }
       RtUserEvent ready_event = Runtime::create_rt_user_event();
 
-      std::atomic<IndexPartitionID> child_id(0);
+      DistributedID child_id = 0;
       Serializer rez;
       {
         RezCheck z(rez);
@@ -7952,23 +7952,22 @@ namespace Legion {
         if (defer == NULL)
           rez.serialize(&child_id);
         else
-          rez.serialize<std::atomic<IndexPartitionID>*>(NULL);
+          rez.serialize<DistributedID*>(NULL);
         rez.serialize(ready_event);
       }
       runtime->send_index_space_child_request(owner_space, rez);
       if (defer == NULL)
       {
         ready_event.wait();
-        IndexPartitionID cid = child_id.load(); 
-        if (cid == 0)
+        if (child_id == 0)
         {
           if (can_fail)
             return NULL;
           REPORT_LEGION_ERROR(ERROR_INVALID_PARTITION_COLOR,
             "Unable to find entry for color %lld in "
-                          "index space %x.", c, handle.id)
+                          "index space %llu.", c, handle.get_id())
         }
-        IndexPartition child_handle(child_id.load(),
+        IndexPartition child_handle(child_id,
             handle.get_tree_id(), handle.get_type_tag());
         IndexPartNode *result = runtime->get_node(child_handle);
         if (can_fail)
@@ -7999,11 +7998,11 @@ namespace Legion {
           (color_map.find(child->color) == color_map.end()))
         REPORT_LEGION_ERROR(ERROR_MIXED_PARTITION_COLOR_ALLOCATION_MODES,
               "Illegal request for Legion to generated a color for index "
-              "space %d after a child was already registered with an "
+              "space %llu after a child was already registered with an "
               "explicit color. Colors of partitions must either be "
               "completely specified by the user or completely generated "
               "by the runtime. Mixing of allocation modes is not allowed.",
-              handle.id)
+              handle.get_id())
       color_map[child->color] = child;
       if (!remote_colors.empty())
         remote_colors.erase(child->color);
@@ -8106,11 +8105,11 @@ namespace Legion {
           (color_map.find(part_color) == color_map.end()))
         REPORT_LEGION_ERROR(ERROR_MIXED_PARTITION_COLOR_ALLOCATION_MODES,
               "Illegal request for Legion to generated a color for index "
-              "space %d after a child was already registered with an "
+              "space %llu after a child was already registered with an "
               "explicit color. Colors of partitions must either be "
               "completely specified by the user or completely generated "
               "by the runtime. Mixing of allocation modes is not allowed.",
-              handle.id)
+              handle.get_id())
       remote_colors[part_color] = pid;
     }
 
@@ -8508,7 +8507,7 @@ namespace Legion {
       derez.deserialize(handle);
       LegionColor child_color;
       derez.deserialize(child_color);
-      std::atomic<IndexPartitionID> *target;
+      DistributedID *target;
       derez.deserialize(target);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
@@ -8591,7 +8590,7 @@ namespace Legion {
       DerezCheck z(derez);
       IndexPartition handle;
       derez.deserialize(handle);
-      std::atomic<IndexPartitionID> *target;
+      DistributedID *target;
       derez.deserialize(target);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
@@ -8610,7 +8609,7 @@ namespace Legion {
         runtime->get_node(handle, &defer);
         // We'll update references and unpack the remote reference on 
         // the requester here so there's no need to block waiting
-        target->store(handle.get_id());
+        *target = handle.get_id();
         Runtime::trigger_event(to_trigger, defer);
       }
     }
@@ -9178,7 +9177,7 @@ namespace Legion {
                                           IndexPartition part)
     //--------------------------------------------------------------------------
     {
-      return (part.id % runtime->total_address_spaces);
+      return (part.get_id() % runtime->total_address_spaces);
     }
 
     //--------------------------------------------------------------------------
@@ -9397,7 +9396,7 @@ namespace Legion {
       if (!color_space->contains_color(c, false/*report error*/))
         REPORT_LEGION_ERROR(ERROR_INVALID_INDEX_SPACE_COLOR,
                             "Invalid color space color for child %lld "
-                            "of partition %d", c, handle.get_id())
+                            "of partition %llu", c, handle.get_id())
       // Retake the lock and see if we're going to be the one responsible
       // for trying to make the child on this node
       RtUserEvent ready_event;
@@ -9520,11 +9519,11 @@ namespace Legion {
               runtime->send_index_partition_child_replication(*it,rez);
           }
           if (runtime->legion_spy_enabled)
-            LegionSpy::log_index_subspace(handle.id, is.id, 
+            LegionSpy::log_index_subspace(handle.get_id(), is.get_id(), 
                 runtime->address_space, result->get_domain_point_color());
           if (implicit_profiler != NULL)
-            implicit_profiler->register_index_subspace(handle.id, is.id,
-                result->get_domain_point_color());
+            implicit_profiler->register_index_subspace(handle.get_id(),
+                  is.get_id(), result->get_domain_point_color());
           return result;
         }
       }
@@ -10125,8 +10124,8 @@ namespace Legion {
           }
         }
         if (implicit_profiler != NULL)
-          implicit_profiler->register_index_partition(parent->handle.id,
-              handle.id, disjoint.load(), color);
+          implicit_profiler->register_index_partition(parent->handle.get_id(),
+              handle.get_id(), disjoint.load(), color);
       }
       has_disjoint.store(true);
       has_complete.store(true);
@@ -11629,7 +11628,7 @@ namespace Legion {
     /*static*/ AddressSpaceID FieldSpaceNode::get_owner_space(FieldSpace handle)
     //--------------------------------------------------------------------------
     {
-      return (handle.id % runtime->total_address_spaces);
+      return (handle.get_id() % runtime->total_address_spaces);
     }
 
     //--------------------------------------------------------------------------
@@ -11872,7 +11871,7 @@ namespace Legion {
           return false;
         REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
                       "invalid semantic tag %ld for "
-                      "field space %d", tag, handle.id)
+                      "field space %llu", tag, handle.get_id())
       }
       else
       {
@@ -11902,7 +11901,7 @@ namespace Legion {
           return false;
         REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
                             "invalid semantic tag %ld for "
-                            "field space %d", tag, handle.id)
+                            "field space %llu", tag, handle.get_id())
       }
       result = finder->second.buffer;
       size = finder->second.size;
@@ -11972,7 +11971,7 @@ namespace Legion {
           return false;
         REPORT_LEGION_ERROR(ERROR_INVALID_SEMANTIC_TAG,
           "invalid semantic tag %ld for field %d "
-                      "of field space %d", tag, fid, handle.id)
+                      "of field space %llu", tag, fid, handle.get_id())
       }
       else
       {
@@ -12004,7 +12003,7 @@ namespace Legion {
           return false;
         REPORT_LEGION_ERROR(ERROR_INVALID_SEMANTIC_TAG,
                             "invalid semantic tag %ld for field %d "
-                            "of field space %d", tag, fid, handle.id)
+                            "of field space %llu", tag, fid, handle.get_id())
       }
       result = finder->second.buffer;
       size = finder->second.size;
@@ -12621,16 +12620,16 @@ namespace Legion {
         if (field_infos.find(fid) != field_infos.end())
           REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
             "Illegal duplicate field ID %d used by the "
-            "application in field space %d", fid, handle.id)
+            "application in field space %llu", fid, handle.get_id())
         // Find an index in which to allocate this field  
         RtEvent dummy_event;
         int result = allocate_index(dummy_event, true/*initializing*/);
         if (result < 0)
           REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
             "Exceeded maximum number of allocated fields for "
-            "field space %x. Change LEGION_MAX_FIELDS from %d "
+            "field space %llu. Change LEGION_MAX_FIELDS from %d "
             "and related macros at the top of legion_config.h "
-            "and recompile.", handle.id, LEGION_MAX_FIELDS)
+            "and recompile.", handle.get_id(), LEGION_MAX_FIELDS)
 #ifdef DEBUG_LEGION
         assert(!dummy_event.exists());
 #endif
@@ -12652,16 +12651,16 @@ namespace Legion {
         if (field_infos.find(fid) != field_infos.end())
           REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
             "Illegal duplicate field ID %d used by the "
-                          "application in field space %d", fid, handle.id)
+                          "application in field space %llu", fid, handle.get_id())
         // Find an index in which to allocate this field  
         RtEvent dummy_event;
         int result = allocate_index(dummy_event, true/*initializing*/);
         if (result < 0)
           REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
             "Exceeded maximum number of allocated fields for "
-                          "field space %x. Change LEGION_MAX_FIELDS from %d "
+                          "field space %llu. Change LEGION_MAX_FIELDS from %d "
                           "and related macros at the top of legion_config.h "
-                          "and recompile.", handle.id, LEGION_MAX_FIELDS)
+                          "and recompile.", handle.get_id(), LEGION_MAX_FIELDS)
 #ifdef DEBUG_LEGION
         assert(!dummy_event.exists());
 #endif
@@ -12730,7 +12729,7 @@ namespace Legion {
           return RtEvent::NO_RT_EVENT;
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
           "Illegal duplicate field ID %d used by the "
-                        "application in field space %d", fid, handle.id)
+                        "application in field space %llu", fid, handle.get_id())
       }
       // Find an index in which to allocate this field  
       RtEvent ready_event;
@@ -12738,9 +12737,9 @@ namespace Legion {
       if (result < 0)
         REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
                         "Exceeded maximum number of allocated fields for "
-                        "field space %x. Change LEGION_MAX_FIELDS from %d and"
+                        "field space %llu. Change LEGION_MAX_FIELDS from %d and"
                         " related macros at the top of legion_config.h and "
-                        "recompile.", handle.id, LEGION_MAX_FIELDS)
+                        "recompile.", handle.get_id(), LEGION_MAX_FIELDS)
       const unsigned index = result;
       field_infos[fid] = FieldInfo(size, index, serdez_id, prov,
           false/*local*/, (allocation_state == FIELD_ALLOC_COLLECTIVE));
@@ -12805,7 +12804,7 @@ namespace Legion {
           return RtEvent::NO_RT_EVENT;
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
           "Illegal duplicate field ID %d used by the "
-                        "application in field space %d", fid, handle.id)
+                        "application in field space %llu", fid, handle.get_id())
       }
       // Find an index in which to allocate this field  
       RtEvent ready_event;
@@ -12813,9 +12812,9 @@ namespace Legion {
       if (result < 0)
         REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
                         "Exceeded maximum number of allocated fields for "
-                        "field space %x. Change LEGION_MAX_FIELDS from %d and"
+                        "field space %llu. Change LEGION_MAX_FIELDS from %d and"
                         " related macros at the top of legion_config.h and "
-                        "recompile.", handle.id, LEGION_MAX_FIELDS)
+                        "recompile.", handle.get_id(), LEGION_MAX_FIELDS)
       const unsigned index = result;
       field_infos[fid] = FieldInfo(size_ready, index, serdez_id, prov,
           false/*local*/, (allocation_state == FIELD_ALLOC_COLLECTIVE));
@@ -12890,7 +12889,7 @@ namespace Legion {
             continue;
           REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
             "Illegal duplicate field ID %d used by the "
-                          "application in field space %d", fid, handle.id)
+                          "application in field space %llu", fid, handle.get_id())
         }
         // Find an index in which to allocate this field  
         RtEvent ready_event;
@@ -12898,9 +12897,9 @@ namespace Legion {
         if (result < 0)
           REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
             "Exceeded maximum number of allocated fields for "
-                          "field space %x. Change LEGION_MAX_FIELDS from %d "
+                          "field space %llu. Change LEGION_MAX_FIELDS from %d "
                           "and related macros at the top of legion_config.h "
-                          "and recompile.", handle.id, LEGION_MAX_FIELDS)
+                          "and recompile.", handle.get_id(), LEGION_MAX_FIELDS)
         if (ready_event.exists())
           allocated_events.insert(ready_event);
         const unsigned index = result;
@@ -12974,7 +12973,7 @@ namespace Legion {
             continue;
           REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
             "Illegal duplicate field ID %d used by the "
-                          "application in field space %d", fid, handle.id)
+                          "application in field space %llu", fid, handle.get_id())
         }
         // Find an index in which to allocate this field  
         RtEvent ready_event;
@@ -12982,9 +12981,9 @@ namespace Legion {
         if (result < 0)
           REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
             "Exceeded maximum number of allocated fields for "
-                          "field space %x. Change LEGION_MAX_FIELDS from %d "
+                          "field space %llu. Change LEGION_MAX_FIELDS from %d "
                           "and related macros at the top of legion_config.h "
-                          "and recompile.", handle.id, LEGION_MAX_FIELDS)
+                          "and recompile.", handle.get_id(), LEGION_MAX_FIELDS)
         if (ready_event.exists())
           allocated_events.insert(ready_event);
         const unsigned index = result;
@@ -13308,7 +13307,7 @@ namespace Legion {
           if (field_infos.find(fid) != field_infos.end())
             REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
               "Illegal duplicate field ID %d used by the "
-                            "application in field space %d", fid, handle.id)
+                            "application in field space %llu", fid, handle.get_id())
           field_infos[fid] = 
             FieldInfo(sizes[idx],new_indexes[idx],serdez_id,prov,true/*local*/);
         }

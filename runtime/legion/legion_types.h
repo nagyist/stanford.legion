@@ -2866,16 +2866,14 @@ namespace Legion {
   typedef ::legion_mapper_id_t MapperID;
   typedef ::legion_context_id_t ContextID;
   typedef ::legion_instance_id_t InstanceID;
-  typedef ::legion_index_space_id_t IndexSpaceID;
-  typedef ::legion_index_partition_id_t IndexPartitionID;
   typedef ::legion_index_tree_id_t IndexTreeID;
-  typedef ::legion_field_space_id_t FieldSpaceID;
   typedef ::legion_generation_id_t GenerationID;
   typedef ::legion_type_handle TypeHandle;
   typedef ::legion_projection_id_t ProjectionID;
   typedef ::legion_sharding_id_t ShardingID;
   typedef ::legion_region_tree_id_t RegionTreeID;
   typedef ::legion_distributed_id_t DistributedID;
+  typedef ::legion_distributed_id_t IndexSpaceID;
   typedef ::legion_address_space_t AddressSpaceID;
   typedef ::legion_tunable_id_t TunableID;
   typedef ::legion_local_variable_id_t LocalVariableID;

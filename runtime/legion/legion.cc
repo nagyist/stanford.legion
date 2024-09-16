@@ -256,15 +256,19 @@ namespace Legion {
     /*static*/ const IndexSpace IndexSpace::NO_SPACE = IndexSpace();
 
     //--------------------------------------------------------------------------
-    IndexSpace::IndexSpace(IndexSpaceID _id, IndexTreeID _tid, TypeTag _tag)
-      : id(_id), tid(_tid), type_tag(_tag)
+    IndexSpace::IndexSpace(DistributedID _id, IndexTreeID _tid, TypeTag _tag)
+      : did(_id), tid(_tid), type_tag(_tag)
     //--------------------------------------------------------------------------
     {
+#ifdef DEBUG_LEGION
+      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) ==
+          Internal::INDEX_SPACE_NODE_DC);
+#endif
     }
 
     //--------------------------------------------------------------------------
     IndexSpace::IndexSpace(void)
-      : id(0), tid(0), type_tag(0)
+      : did(0), tid(0), type_tag(0)
     //--------------------------------------------------------------------------
     {
     }
@@ -276,16 +280,20 @@ namespace Legion {
     /*static*/ const IndexPartition IndexPartition::NO_PART = IndexPartition();
 
     //--------------------------------------------------------------------------
-    IndexPartition::IndexPartition(IndexPartitionID _id, 
+    IndexPartition::IndexPartition(DistributedID _id, 
                                    IndexTreeID _tid, TypeTag _tag)
-      : id(_id), tid(_tid), type_tag(_tag)
+      : did(_id), tid(_tid), type_tag(_tag)
     //--------------------------------------------------------------------------
     {
+#ifdef DEBUG_LEGION
+      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) ==
+          Internal::INDEX_PART_NODE_DC);
+#endif
     }
 
     //--------------------------------------------------------------------------
     IndexPartition::IndexPartition(void)
-      : id(0), tid(0), type_tag(0)
+      : did(0), tid(0), type_tag(0)
     //--------------------------------------------------------------------------
     {
     }
@@ -294,18 +302,21 @@ namespace Legion {
     // FieldSpace 
     /////////////////////////////////////////////////////////////
 
-    /*static*/ const FieldSpace FieldSpace::NO_SPACE = FieldSpace(0);
+    /*static*/ const FieldSpace FieldSpace::NO_SPACE = FieldSpace();
 
     //--------------------------------------------------------------------------
-    FieldSpace::FieldSpace(unsigned _id)
-      : id(_id)
+    FieldSpace::FieldSpace(DistributedID _id)
+      : did(_id)
     //--------------------------------------------------------------------------
     {
+#ifdef DEBUG_LEGION
+      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::FIELD_SPACE_DC);
+#endif
     }
 
     //--------------------------------------------------------------------------
     FieldSpace::FieldSpace(void)
-      : id(0)
+      : did(0)
     //--------------------------------------------------------------------------
     {
     }

@@ -17694,7 +17694,7 @@ namespace Legion {
     inline bool IndexSpace::operator==(const IndexSpace &rhs) const
     //--------------------------------------------------------------------------
     {
-      if (id != rhs.id)
+      if (did != rhs.did)
         return false;
       if (tid != rhs.tid)
         return false;
@@ -17708,7 +17708,7 @@ namespace Legion {
     inline bool IndexSpace::operator!=(const IndexSpace &rhs) const
     //--------------------------------------------------------------------------
     {
-      if ((id == rhs.id) && (tid == rhs.tid))
+      if ((did == rhs.did) && (tid == rhs.tid))
         return false;
       return true;
     }
@@ -17717,9 +17717,9 @@ namespace Legion {
     inline bool IndexSpace::operator<(const IndexSpace &rhs) const
     //--------------------------------------------------------------------------
     {
-      if (id < rhs.id)
+      if (did < rhs.did)
         return true;
-      if (id > rhs.id)
+      if (did > rhs.did)
         return false;
       return (tid < rhs.tid);
     }
@@ -17728,9 +17728,9 @@ namespace Legion {
     inline bool IndexSpace::operator>(const IndexSpace &rhs) const
     //--------------------------------------------------------------------------
     {
-      if (id > rhs.id)
+      if (did > rhs.did)
         return true;
-      if (id < rhs.id)
+      if (did < rhs.did)
         return false;
       return (tid > rhs.tid);
     }
@@ -17739,7 +17739,14 @@ namespace Legion {
     inline size_t IndexSpace::hash(void) const
     //--------------------------------------------------------------------------
     {
-      return std::hash<unsigned>{}(id); // uniquely identifies this index space
+      return std::hash<unsigned>{}(did); // uniquely identifies this index space
+    }
+
+    //--------------------------------------------------------------------------
+    inline DistributedID IndexSpace::get_id(void) const
+    //--------------------------------------------------------------------------
+    {
+      return LEGION_DISTRIBUTED_ID_FILTER(did);
     }
 
     //--------------------------------------------------------------------------
@@ -17752,7 +17759,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceT<DIM,T>::IndexSpaceT(IndexSpaceID id, IndexTreeID tid)
+    IndexSpaceT<DIM,T>::IndexSpaceT(DistributedID id, IndexTreeID tid)
       : IndexSpace(id, tid, 
           Internal::NT_TemplateHelper::template encode_tag<DIM,T>()) 
     //--------------------------------------------------------------------------
@@ -17770,7 +17777,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceT<DIM,T>::IndexSpaceT(const IndexSpace &rhs)
-      : IndexSpace(rhs.get_id(), rhs.get_tree_id(), rhs.get_type_tag())
+      : IndexSpace(rhs)
     //--------------------------------------------------------------------------
     {
       Internal::NT_TemplateHelper::template check_type<DIM,T>(type_tag);
@@ -17782,7 +17789,7 @@ namespace Legion {
                                                           const IndexSpace &rhs)
     //--------------------------------------------------------------------------
     {
-      id = rhs.get_id();
+      did = rhs.get_id();
       tid = rhs.get_tree_id();
       type_tag = rhs.get_type_tag();
       Internal::NT_TemplateHelper::template check_type<DIM,T>(type_tag);
@@ -17793,7 +17800,7 @@ namespace Legion {
     inline bool IndexPartition::operator==(const IndexPartition &rhs) const
     //--------------------------------------------------------------------------
     {
-      if (id != rhs.id)
+      if (did != rhs.did)
         return false;
       if (tid != rhs.tid)
         return false;
@@ -17807,7 +17814,7 @@ namespace Legion {
     inline bool IndexPartition::operator!=(const IndexPartition &rhs) const
     //--------------------------------------------------------------------------
     {
-      if ((id == rhs.id) && (tid == rhs.tid))
+      if ((did == rhs.did) && (tid == rhs.tid))
         return false;
       return true;
     }
@@ -17816,9 +17823,9 @@ namespace Legion {
     inline bool IndexPartition::operator<(const IndexPartition &rhs) const
     //--------------------------------------------------------------------------
     {
-      if (id < rhs.id)
+      if (did < rhs.did)
         return true;
-      if (id > rhs.id)
+      if (did > rhs.did)
         return false;
       return (tid < rhs.tid);
     }
@@ -17827,9 +17834,9 @@ namespace Legion {
     inline bool IndexPartition::operator>(const IndexPartition &rhs) const
     //--------------------------------------------------------------------------
     {
-      if (id > rhs.id)
+      if (did > rhs.did)
         return true;
-      if (id < rhs.id)
+      if (did < rhs.did)
         return false;
       return (tid > rhs.tid);
     }
@@ -17839,7 +17846,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // uniquely identifies this index partition
-      return std::hash<unsigned>{}(id);
+      return std::hash<unsigned>{}(did);
+    }
+
+    //--------------------------------------------------------------------------
+    inline DistributedID IndexPartition::get_id(void) const
+    //--------------------------------------------------------------------------
+    {
+      return LEGION_DISTRIBUTED_ID_FILTER(did);
     }
 
     //--------------------------------------------------------------------------
@@ -17852,7 +17866,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexPartitionT<DIM,T>::IndexPartitionT(IndexPartitionID id,IndexTreeID tid)
+    IndexPartitionT<DIM,T>::IndexPartitionT(DistributedID id, IndexTreeID tid)
       : IndexPartition(id, tid,
           Internal::NT_TemplateHelper::template encode_tag<DIM,T>())
     //--------------------------------------------------------------------------
@@ -17871,7 +17885,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexPartitionT<DIM,T>::IndexPartitionT(const IndexPartition &rhs)
-      : IndexPartition(rhs.get_id(), rhs.get_tree_id(), rhs.get_type_tag())
+      : IndexPartition(rhs)
     //--------------------------------------------------------------------------
     {
       Internal::NT_TemplateHelper::template check_type<DIM,T>(type_tag);
@@ -17883,7 +17897,7 @@ namespace Legion {
                                                       const IndexPartition &rhs)
     //--------------------------------------------------------------------------
     {
-      id = rhs.get_id();
+      did = rhs.get_id();
       tid = rhs.get_tree_id();
       type_tag = rhs.get_type_tag();
       Internal::NT_TemplateHelper::template check_type<DIM,T>(type_tag);
@@ -17894,35 +17908,42 @@ namespace Legion {
     inline bool FieldSpace::operator==(const FieldSpace &rhs) const
     //--------------------------------------------------------------------------
     {
-      return (id == rhs.id);
+      return (did == rhs.did);
     }
 
     //--------------------------------------------------------------------------
     inline bool FieldSpace::operator!=(const FieldSpace &rhs) const
     //--------------------------------------------------------------------------
     {
-      return (id != rhs.id);
+      return (did != rhs.did);
     }
 
     //--------------------------------------------------------------------------
     inline bool FieldSpace::operator<(const FieldSpace &rhs) const
     //--------------------------------------------------------------------------
     {
-      return (id < rhs.id);
+      return (did < rhs.did);
     }
 
     //--------------------------------------------------------------------------
     inline bool FieldSpace::operator>(const FieldSpace &rhs) const
     //--------------------------------------------------------------------------
     {
-      return (id > rhs.id);
+      return (did > rhs.did);
     }
 
     //--------------------------------------------------------------------------
     inline size_t FieldSpace::hash(void) const
     //--------------------------------------------------------------------------
     {
-      return std::hash<unsigned>{}(id); // uniquely identifies this field space
+      return std::hash<unsigned>{}(did); // uniquely identifies this field space
+    }
+
+    //--------------------------------------------------------------------------
+    inline DistributedID FieldSpace::get_id(void) const
+    //--------------------------------------------------------------------------
+    {
+      return LEGION_DISTRIBUTED_ID_FILTER(did);
     }
 
     //--------------------------------------------------------------------------
@@ -21738,7 +21759,18 @@ namespace Legion {
     inline std::ostream& operator<<(std::ostream& os, const IndexSpace& is)
     //--------------------------------------------------------------------------
     {
-      os << "IndexSpace(" << is.id << "," << is.tid << ")";
+      // Check to see if we can find the semantic information name
+      Runtime *runtime = Runtime::get_runtime();
+      const void *name = NULL;
+      size_t size = 0;
+      if (runtime->retrieve_semantic_information(is, LEGION_NAME_SEMANTIC_TAG,
+            name, size, true/*can fail*/, false/*wait until ready*/))
+      {
+        std::string_view view(static_cast<const char*>(name), size);
+        os << view;
+      }
+      else
+        os << "(id=" << is.get_id() << ", tree_id=" << is.get_tree_id() << ")";
       return os;
     }
 
@@ -21746,7 +21778,17 @@ namespace Legion {
     inline std::ostream& operator<<(std::ostream& os, const IndexPartition& ip)
     //--------------------------------------------------------------------------
     {
-      os << "IndexPartition(" << ip.id << "," << ip.tid << ")";
+      Runtime *runtime = Runtime::get_runtime();
+      const void *name = NULL;
+      size_t size = 0;
+      if (runtime->retrieve_semantic_information(ip, LEGION_NAME_SEMANTIC_TAG,
+            name, size, true/*can fail*/, false/*wait until ready*/))
+      {
+        std::string_view view(static_cast<const char*>(name), size);
+        os << view;
+      }
+      else
+        os << "(id=" << ip.get_id() << ", tree_id=" << ip.get_tree_id() << ")";
       return os;
     }
 
@@ -21754,7 +21796,17 @@ namespace Legion {
     inline std::ostream& operator<<(std::ostream& os, const FieldSpace& fs)
     //--------------------------------------------------------------------------
     {
-      os << "FieldSpace(" << fs.id << ")";
+      Runtime *runtime = Runtime::get_runtime();
+      const void *name = NULL;
+      size_t size = 0;
+      if (runtime->retrieve_semantic_information(fs, LEGION_NAME_SEMANTIC_TAG,
+            name, size, true/*can fail*/, false/*wait unilt ready*/))
+      {
+        std::string_view view(static_cast<const char*>(name), size);
+        os << view;
+      }
+      else
+        os << "(id=" << fs.get_id() << ")";
       return os;
     }
 

@@ -11892,16 +11892,16 @@ mem_mem_pat              = re.compile(
            "(?P<lat>[0-9]+)")
 # Patterns for the shape of region trees
 top_index_pat            = re.compile(
-    prefix+"Index Space (?P<uid>[0-9a-f]+) (?P<owner>[0-9]+) (?P<provenance>.*)")
+    prefix+"Index Space (?P<uid>[0-9]+) (?P<owner>[0-9]+) (?P<provenance>.*)")
 index_name_pat           = re.compile(
-    prefix+"Index Space Name (?P<uid>[0-9a-f]+) (?P<name>.+)")
+    prefix+"Index Space Name (?P<uid>[0-9]+) (?P<name>.+)")
 index_part_pat           = re.compile(
-    prefix+"Index Partition (?P<pid>[0-9a-f]+) (?P<uid>[0-9a-f]+) (?P<disjoint>[0-2]) "+
+    prefix+"Index Partition (?P<pid>[0-9]+) (?P<uid>[0-9]+) (?P<disjoint>[0-2]) "+
            "(?P<complete>[0-2]) (?P<color>[0-9]+) (?P<owner>[0-9]+) (?P<provenance>.*)")
 index_part_name_pat      = re.compile(
-    prefix+"Index Partition Name (?P<uid>[0-9a-f]+) (?P<name>.+)")
+    prefix+"Index Partition Name (?P<uid>[0-9]+) (?P<name>.+)")
 index_subspace_pat       = re.compile(
-    prefix+"Index Subspace (?P<pid>[0-9a-f]+) (?P<uid>[0-9a-f]+) (?P<owner>[0-9]+) "+
+    prefix+"Index Subspace (?P<pid>[0-9]+) (?P<uid>[0-9]+) (?P<owner>[0-9]+) "+
            "(?P<dim>[0-9]+) (?P<rem>.*)")
 field_space_pat          = re.compile(
     prefix+"Field Space (?P<uid>[0-9]+) (?P<owner>[0-9]+) (?P<provenance>.*)")
@@ -11912,22 +11912,22 @@ field_create_pat         = re.compile(
 field_name_pat           = re.compile(
     prefix+"Field Name (?P<uid>[0-9]+) (?P<fid>[0-9]+) (?P<name>.+)")
 region_pat               = re.compile(
-    prefix+"Region (?P<iid>[0-9a-f]+) (?P<fid>[0-9]+) (?P<tid>[0-9]+) (?P<owner>[0-9]+) (?P<provenance>.*)")
+    prefix+"Region (?P<iid>[0-9]+) (?P<fid>[0-9]+) (?P<tid>[0-9]+) (?P<owner>[0-9]+) (?P<provenance>.*)")
 region_name_pat          = re.compile(
-    prefix+"Logical Region Name (?P<iid>[0-9a-f]+) (?P<fid>[0-9]+) (?P<tid>[0-9]+) "+
+    prefix+"Logical Region Name (?P<iid>[0-9]+) (?P<fid>[0-9]+) (?P<tid>[0-9]+) "+
             "(?P<name>.+)")
 partition_name_pat       = re.compile(
-    prefix+"Logical Partition Name (?P<iid>[0-9a-f]+) (?P<fid>[0-9]+) (?P<tid>[0-9]+) "+
+    prefix+"Logical Partition Name (?P<iid>[0-9]+) (?P<fid>[0-9]+) (?P<tid>[0-9]+) "+
             "(?P<name>.+)")
 index_space_point_pat    = re.compile(
-    prefix+"Index Space Point (?P<uid>[0-9a-f]+) (?P<dim>[0-9]+) (?P<rem>.*)")
+    prefix+"Index Space Point (?P<uid>[0-9]+) (?P<dim>[0-9]+) (?P<rem>.*)")
 index_space_rect_pat     = re.compile(
-    prefix+"Index Space Rect (?P<uid>[0-9a-f]+) (?P<dim>[0-9]+) (?P<rem>.*)")
+    prefix+"Index Space Rect (?P<uid>[0-9]+) (?P<dim>[0-9]+) (?P<rem>.*)")
 decimal_pat              = re.compile("\-?[0-9]+")
 empty_index_space_pat    = re.compile(
-    prefix+"Empty Index Space (?P<uid>[0-9a-f]+)")
+    prefix+"Empty Index Space (?P<uid>[0-9]+)")
 index_expr_pat           = re.compile(
-    prefix+"Index Space Expression (?P<uid>[0-9a-f]+) (?P<expr>[0-9]+)")
+    prefix+"Index Space Expression (?P<uid>[0-9]+) (?P<expr>[0-9]+)")
 union_expr_pat           = re.compile(
     prefix+"Index Space Union (?P<expr>[0-9]+) (?P<count>[0-9]+)")
 intersect_expr_pat       = re.compile(
@@ -12000,7 +12000,7 @@ dep_partition_op_pat     = re.compile(
 pending_partition_op_pat = re.compile(
     prefix+"Pending Partition Operation (?P<ctx>[0-9]+) (?P<uid>[0-9]+)")
 target_partition_pat     = re.compile(
-    prefix+"Pending Partition Target (?P<uid>[0-9]+) (?P<pid>[0-9a-f]+) (?P<kind>[0-9]+)")
+    prefix+"Pending Partition Target (?P<uid>[0-9]+) (?P<pid>[0-9]+) (?P<kind>[0-9]+)")
 index_slice_pat          = re.compile(
     prefix+"Index Slice (?P<index>[0-9]+) (?P<slice>[0-9]+)")
 slice_slice_pat          = re.compile(
@@ -12028,8 +12028,8 @@ predicate_false_pat      = re.compile(
 # Patterns for logical analysis and region requirements
 requirement_pat         = re.compile(
     prefix+"Logical Requirement (?P<uid>[0-9]+) (?P<index>[0-9]+) (?P<is_reg>[0-1]) "+
-           "(?P<ispace>[0-9a-f]+) (?P<fspace>[0-9]+) (?P<tid>[0-9]+) (?P<priv>[0-9]+) "+
-           "(?P<coher>[0-9]+) (?P<redop>[0-9]+) (?P<pis>[0-9a-f]+)")
+           "(?P<ispace>[0-9]+) (?P<fspace>[0-9]+) (?P<tid>[0-9]+) (?P<priv>[0-9]+) "+
+           "(?P<coher>[0-9]+) (?P<redop>[0-9]+) (?P<pis>[0-9]+)")
 req_field_pat           = re.compile(
     prefix+"Logical Requirement Field (?P<uid>[0-9]+) (?P<index>[0-9]+) (?P<fid>[0-9]+)")
 projection_func_pat     = re.compile(
@@ -12050,7 +12050,7 @@ predicate_use_pat       = re.compile(
     prefix+"Predicate Use (?P<uid>[0-9]+) (?P<pred>[0-9]+)")
 # Physical instance and mapping decision patterns
 instance_pat            = re.compile(
-    prefix+"Physical Instance (?P<eid>[0-9a-f]+) (?P<iid>[0-9a-f]+) (?P<mid>[0-9a-f]+) (?P<redop>[0-9]+) (?P<expr>[0-9]+) (?P<space>[0-9]+) (?P<tid>[0-9]+)")
+    prefix+"Physical Instance (?P<eid>[0-9a-f]+) (?P<iid>[0-9]+) (?P<mid>[0-9a-f]+) (?P<redop>[0-9]+) (?P<expr>[0-9]+) (?P<space>[0-9]+) (?P<tid>[0-9]+)")
 instance_field_pat      = re.compile(
     prefix+"Physical Instance Field (?P<eid>[0-9a-f]+) (?P<fid>[0-9]+)")
 instance_creator_pat    = re.compile(
@@ -12345,16 +12345,16 @@ def parse_legion_spy_line(line, state):
         coher = int(m.group('coher'))
         redop = int(m.group('redop'))
         parent_ispace = int(m.group('pis'),16)
-        parent = state.get_region(int(m.group('pis'),16), field_space.uid, tid)
+        parent = state.get_region(int(m.group('pis')), field_space.uid, tid)
         if is_reg:
-            index_space = state.get_index_space(int(m.group('ispace'),16))
+            index_space = state.get_index_space(int(m.group('ispace')))
             region = state.get_region(index_space.uid, field_space.uid, tid) 
             requirement = Requirement(state, int(m.group('index')), True,
                 index_space, field_space, tid, region, 
                 priv, coher, redop, parent)
             op.add_requirement(requirement)
         else:
-            index_partition = state.get_index_partition(int(m.group('ispace'),16))
+            index_partition = state.get_index_partition(int(m.group('ispace')))
             partition = state.get_partition(index_partition.uid, field_space.uid, tid)
             requirement = Requirement(state, int(m.group('index')), False,
                 index_partition, field_space, tid, partition, 
@@ -12432,7 +12432,7 @@ def parse_legion_spy_line(line, state):
     if m is not None:
         mem = state.get_memory(int(m.group('mid'),16))
         inst = state.get_instance(int(m.group('eid'),16))
-        inst.set_handle(int(m.group('iid'),16))
+        inst.set_handle(int(m.group('iid')))
         inst.set_memory(mem)
         inst.set_redop(int(m.group('redop')))
         inst_expr = state.get_index_expr(int(m.group('expr')))
@@ -12804,7 +12804,7 @@ def parse_legion_spy_line(line, state):
     m = target_partition_pat.match(line)
     if m is not None:
         op = state.get_operation(int(m.group('uid'))) 
-        index_partition = state.get_index_partition(int(m.group('pid'),16))
+        index_partition = state.get_index_partition(int(m.group('pid')))
         op.set_pending_partition_info(index_partition, int(m.group('kind')))
         return True
     m = index_slice_pat.match(line)
@@ -12898,19 +12898,19 @@ def parse_legion_spy_line(line, state):
     # Region tree shape patterns (near the bottom since they are infrequent)
     m = top_index_pat.match(line)
     if m is not None:
-        space = state.get_index_space(int(m.group('uid'),16)) 
+        space = state.get_index_space(int(m.group('uid'))) 
         space.owner = int(m.group('owner'))
         space.provenance = m.group('provenance')
         return True
     m = index_name_pat.match(line)
     if m is not None:
-        ispace = state.get_index_space(int(m.group('uid'),16))
+        ispace = state.get_index_space(int(m.group('uid')))
         ispace.set_name(m.group('name'))
         return True
     m = index_part_pat.match(line)
     if m is not None:
-        parent = state.get_index_space(int(m.group('pid'),16))
-        part = state.get_index_partition(int(m.group('uid'),16))
+        parent = state.get_index_space(int(m.group('pid')))
+        part = state.get_index_partition(int(m.group('uid')))
         color= Point(1)
         color.vals[0] = int(m.group('color'))
         part.set_parent(parent, color)
@@ -12925,13 +12925,13 @@ def parse_legion_spy_line(line, state):
         return True
     m = index_part_name_pat.match(line)
     if m is not None:
-        part = state.get_index_partition(int(m.group('uid'),16))
+        part = state.get_index_partition(int(m.group('uid')))
         part.set_name(m.group('name'))
         return True
     m = index_subspace_pat.match(line)
     if m is not None:
-        ispace = state.get_index_space(int(m.group('uid'),16))
-        parent = state.get_index_partition(int(m.group('pid'),16))
+        ispace = state.get_index_space(int(m.group('uid')))
+        parent = state.get_index_partition(int(m.group('pid')))
         dim = int(m.group('dim'))
         color= Point(dim)
         values = decimal_pat.findall(m.group('rem'))
@@ -12966,26 +12966,26 @@ def parse_legion_spy_line(line, state):
         return True
     m = region_pat.match(line)
     if m is not None:
-        region = state.get_region(int(m.group('iid'),16),
+        region = state.get_region(int(m.group('iid')),
             int(m.group('fid')),int(m.group('tid')))
         region.owner = int(m.group('owner'))
         region.provenance = m.group('provenance')
         return True
     m = region_name_pat.match(line)
     if m is not None:
-        region = state.get_region(int(m.group('iid'),16),
+        region = state.get_region(int(m.group('iid')),
             int(m.group('fid')),int(m.group('tid')))
         region.set_name(m.group('name'))
         return True
     m = partition_name_pat.match(line)
     if m is not None:
-        partition = state.get_partition(int(m.group('iid'),16),
+        partition = state.get_partition(int(m.group('iid')),
             int(m.group('fid')),int(m.group('tid')))
         partition.set_name(m.group('name'))
         return True
     m = index_space_point_pat.match(line)
     if m is not None:
-        index_space = state.get_index_space(int(m.group('uid'),16)) 
+        index_space = state.get_index_space(int(m.group('uid'))) 
         dim = int(m.group('dim'))
         point = Point(dim)
         values = decimal_pat.findall(m.group('rem'))
@@ -12995,7 +12995,7 @@ def parse_legion_spy_line(line, state):
         return True
     m = index_space_rect_pat.match(line)
     if m is not None:
-        index_space = state.get_index_space(int(m.group('uid'),16))
+        index_space = state.get_index_space(int(m.group('uid')))
         dim = int(m.group('dim'))
         lo = Point(dim)
         hi = Point(dim)
@@ -13010,12 +13010,12 @@ def parse_legion_spy_line(line, state):
         return True
     m = empty_index_space_pat.match(line)
     if m is not None:
-        index_space = state.get_index_space(int(m.group('uid'),16))
+        index_space = state.get_index_space(int(m.group('uid')))
         index_space.set_empty()
         return True
     m = index_expr_pat.match(line)
     if m is not None:
-        index_space = state.get_index_space(int(m.group('uid'),16))
+        index_space = state.get_index_space(int(m.group('uid')))
         expr_id = int(m.group('expr'))
         index_space.set_expr(expr_id)
         index_expr = state.get_index_expr(expr_id)

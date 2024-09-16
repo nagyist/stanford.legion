@@ -55,7 +55,6 @@ namespace Legion {
     typedef ::realm_id_t ProcID;
     typedef ::realm_id_t MemID;
     typedef ::realm_id_t InstID;
-    typedef ::realm_id_t IDType;
 
     // This class helps us profile barriers by allowing us to 
     // find the latest barrier arrival to trigger
@@ -312,17 +311,17 @@ namespace Legion {
       };
       struct IndexSpacePointDesc {
       public:
-	IDType unique_id;
+	DistributedID unique_id;
 	unsigned dim;
         long long points[LEGION_MAX_DIM];
       };
       struct IndexSpaceEmptyDesc {
       public:
-	IDType unique_id;
+	DistributedID unique_id;
       };
       struct IndexSpaceRectDesc {
       public:
-	IDType unique_id;
+	DistributedID unique_id;
         long long rect_lo[LEGION_MAX_DIM];
         long long rect_hi[LEGION_MAX_DIM];
 	unsigned dim;
@@ -351,35 +350,35 @@ namespace Legion {
       };
       struct IndexPartitionDesc {
       public:
-        IDType parent_id;
-        IDType unique_id;
+        DistributedID parent_id;
+        DistributedID unique_id;
         bool disjoint;
         LegionColor point;
       };
       struct IndexSubSpaceDesc {
       public:
-	IDType parent_id;
-	IDType unique_id;
+	DistributedID parent_id;
+	DistributedID unique_id;
       };
       struct LogicalRegionDesc {
       public:
-	IDType ispace_id;
-	unsigned fspace_id;
+	DistributedID ispace_id;
+	DistributedID fspace_id;
 	unsigned tree_id;
 	const char *name;
       };
       struct PhysicalInstRegionDesc {
       public:
         LgEvent inst_uid;
-	IDType ispace_id;
-	unsigned fspace_id;
+	DistributedID ispace_id;
+	DistributedID fspace_id;
 	unsigned tree_id;
       };
       struct PhysicalInstLayoutDesc {
       public:
         LgEvent inst_uid;
 	unsigned field_id;
-	unsigned fspace_id;
+	DistributedID fspace_id;
         EqualityKind eqk;
         bool has_align;
         unsigned alignment;
@@ -593,21 +592,21 @@ namespace Legion {
       void register_index_space_point(IndexSpacePointDesc
 				      &ispace_point_desc);
       template <int DIM, typename T>
-      void record_index_space_point(IDType handle, const Point<DIM, T> &point);
+      void record_index_space_point(DistributedID handle, const Point<DIM, T> &point);
       template<int DIM, typename T>
-      void record_index_space_rect(IDType handle, const Rect<DIM, T> &rect);
-      void register_empty_index_space(IDType handle);
+      void record_index_space_rect(DistributedID handle, const Rect<DIM, T> &rect);
+      void register_empty_index_space(DistributedID handle);
       void register_field(UniqueID unique_id, unsigned field_id,
 			  size_t size, const char* name);
       void register_field_space(UniqueID unique_id, const char* name);
       void register_index_part(UniqueID unique_id, const char* name);
       void register_index_space(UniqueID unique_id, const char* name);
-      void register_index_subspace(IDType parent_id, IDType unique_id,
+      void register_index_subspace(DistributedID parent_id, DistributedID unique_id,
 				   const DomainPoint &point);
-      void register_index_partition(IDType parent_id, IDType unique_id,
+      void register_index_partition(DistributedID parent_id, DistributedID unique_id,
 				    bool disjoint, LegionColor point);
-      void register_logical_region(IDType index_space,
-				   unsigned field_space, unsigned tree_id,
+      void register_logical_region(DistributedID index_space,
+				   DistributedID field_space, unsigned tree_id,
 				   const char* name);
       void register_physical_instance_region(LgEvent inst_uid,
 					     LogicalRegion handle);
@@ -616,7 +615,7 @@ namespace Legion {
                                              const LayoutConstraintSet &lc);
       void register_physical_instance_field(LgEvent inst_uid,
                                             unsigned field_id,
-                                            unsigned fspace,
+                                            DistributedID fspace,
                                             unsigned align,
                                             bool has_align,
                                             EqualityKind eqk);
@@ -944,7 +943,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    inline void LegionProfInstance::record_index_space_point(IDType handle,
+    inline void LegionProfInstance::record_index_space_point(DistributedID handle,
                                                       const Point<DIM,T> &point)
     //--------------------------------------------------------------------------
     {
@@ -960,7 +959,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    inline void LegionProfInstance::record_index_space_rect(IDType handle,
+    inline void LegionProfInstance::record_index_space_rect(DistributedID handle,
                                                         const Rect<DIM,T> &rect)
     //--------------------------------------------------------------------------
     {

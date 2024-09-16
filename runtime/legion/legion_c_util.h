@@ -339,7 +339,7 @@ namespace Legion {
       wrap(IndexSpace is)
       {
         legion_index_space_t is_;
-        is_.id = is.id;
+        is_.id = is.did;
         is_.tid = is.tid;
         is_.type_tag = is.type_tag;
         return is_;
@@ -349,7 +349,7 @@ namespace Legion {
       unwrap(legion_index_space_t is_)
       {
         IndexSpace is;
-        is.id = is_.id;
+        is.did = is_.id;
         is.tid = is_.tid;
         is.type_tag = is_.type_tag;
         return is;
@@ -359,7 +359,7 @@ namespace Legion {
       wrap(IndexPartition ip)
       {
         legion_index_partition_t ip_;
-        ip_.id = ip.id;
+        ip_.id = ip.did;
         ip_.tid = ip.tid;
         ip_.type_tag = ip.type_tag;
         return ip_;
@@ -369,7 +369,7 @@ namespace Legion {
       unwrap(legion_index_partition_t ip_)
       {
         IndexPartition ip;
-        ip.id = ip_.id;
+        ip.did = ip_.id;
         ip.tid = ip_.tid;
         ip.type_tag = ip_.type_tag;
         return ip;
@@ -379,7 +379,7 @@ namespace Legion {
       wrap(FieldSpace fs)
       {
         legion_field_space_t fs_;
-        fs_.id = fs.id;
+        fs_.id = fs.did;
         return fs_;
       }
 

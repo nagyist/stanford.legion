@@ -337,7 +337,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_empty_index_space(IDType handle)
+    void LegionProfInstance::register_empty_index_space(DistributedID handle)
     //--------------------------------------------------------------------------
     {
       ispace_empty_desc.emplace_back(IndexSpaceEmptyDesc());
@@ -401,8 +401,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_index_subspace(IDType parent_id,
-						     IDType unique_id,
+    void LegionProfInstance::register_index_subspace(DistributedID parent_id,
+						     DistributedID unique_id,
 						     const DomainPoint &point)
     //--------------------------------------------------------------------------
     {
@@ -414,8 +414,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_index_partition(IDType parent_id,
-						      IDType unique_id,
+    void LegionProfInstance::register_index_partition(DistributedID parent_id,
+						      DistributedID unique_id,
 						      bool disjoint,
 						      LegionColor point)
     //--------------------------------------------------------------------------
@@ -430,8 +430,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_logical_region(IDType index_space,
-						     unsigned field_space,
+    void LegionProfInstance::register_logical_region(DistributedID index_space,
+						     DistributedID field_space,
 						     unsigned tree_id,
 						     const char* name)
     //--------------------------------------------------------------------------
@@ -449,7 +449,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void LegionProfInstance::register_physical_instance_field(LgEvent inst_uid,
 						              unsigned field_id,
-						              unsigned field_sp,
+						              DistributedID field_sp,
                                                               unsigned align,
                                                               bool align_set,
                                                               EqualityKind eqk)
