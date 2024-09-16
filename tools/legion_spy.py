@@ -12050,7 +12050,7 @@ predicate_use_pat       = re.compile(
     prefix+"Predicate Use (?P<uid>[0-9]+) (?P<pred>[0-9]+)")
 # Physical instance and mapping decision patterns
 instance_pat            = re.compile(
-    prefix+"Physical Instance (?P<eid>[0-9a-f]+) (?P<iid>[0-9]+) (?P<mid>[0-9a-f]+) (?P<redop>[0-9]+) (?P<expr>[0-9]+) (?P<space>[0-9]+) (?P<tid>[0-9]+)")
+    prefix+"Physical Instance (?P<eid>[0-9a-f]+) (?P<iid>[0-9a-f]+) (?P<mid>[0-9a-f]+) (?P<redop>[0-9]+) (?P<expr>[0-9]+) (?P<space>[0-9]+) (?P<tid>[0-9]+)")
 instance_field_pat      = re.compile(
     prefix+"Physical Instance Field (?P<eid>[0-9a-f]+) (?P<fid>[0-9]+)")
 instance_creator_pat    = re.compile(
@@ -12432,7 +12432,7 @@ def parse_legion_spy_line(line, state):
     if m is not None:
         mem = state.get_memory(int(m.group('mid'),16))
         inst = state.get_instance(int(m.group('eid'),16))
-        inst.set_handle(int(m.group('iid')))
+        inst.set_handle(int(m.group('iid'),16))
         inst.set_memory(mem)
         inst.set_redop(int(m.group('redop')))
         inst_expr = state.get_index_expr(int(m.group('expr')))
