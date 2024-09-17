@@ -4578,12 +4578,11 @@ fn process_record(
             tree_id,
             name,
         } => {
-            let fspace_id = FSpaceID(*fspace_id as u64);
-            state.find_field_space_mut(fspace_id);
+            state.find_field_space_mut(*fspace_id);
             state
                 .logical_regions
-                .entry((*ispace_id, fspace_id, *tree_id))
-                .or_insert_with(|| Region::new(*ispace_id, fspace_id, *tree_id, name));
+                .entry((*ispace_id, *fspace_id, *tree_id))
+                .or_insert_with(|| Region::new(*ispace_id, *fspace_id, *tree_id, name));
         }
         Record::PhysicalInstRegionDesc {
             fevent,
@@ -4592,12 +4591,11 @@ fn process_record(
             tree_id,
         } => {
             assert!(fevent.exists());
-            let fspace_id = FSpaceID(*fspace_id as u64);
-            state.find_field_space_mut(fspace_id);
+            state.find_field_space_mut(*fspace_id);
             state
                 .create_inst(*fevent, insts)
                 .add_ispace(*ispace_id)
-                .add_fspace(fspace_id)
+                .add_fspace(*fspace_id)
                 .set_tree(*tree_id);
         }
         Record::PhysicalInstLayoutDesc {
@@ -4609,12 +4607,11 @@ fn process_record(
             align_desc,
         } => {
             assert!(fevent.exists());
-            let fspace_id = FSpaceID(*fspace_id as u64);
-            state.find_field_space_mut(fspace_id);
+            state.find_field_space_mut(*fspace_id);
             state
                 .create_inst(*fevent, insts)
-                .add_field(fspace_id, *field_id)
-                .add_align_desc(fspace_id, *field_id, *eqk, *align_desc, *has_align);
+                .add_field(*fspace_id, *field_id)
+                .add_align_desc(*fspace_id, *field_id, *eqk, *align_desc, *has_align);
         }
         Record::PhysicalInstDimOrderDesc {
             fevent,

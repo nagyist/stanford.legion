@@ -115,9 +115,9 @@ pub enum Record {
     IndexSubSpaceDesc { parent_id: IPartID, ispace_id: ISpaceID },
     IndexPartitionDesc { parent_id: ISpaceID, unique_id: IPartID, disjoint: bool, point0: u64 },
     IndexSpaceSizeDesc { ispace_id: ISpaceID, dense_size: u64, sparse_size: u64, is_sparse: bool },
-    LogicalRegionDesc { ispace_id: ISpaceID, fspace_id: u32, tree_id: TreeID, name: String },
-    PhysicalInstRegionDesc { fevent: EventID, ispace_id: ISpaceID, fspace_id: u32, tree_id: TreeID },
-    PhysicalInstLayoutDesc { fevent: EventID, field_id: FieldID, fspace_id: u32, has_align: bool, eqk: u32, align_desc: u32 },
+    LogicalRegionDesc { ispace_id: ISpaceID, fspace_id: FSpaceID, tree_id: TreeID, name: String },
+    PhysicalInstRegionDesc { fevent: EventID, ispace_id: ISpaceID, fspace_id: FSpaceID, tree_id: TreeID },
+    PhysicalInstLayoutDesc { fevent: EventID, field_id: FieldID, fspace_id: FSpaceID, has_align: bool, eqk: u32, align_desc: u32 },
     PhysicalInstDimOrderDesc { fevent: EventID, dim: u32, dim_kind: u32 },
     PhysicalInstanceUsage { fevent: EventID, op_id: OpID, index_id: u32, field_id: FieldID },
     TaskKind { task_id: TaskID, name: String, overwrite: bool },
@@ -617,7 +617,7 @@ fn parse_index_space_size_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Re
 }
 fn parse_logical_region_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, ispace_id) = parse_ispace_id(input)?;
-    let (input, fspace_id) = le_u32(input)?;
+    let (input, fspace_id) = parse_fspace_id(input)?;
     let (input, tree_id) = parse_tree_id(input)?;
     let (input, name) = parse_string(input)?;
     Ok((
@@ -633,7 +633,7 @@ fn parse_logical_region_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Reco
 fn parse_physical_inst_region_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, fevent) = parse_event_id(input)?;
     let (input, ispace_id) = parse_ispace_id(input)?;
-    let (input, fspace_id) = le_u32(input)?;
+    let (input, fspace_id) = parse_fspace_id(input)?;
     let (input, tree_id) = parse_tree_id(input)?;
     Ok((
         input,
@@ -648,7 +648,7 @@ fn parse_physical_inst_region_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8]
 fn parse_physical_inst_layout_desc(input: &[u8], _max_dim: i32) -> IResult<&[u8], Record> {
     let (input, fevent) = parse_event_id(input)?;
     let (input, field_id) = parse_field_id(input)?;
-    let (input, fspace_id) = le_u32(input)?;
+    let (input, fspace_id) = parse_fspace_id(input)?;
     let (input, has_align) = parse_bool(input)?;
     let (input, eqk) = le_u32(input)?;
     let (input, align_desc) = le_u32(input)?;
