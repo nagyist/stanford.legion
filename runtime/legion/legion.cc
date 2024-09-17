@@ -261,8 +261,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) ==
-          Internal::INDEX_SPACE_NODE_DC);
+      assert((LEGION_DISTRIBUTED_HELP_DECODE(did) ==
+          Internal::INDEX_SPACE_NODE_DC) || (did == 0));
 #endif
     }
 
