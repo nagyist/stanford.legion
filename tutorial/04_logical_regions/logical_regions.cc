@@ -129,13 +129,13 @@ void top_level_task(const Task *task,
   // modifications to the field space will effect both logical regions.
   LogicalRegion untyped_lr = 
     runtime->create_logical_region(ctx, untyped_is, fs);
-  printf("Created untyped logical region (%llu,%llu,%u)\n",
+  printf("Created untyped logical region (%llu,%llu,%llu)\n",
       untyped_lr.get_index_space().get_id(), 
       untyped_lr.get_field_space().get_id(),
       untyped_lr.get_tree_id());
   LogicalRegionT<1> typed_lr = 
     runtime->create_logical_region(ctx, typed_is, fs);
-  printf("Created typed logical region (%llu,%llu,%u)\n",
+  printf("Created typed logical region (%llu,%llu,%llu)\n",
       typed_lr.get_index_space().get_id(), 
       typed_lr.get_field_space().get_id(),
       typed_lr.get_tree_id());
