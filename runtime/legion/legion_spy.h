@@ -1566,7 +1566,7 @@ namespace Legion {
                                          LgEvent pre, LgEvent post,
                                          CollectiveKind collective)
       {
-        log_spy.print("Copy Events %llu %lld %d %d " IDFMT " " IDFMT " %d",
+        log_spy.print("Copy Events %llu %lld %lld %lld " IDFMT " " IDFMT " %d",
                       op_unique_id, expr_id, src_tree_id,
                       dst_tree_id, pre.id, post.id, collective);
       }
@@ -1620,7 +1620,7 @@ namespace Legion {
                                          UniqueID fill_unique_id,
                                          CollectiveKind collective)
       {
-        log_spy.print("Fill Events %llu %lld %lld %d " IDFMT " " IDFMT 
+        log_spy.print("Fill Events %llu %lld %lld %lld " IDFMT " " IDFMT 
                       " %llu %d",
 		      op_unique_id, expr_id, handle.get_id(), tree_id,
 		      pre.id, post.id, fill_unique_id, collective);
@@ -1662,7 +1662,7 @@ namespace Legion {
                                              RegionTreeID tid,
                                              UniqueID creator_uid)
       {
-        log_spy.print("Equivalence Set %llx %lld %d %llu",
+        log_spy.print("Equivalence Set %llx %lld %lld %llu",
             did, expr_id, tid, creator_uid);
       }
 
