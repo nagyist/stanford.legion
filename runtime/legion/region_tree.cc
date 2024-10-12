@@ -1462,7 +1462,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No lock needed for this one
-      return LogicalPartition(tid, handle, space);
+      return LogicalPartition(LEGION_DISTRIBUTED_HELP_ENCODE(tid, 
+            REGION_TREE_NODE_DC), handle, space);
     }
 
     //--------------------------------------------------------------------------
@@ -1510,7 +1511,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No lock needed for this one
-      return LogicalRegion(tid, handle, space);
+      return LogicalRegion(LEGION_DISTRIBUTED_HELP_ENCODE(tid, 
+            REGION_TREE_NODE_DC), handle, space);
     }
 
     //--------------------------------------------------------------------------
