@@ -7500,6 +7500,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    bool ProcessorManager::has_non_default_mapper(void) const
+    //--------------------------------------------------------------------------
+    {
+      AutoLock m_lock(mapper_lock, 0/*mode*/, false/*exclusive*/);
+      for (std::map<MapperID,std::pair<MapperManager*,bool> >::const_iterator
+            it = mappers.begin(); it != mappers.end(); it++)
+        if (!it->second.first->is_default_mapper)
+          return true;
+      return false;
+    }
+
+    //--------------------------------------------------------------------------
     void ProcessorManager::perform_scheduling(void)
     //--------------------------------------------------------------------------
     {
@@ -10977,8 +10989,10 @@ namespace Legion {
       assert(measured);
 #endif
       success.store(result.success);
-      Runtime::trigger_event(ready);
       fevent = unique_event;
+      // Can't read anything after trigger the event as the object
+      // might be deleted after we do that
+      Runtime::trigger_event(ready);
       return true;
     }
 
@@ -19198,6 +19212,17 @@ namespace Legion {
       assert(finder != proc_managers.end());
 #endif
       return finder->second->find_mapper(map_id);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_non_default_mapper(void) const
+    //--------------------------------------------------------------------------
+    {
+      for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+            proc_managers.begin(); it != proc_managers.end(); it++)
+        if (it->second->has_non_default_mapper())
+          return true;
+      return false;
     }
 
     //--------------------------------------------------------------------------
