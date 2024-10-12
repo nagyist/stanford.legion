@@ -16067,9 +16067,9 @@ namespace Legion {
       if (result.get_tree_id() != upper_bound.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
-            "logical subregion of tree ID %d for region requirement %d "
+            "logical subregion of tree ID %lld for region requirement %d "
             "of task %s (UID %lld) which is different from the upper "
-            "bound node of tree ID %d", projection_id, 
+            "bound node of tree ID %lld", projection_id, 
             result.get_tree_id(), idx, task->get_task_name(), 
             task->get_unique_id(), upper_bound.get_tree_id())
 #ifdef DEBUG_LEGION
@@ -16105,9 +16105,9 @@ namespace Legion {
       if (result.get_tree_id() != upper_bound.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
-            "logical subregion of tree ID %d for region requirement %d "
+            "logical subregion of tree ID %lld for region requirement %d "
             "of task %s (UID %lld) which is different from the upper "
-            "bound node of tree ID %d", projection_id, 
+            "bound node of tree ID %lld", projection_id, 
             result.get_tree_id(), idx, task->get_task_name(), 
             task->get_unique_id(), upper_bound.get_tree_id())
 #ifdef DEBUG_LEGION
@@ -16143,9 +16143,9 @@ namespace Legion {
       if (result.get_tree_id() != upper_bound.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
-            "logical subregion of tree ID %d for region requirement %d "
+            "logical subregion of tree ID %lld for region requirement %d "
             "of operation %s (UID %lld) which is different from the upper "
-            "bound node of tree ID %d", projection_id, 
+            "bound node of tree ID %lld", projection_id, 
             result.get_tree_id(), idx, op->get_logging_name(), 
             op->get_unique_op_id(), upper_bound.get_tree_id())
 #ifdef DEBUG_LEGION
@@ -16181,9 +16181,9 @@ namespace Legion {
       if (result.get_tree_id() != upper_bound.get_tree_id())
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_RESULT, 
             "Projection functor %d produced an invalid "
-            "logical subregion of tree ID %d for region requirement %d "
+            "logical subregion of tree ID %lld for region requirement %d "
             "of operation %s (UID %lld) which is different from the upper "
-            "bound node of tree ID %d", projection_id, 
+            "bound node of tree ID %lld", projection_id, 
             result.get_tree_id(), idx, op->get_logging_name(), 
             op->get_unique_op_id(), upper_bound.get_tree_id())
 #ifdef DEBUG_LEGION
@@ -17172,7 +17172,6 @@ namespace Legion {
         local_procs(locals), local_utils(local_utilities),
         proc_spaces(processor_spaces),
         unique_index_tree_id((unique == 0) ? runtime_stride : unique),
-        unique_region_tree_id((unique == 0) ? runtime_stride : unique),
         unique_field_id(LEGION_MAX_APPLICATION_FIELD_ID + 
                         ((unique == 0) ? runtime_stride : unique)),
         unique_operation_id((unique == 0) ? runtime_stride : unique),
@@ -18328,9 +18327,9 @@ namespace Legion {
       if (!node->check_global_and_increment(APPLICATION_REF))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to add shared ownership to logical region "
-            "(%llu,%llu,%u) which has already been deleted", 
+            "(%llu,%llu,%llu) which has already been deleted", 
             handle.index_space.get_id(), handle.field_space.get_id(),
-            handle.tree_id)
+            handle.get_tree_id())
       if (!node->is_owner())
       {
 #ifdef DEBUG_LEGION
@@ -28526,14 +28525,8 @@ namespace Legion {
     RegionTreeID Runtime::get_unique_region_tree_id(void)
     //--------------------------------------------------------------------------
     {
-      RegionTreeID result = unique_region_tree_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
-      // check for overflow
-      // If we have overflow on the number of region trees
-      // created then we are really in a bad place.
-      assert(result <= unique_region_tree_id);
-#endif
-      return result;
+      RegionTreeID did = get_available_distributed_id();
+      return LEGION_DISTRIBUTED_HELP_ENCODE(did, REGION_TREE_NODE_DC);
     }
 
     //--------------------------------------------------------------------------

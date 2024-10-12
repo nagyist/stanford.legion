@@ -97,7 +97,7 @@ namespace Legion {
       inline bool operator<(const IndexSpace &rhs) const;
       inline bool operator>(const IndexSpace &rhs) const;
       inline std::size_t hash(void) const;
-      inline DistributedID get_id(void) const;
+      inline DistributedID get_id(bool filter = true) const;
       inline IndexTreeID get_tree_id(void) const { return tid; }
       inline bool exists(void) const { return (did != 0); }
       inline TypeTag get_type_tag(void) const { return type_tag; }
@@ -153,7 +153,7 @@ namespace Legion {
       inline bool operator<(const IndexPartition &rhs) const;
       inline bool operator>(const IndexPartition &rhs) const;
       inline std::size_t hash(void) const;
-      inline DistributedID get_id(void) const;
+      inline DistributedID get_id(bool filter = true) const;
       inline IndexTreeID get_tree_id(void) const { return tid; }
       inline bool exists(void) const { return (did != 0); }
       inline TypeTag get_type_tag(void) const { return type_tag; }
@@ -212,7 +212,7 @@ namespace Legion {
       inline bool operator<(const FieldSpace &rhs) const;
       inline bool operator>(const FieldSpace &rhs) const;
       inline std::size_t hash(void) const;
-      inline DistributedID get_id(void) const;
+      inline DistributedID get_id(bool filter = true) const;
       inline bool exists(void) const { return (did != 0); }
     private:
       friend std::ostream& operator<<(std::ostream& os, const FieldSpace& fs);
@@ -239,7 +239,7 @@ namespace Legion {
     protected:
       // Only the runtime should be allowed to make these
       FRIEND_ALL_RUNTIME_CLASSES
-      LogicalRegion(RegionTreeID tid, IndexSpace index, FieldSpace field);
+      LogicalRegion(DistributedID tid, IndexSpace index, FieldSpace field);
     public:
       LogicalRegion(void);
     public:
@@ -250,8 +250,8 @@ namespace Legion {
     public:
       inline IndexSpace get_index_space(void) const { return index_space; }
       inline FieldSpace get_field_space(void) const { return field_space; }
-      inline RegionTreeID get_tree_id(void) const { return tree_id; }
-      inline bool exists(void) const { return (tree_id != 0); } 
+      inline RegionTreeID get_tree_id(bool filter = true) const;
+      inline bool exists(void) const { return (tree_did != 0); } 
       inline TypeTag get_type_tag(void) const 
         { return index_space.get_type_tag(); }
       inline int get_dim(void) const { return index_space.get_dim(); }
@@ -259,7 +259,7 @@ namespace Legion {
       friend std::ostream& operator<<(std::ostream& os, 
                                       const LogicalRegion& lr);
       // These are private so the user can't just arbitrarily change them
-      RegionTreeID tree_id;
+      DistributedID tree_did;
       IndexSpace index_space;
       FieldSpace field_space;
     };
@@ -278,7 +278,7 @@ namespace Legion {
     protected:
       // Only the runtime should be allowed to make these
       FRIEND_ALL_RUNTIME_CLASSES
-      LogicalRegionT(RegionTreeID tid, IndexSpace index, FieldSpace field);
+      LogicalRegionT(DistributedID tid, IndexSpace index, FieldSpace field);
     public:
       LogicalRegionT(void);
       explicit LogicalRegionT(const LogicalRegion &rhs);
@@ -307,7 +307,7 @@ namespace Legion {
     protected:
       // Only the runtime should be allowed to make these
       FRIEND_ALL_RUNTIME_CLASSES
-      LogicalPartition(RegionTreeID tid, IndexPartition pid, FieldSpace field);
+      LogicalPartition(DistributedID tid, IndexPartition pid, FieldSpace field);
     public:
       LogicalPartition(void);
     public:
@@ -319,8 +319,8 @@ namespace Legion {
       inline IndexPartition get_index_partition(void) const 
         { return index_partition; }
       inline FieldSpace get_field_space(void) const { return field_space; }
-      inline RegionTreeID get_tree_id(void) const { return tree_id; }
-      inline bool exists(void) const { return (tree_id != 0); }
+      inline RegionTreeID get_tree_id(bool filter = true) const;
+      inline bool exists(void) const { return (tree_did != 0); }
       inline TypeTag get_type_tag(void) const 
         { return index_partition.get_type_tag(); }
       inline int get_dim(void) const { return index_partition.get_dim(); }
@@ -328,7 +328,7 @@ namespace Legion {
       friend std::ostream& operator<<(std::ostream& os, 
                                       const LogicalPartition& lp);
       // These are private so the user can't just arbitrary change them
-      RegionTreeID tree_id;
+      DistributedID tree_did;
       IndexPartition index_partition;
       FieldSpace field_space;
     };
@@ -347,7 +347,7 @@ namespace Legion {
     protected:
       // Only the runtime should be allowed to make these
       FRIEND_ALL_RUNTIME_CLASSES
-      LogicalPartitionT(RegionTreeID tid, IndexPartition pid, FieldSpace field);
+      LogicalPartitionT(DistributedID tid, IndexPartition pid,FieldSpace field);
     public:
       LogicalPartitionT(void);
       explicit LogicalPartitionT(const LogicalPartition &rhs);

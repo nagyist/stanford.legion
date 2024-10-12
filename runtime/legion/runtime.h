@@ -4450,7 +4450,6 @@ namespace Legion {
       std::map<Mapper*,MapperInfo> mapper_infos;
     protected:
       std::atomic<unsigned> unique_index_tree_id;
-      std::atomic<unsigned> unique_region_tree_id;
       std::atomic<unsigned> unique_field_id; 
       std::atomic<unsigned long long> unique_operation_id;
       std::atomic<unsigned long long> unique_code_descriptor_id;

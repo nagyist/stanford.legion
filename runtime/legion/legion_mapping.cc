@@ -1159,7 +1159,7 @@ namespace Legion {
             REPORT_LEGION_ERROR(ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
                           "Invalid region arguments passed to %s in "
                           "mapper call %s of mapper %s. All region arguments "
-                          "must be from the same region tree (%d != %d).",
+                          "must be from the same region tree (%lld != %lld).",
                           call_name, ctx->get_mapper_call_name(),
                           ctx->get_mapper_name(), tree_id, other_id)
         }

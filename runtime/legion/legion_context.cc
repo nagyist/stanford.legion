@@ -1621,10 +1621,10 @@ namespace Legion {
           {
             if (local_regions.find(rit->region) != local_regions.end())
               REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-                  "Local logical region (%llu,%llu,%u) in task %s (UID %lld) was "
+                  "Local logical region (%llu,%llu,%llu) in task %s (UID %lld) was "
                   "not deleted by this task. Local regions can only be deleted "
                   "by the task that made them.", rit->region.index_space.get_id(),
-                  rit->region.field_space.get_id(), rit->region.tree_id, 
+                  rit->region.field_space.get_id(), rit->region.get_tree_id(), 
                   get_task_name(), get_unique_id())
             // Deletion keeps going up
             deleted_regions.push_back(*rit);
@@ -5838,7 +5838,7 @@ namespace Legion {
       LogicalRegion region(tid, index_space, field_space);
 #ifdef DEBUG_LEGION
       log_region.debug("Creating logical region in task %s (ID %lld) with "
-                       "index space %llu and field space %llu in new tree %d",
+                       "index space %llu and field space %llu in new tree %lld",
                        get_task_name(), get_unique_id(), 
                        index_space.get_id(), field_space.get_id(), tid);
 #endif
@@ -5879,10 +5879,10 @@ namespace Legion {
       if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to create shared ownership for logical region "
-            "(%llu,%llu,%u in task %s (UID %lld) which is not a top-level logical "
+            "(%llu,%llu,%llu in task %s (UID %lld) which is not a top-level logical "
             "region. Legion only permits top-level logical regions to have "
             "shared ownerships.", handle.index_space.get_id(), handle.field_space.get_id(),
-            handle.tree_id, get_task_name(), get_unique_id())
+            handle.get_tree_id(), get_task_name(), get_unique_id())
       runtime->create_shared_ownership(handle);
       AutoLock priv_lock(privilege_lock);
       std::map<LogicalRegion,unsigned>::iterator finder = 
@@ -5909,10 +5909,10 @@ namespace Legion {
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-            "Illegal call to destroy logical region (%llu,%llu,%u in task %s "
+            "Illegal call to destroy logical region (%llu,%llu,%llu in task %s "
             "(UID %lld) which is not a top-level logical region. Legion only "
             "permits top-level logical regions to be destroyed.", 
-            handle.index_space.get_id(), handle.field_space.get_id(), handle.tree_id,
+            handle.index_space.get_id(), handle.field_space.get_id(), handle.get_tree_id(),
             get_task_name(), get_unique_id())
       // Check to see if this is one that we should be allowed to destory
       {
@@ -5941,9 +5941,9 @@ namespace Legion {
           if (finder->second == 0)
           {
             REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
-                "Duplicate deletions were performed for region (%llu,%llu,%u) "
+                "Duplicate deletions were performed for region (%llu,%llu,%llu) "
                 "in task tree rooted by %s", handle.index_space.get_id(), 
-                handle.field_space.get_id(), handle.tree_id, get_task_name())
+                handle.field_space.get_id(), handle.get_tree_id(), get_task_name())
             return;
           }
           if (--finder->second > 0)
@@ -6245,10 +6245,10 @@ namespace Legion {
         for (std::vector<DeletedRegion>::const_iterator it = 
               deleted_regions.begin(); it != deleted_regions.end(); it++)
           REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
-              "Duplicate deletions were performed for region (%llu,%llu,%u) "
+              "Duplicate deletions were performed for region (%llu,%llu,%llu) "
               "in task tree rooted by %s (provenance %s)", 
               it->region.index_space.get_id(), it->region.field_space.get_id(), 
-              it->region.tree_id, get_task_name(), (it->provenance != NULL) ?
+              it->region.get_tree_id(), get_task_name(), (it->provenance != NULL) ?
               it->provenance->human_str() : "unknown")
         deleted_regions.clear();
       }
@@ -6308,9 +6308,9 @@ namespace Legion {
         {
           if (runtime->report_leaks)
             REPORT_LEGION_WARNING(LEGION_WARNING_LEAKED_RESOURCE,
-                "Logical region (%llu,%llu,%u) was leaked out of task tree rooted "
+                "Logical region (%llu,%llu,%llu) was leaked out of task tree rooted "
                 "by task %s", rit->first.index_space.get_id(),
-                rit->first.field_space.get_id(), rit->first.tree_id, get_task_name())
+                rit->first.field_space.get_id(), rit->first.get_tree_id(), get_task_name())
           runtime->destroy_logical_region(rit->first, preconditions);
           // Remove any latent field spaces and therefore any created fields
           // since they might not be able to be cleaned up after this since
@@ -7037,21 +7037,21 @@ namespace Legion {
       PhysicalRegion result = map_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
       log_run.debug("Registering a map operation for region "
-                    "(%llu,%llu,%u) in task %s (ID %lld)",
+                    "(%llu,%llu,%llu) in task %s (ID %lld)",
                     launcher.requirement.region.index_space.get_id(), 
                     launcher.requirement.region.field_space.get_id(), 
-                    launcher.requirement.region.tree_id, 
+                    launcher.requirement.region.get_tree_id(), 
                     get_task_name(), get_unique_id());
 #endif
       if (current_trace != NULL)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%llu,%llu,%u) inside of trace %d of parent task %s "
+                      "(%llu,%llu,%llu) inside of trace %d of parent task %s "
                       "(ID %lld). It is illegal to perform inline mapping "
                       "operations inside of traces.",
                       launcher.requirement.region.index_space.get_id(), 
                       launcher.requirement.region.field_space.get_id(), 
-                      launcher.requirement.region.tree_id, 
+                      launcher.requirement.region.get_tree_id(), 
                       current_trace->tid, get_task_name(), get_unique_id())
       bool parent_conflict = false, inline_conflict = false;  
       const int index = 
@@ -7059,26 +7059,26 @@ namespace Legion {
       if (parent_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%llu,%llu,%u) that conflicts with mapped region " 
-                      "(%llu,%llu,%u) at index %d of parent task %s "
+                      "(%llu,%llu,%llu) that conflicts with mapped region " 
+                      "(%llu,%llu,%llu) at index %d of parent task %s "
                       "(ID %lld) that would ultimately result in "
                       "deadlock. Instead you receive this error message.",
                       launcher.requirement.region.index_space.get_id(),
                       launcher.requirement.region.field_space.get_id(),
-                      launcher.requirement.region.tree_id,
+                      launcher.requirement.region.get_tree_id(),
                       regions[index].region.index_space.get_id(),
                       regions[index].region.field_space.get_id(),
-                      regions[index].region.tree_id,
+                      regions[index].region.get_tree_id(),
                       index, get_task_name(), get_unique_id())
       if (inline_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
-                      "Attempted an inline mapping of region (%llu,%llu,%u) "
+                      "Attempted an inline mapping of region (%llu,%llu,%llu) "
                       "that conflicts with previous inline mapping in "
                       "task %s (ID %lld) that would ultimately result in "
                       "deadlock.  Instead you receive this error message.",
                       launcher.requirement.region.index_space.get_id(),
                       launcher.requirement.region.field_space.get_id(),
-                      launcher.requirement.region.tree_id,
+                      launcher.requirement.region.get_tree_id(),
                       get_task_name(), get_unique_id())
       register_inline_mapped_region(result);
       add_to_dependence_queue(map_op, launcher.static_dependences);
@@ -7099,10 +7099,10 @@ namespace Legion {
         const RegionRequirement &req = region.impl->get_requirement();
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%llu,%llu,%u) inside of trace %d of parent task %s "
+                      "(%llu,%llu,%llu) inside of trace %d of parent task %s "
                       "(ID %lld). It is illegal to perform inline mapping "
                       "operations inside of traces.", req.region.index_space.get_id(),
-                      req.region.field_space.get_id(), req.region.tree_id, 
+                      req.region.field_space.get_id(), req.region.get_tree_id(), 
                       current_trace->tid, get_task_name(), get_unique_id())
       }
       MapOp *map_op = runtime->get_operation<MapOp>();
@@ -7448,28 +7448,28 @@ namespace Legion {
       if (parent_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                       "Attempted an external attach operation on region "
-                      "(%llu,%llu,%u) that conflicts with mapped region " 
-                      "(%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
+                      "(%llu,%llu,%llu) that conflicts with mapped region " 
+                      "(%llu,%llu,%llu) at index %d of parent task %s (ID %lld) "
                       "that would ultimately result in deadlock. Instead you "
                       "receive this error message. Try unmapping the region "
                       "before invoking 'attach_external_resource'.",
                       launcher.handle.index_space.get_id(), 
                       launcher.handle.field_space.get_id(), 
-                      launcher.handle.tree_id, 
+                      launcher.handle.get_tree_id(), 
                       regions[index].region.index_space.get_id(),
                       regions[index].region.field_space.get_id(),
-                      regions[index].region.tree_id, index, 
+                      regions[index].region.get_tree_id(), index, 
                       get_task_name(), get_unique_id())
       if (inline_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                       "Attempted an external attach operation on region "
-                      "(%llu,%llu,%u) that conflicts with previous inline "
+                      "(%llu,%llu,%llu) that conflicts with previous inline "
                       "mapping in task %s (ID %lld) "
                       "that would ultimately result in deadlock. Instead you "
                       "receive this error message. Try unmapping the region "
                       "before invoking 'attach_external_resource'.",
                       launcher.handle.index_space.get_id(), 
-                      launcher.handle.field_space.get_id(), launcher.handle.tree_id,
+                      launcher.handle.field_space.get_id(), launcher.handle.get_tree_id(),
                       get_task_name(), get_unique_id())
       // Add this region to the list of inline mapped regions if it is mapped
       if (result.is_mapped())
@@ -7505,32 +7505,32 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "partition (%llu,%llu,%u) that conflicts with mapped region"
-                        " (%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
+                        "partition (%llu,%llu,%llu) that conflicts with mapped region"
+                        " (%llu,%llu,%llu) at index %d of parent task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
                         req.partition.index_partition.get_id(), 
                         req.partition.field_space.get_id(), 
-                        req.partition.tree_id, 
+                        req.partition.get_tree_id(), 
                         regions[index].region.index_space.get_id(),
                         regions[index].region.field_space.get_id(),
-                        regions[index].region.tree_id, index, 
+                        regions[index].region.get_tree_id(), index, 
                         get_task_name(), get_unique_id())
         else
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "region (%llu,%llu,%u) that conflicts with mapped region "
-                        "(%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
+                        "region (%llu,%llu,%llu) that conflicts with mapped region "
+                        "(%llu,%llu,%llu) at index %d of parent task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
                         req.region.index_space.get_id(), 
                         req.region.field_space.get_id(), 
-                        req.region.tree_id, 
+                        req.region.get_tree_id(), 
                         regions[index].region.index_space.get_id(),
                         regions[index].region.field_space.get_id(),
-                        regions[index].region.tree_id, index, 
+                        regions[index].region.get_tree_id(), index, 
                         get_task_name(), get_unique_id())
       }
       if (inline_conflict)
@@ -7538,24 +7538,24 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "partition (%llu,%llu,%u) that conflicts with previous "
+                        "partition (%llu,%llu,%llu) that conflicts with previous "
                         "inline mapping in task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
                         req.partition.index_partition.get_id(), 
-                        req.partition.field_space.get_id(), req.partition.tree_id,
+                        req.partition.field_space.get_id(), req.partition.get_tree_id(),
                         get_task_name(), get_unique_id())
         else
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "region (%llu,%llu,%u) that conflicts with previous inline "
+                        "region (%llu,%llu,%llu) that conflicts with previous inline "
                         "mapping in task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
                         req.region.index_space.get_id(), 
-                        req.region.field_space.get_id(), req.region.tree_id,
+                        req.region.field_space.get_id(), req.region.get_tree_id(),
                         get_task_name(), get_unique_id())
       }
       add_to_dependence_queue(attach_op, launcher.static_dependences);
@@ -7576,13 +7576,13 @@ namespace Legion {
         LogicalRegion handle = launcher.handles[index];
         if (handle.get_tree_id() != launcher.parent.get_tree_id())
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-              "Handle (%llu,%llu,%u) of index attach operation in parent task %s "
+              "Handle (%llu,%llu,%llu) of index attach operation in parent task %s "
               "(UID %lld) does not come from the same region tree as the "
-              "parent region (%llu,%llu,%u). All regions for an index space "
+              "parent region (%llu,%llu,%llu). All regions for an index space "
               "attach must be from the same tree.", handle.index_space.get_id(),
-              handle.field_space.get_id(), handle.tree_id, get_task_name(),
+              handle.field_space.get_id(), handle.get_tree_id(), get_task_name(),
               get_unique_id(), launcher.parent.index_space.get_id(),
-              launcher.parent.field_space.get_id(), launcher.parent.tree_id)
+              launcher.parent.field_space.get_id(), launcher.parent.get_tree_id())
         previous_nodes[idx] = runtime->get_node(handle);
         depths[idx] = previous_nodes[idx]->get_depth();
         if (max_depth < depths[idx])
@@ -7634,14 +7634,14 @@ namespace Legion {
             const LogicalRegion h1 = launcher.handles[it->second.front()];
             const LogicalRegion h2 = launcher.handles[it->second[idx]];
             REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
-              "Logical region handle (%llu,%llu,%u) from index %d of index attach "
+              "Logical region handle (%llu,%llu,%llu) from index %d of index attach "
               "operation in parent task %s (UID %lld) is not region-tree "
-              "disjoint with logical region handle (%llu,%llu,%u) from index %d. "
+              "disjoint with logical region handle (%llu,%llu,%llu) from index %d. "
               "All regions in index space attach operations must be "
               "region-tree disjoint.", h1.index_space.get_id(),
-              h1.field_space.get_id(), h1.tree_id, it->second.front(),
+              h1.field_space.get_id(), h1.get_tree_id(), it->second.front(),
               get_task_name(), get_unique_id(), h2.index_space.get_id(),
-              h2.field_space.get_id(), h2.tree_id, it->second[idx])
+              h2.field_space.get_id(), h2.get_tree_id(), it->second[idx])
           }
         }
         previous_nodes.swap(next_nodes);
@@ -17294,7 +17294,7 @@ namespace Legion {
       if (collective.second)
       {
         const LRBroadcast value = collective.first->get_value(false);
-        handle.tree_id = value.tid;
+        handle.tree_did = value.tid;
         double_buffer = value.double_buffer;
         // Have to register this before doing the broadcast
         runtime->create_node(handle, NULL/*parent*/, creation_bar,
@@ -17304,13 +17304,13 @@ namespace Legion {
         runtime->revoke_pending_region_tree(value.tid);
 #ifdef DEBUG_LEGION
         log_region.debug("Creating logical region in task %s (ID %lld) with "
-                         "index space %llu and field space %llu in new tree %d",
+                         "index space %llu and field space %llu in new tree %lld",
                          get_task_name(), get_unique_id(), index_space.get_id(), 
-                         field_space.get_id(), handle.tree_id);
+                         field_space.get_id(), handle.get_tree_id());
 #endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_region(index_space.get_id(), field_space.get_id(),
-              handle.tree_id, runtime->address_space,
+              handle.get_tree_id(), runtime->address_space,
               (provenance == NULL) ? NULL : provenance->human_str());
       }
       else
@@ -17322,7 +17322,7 @@ namespace Legion {
           done.wait();
         }
         const LRBroadcast value = collective.first->get_value(false);
-        handle.tree_id = value.tid;
+        handle.tree_did = value.tid;
         double_buffer = value.double_buffer;
 #ifdef DEBUG_LEGION
         assert(handle.exists());
@@ -17418,10 +17418,10 @@ namespace Legion {
       if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
             "Illegal call to create shared ownership for logical region "
-            "(%llu,%llu,%u in task %s (UID %lld) which is not a top-level logical "
+            "(%llu,%llu,%llu in task %s (UID %lld) which is not a top-level logical "
             "region. Legion only permits top-level logical regions to have "
             "shared ownerships.", handle.index_space.get_id(), handle.field_space.get_id(),
-            handle.tree_id, get_task_name(), get_unique_id())
+            handle.get_tree_id(), get_task_name(), get_unique_id())
       if (shard_manager->is_total_sharding() &&
           shard_manager->is_first_local_shard(owner_shard))
         runtime->create_shared_ownership(handle, true/*total sharding*/);
@@ -17463,10 +17463,10 @@ namespace Legion {
       // we shouldn't even be destroying it
       if (!runtime->is_top_level_region(handle))
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-            "Illegal call to destroy logical region (%llu,%llu,%u in task %s "
+            "Illegal call to destroy logical region (%llu,%llu,%llu in task %s "
             "(UID %lld) which is not a top-level logical region. Legion only "
             "permits top-level logical regions to be destroyed.", 
-            handle.index_space.get_id(), handle.field_space.get_id(), handle.tree_id,
+            handle.index_space.get_id(), handle.field_space.get_id(), handle.get_tree_id(),
             get_task_name(), get_unique_id())
       // Check to see if this is one that we should be allowed to destory
       {
@@ -17495,9 +17495,9 @@ namespace Legion {
           if (finder->second == 0)
           {
             REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_DELETION,
-                "Duplicate deletions were performed for region (%llu,%llu,%u) "
+                "Duplicate deletions were performed for region (%llu,%llu,%llu) "
                 "in task tree rooted by %s", handle.index_space.get_id(), 
-                handle.field_space.get_id(), handle.tree_id, get_task_name())
+                handle.field_space.get_id(), handle.get_tree_id(), get_task_name())
             return;
           }
           if (--finder->second > 0)
@@ -18364,22 +18364,22 @@ namespace Legion {
       PhysicalRegion result = map_op->initialize(this, launcher, provenance);
 #ifdef DEBUG_LEGION
       log_run.debug("Registering a map operation for region "
-                    "(%llu,%llu,%u) in task %s (ID %lld)",
+                    "(%llu,%llu,%llu) in task %s (ID %lld)",
                     launcher.requirement.region.index_space.get_id(), 
                     launcher.requirement.region.field_space.get_id(), 
-                    launcher.requirement.region.tree_id, 
+                    launcher.requirement.region.get_tree_id(), 
                     get_task_name(), get_unique_id());
 #endif
       map_op->initialize_replication(this); 
       if (current_trace != NULL)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%llu,%llu,%u) inside of trace %d of parent task %s "
+                      "(%llu,%llu,%llu) inside of trace %d of parent task %s "
                       "(ID %lld). It is illegal to perform inline mapping "
                       "operations inside of traces.",
                       launcher.requirement.region.index_space.get_id(), 
                       launcher.requirement.region.field_space.get_id(), 
-                      launcher.requirement.region.tree_id, 
+                      launcher.requirement.region.get_tree_id(), 
                       current_trace->tid, get_task_name(), get_unique_id())
       bool parent_conflict = false, inline_conflict = false;  
       const int index = 
@@ -18387,26 +18387,26 @@ namespace Legion {
       if (parent_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
           "Attempted an inline mapping of region "
-                      "(%llu,%llu,%u) that conflicts with mapped region " 
-                      "(%llu,%llu,%u) at index %d of parent task %s "
+                      "(%llu,%llu,%llu) that conflicts with mapped region " 
+                      "(%llu,%llu,%llu) at index %d of parent task %s "
                       "(ID %lld) that would ultimately result in "
                       "deadlock. Instead you receive this error message.",
                       launcher.requirement.region.index_space.get_id(),
                       launcher.requirement.region.field_space.get_id(),
-                      launcher.requirement.region.tree_id,
+                      launcher.requirement.region.get_tree_id(),
                       regions[index].region.index_space.get_id(),
                       regions[index].region.field_space.get_id(),
-                      regions[index].region.tree_id,
+                      regions[index].region.get_tree_id(),
                       index, get_task_name(), get_unique_id())
       if (inline_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
-          "Attempted an inline mapping of region (%llu,%llu,%u) "
+          "Attempted an inline mapping of region (%llu,%llu,%llu) "
                       "that conflicts with previous inline mapping in "
                       "task %s (ID %lld) that would ultimately result in "
                       "deadlock.  Instead you receive this error message.",
                       launcher.requirement.region.index_space.get_id(),
                       launcher.requirement.region.field_space.get_id(),
-                      launcher.requirement.region.tree_id,
+                      launcher.requirement.region.get_tree_id(),
                       get_task_name(), get_unique_id())
       register_inline_mapped_region(result);
       add_to_dependence_queue(map_op, launcher.static_dependences);
@@ -18445,10 +18445,10 @@ namespace Legion {
         const RegionRequirement &req = region.impl->get_requirement();
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
-                      "(%llu,%llu,%u) inside of trace %d of parent task %s "
+                      "(%llu,%llu,%llu) inside of trace %d of parent task %s "
                       "(ID %lld). It is illegal to perform inline mapping "
                       "operations inside of traces.", req.region.index_space.get_id(),
-                      req.region.field_space.get_id(), req.region.tree_id, 
+                      req.region.field_space.get_id(), req.region.get_tree_id(), 
                       current_trace->tid, get_task_name(), get_unique_id())
       }
       ReplMapOp *map_op = runtime->get_operation<ReplMapOp>();
@@ -19035,29 +19035,29 @@ namespace Legion {
       if (parent_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
           "Attempted an attach hdf5 file operation on region "
-                      "(%llu,%llu,%u) that conflicts with mapped region " 
-                      "(%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
+                      "(%llu,%llu,%llu) that conflicts with mapped region " 
+                      "(%llu,%llu,%llu) at index %d of parent task %s (ID %lld) "
                       "that would ultimately result in deadlock. Instead you "
                       "receive this error message. Try unmapping the region "
                       "before invoking attach_external_resource.",
                       launcher.handle.index_space.get_id(), 
                       launcher.handle.field_space.get_id(), 
-                      launcher.handle.tree_id, 
+                      launcher.handle.get_tree_id(), 
                       regions[index].region.index_space.get_id(),
                       regions[index].region.field_space.get_id(),
-                      regions[index].region.tree_id, index, 
+                      regions[index].region.get_tree_id(), index, 
                       get_task_name(), get_unique_id())
       if (inline_conflict)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
           "Attempted an attach hdf5 file operation on region "
-                      "(%llu,%llu,%u) that conflicts with previous inline "
+                      "(%llu,%llu,%llu) that conflicts with previous inline "
                       "mapping in task %s (ID %lld) "
                       "that would ultimately result in deadlock. Instead you "
                       "receive this error message. Try unmapping the region "
                       "before invoking attach_external_resource.",
                       launcher.handle.index_space.get_id(), 
                       launcher.handle.field_space.get_id(), 
-                      launcher.handle.tree_id, get_task_name(), 
+                      launcher.handle.get_tree_id(), get_task_name(), 
                       get_unique_id())
       // If we're counting this region as mapped we need to register it
       if (launcher.mapped)
@@ -19129,32 +19129,32 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "partition (%llu,%llu,%u) that conflicts with mapped region"
-                        " (%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
+                        "partition (%llu,%llu,%llu) that conflicts with mapped region"
+                        " (%llu,%llu,%llu) at index %d of parent task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
                         req.partition.index_partition.get_id(), 
                         req.partition.field_space.get_id(), 
-                        req.partition.tree_id, 
+                        req.partition.get_tree_id(), 
                         regions[index].region.index_space.get_id(),
                         regions[index].region.field_space.get_id(),
-                        regions[index].region.tree_id, index, 
+                        regions[index].region.get_tree_id(), index, 
                         get_task_name(), get_unique_id())
         else
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "region (%llu,%llu,%u) that conflicts with mapped region "
-                        "(%llu,%llu,%u) at index %d of parent task %s (ID %lld) "
+                        "region (%llu,%llu,%llu) that conflicts with mapped region "
+                        "(%llu,%llu,%llu) at index %d of parent task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
                         req.region.index_space.get_id(), 
                         req.region.field_space.get_id(), 
-                        req.region.tree_id, 
+                        req.region.get_tree_id(), 
                         regions[index].region.index_space.get_id(),
                         regions[index].region.field_space.get_id(),
-                        regions[index].region.tree_id, index, 
+                        regions[index].region.get_tree_id(), index, 
                         get_task_name(), get_unique_id())
       }
       if (inline_conflict)
@@ -19162,24 +19162,24 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "partition (%llu,%llu,%u) that conflicts with previous "
+                        "partition (%llu,%llu,%llu) that conflicts with previous "
                         "inline mapping in task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
                         req.partition.index_partition.get_id(), 
-                        req.partition.field_space.get_id(), req.partition.tree_id,
+                        req.partition.field_space.get_id(), req.partition.get_tree_id(),
                         get_task_name(), get_unique_id())
         else
           REPORT_LEGION_ERROR(ERROR_ATTEMPTED_EXTERNAL_ATTACH,
                         "Attempted an index attach operation with upper bound "
-                        "region (%llu,%llu,%u) that conflicts with previous inline "
+                        "region (%llu,%llu,%llu) that conflicts with previous inline "
                         "mapping in task %s (ID %lld) "
                         "that would ultimately result in deadlock. Instead you "
                         "receive this error message. Try unmapping the region "
                         "before invoking 'attach_external_resources'.",
                         req.region.index_space.get_id(), 
-                        req.region.field_space.get_id(), req.region.tree_id,
+                        req.region.field_space.get_id(), req.region.get_tree_id(),
                         get_task_name(), get_unique_id())
       }
       add_to_dependence_queue(attach_op, launcher.static_dependences);
@@ -20940,10 +20940,10 @@ namespace Legion {
           {
             if (local_regions.find(rit->region) != local_regions.end())
               REPORT_LEGION_ERROR(ERROR_ILLEGAL_RESOURCE_DESTRUCTION,
-                  "Local logical region (%llu,%llu,%u) in task %s (UID %lld) was "
+                  "Local logical region (%llu,%llu,%llu) in task %s (UID %lld) was "
                   "not deleted by this task. Local regions can only be deleted "
                   "by the task that made them.", rit->region.index_space.get_id(),
-                  rit->region.field_space.get_id(), rit->region.tree_id, 
+                  rit->region.field_space.get_id(), rit->region.get_tree_id(), 
                   get_task_name(), get_unique_id())
             // Deletion keeps going up
             deleted_regions.push_back(*rit);

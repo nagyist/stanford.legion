@@ -394,7 +394,7 @@ namespace Legion {
       wrap(LogicalRegion r)
       {
         legion_logical_region_t r_;
-        r_.tree_id = r.tree_id;
+        r_.tree_id = r.tree_did;
         r_.index_space = wrap(r.index_space);
         r_.field_space = wrap(r.field_space);
         return r_;
@@ -413,7 +413,7 @@ namespace Legion {
       wrap(LogicalPartition r)
       {
         legion_logical_partition_t r_;
-        r_.tree_id = r.tree_id;
+        r_.tree_id = r.tree_did;
         r_.index_partition = wrap(r.index_partition);
         r_.field_space = wrap(r.field_space);
         return r_;

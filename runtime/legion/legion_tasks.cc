@@ -26,8 +26,6 @@
 
 #include <algorithm>
 
-#define PRINT_REG(reg) (reg).index_space.get_id(), (reg).field_space.get_id(), (reg).tree_id
-
 namespace Legion {
   namespace Internal {
 
@@ -1149,24 +1147,24 @@ namespace Legion {
           case ERROR_INVALID_REGION_HANDLE:
             {
               REPORT_LEGION_ERROR(ERROR_INVALID_REGION_HANDLE,
-                               "Invalid region handle (%llu,%llu,%u)"
+                               "Invalid region handle (%llu,%llu,%llu)"
                                " for region requirement %d of task %s "
                                "(ID %lld)",
                                regions[idx].region.index_space.get_id(),
                                regions[idx].region.field_space.get_id(),
-                               regions[idx].region.tree_id, idx,
+                               regions[idx].region.get_tree_id(), idx,
                                get_task_name(), get_unique_id())
               break;
             }
           case ERROR_INVALID_PARTITION_HANDLE:
             {
               REPORT_LEGION_ERROR(ERROR_INVALID_PARTITION_HANDLE,
-                               "Invalid partition handle (%llu,%llu,%u) "
+                               "Invalid partition handle (%llu,%llu,%llu) "
                                "for partition requirement %d of task %s "
                                "(ID %lld)",
                                regions[idx].partition.index_partition.get_id(),
                                regions[idx].partition.field_space.get_id(),
-                               regions[idx].partition.tree_id, idx,
+                               regions[idx].partition.get_tree_id(), idx,
                                get_task_name(), get_unique_id())
               break;
             }
@@ -1230,7 +1228,7 @@ namespace Legion {
                                  "Parent task %s (ID %lld) of task %s "
                                  "(ID %lld) does not have a region "
                                  "requirement for region "
-                                 "(%llu,%llu,%u) as a parent of child task's "
+                                 "(%llu,%llu,%llu) as a parent of child task's "
                                  "region requirement index %d because "
                                  "no 'parent' region had that name.",
                                  parent_ctx->get_task_name(),
@@ -1238,13 +1236,13 @@ namespace Legion {
                                  get_task_name(), get_unique_id(),
                                  regions[idx].parent.index_space.get_id(),
                                  regions[idx].parent.field_space.get_id(),
-                                 regions[idx].parent.tree_id, idx)
+                                 regions[idx].parent.get_tree_id(), idx)
               else if (bad_field == LEGION_AUTO_GENERATE_ID) 
                 REPORT_LEGION_ERROR(ERROR_PARENT_TASK_TASK,
                                  "Parent task %s (ID %lld) of task %s "
                                  "(ID %lld) does not have a region "
                                  "requirement for region "
-                                 "(%llu,%llu,%u) as a parent of child task's "
+                                 "(%llu,%llu,%llu) as a parent of child task's "
                                  "region requirement index %d because "
                                  "parent requirement %d did not have "
                                  "sufficient privileges.",
@@ -1253,13 +1251,13 @@ namespace Legion {
                                  get_task_name(), get_unique_id(),
                                  regions[idx].parent.index_space.get_id(),
                                  regions[idx].parent.field_space.get_id(),
-                                 regions[idx].parent.tree_id, idx, bad_index)
+                                 regions[idx].parent.get_tree_id(), idx, bad_index)
               else 
                 REPORT_LEGION_ERROR(ERROR_PARENT_TASK_TASK,
                                  "Parent task %s (ID %lld) of task %s "
                                  "(ID %lld) does not have a region "
                                  "requirement for region "
-                                 "(%llu,%llu,%u) as a parent of child task's "
+                                 "(%llu,%llu,%llu) as a parent of child task's "
                                  "region requirement index %d because "
                                  "parent requirement %d was missing field %d.",
                                  parent_ctx->get_task_name(),
@@ -1267,36 +1265,40 @@ namespace Legion {
                                  get_task_name(), get_unique_id(),
                                  regions[idx].parent.index_space.get_id(),
                                  regions[idx].parent.field_space.get_id(),
-                                 regions[idx].parent.tree_id, idx,
+                                 regions[idx].parent.get_tree_id(), idx,
                                  bad_index, bad_field)
               break;
             }
           case ERROR_BAD_REGION_PATH:
             {
               REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                               "Region (%llu,%llu,%u) is not a "
+                               "Region (%llu,%llu,%llu) is not a "
                                "sub-region of parent region "
-                               "(%llu,%llu,%u) for region requirement %d of "
+                               "(%llu,%llu,%llu) for region requirement %d of "
                                "task %s (ID %lld)",
                                regions[idx].region.index_space.get_id(),
                                regions[idx].region.field_space.get_id(),
-                               regions[idx].region.tree_id,
-                               PRINT_REG(regions[idx].parent), idx,
-                               get_task_name(), get_unique_id())
+                               regions[idx].region.get_tree_id(),
+                               regions[idx].parent.index_space.get_id(),
+                               regions[idx].parent.field_space.get_id(),
+                               regions[idx].parent.get_tree_id(),
+                               idx, get_task_name(), get_unique_id())
               break;
             }
           case ERROR_BAD_PARTITION_PATH:
             {
               REPORT_LEGION_ERROR(ERROR_PARTITION_NOT_SUBPARTITION,
-                               "Partition (%llu,%llu,%u) is not a "
+                               "Partition (%llu,%llu,%llu) is not a "
                                "sub-partition of parent region "
-                               "(%llu,%llu,%u) for region "
+                               "(%llu,%llu,%llu) for region "
                                "requirement %d task %s (ID %lld)",
                                regions[idx].partition.index_partition.get_id(),
                                regions[idx].partition.field_space.get_id(),
-                               regions[idx].partition.tree_id,
-                               PRINT_REG(regions[idx].parent), idx,
-                               get_task_name(), get_unique_id())
+                               regions[idx].partition.get_tree_id(),
+                               regions[idx].parent.index_space.get_id(),
+                               regions[idx].parent.field_space.get_id(),
+                               regions[idx].parent.get_tree_id(),
+                               idx, get_task_name(), get_unique_id())
               break;
             }
           case ERROR_BAD_REGION_TYPE:
@@ -1314,21 +1316,21 @@ namespace Legion {
             {
               REPORT_LEGION_ERROR(ERROR_PRIVILEGES_REGION_NOTSUBSET,
                                "Privileges %x for region "
-                               "(%llu,%llu,%u) are not a subset of privileges "
+                               "(%llu,%llu,%llu) are not a subset of privileges "
                                "of parent task's privileges for "
                                "region requirement %d of task %s "
                                "(ID %lld)",
                                regions[idx].privilege,
                                regions[idx].region.index_space.get_id(),
                                regions[idx].region.field_space.get_id(),
-                               regions[idx].region.tree_id, idx,
+                               regions[idx].region.get_tree_id(), idx,
                                get_task_name(), get_unique_id())
               break;
             }
           case ERROR_BAD_PARTITION_PRIVILEGES:
             {
               REPORT_LEGION_ERROR(ERROR_PRIVILEGES_PARTITION_NOTSUBSET,
-                               "Privileges %x for partition (%llu,%llu,%u) "
+                               "Privileges %x for partition (%llu,%llu,%llu) "
                                "are not a subset of privileges of parent "
                                "task's privileges for "
                                "region requirement %d of task %s "
@@ -1336,7 +1338,7 @@ namespace Legion {
                                regions[idx].privilege,
                                regions[idx].partition.index_partition.get_id(),
                                regions[idx].partition.field_space.get_id(),
-                               regions[idx].partition.tree_id, idx,
+                               regions[idx].partition.get_tree_id(), idx,
                                get_task_name(), get_unique_id())
               break;
             }
@@ -1811,7 +1813,7 @@ namespace Legion {
           continue;
         unsigned idx = 0;
         bool first = true;
-        RegionTreeID tree_id = 0;
+        DistributedID tree_id = 0;
         FieldSpaceNode *field_space_node = NULL;
         std::map<unsigned/*field index*/,
           std::pair<PhysicalManager*,unsigned> > colocation_instances;
@@ -1902,7 +1904,7 @@ namespace Legion {
                             "specified on region requirements %d and %d of "
                             "variant %d of task %s, but region requirements "
                             "contain regions that from different region trees "
-                            "(%d and %d). Colocation constraints must always "
+                            "(%lld and %lld). Colocation constraints must always "
                             "be specified on region requirements with regions "
                             "from the same region tree.", 
                             *(con_it->indexes.begin()), *iit, impl->vid,
@@ -1989,14 +1991,14 @@ namespace Legion {
                            "Parent task %s (ID %lld) of task %s "
                            "(ID %lld) does not have a region "
                            "requirement for region "
-                           "(%llu,%llu,%u) as a parent of child task's "
+                           "(%llu,%llu,%llu) as a parent of child task's "
                            "region requirement index %d",
                            use_ctx->get_task_name(), 
                            use_ctx->get_unique_id(),
                            get_task_name(), get_unique_id(),
                            logical_regions[idx].parent.index_space.get_id(),
                            logical_regions[idx].parent.field_space.get_id(), 
-                           logical_regions[idx].parent.tree_id, idx)
+                           logical_regions[idx].parent.get_tree_id(), idx)
         parent_req_indexes[idx] = parent_index;
       }
     }
@@ -2042,8 +2044,8 @@ namespace Legion {
                 req.partition.index_partition.get_id(),
           reg ? req.region.field_space.get_id() :
                 req.partition.field_space.get_id(),
-          reg ? req.region.tree_id : 
-                req.partition.tree_id,
+          reg ? req.region.get_tree_id() : 
+                req.partition.get_tree_id(),
           req.privilege, req.prop, req.redop, req.parent.index_space.get_id());
       LegionSpy::log_requirement_fields(uid, idx, req.privilege_fields);
       if (proj)
@@ -3096,8 +3098,8 @@ namespace Legion {
           REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                         "Invalid mapper output from invocation of '%s' on "
                         "mapper %s. Mapper specified an instance from region "
-                        "tree %d for use with region requirement %d of task "
-                        "%s (ID %lld) whose region is from region tree %d.",
+                        "tree %lld for use with region requirement %d of task "
+                        "%s (ID %lld) whose region is from region tree %lld.",
                         "map_task",mapper->get_mapper_name(), bad_tree,
                         idx, get_task_name(), get_unique_id(),
                         regions[idx].region.get_tree_id())
@@ -4439,9 +4441,9 @@ namespace Legion {
           REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                         "Invalid mapper output from 'postmap_task' invocation "
                         "on mapper %s. Mapper provided an instance from region "
-                        "tree %d for use in satisfying region requirement %d "
+                        "tree %lld for use in satisfying region requirement %d "
                         "of task %s (ID %lld) whose region is from region tree "
-                        "%d.", mapper->get_mapper_name(), bad_tree,
+                        "%lld.", mapper->get_mapper_name(), bad_tree,
                         idx, get_task_name(), get_unique_id(), 
                         regions[idx].region.get_tree_id())
         if (!unacquired.empty())
@@ -12661,8 +12663,6 @@ namespace Legion {
     
   }; // namespace Internal 
 }; // namespace Legion 
-
-#undef PRINT_REG
 
 // EOF
 

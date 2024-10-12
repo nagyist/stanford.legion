@@ -17743,10 +17743,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    inline DistributedID IndexSpace::get_id(void) const
+    inline DistributedID IndexSpace::get_id(bool filter) const
     //--------------------------------------------------------------------------
     {
-      return LEGION_DISTRIBUTED_ID_FILTER(did);
+      if (filter)
+        return LEGION_DISTRIBUTED_ID_FILTER(did);
+      else
+        return did;
     }
 
     //--------------------------------------------------------------------------
@@ -17789,7 +17792,7 @@ namespace Legion {
                                                           const IndexSpace &rhs)
     //--------------------------------------------------------------------------
     {
-      did = rhs.get_id();
+      did = rhs.get_id(false);
       tid = rhs.get_tree_id();
       type_tag = rhs.get_type_tag();
       Internal::NT_TemplateHelper::template check_type<DIM,T>(type_tag);
@@ -17850,10 +17853,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    inline DistributedID IndexPartition::get_id(void) const
+    inline DistributedID IndexPartition::get_id(bool filter) const
     //--------------------------------------------------------------------------
     {
-      return LEGION_DISTRIBUTED_ID_FILTER(did);
+      if (filter)
+        return LEGION_DISTRIBUTED_ID_FILTER(did);
+      else
+        return did;
     }
 
     //--------------------------------------------------------------------------
@@ -17897,7 +17903,7 @@ namespace Legion {
                                                       const IndexPartition &rhs)
     //--------------------------------------------------------------------------
     {
-      did = rhs.get_id();
+      did = rhs.get_id(false);
       tid = rhs.get_tree_id();
       type_tag = rhs.get_type_tag();
       Internal::NT_TemplateHelper::template check_type<DIM,T>(type_tag);
@@ -17940,17 +17946,30 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    inline DistributedID FieldSpace::get_id(void) const
+    inline DistributedID FieldSpace::get_id(bool filter) const
     //--------------------------------------------------------------------------
     {
-      return LEGION_DISTRIBUTED_ID_FILTER(did);
+      if (filter)
+        return LEGION_DISTRIBUTED_ID_FILTER(did);
+      else
+        return did;
+    }
+
+    //--------------------------------------------------------------------------
+    inline RegionTreeID LogicalRegion::get_tree_id(bool filter) const
+    //--------------------------------------------------------------------------
+    {
+      if (filter)
+        return LEGION_DISTRIBUTED_ID_FILTER(tree_did);
+      else
+        return tree_did;
     }
 
     //--------------------------------------------------------------------------
     inline bool LogicalRegion::operator==(const LogicalRegion &rhs) const
     //--------------------------------------------------------------------------
     {
-      return ((tree_id == rhs.tree_id) && (index_space == rhs.index_space) 
+      return ((tree_did == rhs.tree_did) && (index_space == rhs.index_space) 
               && (field_space == rhs.field_space));
     }
 
@@ -17965,9 +17984,9 @@ namespace Legion {
     inline bool LogicalRegion::operator<(const LogicalRegion &rhs) const
     //--------------------------------------------------------------------------
     {
-      if (tree_id < rhs.tree_id)
+      if (tree_did < rhs.tree_did)
         return true;
-      else if (tree_id > rhs.tree_id)
+      else if (tree_did > rhs.tree_did)
         return false;
       else
       {
@@ -17982,7 +18001,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    LogicalRegionT<DIM,T>::LogicalRegionT(RegionTreeID tid, 
+    LogicalRegionT<DIM,T>::LogicalRegionT(DistributedID tid, 
                                           IndexSpace is, FieldSpace fs)
       : LogicalRegion(tid, is, fs)
     //--------------------------------------------------------------------------
@@ -18002,7 +18021,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     LogicalRegionT<DIM,T>::LogicalRegionT(const LogicalRegion &rhs)
-      : LogicalRegion(rhs.get_tree_id(), rhs.get_index_space(), 
+      : LogicalRegion(rhs.get_tree_id(false), rhs.get_index_space(), 
                       rhs.get_field_space())
     //--------------------------------------------------------------------------
     {
@@ -18016,7 +18035,7 @@ namespace Legion {
                                                        const LogicalRegion &rhs)
     //--------------------------------------------------------------------------
     {
-      tree_id = rhs.get_tree_id();
+      tree_did = rhs.get_tree_id(false);
       index_space = rhs.get_index_space();
       field_space = rhs.get_field_space();
       Internal::NT_TemplateHelper::template check_type<DIM,T>(
@@ -18025,10 +18044,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    inline RegionTreeID LogicalPartition::get_tree_id(bool filter) const
+    //--------------------------------------------------------------------------
+    {
+      if (filter)
+        return LEGION_DISTRIBUTED_ID_FILTER(tree_did);
+      else
+        return tree_did;
+    }
+
+    //--------------------------------------------------------------------------
     inline bool LogicalPartition::operator==(const LogicalPartition &rhs) const
     //--------------------------------------------------------------------------
     {
-      return ((tree_id == rhs.tree_id) && 
+      return ((tree_did == rhs.tree_did) && 
               (index_partition == rhs.index_partition) && 
               (field_space == rhs.field_space));
     }
@@ -18044,9 +18073,9 @@ namespace Legion {
     inline bool LogicalPartition::operator<(const LogicalPartition &rhs) const
     //--------------------------------------------------------------------------
     {
-      if (tree_id < rhs.tree_id)
+      if (tree_did < rhs.tree_did)
         return true;
-      else if (tree_id > rhs.tree_id)
+      else if (tree_did > rhs.tree_did)
         return false;
       else
       {
@@ -18061,7 +18090,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    LogicalPartitionT<DIM,T>::LogicalPartitionT(RegionTreeID tid, 
+    LogicalPartitionT<DIM,T>::LogicalPartitionT(DistributedID tid, 
                                               IndexPartition pid, FieldSpace fs)
       : LogicalPartition(tid, pid, fs)
     //--------------------------------------------------------------------------
@@ -18081,7 +18110,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     LogicalPartitionT<DIM,T>::LogicalPartitionT(const LogicalPartition &rhs)
-      : LogicalPartition(rhs.get_tree_id(), rhs.get_index_partition(), 
+      : LogicalPartition(rhs.get_tree_id(false), rhs.get_index_partition(), 
                          rhs.get_field_space())
     //--------------------------------------------------------------------------
     {
@@ -18095,7 +18124,7 @@ namespace Legion {
                                                     const LogicalPartition &rhs)
     //--------------------------------------------------------------------------
     {
-      tree_id = rhs.get_tree_id();
+      tree_did = rhs.get_tree_id(false);
       index_partition = rhs.get_index_partition();
       field_space = rhs.get_field_space();
       Internal::NT_TemplateHelper::template check_type<DIM,T>(
@@ -21741,8 +21770,18 @@ namespace Legion {
     inline std::ostream& operator<<(std::ostream& os, const LogicalRegion& lr)
     //--------------------------------------------------------------------------
     {
-      os << "LogicalRegion(" << lr.tree_id << "," 
-         << lr.index_space << "," << lr.field_space << ")";
+      Runtime *runtime = Runtime::get_runtime();
+      const void *name = NULL;
+      size_t size = 0;
+      if (runtime->retrieve_semantic_information(lr, LEGION_NAME_SEMANTIC_TAG,
+            name, size, true/*can fail*/, false/*wait until ready*/))
+      {
+        std::string_view view(static_cast<const char*>(name), size);
+        os << view;
+      }
+      else
+        os << "(is=" << lr.get_index_space() << ", fs=" << lr.get_field_space()
+           << ", root=" << lr.get_tree_id() << ")";
       return os;
     }
 
@@ -21750,8 +21789,18 @@ namespace Legion {
     inline std::ostream& operator<<(std::ostream& os,const LogicalPartition& lp)
     //--------------------------------------------------------------------------
     {
-      os << "LogicalPartition(" << lp.tree_id << "," 
-         << lp.index_partition << "," << lp.field_space << ")";
+      Runtime *runtime = Runtime::get_runtime();
+      const void *name = NULL;
+      size_t size = 0;
+      if (runtime->retrieve_semantic_information(lp, LEGION_NAME_SEMANTIC_TAG,
+            name, size, true/*can fail*/, false/*wait until ready*/))
+      {
+        std::string_view view(static_cast<const char*>(name), size);
+        os << view;
+      }
+      else
+        os << "(is=" << lp.get_index_partition() << ", fs=" 
+           << lp.get_field_space() << ", root=" << lp.get_tree_id() << ")";
       return os;
     }
 

@@ -1031,10 +1031,10 @@ namespace Legion {
       // Logger calls for mapping dependence analysis 
       static inline void log_logical_requirement(UniqueID unique_id, 
           unsigned index, bool region, DistributedID index_component,
-          DistributedID field_component, unsigned tree_id, unsigned privilege,
+          DistributedID field_component, DistributedID tree_id, unsigned privilege,
           unsigned coherence, unsigned redop, DistributedID parent_index)
       {
-        log_spy.print("Logical Requirement %llu %u %u %llu %llu %u "
+        log_spy.print("Logical Requirement %llu %u %u %llu %llu %llu "
 		      "%u %u %u %llu", unique_id, index, region, 
                       index_component, field_component, tree_id,
 		      privilege, coherence, redop, parent_index);
@@ -1290,7 +1290,7 @@ namespace Legion {
                                                ReductionOpID redop)
       {
         log_spy.print("Physical Instance " IDFMT " " IDFMT " " IDFMT 
-                      " %d %lld %lld %d", inst_event.id, inst_id, mem_id, redop, 
+                      " %d %lld %lld %lld", inst_event.id, inst_id, mem_id, redop, 
                       expr_id, handle.get_id(), tid);
       }
 
@@ -1311,7 +1311,7 @@ namespace Legion {
       static inline void log_physical_instance_creation_region(
                                       LgEvent inst_event, LogicalRegion handle)
       {
-        log_spy.print("Physical Instance Creation Region " IDFMT " %lld %lld %d",
+        log_spy.print("Physical Instance Creation Region " IDFMT " %lld %lld %lld",
                       inst_event.id, handle.get_index_space().get_id(), 
                       handle.get_field_space().get_id(), handle.get_tree_id());
       }

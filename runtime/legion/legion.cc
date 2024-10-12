@@ -326,16 +326,20 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    LogicalRegion::LogicalRegion(RegionTreeID tid, IndexSpace index, 
+    LogicalRegion::LogicalRegion(DistributedID tid, IndexSpace index, 
                                  FieldSpace field)
-      : tree_id(tid), index_space(index), field_space(field)
+      : tree_did(tid), index_space(index), field_space(field)
     //--------------------------------------------------------------------------
     {
+#ifdef DEBUG_LEGION
+      assert((LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
+          Internal::REGION_TREE_NODE_DC) || (tid == 0));
+#endif
     }
 
     //--------------------------------------------------------------------------
     LogicalRegion::LogicalRegion(void)
-      : tree_id(0), index_space(IndexSpace::NO_SPACE), 
+      : tree_did(0), index_space(IndexSpace::NO_SPACE), 
         field_space(FieldSpace::NO_SPACE)
     //--------------------------------------------------------------------------
     {
@@ -346,7 +350,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Internal::Murmur3Hasher hasher;
-      hasher.hash(tree_id);
+      hasher.hash(tree_did);
       hasher.hash(index_space.hash());
       hasher.hash(field_space.hash());
       uint64_t result[2];
@@ -359,16 +363,20 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    LogicalPartition::LogicalPartition(RegionTreeID tid, IndexPartition pid, 
+    LogicalPartition::LogicalPartition(DistributedID tid, IndexPartition pid, 
                                        FieldSpace field)
-      : tree_id(tid), index_partition(pid), field_space(field)
+      : tree_did(tid), index_partition(pid), field_space(field)
     //--------------------------------------------------------------------------
     {
+#ifdef DEBUG_LEGION
+      assert((LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
+          Internal::REGION_TREE_NODE_DC) || (tid == 0));
+#endif
     }
 
     //--------------------------------------------------------------------------
     LogicalPartition::LogicalPartition(void)
-      : tree_id(0), index_partition(IndexPartition::NO_PART), 
+      : tree_did(0), index_partition(IndexPartition::NO_PART), 
         field_space(FieldSpace::NO_SPACE)
     //--------------------------------------------------------------------------
     {
@@ -379,7 +387,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Internal::Murmur3Hasher hasher;
-      hasher.hash(tree_id);
+      hasher.hash(tree_did);
       hasher.hash(index_partition.hash());
       hasher.hash(field_space.hash());
       uint64_t result[2];

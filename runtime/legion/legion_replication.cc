@@ -7061,13 +7061,13 @@ namespace Legion {
           if (!runtime->are_disjoint(spaces[idx1], spaces[idx2]))
             REPORT_LEGION_ERROR(ERROR_INDEX_SPACE_ATTACH,
                 "Index attach operation (UID %lld) in parent task %s "
-                "(UID %lld) has interfering attachments to regions (%llu,%llu,%u) "
-                "and (%llu,%llu,%u). All regions must be non-interfering",
+                "(UID %lld) has interfering attachments to regions (%llu,%llu,%llu) "
+                "and (%llu,%llu,%llu). All regions must be non-interfering",
                 unique_op_id, parent_ctx->get_task_name(),
                 parent_ctx->get_unique_id(), spaces[idx1].get_id(),
-                requirement.parent.field_space.get_id(), requirement.parent.tree_id,
+                requirement.parent.field_space.get_id(), requirement.parent.get_tree_id(),
                 spaces[idx2].get_id(), requirement.parent.field_space.get_id(),
-                requirement.parent.tree_id)
+                requirement.parent.get_tree_id())
         }
       }
     }

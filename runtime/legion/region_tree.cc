@@ -1432,7 +1432,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No lock needed for this one
-      return LogicalPartition(parent.tree_id, handle, parent.field_space);
+      return LogicalPartition(parent.tree_did, handle, parent.field_space);
     }
 
     //--------------------------------------------------------------------------
@@ -1442,7 +1442,7 @@ namespace Legion {
     {
       RegionNode *parent_node = get_node(parent);
       IndexPartNode *index_node = parent_node->row_source->get_child(c);
-      LogicalPartition result(parent.tree_id, index_node->handle, 
+      LogicalPartition result(parent.tree_did, index_node->handle, 
                               parent.field_space);
       return result;
     }
@@ -1471,7 +1471,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No lock needed for this one
-      return LogicalRegion(parent.tree_id, handle, parent.field_space);
+      return LogicalRegion(parent.tree_did, handle, parent.field_space);
     }
     
     //--------------------------------------------------------------------------
@@ -1485,11 +1485,11 @@ namespace Legion {
       if (!color_space->contains_point(realm_color, type_tag))
         REPORT_LEGION_ERROR(ERROR_INVALID_INDEX_SPACE_COLOR,
                             "Invalid color space color for child %lld of "
-                            "logical partition (%llu,%llu,%u)", color,
+                            "logical partition (%llu,%llu,%llu)", color,
                             parent.index_partition.get_id(), parent.field_space.get_id(),
-                            parent.tree_id)
+                            parent.get_tree_id())
       IndexSpaceNode *index_node = parent_node->row_source->get_child(color);
-      LogicalRegion result(parent.tree_id, index_node->handle,
+      LogicalRegion result(parent.tree_did, index_node->handle,
                            parent.field_space);
       return result;
     }
@@ -1577,12 +1577,12 @@ namespace Legion {
       if (node->parent == NULL)
         REPORT_LEGION_ERROR(ERROR_PARENT_LOGICAL_PARTITION_REQUESTED,
           "Parent logical partition requested for "
-                            "logical region (%llu,%llu,%u) with no parent. "
+                            "logical region (%llu,%llu,%llu) with no parent. "
                             "Use has_parent_logical_partition to check "
                             "before requesting a parent.", 
                             handle.index_space.get_id(),
                             handle.field_space.get_id(),
-                            handle.tree_id)
+                            handle.get_tree_id())
       return node->parent->handle;
     }
 
@@ -3530,7 +3530,7 @@ namespace Legion {
       if (parent != NULL)
       {
         assert(r.field_space == parent->handle.field_space);
-        assert(r.tree_id == parent->handle.tree_id);
+        assert(r.tree_did == parent->handle.tree_did);
       }
 #endif
       // Special case for root nodes without dids, we better find them
@@ -3591,10 +3591,10 @@ namespace Legion {
         if (parent == NULL)
         {
 #ifdef DEBUG_LEGION
-          assert(tree_nodes.find(r.tree_id) == tree_nodes.end());
+          assert(tree_nodes.find(r.get_tree_id()) == tree_nodes.end());
 #endif
-          tree_nodes[r.tree_id] = result;
-          region_tree_requests.erase(r.tree_id);
+          tree_nodes[r.get_tree_id()] = result;
+          region_tree_requests.erase(r.get_tree_id());
           // If we're the root we get a valid reference on the owner
           // node otherwise we get a gc ref from the owner node
           if (result->is_owner())
@@ -3613,7 +3613,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(parent != NULL);
       assert(p.field_space == parent->handle.field_space);
-      assert(p.tree_id == parent->handle.tree_id);
+      assert(p.tree_did == parent->handle.tree_did);
 #endif
       RtEvent row_ready, col_ready;
       IndexPartNode *row_src = get_node(p.index_partition, &row_ready);
@@ -4152,7 +4152,7 @@ namespace Legion {
           }
           else
             REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
-              "Unable to find entry for logical region tree %d.",
+              "Unable to find entry for logical region tree %lld.",
                              handle.get_tree_id());
         }
         {
@@ -4223,7 +4223,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(index_node->parent != NULL);
 #endif
-        LogicalPartition parent_handle(handle.tree_id, 
+        LogicalPartition parent_handle(handle.tree_did, 
                               index_node->parent->handle, handle.field_space);
         // Note this request can recursively build more nodes, but we
         // are guaranteed that the top level node exists
@@ -4294,7 +4294,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(index_node->parent != NULL);
 #endif
-      LogicalRegion parent_handle(handle.tree_id, index_node->parent->handle,
+      LogicalRegion parent_handle(handle.tree_did, index_node->parent->handle,
                                   handle.field_space);
       // Note this request can recursively build more nodes, but we
       // are guaranteed that the top level node exists
@@ -4375,7 +4375,7 @@ namespace Legion {
           return NULL;
         else
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
-            "Unable to find entry for region tree ID %d", tid)
+            "Unable to find entry for region tree ID %lld", tid)
       }
       {
         // Retake the lock in exclusive mode and check to
@@ -4412,7 +4412,7 @@ namespace Legion {
           return NULL;
         REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_TOPLEVEL_TREE,
           "Unable to find top-level tree entry for "
-                         "region tree %d.  This is either a runtime "
+                         "region tree %lld.  This is either a runtime "
                          "bug or requires Legion fences if names are "
                          "being returned out of the context in which"
                          "they are being created.", tid)
@@ -16814,7 +16814,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(index_part != NULL);
 #endif
-      LogicalPartition part_handle(handle.tree_id, index_part->handle,
+      LogicalPartition part_handle(handle.tree_did, index_part->handle,
                                    handle.field_space);
       return runtime->create_node(part_handle, this);
     }
@@ -17593,7 +17593,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(index_node != NULL);
 #endif
-      LogicalRegion reg_handle(handle.tree_id, index_node->handle,
+      LogicalRegion reg_handle(handle.tree_did, index_node->handle,
                                handle.field_space);
       return runtime->create_node(reg_handle, this, 
                                   RtEvent::NO_RT_EVENT, 0/*did*/);

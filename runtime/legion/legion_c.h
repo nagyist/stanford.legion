@@ -272,7 +272,7 @@ extern "C" {
    * @see Legion::LogicalRegion
    */
   typedef struct legion_logical_region_t {
-    legion_region_tree_id_t tree_id;
+    legion_distributed_id_t tree_id;
     legion_index_space_t index_space;
     legion_field_space_t field_space;
   } legion_logical_region_t;
@@ -281,7 +281,7 @@ extern "C" {
    * @see Legion::LogicalPartition
    */
   typedef struct legion_logical_partition_t {
-    legion_region_tree_id_t tree_id;
+    legion_distributed_id_t tree_id;
     legion_index_partition_t index_partition;
     legion_field_space_t field_space;
   } legion_logical_partition_t;

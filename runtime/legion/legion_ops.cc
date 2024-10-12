@@ -1811,7 +1811,7 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_UNINITIALIZED_USE,
                       "Region requirement %d of operation %s (UID %lld%s) in "
                       "parent task %s (UID %lld) is using uninitialized data "
-                      "for field(s) %s of logical region (%lld,%lld,%d) with "
+                      "for field(s) %s of logical region (%lld,%lld,%lld) with "
                       "read-only privileges", index, get_logging_name(), 
                       get_unique_op_id(), prov_str.c_str(),
                       parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
@@ -1822,7 +1822,7 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_UNINITIALIZED_USE,
                       "Region requirement %d of operation %s (UID %lld%s) in "
                       "parent task %s (UID %lld) is using uninitialized data "
-                      "for field(s) %s of logical region (%lld,%lld,%d) with "
+                      "for field(s) %s of logical region (%lld,%lld,%lld) with "
                       "reduction privileges", index, get_logging_name(), 
                       get_unique_op_id(), prov_str.c_str(),
                       parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
@@ -1834,7 +1834,7 @@ namespace Legion {
         REPORT_LEGION_WARNING(LEGION_WARNING_UNINITIALIZED_USE,
                       "Region requirement %d of operation %s (UID %lld%s) in "
                       "parent task %s (UID %lld) is using uninitialized data "
-                      "for field(s) %s of logical region (%lld,%lld,%d)", index,
+                      "for field(s) %s of logical region (%lld,%lld,%lld)", index,
                       get_logging_name(), get_unique_op_id(), prov_str.c_str(),
                       parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
                       field_string, req.region.get_index_space().get_id(),
@@ -4628,7 +4628,7 @@ namespace Legion {
                                            true/*region*/,
                                            requirement.region.index_space.get_id(),
                                            requirement.region.field_space.get_id(),
-                                           requirement.region.tree_id,
+                                           requirement.region.get_tree_id(),
                                            requirement.privilege,
                                            requirement.prop,
                                            requirement.redop,
@@ -4917,11 +4917,11 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUIREMENTS_INVALID_REGION,
                              "Requirements for invalid region handle "
-                             "(%lld,%lld,%d) for inline mapping "
+                             "(%lld,%lld,%lldd) for inline mapping "
                              "(ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id);
             break;
           }
@@ -4962,7 +4962,7 @@ namespace Legion {
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_INLINE,
                                "Parent task %s (ID %lld) of inline mapping "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%lld,%lld,%d) "
+                               "requirement for region (%lld,%lld,%lld) "
                                "as a parent of region requirement because "
                                "no 'parent' region had that name.",
                                parent_ctx->get_task_name(),
@@ -4970,14 +4970,14 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id);
+                               requirement.region.get_tree_id());
             } 
             else if (bad_field == LEGION_AUTO_GENERATE_ID) 
             {
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_INLINE,
                                "Parent task %s (ID %lld) of inline mapping "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%lld,%lld,%d) "
+                               "requirement for region (%lld,%lld,%lld) "
                                "as a parent of region requirement because "
                                "parent requirement %d did not have "
                                "sufficent privileges.",
@@ -4986,14 +4986,14 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id, bad_index);
+                               requirement.region.get_tree_id(), bad_index);
             } 
             else 
             {
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_INLINE,
                                "Parent task %s (ID %lld) of inline mapping "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%lld,%lld,%d) "
+                               "requirement for region (%lld,%lld,%lld) "
                                "as a parent of region requirement because "
                                "region requirement %d was missing field %d.",
                                parent_ctx->get_task_name(),
@@ -5001,7 +5001,7 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                bad_index, bad_field);
             }
             break;
@@ -5009,16 +5009,16 @@ namespace Legion {
         case ERROR_BAD_REGION_PATH:
           {
             REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                             "Region (%lld,%lld,%d) is not a "
+                             "Region (%lld,%lld,%lld) is not a "
                              "sub-region of parent region "
-                             "(%lld,%lld,%d) for region requirement of inline "
+                             "(%lld,%lld,%lld) for region requirement of inline "
                              "mapping (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              requirement.parent.index_space.get_id(),
                              requirement.parent.field_space.get_id(),
-                             requirement.parent.tree_id,
+                             requirement.parent.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -5035,13 +5035,13 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_PRIVILEGES_FOR_REGION,
                              "Privileges %x for region "
-                             "(%lld,%lld,%d) are not a subset of privileges "
+                             "(%lld,%lld,%lld) are not a subset of privileges "
                              "of parent task's privileges for region "
                              "requirement of inline mapping (ID %lld)",
                              requirement.privilege,
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id)
           }
           // this should never happen with an inline mapping
@@ -5060,14 +5060,14 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_INLINE,
                          "Parent task %s (ID %lld) of inline mapping "
                          "(ID %lld) does not have a region "
-                         "requirement for region (%lld,%lld,%d) "
+                         "requirement for region (%lld,%lld,%lld) "
                          "as a parent of region requirement.",
                          parent_ctx->get_task_name(),
                          parent_ctx->get_unique_id(),
                          unique_op_id,
                          requirement.region.index_space.get_id(),
                          requirement.region.field_space.get_id(),
-                         requirement.region.tree_id)
+                         requirement.region.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     }
@@ -5138,8 +5138,8 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                       "Invalid mapper output from invocation of 'map_inline' "
                       "on mapper %s. Mapper selected instance from region "
-                      "tree %d to satisfy a region requirement for an inline "
-                      "mapping in task %s (ID %lld) whose region tree is %d.", 
+                      "tree %lld to satisfy a region requirement for an inline "
+                      "mapping in task %s (ID %lld) whose region tree is %lld.", 
                       mapper->get_mapper_name(),
                       bad_tree, parent_ctx->get_task_name(),
                       parent_ctx->get_unique_id(),
@@ -6339,7 +6339,7 @@ namespace Legion {
         LegionSpy::log_logical_requirement(unique_op_id, idx, true/*region*/,
                                            req.region.index_space.get_id(),
                                            req.region.field_space.get_id(),
-                                           req.region.tree_id,
+                                           req.region.get_tree_id(),
                                            req.privilege,
                                            req.prop, req.redop,
                                            req.parent.index_space.get_id());
@@ -6354,7 +6354,7 @@ namespace Legion {
                                            true/*region*/,
                                            req.region.index_space.get_id(),
                                            req.region.field_space.get_id(),
-                                           req.region.tree_id,
+                                           req.region.get_tree_id(),
                                            req.privilege,
                                            req.prop, req.redop,
                                            req.parent.index_space.get_id());
@@ -6375,7 +6375,7 @@ namespace Legion {
                                              true/*region*/,
                                              req.region.index_space.get_id(),
                                              req.region.field_space.get_id(),
-                                             req.region.tree_id,
+                                             req.region.get_tree_id(),
                                              req.privilege,
                                              req.prop, req.redop,
                                              req.parent.index_space.get_id());
@@ -6397,7 +6397,7 @@ namespace Legion {
                                              true/*region*/,
                                              req.region.index_space.get_id(),
                                              req.region.field_space.get_id(),
-                                             req.region.tree_id,
+                                             req.region.get_tree_id(),
                                              req.privilege,
                                              req.prop, req.redop,
                                              req.parent.index_space.get_id());
@@ -7442,11 +7442,11 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUEST_INVALID_REGION,
                              "Requirements for invalid region handle "
-                             "(%llu,%llu,%d) for index %d of %s "
+                             "(%lld,%lld,%lld) for index %d of %s "
                              "requirements of copy operation (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              idx, req_kind, unique_op_id)
             break;
           }
@@ -7488,7 +7488,7 @@ namespace Legion {
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_COPY,
                                "Parent task %s (ID %lld) of copy operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of index %d of %s region "
                                "requirements because there was no "
                                "'parent' region had that name.",
@@ -7497,12 +7497,12 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id, idx, req_kind)
+                               requirement.region.get_tree_id(), idx, req_kind)
             else if (bad_field == LEGION_AUTO_GENERATE_ID) 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_COPY,
                                "Parent task %s (ID %lld) of copy operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of index %d of %s region "
                                "requirements because parent requirement %d "
                                "did not have sufficient privileges.",
@@ -7511,13 +7511,13 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                idx, req_kind, bad_index)
             else 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_COPY,
                                "Parent task %s (ID %lld) of copy operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of index %d of %s region "
                                "requirements because region requirement %d "
                                "was missing field %d.",
@@ -7526,24 +7526,24 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                idx, req_kind, bad_index, bad_field)
             break;
           }
         case ERROR_BAD_REGION_PATH:
           {
             REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                             "Region (%llu,%llu,%u) is not a "
+                             "Region (%llu,%llu,%llu) is not a "
                              "sub-region of parent region "
-                             "(%llu,%llu,%u) for index %d of "
+                             "(%llu,%llu,%llu) for index %d of "
                              "%s region requirements of copy "
                              "operation (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              requirement.parent.index_space.get_id(),
                              requirement.parent.field_space.get_id(),
-                             requirement.parent.tree_id,
+                             requirement.parent.get_tree_id(),
                              idx, req_kind, unique_op_id)
             break;
           }
@@ -7560,7 +7560,7 @@ namespace Legion {
         case ERROR_BAD_REGION_PRIVILEGES:
           {
             REPORT_LEGION_ERROR(ERROR_PRIVILEGES_FOR_REGION,
-                             "Privileges %x for region (%llu,%llu,%u) are "
+                             "Privileges %x for region (%llu,%llu,%llu) are "
                              "not a subset of privileges of parent "
                              "task's privileges for index %d of %s "
                              "region requirements for copy "
@@ -7568,7 +7568,7 @@ namespace Legion {
                              requirement.privilege,
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              idx, req_kind, unique_op_id)
             break;
           }
@@ -7591,7 +7591,7 @@ namespace Legion {
           REPORT_LEGION_ERROR(ERROR_PARENT_TASK_COPY,
                            "Parent task %s (ID %lld) of copy operation "
                            "(ID %lld) does not have a region "
-                           "requirement for region (%llu,%llu,%u) "
+                           "requirement for region (%llu,%llu,%llu) "
                            "as a parent of index %d of source region "
                            "requirements",
                            parent_ctx->get_task_name(), 
@@ -7599,7 +7599,7 @@ namespace Legion {
                            unique_op_id, 
                            src_requirements[idx].region.index_space.get_id(),
                            src_requirements[idx].region.field_space.get_id(), 
-                           src_requirements[idx].region.tree_id, idx)
+                           src_requirements[idx].region.get_tree_id(), idx)
         else
           copies[idx].src->parent_index = unsigned(parent_index);
       }
@@ -7611,7 +7611,7 @@ namespace Legion {
           REPORT_LEGION_ERROR(ERROR_PARENT_TASK_COPY,
                            "Parent task %s (ID %lld) of copy operation "
                            "(ID %lld) does not have a region "
-                           "requirement for region (%llu,%llu,%u) "
+                           "requirement for region (%llu,%llu,%llu) "
                            "as a parent of index %d of destination "
                            "region requirements",
                            parent_ctx->get_task_name(), 
@@ -7619,7 +7619,7 @@ namespace Legion {
                            unique_op_id, 
                            dst_requirements[idx].region.index_space.get_id(),
                            dst_requirements[idx].region.field_space.get_id(), 
-                           dst_requirements[idx].region.tree_id, idx)
+                           dst_requirements[idx].region.get_tree_id(), idx)
         else
           copies[idx].dst->parent_index = unsigned(parent_index);
       }
@@ -7633,7 +7633,7 @@ namespace Legion {
             REPORT_LEGION_ERROR(ERROR_PARENT_TASK_COPY,
                          "Parent task %s (ID %lld) of copy operation "
                          "(ID %lld) does not have a region "
-                         "requirement for region (%llu,%llu,%u) "
+                         "requirement for region (%llu,%llu,%llu) "
                          "as a parent of index %d of gather region "
                          "requirements",
                          parent_ctx->get_task_name(), 
@@ -7641,7 +7641,7 @@ namespace Legion {
                          unique_op_id, 
                          src_indirect_requirements[idx].region.index_space.get_id(),
                          src_indirect_requirements[idx].region.field_space.get_id(), 
-                         src_indirect_requirements[idx].region.tree_id, idx)
+                         src_indirect_requirements[idx].region.get_tree_id(), idx)
           else
             copies[idx].gather->parent_index = unsigned(parent_index);
         }
@@ -7656,7 +7656,7 @@ namespace Legion {
             REPORT_LEGION_ERROR(ERROR_PARENT_TASK_COPY,
                          "Parent task %s (ID %lld) of copy operation "
                          "(ID %lld) does not have a region "
-                         "requirement for region (%llu,%llu,%u) "
+                         "requirement for region (%llu,%llu,%llu) "
                          "as a parent of index %d of scatter region "
                          "requirements",
                          parent_ctx->get_task_name(), 
@@ -7664,7 +7664,7 @@ namespace Legion {
                          unique_op_id, 
                          dst_indirect_requirements[idx].region.index_space.get_id(),
                          dst_indirect_requirements[idx].region.field_space.get_id(), 
-                         dst_indirect_requirements[idx].region.tree_id, idx)
+                         dst_indirect_requirements[idx].region.get_tree_id(), idx)
           else
             copies[idx].scatter->parent_index = unsigned(parent_index);
         }
@@ -7738,10 +7738,10 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                       "Invalid mapper output from invocation of 'map_copy' "
                       "on mapper %s. Mapper selected an instance from "
-                      "region tree %d to satisfy %s region requirement %d "
+                      "region tree %lld to satisfy %s region requirement %d "
                       "for explicit region-to_region copy in task %s (ID %lld) "
                       "but the logical region for this requirement is from "
-                      "region tree %d.", mapper->get_mapper_name(), 
+                      "region tree %lld.", mapper->get_mapper_name(), 
                       bad_tree, get_req_type_name<REQ_TYPE>(), ridx,
                       parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
                       req.region.get_tree_id())
@@ -8337,8 +8337,8 @@ namespace Legion {
                   req.partition.index_partition.get_id(),
             reg ? req.region.field_space.get_id() :
                   req.partition.field_space.get_id(),
-            reg ? req.region.tree_id : 
-                  req.partition.tree_id,
+            reg ? req.region.get_tree_id() : 
+                  req.partition.get_tree_id(),
             req.privilege, req.prop, req.redop, req.parent.index_space.get_id());
         LegionSpy::log_requirement_fields(unique_op_id, idx, 
                                           req.instance_fields);
@@ -8360,8 +8360,8 @@ namespace Legion {
                   req.partition.index_partition.get_id(),
             reg ? req.region.field_space.get_id() :
                   req.partition.field_space.get_id(),
-            reg ? req.region.tree_id : 
-                  req.partition.tree_id,
+            reg ? req.region.get_tree_id() : 
+                  req.partition.get_tree_id(),
             req.privilege, req.prop, req.redop, req.parent.index_space.get_id());
         LegionSpy::log_requirement_fields(unique_op_id, 
                                           src_requirements.size()+idx, 
@@ -8390,8 +8390,8 @@ namespace Legion {
                     req.partition.index_partition.get_id(),
               reg ? req.region.field_space.get_id() :
                     req.partition.field_space.get_id(),
-              reg ? req.region.tree_id : 
-                    req.partition.tree_id,
+              reg ? req.region.get_tree_id() : 
+                    req.partition.get_tree_id(),
               req.privilege, req.prop, req.redop, req.parent.index_space.get_id());
           LegionSpy::log_requirement_fields(unique_op_id, offset + idx, 
                                             req.privilege_fields);
@@ -8420,8 +8420,8 @@ namespace Legion {
                     req.partition.index_partition.get_id(),
               reg ? req.region.field_space.get_id() :
                     req.partition.field_space.get_id(),
-              reg ? req.region.tree_id : 
-                    req.partition.tree_id,
+              reg ? req.region.get_tree_id() : 
+                    req.partition.get_tree_id(),
               req.privilege, req.prop, req.redop, req.parent.index_space.get_id());
           LegionSpy::log_requirement_fields(unique_op_id, offset + idx, 
                                             req.privilege_fields);
@@ -10257,7 +10257,7 @@ namespace Legion {
           LegionSpy::log_logical_requirement(unique_op_id, idx,true/*region*/,
                                              req.region.index_space.get_id(),
                                              req.region.field_space.get_id(),
-                                             req.region.tree_id,
+                                             req.region.get_tree_id(),
                                              req.privilege,
                                              req.prop, req.redop,
                                              req.parent.index_space.get_id());
@@ -10265,7 +10265,7 @@ namespace Legion {
           LegionSpy::log_logical_requirement(unique_op_id,idx,false/*region*/,
                                              req.partition.index_partition.get_id(),
                                              req.partition.field_space.get_id(),
-                                             req.partition.tree_id,
+                                             req.partition.get_tree_id(),
                                              req.privilege,
                                              req.prop, req.redop,
                                              req.parent.index_space.get_id());
@@ -10694,7 +10694,7 @@ namespace Legion {
                                   false/*region*/,
                                   requirement.partition.index_partition.get_id(),
                                   requirement.partition.field_space.get_id(),
-                                  requirement.partition.tree_id,
+                                  requirement.partition.get_tree_id(),
                                   requirement.privilege,
                                   requirement.prop,
                                   requirement.redop,
@@ -10704,7 +10704,7 @@ namespace Legion {
                                   true/*region*/,
                                   requirement.region.index_space.get_id(),
                                   requirement.region.field_space.get_id(),
-                                  requirement.region.tree_id,
+                                  requirement.region.get_tree_id(),
                                   requirement.privilege,
                                   requirement.prop,
                                   requirement.redop,
@@ -11226,7 +11226,7 @@ namespace Legion {
                                         true/*region*/,
                                         root->handle.index_space.get_id(),
                                         root->handle.field_space.get_id(),
-                                        root->handle.tree_id, LEGION_READ_WRITE, 
+                                        root->handle.get_tree_id(), LEGION_READ_WRITE, 
                                         LEGION_EXCLUSIVE, 0/*redop*/, 
                                         parent.index_space.get_id());
         }
@@ -11237,7 +11237,7 @@ namespace Legion {
                                         false/*region*/,
                                         root->handle.index_partition.get_id(),
                                         root->handle.field_space.get_id(),
-                                        root->handle.tree_id, LEGION_READ_WRITE, 
+                                        root->handle.get_tree_id(), LEGION_READ_WRITE, 
                                         LEGION_EXCLUSIVE, 0/*redop*/, 
                                         parent.index_space.get_id());
         }
@@ -11367,7 +11367,7 @@ namespace Legion {
                                            true/*region*/,
                                            requirement.region.index_space.get_id(),
                                            requirement.region.field_space.get_id(),
-                                           requirement.region.tree_id,
+                                           requirement.region.get_tree_id(),
                                            requirement.privilege,
                                            requirement.prop, 
                                            requirement.redop,
@@ -11424,10 +11424,10 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ADVISEMENT,
             "Parent task %s (UID %lld) of advisement operation "
             "(ID %lld) does not have a parent region requirement "
-            "associated with parent region (%llu,%llu,%u).",
+            "associated with parent region (%llu,%llu,%llu).",
             parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
             unique_op_id, requirement.parent.index_space.get_id(), 
-            requirement.parent.field_space.get_id(), requirement.parent.tree_id)
+            requirement.parent.field_space.get_id(), requirement.parent.get_tree_id())
       parent_req_index = unsigned(parent_index);
     }
 
@@ -11713,7 +11713,7 @@ namespace Legion {
                                          true/*region*/,
                                          requirement.region.index_space.get_id(),
                                          requirement.region.field_space.get_id(),
-                                         requirement.region.tree_id,
+                                         requirement.region.get_tree_id(),
                                          requirement.privilege,
                                          requirement.prop,
                                          requirement.redop,
@@ -11987,11 +11987,11 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUEST_INVALID_REGION,
                              "Requirements for invalid region handle "
-                             "(%llu,%llu,%u) of requirement for "
+                             "(%llu,%llu,%llu) of requirement for "
                              "acquire operation (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -12015,19 +12015,19 @@ namespace Legion {
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ACQUIRE,
                                "Parent task %s (ID %lld) of acquire "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent "
+                               "requirement for region (%llu,%llu,%llu) as a parent "
                                "because no 'parent' region had that name.",
                                parent_ctx->get_task_name(),
                                parent_ctx->get_unique_id(),
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
             else if (bad_field == LEGION_AUTO_GENERATE_ID) 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ACQUIRE,
                                "Parent task %s (ID %lld) of acquire "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent "
+                               "requirement for region (%llu,%llu,%llu) as a parent "
                                "because parent requirement %d did not have "
                                "sufficient privileges.",
                                parent_ctx->get_task_name(),
@@ -12035,12 +12035,12 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id, bad_index)
+                               requirement.region.get_tree_id(), bad_index)
             else 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ACQUIRE,
                                "Parent task %s (ID %lld) of acquire "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent "
+                               "requirement for region (%llu,%llu,%llu) as a parent "
                                "because region requirement %d was missing "
                                "field %d.",
                                parent_ctx->get_task_name(),
@@ -12048,22 +12048,22 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                bad_index, bad_field)
             break;
           }
         case ERROR_BAD_REGION_PATH:
           {
             REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                             "Region (%llu,%llu,%u) is not a "
-                             "sub-region of parent region (%llu,%llu,%u) of "
+                             "Region (%llu,%llu,%llu) is not a "
+                             "sub-region of parent region (%llu,%llu,%llu) of "
                              "requirement for acquire operation (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              requirement.parent.index_space.get_id(),
                              requirement.parent.field_space.get_id(),
-                             requirement.parent.tree_id, unique_op_id)
+                             requirement.parent.get_tree_id(), unique_op_id)
             break;
           }
         case ERROR_BAD_REGION_TYPE:
@@ -12095,13 +12095,13 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ACQUIRE,
                          "Parent task %s (ID %lld) of acquire "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent",
+                               "requirement for region (%llu,%llu,%llu) as a parent",
                                parent_ctx->get_task_name(), 
                                parent_ctx->get_unique_id(),
                                unique_op_id, 
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(), 
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     }
@@ -12476,7 +12476,7 @@ namespace Legion {
                                          true/*region*/,
                                          requirement.region.index_space.get_id(),
                                          requirement.region.field_space.get_id(),
-                                         requirement.region.tree_id,
+                                         requirement.region.get_tree_id(),
                                          requirement.privilege,
                                          requirement.prop,
                                          requirement.redop,
@@ -12782,11 +12782,11 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUEST_INVALID_REGION,
                              "Requirements for invalid region handle "
-                             "(%llu,%llu,%u) of requirement for "
+                             "(%llu,%llu,%llu) of requirement for "
                              "release operation (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -12810,19 +12810,19 @@ namespace Legion {
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_RELEASE,
                                "Parent task %s (ID %lld) of release "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent "
+                               "requirement for region (%llu,%llu,%llu) as a parent "
                                "because no 'parent' region had that name.",
                                parent_ctx->get_task_name(),
                                parent_ctx->get_unique_id(),
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
             else if (bad_field == LEGION_AUTO_GENERATE_ID) 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_RELEASE,
                                "Parent task %s (ID %lld) of release "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent "
+                               "requirement for region (%llu,%llu,%llu) as a parent "
                                "because parent requirement %d did not have "
                                "sufficient privileges.",
                                parent_ctx->get_task_name(),
@@ -12830,12 +12830,12 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id, bad_index)
+                               requirement.region.get_tree_id(), bad_index)
             else 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_RELEASE,
                                "Parent task %s (ID %lld) of release "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent "
+                               "requirement for region (%llu,%llu,%llu) as a parent "
                                "because region requirement %d was missing "
                                "field %d.",
                                parent_ctx->get_task_name(),
@@ -12843,23 +12843,23 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                bad_index, bad_field)
             break;
           }
         case ERROR_BAD_REGION_PATH:
           {
             REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                             "Region (%llu,%llu,%u) is not a "
-                             "sub-region of parent region (%llu,%llu,%u) "
+                             "Region (%llu,%llu,%llu) is not a "
+                             "sub-region of parent region (%llu,%llu,%llu) "
                              "of requirement for release "
                              "operation (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              requirement.parent.index_space.get_id(),
                              requirement.parent.field_space.get_id(),
-                             requirement.parent.tree_id, unique_op_id)
+                             requirement.parent.get_tree_id(), unique_op_id)
             break;
           }
         case ERROR_BAD_REGION_TYPE:
@@ -12890,13 +12890,13 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_RELEASE,
                          "Parent task %s (ID %lld) of release "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent",
+                               "requirement for region (%llu,%llu,%llu) as a parent",
                                parent_ctx->get_task_name(), 
                                parent_ctx->get_unique_id(),
                                unique_op_id, 
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(), 
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     }
@@ -15923,7 +15923,7 @@ namespace Legion {
                                   false/*region*/,
                                   requirement.partition.index_partition.get_id(),
                                   requirement.partition.field_space.get_id(),
-                                  requirement.partition.tree_id,
+                                  requirement.partition.get_tree_id(),
                                   requirement.privilege,
                                   requirement.prop,
                                   requirement.redop,
@@ -15937,7 +15937,7 @@ namespace Legion {
                                   true/*region*/,
                                   requirement.region.index_space.get_id(),
                                   requirement.region.field_space.get_id(),
-                                  requirement.region.tree_id,
+                                  requirement.region.get_tree_id(),
                                   requirement.privilege,
                                   requirement.prop,
                                   requirement.redop,
@@ -16334,9 +16334,9 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                       "Invalid mapper output from invocation of 'map_partition'"
                       " on mapper %s. Mapper selected instance from region "
-                      "tree %d to satisfy a region requirement for a partition "
+                      "tree %lld to satisfy a region requirement for a partition "
                       "mapping in task %s (ID %lld) whose logical region is "
-                      "from region tree %d.", mapper->get_mapper_name(),
+                      "from region tree %lld.", mapper->get_mapper_name(),
                       bad_tree, parent_ctx->get_task_name(), 
                       parent_ctx->get_unique_id(), 
                       requirement.region.get_tree_id())
@@ -16928,11 +16928,11 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUIREMENTS_INVALID_REGION,
                              "Requirements for invalid region handle "
-                             "(%llu,%llu,%u) for dependent partitioning op "
+                             "(%llu,%llu,%llu) for dependent partitioning op "
                              "(ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id);
             break;
           }
@@ -16974,7 +16974,7 @@ namespace Legion {
                                "Parent task %s (ID %lld) of dependent "
                                "partitioning op "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "no 'parent' region had that name.",
                                parent_ctx->get_task_name(),
@@ -16982,7 +16982,7 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id);
+                               requirement.region.get_tree_id());
             } 
             else if (bad_field == LEGION_AUTO_GENERATE_ID) 
             {
@@ -16990,7 +16990,7 @@ namespace Legion {
                                "Parent task %s (ID %lld) of dependent "
                                "partitioning op "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "parent requirement %d did not have "
                                "sufficent privileges.",
@@ -16999,7 +16999,7 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id, bad_index);
+                               requirement.region.get_tree_id(), bad_index);
             } 
             else 
             {
@@ -17007,7 +17007,7 @@ namespace Legion {
                                "Parent task %s (ID %lld) of dependent "
                                "partitioning op "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "region requirement %d was missing field %d.",
                                parent_ctx->get_task_name(),
@@ -17015,7 +17015,7 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                bad_index, bad_field);
             }
             break;
@@ -17023,16 +17023,16 @@ namespace Legion {
         case ERROR_BAD_REGION_PATH:
           {
             REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                             "Region (%llu,%llu,%u) is not a "
+                             "Region (%llu,%llu,%llu) is not a "
                              "sub-region of parent region "
-                             "(%llu,%llu,%u) for region requirement of "
+                             "(%llu,%llu,%llu) for region requirement of "
                              "dependent partitioning op (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              requirement.parent.index_space.get_id(),
                              requirement.parent.field_space.get_id(),
-                             requirement.parent.tree_id,
+                             requirement.parent.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -17049,13 +17049,13 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_PRIVILEGES_FOR_REGION,
                              "Privileges %x for region "
-                             "(%llu,%llu,%u) are not a subset of privileges "
+                             "(%llu,%llu,%llu) are not a subset of privileges "
                              "of parent task's privileges for region "
                              "requirement of dependent partitioning op "
                              "(ID %lld)", requirement.privilege,
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id)
           }
           // this should never happen with an inline mapping
@@ -17074,14 +17074,14 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_PARTITION,
                          "Parent task %s (ID %lld) of partition "
                          "operation (ID %lld) does not have a region "
-                         "requirement for region (%llu,%llu,%u) "
+                         "requirement for region (%llu,%llu,%llu) "
                          "as a parent of region requirement.",
                          parent_ctx->get_task_name(),
                          parent_ctx->get_unique_id(),
                          unique_op_id,
                          requirement.region.index_space.get_id(),
                          requirement.region.field_space.get_id(),
-                         requirement.region.tree_id)
+                         requirement.region.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     } 
@@ -17562,7 +17562,7 @@ namespace Legion {
                                          true/*region*/,
                                          requirement.region.index_space.get_id(),
                                          requirement.region.field_space.get_id(),
-                                         requirement.region.tree_id,
+                                         requirement.region.get_tree_id(),
                                          requirement.privilege,
                                          requirement.prop,
                                          requirement.redop,
@@ -17765,11 +17765,11 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUEST_INVALID_REGION,
                              "Requirements for invalid region handle "
-                             "(%llu,%llu,%u) for fill operation"
+                             "(%llu,%llu,%llu) for fill operation"
                              "(ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -17809,7 +17809,7 @@ namespace Legion {
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_FILL,
                                "Parent task %s (ID %lld) of fill operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "no 'parent' region had that name.",
                                parent_ctx->get_task_name(),
@@ -17817,12 +17817,12 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
             else if (bad_field == LEGION_AUTO_GENERATE_ID) 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_FILL,
                                "Parent task %s (ID %lld) of fill operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "parent requirement %d did not have "
                                "sufficient privileges.",
@@ -17831,12 +17831,12 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id, bad_index)
+                               requirement.region.get_tree_id(), bad_index)
             else 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_FILL,
                                "Parent task %s (ID %lld) of fill operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "region requirement %d was missing field %d.",
                                parent_ctx->get_task_name(),
@@ -17844,23 +17844,23 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                bad_index, bad_field)
             break;
           }
         case ERROR_BAD_REGION_PATH:
           {
             REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                             "Region (%llu,%llu,%u) is not a "
+                             "Region (%llu,%llu,%llu) is not a "
                              "sub-region of parent region "
-                             "(%llu,%llu,%u) for region requirement of fill "
+                             "(%llu,%llu,%llu) for region requirement of fill "
                              "operation (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              requirement.parent.index_space.get_id(),
                              requirement.parent.field_space.get_id(),
-                             requirement.parent.tree_id,
+                             requirement.parent.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -17877,13 +17877,13 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_PRIVILEGES_REGION_SUBSET,
                              "Privileges %x for region "
-                             "(%llu,%llu,%u) are not a subset of privileges "
+                             "(%llu,%llu,%llu) are not a subset of privileges "
                              "of parent task's privileges for region "
                              "requirement of fill operation (ID %lld)",
                              requirement.privilege,
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -17903,13 +17903,13 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_FILL,
                          "Parent task %s (ID %lld) of fill "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent",
+                               "requirement for region (%llu,%llu,%llu) as a parent",
                                parent_ctx->get_task_name(), 
                                parent_ctx->get_unique_id(),
                                unique_op_id, 
                                requirement.parent.index_space.get_id(),
                                requirement.parent.field_space.get_id(), 
-                               requirement.parent.tree_id)
+                               requirement.parent.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     }
@@ -18096,8 +18096,8 @@ namespace Legion {
                 requirement.partition.index_partition.get_id(),
           reg ? requirement.region.field_space.get_id() :
                 requirement.partition.field_space.get_id(),
-          reg ? requirement.region.tree_id : 
-                requirement.partition.tree_id,
+          reg ? requirement.region.get_tree_id() : 
+                requirement.partition.get_tree_id(),
           requirement.privilege, requirement.prop, 
           requirement.redop, requirement.parent.index_space.get_id());
       LegionSpy::log_requirement_fields(unique_op_id, 0/*idx*/, 
@@ -18757,7 +18757,7 @@ namespace Legion {
                                          true/*region*/,
                                          requirement.region.index_space.get_id(),
                                          requirement.region.field_space.get_id(),
-                                         requirement.region.tree_id,
+                                         requirement.region.get_tree_id(),
                                          requirement.privilege,
                                          requirement.prop,
                                          requirement.redop,
@@ -18825,11 +18825,11 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUIREMENTS_INVALID_REGION,
                              "Requirements for invalid region handle "
-                             "(%llu,%llu,%u) for discard operation "
+                             "(%llu,%llu,%llu) for discard operation "
                              "(ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -18869,7 +18869,7 @@ namespace Legion {
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_DISCARD,
                                "Parent task %s (ID %lld) of discard operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "no 'parent' region had that name.",
                                parent_ctx->get_task_name(),
@@ -18877,12 +18877,12 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
             else if (bad_field == LEGION_AUTO_GENERATE_ID) 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_DISCARD,
                                "Parent task %s (ID %lld) of discard operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "parent requirement %d did not have "
                                "sufficient privileges.",
@@ -18891,12 +18891,12 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id, bad_index)
+                               requirement.region.get_tree_id(), bad_index)
             else 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_DISCARD,
                                "Parent task %s (ID %lld) of discard operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "region requirement %d was missing field %d.",
                                parent_ctx->get_task_name(),
@@ -18904,23 +18904,23 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                bad_index, bad_field)
             break;
           }
         case ERROR_BAD_REGION_PATH:
           {
             REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                             "Region (%llu,%llu,%u) is not a "
+                             "Region (%llu,%llu,%llu) is not a "
                              "sub-region of parent region "
-                             "(%llu,%llu,%u) for region requirement of discard "
+                             "(%llu,%llu,%llu) for region requirement of discard "
                              "operation (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              requirement.parent.index_space.get_id(),
                              requirement.parent.field_space.get_id(),
-                             requirement.parent.tree_id,
+                             requirement.parent.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -18949,13 +18949,13 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_DETACH,
                                "Parent task %s (ID %lld) of discard "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent",
+                               "requirement for region (%llu,%llu,%llu) as a parent",
                                parent_ctx->get_task_name(), 
                                parent_ctx->get_unique_id(),
                                unique_op_id, 
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(), 
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     }
@@ -19208,7 +19208,7 @@ namespace Legion {
                                          true/*region*/,
                                          requirement.region.index_space.get_id(),
                                          requirement.region.field_space.get_id(),
-                                         requirement.region.tree_id,
+                                         requirement.region.get_tree_id(),
                                          requirement.privilege,
                                          requirement.prop,
                                          requirement.redop,
@@ -19418,11 +19418,11 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUIREMENTS_INVALID_REGION,
                              "Requirements for invalid region handle "
-                             "(%llu,%llu,%u) for attach operation "
+                             "(%llu,%llu,%llu) for attach operation "
                              "(ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -19462,7 +19462,7 @@ namespace Legion {
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                "Parent task %s (ID %lld) of attach operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "no 'parent' region had that name.",
                                parent_ctx->get_task_name(),
@@ -19470,12 +19470,12 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
             else if (bad_field == LEGION_AUTO_GENERATE_ID) 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                "Parent task %s (ID %lld) of attach operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "parent requirement %d did not have "
                                "sufficient privileges.",
@@ -19484,12 +19484,12 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id, bad_index)
+                               requirement.region.get_tree_id(), bad_index)
             else 
               REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                "Parent task %s (ID %lld) of attach operation "
                                "(ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) "
+                               "requirement for region (%llu,%llu,%llu) "
                                "as a parent of region requirement because "
                                "region requirement %d was missing field %d.",
                                parent_ctx->get_task_name(),
@@ -19497,23 +19497,23 @@ namespace Legion {
                                unique_op_id,
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                bad_index, bad_field)
             break;
           }
         case ERROR_BAD_REGION_PATH:
           {
             REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                             "Region (%llu,%llu,%u) is not a "
+                             "Region (%llu,%llu,%llu) is not a "
                              "sub-region of parent region "
-                             "(%llu,%llu,%u) for region requirement of attach "
+                             "(%llu,%llu,%llu) for region requirement of attach "
                              "operation (ID %lld)",
                              requirement.region.index_space.get_id(),
                              requirement.region.field_space.get_id(),
-                             requirement.region.tree_id,
+                             requirement.region.get_tree_id(),
                              requirement.parent.index_space.get_id(),
                              requirement.parent.field_space.get_id(),
-                             requirement.parent.tree_id,
+                             requirement.parent.get_tree_id(),
                              unique_op_id)
             break;
           }
@@ -19542,13 +19542,13 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                          "Parent task %s (ID %lld) of attach "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent",
+                               "requirement for region (%llu,%llu,%llu) as a parent",
                                parent_ctx->get_task_name(), 
                                parent_ctx->get_unique_id(),
                                unique_op_id, 
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(), 
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     }
@@ -19807,13 +19807,13 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                "Parent task %s (ID %lld) of index attach "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent",
+                               "requirement for region (%llu,%llu,%llu) as a parent",
                                parent_ctx->get_task_name(), 
                                parent_ctx->get_unique_id(),
                                unique_op_id, 
                                requirement.parent.index_space.get_id(),
                                requirement.parent.field_space.get_id(), 
-                               requirement.parent.tree_id)
+                               requirement.parent.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     }
@@ -19839,10 +19839,10 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUIREMENTS_INVALID_REGION,
                                "Requirements for invalid region handle (%llu,%llu,"
-                               "%u) for index attach operation (ID %lld)",
+                               "%llu) for index attach operation (ID %lld)",
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(),
-                               requirement.region.tree_id,
+                               requirement.region.get_tree_id(),
                                unique_op_id)
             break;
           }
@@ -19850,10 +19850,10 @@ namespace Legion {
           {
             REPORT_LEGION_ERROR(ERROR_REQUIREMENTS_INVALID_REGION,
                                "Requirements for invalid partition handle (%llu,"
-                               "%llu,%u) for index attach operation (ID %lld)",
+                               "%llu,%llu) for index attach operation (ID %lld)",
                                requirement.partition.index_partition.get_id(),
                                requirement.partition.field_space.get_id(),
-                               requirement.partition.tree_id,
+                               requirement.partition.get_tree_id(),
                                unique_op_id)
             break;
           }
@@ -19894,7 +19894,7 @@ namespace Legion {
                 REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                  "Parent task %s (ID %lld) of index attach "
                                  "operation (ID %lld) does not have a region "
-                                 "requirement for partition (%llu,%llu,%u) "
+                                 "requirement for partition (%llu,%llu,%llu) "
                                  "as a parent of region requirement because "
                                  "no 'parent' region had that name.",
                                  parent_ctx->get_task_name(),
@@ -19902,12 +19902,12 @@ namespace Legion {
                                  unique_op_id,
                                  requirement.partition.index_partition.get_id(),
                                  requirement.partition.field_space.get_id(),
-                                 requirement.partition.tree_id)
+                                 requirement.partition.get_tree_id())
               else
                 REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                  "Parent task %s (ID %lld) of index attach "
                                  "operation (ID %lld) does not have a region "
-                                 "requirement for region (%llu,%llu,%u) "
+                                 "requirement for region (%llu,%llu,%llu) "
                                  "as a parent of region requirement because "
                                  "no 'parent' region had that name.",
                                  parent_ctx->get_task_name(),
@@ -19915,7 +19915,7 @@ namespace Legion {
                                  unique_op_id,
                                  requirement.region.index_space.get_id(),
                                  requirement.region.field_space.get_id(),
-                                 requirement.region.tree_id)
+                                 requirement.region.get_tree_id())
             }
             else if (bad_field == LEGION_AUTO_GENERATE_ID) 
             {
@@ -19923,7 +19923,7 @@ namespace Legion {
                 REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                  "Parent task %s (ID %lld) of index attach "
                                  "operation (ID %lld) does not have a region "
-                                 "requirement for partition (%llu,%llu,%u) "
+                                 "requirement for partition (%llu,%llu,%llu) "
                                  "as a parent of region requirement because "
                                  "parent requirement %d did not have "
                                  "sufficient privileges.",
@@ -19932,12 +19932,12 @@ namespace Legion {
                                  unique_op_id,
                                  requirement.partition.index_partition.get_id(),
                                  requirement.partition.field_space.get_id(),
-                                 requirement.partition.tree_id, bad_index)
+                                 requirement.partition.get_tree_id(), bad_index)
               else
                 REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                  "Parent task %s (ID %lld) of index attach "
                                  "operation (ID %lld) does not have a region "
-                                 "requirement for region (%llu,%llu,%u) "
+                                 "requirement for region (%llu,%llu,%llu) "
                                  "as a parent of region requirement because "
                                  "parent requirement %d did not have "
                                  "sufficient privileges.",
@@ -19946,7 +19946,7 @@ namespace Legion {
                                  unique_op_id,
                                  requirement.region.index_space.get_id(),
                                  requirement.region.field_space.get_id(),
-                                 requirement.region.tree_id, bad_index)
+                                 requirement.region.get_tree_id(), bad_index)
             }
             else 
             {
@@ -19954,7 +19954,7 @@ namespace Legion {
                 REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                  "Parent task %s (ID %lld) of index attach "
                                  "operation (ID %lld) does not have a region "
-                                 "requirement for partition (%llu,%llu,%u) "
+                                 "requirement for partition (%llu,%llu,%llu) "
                                  "as a parent of region requirement because "
                                  "region requirement %d was missing field %d.",
                                  parent_ctx->get_task_name(),
@@ -19962,13 +19962,13 @@ namespace Legion {
                                  unique_op_id,
                                  requirement.partition.index_partition.get_id(),
                                  requirement.partition.field_space.get_id(),
-                                 requirement.partition.tree_id,
+                                 requirement.partition.get_tree_id(),
                                  bad_index, bad_field)
               else
                 REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                  "Parent task %s (ID %lld) of index attach "
                                  "operation (ID %lld) does not have a region "
-                                 "requirement for region (%llu,%llu,%u) "
+                                 "requirement for region (%llu,%llu,%llu) "
                                  "as a parent of region requirement because "
                                  "region requirement %d was missing field %d.",
                                  parent_ctx->get_task_name(),
@@ -19976,7 +19976,7 @@ namespace Legion {
                                  unique_op_id,
                                  requirement.region.index_space.get_id(),
                                  requirement.region.field_space.get_id(),
-                                 requirement.region.tree_id,
+                                 requirement.region.get_tree_id(),
                                  bad_index, bad_field)
             }
             break;
@@ -20010,13 +20010,13 @@ namespace Legion {
           if (!runtime->are_disjoint(spaces[idx1], spaces[idx2]))
             REPORT_LEGION_ERROR(ERROR_INDEX_SPACE_ATTACH,
                 "Index attach operation (UID %lld) in parent task %s "
-                "(UID %lld) has interfering attachments to regions (%llu,%llu,%u) "
-                "and (%llu,%llu,%u). All regions must be non-interfering",
+                "(UID %lld) has interfering attachments to regions (%llu,%llu,%llu) "
+                "and (%llu,%llu,%llu). All regions must be non-interfering",
                 unique_op_id, parent_ctx->get_task_name(),
                 parent_ctx->get_unique_id(), spaces[idx1].get_id(),
-                requirement.parent.field_space.get_id(), requirement.parent.tree_id,
+                requirement.parent.field_space.get_id(), requirement.parent.get_tree_id(),
                 spaces[idx2].get_id(), requirement.parent.field_space.get_id(),
-                requirement.parent.tree_id)
+                requirement.parent.get_tree_id())
         }
       }
     }
@@ -20030,7 +20030,7 @@ namespace Legion {
                                      0/*index*/, false/*region*/,
                                      requirement.partition.index_partition.get_id(),
                                      requirement.partition.field_space.get_id(),
-                                     requirement.partition.tree_id,
+                                     requirement.partition.get_tree_id(),
                                      requirement.privilege,
                                      requirement.prop,
                                      requirement.redop,
@@ -20040,7 +20040,7 @@ namespace Legion {
                                            true/*region*/,
                                            requirement.region.index_space.get_id(),
                                            requirement.region.field_space.get_id(),
-                                           requirement.region.tree_id,
+                                           requirement.region.get_tree_id(),
                                            requirement.privilege,
                                            requirement.prop,
                                            requirement.redop,
@@ -20422,7 +20422,7 @@ namespace Legion {
                                          true/*region*/,
                                          requirement.region.index_space.get_id(),
                                          requirement.region.field_space.get_id(),
-                                         requirement.region.tree_id,
+                                         requirement.region.get_tree_id(),
                                          requirement.privilege,
                                          requirement.prop,
                                          requirement.redop,
@@ -20621,13 +20621,13 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_DETACH,
                          "Parent task %s (ID %lld) of detach "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent",
+                               "requirement for region (%llu,%llu,%llu) as a parent",
                                parent_ctx->get_task_name(), 
                                parent_ctx->get_unique_id(),
                                unique_op_id, 
                                requirement.region.index_space.get_id(),
                                requirement.region.field_space.get_id(), 
-                               requirement.region.tree_id)
+                               requirement.region.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     }
@@ -20865,13 +20865,13 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
                                "Parent task %s (ID %lld) of index attach "
                                "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%u) as a parent",
+                               "requirement for region (%llu,%llu,%llu) as a parent",
                                parent_ctx->get_task_name(), 
                                parent_ctx->get_unique_id(),
                                unique_op_id, 
                                requirement.parent.index_space.get_id(),
                                requirement.parent.field_space.get_id(), 
-                               requirement.parent.tree_id)
+                               requirement.parent.get_tree_id())
       else
         parent_req_index = unsigned(parent_index);
     }
@@ -20885,7 +20885,7 @@ namespace Legion {
                                      0/*index*/, false/*region*/,
                                      requirement.partition.index_partition.get_id(),
                                      requirement.partition.field_space.get_id(),
-                                     requirement.partition.tree_id,
+                                     requirement.partition.get_tree_id(),
                                      requirement.privilege,
                                      requirement.prop,
                                      requirement.redop,
@@ -20895,7 +20895,7 @@ namespace Legion {
                                            true/*region*/,
                                            requirement.region.index_space.get_id(),
                                            requirement.region.field_space.get_id(),
-                                           requirement.region.tree_id,
+                                           requirement.region.get_tree_id(),
                                            requirement.privilege,
                                            requirement.prop,
                                            requirement.redop,
