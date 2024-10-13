@@ -1692,11 +1692,10 @@ namespace Legion {
                                          Serializer &rez, int stage);
       virtual void unpack_collective_stage(Deserializer &derez, int stage);
     public:
-      void exchange_ids(LegionColor color,DistributedID did,IndexPartition pid);
-      void sync_child_ids(LegionColor color, DistributedID &did, 
-                          IndexPartition &pid);
+      void exchange_ids(LegionColor color, IndexPartition pid);
+      void sync_child_ids(LegionColor color, IndexPartition &pid);
     protected:
-      std::map<LegionColor,std::pair<IndexPartition,DistributedID> > child_ids;
+      std::map<LegionColor,IndexPartition> child_ids;
     };
 
     /**

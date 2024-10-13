@@ -17056,12 +17056,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(child_ids.size());
-      for (std::map<LegionColor,std::pair<IndexPartition,DistributedID> >::
-            const_iterator it = child_ids.begin(); it != child_ids.end(); it++)
+      for (std::map<LegionColor,IndexPartition>::const_iterator it =
+            child_ids.begin(); it != child_ids.end(); it++)
       {
         rez.serialize(it->first);
-        rez.serialize(it->second.first);
-        rez.serialize(it->second.second);
+        rez.serialize(it->second);
       }
     }
 
@@ -17076,34 +17075,31 @@ namespace Legion {
       {
         LegionColor color;
         derez.deserialize(color);
-        std::pair<IndexPartition,DistributedID> &ids = child_ids[color];
-        derez.deserialize(ids.first);
-        derez.deserialize(ids.second);
+        derez.deserialize(child_ids[color]);
       }
     }
 
     //--------------------------------------------------------------------------
     void CrossProductExchange::exchange_ids(LegionColor color,
-                                          DistributedID did, IndexPartition pid)
+                                            IndexPartition pid)
     //--------------------------------------------------------------------------
     {
-      child_ids.emplace(std::make_pair(color, std::make_pair(pid, did)));
+      child_ids.emplace(std::make_pair(color, pid));
       perform_collective_async();
     }
 
     //--------------------------------------------------------------------------
     void CrossProductExchange::sync_child_ids(LegionColor color, 
-                                        DistributedID &did, IndexPartition &pid)
+                                              IndexPartition &pid)
     //--------------------------------------------------------------------------
     {
       perform_collective_wait();
-      std::map<LegionColor,std::pair<IndexPartition,DistributedID> >::iterator
+      std::map<LegionColor,IndexPartition>::iterator
         finder = child_ids.find(color);
 #ifdef DEBUG_LEGION
       assert(finder != child_ids.end());
 #endif
-      pid = finder->second.first;
-      did = finder->second.second;
+      pid = finder->second;
     }
 
     /////////////////////////////////////////////////////////////

@@ -26937,9 +26937,8 @@ namespace Legion {
       }
       const IndexSpace result(get_unique_index_space_id(),
                               get_unique_index_tree_id(), type_tag);
-      const DistributedID did = get_available_distributed_id();
       create_node(result, &domain, true/*is domain*/, NULL/*parent*/,
-          0/*color*/, did, RtEvent::NO_RT_EVENT, provenance,
+          0/*color*/, RtEvent::NO_RT_EVENT, provenance,
           ApEvent::NO_AP_EVENT, 0/*expr id*/, NULL/*mapping*/,
           true/*add root reference*/);
       if (legion_spy_enabled)

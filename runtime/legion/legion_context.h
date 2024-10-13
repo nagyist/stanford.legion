@@ -1179,7 +1179,6 @@ namespace Legion {
                                        IndexSpace color_space,
                                        LegionColor &partition_color,
                                        PartitionKind part_kind,
-                                       DistributedID did,
                                        Provenance *provenance,
                                        CollectiveMapping *mapping = NULL,
                                        RtEvent initialized =

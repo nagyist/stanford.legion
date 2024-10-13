@@ -689,7 +689,7 @@ namespace Legion {
       // We know the domain of the index space
       IndexSpaceNode* create_node(IndexSpace is, const void *bounds, 
                                   bool is_domain, IndexPartNode *par, 
-                                  LegionColor color, DistributedID did,
+                                  LegionColor color,
                                   RtEvent initialized, Provenance *provenance,
                                   ApEvent is_ready = ApEvent::NO_AP_EVENT,
                                   IndexSpaceExprID expr_id = 0,
@@ -699,7 +699,7 @@ namespace Legion {
                                   const bool tree_valid = true);
       IndexSpaceNode* create_node(IndexSpace is,
                                   IndexPartNode &par, LegionColor color,
-                                  DistributedID did, RtEvent initialized,
+                                  RtEvent initialized,
                                   Provenance *provenance,
                                   IndexSpaceExprID expr_id = 0,
                                   CollectiveMapping *mapping = NULL,
@@ -708,20 +708,18 @@ namespace Legion {
       IndexPartNode*  create_node(IndexPartition p, IndexSpaceNode *par,
                                   IndexSpaceNode *color_space, 
                                   LegionColor color, bool disjoint,int complete,
-                                  DistributedID did, Provenance *provenance,
-                                  RtEvent init,
+                                  Provenance *provenance, RtEvent init,
                                   CollectiveMapping *mapping = NULL);
       // Give the event for when the disjointness information is ready
       IndexPartNode*  create_node(IndexPartition p, IndexSpaceNode *par,
                                   IndexSpaceNode *color_space,
                                   LegionColor color, int complete,
-                                  DistributedID did, Provenance *provenance,
-                                  RtEvent init,
+                                  Provenance *provenance, RtEvent init,
                                   CollectiveMapping *mapping = NULL);
-      FieldSpaceNode* create_node(FieldSpace space, DistributedID did,
+      FieldSpaceNode* create_node(FieldSpace space,
                                   RtEvent init, Provenance *provenance,
                                   CollectiveMapping *mapping = NULL);
-      FieldSpaceNode* create_node(FieldSpace space, DistributedID did,
+      FieldSpaceNode* create_node(FieldSpace space,
                                   RtEvent initialized, Provenance *provenance,
                                   CollectiveMapping *mapping,
                                   Deserializer &derez);
@@ -1322,7 +1320,7 @@ namespace Legion {
       virtual bool test_intersection_nonblocking(IndexSpaceExpression *expr,
          ApEvent &precondition, bool second = false);
     public:
-      virtual IndexSpaceNode* create_node(IndexSpace handle, DistributedID did,
+      virtual IndexSpaceNode* create_node(IndexSpace handle,
           RtEvent initialized, Provenance *provenance,
           CollectiveMapping *mapping, IndexSpaceExprID expr_id = 0) = 0;
       virtual IndexSpaceExpression* create_from_rectangles(
@@ -1616,7 +1614,7 @@ namespace Legion {
     public:
       virtual bool invalidate_operation(void) = 0;
       virtual void remove_operation(void) = 0;
-      virtual IndexSpaceNode* create_node(IndexSpace handle, DistributedID did,
+      virtual IndexSpaceNode* create_node(IndexSpace handle,
           RtEvent initialized, Provenance *provenance,
           CollectiveMapping *mapping, IndexSpaceExprID expr_id = 0) = 0;
     public:
@@ -1651,7 +1649,7 @@ namespace Legion {
                                          AddressSpaceID target) = 0;
       virtual bool invalidate_operation(void) = 0;
       virtual void remove_operation(void) = 0;
-      virtual IndexSpaceNode* create_node(IndexSpace handle, DistributedID did,
+      virtual IndexSpaceNode* create_node(IndexSpace handle,
           RtEvent initialized, Provenance *provenance,
           CollectiveMapping *mapping, IndexSpaceExprID expr_id = 0);
       virtual IndexSpaceExpression* create_from_rectangles(
@@ -2093,7 +2091,6 @@ namespace Legion {
     public:
       IndexSpaceNode(IndexSpace handle,
                      IndexPartNode *parent, LegionColor color,
-                     DistributedID did,
                      IndexSpaceExprID expr_id, RtEvent initialized,
                      unsigned depth, Provenance *provenance,
                      CollectiveMapping *mapping, bool tree_valid);
@@ -2209,7 +2206,7 @@ namespace Legion {
       virtual bool remove_tree_expression_reference(DistributedID source,
                                                     unsigned count = 1);
     public:
-      virtual IndexSpaceNode* create_node(IndexSpace handle, DistributedID did,
+      virtual IndexSpaceNode* create_node(IndexSpace handle,
           RtEvent initialized,Provenance *provenance,
           CollectiveMapping *mapping, IndexSpaceExprID expr_id = 0) = 0;
       virtual IndexSpaceExpression* create_from_rectangles(
@@ -2406,7 +2403,6 @@ namespace Legion {
     public:
       IndexSpaceNodeT(IndexSpace handle,
                       IndexPartNode *parent, LegionColor color, 
-                      DistributedID did,
                       IndexSpaceExprID expr_id, RtEvent init,
                       unsigned depth, Provenance *provenance,
                       CollectiveMapping *mapping, bool tree_valid);
@@ -2438,7 +2434,7 @@ namespace Legion {
                 const std::map<DomainPoint,DomainPoint> &sizes);
       virtual void tighten_index_space(void);
       virtual bool check_empty(void);
-      virtual IndexSpaceNode* create_node(IndexSpace handle, DistributedID did,
+      virtual IndexSpaceNode* create_node(IndexSpace handle,
           RtEvent initialized,Provenance *provenance,
           CollectiveMapping *mapping, IndexSpaceExprID expr_id = 0);
       virtual IndexSpaceExpression* create_from_rectangles(
@@ -3067,10 +3063,10 @@ namespace Legion {
     class IndexSpaceCreator {
     public:
       IndexSpaceCreator(IndexSpace s, IndexPartNode *p,
-                        LegionColor c, DistributedID d, IndexSpaceExprID e,
+                        LegionColor c, IndexSpaceExprID e,
                         RtEvent init, unsigned dp, Provenance *prov,
                         CollectiveMapping *m, bool valid)
-        : space(s), parent(p), color(c), did(d), expr_id(e),
+        : space(s), parent(p), color(c), expr_id(e),
           initialized(init), depth(dp), provenance(prov), mapping(m),
           tree_valid(valid), result(NULL) { }
     public:
@@ -3078,7 +3074,7 @@ namespace Legion {
       static inline void demux(IndexSpaceCreator *creator)
       {
         creator->result = new IndexSpaceNodeT<N::N,T>(
-            creator->space, creator->parent, creator->color, creator->did,
+            creator->space, creator->parent, creator->color,
             creator->expr_id, creator->initialized, creator->depth,
             creator->provenance, creator->mapping, creator->tree_valid);
       }
@@ -3086,7 +3082,6 @@ namespace Legion {
       const IndexSpace space; 
       IndexPartNode *const parent;
       const LegionColor color;
-      const DistributedID did;
       const IndexSpaceExprID expr_id;
       const RtEvent initialized;
       const unsigned depth;
@@ -3659,11 +3654,11 @@ namespace Legion {
       IndexPartNode(IndexPartition p,
                     IndexSpaceNode *par, IndexSpaceNode *color_space,
                     LegionColor c, bool disjoint, int complete,
-                    DistributedID did, RtEvent initialized,
+                    RtEvent initialized,
                     CollectiveMapping *mapping, Provenance *provenance);
       IndexPartNode(IndexPartition p,
                     IndexSpaceNode *par, IndexSpaceNode *color_space,
-                    LegionColor c, int complete, DistributedID did,
+                    LegionColor c, int complete,
                     RtEvent initialized, CollectiveMapping *mapping,
                     Provenance *provenance);
       IndexPartNode(const IndexPartNode &rhs) = delete;
@@ -3873,11 +3868,11 @@ namespace Legion {
       IndexPartNodeT(IndexPartition p,
                      IndexSpaceNode *par, IndexSpaceNode *color_space,
                      LegionColor c, bool disjoint, int complete,
-                     DistributedID did, RtEvent initialized,
+                     RtEvent initialized,
                      CollectiveMapping *mapping, Provenance *provenance);
       IndexPartNodeT(IndexPartition p,
                      IndexSpaceNode *par, IndexSpaceNode *color_space,
-                     LegionColor c, int complete, DistributedID did,
+                     LegionColor c, int complete,
                      RtEvent initialized, CollectiveMapping *mapping,
                      Provenance *provenance);
       IndexPartNodeT(const IndexPartNodeT &rhs) = delete;
@@ -3913,20 +3908,19 @@ namespace Legion {
     public:
       IndexPartCreator(IndexPartition p,
                        IndexSpaceNode *par, IndexSpaceNode *cs,
-                       LegionColor c, bool d, int k, DistributedID id,
+                       LegionColor c, bool d, int k,
                        RtEvent initialized, 
                        CollectiveMapping *m, Provenance *prov)
         : partition(p), parent(par), color_space(cs), color(c),
-          has_disjoint(true), disjoint(d), complete(k), did(id),
+          has_disjoint(true), disjoint(d), complete(k),
           init(initialized), mapping(m), provenance(prov) { }
       IndexPartCreator(IndexPartition p,
                        IndexSpaceNode *par, IndexSpaceNode *cs,
-                       LegionColor c,  int k, DistributedID id,
-                       RtEvent initialized,
+                       LegionColor c,  int k, RtEvent initialized,
                        CollectiveMapping *m, Provenance *prov)
         : partition(p), parent(par), color_space(cs),
           color(c), has_disjoint(false), disjoint(false), complete(k),
-          did(id), init(initialized), mapping(m), provenance(prov) { }
+          init(initialized), mapping(m), provenance(prov) { }
     public:
       template<typename N, typename T>
       static inline void demux(IndexPartCreator *creator)
@@ -3935,14 +3929,12 @@ namespace Legion {
           creator->result = new IndexPartNodeT<N::N,T>(
               creator->partition, creator->parent, creator->color_space,
               creator->color,  creator->complete, 
-              creator->did, creator->init,
-              creator->mapping, creator->provenance);
+              creator->init, creator->mapping, creator->provenance);
         else
           creator->result = new IndexPartNodeT<N::N,T>(
               creator->partition, creator->parent, creator->color_space,
               creator->color, creator->disjoint, creator->complete,
-              creator->did, creator->init,
-              creator->mapping, creator->provenance);
+              creator->init, creator->mapping, creator->provenance);
       }
     public:
       const IndexPartition partition;
@@ -3952,7 +3944,6 @@ namespace Legion {
       const bool has_disjoint;
       const bool disjoint;
       const int complete;
-      const DistributedID did;
       const RtEvent init;
       CollectiveMapping *const mapping;
       Provenance *const provenance;
@@ -4055,10 +4046,10 @@ namespace Legion {
         const RtUserEvent to_trigger;
       };
     public:
-      FieldSpaceNode(FieldSpace sp, DistributedID did,
+      FieldSpaceNode(FieldSpace sp,
                      RtEvent initialized, CollectiveMapping *mapping,
                      Provenance *provenance);
-      FieldSpaceNode(FieldSpace sp, DistributedID did,
+      FieldSpaceNode(FieldSpace sp,
                      RtEvent initialized, CollectiveMapping *mapping,
                      Provenance *provenance, Deserializer &derez);
       FieldSpaceNode(const FieldSpaceNode &rhs) = delete;

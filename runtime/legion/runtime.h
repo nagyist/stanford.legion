@@ -2949,26 +2949,25 @@ namespace Legion {
     public:
       IndexSpaceNode* create_index_space(IndexSpace handle, 
                               const Domain *domain,
-                              DistributedID did, 
                               Provenance *provenance,
                               CollectiveMapping *mapping = NULL,
                               IndexSpaceExprID expr_id = 0,
                               ApEvent ready = ApEvent::NO_AP_EVENT,
                               RtEvent initialized = RtEvent::NO_RT_EVENT);
-      IndexSpaceNode* create_union_space(IndexSpace handle, DistributedID did,
+      IndexSpaceNode* create_union_space(IndexSpace handle,
                               Provenance *provenance,
                               const std::vector<IndexSpace> &sources,
                               RtEvent initialized = RtEvent::NO_RT_EVENT,
                               CollectiveMapping *mapping = NULL,
                               IndexSpaceExprID expr_id = 0);
       IndexSpaceNode* create_intersection_space(IndexSpace handle, 
-                              DistributedID did, Provenance *provenance,
+                              Provenance *provenance,
                               const std::vector<IndexSpace> &sources,
                               RtEvent initialized = RtEvent::NO_RT_EVENT,
                               CollectiveMapping *mapping = NULL,
                               IndexSpaceExprID expr_id = 0);
       IndexSpaceNode* create_difference_space(IndexSpace handle,
-                              DistributedID did, Provenance *provenance,
+                              Provenance *provenance,
                               IndexSpace left, IndexSpace right,
                               RtEvent initialized = RtEvent::NO_RT_EVENT,
                               CollectiveMapping *mapping = NULL,
@@ -2977,7 +2976,7 @@ namespace Legion {
       // We know the domain of the index space
       IndexSpaceNode* create_node(IndexSpace is, const void *bounds, 
                                   bool is_domain, IndexPartNode *par, 
-                                  LegionColor color, DistributedID did,
+                                  LegionColor color,
                                   RtEvent initialized, Provenance *provenance,
                                   ApEvent is_ready = ApEvent::NO_AP_EVENT,
                                   IndexSpaceExprID expr_id = 0,
@@ -2987,7 +2986,7 @@ namespace Legion {
                                   const bool tree_valid = true);
       IndexSpaceNode* create_node(IndexSpace is,
                                   IndexPartNode &par, LegionColor color,
-                                  DistributedID did, RtEvent initialized,
+                                  RtEvent initialized,
                                   Provenance *provenance,
                                   IndexSpaceExprID expr_id = 0,
                                   CollectiveMapping *mapping = NULL,
@@ -2996,20 +2995,20 @@ namespace Legion {
       IndexPartNode*  create_node(IndexPartition p, IndexSpaceNode *par,
                                   IndexSpaceNode *color_space, 
                                   LegionColor color, bool disjoint,int complete,
-                                  DistributedID did, Provenance *provenance,
+                                  Provenance *provenance,
                                   RtEvent init,
                                   CollectiveMapping *mapping = NULL);
       // Give the event for when the disjointness information is ready
       IndexPartNode*  create_node(IndexPartition p, IndexSpaceNode *par,
                                   IndexSpaceNode *color_space,
                                   LegionColor color, int complete,
-                                  DistributedID did, Provenance *provenance,
+                                  Provenance *provenance,
                                   RtEvent init,
                                   CollectiveMapping *mapping = NULL);
-      FieldSpaceNode* create_node(FieldSpace space, DistributedID did,
+      FieldSpaceNode* create_node(FieldSpace space,
                                   RtEvent init, Provenance *provenance,
                                   CollectiveMapping *mapping = NULL);
-      FieldSpaceNode* create_node(FieldSpace space, DistributedID did,
+      FieldSpaceNode* create_node(FieldSpace space,
                                   RtEvent initialized, Provenance *provenance,
                                   CollectiveMapping *mapping,
                                   Deserializer &derez);

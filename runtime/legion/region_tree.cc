@@ -141,7 +141,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     IndexSpaceNode* Runtime::create_index_space(IndexSpace handle,
-                                        const Domain *domain, DistributedID did, 
+                                        const Domain *domain,
                                         Provenance *provenance,
                                         CollectiveMapping *mapping,
                                         IndexSpaceExprID expr_id,
@@ -150,13 +150,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return create_node(handle, domain, true/*is domain*/, NULL/*parent*/, 
-                         0/*color*/, did, init, provenance, ready, expr_id,
+                         0/*color*/, init, provenance, ready, expr_id,
                          mapping, true/*add root reference*/);
     }
 
     //--------------------------------------------------------------------------
     IndexSpaceNode* Runtime::create_union_space(IndexSpace handle,
-                    DistributedID did, Provenance *provenance,
+                    Provenance *provenance,
                     const std::vector<IndexSpace> &sources, 
                     RtEvent initialized, CollectiveMapping *collective_mapping,
                     IndexSpaceExprID expr_id)
@@ -175,13 +175,13 @@ namespace Legion {
       assert(!exprs.empty());
 #endif
       IndexSpaceExpression *expr = union_index_spaces(exprs);
-      return expr->create_node(handle, did, initialized, provenance,
+      return expr->create_node(handle, initialized, provenance,
                                collective_mapping, expr_id);
     }
 
     //--------------------------------------------------------------------------
     IndexSpaceNode* Runtime::create_intersection_space(
-                                        IndexSpace handle, DistributedID did,
+                                        IndexSpace handle,
                                         Provenance *provenance,
                                         const std::vector<IndexSpace> &sources,
                                         RtEvent initialized, 
@@ -202,13 +202,13 @@ namespace Legion {
       assert(!exprs.empty());
 #endif
       IndexSpaceExpression *expr = intersect_index_spaces(exprs);
-      return expr->create_node(handle, did, initialized, provenance,
+      return expr->create_node(handle, initialized, provenance,
                                collective_mapping, expr_id);
     }
 
     //--------------------------------------------------------------------------
     IndexSpaceNode* Runtime::create_difference_space(
-                                         IndexSpace handle, DistributedID did,
+                                         IndexSpace handle,
                                          Provenance *provenance,
                                          IndexSpace left, IndexSpace right, 
                                          RtEvent initialized, 
@@ -221,11 +221,11 @@ namespace Legion {
 #endif
       IndexSpaceNode *lhs = get_node(left);
       if (!right.exists())
-        return lhs->create_node(handle, did, initialized, provenance,
+        return lhs->create_node(handle, initialized, provenance,
                                 collective_mapping);
       IndexSpaceNode *rhs = get_node(right);
       IndexSpaceExpression *expr = subtract_index_spaces(lhs, rhs);
-      return expr->create_node(handle, did, initialized, provenance,
+      return expr->create_node(handle, initialized, provenance,
                                collective_mapping, expr_id);
     }
 
@@ -235,7 +235,6 @@ namespace Legion {
                                                        IndexSpace color_space,
                                                    LegionColor &partition_color,
                                                        PartitionKind part_kind,
-                                                       DistributedID did,
                                                        Provenance *provenance,
                                                      CollectiveMapping *mapping,
                                                        RtEvent initialized)
@@ -276,7 +275,7 @@ namespace Legion {
         const int complete = (part_kind == LEGION_COMPUTE_COMPLETE_KIND) ? 1 :
                          (part_kind == LEGION_COMPUTE_INCOMPLETE_KIND) ? 0 : -1;
         runtime->create_node(pid, parent_node, color_node, partition_color,
-            complete, did, provenance, initialized, mapping);
+            complete, provenance, initialized, mapping);
         if (runtime->legion_spy_enabled)
           LegionSpy::log_index_partition(parent.get_id(), pid.get_id(), -1/*unknown*/,
               complete, partition_color, runtime->address_space, 
@@ -294,7 +293,7 @@ namespace Legion {
                              ((part_kind == LEGION_DISJOINT_INCOMPLETE_KIND) ||
                         (part_kind == LEGION_ALIASED_INCOMPLETE_KIND)) ? 0 : -1;
         runtime->create_node(pid, parent_node, color_node, partition_color,
-            disjoint, complete, did, provenance, initialized, mapping);
+            disjoint, complete, provenance, initialized, mapping);
         if (runtime->legion_spy_enabled)
           LegionSpy::log_index_partition(parent.get_id(), pid.get_id(), disjoint ? 1 : 0,
               complete, partition_color, runtime->address_space,
@@ -420,12 +419,10 @@ namespace Legion {
           IndexSpaceNode *child_node = base->get_child(*itr);
           IndexPartition pid(runtime->get_unique_index_partition_id(),
                              handle1.get_tree_id(), handle1.get_type_tag());
-          DistributedID did =
-            runtime->get_available_distributed_id();
           const RtEvent safe =
             create_pending_partition_internal(pid, child_node->handle,
                                      source->color_space->handle,
-                                     part_color, kind, did, provenance);
+                                     part_color, kind, provenance);
           // If the user requested the handle for this point return it
           user_handles[child_node->handle] = pid;
           if (safe.exists())
@@ -442,12 +439,10 @@ namespace Legion {
           IndexSpaceNode *child_node = base->get_child(*itr);
           IndexPartition pid(runtime->get_unique_index_partition_id(),
                              handle1.get_tree_id(), handle1.get_type_tag());
-          DistributedID did =
-            runtime->get_available_distributed_id();
           const RtEvent safe =
             create_pending_partition_internal(pid, child_node->handle,
                                      source->color_space->handle,
-                                     part_color, kind, did, provenance);
+                                     part_color, kind, provenance);
           // If the user requested the handle for this point return it
           user_handles[child_node->handle] = pid;
           if (safe.exists())
@@ -509,18 +504,16 @@ namespace Legion {
           {
             IndexPartition pid(runtime->get_unique_index_partition_id(),
                              handle1.get_tree_id(), handle1.get_type_tag());
-            exchange.exchange_ids(child_color,
-                runtime->get_available_distributed_id(), pid);
+            exchange.exchange_ids(child_color, pid);
             user_handles[child_node->handle] = pid;
           }
           else
             exchange.perform_collective_async();
-          DistributedID child_did = 0;
           IndexPartition child_pid = IndexPartition::NO_PART;
-          exchange.sync_child_ids(child_color, child_did, child_pid);
+          exchange.sync_child_ids(child_color, child_pid);
           const RtEvent safe = create_pending_partition_internal(child_pid,
               child_node->handle, source->color_space->handle,
-              part_color, kind, child_did, provenance,
+              part_color, kind, provenance,
               new CollectiveMapping(child_spaces,
                 runtime->legion_collective_radix));
           if (safe.exists())
@@ -3213,7 +3206,6 @@ namespace Legion {
                                                   bool is_domain,
                                                   IndexPartNode *parent,
                                                   LegionColor color,
-                                                  DistributedID did,
                                                   RtEvent initialized,
                                                   Provenance *provenance,
                                                   ApEvent is_ready,
@@ -3224,7 +3216,7 @@ namespace Legion {
                                                   const bool tree_valid)
     //--------------------------------------------------------------------------
     { 
-      IndexSpaceCreator creator(sp, parent, color, did, expr_id,
+      IndexSpaceCreator creator(sp, parent, color, expr_id,
                   initialized, depth, provenance, mapping, tree_valid);
       NT_TemplateHelper::demux<IndexSpaceCreator>(sp.get_type_tag(), &creator);
       IndexSpaceNode *result = creator.result;  
@@ -3289,7 +3281,6 @@ namespace Legion {
     IndexSpaceNode* Runtime::create_node(IndexSpace sp,
                                                   IndexPartNode &parent,
                                                   LegionColor color,
-                                                  DistributedID did,
                                                   RtEvent initialized,
                                                   Provenance *provenance,
                                                   IndexSpaceExprID expr_id,
@@ -3297,7 +3288,7 @@ namespace Legion {
                                                   unsigned depth)
     //--------------------------------------------------------------------------
     { 
-      IndexSpaceCreator creator(sp, &parent, color, did, expr_id,
+      IndexSpaceCreator creator(sp, &parent, color, expr_id,
                                 initialized, depth, provenance, mapping,
                                 true/*tree valid*/);
       NT_TemplateHelper::demux<IndexSpaceCreator>(sp.get_type_tag(), &creator);
@@ -3335,14 +3326,13 @@ namespace Legion {
                                                  IndexSpaceNode *color_space,
                                                  LegionColor color,
                                                  bool disjoint, int complete,
-                                                 DistributedID did,
                                                  Provenance *provenance,
                                                  RtEvent initialized,
                                                  CollectiveMapping *mapping)
     //--------------------------------------------------------------------------
     {
       IndexPartCreator creator(p, parent, color_space, color, disjoint,
-                             complete, did, initialized, mapping, provenance);
+                             complete, initialized, mapping, provenance);
       NT_TemplateHelper::demux<IndexPartCreator>(p.get_type_tag(), &creator);
       IndexPartNode *result = creator.result;
 #ifdef DEBUG_LEGION
@@ -3370,13 +3360,13 @@ namespace Legion {
         // Add it to the partition of our parent if it exists, otherwise
         // our parent index space is a root so we add the reference there
         if (parent->parent != NULL)
-          parent->parent->add_nested_valid_ref(did);
+          parent->parent->add_nested_valid_ref(result->did);
         else
-          parent->add_nested_valid_ref(did);
+          parent->add_nested_valid_ref(result->did);
         if (color_space->parent != NULL)
-          color_space->parent->add_nested_valid_ref(did);
+          color_space->parent->add_nested_valid_ref(result->did);
         else
-          color_space->add_nested_valid_ref(did);
+          color_space->add_nested_valid_ref(result->did);
         // We know if we're disjoint or not but if we're not complete we might 
         // still be getting notifications to compute the complete
         if (complete < 0)
@@ -3395,14 +3385,13 @@ namespace Legion {
                                                  IndexSpaceNode *color_space,
                                                  LegionColor color,
                                                  int complete, 
-                                                 DistributedID did,
                                                  Provenance *provenance,
                                                  RtEvent initialized,
                                                  CollectiveMapping *mapping)
     //--------------------------------------------------------------------------
     {
       IndexPartCreator creator(p, parent, color_space, color, 
-                               complete, did, initialized, mapping, provenance);
+                               complete, initialized, mapping, provenance);
       NT_TemplateHelper::demux<IndexPartCreator>(p.get_type_tag(), &creator);
       IndexPartNode *result = creator.result;
 #ifdef DEBUG_LEGION
@@ -3431,13 +3420,13 @@ namespace Legion {
         // Add it to the partition of our parent if it exists, otherwise
         // our parent index space is a root so we add the reference there
         if (parent->parent != NULL)
-          parent->parent->add_nested_valid_ref(did);
+          parent->parent->add_nested_valid_ref(result->did);
         else
-          parent->add_nested_valid_ref(did);
+          parent->add_nested_valid_ref(result->did);
         if (color_space->parent != NULL)
-          color_space->parent->add_nested_valid_ref(did);
+          color_space->parent->add_nested_valid_ref(result->did);
         else
-          color_space->add_nested_valid_ref(did);
+          color_space->add_nested_valid_ref(result->did);
         // We don't know if we're disjonit or yet not so we need to do
         // the disjoint and complete analysis
         result->initialize_disjoint_complete_notifications();
@@ -3448,13 +3437,12 @@ namespace Legion {
  
     //--------------------------------------------------------------------------
     FieldSpaceNode* Runtime::create_node(FieldSpace space,
-                                                  DistributedID did,
                                                   RtEvent initialized,
                                                   Provenance *provenance,
                                                   CollectiveMapping *mapping)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode *result = new FieldSpaceNode(space, did,
+      FieldSpaceNode *result = new FieldSpaceNode(space,
           initialized, mapping, provenance);
 #ifdef DEBUG_LEGION
       assert(result != NULL);
@@ -3484,14 +3472,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldSpaceNode* Runtime::create_node(FieldSpace space,
-                                                  DistributedID did,
                                                   RtEvent initialized,
                                                   Provenance *provenance,
                                                   CollectiveMapping *mapping,
                                                   Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      FieldSpaceNode *result = new FieldSpaceNode(space, did,
+      FieldSpaceNode *result = new FieldSpaceNode(space,
           initialized, mapping, provenance, derez);
 #ifdef DEBUG_LEGION
       assert(result != NULL);
@@ -7531,14 +7518,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpaceNode::IndexSpaceNode(IndexSpace h, 
                                    IndexPartNode *par, LegionColor c,
-                                   DistributedID did,
                                    IndexSpaceExprID exp_id, RtEvent init,
                                    unsigned dep, Provenance *prov,
                                    CollectiveMapping *map, bool tree_valid)
       : IndexTreeNode(
           (dep == UINT_MAX) ? ((par == NULL) ? 0 : par->depth + 1) : dep, c, 
-          LEGION_DISTRIBUTED_HELP_ENCODE(did, INDEX_SPACE_NODE_DC),
-          init, map, prov, tree_valid),
+          h.did, init, map, prov, tree_valid),
         IndexSpaceExpression(h.type_tag, exp_id > 0 ? exp_id : 
             runtime->get_unique_index_space_expr_id(), node_lock),
         handle(h), parent(par), next_uncollected_color(0),
@@ -8209,7 +8194,6 @@ namespace Legion {
     {
       RezCheck z(rez);
       rez.serialize(handle);
-      rez.serialize(did);
       if (recurse && (parent != NULL))
         rez.serialize(parent->handle);
       else
@@ -8318,8 +8302,6 @@ namespace Legion {
       DerezCheck z(derez);
       IndexSpace handle;
       derez.deserialize(handle);
-      DistributedID did;
-      derez.deserialize(did);
       IndexPartition parent;
       derez.deserialize(parent);
       LegionColor color;
@@ -8350,7 +8332,7 @@ namespace Legion {
       if (parent != IndexPartition::NO_PART)
         parent_node = runtime->get_node(parent);
       IndexSpaceNode *node = runtime->create_node(handle, index_space_ptr,
-          false/*is domain*/, parent_node, color, did, initialized, provenance,
+          false/*is domain*/, parent_node, color, initialized, provenance,
           ready_event,expr_id,mapping,false/*add root reference*/,depth,valid);
 #ifdef DEBUG_LEGION
       assert(node != NULL);
@@ -8976,10 +8958,9 @@ namespace Legion {
     IndexPartNode::IndexPartNode(IndexPartition p, 
                                  IndexSpaceNode *par, IndexSpaceNode *color_sp,
                                  LegionColor c, bool dis, int comp, 
-                                 DistributedID did, RtEvent init,
+                                 RtEvent init,
                                  CollectiveMapping *mapping, Provenance *prov)
-      : IndexTreeNode(par->depth+1, c,
-                      LEGION_DISTRIBUTED_HELP_ENCODE(did, INDEX_PART_NODE_DC),
+      : IndexTreeNode(par->depth+1, c, p.did,
                       init, mapping, prov, true/*tree valid*/),
         handle(p), parent(par), color_space(color_sp), 
         total_children(color_sp->get_volume()), 
@@ -9003,11 +8984,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexPartNode::IndexPartNode(IndexPartition p, 
                                  IndexSpaceNode *par, IndexSpaceNode *color_sp,
-                                 LegionColor c, int comp, DistributedID did,
+                                 LegionColor c, int comp,
                                  RtEvent init, CollectiveMapping *map,
                                  Provenance *prov)
-      : IndexTreeNode(par->depth+1, c,
-                      LEGION_DISTRIBUTED_HELP_ENCODE(did, INDEX_PART_NODE_DC),
+      : IndexTreeNode(par->depth+1, c, p.did,
                       init, map, prov, true/*tree valid*/),
         handle(p), parent(par), color_space(color_sp), 
         total_children(color_sp->get_volume()),
@@ -9491,10 +9471,8 @@ namespace Legion {
                         handle.get_tree_id(), handle.get_type_tag());
           const IndexSpaceExprID expr_id =
             runtime->get_unique_index_space_expr_id();
-          DistributedID child_did = 
-            runtime->get_available_distributed_id();
           // Make a new index space node ready when the partition is ready
-          IndexSpaceNode *result = runtime->create_node(is, *this, c, child_did,
+          IndexSpaceNode *result = runtime->create_node(is, *this, c,
                                initialized, provenance, expr_id, child_mapping);
           if ((child_mapping != NULL) && (child_mapping->size() > 1))
           {
@@ -9512,7 +9490,6 @@ namespace Legion {
               rez.serialize(handle);
               rez.serialize(c);
               rez.serialize(is);
-              rez.serialize(child_did);
               rez.serialize(expr_id);
               child_mapping->pack(rez);
             }
@@ -9555,8 +9532,6 @@ namespace Legion {
       derez.deserialize(child_color);
       IndexSpace child_handle;
       derez.deserialize(child_handle);
-      DistributedID child_did;
-      derez.deserialize(child_did);
       IndexSpaceExprID expr_id;
       derez.deserialize(expr_id);
       size_t num_spaces;
@@ -9567,7 +9542,7 @@ namespace Legion {
       CollectiveMapping *mapping = new CollectiveMapping(derez, num_spaces);
 
       IndexPartNode *parent = runtime->get_node(parent_handle);
-      runtime->create_node(child_handle, *parent, child_color, child_did,
+      runtime->create_node(child_handle, *parent, child_color,
               parent->initialized, parent->provenance, expr_id, mapping);
       std::vector<AddressSpaceID> children;
       mapping->get_children(mapping->get_origin(),parent->local_space,children);
@@ -9579,7 +9554,6 @@ namespace Legion {
           rez.serialize(parent_handle);
           rez.serialize(child_color);
           rez.serialize(child_handle);
-          rez.serialize(child_did);
           rez.serialize(expr_id);
           mapping->pack(rez);
         }
@@ -10631,7 +10605,6 @@ namespace Legion {
       // is computed we'll send out the result to all the remote copies
       RezCheck z(rez);
       rez.serialize(handle);
-      rez.serialize(did);
       rez.serialize(parent->handle); 
       rez.serialize(color_space->handle);
       rez.serialize(color);
@@ -10674,8 +10647,6 @@ namespace Legion {
       DerezCheck z(derez);
       IndexPartition handle;
       derez.deserialize(handle);
-      DistributedID did;
-      derez.deserialize(did);
       IndexSpace parent;
       derez.deserialize(parent);
       IndexSpace color_space;
@@ -10703,9 +10674,9 @@ namespace Legion {
 #endif
       IndexPartNode *node = has_disjoint ?
         runtime->create_node(handle, parent_node, color_space_node, color, 
-               disjoint, complete, did, provenance, initialized, mapping) :
+               disjoint, complete, provenance, initialized, mapping) :
         runtime->create_node(handle, parent_node, color_space_node, color,
-               complete, did, provenance, initialized, mapping);
+               complete, provenance, initialized, mapping);
 #ifdef DEBUG_LEGION
       assert(node != NULL);
 #endif
@@ -11380,10 +11351,8 @@ namespace Legion {
     
     //--------------------------------------------------------------------------
     FieldSpaceNode::FieldSpaceNode(FieldSpace sp,
-                   DistributedID did, RtEvent init, CollectiveMapping *map,
-                   Provenance *prov)
-      : DistributedCollectable(
-          LEGION_DISTRIBUTED_HELP_ENCODE(did, FIELD_SPACE_DC), 
+                   RtEvent init, CollectiveMapping *map, Provenance *prov)
+      : DistributedCollectable(sp.did,
           false/*register with runtime*/, map),
         handle(sp), provenance(prov), initialized(init), 
         allocation_state((map != NULL) ? FIELD_ALLOC_COLLECTIVE :
@@ -11422,10 +11391,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldSpaceNode::FieldSpaceNode(FieldSpace sp,
-         DistributedID did, RtEvent init, CollectiveMapping *map,
+         RtEvent init, CollectiveMapping *map,
          Provenance *prov, Deserializer &derez)
-      : DistributedCollectable(
-          LEGION_DISTRIBUTED_HELP_ENCODE(did, FIELD_SPACE_DC), 
+      : DistributedCollectable(sp.did,
           false/*register with runtime*/, map),
         handle(sp), provenance(prov), initialized(init), 
         allocation_state(FIELD_ALLOC_INVALID), outstanding_allocators(0),
@@ -14563,7 +14531,6 @@ namespace Legion {
         {
           RezCheck z(rez);
           rez.serialize(handle);
-          rez.serialize(did);
           rez.serialize(initialized);
           if (provenance != NULL)
             provenance->serialize(rez);
@@ -14624,8 +14591,6 @@ namespace Legion {
       DerezCheck z(derez);
       FieldSpace handle;
       derez.deserialize(handle);
-      DistributedID did;
-      derez.deserialize(did);
       RtEvent initialized;
       derez.deserialize(initialized);
       AutoProvenance provenance(Provenance::deserialize(derez));
@@ -14635,7 +14600,7 @@ namespace Legion {
       if (num_spaces > 0)
         mapping = new CollectiveMapping(derez, num_spaces);
       FieldSpaceNode *node =
-        runtime->create_node(handle,did,initialized,provenance,mapping,derez);
+        runtime->create_node(handle, initialized, provenance, mapping, derez);
 #ifdef DEBUG_LEGION
       assert(node != NULL);
 #endif

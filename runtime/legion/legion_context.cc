@@ -3546,7 +3546,6 @@ namespace Legion {
     {
       IndexSpace handle(runtime->get_unique_index_space_id(),
                         runtime->get_unique_index_tree_id(), type_tag);
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating index space %llu in task%s (ID %lld)", 
                       handle.get_id(), get_task_name(), get_unique_id()); 
@@ -3554,7 +3553,7 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
-      runtime->create_index_space(handle, bounds, did, provenance);
+      runtime->create_index_space(handle, bounds, provenance);
       register_index_space_creation(handle);
       return handle;
     }
@@ -3642,8 +3641,7 @@ namespace Legion {
         return IndexSpace::NO_SPACE;
       const IndexSpace handle(runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), spaces[0].get_type_tag());
-      const DistributedID did = runtime->get_available_distributed_id();
-      runtime->create_union_space(handle, did, provenance, spaces);
+      runtime->create_union_space(handle, provenance, spaces);
       register_index_space_creation(handle);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
@@ -3674,8 +3672,7 @@ namespace Legion {
         return IndexSpace::NO_SPACE;
       const IndexSpace handle(runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), spaces[0].get_type_tag());
-      const DistributedID did = runtime->get_available_distributed_id();
-      runtime->create_intersection_space(handle,did,provenance,spaces);
+      runtime->create_intersection_space(handle, provenance, spaces);
       register_index_space_creation(handle);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
@@ -3697,9 +3694,7 @@ namespace Legion {
                         get_task_name(), get_unique_id())
       const IndexSpace handle(runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), left.get_type_tag());
-      const DistributedID did = runtime->get_available_distributed_id();
-      runtime->create_difference_space(handle, did, provenance,
-                                               left, right); 
+      runtime->create_difference_space(handle, provenance, left, right); 
       register_index_space_creation(handle);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
@@ -3714,7 +3709,6 @@ namespace Legion {
     {
       IndexSpace handle(runtime->get_unique_index_space_id(),
                         runtime->get_unique_index_tree_id(), type_tag);
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating index space %llu in task%s (ID %lld)", 
                       handle.get_id(), get_task_name(), get_unique_id()); 
@@ -3727,7 +3721,7 @@ namespace Legion {
       const ApEvent ready = creator_op->get_completion_event();
       IndexSpaceNode *node = runtime->create_node(handle,
           NULL/*domain*/, true/*is domain*/, NULL/*parent*/,
-          0/*color*/, did, RtEvent::NO_RT_EVENT, provenance,
+          0/*color*/, RtEvent::NO_RT_EVENT, provenance,
           ready, 0/*expr id*/, NULL/*collective mapping*/, 
           true/*add root reference*/);
       creator_op->initialize_index_space(this, node, future, provenance);
@@ -3924,7 +3918,6 @@ namespace Legion {
     {
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating equal partition %llud with parent index space %llu "
                       "in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -3938,7 +3931,7 @@ namespace Legion {
       part_op->initialize_equal_partition(this, pid, granularity, provenance);
       RtEvent safe = create_pending_partition_internal(pid, parent,
                     color_space, partition_color, LEGION_DISJOINT_COMPLETE_KIND,
-                    did, provenance);
+                    provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
       // Wait for any notifications to occur before returning
@@ -3957,7 +3950,6 @@ namespace Legion {
     {
       const IndexPartition pid(runtime->get_unique_index_partition_id(), 
                                parent.get_tree_id(), parent.get_type_tag());
-      const DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition %llu by weights with parent index "
                       "space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -3972,7 +3964,7 @@ namespace Legion {
                                            granularity, provenance);
       const RtEvent safe = create_pending_partition_internal(pid, parent,
                   color_space, partition_color, LEGION_DISJOINT_COMPLETE_KIND,
-                  did, provenance);
+                  provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
       // Wait for any notifications to occur before returning
@@ -3996,7 +3988,6 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating union partition %llu with parent index "
                       "space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -4050,7 +4041,7 @@ namespace Legion {
         }
       }
       RtEvent safe = create_pending_partition_internal(pid,
-          parent, color_space, partition_color, kind, did, provenance);
+          parent, color_space, partition_color, kind, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
       // Wait for any notifications to occur before returning
@@ -4076,7 +4067,6 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating intersection partition %llu with parent "
                       "index space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -4129,7 +4119,7 @@ namespace Legion {
         }
       }
       RtEvent safe = create_pending_partition_internal(pid,
-          parent, color_space, partition_color, kind, did, provenance);
+          parent, color_space, partition_color, kind, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
       // Wait for any notifications to occur before returning
@@ -4154,7 +4144,6 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating intersection partition %llu with parent "
                       "index space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -4189,7 +4178,7 @@ namespace Legion {
         }
       }
       RtEvent safe = create_pending_partition_internal(pid, parent,
-                     part_node->color_space->handle, partition_color, kind, did,
+                     part_node->color_space->handle, partition_color, kind,
                      provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4217,7 +4206,6 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating difference partition %llu with parent "
                       "index space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -4259,7 +4247,7 @@ namespace Legion {
         }
       }
       RtEvent safe = create_pending_partition_internal(pid, 
-                         parent, color_space, partition_color, kind, did,
+                         parent, color_space, partition_color, kind,
                          provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
@@ -4414,7 +4402,6 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating restricted partition in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4427,7 +4414,7 @@ namespace Legion {
       part_op->initialize_restricted_partition(this, pid, transform, 
                           transform_size, extent, extent_size, provenance);
       RtEvent safe = create_pending_partition_internal(pid,
-          parent, color_space, part_color, part_kind, did, provenance);
+          parent, color_space, part_color, part_kind, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
       // Wait for any notifications to occur before returning
@@ -4455,7 +4442,6 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by domain in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4468,7 +4454,7 @@ namespace Legion {
       part_op->initialize_by_domain(this, pid, domains, 
                           perform_intersections, provenance);
       RtEvent safe = create_pending_partition_internal(pid,
-          parent, color_space, part_color, part_kind, did, provenance);
+          parent, color_space, part_color, part_kind, provenance);
       // Now we can add the operation to the queue
       add_to_dependence_queue(part_op);
       // Wait for any notifications to occur before returning
@@ -4499,7 +4485,6 @@ namespace Legion {
       IndexSpace parent = handle.get_index_space(); 
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by field in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4511,7 +4496,7 @@ namespace Legion {
       DependentPartitionOp *part_op = 
         runtime->get_operation<DependentPartitionOp>();
       RtEvent safe = create_pending_partition_internal(pid,
-          parent, color_space, part_color, part_kind, did, provenance);
+          parent, color_space, part_color, part_kind, provenance);
       // Do this after creating the pending partition so the node exists
       // in case we need to look at it during initialization
       part_op->initialize_by_field(this, pid, handle, parent_priv, 
@@ -4565,7 +4550,6 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          handle.get_tree_id(), handle.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by image in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4577,7 +4561,7 @@ namespace Legion {
       DependentPartitionOp *part_op = 
         runtime->get_operation<DependentPartitionOp>();
       RtEvent safe = create_pending_partition_internal(pid,
-          handle, color_space, part_color, part_kind, did, provenance);
+          handle, color_space, part_color, part_kind, provenance);
       // Do this after creating the pending partition so the node exists
       // in case we need to look at it during initialization
       part_op->initialize_by_image(this, pid, handle, projection, parent,
@@ -4631,7 +4615,6 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          handle.get_tree_id(), handle.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by image range in task %s (ID %lld)",
                       get_task_name(), get_unique_id());
@@ -4643,7 +4626,7 @@ namespace Legion {
       DependentPartitionOp *part_op = 
         runtime->get_operation<DependentPartitionOp>();
       RtEvent safe = create_pending_partition_internal(pid,
-          handle, color_space, part_color, part_kind, did, provenance);
+          handle, color_space, part_color, part_kind, provenance);
       // Do this after creating the pending partition so the node exists
       // in case we need to look at it during initialization
       part_op->initialize_by_image_range(this, pid, handle, projection, parent,
@@ -4697,7 +4680,6 @@ namespace Legion {
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          handle.get_index_space().get_tree_id(),
                          handle.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by preimage in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4727,7 +4709,7 @@ namespace Legion {
       }
       RtEvent safe = create_pending_partition_internal(pid, 
                            handle.get_index_space(), color_space, 
-                           part_color, part_kind, did, provenance);
+                           part_color, part_kind, provenance);
       // Do this after creating the pending partition so the node exists
       // in case we need to look at it during initialization
       part_op->initialize_by_preimage(this, pid, projection, handle, 
@@ -4781,7 +4763,6 @@ namespace Legion {
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          handle.get_index_space().get_tree_id(),
                          handle.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by preimage range in task %s "
                       "(ID %lld)", get_task_name(), get_unique_id());
@@ -4794,7 +4775,7 @@ namespace Legion {
         runtime->get_operation<DependentPartitionOp>(); 
       RtEvent safe = create_pending_partition_internal(pid,
                        handle.get_index_space(), color_space,
-                       part_color, part_kind, did, provenance);
+                       part_color, part_kind, provenance);
       // Do this after creating the pending partition so the node exists
       // in case we need to look at it during initialization
       part_op->initialize_by_preimage_range(this, pid, projection, handle,
@@ -4843,7 +4824,6 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
                          parent.get_tree_id(), parent.get_type_tag());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_index.debug("Creating pending partition in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4853,7 +4833,7 @@ namespace Legion {
         part_color = color;
       RtEvent safe = create_pending_partition_internal(pid,
                             parent, color_space, part_color, part_kind,
-                            did, provenance);
+                            provenance);
       // Wait for any notifications to occur before returning
       if (safe.exists())
         safe.wait();
@@ -5141,7 +5121,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldSpace space(runtime->get_unique_field_space_id());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_field.debug("Creating field space %llu in task %s (ID %lld)", 
                       space.get_id(), get_task_name(), get_unique_id());
@@ -5150,7 +5129,7 @@ namespace Legion {
         LegionSpy::log_field_space(space.get_id(), runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
 
-      runtime->create_node(space, did, RtEvent::NO_RT_EVENT, provenance);
+      runtime->create_node(space, RtEvent::NO_RT_EVENT, provenance);
       register_field_space_creation(space);
       return space;
     }
@@ -5164,7 +5143,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FieldSpace space(runtime->get_unique_field_space_id());
-      DistributedID did = runtime->get_available_distributed_id();
 #ifdef DEBUG_LEGION
       log_field.debug("Creating field space %llu in task %s (ID %lld)", 
                       space.get_id(), get_task_name(), get_unique_id());
@@ -5173,7 +5151,7 @@ namespace Legion {
         LegionSpy::log_field_space(space.get_id(), runtime->address_space,
             (provenance == NULL) ? NULL : provenance->human_str());
 
-      FieldSpaceNode *node = runtime->create_node(space, did,
+      FieldSpaceNode *node = runtime->create_node(space,
           RtEvent::NO_RT_EVENT, provenance);
       register_field_space_creation(space);
       if (resulting_fields.size() < sizes.size())
@@ -13704,7 +13682,7 @@ namespace Legion {
         handle = IndexSpace(value.did, value.tid, type_tag);
         double_buffer = value.double_buffer;
         runtime->create_node(handle, domain, true/*is domain*/,
-            NULL/*parent*/, 0/*color*/, value.did, creation_bar,
+            NULL/*parent*/, 0/*color*/, creation_bar,
             provenance, ApEvent::NO_AP_EVENT, value.expr_id,
             &collective_mapping, true/*add root reference*/);
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -13732,7 +13710,7 @@ namespace Legion {
 #endif
         double_buffer = value.double_buffer;
         runtime->create_node(handle, domain, true/*is domain*/,
-            NULL/*parent*/, 0/*color*/, value.did, creation_bar,
+            NULL/*parent*/, 0/*color*/, creation_bar,
             provenance, ApEvent::NO_AP_EVENT, value.expr_id, 
             &collective_mapping, true/*add root reference*/);
         // Arrive on the creation barrier
@@ -13849,7 +13827,7 @@ namespace Legion {
         handle = IndexSpace(value.did, value.tid, type_tag);
         double_buffer = value.double_buffer;
         node = runtime->create_node(handle, NULL, true/*is domain*/,
-            NULL/*parent*/, 0/*color*/, value.did, creation_bar,
+            NULL/*parent*/, 0/*color*/, creation_bar,
             provenance, ready, value.expr_id, &collective_mapping,
             true/*add root reference*/);
         // Arrive on the creation barrier
@@ -13878,7 +13856,7 @@ namespace Legion {
 #endif
         double_buffer = value.double_buffer;
         node = runtime->create_node(handle, NULL, true/*is domain*/,
-            NULL/*parent*/, 0/*color*/, value.did, creation_bar,
+            NULL/*parent*/, 0/*color*/, creation_bar,
             provenance, ready, value.expr_id, &collective_mapping,
             true/*add root reference*/);
         // Arrive on the creation barrier
@@ -14033,7 +14011,7 @@ namespace Legion {
         const ISBroadcast value = collective.first->get_value(false);
         handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
         double_buffer = value.double_buffer;
-        runtime->create_union_space(handle, value.did, provenance,
+        runtime->create_union_space(handle, provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -14060,7 +14038,7 @@ namespace Legion {
         assert(handle.exists());
 #endif
         double_buffer = value.double_buffer;
-        runtime->create_union_space(handle, value.did, provenance,
+        runtime->create_union_space(handle, provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -14133,7 +14111,7 @@ namespace Legion {
         const ISBroadcast value = collective.first->get_value(false);
         handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
         double_buffer = value.double_buffer;
-        runtime->create_intersection_space(handle, value.did,provenance,
+        runtime->create_intersection_space(handle, provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -14160,7 +14138,7 @@ namespace Legion {
         assert(handle.exists());
 #endif
         double_buffer = value.double_buffer;
-        runtime->create_intersection_space(handle, value.did,provenance,
+        runtime->create_intersection_space(handle, provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -14223,7 +14201,7 @@ namespace Legion {
         const ISBroadcast value = collective.first->get_value(false);
         handle = IndexSpace(value.did, value.tid, left.get_type_tag());
         double_buffer = value.double_buffer;
-        runtime->create_difference_space(handle, value.did, provenance,
+        runtime->create_difference_space(handle, provenance,
             left, right, creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -14250,7 +14228,7 @@ namespace Legion {
         assert(handle.exists());
 #endif
         double_buffer = value.double_buffer;
-        runtime->create_difference_space(handle, value.did, provenance,
+        runtime->create_difference_space(handle, provenance,
             left, right, creation_bar, &collective_mapping, value.expr_id);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -14593,7 +14571,7 @@ namespace Legion {
         RtEvent safe_event = create_pending_partition_internal(
                                            pid, parent, color_space, 
                                            partition_color, part_kind,
-                                           value.did, provenance,
+                                           provenance,
                                            &collective_mapping, creation_bar);
         // Broadcast the color if we have to generate it
         if (color_generated)
@@ -14636,7 +14614,7 @@ namespace Legion {
         RtEvent safe_event = create_pending_partition_internal(
                                          pid, parent, color_space, 
                                          partition_color, part_kind,
-                                         value.did, provenance,
+                                         provenance,
                                          &collective_mapping, creation_bar);
         // Signal that we're done our creation
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/, safe_event);
@@ -16248,7 +16226,7 @@ namespace Legion {
         space = FieldSpace(value.did);
         double_buffer = value.double_buffer;
         // Need to register this before broadcasting
-        runtime->create_node(space, value.did, creation_bar,
+        runtime->create_node(space, creation_bar,
             provenance, &collective_mapping);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/); 
@@ -16275,7 +16253,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(space.exists());
 #endif
-        runtime->create_node(space, value.did, creation_bar,
+        runtime->create_node(space, creation_bar,
             provenance, &collective_mapping);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);

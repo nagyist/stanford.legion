@@ -1819,8 +1819,7 @@ namespace Legion {
         provenance = runtime->find_or_create_provenance(prov, strlen(prov));
       const IndexSpace result(runtime->get_unique_index_space_id(),
                     runtime->get_unique_index_tree_id(), type_tag);
-      const DistributedID did = runtime->get_available_distributed_id();
-      runtime->create_index_space(result, &domain, did, provenance);
+      runtime->create_index_space(result, &domain, provenance);
       if ((provenance != NULL) && provenance->remove_reference())
         delete provenance;
       return result; 
@@ -1904,9 +1903,8 @@ namespace Legion {
         return IndexSpace::NO_SPACE;
       const IndexSpace result(runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), sources[0].get_type_tag());
-      const DistributedID did = runtime->get_available_distributed_id();
       Internal::AutoProvenance prov(provenance);
-      runtime->create_union_space(result, did, prov, sources);
+      runtime->create_union_space(result, prov, sources);
       if (runtime->legion_spy_enabled)
         Internal::LegionSpy::log_top_index_space(result.get_id(),
                     runtime->address_space, provenance);
@@ -1936,9 +1934,8 @@ namespace Legion {
         return IndexSpace::NO_SPACE;
       const IndexSpace result(runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), sources[0].get_type_tag());
-      const DistributedID did = runtime->get_available_distributed_id();
       Internal::AutoProvenance prov(provenance);
-      runtime->create_intersection_space(result, did, prov, sources);
+      runtime->create_intersection_space(result, prov, sources);
       if (runtime->legion_spy_enabled)
         Internal::LegionSpy::log_top_index_space(result.get_id(),
                     runtime->address_space, provenance);
@@ -1959,9 +1956,8 @@ namespace Legion {
                         "performed in mapper %s", ctx->get_mapper_name())
       const IndexSpace result(runtime->get_unique_index_space_id(),
           runtime->get_unique_index_tree_id(), left.get_type_tag());
-      const DistributedID did = runtime->get_available_distributed_id();
       Internal::AutoProvenance prov(provenance);
-      runtime->create_difference_space(result, did, prov, left, right);
+      runtime->create_difference_space(result, prov, left, right);
       if (runtime->legion_spy_enabled)
         Internal::LegionSpy::log_top_index_space(result.get_id(),
                     runtime->address_space, provenance);

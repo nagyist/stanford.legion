@@ -1278,7 +1278,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceNode* IndexSpaceOperationT<DIM,T>::create_node(IndexSpace handle,
-                         DistributedID did, RtEvent initialized, 
+                         RtEvent initialized, 
                          Provenance *provenance,
                          CollectiveMapping *collective_mapping,
                          IndexSpaceExprID new_expr_id)
@@ -1289,12 +1289,12 @@ namespace Legion {
       AutoLock i_lock(inter_lock, 1, false/*exclusive*/);
       if (is_index_space_tight.load())
         return runtime->create_node(handle, &tight_index_space, false/*domain*/,
-                          NULL/*parent*/, 0/*color*/, did, initialized,
+                          NULL/*parent*/, 0/*color*/, initialized,
                           provenance, realm_index_space_ready, new_expr_id,
                           collective_mapping, true/*add root ref*/);
       else
         return runtime->create_node(handle, &realm_index_space, false/*domain*/,
-                          NULL/*parent*/, 0/*color*/, did, initialized,
+                          NULL/*parent*/, 0/*color*/, initialized,
                           provenance, realm_index_space_ready, new_expr_id,
                           collective_mapping, true/*add root ref*/);
     }
@@ -2152,9 +2152,9 @@ namespace Legion {
     template<int DIM, typename T>
     IndexSpaceNodeT<DIM,T>::IndexSpaceNodeT(
         IndexSpace handle, IndexPartNode *parent, LegionColor color,
-        DistributedID did, IndexSpaceExprID expr_id, RtEvent init, unsigned dep,
+        IndexSpaceExprID expr_id, RtEvent init, unsigned dep,
         Provenance *prov, CollectiveMapping *mapping, bool tree_valid)
-      : IndexSpaceNode(handle, parent, color, did, expr_id, init,
+      : IndexSpaceNode(handle, parent, color, expr_id, init,
           dep, prov, mapping, tree_valid), 
         realm_index_space(Realm::IndexSpace<DIM,T>::make_empty()),
         linearization(NULL)
@@ -2551,7 +2551,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceNode* IndexSpaceNodeT<DIM,T>::create_node(IndexSpace new_handle,
-                         DistributedID did, RtEvent initialized, 
+                         RtEvent initialized, 
                          Provenance *provenance,
                          CollectiveMapping *collective_mapping,
                          IndexSpaceExprID new_expr_id)
@@ -2565,7 +2565,7 @@ namespace Legion {
       Realm::IndexSpace<DIM,T> local_space;
       const ApEvent ready = get_realm_index_space(local_space, false/*tight*/);
       return runtime->create_node(new_handle, &local_space, false/*domain*/,
-                              NULL/*parent*/, 0/*color*/, did, initialized,
+                              NULL/*parent*/, 0/*color*/, initialized,
                               provenance, ready, new_expr_id,
                               collective_mapping, true/*add root reference*/);
     }
@@ -10466,10 +10466,10 @@ namespace Legion {
                                         IndexPartition p,
                                         IndexSpaceNode *par, IndexSpaceNode *cs,
                                         LegionColor c, bool disjoint, 
-                                        int complete, DistributedID did,
-                                        RtEvent init, CollectiveMapping *map,
+                                        int complete, RtEvent init,
+                                        CollectiveMapping *map,
                                         Provenance *prov)
-      : IndexPartNode(p, par, cs, c, disjoint, complete, did,
+      : IndexPartNode(p, par, cs, c, disjoint, complete,
                       init, map, prov), kd_root(NULL),
         kd_remote(NULL), dense_shard_rects(NULL), sparse_shard_rects(NULL)
     //--------------------------------------------------------------------------
@@ -10481,10 +10481,10 @@ namespace Legion {
     IndexPartNodeT<DIM,T>::IndexPartNodeT(
                                         IndexPartition p, IndexSpaceNode *par,
                                         IndexSpaceNode *cs, LegionColor c, 
-                                        int comp, DistributedID did,
+                                        int comp,
                                         RtEvent init, CollectiveMapping *map,
                                         Provenance *prov)
-      : IndexPartNode(p, par, cs, c, comp, did,
+      : IndexPartNode(p, par, cs, c, comp,
                       init, map, prov), kd_root(NULL),
         kd_remote(NULL), dense_shard_rects(NULL), sparse_shard_rects(NULL)
     //--------------------------------------------------------------------------
