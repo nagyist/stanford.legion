@@ -4322,8 +4322,7 @@ namespace Legion {
       DistributedID      get_unique_index_space_id(void);
       DistributedID      get_unique_index_partition_id(void);
       DistributedID      get_unique_field_space_id(void);
-      IndexTreeID        get_unique_index_tree_id(void);
-      RegionTreeID       get_unique_region_tree_id(void);
+      DistributedID      get_unique_region_tree_id(void);
       UniqueID           get_unique_operation_id(void);
       FieldID            get_unique_field_id(void);
       CodeDescriptorID   get_unique_code_descriptor_id(void);
@@ -4448,7 +4447,6 @@ namespace Legion {
       // For every mapper remember its mapper ID and processor
       std::map<Mapper*,MapperInfo> mapper_infos;
     protected:
-      std::atomic<unsigned> unique_index_tree_id;
       std::atomic<unsigned> unique_field_id; 
       std::atomic<unsigned long long> unique_operation_id;
       std::atomic<unsigned long long> unique_code_descriptor_id;

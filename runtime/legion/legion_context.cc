@@ -3221,7 +3221,7 @@ namespace Legion {
       // If we get here then we can make a new requirement
       // which has non-returnable privileges
       // Get the top level region for the region tree
-      RegionNode *top = runtime->get_tree(req.parent.get_tree_id());
+      RegionNode *top = runtime->get_tree(req.parent.get_tree_id(false));
       const unsigned index = next_created_index++;
       RegionRequirement &new_req = created_requirements[index];
       new_req = RegionRequirement(top->handle, LEGION_READ_WRITE, 
@@ -3544,8 +3544,8 @@ namespace Legion {
                                        TypeTag type_tag, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      IndexSpace handle(runtime->get_unique_index_space_id(),
-                        runtime->get_unique_index_tree_id(), type_tag);
+      DistributedID did = runtime->get_unique_index_space_id();
+      IndexSpace handle(did, did, type_tag);
 #ifdef DEBUG_LEGION
       log_index.debug("Creating index space %llu in task%s (ID %lld)", 
                       handle.get_id(), get_task_name(), get_unique_id()); 
@@ -3639,8 +3639,8 @@ namespace Legion {
       }
       if (none_exists)
         return IndexSpace::NO_SPACE;
-      const IndexSpace handle(runtime->get_unique_index_space_id(),
-          runtime->get_unique_index_tree_id(), spaces[0].get_type_tag());
+      const DistributedID did = runtime->get_unique_index_space_id();
+      const IndexSpace handle(did, did, spaces[0].get_type_tag());
       runtime->create_union_space(handle, provenance, spaces);
       register_index_space_creation(handle);
       if (runtime->legion_spy_enabled)
@@ -3670,8 +3670,8 @@ namespace Legion {
       }
       if (none_exists)
         return IndexSpace::NO_SPACE;
-      const IndexSpace handle(runtime->get_unique_index_space_id(),
-          runtime->get_unique_index_tree_id(), spaces[0].get_type_tag());
+      const DistributedID did = runtime->get_unique_index_space_id();
+      const IndexSpace handle(did, did, spaces[0].get_type_tag());
       runtime->create_intersection_space(handle, provenance, spaces);
       register_index_space_creation(handle);
       if (runtime->legion_spy_enabled)
@@ -3692,8 +3692,8 @@ namespace Legion {
                         "Dynamic type mismatch in 'create_difference_spaces' "
                         "performed in task %s (UID %lld)",
                         get_task_name(), get_unique_id())
-      const IndexSpace handle(runtime->get_unique_index_space_id(),
-          runtime->get_unique_index_tree_id(), left.get_type_tag());
+      const DistributedID did = runtime->get_unique_index_space_id();
+      const IndexSpace handle(did, did, left.get_type_tag());
       runtime->create_difference_space(handle, provenance, left, right); 
       register_index_space_creation(handle);
       if (runtime->legion_spy_enabled)
@@ -3707,8 +3707,8 @@ namespace Legion {
                                        TypeTag type_tag, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      IndexSpace handle(runtime->get_unique_index_space_id(),
-                        runtime->get_unique_index_tree_id(), type_tag);
+      const DistributedID did = runtime->get_unique_index_space_id();
+      IndexSpace handle(did, did, type_tag);
 #ifdef DEBUG_LEGION
       log_index.debug("Creating index space %llu in task%s (ID %lld)", 
                       handle.get_id(), get_task_name(), get_unique_id()); 
@@ -3917,7 +3917,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         parent.get_tree_id(), parent.get_type_tag());
+                         parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating equal partition %llud with parent index space %llu "
                       "in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -3949,7 +3949,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                               parent.get_tree_id(), parent.get_type_tag());
+                               parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition %llu by weights with parent index "
                       "space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -3987,7 +3987,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         parent.get_tree_id(), parent.get_type_tag());
+                         parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating union partition %llu with parent index "
                       "space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -4066,7 +4066,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         parent.get_tree_id(), parent.get_type_tag());
+                         parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating intersection partition %llu with parent "
                       "index space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -4143,7 +4143,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         parent.get_tree_id(), parent.get_type_tag());
+                         parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating intersection partition %llu with parent "
                       "index space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -4205,7 +4205,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         parent.get_tree_id(), parent.get_type_tag());
+                         parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating difference partition %llu with parent "
                       "index space %llu in task %s (ID %lld)", pid.get_id(), parent.get_id(),
@@ -4401,7 +4401,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         parent.get_tree_id(), parent.get_type_tag());
+                         parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating restricted partition in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4441,7 +4441,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         parent.get_tree_id(), parent.get_type_tag());
+                         parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by domain in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4484,7 +4484,7 @@ namespace Legion {
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexSpace parent = handle.get_index_space(); 
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         parent.get_tree_id(), parent.get_type_tag());
+                         parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by field in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4823,7 +4823,7 @@ namespace Legion {
       if (runtime->verify_partitions && !trust)
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         parent.get_tree_id(), parent.get_type_tag());
+                         parent.get_tree_id(false), parent.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating pending partition in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -13679,7 +13679,7 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid, type_tag);
+        handle = IndexSpace(value.did, value.did, type_tag);
         double_buffer = value.double_buffer;
         runtime->create_node(handle, domain, true/*is domain*/,
             NULL/*parent*/, 0/*color*/, creation_bar,
@@ -13704,7 +13704,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid, type_tag);
+        handle = IndexSpace(value.did, value.did, type_tag);
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -13766,7 +13766,6 @@ namespace Legion {
           ValueBroadcast<ISBroadcast> *collective = 
             new ValueBroadcast<ISBroadcast>(this, COLLECTIVE_LOC_3);
           collective->broadcast(ISBroadcast(did,
-                runtime->get_unique_index_tree_id(),
                 runtime->get_unique_index_space_expr_id(), double_next));
           pending_index_spaces.push_back(
               std::pair<ValueBroadcast<ISBroadcast>*,bool>(collective, true));
@@ -13824,7 +13823,7 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid, type_tag);
+        handle = IndexSpace(value.did, value.did, type_tag);
         double_buffer = value.double_buffer;
         node = runtime->create_node(handle, NULL, true/*is domain*/,
             NULL/*parent*/, 0/*color*/, creation_bar,
@@ -13850,7 +13849,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid, type_tag);
+        handle = IndexSpace(value.did, value.did, type_tag);
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -14009,7 +14008,7 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
+        handle = IndexSpace(value.did, value.did,spaces[0].get_type_tag());
         double_buffer = value.double_buffer;
         runtime->create_union_space(handle, provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
@@ -14033,7 +14032,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
+        handle = IndexSpace(value.did, value.did,spaces[0].get_type_tag());
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -14109,7 +14108,7 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
+        handle = IndexSpace(value.did, value.did,spaces[0].get_type_tag());
         double_buffer = value.double_buffer;
         runtime->create_intersection_space(handle, provenance,
             spaces,creation_bar, &collective_mapping, value.expr_id);
@@ -14133,7 +14132,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid,spaces[0].get_type_tag());
+        handle = IndexSpace(value.did, value.did,spaces[0].get_type_tag());
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -14199,7 +14198,7 @@ namespace Legion {
       if (collective.second)
       {
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid, left.get_type_tag());
+        handle = IndexSpace(value.did, value.did, left.get_type_tag());
         double_buffer = value.double_buffer;
         runtime->create_difference_space(handle, provenance,
             left, right, creation_bar, &collective_mapping, value.expr_id);
@@ -14223,7 +14222,7 @@ namespace Legion {
           done.wait();
         }
         const ISBroadcast value = collective.first->get_value(false);
-        handle = IndexSpace(value.did, value.tid, left.get_type_tag());
+        handle = IndexSpace(value.did, value.did, left.get_type_tag());
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
@@ -14656,7 +14655,7 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       LegionColor partition_color = INVALID_COLOR;
       bool color_generated = false; 
       if (color != LEGION_AUTO_GENERATE_ID)
@@ -14699,7 +14698,7 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       LegionColor partition_color = INVALID_COLOR;
       bool color_generated = false;
       if (color != LEGION_AUTO_GENERATE_ID)
@@ -14796,7 +14795,7 @@ namespace Legion {
             kind = LEGION_ALIASED_INCOMPLETE_KIND;
         }
       }
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       ReplPendingPartitionOp *part_op = 
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
@@ -14888,7 +14887,7 @@ namespace Legion {
             kind = LEGION_DISJOINT_INCOMPLETE_KIND;
         }
       }
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       ReplPendingPartitionOp *part_op = 
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
@@ -14960,7 +14959,7 @@ namespace Legion {
             kind = LEGION_DISJOINT_INCOMPLETE_KIND;
         }
       }
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       ReplPendingPartitionOp *part_op = 
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent,
@@ -15043,7 +15042,7 @@ namespace Legion {
             kind = LEGION_DISJOINT_INCOMPLETE_KIND;
         }
       }
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       ReplPendingPartitionOp *part_op = 
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
@@ -15314,7 +15313,7 @@ namespace Legion {
         part_color = color; 
       else
         color_generated = true;
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       ReplPendingPartitionOp *part_op = 
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
@@ -15366,7 +15365,7 @@ namespace Legion {
         part_color = color; 
       else
         color_generated = true;
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       ReplPendingPartitionOp *part_op = 
         runtime->get_operation<ReplPendingPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
@@ -15424,7 +15423,7 @@ namespace Legion {
         part_color = color;
       else
         color_generated = true;
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       ReplDependentPartitionOp *part_op = 
         runtime->get_operation<ReplDependentPartitionOp>();
       if (create_shard_partition(part_op, pid, parent, color_space, provenance,
@@ -15831,7 +15830,7 @@ namespace Legion {
         part_color = color; 
       else
         color_generated = true;
-      IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
+      IndexPartition pid(0/*temp*/,parent.get_tree_id(false),parent.get_type_tag());
       if (create_shard_partition(NULL/*op*/, pid, parent, color_space,
             provenance, part_kind, part_color, color_generated))
         log_index.debug("Creating pending partition in task %s (ID %lld)", 

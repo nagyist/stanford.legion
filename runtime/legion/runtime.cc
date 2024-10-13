@@ -17171,7 +17171,6 @@ namespace Legion {
               address_space, total_address_spaces, legion_collective_radix)),
         local_procs(locals), local_utils(local_utilities),
         proc_spaces(processor_spaces),
-        unique_index_tree_id((unique == 0) ? runtime_stride : unique),
         unique_field_id(LEGION_MAX_APPLICATION_FIELD_ID + 
                         ((unique == 0) ? runtime_stride : unique)),
         unique_operation_id((unique == 0) ? runtime_stride : unique),
@@ -26935,8 +26934,8 @@ namespace Legion {
         if (finder != index_slice_spaces.end())
           return finder->second;
       }
-      const IndexSpace result(get_unique_index_space_id(),
-                              get_unique_index_tree_id(), type_tag);
+      const DistributedID did = get_unique_index_space_id();
+      const IndexSpace result(did, did, type_tag);
       create_node(result, &domain, true/*is domain*/, NULL/*parent*/,
           0/*color*/, RtEvent::NO_RT_EVENT, provenance,
           ApEvent::NO_AP_EVENT, 0/*expr id*/, NULL/*mapping*/,
@@ -28507,24 +28506,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    IndexTreeID Runtime::get_unique_index_tree_id(void)
+    DistributedID Runtime::get_unique_region_tree_id(void)
     //--------------------------------------------------------------------------
     {
-      IndexTreeID result = unique_index_tree_id.fetch_add(runtime_stride);
-#ifdef DEBUG_LEGION
-      // check for overflow
-      // If we have overflow on the number of region trees
-      // created then we are really in a bad place.
-      assert(result <= unique_index_tree_id);
-#endif
-      return result;
-    }
-
-    //--------------------------------------------------------------------------
-    RegionTreeID Runtime::get_unique_region_tree_id(void)
-    //--------------------------------------------------------------------------
-    {
-      RegionTreeID did = get_available_distributed_id();
+      const DistributedID did = get_available_distributed_id();
       return LEGION_DISTRIBUTED_HELP_ENCODE(did, REGION_TREE_NODE_DC);
     }
 
@@ -28762,8 +28747,8 @@ namespace Legion {
     IndexSpace Runtime::help_create_index_space_handle(TypeTag type_tag)
     //--------------------------------------------------------------------------
     {
-      IndexSpace handle(get_unique_index_space_id(),
-                        get_unique_index_tree_id(), type_tag);
+      const DistributedID did = get_unique_index_space_id();
+      IndexSpace handle(did, did, type_tag);
       return handle;
     }
 
