@@ -4549,7 +4549,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         handle.get_tree_id(), handle.get_type_tag());
+                         handle.get_tree_id(false), handle.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by image in task %s (ID %lld)", 
                       get_task_name(), get_unique_id());
@@ -4614,7 +4614,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         handle.get_tree_id(), handle.get_type_tag());
+                         handle.get_tree_id(false), handle.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by image range in task %s (ID %lld)",
                       get_task_name(), get_unique_id());
@@ -4678,7 +4678,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         handle.get_index_space().get_tree_id(),
+                         handle.get_index_space().get_tree_id(false),
                          handle.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by preimage in task %s (ID %lld)", 
@@ -4761,7 +4761,7 @@ namespace Legion {
       if (runtime->verify_partitions)
         SWAP_PART_KINDS(verify_kind, part_kind)
       IndexPartition pid(runtime->get_unique_index_partition_id(), 
-                         handle.get_index_space().get_tree_id(),
+                         handle.get_index_space().get_tree_id(false),
                          handle.get_type_tag());
 #ifdef DEBUG_LEGION
       log_index.debug("Creating partition by preimage range in task %s "
@@ -15503,7 +15503,7 @@ namespace Legion {
         part_color = color;
       else
         color_generated = true;
-      IndexPartition pid(0/*temp*/, handle.get_tree_id(),handle.get_type_tag());
+      IndexPartition pid(0/*temp*/, handle.get_tree_id(false),handle.get_type_tag());
       ReplDependentPartitionOp *part_op = 
         runtime->get_operation<ReplDependentPartitionOp>();
       if (create_shard_partition(part_op, pid, handle, color_space, provenance,
@@ -15583,7 +15583,7 @@ namespace Legion {
         part_color = color;
       else
         color_generated = true;
-      IndexPartition pid(0/*temp*/, handle.get_tree_id(),handle.get_type_tag());
+      IndexPartition pid(0/*temp*/, handle.get_tree_id(false),handle.get_type_tag());
       ReplDependentPartitionOp *part_op = 
         runtime->get_operation<ReplDependentPartitionOp>();
       if (create_shard_partition(part_op, pid, handle, color_space, provenance,
@@ -15680,7 +15680,7 @@ namespace Legion {
         }
       }
       IndexPartition pid(0/*temp*/,
-          handle.get_index_space().get_tree_id(), handle.get_type_tag());
+          handle.get_index_space().get_tree_id(false), handle.get_type_tag());
       ReplDependentPartitionOp *part_op = 
         runtime->get_operation<ReplDependentPartitionOp>();
       if (create_shard_partition(part_op, pid, handle.get_index_space(),
@@ -15760,7 +15760,7 @@ namespace Legion {
       else
         color_generated = true; 
       IndexPartition pid(0/*temp*/,
-          handle.get_index_space().get_tree_id(), handle.get_type_tag());
+          handle.get_index_space().get_tree_id(false), handle.get_type_tag());
       ReplDependentPartitionOp *part_op = 
         runtime->get_operation<ReplDependentPartitionOp>();
       if (create_shard_partition(part_op, pid, handle.get_index_space(),
