@@ -1904,6 +1904,7 @@ namespace Legion {
           const int range_dim = range.get_dim();
           if (range_dim > 0)
           {
+            assert(range_dim <= LEGION_MAX_DIM);
             // We have a transform so need to convert and perform the test
             switch (range_dim)
             {
@@ -1916,8 +1917,6 @@ namespace Legion {
                 }
               LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
-              default:
-                std::abort();
             }
           }
           return true;
@@ -1942,6 +1941,7 @@ namespace Legion {
           const int range_dim = range.get_dim();
           if (range_dim > 0)
           {
+            assert(range_dim <= LEGION_MAX_DIM);
             // We have a transform so need to convert and perform the test
             switch (range_dim)
             {
@@ -1957,8 +1957,6 @@ namespace Legion {
                 }
               LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
-              default:
-                std::abort();
             }
           }
           return true;
