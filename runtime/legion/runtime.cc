@@ -17240,7 +17240,7 @@ namespace Legion {
       (*this) << "\n------------------------------------------------------------";
       // Now flush the message by explicitly calling the base destructor
       // which is safe because we're about to abort
-      Realm::LoggerMessage::~LoggerMessage();
+      this->Realm::LoggerMessage::~LoggerMessage();
       std::abort();
     }
 
