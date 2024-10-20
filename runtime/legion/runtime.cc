@@ -60,6 +60,7 @@ namespace Legion {
 
     // If you add a logger, update the LEGION_EXTERN_LOGGER_DECLARATIONS
     // macro in legion_types.h
+    Realm::Logger log_legion("legion");
     Realm::Logger log_run("runtime");
     Realm::Logger log_task("tasks");
     Realm::Logger log_index("index_spaces");
@@ -17094,6 +17095,154 @@ namespace Legion {
     template class OperationFactory<ReplTraceBeginOp>;
     template class OperationFactory<ReplTraceRecurrentOp>;
     template class OperationFactory<ReplTraceCompleteOp>;
+
+    /////////////////////////////////////////////////////////////
+    // Exception
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    Exception::Exception(ExceptionType t, Operation *o)
+      : Realm::LoggerMessage((t == APPLICATION_EXCEPTION) ? log_legion.print() :
+          ((t == WARNING_EXCEPTION) && ((runtime == NULL) ||
+            !runtime->warnings_are_errors)) ? log_legion.warning() :
+          log_legion.error()), op(o), type(t)
+    //--------------------------------------------------------------------------
+    {
+      (*this) << "------------------------------------------------------------\n";
+      switch (type)
+      {
+        case APPLICATION_EXCEPTION:
+          {
+            (*this) << "LEGION ENCOUNTERED AN APPLICATION EXCEPTION";
+            break;
+          }
+        case INTERFACE_EXCEPTION:
+          {
+            (*this) << "LEGION ENCOUNTERED AN API USAGE ERROR";
+            break;
+          }
+        case DYNAMIC_TYPE_EXCEPTION:
+          {
+            (*this) << "LEGION ENCOUNTERED A DYNAMIC TYPE ERROR";
+            break;
+          }
+        case PROGRAMMING_MODEL_EXCEPTION:
+          {
+            (*this) << "LEGION ENCOUNTERED A PROGRAMMING MODEL ERROR";
+            break;
+          }
+        case MAPPER_EXCEPTION:
+          {
+            (*this) << "LEGION ENCOUNTERED A MAPPER ERROR";
+            break;
+          }
+        case STARTUP_EXCEPTION:
+          {
+            (*this) << "LEGION ENCOUNTERED A MAPPER ERROR";
+            break;
+          }
+        case FATAL_EXCEPTION:
+          {
+            (*this) << "LEGION ENCOUNTERED AN INTERNAL FATAL ERROR";
+            break;
+          }
+        case WARNING_EXCEPTION:
+          {
+            if ((runtime == NULL) || !runtime->warnings_are_errors)
+              (*this) << "LEGION_ENCOUNTERED A WARNING";
+            else
+              (*this) << "LEGION ENCOUNTERED A WARNING BEING TREATED AS AN ERROR";
+            break;
+          }
+        default:
+          std::abort();
+      }
+      // Check to see if we can report where this error occurred
+      if (op != NULL)
+        (*this) << " IN " << op->get_logging_name()
+                << " (" << op->get_unique_op_id() << "):\n";
+      else if (implicit_context != NULL)
+        (*this) << " IN " << implicit_context->get_task_name() << "("
+                << implicit_context->get_unique_id() << "):\n";
+      else if (implicit_provenance > 0)
+        (*this) << " IN META-TASK FOR UKNOWN OPERATION " 
+                << implicit_provenance << ":\n";
+      else
+        (*this) << ":\n";
+    }
+
+    //--------------------------------------------------------------------------
+    Exception::~Exception(void)
+    //--------------------------------------------------------------------------
+    {
+      // If this is a warning, check to see if we're just going to report 
+      // that and be done with it, otherwise we do extra work
+      if ((type == WARNING_EXCEPTION) && 
+          ((runtime == NULL) || !runtime->warnings_are_errors))
+      {
+        if (runtime->warnings_backtrace)
+        {
+          (*this) << "\n-----------------------------------\n";
+          (*this) << "Backtrace:\n\n";
+          Realm::Backtrace bt;
+          bt.capture_backtrace();
+          bt.lookup_symbols();
+          (*this) << bt;
+        }
+        (*this) << "\n------------------------------------------------------------";
+        // Return which will just result in the message being printed
+        // when the base class destructor is called
+        return;
+      }
+      if (op != NULL)
+      {
+        Provenance *prov = op->get_provenance();
+        if (prov != NULL)
+        {
+          (*this) << "\n-----------------------------------\n";
+          (*this) << "Provenance:\n\n" << prov->human_str();
+        }
+        (*this) << "\n-----------------------------------\n";
+        (*this) << "Task Tree Trace:\n\n";
+        (*this) << op->get_logging_name() << "(" << op->get_unique_op_id() << ")";
+        InnerContext *context = op->get_context();
+        while (context->owner_task != NULL)
+        {
+          (*this) << "\n" << context->get_task_name() << "("
+                  << context->get_unique_id() << ")";
+          context = context->owner_task->get_context();
+        }
+      }
+      else if (implicit_context != NULL)
+      {
+        Provenance *prov = implicit_context->owner_task->get_provenance();
+        if (prov != NULL)
+        {
+          (*this) << "\n-----------------------------------\n";
+          (*this) << "Provenance:\n\n" << prov->human_str();
+        }
+        (*this) << "\n-----------------------------------\n";
+        (*this) << "Task Tree Trace:\n";
+        TaskContext *context = implicit_context;
+        while (context->owner_task != NULL)
+        {
+          (*this) << "\n" << context->get_task_name() << "("
+                  << context->get_unique_id() << ")";
+          context = context->owner_task->get_context();
+        }
+      }
+      (*this) << "\n-----------------------------------\n";
+      (*this) << "Backtrace:\n\n";
+      Realm::Backtrace bt;
+      bt.capture_backtrace();
+      bt.lookup_symbols();
+      (*this) << bt;
+      (*this) << "\n------------------------------------------------------------";
+      // Now flush the message by explicitly calling the base destructor
+      // which is safe because we're about to abort
+      Realm::LoggerMessage::~LoggerMessage();
+      std::abort();
+    }
 
     /////////////////////////////////////////////////////////////
     // Legion Runtime 

@@ -2313,6 +2313,17 @@ namespace Legion {
       COLLECTIVE_LOC_105 = 105,
     };
 
+    enum ExceptionType {
+      APPLICATION_EXCEPTION,
+      INTERFACE_EXCEPTION,
+      DYNAMIC_TYPE_EXCEPTION,
+      PROGRAMMING_MODEL_EXCEPTION,
+      MAPPER_EXCEPTION,
+      STARTUP_EXCEPTION,
+      FATAL_EXCEPTION,
+      WARNING_EXCEPTION,
+    };
+
     // legion_types.h
     class LocalLock;
     class AutoLock;
@@ -2825,7 +2836,8 @@ namespace Legion {
     extern Realm::Logger log_garbage;          \
     extern Realm::Logger log_spy;              \
     extern Realm::Logger log_shutdown;         \
-    extern Realm::Logger log_tracing;
+    extern Realm::Logger log_tracing;          \
+    extern Realm::Logger log_legion;
 
   }; // Internal namespace
 
@@ -3759,13 +3771,7 @@ namespace Legion {
   
   // A class for preventing serialization of Legion objects
   // which cannot be serialized
-  template<typename T>
-  class Unserializable {
-  public:
-    inline size_t legion_buffer_size(void);
-    inline size_t legion_serialize(void *buffer);
-    inline size_t legion_deserialize(const void *buffer);
-  };
+  class Unserializable { };
 
 }; // Legion namespace
 

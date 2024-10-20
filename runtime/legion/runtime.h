@@ -2447,6 +2447,35 @@ namespace Legion {
     };
 
     /**
+     * \class Exception
+     * Currently this class is only used for reporting of warnings and errors
+     * but the intention is for it to become the basis of raising exceptions
+     * and having them propagate up the task tree to either be handled or
+     * to prune out tasks all the way to the root of the task tree.
+     * Ultimately we want this to be the basis for better error handling
+     * so we don't just exit processes but clean up and tear down the 
+     * runtime elegantly even when things go wrong.
+     */
+    class Exception : public Realm::LoggerMessage {
+    public:
+      Exception(ExceptionType type, Operation *op = NULL);
+      Exception(const Exception &rhs) = delete;
+      Exception(Exception &&rhs) = delete;
+      ~Exception(void);
+    public:
+      Exception& operator=(const Exception &rhs) = delete;
+      Exception& operator=(Exception &&rhs) = delete;
+      using Realm::LoggerMessage::operator<<;
+      Exception& operator<<(Memory memory);
+      Exception& operator<<(Processor processor);
+      Exception& operator<<(Memory::Kind kind);
+      Exception& operator<<(Processor::Kind kind);
+    public:
+      Operation *const op;
+      const ExceptionType type;
+    };
+
+    /**
      * The operation factory class helps with the creation and 
      * reuse of operations. It will 
      */

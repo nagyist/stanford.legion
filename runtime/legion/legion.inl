@@ -199,19 +199,13 @@ namespace Legion {
             const DeferredReduction<REDOP,EXCLUSIVE> *value)
         {
           // Should never be called
-          assert(false);
-          return from_value_helper((const void*)value,
-            sizeof(DeferredReduction<REDOP,EXCLUSIVE>));
+          std::abort();
         }
         static inline DeferredReduction<REDOP,EXCLUSIVE> 
           unpack(const Future &f, bool silence_warnings, const char *warning)
         {
           // Should never be called
-          assert(false);
-          size_t size = 0;
-          const void *result = f.get_buffer(Memory::SYSTEM_MEM, &size,
-                      false/*check size*/, silence_warnings, warning);
-          return (*((const DeferredReduction<REDOP,EXCLUSIVE>*)result));
+          std::abort();
         }
       };
 
@@ -229,19 +223,13 @@ namespace Legion {
         static inline Future from_value(const DeferredValue<T> *value)
         {
           // Should never be called
-          assert(false);
-          return from_value_helper((const void*)value,
-                                   sizeof(DeferredValue<T>));
+          std::abort();
         }
         static inline DeferredValue<T> unpack(const Future &f,
             bool silence_warnings, const char *warning_string)
         {
           // Should never be called
-          assert(false);
-          size_t size = 0;
-          const void *result = f.get_buffer(Memory::SYSTEM_MEM, &size,
-                false/*check size*/, silence_warnings, warning_string);
-          return (*((const DeferredValue<T>*)result));
+          std::abort();
         }
       }; 
       
@@ -268,6 +256,12 @@ namespace Legion {
 
       template <typename T>
       struct IsSerdezType {
+        // We should never testing this against an unserialable type
+        static_assert(!std::is_base_of<Unserializable,T>::value,
+            "Attempting to serialize unserializable type when "
+            "returning a value from the end of the task. Unserializable "
+            "types are not permitted to be returned by value.");
+
         typedef char yes; typedef long no;
 
         template <typename C>
@@ -1112,6 +1106,7 @@ namespace Legion {
                         Realm::GenericAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       FieldAccessor(void) { }
@@ -1157,6 +1152,7 @@ namespace Legion {
                         Realm::GenericAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       FieldAccessor(void) { }
@@ -1286,6 +1282,7 @@ namespace Legion {
                         Realm::GenericAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       FieldAccessor(void) { }
@@ -1336,6 +1333,7 @@ namespace Legion {
                         Realm::GenericAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       FieldAccessor(void) { }
@@ -1485,6 +1483,7 @@ namespace Legion {
                         Realm::GenericAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       FieldAccessor(void) { }
@@ -1534,6 +1533,7 @@ namespace Legion {
                         Realm::GenericAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -1681,6 +1681,7 @@ namespace Legion {
                         Realm::GenericAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       FieldAccessor(void) { }
@@ -1726,6 +1727,7 @@ namespace Legion {
                         Realm::GenericAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -1915,7 +1917,7 @@ namespace Legion {
               LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
               default:
-                assert(false);
+                std::abort();
             }
           }
           return true;
@@ -1956,7 +1958,7 @@ namespace Legion {
               LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
               default:
-                assert(false);
+                std::abort();
             }
           }
           return true;
@@ -2699,11 +2701,7 @@ namespace Legion {
         }                                                                     \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
               transform, origin, 0/*field id*/, source_bounds))               \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredValue\n");      \
-          assert(false);                                                      \
-        }                                                                     \
+          value.report_incompatible_accessor("AffineAccessor");               \
         accessor = Realm::AffineAccessor<FT,DIM,T>(instance, transform,       \
                           origin, 0/*field id*/, source_bounds, offset);      \
       }                                                                       \
@@ -2725,11 +2723,7 @@ namespace Legion {
         Realm::Point<1,T> origin(0);                                          \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
               transform, origin, 0/*field id*/, source_bounds))               \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredValue\n");      \
-          assert(false);                                                      \
-        }                                                                     \
+          value.report_incompatible_accessor("AffineAccessor");               \
         accessor = Realm::AffineAccessor<FT,DIM,T>(instance, transform,       \
                           origin, 0/*field id*/, source_bounds, offset);      \
       }                                                                       \
@@ -2744,11 +2738,7 @@ namespace Legion {
         const DomainT<DIM,T> is = instance.get_indexspace<DIM,T>();           \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
                                             0/*field id*/, is.bounds))        \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<FT,DIM,T>(instance, 0/*field id*/,            \
                                           is.bounds, offset);                 \
@@ -2766,11 +2756,7 @@ namespace Legion {
         const DomainT<DIM,T> is = instance.get_indexspace<DIM,T>();           \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
                                         0/*field id*/, source_bounds))        \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<FT,DIM,T>(instance, 0/*field id*/,            \
                                           source_bounds, offset);             \
@@ -2789,11 +2775,7 @@ namespace Legion {
         const DomainT<M,T> is = instance.get_indexspace<M,T>();               \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
               transform.transform, transform.offset, 0/*field id*/))          \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor = Realm::AffineAccessor<FT,DIM,T>(instance,                  \
             transform.transform, transform.offset, 0/*field id*/, offset);    \
       }                                                                       \
@@ -2812,11 +2794,7 @@ namespace Legion {
         const DomainT<M,T> is = instance.get_indexspace<M,T>();               \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
               transform.transform, transform.offset, 0/*fid*/, source_bounds))\
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<FT,DIM,T>(instance, transform.transform,      \
                       transform.offset, 0/*fid*/, source_bounds, offset);     \
@@ -2848,11 +2826,7 @@ namespace Legion {
         }                                                                     \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
               transform, origin, 0/*field id*/, source_bounds))               \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredValue\n");      \
-          assert(false);                                                      \
-        }                                                                     \
+          value.report_incompatible_accessor("AffineAccessor");               \
         accessor = Realm::AffineAccessor<FT,DIM,T>(instance, transform,       \
                           origin, 0/*field id*/, source_bounds, offset);      \
         DomainT<1,T> is;                                                      \
@@ -2880,11 +2854,7 @@ namespace Legion {
         Realm::Point<1,T> origin(0);                                          \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
               transform, origin, 0/*field id*/, source_bounds))               \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredValue\n");      \
-          assert(false);                                                      \
-        }                                                                     \
+          value.report_incompatible_accessor("AffineAccessor");               \
         accessor = Realm::AffineAccessor<FT,DIM,T>(instance, transform,       \
                           origin, 0/*field id*/, source_bounds, offset);      \
         DomainT<1,T> is;                                                      \
@@ -2905,11 +2875,7 @@ namespace Legion {
         const DomainT<DIM,T> is = instance.get_indexspace<DIM,T>();           \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
                                             0/*field id*/, is.bounds))        \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<FT,DIM,T>(instance, 0/*field id*/,            \
                                           is.bounds, offset);                 \
@@ -2928,11 +2894,7 @@ namespace Legion {
         const DomainT<DIM,T> is = instance.get_indexspace<DIM,T>();           \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
                                         0/*field id*/, source_bounds))        \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<FT,DIM,T>(instance, 0/*field id*/,            \
                                           source_bounds, offset);             \
@@ -2952,11 +2914,7 @@ namespace Legion {
         const DomainT<M,T> is = instance.get_indexspace<M,T>();               \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
               transform.transform, transform.offset, 0/*field id*/))          \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor = Realm::AffineAccessor<FT,DIM,T>(instance,                  \
             transform.transform, transform.offset, 0/*field id*/, offset);    \
         bounds = AffineBounds::Tester<DIM,T>(is, transform);                  \
@@ -2976,11 +2934,7 @@ namespace Legion {
         const DomainT<M,T> is = instance.get_indexspace<M,T>();               \
         if (!Realm::AffineAccessor<FT,DIM,T>::is_compatible(instance,         \
               transform.transform, transform.offset, 0/*fid*/, source_bounds))\
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<FT,DIM,T>(instance, transform.transform,      \
                       transform.offset, 0/*fid*/, source_bounds, offset);     \
@@ -2997,6 +2951,7 @@ namespace Legion {
                         Realm::AffineAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -3092,15 +3047,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -3144,6 +3091,7 @@ namespace Legion {
                         Realm::AffineAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -3269,15 +3217,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_ONLY);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -3426,15 +3366,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo); 
         }
@@ -3585,15 +3517,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_ONLY);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -3640,6 +3564,7 @@ namespace Legion {
                         Realm::AffineAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -3674,15 +3599,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -3732,6 +3649,7 @@ namespace Legion {
                         Realm::AffineAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -3791,15 +3709,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -3905,15 +3815,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -4009,15 +3911,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -4077,6 +3971,7 @@ namespace Legion {
                         Realm::AffineAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -4111,15 +4006,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -4163,6 +4050,7 @@ namespace Legion {
                         Realm::AffineAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -4222,15 +4110,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -4323,15 +4203,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -4421,15 +4293,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -4476,6 +4340,7 @@ namespace Legion {
                         Realm::AffineAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -4505,15 +4370,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -4557,6 +4414,7 @@ namespace Legion {
                         Realm::AffineAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -4604,15 +4462,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -4700,15 +4550,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -4786,15 +4628,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -5406,11 +5240,7 @@ namespace Legion {
         }                                                                     \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
               instance, transform, origin, 0/*field id*/, source_bounds))     \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredValue\n");      \
-          assert(false);                                                      \
-        }                                                                     \
+          value.report_incompatible_accessor("AffineAccessor");               \
         accessor = Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(          \
           instance, transform, origin, 0/*field id*/, source_bounds, offset); \
       }                                                                       \
@@ -5432,11 +5262,7 @@ namespace Legion {
         Realm::Point<1,T> origin(0);                                          \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
               instance, transform, origin, 0/*field id*/, source_bounds))     \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredValue\n");      \
-          assert(false);                                                      \
-        }                                                                     \
+          value.report_incompatible_accessor("AffineAccessor");               \
         accessor = Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance, \
             transform, origin, 0/*field id*/, source_bounds, offset);         \
       }                                                                       \
@@ -5451,11 +5277,7 @@ namespace Legion {
         const DomainT<DIM,T> is = instance.get_indexspace<DIM,T>();           \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
                                           instance, 0/*field id*/, is.bounds))\
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance,          \
                                   0/*field id*/, is.bounds, offset);          \
@@ -5473,11 +5295,7 @@ namespace Legion {
         const DomainT<DIM,T> is = instance.get_indexspace<DIM,T>();           \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
                                       instance, 0/*field id*/, source_bounds))\
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance,          \
                               0/*field id*/, source_bounds, offset);          \
@@ -5496,11 +5314,7 @@ namespace Legion {
         const DomainT<M,T> is = instance.get_indexspace<M,T>();               \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
               instance, transform.transform, transform.offset, 0/*field id*/))\
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor = Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance, \
             transform.transform, transform.offset, 0/*field id*/, offset);    \
       }                                                                       \
@@ -5520,11 +5334,7 @@ namespace Legion {
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
               instance, transform.transform, transform.offset,                \
               0/*field id*/, source_bounds))                                  \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance,          \
               transform.transform, transform.offset, 0/*field id*/,           \
@@ -5557,11 +5367,7 @@ namespace Legion {
         }                                                                     \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
               instance, transform, origin, 0/*field id*/, source_bounds))     \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredValue\n");      \
-          assert(false);                                                      \
-        }                                                                     \
+          value.report_incompatible_accessor("AffineAccessor");               \
         accessor = Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance, \
             transform, origin, 0/*field id*/, source_bounds, offset);         \
         DomainT<1,T> is;                                                      \
@@ -5589,11 +5395,7 @@ namespace Legion {
         Realm::Point<1,T> origin(0);                                          \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
               instance, transform, origin, 0/*field id*/, source_bounds))     \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredValue\n");      \
-          assert(false);                                                      \
-        }                                                                     \
+          value.report_incompatible_accessor("AffineAccessor");               \
         accessor = Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance, \
             transform, origin, 0/*field id*/, source_bounds, offset);         \
         DomainT<1,T> is;                                                      \
@@ -5614,11 +5416,7 @@ namespace Legion {
         const DomainT<DIM,T> is = instance.get_indexspace<DIM,T>();           \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
                                           instance, 0/*field id*/, is.bounds))\
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance,          \
                                   0/*field id*/, is.bounds, offset);          \
@@ -5637,11 +5435,7 @@ namespace Legion {
         const DomainT<DIM,T> is = instance.get_indexspace<DIM,T>();           \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
                                       instance, 0/*field id*/, source_bounds))\
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance,          \
                               0/*field id*/, source_bounds, offset);          \
@@ -5661,11 +5455,7 @@ namespace Legion {
         const DomainT<M,T> is = instance.get_indexspace<M,T>();               \
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
               instance, transform.transform, transform.offset, 0/*field id*/))\
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor = Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance, \
             transform.transform, transform.offset, 0/*field id*/, offset);    \
         bounds = AffineBounds::Tester<DIM,T>(is, transform);                  \
@@ -5686,11 +5476,7 @@ namespace Legion {
         if (!Realm::AffineAccessor<typename REDOP::RHS,DIM,T>::is_compatible( \
               instance, transform.transform, transform.offset,                \
               0/*field id*/, source_bounds))                                  \
-        {                                                                     \
-          fprintf(stderr,                                                     \
-              "Incompatible AffineAccessor for UntypedDeferredBuffer\n");     \
-          assert(false);                                                      \
-        }                                                                     \
+          UntypedDeferredValue::report_incompatible_accessor("AffineAccessor", true);              \
         accessor =                                                            \
           Realm::AffineAccessor<typename REDOP::RHS,DIM,T>(instance,          \
               transform.transform, transform.offset, 0/*field id*/,           \
@@ -5704,6 +5490,7 @@ namespace Legion {
                         Realm::AffineAccessor<typename REDOP::RHS,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -5735,15 +5522,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -5791,6 +5570,7 @@ namespace Legion {
                           Realm::AffineAccessor<typename REDOP::RHS,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -5840,15 +5620,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_REDUCE);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -5937,15 +5709,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -6030,15 +5794,7 @@ namespace Legion {
           if (!bounds.contains_all(r)) 
             PhysicalRegion::fail_bounds_check(Domain(r), field, LEGION_REDUCE);
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -6345,6 +6101,7 @@ namespace Legion {
                         Realm::MultiAffineAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -6376,25 +6133,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -6407,15 +6148,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -6453,6 +6186,7 @@ namespace Legion {
                         Realm::MultiAffineAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -6502,25 +6236,9 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_ONLY);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -6537,15 +6255,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_ONLY);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -6622,25 +6332,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -6653,15 +6347,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return result;
@@ -6735,25 +6421,9 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_ONLY);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -6770,15 +6440,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_ONLY);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return result;
@@ -6812,6 +6474,7 @@ namespace Legion {
                         Realm::MultiAffineAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -6847,25 +6510,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -6878,15 +6525,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -6930,6 +6569,7 @@ namespace Legion {
                         Realm::MultiAffineAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -6990,25 +6630,9 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -7025,15 +6649,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -7127,25 +6743,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -7158,15 +6758,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return result;
@@ -7257,25 +6849,9 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -7292,15 +6868,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return result;
@@ -7347,6 +6915,7 @@ namespace Legion {
                         Realm::MultiAffineAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -7382,25 +6951,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -7413,15 +6966,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -7459,6 +7004,7 @@ namespace Legion {
                         Realm::MultiAffineAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -7519,25 +7065,9 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -7554,15 +7084,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -7643,25 +7165,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -7674,15 +7180,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return result;
@@ -7767,25 +7265,9 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -7802,15 +7284,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return result;
@@ -7844,6 +7318,7 @@ namespace Legion {
                         Realm::MultiAffineAccessor<FT,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -7874,25 +7349,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -7905,15 +7364,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -7951,6 +7402,7 @@ namespace Legion {
                         Realm::MultiAffineAccessor<FT,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -7999,25 +7451,9 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -8034,15 +7470,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -8118,25 +7546,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -8149,15 +7561,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return accessor.ptr(r.lo);
@@ -8230,25 +7634,9 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -8265,15 +7653,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_READ_WRITE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return result;
@@ -8578,6 +7958,7 @@ namespace Legion {
                       Realm::MultiAffineAccessor<typename REDOP::RHS,N,T>,CB> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       __CUDA_HD__
@@ -8610,25 +7991,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -8642,15 +8007,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -8692,6 +8049,7 @@ namespace Legion {
                     Realm::MultiAffineAccessor<typename REDOP::RHS,N,T>,true> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       // No CUDA support due to PhysicalRegion constructor
@@ -8742,25 +8100,9 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_REDUCE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -8778,15 +8120,7 @@ namespace Legion {
             PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                               LEGION_REDUCE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -8862,25 +8196,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -8894,15 +8212,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return result;
@@ -8981,25 +8291,9 @@ namespace Legion {
           if (!bounds.contains_all(r)) 
             PhysicalRegion::fail_bounds_check(Domain(r), field, LEGION_REDUCE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -9016,15 +8310,7 @@ namespace Legion {
           if (!bounds.contains_all(r)) 
             PhysicalRegion::fail_bounds_check(Domain(r), field, LEGION_REDUCE);
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           strides[0] /= field_size;
           return result;
@@ -9062,6 +8348,7 @@ namespace Legion {
     class PaddingAccessor<FT,N,T,Realm::GenericAccessor<FT,N,T>,CB> { 
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       PaddingAccessor(void) { }
@@ -9129,6 +8416,7 @@ namespace Legion {
     class PaddingAccessor<FT,N,T,Realm::GenericAccessor<FT,N,T>,true> { 
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       PaddingAccessor(void) { }
@@ -9330,6 +8618,7 @@ namespace Legion {
     class PaddingAccessor<FT,N,T,Realm::AffineAccessor<FT,N,T>,CB> { 
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       PaddingAccessor(void) { }
@@ -9423,6 +8712,7 @@ namespace Legion {
     class PaddingAccessor<FT,N,T,Realm::AffineAccessor<FT,N,T>,true> { 
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       PaddingAccessor(void) { }
@@ -9822,6 +9112,7 @@ namespace Legion {
     class MultiRegionAccessor<FT,N,T,Realm::GenericAccessor<FT,N,T>,CB,CP,MR> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       MultiRegionAccessor(void) { }
@@ -10324,6 +9615,7 @@ namespace Legion {
                               false,false,MR> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       MultiRegionAccessor(void) { }
@@ -10714,6 +10006,7 @@ namespace Legion {
     class MultiRegionAccessor<FT,N,T,Realm::AffineAccessor<FT,N,T>,CB,true,MR> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       MultiRegionAccessor(void) { }
@@ -11733,6 +11026,7 @@ namespace Legion {
                   true/*check bounds*/,false/*check privileges*/,MR> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       MultiRegionAccessor(void) { }
@@ -12682,6 +11976,7 @@ namespace Legion {
           false/*check bounds*/,false/*check privileges*/,MR> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       MultiRegionAccessor(void) { }
@@ -13415,6 +12710,7 @@ namespace Legion {
                               Realm::MultiAffineAccessor<FT,N,T>,CB,true,MR> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       MultiRegionAccessor(void) { }
@@ -14070,6 +13366,7 @@ namespace Legion {
                       true/*check bounds*/,false/*check privileges*/,MR> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       MultiRegionAccessor(void) { }
@@ -14655,6 +13952,7 @@ namespace Legion {
                     false/*check bounds*/,false/*check privileges*/,MR> {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       MultiRegionAccessor(void) { }
@@ -15075,6 +14373,7 @@ namespace Legion {
     class UnsafeFieldAccessor {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       UnsafeFieldAccessor(void) { }
@@ -15176,6 +14475,7 @@ namespace Legion {
     class UnsafeFieldAccessor<FT, N, T, Realm::AffineAccessor<FT,N,T> > {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       UnsafeFieldAccessor(void) { }
@@ -15279,15 +14579,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -15428,15 +14720,7 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, accessor.strides, field_size));
 #else
           if (!Internal::is_dense_layout(r, accessor.strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return accessor.ptr(r.lo);
         }
@@ -15465,6 +14749,7 @@ namespace Legion {
     class UnsafeFieldAccessor<FT, N, T, Realm::MultiAffineAccessor<FT,N,T> > {
     private:
       static_assert(N > 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       UnsafeFieldAccessor(void) { }
@@ -15532,25 +14817,9 @@ namespace Legion {
           assert(Internal::is_dense_layout(r, strides, field_size));
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
           if (!Internal::is_dense_layout(r, strides, field_size))
-          {
-            fprintf(stderr, 
-                "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_nondense_rect();
 #endif
           return result;
         }
@@ -15563,15 +14832,7 @@ namespace Legion {
           assert(result != NULL);
 #else
           if (result == NULL)
-          {
-            fprintf(stderr, "ERROR: Illegal request for pointer of rectangle "
-                            "not contained within the bounds of a piece\n");
-#ifdef DEBUG_LEGION
-            assert(false);
-#else
-            exit(ERROR_NON_PIECE_RECTANGLE);
-#endif
-          }
+            PhysicalRegion::fail_rect_piece();
 #endif
           for (int i = 0; i < N; i++)
             strides[i] /= field_size;
@@ -15683,6 +14944,7 @@ namespace Legion {
     class UnsafeSpanIterator {
     private:
       static_assert(DIM > 0, "DIM must be positive");
+      static_assert(DIM <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       UnsafeSpanIterator(void) { }
@@ -15889,24 +15151,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T>
-    inline DeferredValue<T>::DeferredValue(T initial_value, size_t alignment)
+    inline DeferredValue<T>::DeferredValue(T initial_value, size_t alignment,
+                                           Memory::Kind memory_kind)
     //--------------------------------------------------------------------------
     {
       // Construct a Region of size 1 in the zero copy memory for now
-      Machine machine = Realm::Machine::get_machine();
-      Machine::MemoryQuery finder(machine);
-      Runtime *runtime = Runtime::get_runtime();
-      finder.has_affinity_to(
-          runtime->get_executing_processor(Runtime::get_context()));
-      finder.only_kind(Memory::Z_COPY_MEM);
-      if (finder.count() == 0)
-      {
-        fprintf(stderr,"Deferred Values currently need a local allocation "
-                       "of zero-copy memory to work correctly. Please provide "
-                       "a non-zero amount with the -ll:zsize flag");
-        assert(false);
-      }
-      const Memory memory = finder.first();
+      const Memory memory = UntypedDeferredValue::find_memory_by_kind(memory_kind);
       const Realm::Point<1,coord_t> zero(0);
       Realm::IndexSpace<1,coord_t> bounds = Realm::Rect<1,coord_t>(zero, zero);
       const std::vector<size_t> field_sizes(1,sizeof(T));
@@ -15917,14 +15167,35 @@ namespace Legion {
         Realm::InstanceLayoutGeneric::choose_instance_layout(bounds, 
             constraints, dim_order);
       layout->alignment_reqd = alignment;
-      instance = runtime->create_task_local_instance(memory, layout);
-#ifdef DEBUG_LEGION
-#ifndef NDEBUG
-      const bool is_compatible = 
-        Realm::AffineAccessor<T,1,coord_t>::is_compatible(instance, 0); 
-#endif
-      assert(is_compatible);
-#endif
+      instance = Runtime::get_runtime()->create_task_local_instance(memory, layout);
+      if (!Realm::AffineAccessor<T,1,coord_t>::is_compatible(instance, 0)) 
+        UntypedDeferredValue::report_incompatible_accessor("AffineAccessor");
+      // We can make the accessor
+      accessor = Realm::AffineAccessor<T,1,coord_t>(instance, 0/*field id*/);
+      // Initialize the value
+      accessor[zero] = initial_value;
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T>
+    inline DeferredValue<T>::DeferredValue(T initial_value, Memory memory,
+                                           size_t alignment)
+    //--------------------------------------------------------------------------
+    {
+      // Construct a Region of size 1 in the zero copy memory for now
+      const Realm::Point<1,coord_t> zero(0);
+      Realm::IndexSpace<1,coord_t> bounds = Realm::Rect<1,coord_t>(zero, zero);
+      const std::vector<size_t> field_sizes(1,sizeof(T));
+      Realm::InstanceLayoutConstraints constraints(field_sizes, 0/*blocking*/);
+      int dim_order[1];
+      dim_order[0] = 0;
+      Realm::InstanceLayoutGeneric *layout = 
+        Realm::InstanceLayoutGeneric::choose_instance_layout(bounds, 
+            constraints, dim_order);
+      layout->alignment_reqd = alignment;
+      instance = Runtime::get_runtime()->create_task_local_instance(memory, layout);
+      if (!Realm::AffineAccessor<T,1,coord_t>::is_compatible(instance, 0)) 
+        UntypedDeferredValue::report_incompatible_accessor("AffineAccessor");
       // We can make the accessor
       accessor = Realm::AffineAccessor<T,1,coord_t>(instance, 0/*field id*/);
       // Initialize the value
@@ -16087,6 +15358,10 @@ namespace Legion {
 #else
     class DeferredBuffer<FT,N,T,true> {
 #endif
+    private:
+      static_assert(N> 0, "DIM must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
+      static_assert(std::is_integral<T>::value, "must be integral type");
     public:
       inline DeferredBuffer(void);
       // Memory kinds
@@ -16133,7 +15408,6 @@ namespace Legion {
                             const FT *initial_value = NULL,
                             size_t alignment = std::alignment_of<FT>());
     protected:
-      Memory get_memory_from_kind(Memory::Kind kind);
       void initialize_layout(size_t alignment, bool fortran_order_dims);
       void initialize(Memory memory,
                       DomainT<N,T> bounds,
@@ -16202,11 +15476,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.dense())
-      {
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
-      }
-      const Realm::Memory memory = get_memory_from_kind(kind);
+        UntypedDeferredValue::report_nondense_domain();
+      const Realm::Memory memory = UntypedDeferredValue::find_memory_by_kind(kind);
       initialize_layout(alignment, fortran_order_dims);
       initialize(memory, space, initial_value);
     }
@@ -16229,7 +15500,8 @@ namespace Legion {
                              bool fortran_order_dims /*= false*/)
     //--------------------------------------------------------------------------
     {
-      const Realm::Memory memory = get_memory_from_kind(kind);
+      const Realm::Memory memory = 
+        UntypedDeferredValue::find_memory_by_kind(kind);
       initialize_layout(alignment, fortran_order_dims);
       initialize(memory, rect, initial_value);
     }
@@ -16253,10 +15525,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.dense())
-      {
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
-      }
+        UntypedDeferredValue::report_nondense_domain();
       initialize_layout(alignment, fortran_order_dims);
       initialize(memory, space, initial_value);
     }
@@ -16303,11 +15572,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.dense())
-      {
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
-      }
-      const Realm::Memory memory = get_memory_from_kind(kind);
+        UntypedDeferredValue::report_nondense_domain();
+      const Realm::Memory memory = 
+        UntypedDeferredValue::find_memory_by_kind(kind);
       initialize(memory, space, initial_value);
     }
 
@@ -16330,7 +15597,8 @@ namespace Legion {
       : ordering(_ordering), alignment(_alignment)
     //--------------------------------------------------------------------------
     {
-      const Realm::Memory memory = get_memory_from_kind(kind);
+      const Realm::Memory memory = 
+        UntypedDeferredValue::find_memory_by_kind(kind);
       initialize(memory, rect, initial_value);
     }
 
@@ -16354,10 +15622,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.dense())
-      {
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
-      }
+        UntypedDeferredValue::report_nondense_domain();
       initialize(memory, space, initial_value);
     }
 
@@ -16381,43 +15646,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize(memory, rect, initial_value);
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T
-#ifndef LEGION_BOUNDS_CHECKS
-              , bool CB
-#endif
-              >
-    Memory DeferredBuffer<FT,N,T,
-#ifdef LEGION_BOUNDS_CHECKS
-                          false
-#else
-                          CB
-#endif
-                          >::get_memory_from_kind(Memory::Kind kind)
-    //--------------------------------------------------------------------------
-    {
-      // Construct an instance of the right size in the corresponding memory
-      Machine machine = Realm::Machine::get_machine();
-      Machine::MemoryQuery finder(machine);
-      const Processor executing_processor =
-        Runtime::get_runtime()->get_executing_processor(Runtime::get_context());
-      finder.best_affinity_to(executing_processor);
-      finder.only_kind(kind);
-      if (finder.count() == 0)
-      {
-        finder = Machine::MemoryQuery(machine);
-        finder.has_affinity_to(executing_processor);
-        finder.only_kind(kind);
-      }
-      if (finder.count() == 0)
-      {
-        fprintf(stderr,"DeferredBuffer unable to find a memory of kind %d\n",
-                kind);
-        assert(false);
-      }
-      return finder.first();
     }
 
     //--------------------------------------------------------------------------
@@ -16581,15 +15809,7 @@ namespace Legion {
       assert(Internal::is_dense_layout(r, accessor.strides, sizeof(FT)));
 #else
       if (!Internal::is_dense_layout(r, accessor.strides, sizeof(FT)))
-      {
-        fprintf(stderr, 
-            "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-        assert(false);
-#else
-        exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-      }
+        UntypedDeferredValue::report_nondense_rect();
 #endif
       return accessor.ptr(r.lo);
     }
@@ -16707,11 +15927,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.dense())
-      {
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
-      }
-      const Realm::Memory memory = get_memory_from_kind(kind);
+        UntypedDeferredValue::report_nondense_domain();
+      const Realm::Memory memory = 
+        UntypedDeferredValue::find_memory_by_kind(kind);
       initialize_layout(alignment, fortran_order_dims);
       initialize(memory, space, initial_value);
     }
@@ -16734,7 +15952,7 @@ namespace Legion {
                              const bool fortran_order_dims/* = false*/)
     //--------------------------------------------------------------------------
     {
-      const Realm::Memory memory = get_memory_from_kind(kind);
+      const Realm::Memory memory = UntypedDeferredValue::find_memory_by_kind(kind);
       initialize_layout(alignment, fortran_order_dims);
       initialize(memory, rect, initial_value);
     }
@@ -16758,10 +15976,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.dense())
-      {
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
-      }
+        UntypedDeferredValue::report_nondense_domain();
       initialize_layout(alignment, fortran_order_dims);
       initialize(memory, space, initial_value);
     }
@@ -16808,11 +16023,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.dense())
-      {
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
-      }
-      const Realm::Memory memory = get_memory_from_kind(kind);
+        UntypedDeferredValue::report_nondense_domain();
+      const Realm::Memory memory =
+        UntypedDeferredValue::find_memory_by_kind(kind);
       initialize(memory, space, initial_value);
     }
 
@@ -16835,7 +16048,8 @@ namespace Legion {
       : ordering(_ordering), alignment(_alignment)
     //--------------------------------------------------------------------------
     {
-      const Realm::Memory memory = get_memory_from_kind(kind);
+      const Realm::Memory memory = 
+        UntypedDeferredValue::find_memory_by_kind(kind);
       initialize(memory, rect, initial_value);
     }
 
@@ -16859,10 +16073,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!space.dense())
-      {
-        fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
-      }
+        UntypedDeferredValue::report_nondense_domain();
       initialize(memory, space, initial_value);
     }
 
@@ -16886,43 +16097,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       initialize(memory, rect, initial_value);
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T
-#ifdef LEGION_BOUNDS_CHECKS
-              , bool CB
-#endif
-              >
-    Memory DeferredBuffer<FT,N,T,
-#ifdef LEGION_BOUNDS_CHECKS
-                          CB
-#else
-                          true
-#endif
-                          >::get_memory_from_kind(Memory::Kind kind)
-    //--------------------------------------------------------------------------
-    {
-      // Construct an instance of the right size in the corresponding memory
-      Machine machine = Realm::Machine::get_machine();
-      Machine::MemoryQuery finder(machine);
-      const Processor executing_processor =
-        Runtime::get_runtime()->get_executing_processor(Runtime::get_context());
-      finder.best_affinity_to(executing_processor);
-      finder.only_kind(kind);
-      if (finder.count() == 0)
-      {
-        finder = Machine::MemoryQuery(machine);
-        finder.has_affinity_to(executing_processor);
-        finder.only_kind(kind);
-      }
-      if (finder.count() == 0)
-      {
-        fprintf(stderr,"DeferredBuffer unable to find a memory of kind %d\n",
-                kind);
-        assert(false);
-      }
-      return finder.first();
     }
 
     //--------------------------------------------------------------------------
@@ -17107,15 +16281,7 @@ namespace Legion {
 #else
       assert(bounds.contains_all(r));
       if (!Internal::is_dense_layout(r, accessor.strides, sizeof(FT)))
-      {
-        fprintf(stderr, 
-            "ERROR: Illegal request for pointer of non-dense rectangle\n");
-#ifdef DEBUG_LEGION
-        assert(false);
-#else
-        exit(ERROR_NON_DENSE_RECTANGLE);
-#endif
-      }
+        UntypedDeferredValue::report_nondense_rect();
 #endif
       return accessor.ptr(r.lo);
     }
@@ -17229,41 +16395,8 @@ namespace Legion {
     {
       assert(dims > 0);
       assert(dims <= LEGION_MAX_DIM);
-      Machine machine = Realm::Machine::get_machine();
-      Machine::MemoryQuery finder(machine);
+      const Memory memory = UntypedDeferredValue::find_memory_by_kind(memkind);
       Runtime *runtime = Runtime::get_runtime();
-      const Processor exec_proc = 
-        runtime->get_executing_processor(Runtime::get_context());
-      finder.best_affinity_to(exec_proc);
-      finder.only_kind(memkind);
-      if (finder.count() == 0)
-      {
-        finder = Machine::MemoryQuery(machine);
-        finder.has_affinity_to(exec_proc);
-        finder.only_kind(memkind);
-      }
-      if (finder.count() == 0)
-      {
-        const char *mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-          REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-        };
-        const char *proc_names[] = {
-#define PROC_NAMES(name, desc) desc,
-          REALM_PROCESSOR_KINDS(PROC_NAMES)
-#undef PROC_NAMES
-        };
-        Context ctx = Runtime::get_context();
-        const Task *task = runtime->get_local_task(ctx);
-        fprintf(stderr,
-            "Unable to find associated %s memory for %s processor when "
-            "performing an UntypedBuffer creation in task %s (UID %lld)",
-            mem_names[memkind], proc_names[exec_proc.kind()],
-            task->get_task_name(), task->get_unique_id());
-        assert(false);
-      }
-      const Memory memory = finder.first();
       const std::vector<size_t> field_sizes(1, field_size);
       Realm::InstanceLayoutConstraints constraints(field_sizes, 0/*blocking*/);
       Realm::InstanceLayoutGeneric *layout = NULL;
@@ -17293,7 +16426,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       layout->alignment_reqd = alignment;
       instance = runtime->create_task_local_instance(memory, layout);
@@ -17318,7 +16451,7 @@ namespace Legion {
           LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
           default:
-            assert(false);
+            std::abort();
         }
         if (wait_on.exists())
           wait_on.wait();
@@ -17338,41 +16471,8 @@ namespace Legion {
     {
       assert(dims > 0);
       assert(dims <= LEGION_MAX_DIM);
-      Machine machine = Realm::Machine::get_machine();
-      Machine::MemoryQuery finder(machine);
+      const Memory memory = UntypedDeferredValue::find_memory_by_kind(memkind);
       Runtime *runtime = Runtime::get_runtime();
-      const Processor exec_proc =
-        runtime->get_executing_processor(Runtime::get_context());
-      finder.best_affinity_to(exec_proc);
-      finder.only_kind(memkind);
-      if (finder.count() == 0)
-      {
-        finder = Machine::MemoryQuery(machine);
-        finder.has_affinity_to(exec_proc);
-        finder.only_kind(memkind);
-      }
-      if (finder.count() == 0)
-      {
-        const char *mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-          REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-        };
-        const char *proc_names[] = {
-#define PROC_NAMES(name, desc) desc,
-          REALM_PROCESSOR_KINDS(PROC_NAMES)
-#undef PROC_NAMES
-        };
-        Context ctx = Runtime::get_context();
-        const Task *task = runtime->get_local_task(ctx);
-        fprintf(stderr,
-            "Unable to find associated %s memory for %s processor when "
-            "performing an UntypedBuffer creation in task %s (UID %lld)",
-            mem_names[memkind], proc_names[exec_proc.kind()],
-            task->get_task_name(), task->get_unique_id());
-        assert(false);
-      }
-      const Memory memory = finder.first();
       const std::vector<size_t> field_sizes(1, field_size);
       Realm::InstanceLayoutConstraints constraints(field_sizes, 0/*blocking*/);
       Realm::InstanceLayoutGeneric *layout = NULL;
@@ -17400,7 +16500,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       layout->alignment_reqd = alignment;
       instance = runtime->create_task_local_instance(memory, layout);
@@ -17423,7 +16523,7 @@ namespace Legion {
           LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
           default:
-            assert(false);
+            std::abort();
         }
         if (wait_on.exists())
           wait_on.wait();
@@ -17473,7 +16573,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       layout->alignment_reqd = alignment;
       instance = runtime->create_task_local_instance(memory, layout);
@@ -17498,7 +16598,7 @@ namespace Legion {
           LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
           default:
-            assert(false);
+            std::abort();
         }
         if (wait_on.exists())
           wait_on.wait();
@@ -17546,7 +16646,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       layout->alignment_reqd = alignment;
       instance = runtime->create_task_local_instance(memory, layout);
@@ -17569,7 +16669,7 @@ namespace Legion {
           LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
           default:
-            assert(false);
+            std::abort();
         }
         if (wait_on.exists())
           wait_on.wait();
@@ -21132,8 +20232,7 @@ namespace Legion {
                                       LogicalPartition upper_bound,
                                       const DomainPoint &point)
         {
-          assert(false);
-          return LogicalRegion::NO_REGION;
+          std::abort();
         }
         virtual bool is_exclusive(void) const { return false; }
       };
@@ -21165,8 +20264,7 @@ namespace Legion {
                                       LogicalRegion upper_bound,
                                       const DomainPoint &point)
         {
-          assert(false);
-          return LogicalRegion::NO_REGION;
+          std::abort();
         }
         virtual LogicalRegion project(Context ctx, Task *task,
                                       unsigned index,
@@ -21885,45 +20983,6 @@ namespace Legion {
     {
       os << "PhaseBarrier(" << pb.phase_barrier << ")";
       return os;
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T>
-    inline size_t Unserializable<T>::legion_buffer_size(void)
-    //--------------------------------------------------------------------------
-    {
-      const std::type_info &info = typeid(T);
-      fprintf(stderr,"ERROR: Illegal attempt to serialize Legion type %s. "
-          "Objects of type %s are not allowed to be passed by value into or "
-          "out of tasks.\n", info.name(), info.name());
-      assert(false);
-      return 0;
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T>
-    inline size_t Unserializable<T>::legion_serialize(void *buffer)
-    //--------------------------------------------------------------------------
-    {
-      const std::type_info &info = typeid(T);
-      fprintf(stderr,"ERROR: Illegal attempt to serialize Legion type %s. "
-          "Objects of type %s are not allowed to be passed by value into or "
-          "out of tasks.\n", info.name(), info.name());
-      assert(false);
-      return 0;
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T>
-    inline size_t Unserializable<T>::legion_deserialize(const void *buffer)
-    //--------------------------------------------------------------------------
-    {
-      const std::type_info &info = typeid(T);
-      fprintf(stderr,"ERROR: Illegal attempt to deserialize Legion type %s. "
-          "Objects of type %s are not allowed to be passed by value into or "
-          "out of tasks.\n", info.name(), info.name());
-      assert(false);
-      return 0;
     }
 
 }; // namespace Legion

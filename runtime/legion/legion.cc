@@ -85,8 +85,8 @@ namespace Legion {
             Realm::Clock::current_time_in_nanoseconds() : 0)
       {
         if (ctx != Internal::implicit_context)
-          REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
-              "Invalid task context passed to runtime call %s", func)
+          Internal::Exception(Internal::INTERFACE_EXCEPTION)
+            << "Invalid task context passed to runtime call " << func;
       }
       // C string versions
       inline AutoCall(const char *prov)
@@ -102,8 +102,8 @@ namespace Legion {
             Realm::Clock::current_time_in_nanoseconds() : 0)
       {
         if (ctx != Internal::implicit_context)
-          REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
-              "Invalid task context passed to runtime call %s", func)
+          Internal::Exception(Internal::INTERFACE_EXCEPTION)
+            << "Invalid task context passed to runtime call " << func;
       }
       // std::string versions
       inline AutoCall(const std::string &prov)
@@ -119,8 +119,8 @@ namespace Legion {
             Realm::Clock::current_time_in_nanoseconds() : 0)
       {
         if (ctx != Internal::implicit_context)
-          REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
-              "Invalid task context passed to runtime call %s", func)
+          Internal::Exception(Internal::INTERFACE_EXCEPTION)
+            << "Invalid task context passed to runtime call " << func;
       }
       inline ~AutoCall(void)
       {
@@ -913,12 +913,9 @@ namespace Legion {
       // For backwards compatibility with the old encoding
       if (privilege == LEGION_WRITE_PRIV)
         privilege = LEGION_WRITE_DISCARD;
-#ifdef DEBUG_LEGION
       if (IS_REDUCE(*this)) // Shouldn't use this constructor for reductions
-        REPORT_LEGION_ERROR(ERROR_USE_REDUCTION_REGION_REQ, 
-                                   "Use different RegionRequirement "
-                            "constructor for reductions");
-#endif
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Use a different RegionRequirement constructor for reductions";
     }
 
     //--------------------------------------------------------------------------
@@ -939,12 +936,9 @@ namespace Legion {
       // For backwards compatibility with the old encoding
       if (privilege == LEGION_WRITE_PRIV)
         privilege = LEGION_WRITE_DISCARD;
-#ifdef DEBUG_LEGION
-      if (IS_REDUCE(*this))
-        REPORT_LEGION_ERROR(ERROR_USE_REDUCTION_REGION_REQ, 
-                                   "Use different RegionRequirement "
-                            "constructor for reductions");
-#endif
+      if (IS_REDUCE(*this)) // Shouldn't use this constructor for reductions
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Use a different RegionRequirement constructor for reductions";
     }
 
     //--------------------------------------------------------------------------
@@ -965,12 +959,9 @@ namespace Legion {
       // For backwards compatibility with the old encoding
       if (privilege == LEGION_WRITE_PRIV)
         privilege = LEGION_WRITE_DISCARD;
-#ifdef DEBUG_LEGION
-      if (IS_REDUCE(*this))
-        REPORT_LEGION_ERROR(ERROR_USE_REDUCTION_REGION_REQ, 
-                                   "Use different RegionRequirement "
-                                   "constructor for reductions")
-#endif
+      if (IS_REDUCE(*this)) // Shouldn't use this constructor for reductions
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Use a different RegionRequirement constructor for reductions";
     }
 
     //--------------------------------------------------------------------------
@@ -988,11 +979,9 @@ namespace Legion {
     {
       privilege_fields = priv_fields;
       instance_fields = inst_fields;
-#ifdef DEBUG_LEGION
       if (redop == 0)
-        REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID, 
-                                   "Zero is not a valid ReductionOpID")
-#endif
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Zero is a reserved ReductionOpID and cannot be used";
     }
 
     //--------------------------------------------------------------------------
@@ -1011,11 +1000,9 @@ namespace Legion {
     {
       privilege_fields = priv_fields;
       instance_fields = inst_fields;
-#ifdef DEBUG_LEGION
       if (redop == 0)
-        REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID, 
-                                   "Zero is not a valid ReductionOpID")        
-#endif
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Zero is a reserved ReductionOpID and cannot be used";
     }
 
     //--------------------------------------------------------------------------
@@ -1034,11 +1021,9 @@ namespace Legion {
     {
       privilege_fields = priv_fields;
       instance_fields = inst_fields;
-#ifdef DEBUG_LEGION
       if (redop == 0)
-        REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID, 
-                                   "Zero is not a valid ReductionOpID")
-#endif
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Zero is a reserved ReductionOpID and cannot be used";
     }
 
     //--------------------------------------------------------------------------
@@ -1057,12 +1042,9 @@ namespace Legion {
       // For backwards compatibility with the old encoding
       if (privilege == LEGION_WRITE_PRIV)
         privilege = LEGION_WRITE_DISCARD;
-#ifdef DEBUG_LEGION
       if (IS_REDUCE(*this)) // Shouldn't use this constructor for reductions
-        REPORT_LEGION_ERROR(ERROR_USE_REDUCTION_REGION_REQ, 
-                                   "Use different RegionRequirement "
-                                   "constructor for reductions")
-#endif
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Use a different RegionRequirement constructor for reductions";
     }
 
     //--------------------------------------------------------------------------
@@ -1082,12 +1064,9 @@ namespace Legion {
       // For backwards compatibility with the old encoding
       if (privilege == LEGION_WRITE_PRIV)
         privilege = LEGION_WRITE_DISCARD;
-#ifdef DEBUG_LEGION
-      if (IS_REDUCE(*this))
-        REPORT_LEGION_ERROR(ERROR_USE_REDUCTION_REGION_REQ, 
-                                   "Use different RegionRequirement "
-                                   "constructor for reductions")
-#endif
+      if (IS_REDUCE(*this)) // Shouldn't use this constructor for reductions
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Use a different RegionRequirement constructor for reductions";
     }
 
     //--------------------------------------------------------------------------
@@ -1107,12 +1086,9 @@ namespace Legion {
       // For backwards compatibility with the old encoding
       if (privilege == LEGION_WRITE_PRIV)
         privilege = LEGION_WRITE_DISCARD;
-#ifdef DEBUG_LEGION
-      if (IS_REDUCE(*this))
-        REPORT_LEGION_ERROR(ERROR_USE_REDUCTION_REGION_REQ, 
-                                   "Use different RegionRequirement "
-                                   "constructor for reductions")
-#endif
+      if (IS_REDUCE(*this)) // Shouldn't use this constructor for reductions
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Use a different RegionRequirement constructor for reductions";
     }
 
     //--------------------------------------------------------------------------
@@ -1128,11 +1104,9 @@ namespace Legion {
         projection(0), projection_args(NULL), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       if (redop == 0)
-        REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID, 
-                                   "Zero is not a valid ReductionOpID")        
-#endif
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Zero is a reserved ReductionOpID and cannot be used";
     }
 
     //--------------------------------------------------------------------------
@@ -1149,11 +1123,9 @@ namespace Legion {
         projection(_proj), projection_args(NULL), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       if (redop == 0)
-        REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID, 
-                                   "Zero is not a valid ReductionOpID")
-#endif
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Zero is a reserved ReductionOpID and cannot be used";
     }
 
     //--------------------------------------------------------------------------
@@ -1170,11 +1142,9 @@ namespace Legion {
         projection(_proj), projection_args(NULL), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
       if (redop == 0)
-        REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID, 
-                                   "Zero is not a valid ReductionOpID")
-#endif
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Zero is a reserved ReductionOpID and cannot be used";
     }
 
     //--------------------------------------------------------------------------
@@ -1455,7 +1425,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << dim << " for output region requirement. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       for (std::set<FieldID>::const_iterator it = fields.begin();
            it != fields.end(); ++it)
@@ -2543,8 +2515,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (impl == NULL)
-        REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE, 
-                          "Illegal request for future value from empty future")
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal invocation of Future::get_buffer on an null future";
       if (Internal::implicit_context == NULL)
         return impl->get_buffer(Processor::NO_PROC, memory, extent_in_bytes, 
                                 check_size, silence_warnings, warning_string);
@@ -2560,8 +2532,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (impl == NULL)
-        REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE, 
-                        "Illegal request for future memories from empty future")
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal invocation of Future::get_memories on an null future";
       impl->get_memories(memories, silence_warnings, warning_string);
     }
 
@@ -2570,8 +2542,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (impl == NULL)
-        REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE, 
-                          "Illegal request for future size from empty future");
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal invocation of Future::get_untyped_size on an null future";
       return impl->get_untyped_size();
     }
 
@@ -2580,8 +2552,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (impl == NULL)
-        REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE, 
-                          "Illegal request for metadata from empty future");
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal invocation of Future::get_metadata on an null future";
       return impl->get_metadata(size);
     }
 
@@ -2592,8 +2564,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (impl == NULL)
-        REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE, 
-                          "Illegal request for accessor on an empty future");
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal invocation of Future::get_instance on an null future";
       return impl->get_instance(memkind, field_size, check_field_size,
                                 silence_warnings, warning_string);
     }
@@ -2615,9 +2587,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (Internal::implicit_context == NULL)
-        REPORT_LEGION_ERROR(ERROR_CONFUSED_USER,
-            "Creating Legion Future objects from a buffer is only permitted "
-            "to be performed inside of Legion tasks.")
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Creating a Future from a buffer is only permitted to be "
+          << "performed inside of Legion tasks.";
       return Internal::implicit_context->from_value(value, value_size,
           owned, NULL/*provenance*/, false/*shard local*/);
     }
@@ -2629,9 +2601,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (Internal::implicit_context == NULL)
-        REPORT_LEGION_ERROR(ERROR_CONFUSED_USER,
-            "Creating Legion Future objects from a buffer is only permitted "
-            "to be performed inside of Legion tasks.")
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Creating a Future from a buffer is only permitted to be "
+          << "performed inside of Legion tasks.";
       Internal::AutoProvenance provenance(prov);
       return Internal::implicit_context->from_value(value, value_size,
                                         owned, provenance, shard_local);
@@ -2645,9 +2617,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (Internal::implicit_context == NULL)
-        REPORT_LEGION_ERROR(ERROR_CONFUSED_USER,
-            "Creating Legion Future objects from a buffer is only permitted "
-            "to be performed inside of Legion tasks.")
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Creating a Future from a buffer is only permitted to be "
+          << "performed inside of Legion tasks.";
       Internal::AutoProvenance provenance(prov);
       return Internal::implicit_context->from_value(buffer, size, owned,
                             resource, freefunc, provenance, shard_local);
@@ -2933,11 +2905,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (impl == NULL)
-        REPORT_LEGION_ERROR(ERROR_PHYSICAL_REGION_UNMAPPED,
-            "Illegal request to create an accessor for uninitialized physical "
-            "region in task %s (UID %lld)",
-            Internal::implicit_context->get_task_name(),
-            Internal::implicit_context->get_unique_id())
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal request to create an accessor on null physical region";
       return impl->get_instance_info(mode, fid, field_size, realm_is, type_tag, 
                                      warning_string, silence_warnings, 
                                      generic_accessor, check_field_size, redop);
@@ -2951,11 +2920,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (impl == NULL)
-        REPORT_LEGION_ERROR(ERROR_PHYSICAL_REGION_UNMAPPED,
-            "Illegal request to create a padding accessor for uninitialized "
-            "physical region in task %s (UID %lld)",
-            Internal::implicit_context->get_task_name(),
-            Internal::implicit_context->get_unique_id())
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal request to create a padded accessor on null physical region";
       return impl->get_padding_info(fid, field_size, inner, outer,
           warning_string, silence_warnings, generic_accessor, check_field_size);
     }
@@ -3036,6 +3002,24 @@ namespace Legion {
       Internal::PhysicalRegionImpl::fail_padding_check(p, fid);
     }
 
+    //--------------------------------------------------------------------------
+    /*static*/ void PhysicalRegion::fail_nondense_rect(void)
+    //--------------------------------------------------------------------------
+    {
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal request for non-dense rectangle pointer. Use the "
+          << "version of 'ptr' for a rectangle that also returns strides.";
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void PhysicalRegion::fail_rect_piece(void)
+    //--------------------------------------------------------------------------
+    {
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal request for pointer of a rectangle not contained "
+          << "within the bounds of any piece in the instance.";
+    }
+
     /////////////////////////////////////////////////////////////
     // UntypedDeferredValue
     /////////////////////////////////////////////////////////////
@@ -3083,38 +3067,7 @@ namespace Legion {
       : field_size(fs)
     //--------------------------------------------------------------------------
     {
-      Machine machine = Realm::Machine::get_machine();
-      Machine::MemoryQuery finder(machine);
-      Runtime *runtime = Runtime::get_runtime();
-      Context ctx = Runtime::get_context();
-      const Processor exec_proc = runtime->get_executing_processor(ctx);
-      finder.best_affinity_to(exec_proc);
-      finder.only_kind(memkind);
-      if (finder.count() == 0)
-      {
-        finder = Machine::MemoryQuery(machine);
-        finder.has_affinity_to(exec_proc);
-        finder.only_kind(memkind);
-      }
-      if (finder.count() == 0)
-      {
-        const char *mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-          REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-        };
-        const char *proc_names[] = {
-#define PROC_NAMES(name, desc) desc,
-          REALM_PROCESSOR_KINDS(PROC_NAMES)
-#undef PROC_NAMES
-        };
-        REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-            "Unable to find associated %s memory for %s processor when "
-            "performing an UntypedDeferredValue creation in task %s (UID %lld)",
-            mem_names[memkind], proc_names[exec_proc.kind()],
-            ctx->get_task_name(), ctx->get_unique_id());
-      }
-      const Memory memory = finder.first();
+      const Memory memory = find_memory_by_kind(memkind);
       const Realm::Point<1,coord_t> zero(0);
       Realm::IndexSpace<1,coord_t> bounds = Realm::Rect<1,coord_t>(zero, zero);
       const std::vector<size_t> field_sizes(1, field_size);
@@ -3140,6 +3093,30 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    /*static*/ Memory UntypedDeferredValue::find_memory_by_kind(Memory::Kind kind)
+    //--------------------------------------------------------------------------
+    {
+      Machine machine = Realm::Machine::get_machine();
+      Machine::MemoryQuery finder(machine);
+      Runtime *runtime = Runtime::get_runtime();
+      Context ctx = Runtime::get_context();
+      const Processor exec_proc = runtime->get_executing_processor(ctx);
+      finder.best_affinity_to(exec_proc);
+      finder.only_kind(kind);
+      if (finder.count() == 0)
+      {
+        finder = Machine::MemoryQuery(machine);
+        finder.has_affinity_to(exec_proc);
+        finder.only_kind(kind);
+      }
+      if (finder.count() == 0)
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Unable to find associated " << kind << " memory kind for "
+          << exec_proc << " when performed an (Untyped)DeferredValue creation";
+      return finder.first();
+    }
+
+    //--------------------------------------------------------------------------
     void UntypedDeferredValue::finalize(Context ctx) const
     //--------------------------------------------------------------------------
     {
@@ -3152,6 +3129,39 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return instance;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void UntypedDeferredValue::report_incompatible_accessor(
+        const char *accessor_kind, bool buffer)
+    //--------------------------------------------------------------------------
+    {
+      if (buffer)
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Incompatible " << accessor_kind << " for (Untyped)DeferredBuffer";
+      else
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Incompatible " << accessor_kind << " for (Untyped)DeferredValue";
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void UntypedDeferredValue::report_nondense_domain(void)
+    //--------------------------------------------------------------------------
+    {
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "DeferredBuffer only supporst dense domains. Make sure your "
+          << "domain for a DeferredBuffer does not have a sparsity map.";
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void UntypedDeferredValue::report_nondense_rect(void)
+    //--------------------------------------------------------------------------
+    {
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Illegal request for point of non-dense rectangle in a "
+          << "DeferredBuffer. Make sure that you only ask for rectangles "
+          << "that are dense in the layout of the deferred buffer or use "
+          << "the version that passes back strides.";
     }
 
     /////////////////////////////////////////////////////////////
@@ -3742,21 +3752,17 @@ namespace Legion {
               return project(upper_bound, point, must->launch_domain);
             }
           default:
-            REPORT_LEGION_ERROR(ERROR_UNKNOWN_MAPPABLE, 
-                                "Unknown mappable type passed to projection "
-                                "functor! You must override the default "
-                                "implementations of the non-deprecated "
-                                "'project' methods!");
+            Internal::Exception(Internal::INTERFACE_EXCEPTION)
+              << "Unknown mappable type passed to projection "
+              << "functor! You must override the default "
+              << "implementations of the non-deprecated 'project' methods!";
         }
       }
       else
       {
-#ifdef DEBUG_LEGION
-        REPORT_LEGION_WARNING(LEGION_WARNING_NEW_PROJECTION_FUNCTORS, 
-                              "THERE ARE NEW METHODS FOR PROJECTION FUNCTORS "
-                              "THAT MUST BE OVERRIDEN! CALLING DEPRECATED "
-                              "METHODS FOR NOW!");
-#endif
+        Internal::Exception(Internal::WARNING_EXCEPTION)
+          << "There are new methods for projection functors that must be overriden. "
+          << "Calling deprecated methods for now!";
         switch (mappable->get_mappable_type())
         {
           case LEGION_TASK_MAPPABLE:
@@ -3764,11 +3770,10 @@ namespace Legion {
                            const_cast<Task*>(mappable->as_task()),
                            index, upper_bound, point);
           default:
-            REPORT_LEGION_ERROR(ERROR_UNKNOWN_MAPPABLE, 
-                                "Unknown mappable type passed to projection "
-                                "functor! You must override the default "
-                                "implementations of the non-deprecated "
-                                "'project' methods!");
+            Internal::Exception(Internal::INTERFACE_EXCEPTION)
+              << "Unknown mappable type passed to projection "
+              << "functor! You must override the default "
+              << "implementations of the non-deprecated 'project' methods!";
         }
       }
       return LogicalRegion::NO_REGION;
@@ -3817,21 +3822,17 @@ namespace Legion {
               return project(upper_bound, point, must->launch_domain);
             }
           default:
-            REPORT_LEGION_ERROR(ERROR_UNKNOWN_MAPPABLE, 
-                                "Unknown mappable type passed to projection "
-                                "functor! You must override the default "
-                                "implementations of the non-deprecated "
-                                "'project' methods!");
+            Internal::Exception(Internal::INTERFACE_EXCEPTION)
+              << "Unknown mappable type passed to projection "
+              << "functor! You must override the default "
+              << "implementations of the non-deprecated 'project' methods!";
         }
       }
       else
       {
-#ifdef DEBUG_LEGION
-        REPORT_LEGION_WARNING(LEGION_WARNING_NEW_PROJECTION_FUNCTORS, 
-                              "THERE ARE NEW METHODS FOR PROJECTION FUNCTORS "
-                              "THAT MUST BE OVERRIDEN! CALLING DEPRECATED "
-                              "METHODS FOR NOW!");
-#endif
+        Internal::Exception(Internal::WARNING_EXCEPTION)
+          << "There are new methods for projection functors that must be overriden. "
+          << "Calling deprecated methods for now!";
         switch (mappable->get_mappable_type())
         {
           case LEGION_TASK_MAPPABLE:
@@ -3839,12 +3840,10 @@ namespace Legion {
                            const_cast<Task*>(mappable->as_task()),
                            index, upper_bound, point);
           default:
-            REPORT_LEGION_ERROR(ERROR_UNKNOWN_MAPPABLE, 
-                                "Unknown mappable type passed to projection "
-                                "functor! You must override the default "
-                                "implementations of the non-deprecated "
-                                "'project' methods!");
-                assert(false);
+            Internal::Exception(Internal::INTERFACE_EXCEPTION)
+              << "Unknown mappable type passed to projection "
+              << "functor! You must override the default "
+              << "implementations of the non-deprecated 'project' methods!";
         }
       }
       return LogicalRegion::NO_REGION;
@@ -3858,7 +3857,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Must be override by derived classes
-      assert(false);
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+        << "Missing override of ProjectionFunctor::project";
       return LogicalRegion::NO_REGION;
     }
 
@@ -3868,7 +3868,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Must be override by derived classes
-      assert(false);
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+        << "Missing override of ProjectionFunctor::project";
       return LogicalRegion::NO_REGION;
     }
 
@@ -3895,9 +3896,8 @@ namespace Legion {
             unsigned index, LogicalRegion upper_bound, const DomainPoint &point)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_DEPRECATED_PROJECTION, 
-                          "INVOCATION OF DEPRECATED PROJECTION "
-                          "FUNCTOR METHOD WITHOUT AN OVERRIDE!");
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+        << "Invocation of deprecated projection functor without an override";
       return LogicalRegion::NO_REGION;
     }
 
@@ -3906,9 +3906,8 @@ namespace Legion {
          unsigned index, LogicalPartition upper_bound, const DomainPoint &point)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_DEPRECATED_PROJECTION, 
-                          "INVOCATION OF DEPRECATED PROJECTION "
-                          "FUNCTOR METHOD WITHOUT AN OVERRIDE!");
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+        << "Invocation of deprecated projection functor without an override";
       return LogicalRegion::NO_REGION;
     }
 
@@ -3918,7 +3917,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Must be override by derived classes
-      assert(false);
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+        << "Missing override of ProjectionFunctor::invert";
     }
 
     //--------------------------------------------------------------------------
@@ -3927,7 +3927,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Must be override by derived classes
-      assert(false);
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+        << "Missing override of ProjectionFunctor::invert";
     }
 
     //--------------------------------------------------------------------------
@@ -3984,9 +3985,9 @@ namespace Legion {
                                    const size_t total_shards)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_DEPRECATED_SHARDING,
-          "Invocation of 'ShardingFunctor::shard' method "
-          "without a user-provided override");
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+        << "Invocation of 'ShardingFunctor::shard' method "
+        << "without a user-provided override";
       return 0;
     }
 
@@ -3997,9 +3998,9 @@ namespace Legion {
                                    const Domain &shard_domain)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_DEPRECATED_SHARDING,
-          "Invocation of 'ShardingFunctor::shard_points' method "
-          "without a user-provided override");
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Invocation of 'ShardingFunctor::shard_points' method "
+          << "without a user-provided override";
       return DomainPoint();
     }
 
@@ -4011,9 +4012,9 @@ namespace Legion {
                                  std::vector<DomainPoint> &points)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_DEPRECATED_SHARDING,
-          "Invocation of 'ShardingFunctor::invert' method "
-          "without a user-provided override");
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Invocation of 'ShardingFunctor::invert' method "
+          << "without a user-provided override";
     }
 
     //--------------------------------------------------------------------------
@@ -4025,9 +4026,9 @@ namespace Legion {
                                  std::vector<DomainPoint> &index_points)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_DEPRECATED_SHARDING,
-          "Invocation of 'ShardingFunctor::invert_points' method "
-          "without a user-provided override");
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Invocation of 'ShardingFunctor::invert_points' method "
+          << "without a user-provided override";
     } 
     
     /////////////////////////////////////////////////////////////
@@ -4070,7 +4071,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << domain.get_dim() << " for Runtime::create_index_space. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexSpace::NO_SPACE;
     }
@@ -4095,7 +4098,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << dimensions << " for Runtime::create_index_space. "
+            << "This probably means you need to build Legion with support for more dimensions.";
         }
       }
       return ctx->create_index_space(future, type_tag, call);
@@ -4430,7 +4435,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << bf.get_dim() << " for Runtime::create_partition_by_blockify. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexPartition::NO_PART;
     }
@@ -4458,7 +4465,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << bf.get_dim() << " for Runtime::create_partition_by_blockify. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexPartition::NO_PART;
     }
@@ -4627,7 +4636,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << color.get_dim() << " for Runtime::create_index_space_union. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexSpace::NO_SPACE;
     }
@@ -4665,7 +4676,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << color.get_dim() << " for Runtime::create_index_space_union. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexSpace::NO_SPACE;
     }
@@ -4704,7 +4717,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << color.get_dim() << " for Runtime::create_index_space_intersection. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexSpace::NO_SPACE;
     }
@@ -4742,7 +4757,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << color.get_dim() << " for Runtime::create_index_space_intersection. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexSpace::NO_SPACE;
     }
@@ -4780,7 +4797,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << color.get_dim() << " for Runtime::create_index_space_difference. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexSpace::NO_SPACE;
     }
@@ -4896,7 +4915,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << color.get_dim() << " for Runtime::get_index_subspace. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexSpace::NO_SPACE;
     }
@@ -4927,7 +4948,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << color.get_dim() << " for Runtime::get_index_subspace. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return IndexSpace::NO_SPACE;
     }
@@ -4958,7 +4981,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << color.get_dim() << " for Runtime::has_index_subspace. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return false;
     }
@@ -4979,7 +5004,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << color.get_dim() << " for Runtime::has_index_subspace. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return false;
     }
@@ -5016,7 +5043,8 @@ namespace Legion {
       AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_DOMAIN_CALL>
         call(ctx, __func__);
       const TypeTag type_tag = handle.get_type_tag();
-      switch (Internal::NT_TemplateHelper::get_dim(type_tag))
+      const int dim = Internal::NT_TemplateHelper::get_dim(type_tag);
+      switch (dim)
       {
 #define DIMFUNC(DIM) \
         case DIM: \
@@ -5029,7 +5057,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << dim << " for Runtime::get_index_space_domain. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return Domain::NO_DOMAIN;
     }
@@ -5040,7 +5070,8 @@ namespace Legion {
     {
       AutoCall<Internal::RUNTIME_GET_INDEX_SPACE_DOMAIN_CALL> call;
       const TypeTag type_tag = handle.get_type_tag();
-      switch (Internal::NT_TemplateHelper::get_dim(type_tag))
+      const int dim = Internal::NT_TemplateHelper::get_dim(type_tag);
+      switch (dim)
       {
 #define DIMFUNC(DIM) \
         case DIM: \
@@ -5053,7 +5084,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << dim << " for Runtime::get_index_space_domain. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return Domain::NO_DOMAIN;
     }
@@ -5391,8 +5424,8 @@ namespace Legion {
       // Don't check against implicit_context here because this method might
       // be called from OpenMP processors which don't have implicit_context set
       if (ctx == NULL)
-        REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
-              "Invalid task context passed to runtime call Runtime::safe_cast")
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "Invalid task context passed to Runtime::safe_cast";
       Internal::AutoProvenance prov;
       const unsigned long long start =
         ctx->begin_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov) ?
@@ -5415,7 +5448,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << point.get_dim() << " for Runtime::safe_cast. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       ctx->end_runtime_call(Internal::RUNTIME_SAFE_CAST_CALL, prov, start,
           (start == 0) ? 0 : Realm::Clock::current_time_in_nanoseconds());
@@ -5742,7 +5777,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << c.get_dim() << " for Runtime::get_logical_subregion_by_color. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return LogicalRegion::NO_REGION;
     }
@@ -5775,7 +5812,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << c.get_dim() << " for Runtime::get_logical_subregion_by_color. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return LogicalRegion::NO_REGION;
     }
@@ -5809,7 +5848,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << c.get_dim() << " for Runtime::has_logical_subregion_by_color. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return false;
     }
@@ -5832,7 +5873,9 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          Internal::Exception(Internal::DYNAMIC_TYPE_EXCEPTION)
+            << "Unsupported dimension " << c.get_dim() << " for Runtime::has_logical_subregion_by_color. "
+            << "This probably means you need to build Legion with support for more dimensions.";
       }
       return false;
     }
@@ -6918,8 +6961,8 @@ namespace Legion {
     {
       // Cannot use auto-call here for profiling
       if (ctx != Internal::implicit_context)
-        REPORT_LEGION_ERROR(ERROR_INVALID_CONTEXT,
-            "Invalid task context passed to runtime call %s", __func__)
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+            << "Invalid task context passed to Runtime::begin_mapper_call";
       if (target.exists())
         return runtime->begin_mapper_call(id, target, ctx->owner_task);
       else
@@ -7494,9 +7537,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (Internal::implicit_context == NULL)
-        REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-            "It is illegal to request the creation of DeferredBuffer, Deferred"
-            "Value, or DeferredReduction objects outside of Legion tasks.")
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+            << "Illegal request to create a DeferredBuffer, DeferredValue, "
+            << "or a DeferredReduction outside of a Legion task.";
       return 
          Internal::implicit_context->create_task_local_instance(memory, layout);
     }
@@ -7506,10 +7549,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (Internal::implicit_context == NULL)
-        REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-            "It is illegal to request the destruction of DeferredBuffer, "
-            "Deferred Value, or DeferredReduction objects outside of "
-            "Legion tasks.")
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+            << "Illegal request to destroy a DeferredBuffer, DeferredValue, "
+            << "or a DeferredReduction outside of a Legion task.";
       return
          Internal::implicit_context->destroy_task_local_instance(instance);
     }
@@ -7746,8 +7788,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!Internal::Runtime::runtime_started)
-        REPORT_LEGION_ERROR(ERROR_DYNAMIC_CALL_PRE_RUNTIME_START,
-            "Illegal call to 'get_input_args' before the runtime is started")
+        Internal::Exception(Internal::STARTUP_EXCEPTION)
+            << "Illegal call to 'Runtime::get_input_args' before the runtime is started";
       return Internal::runtime->input_args;
     }
 
@@ -7763,8 +7805,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!Internal::Runtime::runtime_started)
-        REPORT_LEGION_ERROR(ERROR_DYNAMIC_CALL_PRE_RUNTIME_START,
-            "Illegal call to 'get_runtime' before the runtime is started")
+        Internal::Exception(Internal::STARTUP_EXCEPTION)
+            << "Illegal call to 'Runtime::get_runtime' before the runtime is started";
       return Internal::runtime->external;
     }
 
@@ -7952,9 +7994,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!I_know_what_I_am_doing)
-        REPORT_LEGION_ERROR(ERROR_CONFUSED_USER, "User does not know what "
-            "they are doing asking for the shard ID in task %s (UID %lld)",
-            ctx->get_task_name(), ctx->get_unique_id())
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "User does not know what they are doing asking for a shard ID";
       const Task *task = get_local_task(ctx);
       return task->get_shard_id();
     }
@@ -7964,9 +8005,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!I_know_what_I_am_doing)
-        REPORT_LEGION_ERROR(ERROR_CONFUSED_USER, "User does not know what they"
-            " are doing asking for the number of shards in task %s (UID %lld)",
-            ctx->get_task_name(), ctx->get_unique_id())
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+          << "User does not know what they are doing asking for the number of shards";
       const Task *task = get_local_task(ctx);
       return task->get_total_shards();
     }

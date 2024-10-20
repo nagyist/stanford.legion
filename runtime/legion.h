@@ -120,6 +120,7 @@ namespace Legion {
     class IndexSpaceT : public IndexSpace {
     private:
       static_assert(DIM > 0, "DIM must be positive");
+      static_assert(DIM <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     protected:
       // Only the runtime should be allowed to make these
@@ -176,6 +177,7 @@ namespace Legion {
     class IndexPartitionT : public IndexPartition {
     private:
       static_assert(DIM > 0, "DIM must be positive");
+      static_assert(DIM <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     protected:
       // Only the runtime should be allowed to make these
@@ -274,6 +276,7 @@ namespace Legion {
     class LogicalRegionT : public LogicalRegion {
     private:
       static_assert(DIM > 0, "DIM must be positive");
+      static_assert(DIM <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     protected:
       // Only the runtime should be allowed to make these
@@ -343,6 +346,7 @@ namespace Legion {
     class LogicalPartitionT : public LogicalPartition {
     private:
       static_assert(DIM > 0, "DIM must be positive");
+      static_assert(DIM <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     protected:
       // Only the runtime should be allowed to make these
@@ -375,7 +379,7 @@ namespace Legion {
      * @see FieldSpace
      * @see Runtime
      */
-    class FieldAllocator : public Unserializable<FieldAllocator> {
+    class FieldAllocator : public Unserializable {
     public:
       FieldAllocator(void);
       FieldAllocator(const FieldAllocator &allocator);
@@ -521,7 +525,7 @@ namespace Legion {
      * It is up to the user to make sure that the the memory described by
      * an untyped buffer is live throughout the duration of its lifetime.
      */
-    class UntypedBuffer : public Unserializable<UntypedBuffer> {
+    class UntypedBuffer : public Unserializable {
       public:
       UntypedBuffer(void) : args(NULL), arglen(0) { }
       UntypedBuffer(const void *arg, size_t argsize)
@@ -560,7 +564,7 @@ namespace Legion {
      * calls, especially if there are very few changes applied to
      * the map between task call launches.
      */
-    class ArgumentMap : public Unserializable<ArgumentMap> {
+    class ArgumentMap : public Unserializable {
     public:
       ArgumentMap(void);
       ArgumentMap(const FutureMap &rhs);
@@ -653,7 +657,7 @@ namespace Legion {
      * collected by the runtime.  Except for predicates with constant
      * value, all other predicates should be created by the runtime.
      */
-    class Predicate : public Unserializable<Predicate> {
+    class Predicate : public Unserializable {
     public:
       static const Predicate TRUE_PRED;
       static const Predicate FALSE_PRED;
@@ -1180,7 +1184,7 @@ namespace Legion {
      * futures which come from tasks which predicates that resolve
      * to false.
      */
-    class Future : public Unserializable<Future> {
+    class Future : public Unserializable {
     public:
       Future(void);
       Future(const Future &f);
@@ -1394,7 +1398,7 @@ namespace Legion {
      * context in which they are created as the runtime garbage collects
      * them after the enclosing task context completes execution.
      */
-    class FutureMap : public Unserializable<FutureMap> {
+    class FutureMap : public Unserializable {
     public:
       FutureMap(void);
       FutureMap(const FutureMap &map);
@@ -1506,7 +1510,7 @@ namespace Legion {
      * runtime overhead. These static dependences need only
      * be specified for dependences based on region requirements.
      */
-    struct StaticDependence : public Unserializable<StaticDependence> {
+    struct StaticDependence : public Unserializable {
     public:
       StaticDependence(void);
       StaticDependence(unsigned previous_offset,
@@ -2588,7 +2592,7 @@ namespace Legion {
      * by value.  They should never escape the context in which
      * they are created.
      */
-    class PhysicalRegion : public Unserializable<PhysicalRegion> {
+    class PhysicalRegion : public Unserializable {
     public:
       PhysicalRegion(void);
       PhysicalRegion(const PhysicalRegion &rhs);
@@ -2724,6 +2728,8 @@ namespace Legion {
       static void fail_privilege_check(Domain d, FieldID fid,
                                        PrivilegeMode mode); 
       static void fail_padding_check(DomainPoint p, FieldID fid);
+      static void fail_nondense_rect(void);
+      static void fail_rect_piece(void);
     protected:
       void get_bounds(void *realm_is, TypeTag type_tag) const;
     }; 
@@ -2735,7 +2741,7 @@ namespace Legion {
      * attach operation. It acts as a vector-like container of the
      * physical regions and ensures that they are detached together.
      */
-    class ExternalResources : public Unserializable<ExternalResources> {
+    class ExternalResources : public Unserializable {
     public:
       ExternalResources(void);
       ExternalResources(const ExternalResources &rhs);
@@ -2806,6 +2812,7 @@ namespace Legion {
     class FieldAccessor {
     private:
       static_assert(N > 0, "N must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "N must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     public:
       FieldAccessor(void) { }
@@ -3103,6 +3110,7 @@ namespace Legion {
     class ReductionAccessor {
     private:
       static_assert(N > 0, "N must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "N must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     public:
       ReductionAccessor(void) { }
@@ -3438,6 +3446,7 @@ namespace Legion {
     class MultiRegionAccessor {
     private:
       static_assert(N > 0, "N must be positive");
+      static_assert(N <= LEGION_MAX_DIM, "N must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     public:
       MultiRegionAccessor(void) { }
@@ -3633,6 +3642,7 @@ namespace Legion {
     class PieceIteratorT : public PieceIterator {
     private:
       static_assert(DIM > 0, "DIM must be positive");
+      static_assert(DIM <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     public:
       PieceIteratorT(void);
@@ -3668,6 +3678,7 @@ namespace Legion {
     class SpanIterator {
     private:
       static_assert(DIM > 0, "DIM must be positive");
+      static_assert(DIM <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     public:
       SpanIterator(void) { }
@@ -3721,6 +3732,9 @@ namespace Legion {
     class DeferredValue {
     public:
       DeferredValue(T initial_value,
+                    size_t alignment = std::alignment_of<T>(),
+                    Memory::Kind memory_kind = Memory::Z_COPY_MEM);
+      DeferredValue(T initial_value, Memory target_memory,
                     size_t alignment = std::alignment_of<T>());
     public:
       __CUDA_HD__
@@ -3791,6 +3805,10 @@ namespace Legion {
     public:
       void finalize(Context ctx) const;
       Realm::RegionInstance get_instance() const;
+      static void report_incompatible_accessor(const char *accessor_kind, bool buffer = false);
+      static void report_nondense_domain(void);
+      static void report_nondense_rect(void);
+      static Memory find_memory_by_kind(Memory::Kind kind);
     private:
       template<PrivilegeMode,typename,int,typename,typename,bool>
       friend class FieldAccessor;
@@ -3826,6 +3844,7 @@ namespace Legion {
     class DeferredBuffer {
     private:
       static_assert(DIM > 0, "DIM must be positive");
+      static_assert(DIM <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
       static_assert(std::is_integral<COORD_T>::value, "must be integral type");
     public:
       DeferredBuffer(void);
@@ -3873,7 +3892,6 @@ namespace Legion {
                      const T *initial_value = NULL,
                      size_t alignment = std::alignment_of<T>());
     protected:
-      Memory get_memory_from_kind(Memory::Kind kind);
       void initialize_layout(size_t alignment, bool fortran_order_dims);
       void initialize(Memory memory,
                       DomainT<DIM,COORD_T> bounds,
@@ -3969,7 +3987,7 @@ namespace Legion {
      * the output instances or allocations of memory to associate with
      * output region requirements. 
      */
-    class OutputRegion : public Unserializable<OutputRegion> {
+    class OutputRegion : public Unserializable {
     public:
       OutputRegion(void);
       OutputRegion(const OutputRegion &rhs);
@@ -4198,7 +4216,7 @@ namespace Legion {
      * direction occurs first when constructing the handshake object.
      * @see Runtime::create_external_handshake
      */
-    class LegionHandshake : public Unserializable<LegionHandshake> {
+    class LegionHandshake : public Unserializable {
     public:
       LegionHandshake(void);
       LegionHandshake(const LegionHandshake &rhs);
