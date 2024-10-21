@@ -5831,7 +5831,7 @@ namespace Legion {
       {
         // Slow path, not all dimensions are interesting
         // Pull them down to the localized dimensions
-        unsigned coords[DIM];
+        unsigned coords[DIM] = { 0 };
         for (unsigned i = 0; i < interesting_count; i++)
           coords[i] = point[interesting_dims[i]]-bounds.lo[interesting_dims[i]];
         // Shift the bits for each of the coordinates
