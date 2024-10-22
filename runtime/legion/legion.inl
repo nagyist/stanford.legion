@@ -16851,16 +16851,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    inline IndexTreeID IndexSpace::get_tree_id(bool filter) const
-    //--------------------------------------------------------------------------
-    {
-      if (filter)
-        return LEGION_DISTRIBUTED_ID_FILTER(tid);
-      else
-        return tid;
-    }
-
-    //--------------------------------------------------------------------------
     inline int IndexSpace::get_dim(void) const
     //--------------------------------------------------------------------------
     {
@@ -16968,16 +16958,6 @@ namespace Legion {
         return LEGION_DISTRIBUTED_ID_FILTER(did);
       else
         return did;
-    }
-
-    //--------------------------------------------------------------------------
-    inline IndexTreeID IndexPartition::get_tree_id(bool filter) const
-    //--------------------------------------------------------------------------
-    {
-      if (filter)
-        return LEGION_DISTRIBUTED_ID_FILTER(tid);
-      else
-        return tid;
     }
 
     //--------------------------------------------------------------------------

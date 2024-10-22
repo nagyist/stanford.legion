@@ -2179,10 +2179,11 @@ namespace Legion {
       struct ISBroadcast {
       public:
         ISBroadcast(void) : did(0), expr_id(0), double_buffer(false) { }
-        ISBroadcast(DistributedID d, IndexSpaceExprID e, bool db)
-          : did(d), expr_id(e), double_buffer(db) { }
+        ISBroadcast(DistributedID d, IndexTreeID t, IndexSpaceExprID e, bool db)
+          : did(d), tid(t), expr_id(e), double_buffer(db) { }
       public:
         DistributedID did;
+        IndexTreeID tid;
         IndexSpaceExprID expr_id;
         bool double_buffer;
       };

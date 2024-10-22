@@ -98,7 +98,7 @@ namespace Legion {
       inline bool operator>(const IndexSpace &rhs) const;
       inline std::size_t hash(void) const;
       inline DistributedID get_id(bool filter = true) const;
-      inline IndexTreeID get_tree_id(bool filter = true) const;
+      inline IndexTreeID get_tree_id(void) const { return tid; }
       inline bool exists(void) const { return (did != 0); }
       inline TypeTag get_type_tag(void) const { return type_tag; }
       inline int get_dim(void) const;
@@ -155,7 +155,7 @@ namespace Legion {
       inline bool operator>(const IndexPartition &rhs) const;
       inline std::size_t hash(void) const;
       inline DistributedID get_id(bool filter = true) const;
-      inline IndexTreeID get_tree_id(bool filter = true) const;
+      inline IndexTreeID get_tree_id(void) const { return tid; }
       inline bool exists(void) const { return (did != 0); }
       inline TypeTag get_type_tag(void) const { return type_tag; }
       inline int get_dim(void) const;

@@ -263,8 +263,6 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert((LEGION_DISTRIBUTED_HELP_DECODE(did) ==
           Internal::INDEX_SPACE_NODE_DC) || (did == 0));
-      assert((LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
-          Internal::INDEX_SPACE_NODE_DC) || (tid == 0));
 #endif
     }
 
@@ -290,8 +288,6 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert((LEGION_DISTRIBUTED_HELP_DECODE(did) ==
           Internal::INDEX_PART_NODE_DC) || (did == 0));
-      assert((LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
-          Internal::INDEX_SPACE_NODE_DC) || (tid == 0));
 #endif
     }
 

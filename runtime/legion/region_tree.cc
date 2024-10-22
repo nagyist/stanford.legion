@@ -418,7 +418,7 @@ namespace Legion {
         {
           IndexSpaceNode *child_node = base->get_child(*itr);
           IndexPartition pid(runtime->get_unique_index_partition_id(),
-                             handle1.get_tree_id(false), handle1.get_type_tag());
+                             handle1.get_tree_id(), handle1.get_type_tag());
           const RtEvent safe =
             create_pending_partition_internal(pid, child_node->handle,
                                      source->color_space->handle,
@@ -438,7 +438,7 @@ namespace Legion {
         {
           IndexSpaceNode *child_node = base->get_child(*itr);
           IndexPartition pid(runtime->get_unique_index_partition_id(),
-                             handle1.get_tree_id(false), handle1.get_type_tag());
+                             handle1.get_tree_id(), handle1.get_type_tag());
           const RtEvent safe =
             create_pending_partition_internal(pid, child_node->handle,
                                      source->color_space->handle,
@@ -503,7 +503,7 @@ namespace Legion {
           if (child_spaces.front() == runtime->address_space)
           {
             IndexPartition pid(runtime->get_unique_index_partition_id(),
-                             handle1.get_tree_id(false), handle1.get_type_tag());
+                             handle1.get_tree_id(), handle1.get_type_tag());
             exchange.exchange_ids(child_color, pid);
             user_handles[child_node->handle] = pid;
           }
@@ -7955,7 +7955,7 @@ namespace Legion {
                           "index space %llu.", c, handle.get_id())
         }
         IndexPartition child_handle(child_id,
-            handle.get_tree_id(false), handle.get_type_tag());
+            handle.get_tree_id(), handle.get_type_tag());
         IndexPartNode *result = runtime->get_node(child_handle);
         if (can_fail)
           result->add_base_resource_ref(REGION_TREE_REF);
@@ -9468,7 +9468,7 @@ namespace Legion {
               (local_space == child_mapping->get_origin()));
 #endif
           IndexSpace is(runtime->get_unique_index_space_id(),
-                        handle.get_tree_id(false), handle.get_type_tag());
+                        handle.get_tree_id(), handle.get_type_tag());
           const IndexSpaceExprID expr_id =
             runtime->get_unique_index_space_expr_id();
           // Make a new index space node ready when the partition is ready

@@ -2161,6 +2161,7 @@ typedef unsigned int legion_mapper_id_t;
 typedef unsigned int legion_context_id_t;
 typedef unsigned int legion_instance_id_t;
 typedef unsigned int legion_type_tag_t;
+typedef unsigned int legion_index_tree_id_t;
 typedef unsigned int legion_generation_id_t;
 typedef unsigned int legion_type_handle;
 typedef unsigned int legion_projection_id_t;
@@ -2180,7 +2181,6 @@ typedef unsigned long long legion_provenance_id_t;
 typedef realm_task_func_id_t legion_task_id_t;
 typedef unsigned long legion_layout_constraint_id_t;
 typedef long long legion_internal_color_t;
-typedef legion_distributed_id_t legion_index_tree_id_t;
 typedef legion_distributed_id_t legion_region_tree_id_t;
 
 #endif // __LEGION_CONFIG_H__
