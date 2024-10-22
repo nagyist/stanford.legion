@@ -218,7 +218,7 @@ namespace Legion {
       inline bool exists(void) const { return (did != 0); }
     private:
       friend std::ostream& operator<<(std::ostream& os, const FieldSpace& fs);
-      DistributedID did;
+      DistributedID did; 
     };
 
     /**
@@ -263,7 +263,7 @@ namespace Legion {
       // These are private so the user can't just arbitrarily change them
       DistributedID tree_did;
       IndexSpace index_space;
-      FieldSpace field_space;
+      FieldSpace field_space; 
     };
 
     /**
@@ -333,7 +333,7 @@ namespace Legion {
       // These are private so the user can't just arbitrary change them
       DistributedID tree_did;
       IndexPartition index_partition;
-      FieldSpace field_space;
+      FieldSpace field_space; 
     };
 
     /**

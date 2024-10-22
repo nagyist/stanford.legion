@@ -271,6 +271,9 @@ namespace Legion {
       : did(0), tid(0), type_tag(0)
     //--------------------------------------------------------------------------
     {
+      // Should be able to be densely packed
+      static_assert((sizeof(did) + sizeof(tid) +
+            sizeof(type_tag)) == sizeof(*this));
     }
 
     /////////////////////////////////////////////////////////////
@@ -296,6 +299,9 @@ namespace Legion {
       : did(0), tid(0), type_tag(0)
     //--------------------------------------------------------------------------
     {
+      // Should be able to be densely packed
+      static_assert((sizeof(did) + sizeof(tid) +
+            sizeof(type_tag)) == sizeof(*this));
     }
 
     /////////////////////////////////////////////////////////////
@@ -319,6 +325,8 @@ namespace Legion {
       : did(0)
     //--------------------------------------------------------------------------
     {
+      // Make sure field spaces can be densely packed
+      static_assert(sizeof(did) == sizeof(*this));
     }
     
     /////////////////////////////////////////////////////////////
@@ -343,6 +351,9 @@ namespace Legion {
         field_space(FieldSpace::NO_SPACE)
     //--------------------------------------------------------------------------
     {
+      // Make sure this can be densely packed
+      static_assert((sizeof(tree_did) + sizeof(index_space) +
+            sizeof(field_space)) == sizeof(*this));
     }
 
     //--------------------------------------------------------------------------
@@ -380,6 +391,9 @@ namespace Legion {
         field_space(FieldSpace::NO_SPACE)
     //--------------------------------------------------------------------------
     {
+      // Make sure this can be densely packed
+      static_assert((sizeof(tree_did) + sizeof(index_partition) +
+            sizeof(field_space)) == sizeof(*this));
     }
 
     //--------------------------------------------------------------------------
