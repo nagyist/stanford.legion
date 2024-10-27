@@ -2458,7 +2458,7 @@ namespace Legion {
      */
     class Exception : public Realm::LoggerMessage {
     public:
-      Exception(ExceptionType type, Operation *op = NULL);
+      Exception(ExceptionType type, const Operation *op = NULL);
       Exception(const Exception &rhs) = delete;
       Exception(Exception &&rhs) = delete;
       ~Exception(void);
@@ -2471,7 +2471,7 @@ namespace Legion {
       Exception& operator<<(Memory::Kind kind);
       Exception& operator<<(Processor::Kind kind);
     public:
-      Operation *const op;
+      const Operation *const op;
       const ExceptionType type;
     };
 
@@ -2580,6 +2580,7 @@ namespace Legion {
             unsafe_launch(false),
             unsafe_mapper(false),
             safe_mapper(false),
+            safe_model(false),
             safe_tracing(false),
             disable_independence_tests(false),
 #ifdef LEGION_SPY
@@ -2639,6 +2640,7 @@ namespace Legion {
         bool unsafe_launch;
         bool unsafe_mapper;
         bool safe_mapper;
+        bool safe_model;
         bool safe_tracing;
         bool disable_independence_tests;
         bool legion_spy_enabled;
@@ -2762,6 +2764,7 @@ namespace Legion {
       const bool resilient_mode;
       const bool unsafe_launch;
       const bool safe_mapper;
+      const bool safe_model;
       const bool safe_tracing;
       const bool disable_independence_tests;
       const bool legion_spy_enabled;

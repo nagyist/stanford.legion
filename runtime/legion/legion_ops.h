@@ -453,6 +453,8 @@ namespace Legion {
                        LogicalRegion handle, EqSetTracker *tracker,
                        const FieldMask &mask, unsigned parent_req_index);
     public:
+      virtual void verify_requirement(const RegionRequirement &req,
+                                      unsigned index = 0) const;
       virtual void report_uninitialized_usage(const unsigned index,
                                               const char *field_string,
                                               RtUserEvent reported);
@@ -1268,9 +1270,9 @@ namespace Legion {
       virtual const Task* get_parent_task(void) const;
       virtual const std::string_view& get_provenance_string(
           bool human = true) const;
+      virtual void verify_requirement(const RegionRequirement &req,
+                                      unsigned index = 0) const;
     protected:
-      void check_privilege(void);
-      void compute_parent_index(void);
       virtual bool invoke_mapper(InstanceSet &mapped_instances,
                                std::vector<PhysicalManager*> &source_instances);
       virtual int add_copy_profiling_request(const PhysicalTraceInfo &info,
@@ -2347,8 +2349,6 @@ namespace Legion {
       virtual const RegionRequirement &get_requirement(unsigned idx) const
         { return requirement; }
     public:
-      virtual bool has_prepipeline_stage(void) const { return true; }
-      virtual void trigger_prepipeline_stage(void);
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_mapping(void);
       virtual unsigned find_parent_index(unsigned idx);

@@ -3237,6 +3237,171 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    unsigned InnerContext::find_parent_region_index(Operation *op,
+        const RegionRequirement &req, unsigned index)
+    //--------------------------------------------------------------------------
+    {
+      // We can check the fixed region requirements without the lock
+      bool found_parent = false;
+      for (unsigned idx = 0; idx < regions.size(); idx++)
+      {
+        const RegionRequirement &our_req = regions[idx];
+#ifdef DEBUG_LEGION
+        assert(our_req.handle_type == LEGION_SINGULAR_PROJECTION);
+#endif
+        if (our_req.region != req.parent)
+          continue;
+        found_parent = true;
+        // Check to see if the privileges cover
+        if (PRIV_ONLY(req) & (~(our_req.privilege)))
+          continue;
+        // Check to see if all the fields are represented
+        if (our_req.privilege_fields.size() < req.privilege_fields.size())
+          continue;
+        bool contained = true;
+        for (std::set<FieldID>::const_iterator it = 
+              req.privilege_fields.begin(); it !=
+              req.privilege_fields.end(); it++)
+        {
+          if (our_req.privilege_fields.find(*it) !=
+              our_req.privilege_fields.end())
+            continue;
+          contained = false;
+          break;
+        }
+        if (contained)
+          return idx;
+      }
+      const FieldSpace fs = req.parent.get_field_space();
+      // Need the lock because deletions can be coming back asynchronously
+      // and mutating the create requirements data structure
+      AutoLock priv_lock(privilege_lock);
+      for (std::map<unsigned,RegionRequirement>::iterator it = 
+           created_requirements.begin(); it != created_requirements.end(); it++)
+      {
+        RegionRequirement &our_req = it->second;
+#ifdef DEBUG_LEGION
+        assert(our_req.handle_type == LEGION_SINGULAR_PROJECTION);
+#endif
+        if (our_req.region != req.parent)
+          continue;
+        found_parent = true;
+        // Check to see if the privileges cover
+        if (PRIV_ONLY(req) & (~(our_req.privilege)))
+          continue;
+        std::map<unsigned,bool>::const_iterator finder = 
+          returnable_privileges.find(it->first);
+#ifdef DEBUG_LEGION
+        assert(finder != returnable_privileges.end());
+#endif
+        // If this is a returnable privilege requiremnt that means
+        // that we made this region so we always have privileges
+        // on any fields for that region, just add them and be done
+        if (finder->second)
+        {
+          our_req.privilege_fields.insert(req.privilege_fields.begin(),
+                                          req.privilege_fields.end());
+          return it->first;
+        }
+        bool dominated = true;
+        for (std::set<FieldID>::const_iterator fit = 
+              req.privilege_fields.begin(); fit !=
+              req.privilege_fields.end(); fit++)
+        {
+          if (our_req.privilege_fields.find(*fit) !=
+              our_req.privilege_fields.end())
+            continue;
+          // Check to see if this is a field we made
+          // and haven't destroyed yet
+          std::pair<FieldSpace,FieldID> key(fs, *fit);
+          if (created_fields.find(key) != created_fields.end())
+          {
+            // We made it so we can add it to the requirement
+            // and continue on our way
+            our_req.privilege_fields.insert(*fit);
+            continue;
+          }
+          if (local_fields.find(key) != local_fields.end())
+          {
+            // We made it so we can add it to the requirement
+            // and continue on our way
+            our_req.privilege_fields.insert(*fit);
+            continue;
+          }
+          // Otherwise we don't have privileges
+          dominated = false;
+          break;
+        }
+        if (dominated)
+          return it->first;
+      }
+      if (!found_parent)
+        Exception(PROGRAMMING_MODEL_EXCEPTION, op) << "Unable to find "
+          << "a 'parent' region " << req.parent << " in any of the region "
+          << "requirements of parent task " << get_task_name()
+          << " (UID: " << get_unique_id() << ") to serve as the origin "
+          << "of privileges for region requirement " << index << " of "
+          << op->get_logging_name() << " (UID: " << op->get_unique_op_id()
+          << "). All region requirements have to derive their privileges "
+          << "from one region requirement of the parent task.";
+      // Method of last resort, check to see if we made all the fields
+      // if we did, then we can make a new requirement for all the fields
+      for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
+            it != req.privilege_fields.end(); it++)
+      {
+        const std::pair<FieldSpace,FieldID> key(fs, *it);
+        if ((created_fields.find(key) == created_fields.end()) &&
+            (local_fields.find(key) == local_fields.end()))
+        {
+          // Raise an exception
+          FieldSpaceNode *node = runtime->get_node(fs);
+          const void *name = nullptr; size_t name_size = 0;
+          if (node->retrieve_semantic_information(*it,
+                LEGION_NAME_SEMANTIC_TAG, name, name_size,
+                true/*can fail*/, false/*wait until*/))
+          {
+            std::string_view field_name((const char*)name, name_size);
+            Exception(PROGRAMMING_MODEL_EXCEPTION, op) << "Unable to find "
+              << "privileges for field " << field_name << " of region requirement "
+              << index << " of " << op->get_logging_name() << " (UID: "
+              << op->get_unique_op_id() << ") in parent task "
+              << get_task_name() << " (UID: " << get_unique_id() << "). "
+              << "All fields must derive their region requirements from "
+              << "one of the region requirements of the parent task or "
+              << "from the creation of a region or allocation of a field "
+              << "(without a corresponding deletion) in the parent task.";
+          }
+          else
+            Exception(PROGRAMMING_MODEL_EXCEPTION, op) << "Unable to find "
+              << "privileges for field " << *it << " of region requirement "
+              << index << " of " << op->get_logging_name() << " (UID: "
+              << op->get_unique_op_id() << ") in parent task "
+              << get_task_name() << " (UID: " << get_unique_id() << "). "
+              << "All fields must derive their region requirements from "
+              << "one of the region requirements of the parent task or "
+              << "from the creation of a region or allocation of a field "
+              << "(without a corresponding deletion) in the parent task.";
+        }
+      }
+      // If we get here then we can make a new requirement
+      // which has non-returnable privileges
+      // Get the top level region for the region tree
+      RegionNode *top = runtime->get_tree(req.parent.tree_did);
+      const unsigned result = next_created_index++;
+      RegionRequirement &new_req = created_requirements[result];
+      new_req = RegionRequirement(top->handle, LEGION_READ_WRITE, 
+                                  LEGION_EXCLUSIVE, top->handle);
+      if (runtime->legion_spy_enabled)
+        TaskOp::log_requirement(get_unique_id(), result, new_req);
+      // Add our fields
+      new_req.privilege_fields.insert(
+          req.privilege_fields.begin(), req.privilege_fields.end());
+      // This is not a returnable privilege requirement
+      returnable_privileges[result] = false;
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
     LegionErrorType InnerContext::check_privilege(const RegionRequirement &req,
                                                   FieldID &bad_field,
                                                   int &bad_index,

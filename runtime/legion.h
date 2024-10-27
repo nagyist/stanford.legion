@@ -102,6 +102,7 @@ namespace Legion {
       inline bool exists(void) const { return (did != 0); }
       inline TypeTag get_type_tag(void) const { return type_tag; }
       inline int get_dim(void) const;
+      bool valid(void) const;
     protected:
       friend std::ostream& operator<<(std::ostream& os, 
                                       const IndexSpace& is);
@@ -159,6 +160,7 @@ namespace Legion {
       inline bool exists(void) const { return (did != 0); }
       inline TypeTag get_type_tag(void) const { return type_tag; }
       inline int get_dim(void) const;
+      bool valid(void) const;
     protected:
       friend std::ostream& operator<<(std::ostream& os, 
                                       const IndexPartition& ip);
@@ -216,6 +218,7 @@ namespace Legion {
       inline std::size_t hash(void) const;
       inline DistributedID get_id(bool filter = true) const;
       inline bool exists(void) const { return (did != 0); }
+      bool valid(void) const;
     private:
       friend std::ostream& operator<<(std::ostream& os, const FieldSpace& fs);
       DistributedID did; 
@@ -257,6 +260,7 @@ namespace Legion {
       inline TypeTag get_type_tag(void) const 
         { return index_space.get_type_tag(); }
       inline int get_dim(void) const { return index_space.get_dim(); }
+      bool valid(void) const;
     protected:
       friend std::ostream& operator<<(std::ostream& os, 
                                       const LogicalRegion& lr);
@@ -327,6 +331,7 @@ namespace Legion {
       inline TypeTag get_type_tag(void) const 
         { return index_partition.get_type_tag(); }
       inline int get_dim(void) const { return index_partition.get_dim(); }
+      bool valid(void) const;
     protected:
       friend std::ostream& operator<<(std::ostream& os, 
                                       const LogicalPartition& lp);

@@ -1714,6 +1714,153 @@ namespace Legion {
     } 
 
     //--------------------------------------------------------------------------
+    void Operation::verify_requirement(const RegionRequirement &req,
+                                       unsigned index) const
+    //--------------------------------------------------------------------------
+    {
+      // If this is a NO-ACCESS requirement then we don't care
+      if (IS_NO_ACCESS(req) || (req.flags & LEGION_VERIFIED_FLAG))
+        return;
+      if (req.privilege_fields.empty())
+        Exception(WARNING_EXCEPTION, this) << "Region requirement " << index
+          << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+          << ") does not contain any privilege fields. Did you forget them?";
+      // Check that the handle names are all sound
+      if (!req.parent.exists())
+        Exception(INTERFACE_EXCEPTION, this) << "The 'parent' region of "
+          << "region requirement " << index << " of " << get_logging_name()
+          << " (UID: " << get_unique_op_id() << ") does not exist. The 'parent'"
+          << " region must always be set on every region requirement.";
+      if (!req.parent.valid())
+        Exception(INTERFACE_EXCEPTION, this) << "The 'parent' region of "
+          << "region requirement " << index << " of " << get_logging_name()
+          << " (UID: " << get_unique_op_id() << ") is not well-formed. This "
+          << "likely means it was corrupted by application code."; 
+      if ((req.handle_type != LEGION_SINGULAR_PROJECTION) &&
+          (req.handle_type != LEGION_REGION_PROJECTION) &&
+          (req.handle_type != LEGION_PARTITION_PROJECTION))
+        Exception(INTERFACE_EXCEPTION, this) << "Invalid value of "
+          << "'handle_type' " << req.handle_type << " for region requirement "
+          << index << " of " << get_logging_name() << " (UID: "
+          << get_unique_op_id() << "). The 'handle_type' of the region "
+          << "requirement must be one of LEGION_SINGULAR_PROJECTION, "
+          << "LEGION_REGION_PROJECTION, or LEGION_PARTITION_PROJECTION.";
+      if (req.handle_type == LEGION_PARTITION_PROJECTION)
+      {
+        if (!req.partition.exists())
+          Exception(INTERFACE_EXCEPTION, this) << "The 'partition' of "
+            << "region requirement " << index << " of " << get_logging_name()
+            << "(UID: " << get_unique_op_id() << ") does not exist. The 'partition'"
+            << " must always be set when 'handle_type' is "
+            << "LEGION_SINGULAR_PROJECTION or LEGION_REGION_PROJECTION.";
+        if (!req.partition.valid())
+          Exception(INTERFACE_EXCEPTION, this) << "The 'partition' of "
+            << "region requirement " << index << " of " << get_logging_name()
+            << " (UID: " << get_unique_op_id() << ") is not well-formed. This "
+            << "likely means it was corrupted by application code.";
+        // Check that partition  is in the same region tree
+        if (req.partition.get_tree_id() != req.parent.get_tree_id())
+          Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Partition "
+            << req.partition << " is not from the same region tree (tree="
+            << req.partition.get_tree_id() << ") as the 'parent' region (tree="
+            << req.parent.get_tree_id() << ") for region requirement " 
+            << index << " of " << get_logging_name() << " (UID: " 
+            << get_unique_op_id()
+            << "). The partition for a projection region requirement "
+            << "must always be from the same tree as the 'parent' region.";
+        // Check to see if the partition is a below in parent in the tree
+        if (!runtime->has_partition_path(req.parent.index_space,
+              req.partition.index_partition))
+          Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Partition "
+            << req.partition << " does not have parent region " << req.parent
+            << " as an ancestor in the region tree for region requirement "
+            << index << " of " << get_logging_name() << " (UID: "
+            << get_unique_op_id() << "). The partition must always have the "
+            << "'parent' region as an ancestor for privileges.";
+      }
+      else
+      {
+        if (!req.region.exists())
+          Exception(INTERFACE_EXCEPTION, this) << "The 'region' of "
+            << "region requirement " << index << " of " << get_logging_name()
+            << " (UID: " << get_unique_op_id() << ") does not exist. The 'region'"
+            << " must always be set when 'handle_type' is "
+            << "LEGION_SINGULAR_PROJECTION or LEGION_REGION_PROJECTION.";
+        if (!req.region.valid())
+          Exception(INTERFACE_EXCEPTION, this) << "The 'region' of "
+            << "region requirement " << index << " of " << get_logging_name()
+            << " (UID: " << get_unique_op_id() << ") is not well-formed. This "
+            << "likely means it was corrupted by application code.";
+        // Check that the region is in the same region tree
+        if (req.region.get_tree_id() != req.parent.get_tree_id())
+          Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Region "
+            << req.region << " is not from the same region tree (tree="
+            << req.region.get_tree_id() << ") as the 'parent' region (tree="
+            << req.parent.get_tree_id() << ") for region requirement " 
+            << index << " of " << get_logging_name() << " (UID: " 
+            << get_unique_op_id() << "). The region for a region requirement "
+            << "must always be from the same tree as the 'parent' region.";
+        // Check to see if the partition is a below in parent in the tree
+        if (!runtime->has_index_path(req.parent.index_space,
+              req.region.index_space))
+          Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Region "
+            << req.region << " does not have parent region " << req.parent
+            << " as an ancestor in the region tree for region requirement "
+            << index << " of " << get_logging_name() << " (UID: "
+            << get_unique_op_id() << "). The region must always have the "
+            << "'parent' region as an ancestor for privileges.";
+      }
+      // Check that all the fields are contained in the field space
+      FieldSpaceNode *fs = runtime->get_node(req.parent.get_field_space());
+      for (std::set<FieldID>::const_iterator it = req.privilege_fields.begin();
+            it != req.privilege_fields.end(); it++)
+        if (!fs->has_field(*it))
+          Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Field " << *it
+            << " in privilege fields of region requirement " << index
+            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+            << ") is not contained with field space " << fs->handle
+            << " of the parent region requirement. All privilege fields"
+            << " must be contained within the parent region's field space.";
+      // Check that the instance fields are unique and represented by privilege
+      std::vector<FieldID> instance_fields(req.instance_fields);
+      std::sort(instance_fields.begin(), instance_fields.end());
+      for (unsigned idx = 0; idx < instance_fields.size(); idx++)
+      {
+        if ((idx > 0) && (instance_fields[idx-1] == instance_fields[idx]))
+          Exception(INTERFACE_EXCEPTION, this) << "Duplicate field "
+            << instance_fields[idx] << " found in the 'instance_fields' of "
+            << "region requirement " << index << " of " << get_logging_name()
+            << " (UID: " << get_unique_op_id() << "). Each field in the "
+            << "'privilege_fields' should be represented exactly once in "
+            << "this 'instance_fields' of the region requirement.";
+        if (req.privilege_fields.find(instance_fields[idx]) ==
+            req.privilege_fields.end())
+        {
+          const void *name = nullptr; size_t name_size = 0;
+          if (fs->retrieve_semantic_information(instance_fields[idx], 
+                LEGION_NAME_SEMANTIC_TAG, name, name_size,
+                true/*can fail*/, false/*wait until*/))
+          {
+            std::string_view field_name((const char*)name, name_size);
+            Exception(INTERFACE_EXCEPTION, this) << "Field " << field_name
+              << " in 'instance_fields' of region requirement " << index
+              << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+              << ") is not contained in the 'privilege_fields'. Each field "
+              << "in the 'instance_fields' must also be contained in the "
+              << "'privilege_fields' of the region requirement.";
+          }
+          else
+            Exception(INTERFACE_EXCEPTION, this) << "Field " << instance_fields[idx]
+              << " in 'instance_fields' of region requirement " << index
+              << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+              << ") is not contained in the 'privilege_fields'. Each field "
+              << "in the 'instance_fields' must also be contained in the "
+              << "'privilege_fields' of the region requirement.";
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
     void Operation::report_interfering_requirements(unsigned idx1,unsigned idx2)
     //--------------------------------------------------------------------------
     {
@@ -4468,16 +4615,10 @@ namespace Legion {
     {
       parent_task = ctx->get_task();
       initialize_operation(ctx, provenance);
-      if (launcher.requirement.privilege_fields.empty())
-      {
-        REPORT_LEGION_WARNING(LEGION_WARNING_REGION_REQUIREMENT_INLINE,
-                         "REGION REQUIREMENT OF INLINE MAPPING "
-                         "IN TASK %s (ID %lld) HAS NO PRIVILEGE "
-                         "FIELDS! DID YOU FORGET THEM?!?",
-                         parent_ctx->get_task_name(),
-                         parent_ctx->get_unique_id());
-      }
       requirement = launcher.requirement;
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
       const ApUserEvent term_event = Runtime::create_ap_user_event(NULL);
       region = PhysicalRegion(new PhysicalRegionImpl(requirement,
             get_mapped_event(), ready_event, term_event, true/*mapped*/, ctx,
@@ -4531,6 +4672,8 @@ namespace Legion {
       requirement = reg.impl->get_requirement();
       // Remove any discard masks we might have had
       requirement.privilege = FILTER_DISCARD(requirement);
+      // No need to do verification, it's already been verified
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
       map_id = reg.impl->map_id;
       tag = reg.impl->tag;
       region = reg;
@@ -4542,6 +4685,20 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
         LegionSpy::log_mapping_operation(parent_ctx->get_unique_id(),
                                          unique_op_id);
+    }
+
+    //--------------------------------------------------------------------------
+    void MapOp::verify_requirement(const RegionRequirement &req,
+                                   unsigned index) const
+    //--------------------------------------------------------------------------
+    {
+      if ((requirement.handle_type == LEGION_PARTITION_PROJECTION) || 
+          (requirement.handle_type == LEGION_REGION_PROJECTION))
+        Exception(INTERFACE_EXCEPTION, this) << "Detected a projection "
+          << "region requirement for " << get_logging_name()
+          << " (UID: " << get_unique_op_id() << "). Projection region "
+          << "requirements are not permitted for inline mappings.";
+      Operation::verify_requirement(req, index);
     }
 
     //--------------------------------------------------------------------------
@@ -4620,8 +4777,6 @@ namespace Legion {
     void MapOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     { 
-      // First compute our parent region requirement
-      compute_parent_index();
       if (runtime->legion_spy_enabled)
       { 
         LegionSpy::log_logical_requirement(unique_op_id,0/*index*/,
@@ -4642,8 +4797,6 @@ namespace Legion {
     void MapOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      if (runtime->check_privileges)
-        check_privilege();
       if (!wait_barriers.empty() || !arrive_barriers.empty())
         parent_ctx->perform_barrier_dependence_analysis(this, 
                               wait_barriers, arrive_barriers);
@@ -4891,185 +5044,6 @@ namespace Legion {
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
-    }
-
-    //--------------------------------------------------------------------------
-    void MapOp::check_privilege(void)
-    //--------------------------------------------------------------------------
-    { 
-      if ((requirement.handle_type == LEGION_PARTITION_PROJECTION) || 
-          (requirement.handle_type == LEGION_REGION_PROJECTION))
-        REPORT_LEGION_ERROR(ERROR_PROJECTION_REGION_REQUIREMENTS,
-                         "Projection region requirements are not "
-                         "permitted for inline mappings (in task %s)",
-                         parent_ctx->get_task_name())
-      FieldID bad_field = LEGION_AUTO_GENERATE_ID;
-      int bad_index = -1;
-      LegionErrorType et = runtime->verify_requirement(requirement, bad_field);
-      // If that worked, then check the privileges with the parent context
-      if (et == LEGION_NO_ERROR)
-        et = parent_ctx->check_privilege(requirement, bad_field, bad_index);
-      switch (et)
-      {
-        case LEGION_NO_ERROR:
-          break;
-        case ERROR_INVALID_REGION_HANDLE:
-          {
-            REPORT_LEGION_ERROR(ERROR_REQUIREMENTS_INVALID_REGION,
-                             "Requirements for invalid region handle "
-                             "(%lld,%lld,%lldd) for inline mapping "
-                             "(ID %lld)",
-                             requirement.region.index_space.get_id(),
-                             requirement.region.field_space.get_id(),
-                             requirement.region.get_tree_id(),
-                             unique_op_id);
-            break;
-          }
-        case ERROR_FIELD_SPACE_FIELD_MISMATCH:
-          {
-            FieldSpace sp = 
-              (requirement.handle_type == LEGION_SINGULAR_PROJECTION) ||
-              (requirement.handle_type == LEGION_REGION_PROJECTION)
-            ? requirement.region.field_space :
-            requirement.partition.field_space;
-            REPORT_LEGION_ERROR(ERROR_FIELD_NOT_VALID_FIELD,
-                            "Field %d is not a valid field of field "
-                             "space %lld for inline mapping (ID %lld)",
-                             bad_field, sp.get_id(), unique_op_id)
-            break;
-          }
-        case ERROR_INVALID_INSTANCE_FIELD:
-          {
-            REPORT_LEGION_ERROR(ERROR_INSTANCE_FIELD_PRIVILEGE,
-                             "Instance field %d is not one of the "
-                             "privilege fields for inline mapping "
-                             "(ID %lld)",
-                             bad_field, unique_op_id)
-            break;
-          }
-        case ERROR_DUPLICATE_INSTANCE_FIELD:
-          {
-            REPORT_LEGION_ERROR(ERROR_INSTANCE_FIELD_PRIVILEGE,
-                             "Instance field %d is a duplicate for "
-                             "inline mapping (ID %lld)",
-                             bad_field, unique_op_id)
-            break;
-          }
-        case ERROR_BAD_PARENT_REGION:
-          {
-            if (bad_index < 0) 
-            {
-              REPORT_LEGION_ERROR(ERROR_PARENT_TASK_INLINE,
-                               "Parent task %s (ID %lld) of inline mapping "
-                               "(ID %lld) does not have a region "
-                               "requirement for region (%lld,%lld,%lld) "
-                               "as a parent of region requirement because "
-                               "no 'parent' region had that name.",
-                               parent_ctx->get_task_name(),
-                               parent_ctx->get_unique_id(),
-                               unique_op_id,
-                               requirement.region.index_space.get_id(),
-                               requirement.region.field_space.get_id(),
-                               requirement.region.get_tree_id());
-            } 
-            else if (bad_field == LEGION_AUTO_GENERATE_ID) 
-            {
-              REPORT_LEGION_ERROR(ERROR_PARENT_TASK_INLINE,
-                               "Parent task %s (ID %lld) of inline mapping "
-                               "(ID %lld) does not have a region "
-                               "requirement for region (%lld,%lld,%lld) "
-                               "as a parent of region requirement because "
-                               "parent requirement %d did not have "
-                               "sufficent privileges.",
-                               parent_ctx->get_task_name(),
-                               parent_ctx->get_unique_id(),
-                               unique_op_id,
-                               requirement.region.index_space.get_id(),
-                               requirement.region.field_space.get_id(),
-                               requirement.region.get_tree_id(), bad_index);
-            } 
-            else 
-            {
-              REPORT_LEGION_ERROR(ERROR_PARENT_TASK_INLINE,
-                               "Parent task %s (ID %lld) of inline mapping "
-                               "(ID %lld) does not have a region "
-                               "requirement for region (%lld,%lld,%lld) "
-                               "as a parent of region requirement because "
-                               "region requirement %d was missing field %d.",
-                               parent_ctx->get_task_name(),
-                               parent_ctx->get_unique_id(),
-                               unique_op_id,
-                               requirement.region.index_space.get_id(),
-                               requirement.region.field_space.get_id(),
-                               requirement.region.get_tree_id(),
-                               bad_index, bad_field);
-            }
-            break;
-          }
-        case ERROR_BAD_REGION_PATH:
-          {
-            REPORT_LEGION_ERROR(ERROR_REGION_NOT_SUBREGION,
-                             "Region (%lld,%lld,%lld) is not a "
-                             "sub-region of parent region "
-                             "(%lld,%lld,%lld) for region requirement of inline "
-                             "mapping (ID %lld)",
-                             requirement.region.index_space.get_id(),
-                             requirement.region.field_space.get_id(),
-                             requirement.region.get_tree_id(),
-                             requirement.parent.index_space.get_id(),
-                             requirement.parent.field_space.get_id(),
-                             requirement.parent.get_tree_id(),
-                             unique_op_id)
-            break;
-          }
-        case ERROR_BAD_REGION_TYPE:
-          {
-            REPORT_LEGION_ERROR(ERROR_REGION_REQUIREMENT_INLINE,
-                             "Region requirement of inline mapping "
-                             "(ID %lld) cannot find privileges for field "
-                             "%d in parent task",
-                             unique_op_id, bad_field)
-            break;
-          }
-        case ERROR_BAD_REGION_PRIVILEGES:
-          {
-            REPORT_LEGION_ERROR(ERROR_PRIVILEGES_FOR_REGION,
-                             "Privileges %x for region "
-                             "(%lld,%lld,%lld) are not a subset of privileges "
-                             "of parent task's privileges for region "
-                             "requirement of inline mapping (ID %lld)",
-                             requirement.privilege,
-                             requirement.region.index_space.get_id(),
-                             requirement.region.field_space.get_id(),
-                             requirement.region.get_tree_id(),
-                             unique_op_id)
-          }
-          // this should never happen with an inline mapping
-        case ERROR_NON_DISJOINT_PARTITION:
-        default:
-          assert(false); // Should never happen
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    void MapOp::compute_parent_index(void)
-    //--------------------------------------------------------------------------
-    {
-      int parent_index = parent_ctx->find_parent_region_req(requirement);
-      if (parent_index < 0)
-        REPORT_LEGION_ERROR(ERROR_PARENT_TASK_INLINE,
-                         "Parent task %s (ID %lld) of inline mapping "
-                         "(ID %lld) does not have a region "
-                         "requirement for region (%lld,%lld,%lld) "
-                         "as a parent of region requirement.",
-                         parent_ctx->get_task_name(),
-                         parent_ctx->get_unique_id(),
-                         unique_op_id,
-                         requirement.region.index_space.get_id(),
-                         requirement.region.field_space.get_id(),
-                         requirement.region.get_tree_id())
-      else
-        parent_req_index = unsigned(parent_index);
     }
 
     //--------------------------------------------------------------------------
@@ -11359,6 +11333,9 @@ namespace Legion {
       requirement =
         RegionRequirement(region, LEGION_READ_WRITE, LEGION_EXCLUSIVE, parent);
       requirement.privilege_fields = fids;
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
       if (runtime->legion_spy_enabled)
       {
         LegionSpy::log_reset_operation(parent_ctx->get_unique_id(),
@@ -11413,22 +11390,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return 1;
-    }
-
-    //--------------------------------------------------------------------------
-    void ResetOp::trigger_prepipeline_stage(void)
-    //--------------------------------------------------------------------------
-    {
-      int parent_index = parent_ctx->find_parent_region_req(requirement);
-      if (parent_index < 0)
-        REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ADVISEMENT,
-            "Parent task %s (UID %lld) of advisement operation "
-            "(ID %lld) does not have a parent region requirement "
-            "associated with parent region (%llu,%llu,%llu).",
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-            unique_op_id, requirement.parent.index_space.get_id(), 
-            requirement.parent.field_space.get_id(), requirement.parent.get_tree_id())
-      parent_req_index = unsigned(parent_index);
     }
 
     //--------------------------------------------------------------------------

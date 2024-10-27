@@ -17101,7 +17101,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    Exception::Exception(ExceptionType t, Operation *o)
+    Exception::Exception(ExceptionType t, const Operation *o)
       : Realm::LoggerMessage((t == APPLICATION_EXCEPTION) ? log_legion.print() :
           ((t == WARNING_EXCEPTION) && ((runtime == NULL) ||
             !runtime->warnings_are_errors)) ? log_legion.warning() :
@@ -17300,6 +17300,7 @@ namespace Legion {
 #else
         safe_mapper(config.safe_mapper),
 #endif
+        safe_model(config.safe_model),
         safe_tracing(config.safe_tracing),
         disable_independence_tests(config.disable_independence_tests),
         legion_spy_enabled(config.legion_spy_enabled),
@@ -29721,6 +29722,7 @@ namespace Legion {
         .add_option_bool("-lg:unsafe_launch",config.unsafe_launch,!filter)
         .add_option_bool("-lg:unsafe_mapper",config.unsafe_mapper,!filter)
         .add_option_bool("-lg:safe_mapper",config.safe_mapper,!filter)
+        .add_option_bool("-lg:safe_model", config.safe_model, !filter)
         .add_option_bool("-lg:safe_tracing", config.safe_tracing, !filter)
         .add_option_int("-lg:safe_ctrlrepl",
                          config.safe_control_replication, !filter)

@@ -276,6 +276,14 @@ namespace Legion {
             sizeof(type_tag)) == sizeof(*this));
     }
 
+    //--------------------------------------------------------------------------
+    bool IndexSpace::valid(void) const
+    //--------------------------------------------------------------------------
+    {
+      return (!exists() || (LEGION_DISTRIBUTED_HELP_DECODE(did) == 
+            Internal::INDEX_SPACE_NODE_DC));
+    }
+
     /////////////////////////////////////////////////////////////
     // IndexPartition 
     /////////////////////////////////////////////////////////////
@@ -304,6 +312,14 @@ namespace Legion {
             sizeof(type_tag)) == sizeof(*this));
     }
 
+    //--------------------------------------------------------------------------
+    bool IndexPartition::valid(void) const
+    //--------------------------------------------------------------------------
+    {
+      return (!exists() || (LEGION_DISTRIBUTED_HELP_DECODE(did) ==
+            Internal::INDEX_PART_NODE_DC));
+    }
+
     /////////////////////////////////////////////////////////////
     // FieldSpace 
     /////////////////////////////////////////////////////////////
@@ -327,6 +343,14 @@ namespace Legion {
     {
       // Make sure field spaces can be densely packed
       static_assert(sizeof(did) == sizeof(*this));
+    }
+
+    //--------------------------------------------------------------------------
+    bool FieldSpace::valid(void) const
+    //--------------------------------------------------------------------------
+    {
+      return (!exists() || (LEGION_DISTRIBUTED_HELP_DECODE(did) == 
+            Internal::FIELD_SPACE_DC));
     }
     
     /////////////////////////////////////////////////////////////
@@ -369,6 +393,15 @@ namespace Legion {
       return result[0] ^ result[1];
     }
 
+    //--------------------------------------------------------------------------
+    bool LogicalRegion::valid(void) const
+    //--------------------------------------------------------------------------
+    {
+      return (!exists() || ((LEGION_DISTRIBUTED_HELP_DECODE(tree_did) == 
+            Internal::REGION_TREE_NODE_DC) && 
+            index_space.valid() && field_space.valid()));
+    }
+
     /////////////////////////////////////////////////////////////
     // Logical Partition 
     /////////////////////////////////////////////////////////////
@@ -407,6 +440,15 @@ namespace Legion {
       uint64_t result[2];
       hasher.finalize(result);
       return result[0] ^ result[1];
+    }
+
+    //--------------------------------------------------------------------------
+    bool LogicalPartition::valid(void) const
+    //--------------------------------------------------------------------------
+    {
+      return (!exists() || ((LEGION_DISTRIBUTED_HELP_DECODE(tree_did) == 
+            Internal::REGION_TREE_NODE_DC) && 
+            index_partition.valid() && field_space.valid()));
     }
 
     /////////////////////////////////////////////////////////////
