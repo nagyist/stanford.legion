@@ -3454,13 +3454,13 @@ namespace Legion {
           }
         }
 #ifdef DEBUG_LEGION
-        assert(index < copies.size());
-        assert(copies[index].src_indirect_records.size() < points.size());
+        assert(index < src_indirect_records.size());
+        assert(src_indirect_records[index].size() < points.size());
 #endif
-        copies[index].src_indirect_records.emplace_back(
+        src_indirect_records[index].emplace_back(
             IndirectRecord(req, insts));
         exchange.src_records.push_back(&records);
-        if (copies[index].src_indirect_records.size() == points.size())
+        if (src_indirect_records[index].size() == points.size())
           return finalize_exchange(index, true/*sources*/);
         return exchange.src_ready;
       }
@@ -3506,13 +3506,13 @@ namespace Legion {
           }
         }
 #ifdef DEBUG_LEGION
-        assert(index < copies.size());
-        assert(copies[index].dst_indirect_records.size() < points.size());
+        assert(index < dst_indirect_records.size());
+        assert(dst_indirect_records[index].size() < points.size());
 #endif
-        copies[index].dst_indirect_records.emplace_back(
+        dst_indirect_records[index].emplace_back(
             IndirectRecord(req, insts));
         exchange.dst_records.push_back(&records);
-        if (copies[index].dst_indirect_records.size() == points.size())
+        if (dst_indirect_records[index].size() == points.size())
           return finalize_exchange(index, false/*sources*/);
         return exchange.dst_ready;
       }
@@ -3530,7 +3530,7 @@ namespace Legion {
         assert(index < src_collectives.size());
 #endif
         const RtEvent ready = src_collectives[index]->exchange_records(
-                      exchange.src_records, copies[index].src_indirect_records);
+                      exchange.src_records, src_indirect_records[index]);
         if (exchange.src_ready.exists())
         {
           Runtime::trigger_event(exchange.src_ready, ready);
@@ -3545,7 +3545,7 @@ namespace Legion {
         assert(index < dst_collectives.size());
 #endif
         const RtEvent ready = dst_collectives[index]->exchange_records(
-                      exchange.dst_records, copies[index].dst_indirect_records);
+                      exchange.dst_records, dst_indirect_records[index]);
         if (exchange.dst_ready.exists())
         {
           Runtime::trigger_event(exchange.dst_ready, ready);
@@ -4335,8 +4335,6 @@ namespace Legion {
     void ReplDependentPartitionOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      if (runtime->check_privileges)
-        check_privilege();
       // Before doing the dependence analysis we have to ask the
       // mapper whether it would like to make this an index space
       // operation or a single operation
