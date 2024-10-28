@@ -3238,7 +3238,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     unsigned InnerContext::find_parent_region_index(Operation *op,
-        const RegionRequirement &req, unsigned index)
+        const RegionRequirement &req, unsigned index, bool skip_privileges)
     //--------------------------------------------------------------------------
     {
       // We can check the fixed region requirements without the lock
@@ -3253,7 +3253,7 @@ namespace Legion {
           continue;
         found_parent = true;
         // Check to see if the privileges cover
-        if (PRIV_ONLY(req) & (~(our_req.privilege)))
+        if (!skip_privileges && (PRIV_ONLY(req) & (~(our_req.privilege))))
           continue;
         // Check to see if all the fields are represented
         if (our_req.privilege_fields.size() < req.privilege_fields.size())
@@ -3287,7 +3287,7 @@ namespace Legion {
           continue;
         found_parent = true;
         // Check to see if the privileges cover
-        if (PRIV_ONLY(req) & (~(our_req.privilege)))
+        if (!skip_privileges && (PRIV_ONLY(req) & (~(our_req.privilege))))
           continue;
         std::map<unsigned,bool>::const_iterator finder = 
           returnable_privileges.find(it->first);

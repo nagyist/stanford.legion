@@ -1020,7 +1020,7 @@ namespace Legion {
       int find_parent_region_req(const RegionRequirement &req, 
                                  bool check_privilege = true);
       unsigned find_parent_region_index(Operation *op,
-          const RegionRequirement &req, unsigned index = 0);
+          const RegionRequirement &req, unsigned index = 0, bool skip_privileges = false);
       LegionErrorType check_privilege(const RegionRequirement &req, 
                                       FieldID &bad_field, int &bad_index, 
                                       bool skip_privileges = false) const; 

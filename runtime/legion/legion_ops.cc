@@ -5748,7 +5748,8 @@ namespace Legion {
         possible_dst_indirect_aliasing = 
           launcher.possible_dst_indirect_aliasing;
       }
-      atomic_locks.resize(launcher.src_requirements.size());
+      atomic_locks.resize(src_requirements.size() + dst_requirements.size() +
+          src_indirect_requirements.size() + dst_indirect_requirements.size());
       grants = launcher.grants;
       // Register ourselves with all the grants
       for (unsigned idx = 0; idx < grants.size(); idx++)
@@ -11163,7 +11164,7 @@ namespace Legion {
       requirement.privilege_fields = launcher.fields;
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement, 0/*index*/, true/*skip privileges*/);
       logical_region = launcher.logical_region;
       restricted_region = launcher.physical_region;
       if (restricted_region.impl != NULL)
@@ -11914,7 +11915,7 @@ namespace Legion {
       requirement.privilege_fields = launcher.fields;
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement, 0/*index*/, true/*skip privileges*/);
       logical_region = launcher.logical_region;
       restricted_region = launcher.physical_region;
       if (restricted_region.impl != NULL)
