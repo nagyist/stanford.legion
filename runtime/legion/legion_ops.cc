@@ -7085,8 +7085,10 @@ namespace Legion {
                                      Reservation lock, bool exclusive)
     //--------------------------------------------------------------------------
     {
-      if (atomic_locks.size() <= index)
-        atomic_locks.resize(index+1);
+      AutoLock o_lock(op_lock);
+#ifdef DEBUG_LEGION
+      assert(index < atomic_locks.size());
+#endif
       std::map<Reservation,bool> &local_locks = atomic_locks[index];
       std::map<Reservation,bool>::iterator finder = local_locks.find(lock);
       if (finder != local_locks.end())
@@ -8753,6 +8755,8 @@ namespace Legion {
                                 = owner->possible_dst_indirect_aliasing;
       gather_is_range = owner->gather_is_range;
       scatter_is_range = owner->scatter_is_range;
+      atomic_locks.resize(src_requirements.size() + dst_requirements.size() +
+          src_indirect_requirements.size() + dst_indirect_requirements.size());
 
       if (runtime->legion_spy_enabled)
         LegionSpy::log_index_point(owner->get_unique_op_id(), unique_op_id, p);
