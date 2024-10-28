@@ -15146,6 +15146,9 @@ namespace Legion {
       requirement = RegionRequirement(projection, 0/*identity*/,
                       LEGION_READ_ONLY, LEGION_EXCLUSIVE, parent);
       requirement.add_field(fid);
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -15217,6 +15220,9 @@ namespace Legion {
       requirement = RegionRequirement(projection, 0/*identity*/,
                       LEGION_READ_ONLY, LEGION_EXCLUSIVE, parent);
       requirement.add_field(fid);
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -15285,6 +15291,9 @@ namespace Legion {
       requirement = 
         RegionRequirement(handle, LEGION_READ_ONLY, LEGION_EXCLUSIVE, parent);
       requirement.add_field(fid);
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -15354,6 +15363,9 @@ namespace Legion {
       requirement = 
         RegionRequirement(handle, LEGION_READ_ONLY, LEGION_EXCLUSIVE, parent);
       requirement.add_field(fid);
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -15422,6 +15434,9 @@ namespace Legion {
       requirement = RegionRequirement(domain, LEGION_READ_WRITE, 
                                       LEGION_EXCLUSIVE, domain_parent);
       requirement.add_field(fid);
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
