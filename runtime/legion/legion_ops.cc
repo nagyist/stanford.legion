@@ -5577,7 +5577,7 @@ namespace Legion {
         if (src_requirements[idx].instance_fields.size() != dst_requirements[idx].instance_fields.size())
           Exception(INTERFACE_EXCEPTION, this)
             << "The 'instance_fields' member of the source and destination region requirements at index"
-            <<  index << " do no have the same size (" << src_requirements[idx].instance_fields.size()
+            << idx << " do no have the same size (" << src_requirements[idx].instance_fields.size()
             << " and " << dst_requirements[idx].instance_fields.size() 
             << " respectively) for copy operation UID: " << get_unique_op_id()
             << ".. The 'instance_fields' data structure must have the same number of fields for the "
@@ -11160,10 +11160,10 @@ namespace Legion {
       // normal dependences.  We won't actually read or write anything.
       requirement = RegionRequirement(launcher.logical_region, 
           LEGION_READ_WRITE, LEGION_EXCLUSIVE, launcher.parent_region); 
+      requirement.privilege_fields = launcher.fields;
       if (runtime->safe_model)
         verify_requirement(requirement);
       parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
-      requirement.privilege_fields = launcher.fields;
       logical_region = launcher.logical_region;
       restricted_region = launcher.physical_region;
       if (restricted_region.impl != NULL)
