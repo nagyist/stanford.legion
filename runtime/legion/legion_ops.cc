@@ -5748,8 +5748,7 @@ namespace Legion {
         possible_dst_indirect_aliasing = 
           launcher.possible_dst_indirect_aliasing;
       }
-      atomic_locks.resize(src_requirements.size() + dst_requirements.size() +
-          src_indirect_requirements.size() + dst_indirect_requirements.size());
+      
       grants = launcher.grants;
       // Register ourselves with all the grants
       for (unsigned idx = 0; idx < grants.size(); idx++)
@@ -5791,6 +5790,8 @@ namespace Legion {
       parent_task = ctx->get_task();
       initialize_predication(ctx, launcher.predicate, provenance);
       initialize_copy_from_launcher(launcher);
+      atomic_locks.resize(src_requirements.size() + dst_requirements.size() +
+          src_indirect_requirements.size() + dst_indirect_requirements.size());
       index_point = launcher.point; 
       index_domain = Domain(index_point, index_point);
       sharding_space = launcher.sharding_space;
@@ -8755,6 +8756,8 @@ namespace Legion {
                                 = owner->possible_dst_indirect_aliasing;
       gather_is_range = owner->gather_is_range;
       scatter_is_range = owner->scatter_is_range;
+      src_indirect_records.resize(src_indirect_requirements.size());
+      dst_indirect_records.resize(dst_indirect_requirements.size());
       atomic_locks.resize(src_requirements.size() + dst_requirements.size() +
           src_indirect_requirements.size() + dst_indirect_requirements.size());
 
