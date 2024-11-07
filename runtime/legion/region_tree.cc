@@ -279,7 +279,7 @@ namespace Legion {
         if (runtime->legion_spy_enabled)
           LegionSpy::log_index_partition(parent.get_id(), pid.get_id(), -1/*unknown*/,
               complete, partition_color, runtime->address_space, 
-              (provenance == NULL) ? NULL : provenance->human_str());
+              (provenance == NULL) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -297,7 +297,7 @@ namespace Legion {
         if (runtime->legion_spy_enabled)
           LegionSpy::log_index_partition(parent.get_id(), pid.get_id(), disjoint ? 1 : 0,
               complete, partition_color, runtime->address_space,
-              (provenance == NULL) ? NULL : provenance->human_str());
+              (provenance == NULL) ? std::string_view() : provenance->human);
       }
       register_index_partition_creation(pid);
       return parent_notified;

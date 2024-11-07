@@ -197,6 +197,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    PointerConstraint PhysicalInstance::get_pointer_constraint(void) const
+    //--------------------------------------------------------------------------
+    {
+      if ((impl == NULL) || !impl->is_physical_manager())
+        return PointerConstraint();
+      return impl->get_pointer_constraint();
+    }
+
+    //--------------------------------------------------------------------------
     bool PhysicalInstance::exists(bool strong_test /*= false*/) const
     //--------------------------------------------------------------------------
     {
@@ -1907,7 +1916,8 @@ namespace Legion {
       runtime->create_union_space(result, prov, sources);
       if (runtime->legion_spy_enabled)
         Internal::LegionSpy::log_top_index_space(result.get_id(),
-                    runtime->address_space, provenance);
+            runtime->address_space, (provenance == NULL) ? std::string_view() : 
+            std::string_view(provenance));
       return result;
     }
 
@@ -1938,7 +1948,8 @@ namespace Legion {
       runtime->create_intersection_space(result, prov, sources);
       if (runtime->legion_spy_enabled)
         Internal::LegionSpy::log_top_index_space(result.get_id(),
-                    runtime->address_space, provenance);
+            runtime->address_space, (provenance == NULL) ? std::string_view() :
+            std::string_view(provenance));
       return result;
     }
 
@@ -1960,7 +1971,8 @@ namespace Legion {
       runtime->create_difference_space(result, prov, left, right);
       if (runtime->legion_spy_enabled)
         Internal::LegionSpy::log_top_index_space(result.get_id(),
-                    runtime->address_space, provenance);
+            runtime->address_space, (provenance == NULL) ? std::string_view() :
+            std::string_view(provenance));
       return result;
     }
 

@@ -2673,13 +2673,14 @@ namespace Legion {
             REPORT_LEGION_ERROR(ERROR_ILLEGAL_FUTURE_USE,
                 "Illegal use of future produced in context %s (UID %lld) "
                 "but consumed in context %s (UID %lld) by operation %s "
-                "(UID %lld) launched from %s. Futures are only permitted "
+                "(UID %lld) launched from %.*s. Futures are only permitted "
                 "to be used in the task sub-tree rooted by the context "
                 "that produced the future.", context->get_task_name(),
                 context->get_unique_id(), consumer_context->get_task_name(), 
                 consumer_context->get_unique_id(),
                 consumer_op->get_logging_name(),
-                consumer_op->get_unique_op_id(), provenance->human_str())
+                consumer_op->get_unique_op_id(), 
+                int(provenance->human.length()), provenance->human.data())
           }
         }
       }
@@ -17200,7 +17201,7 @@ namespace Legion {
         if (prov != NULL)
         {
           (*this) << "\n-----------------------------------\n";
-          (*this) << "Provenance:\n\n" << prov->human_str();
+          (*this) << "Provenance:\n\n" << prov->human;
         }
         (*this) << "\n-----------------------------------\n";
         (*this) << "Task Tree Trace:\n\n";
@@ -17219,7 +17220,7 @@ namespace Legion {
         if (prov != NULL)
         {
           (*this) << "\n-----------------------------------\n";
-          (*this) << "Provenance:\n\n" << prov->human_str();
+          (*this) << "Provenance:\n\n" << prov->human;
         }
         (*this) << "\n-----------------------------------\n";
         (*this) << "Task Tree Trace:\n";
@@ -27093,7 +27094,7 @@ namespace Legion {
           true/*add root reference*/);
       if (legion_spy_enabled)
         LegionSpy::log_top_index_space(result.get_id(), address_space,
-            (provenance == NULL) ? NULL : provenance->human_str());
+            (provenance == NULL) ? std::string_view() : provenance->human);
       // Overwrite and leak for now, don't care too much as this 
       // should occur infrequently
       AutoLock is_lock(is_slice_lock);
