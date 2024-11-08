@@ -3507,6 +3507,7 @@ namespace Legion {
       void perform_logging(void) const;
       void log_requirement(void) const;
       virtual const RegionRequirement& get_requirement(unsigned idx = 0) const;
+#if 0
     protected:
       void check_by_field(IndexPartition pid, IndexSpace color_space,
           LogicalRegion handle, LogicalRegion parent, FieldID fid) const;
@@ -3522,6 +3523,7 @@ namespace Legion {
                              FieldID fid) const;
       void check_by_association(LogicalRegion domain,
           LogicalRegion domain_parent, FieldID fid, IndexSpace range) const;
+#endif
     public:
       virtual bool has_prepipeline_stage(void) const { return true; }
       virtual void trigger_prepipeline_stage(void);
