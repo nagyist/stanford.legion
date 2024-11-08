@@ -6390,8 +6390,6 @@ namespace Legion {
     void ReplAttachOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      if (runtime->check_privileges)
-        check_privilege();
       analyze_region_requirements();
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
@@ -7002,10 +7000,7 @@ namespace Legion {
       // Save this for later when we go to detach it
       resources.impl->set_projection(requirement.projection);
       if (runtime->check_privileges)
-      {
-        check_privilege();
         check_point_requirements(spaces);
-      }
       if (runtime->legion_spy_enabled)
         log_requirement();
       analyze_region_requirements(launch_space,

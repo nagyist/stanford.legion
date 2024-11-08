@@ -602,71 +602,19 @@ namespace Legion {
 					     const DomainPoint& dp)
   //----------------------------------------------------------------------------
   {
-    switch(dp.dim) {
-    case 0: { os << '[' << dp.point_data[0] << ']'; break; }
-    case 1: { os << '(' << dp.point_data[0] << ')'; break; }
-#if LEGION_MAX_DIM >= 2
-    case 2: { os << '(' << dp.point_data[0]
-                 << ',' << dp.point_data[1] << ')'; break; }
-#endif
-#if LEGION_MAX_DIM >= 3
-    case 3: { os << '(' << dp.point_data[0]
-                 << ',' << dp.point_data[1]
-                 << ',' << dp.point_data[2] << ')'; break; }
-#endif
-#if LEGION_MAX_DIM >= 4
-    case 4: { os << '(' << dp.point_data[0]
-                 << ',' << dp.point_data[1]
-                 << ',' << dp.point_data[2] 
-                 << ',' << dp.point_data[3] << ')'; break; }
-#endif
-#if LEGION_MAX_DIM >= 5
-    case 5: { os << '(' << dp.point_data[0]
-                 << ',' << dp.point_data[1]
-                 << ',' << dp.point_data[2] 
-                 << ',' << dp.point_data[3] 
-                 << ',' << dp.point_data[4] << ')'; break; }
-#endif
-#if LEGION_MAX_DIM >= 6
-    case 6: { os << '(' << dp.point_data[0]
-                 << ',' << dp.point_data[1]
-                 << ',' << dp.point_data[2] 
-                 << ',' << dp.point_data[3] 
-                 << ',' << dp.point_data[4] 
-                 << ',' << dp.point_data[5] << ')'; break; }
-#endif
-#if LEGION_MAX_DIM >= 7
-    case 7: { os << '(' << dp.point_data[0]
-                 << ',' << dp.point_data[1]
-                 << ',' << dp.point_data[2] 
-                 << ',' << dp.point_data[3] 
-                 << ',' << dp.point_data[4] 
-                 << ',' << dp.point_data[5] 
-                 << ',' << dp.point_data[6] << ')'; break; }
-#endif
-#if LEGION_MAX_DIM >= 8
-    case 8: { os << '(' << dp.point_data[0]
-                 << ',' << dp.point_data[1]
-                 << ',' << dp.point_data[2] 
-                 << ',' << dp.point_data[3] 
-                 << ',' << dp.point_data[4] 
-                 << ',' << dp.point_data[5] 
-                 << ',' << dp.point_data[6] 
-                 << ',' << dp.point_data[7] << ')'; break; }
-#endif
-#if LEGION_MAX_DIM >= 9
-    case 9: { os << '(' << dp.point_data[0]
-                 << ',' << dp.point_data[1]
-                 << ',' << dp.point_data[2] 
-                 << ',' << dp.point_data[3] 
-                 << ',' << dp.point_data[4] 
-                 << ',' << dp.point_data[5] 
-                 << ',' << dp.point_data[6] 
-                 << ',' << dp.point_data[7] 
-                 << ',' << dp.point_data[8] << ')'; break; }
-#endif
-    default: assert(0);
+    if (dp.dim == 0)
+    {
+      os << '(';
+      for (int d = 0; d < dp.dim; d++)
+      {
+        if (d > 0)
+          os << ',';
+        os << dp.point_data[d];
+      }
+      os << ')';
     }
+    else
+      os << '[' << dp.point_data[0] << ']';
     return os;
   }
 
@@ -1336,15 +1284,19 @@ namespace Legion {
   inline std::ostream& operator<<(std::ostream &os, const Domain &d)
   //----------------------------------------------------------------------------
   {
+    os << "{ bounds = ";
     switch(d.get_dim()) {
 #define DIMFUNC(DIM) \
-    case DIM: { os << d.bounds<DIM,coord_t>(); \
-                if(d.is_id != 0) os << ',' << std::hex << d.is_id << std::dec; \
-		return os; }
+    case DIM: { os << d.bounds<DIM,coord_t>(); break; }
     LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
     default: assert(0);
     }
+    if (d.is_id != 0)
+      os << ", sparse = " << std::hex << d.is_id << std::dec;
+    else
+      os << ", dense";
+    os << " }";
     return os;
   }
 

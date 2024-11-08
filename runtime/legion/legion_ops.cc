@@ -1720,6 +1720,57 @@ namespace Legion {
       // If this is a NO-ACCESS requirement then we don't care
       if (IS_NO_ACCESS(req) || (req.flags & LEGION_VERIFIED_FLAG))
         return;
+      // Check the sanity of the privileges
+      // Make sure that none of the unused-bits are used
+      if (req.privilege & ~(LEGION_DISCARD_OUTPUT_MASK | LEGION_WRITE_DISCARD))
+        Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
+          << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+          << ") has an improperly formed privilege mode " << std::hex
+          << req.privilege << std::dec << ".";
+      if (IS_REDUCE(req))
+      {
+        // Must have a non-zero reduction operator
+        if (req.redop == 0)
+          Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
+            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+            << ") must have a non-zero reduction operator when requesting "
+            << "reduction privileges.";
+        // No discards allowed
+        if (IS_WRITE_DISCARD(req))
+          Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
+            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+            << ") requested illegal discard-input modifier with reduction "
+            << "privileges. Reduction privileges are not permitted to specify "
+            << "any kind of discard modifier.";
+        if (IS_READ_DISCARD(req))
+          Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
+            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+            << ") requested illegal discard-output modifier with reduction "
+            << "privileges. Reduction privileges are not permitted to specify "
+            << "any kind of discard modifier.";
+      }
+      else
+      {
+        // Make sure reduction operator is zero
+        if (req.redop != 0)
+          Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
+            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+            << ") must not specify a reduction operator when using "
+            << "non-reduction privileges.";
+        // Make sure no input discards on read-only privileges
+        if (IS_READ_ONLY(req) && IS_WRITE_DISCARD(req))
+          Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
+            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+            << ") requested illegal discard-input modifier with read-only "
+            << "privileges. This is guaranteed to result in the use of "
+            << "uninitialized data and is therefore illegal.";
+      }
+      // Make sure that none of the unused bits are set for coherence
+      if (req.prop & ~LEGION_COLLECTIVE_RELAXED)
+        Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
+          << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
+          << ") has an improperly formed coherence mode " << std::hex
+          << req.prop << std::dec << ".";
       if (req.privilege_fields.empty())
         Exception(WARNING_EXCEPTION, this) << "Region requirement " << index
           << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
@@ -4617,7 +4668,7 @@ namespace Legion {
       requirement = launcher.requirement;
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       const ApUserEvent term_event = Runtime::create_ap_user_event(NULL);
       region = PhysicalRegion(new PhysicalRegionImpl(requirement,
             get_mapped_event(), ready_event, term_event, true/*mapped*/, ctx,
@@ -4672,7 +4723,7 @@ namespace Legion {
       // Remove any discard masks we might have had
       requirement.privilege = FILTER_DISCARD(requirement);
       // No need to do verification, it's already been verified
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = reg.impl->map_id;
       tag = reg.impl->tag;
       region = reg;
@@ -10973,7 +11024,7 @@ namespace Legion {
       requirement.privilege_fields = fids;
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       if (runtime->legion_spy_enabled)
       {
         LegionSpy::log_reset_operation(parent_ctx->get_unique_id(),
@@ -11170,7 +11221,7 @@ namespace Legion {
       requirement.privilege_fields = launcher.fields;
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement, 0/*index*/, true/*skip privileges*/);
+      parent_req_index = ctx->find_parent_region_index(this, requirement, 0/*index*/, true/*skip privileges*/);
       logical_region = launcher.logical_region;
       restricted_region = launcher.physical_region;
       if (restricted_region.impl != NULL)
@@ -11921,7 +11972,7 @@ namespace Legion {
       requirement.privilege_fields = launcher.fields;
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement, 0/*index*/, true/*skip privileges*/);
+      parent_req_index = ctx->find_parent_region_index(this, requirement, 0/*index*/, true/*skip privileges*/);
       logical_region = launcher.logical_region;
       restricted_region = launcher.physical_region;
       if (restricted_region.impl != NULL)
@@ -15083,7 +15134,7 @@ namespace Legion {
       requirement.add_field(fid);
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -15155,7 +15206,7 @@ namespace Legion {
       requirement.add_field(fid);
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -15229,7 +15280,7 @@ namespace Legion {
       requirement.add_field(fid);
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -15300,7 +15351,7 @@ namespace Legion {
       requirement.add_field(fid);
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -15372,7 +15423,7 @@ namespace Legion {
       requirement.add_field(fid);
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -15443,7 +15494,7 @@ namespace Legion {
       requirement.add_field(fid);
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = parent_ctx->find_parent_region_index(this, requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
       tag = t;
       mapper_data_size = marg.get_size();
@@ -16948,6 +16999,9 @@ namespace Legion {
       requirement = RegionRequirement(launcher.handle, LEGION_WRITE_DISCARD,
                                       LEGION_EXCLUSIVE, launcher.parent);
       requirement.privilege_fields = launcher.fields;
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       if (launcher.future.impl != NULL)
         future = launcher.future;
       else if (launcher.argument.get_size() > 0)
@@ -17189,7 +17243,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     { 
       // First compute the parent index
-      compute_parent_index();
       if (runtime->legion_spy_enabled)
         log_fill_requirement();
     }
@@ -17206,8 +17259,6 @@ namespace Legion {
     void FillOp::perform_base_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      if (runtime->check_privileges)
-        check_fill_privilege();
       if (!wait_barriers.empty() || !arrive_barriers.empty())
         parent_ctx->perform_barrier_dependence_analysis(this, 
                               wait_barriers, arrive_barriers);
@@ -17337,6 +17388,7 @@ namespace Legion {
       commit_operation(true/*deactivate*/);
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void FillOp::check_fill_privilege(void)
     //--------------------------------------------------------------------------
@@ -17502,6 +17554,7 @@ namespace Legion {
       else
         parent_req_index = unsigned(parent_index);
     }
+#endif
 
     //--------------------------------------------------------------------------
     void FillOp::trigger_replay(void)
@@ -17586,6 +17639,9 @@ namespace Legion {
                                         launcher.parent);
       }
       requirement.privilege_fields = launcher.fields;
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       // Note that this returns a fill view with a reference added to it
       if (launcher.future.impl != NULL)
         future = launcher.future;
@@ -17659,8 +17715,6 @@ namespace Legion {
     void IndexFillOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     { 
-      // First compute the parent index
-      compute_parent_index();
       // Promote a singular region requirement up to a projection
       if (requirement.handle_type == LEGION_SINGULAR_PROJECTION)
       {
@@ -18096,7 +18150,6 @@ namespace Legion {
         memcpy(mapper_data, owner->mapper_data, mapper_data_size);
       }
       // From FillOp
-      parent_req_index   = owner->parent_req_index;
       true_guard         = owner->true_guard;
       false_guard        = owner->false_guard;
       version_info       = owner->version_info;
@@ -18324,6 +18377,9 @@ namespace Legion {
       requirement.prop = LEGION_EXCLUSIVE;
       requirement.handle_type = LEGION_SINGULAR_PROJECTION;
       requirement.privilege_fields = launcher.fields;
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_discard_operation(parent_ctx->get_unique_id(),
                                          unique_op_id);
@@ -18333,7 +18389,6 @@ namespace Legion {
     void DiscardOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-      compute_parent_index();
       if (runtime->legion_spy_enabled)
         log_requirement();
     }
@@ -18359,8 +18414,6 @@ namespace Legion {
     void DiscardOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      if (runtime->check_privileges)
-        check_privilege();
       analyze_region_requirements();
     }
 
@@ -18393,6 +18446,7 @@ namespace Legion {
       complete_execution();
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void DiscardOp::check_privilege(void)
     //--------------------------------------------------------------------------
@@ -18548,6 +18602,7 @@ namespace Legion {
       else
         parent_req_index = unsigned(parent_index);
     }
+#endif
 
     //--------------------------------------------------------------------------
     void DiscardOp::pack_remote_operation(Serializer &rez, 
@@ -18584,15 +18639,12 @@ namespace Legion {
       resource = launcher.resource;
       layout_constraint_set = launcher.constraints;
       restricted = launcher.restricted;
-      if (launcher.privilege_fields.empty()) 
-        REPORT_LEGION_WARNING(LEGION_WARNING_FILE_ATTACH_OPERATION,
-                        "ATTACH OPERATION ISSUED WITH NO PRIVILEGE "
-                        "FIELDS IN TASK %s (ID %lld)! DID YOU FORGET "
-                        "TO SPECIFY THEM?!?", parent_ctx->get_task_name(),
-                        parent_ctx->get_unique_id())
       requirement = RegionRequirement(launcher.handle, 
           LEGION_WRITE_DISCARD, LEGION_EXCLUSIVE, launcher.parent);
       requirement.privilege_fields = launcher.privilege_fields;
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       if (launcher.resource == LEGION_EXTERNAL_HDF5_FILE)
       {
 #ifdef LEGION_USE_HDF5
@@ -18767,8 +18819,6 @@ namespace Legion {
     void AttachOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     { 
-      // First compute the parent index
-      compute_parent_index();
       create_external_instance();
       if (runtime->legion_spy_enabled)
         log_requirement();
@@ -18810,8 +18860,6 @@ namespace Legion {
     void AttachOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      if (runtime->check_privileges)
-        check_privilege();
       analyze_region_requirements();
     }
 
@@ -18986,6 +19034,7 @@ namespace Legion {
             runtime->get_available_distributed_id());
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void AttachOp::check_privilege(void)
     //--------------------------------------------------------------------------
@@ -19141,6 +19190,7 @@ namespace Legion {
       else
         parent_req_index = unsigned(parent_index);
     }
+#endif
 
     ///////////////////////////////////////////////////////////// 
     // Index Attach Op 
@@ -19236,6 +19286,9 @@ namespace Legion {
                         "TO SPECIFY THEM?!?", parent_ctx->get_task_name(),
                         parent_ctx->get_unique_id())
       requirement.privilege_fields = launcher.privilege_fields;
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       launch_space = launch_bounds;
       // Create the result and the point attach operations
       ExternalResourcesImpl *result = new ExternalResourcesImpl(ctx,
@@ -19265,8 +19318,6 @@ namespace Legion {
     void IndexAttachOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-      // First compute the parent index
-      compute_parent_index();
       // Promote a singular region requirement up to a projection
       if (requirement.handle_type == LEGION_SINGULAR_PROJECTION)
       {
@@ -19297,10 +19348,7 @@ namespace Legion {
       // Save this for later when we go to detach it
       resources.impl->set_projection(requirement.projection);
       if (runtime->check_privileges)
-      {
-        check_privilege();
         check_point_requirements(spaces);
-      }
       if (runtime->legion_spy_enabled)
         log_requirement();
       analyze_region_requirements(launch_space);
@@ -19387,6 +19435,7 @@ namespace Legion {
       return parent_req_index;
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void IndexAttachOp::compute_parent_index(void)
     //--------------------------------------------------------------------------
@@ -19586,6 +19635,7 @@ namespace Legion {
           assert(false); // Should never happen
       }
     }
+#endif
 
     //--------------------------------------------------------------------------
     void IndexAttachOp::check_point_requirements(
@@ -19940,6 +19990,9 @@ namespace Legion {
       // in which case we can make the privileges write-discard
       requirement.privilege = flush ? LEGION_READ_WRITE : LEGION_WRITE_DISCARD;
       requirement.prop = LEGION_EXCLUSIVE;
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       // Create the future result that we will complete when we're done
       result = Future(new FutureImpl(parent_ctx, true/*register*/,
                 runtime->get_available_distributed_id(),
@@ -19998,7 +20051,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // First compute the parent index
-      compute_parent_index();
       if (runtime->legion_spy_enabled)
         log_requirement();
     }
@@ -20201,6 +20253,7 @@ namespace Legion {
       pack_local_remote_operation(rez);
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void DetachOp::compute_parent_index(void)
     //--------------------------------------------------------------------------
@@ -20220,6 +20273,7 @@ namespace Legion {
       else
         parent_req_index = unsigned(parent_index);
     }
+#endif
 
     ///////////////////////////////////////////////////////////// 
     // Index Detach Op 
@@ -20314,6 +20368,9 @@ namespace Legion {
       for (std::vector<FieldID>::const_iterator it =
             privilege_fields.begin(); it != privilege_fields.end(); it++)
         requirement.add_field(*it);
+      if (runtime->safe_model)
+        verify_requirement(requirement);
+      parent_req_index = ctx->find_parent_region_index(this, requirement);
       resources = ExternalResources(external);
       launch_space = launch_bounds;
       points.reserve(regions.size());
@@ -20342,8 +20399,6 @@ namespace Legion {
     void IndexDetachOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-      // First compute the parent index
-      compute_parent_index();
       // Promote a singular region requirement up to a projection
       if (requirement.handle_type == LEGION_SINGULAR_PROJECTION)
       {
@@ -20445,6 +20500,7 @@ namespace Legion {
       return parent_req_index;
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void IndexDetachOp::compute_parent_index(void)
     //--------------------------------------------------------------------------
@@ -20464,6 +20520,7 @@ namespace Legion {
       else
         parent_req_index = unsigned(parent_index);
     }
+#endif
 
     //--------------------------------------------------------------------------
     void IndexDetachOp::log_requirement(void)

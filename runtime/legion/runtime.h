@@ -2580,7 +2580,11 @@ namespace Legion {
             unsafe_launch(false),
             unsafe_mapper(false),
             safe_mapper(false),
-            safe_model(false),
+#ifdef DEBUG_LEGION
+            safe_model(true),
+#else
+            safe_model(false);
+#endif
             safe_tracing(false),
             disable_independence_tests(false),
 #ifdef LEGION_SPY

@@ -3766,8 +3766,10 @@ namespace Legion {
       virtual unsigned find_parent_index(unsigned idx);
       virtual void trigger_commit(void);
     public:
+#if 0
       void check_fill_privilege(void);
       void compute_parent_index(void);
+#endif
       void log_fill_requirement(void) const;
       // This call only happens from control replication when we had to 
       // make a new view because not everyone agreed on which view to use
@@ -3932,8 +3934,10 @@ namespace Legion {
       virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
                                          std::set<RtEvent> &applied) const;
     protected:
+#if 0
       void check_privilege(void);
       void compute_parent_index(void);
+#endif
       void log_requirement(void);
       void discard_fields(const PhysicalTraceInfo &trace_info);
     public:
@@ -3989,8 +3993,10 @@ namespace Legion {
                                               const FieldMask &external_mask);
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }
     protected:
+#if 0
       void check_privilege(void);
       void compute_parent_index(void);
+#endif
       void log_requirement(void);
       void attach_ready(bool point);
       InstanceRef create_external_instance(
@@ -4060,8 +4066,10 @@ namespace Legion {
       void handle_point_complete(ApEvent effects);
       void handle_point_commit(void);
     protected:
+#if 0
       void compute_parent_index(void);
       void check_privilege(void);
+#endif
       void log_requirement(void);
     protected:
       RegionRequirement                             requirement;
@@ -4164,7 +4172,9 @@ namespace Legion {
       virtual const RegionRequirement &get_requirement(unsigned idx = 0) const
       { return requirement; }
     protected:
+#if 0
       void compute_parent_index(void);
+#endif
       void log_requirement(void);
       ApEvent detach_external(const InstanceSet &target_instances,
                               const ApEvent termination_event,
@@ -4226,7 +4236,9 @@ namespace Legion {
       virtual const RegionRequirement &get_requirement(unsigned idx = 0) const
       { return requirement; }
     protected:
+#if 0
       void compute_parent_index(void);
+#endif
       void log_requirement(void);
     protected:
       RegionRequirement                             requirement;
