@@ -2583,7 +2583,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             safe_model(true),
 #else
-            safe_model(false);
+            safe_model(false),
 #endif
             safe_tracing(false),
             disable_independence_tests(false),
