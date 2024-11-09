@@ -1724,99 +1724,90 @@ namespace Legion {
       // Make sure that none of the unused-bits are used
       if (req.privilege & ~(LEGION_DISCARD_OUTPUT_MASK | LEGION_WRITE_DISCARD))
         Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
-          << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-          << ") has an improperly formed privilege mode " << std::hex
-          << req.privilege << std::dec << ".";
+          << " of " << *this << " has an improperly formed privilege mode " 
+          << std::hex << req.privilege << std::dec << ".";
       if (IS_REDUCE(req))
       {
         // Must have a non-zero reduction operator
         if (req.redop == 0)
           Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
-            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-            << ") must have a non-zero reduction operator when requesting "
-            << "reduction privileges.";
+            << " of " << *this << " must have a non-zero reduction operator "
+            << "when requesting reduction privileges.";
         // No discards allowed
         if (IS_WRITE_DISCARD(req))
           Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
-            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-            << ") requested illegal discard-input modifier with reduction "
-            << "privileges. Reduction privileges are not permitted to specify "
-            << "any kind of discard modifier.";
+            << " of " << *this << " requested illegal discard-input modifier "
+            << "with reduction privileges. Reduction privileges are not "
+            << "permitted to specify any kind of discard modifier.";
         if (IS_READ_DISCARD(req))
           Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
-            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-            << ") requested illegal discard-output modifier with reduction "
-            << "privileges. Reduction privileges are not permitted to specify "
-            << "any kind of discard modifier.";
+            << " of " << *this << " requested illegal discard-output modifier "
+            << "with reduction privileges. Reduction privileges are not "
+            << "permitted to specify any kind of discard modifier.";
       }
       else
       {
         // Make sure reduction operator is zero
         if (req.redop != 0)
           Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
-            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-            << ") must not specify a reduction operator when using "
-            << "non-reduction privileges.";
+            << " of " << *this << " must not specify a reduction operator when "
+            << "using non-reduction privileges.";
         // Make sure no input discards on read-only privileges
         if (IS_READ_ONLY(req) && IS_WRITE_DISCARD(req))
           Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
-            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-            << ") requested illegal discard-input modifier with read-only "
-            << "privileges. This is guaranteed to result in the use of "
-            << "uninitialized data and is therefore illegal.";
+            << " of " << *this << " requested illegal discard-input modifier "
+            << "with read-only privileges. This is guaranteed to result in the "
+            << "use of uninitialized data and is therefore illegal.";
       }
       // Make sure that none of the unused bits are set for coherence
       if (req.prop & ~LEGION_COLLECTIVE_RELAXED)
         Exception(INTERFACE_EXCEPTION, this) << "Region requirement " << index
-          << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-          << ") has an improperly formed coherence mode " << std::hex
-          << req.prop << std::dec << ".";
+          << " of " << *this << " has an improperly formed coherence mode " 
+          << std::hex << req.prop << std::dec << ".";
       if (req.privilege_fields.empty())
         Exception(WARNING_EXCEPTION, this) << "Region requirement " << index
-          << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-          << ") does not contain any privilege fields. Did you forget them?";
+          << " of " << *this << " does not contain any privilege fields. "
+          << "Did you forget them?";
       // Check that the handle names are all sound
       if (!req.parent.exists())
         Exception(INTERFACE_EXCEPTION, this) << "The 'parent' region of "
-          << "region requirement " << index << " of " << get_logging_name()
-          << " (UID: " << get_unique_op_id() << ") does not exist. The 'parent'"
-          << " region must always be set on every region requirement.";
+          << "region requirement " << index << " of " << *this
+          << ") does not exist. The 'parent' region must always be set "
+          << "on every region requirement.";
       if (!req.parent.valid())
         Exception(INTERFACE_EXCEPTION, this) << "The 'parent' region of "
-          << "region requirement " << index << " of " << get_logging_name()
-          << " (UID: " << get_unique_op_id() << ") is not well-formed. This "
-          << "likely means it was corrupted by application code."; 
+          << "region requirement " << index << " of " << *this
+          << " is not well-formed. This likely means it was corrupted by "
+          << "application code."; 
       if ((req.handle_type != LEGION_SINGULAR_PROJECTION) &&
           (req.handle_type != LEGION_REGION_PROJECTION) &&
           (req.handle_type != LEGION_PARTITION_PROJECTION))
         Exception(INTERFACE_EXCEPTION, this) << "Invalid value of "
           << "'handle_type' " << req.handle_type << " for region requirement "
-          << index << " of " << get_logging_name() << " (UID: "
-          << get_unique_op_id() << "). The 'handle_type' of the region "
+          << index << " of " << *this << ". The 'handle_type' of the region "
           << "requirement must be one of LEGION_SINGULAR_PROJECTION, "
           << "LEGION_REGION_PROJECTION, or LEGION_PARTITION_PROJECTION.";
       if (req.handle_type == LEGION_PARTITION_PROJECTION)
       {
         if (!req.partition.exists())
           Exception(INTERFACE_EXCEPTION, this) << "The 'partition' of "
-            << "region requirement " << index << " of " << get_logging_name()
-            << "(UID: " << get_unique_op_id() << ") does not exist. The 'partition'"
-            << " must always be set when 'handle_type' is "
-            << "LEGION_SINGULAR_PROJECTION or LEGION_REGION_PROJECTION.";
+            << "region requirement " << index << " of " << *this
+            << " does not exist. The 'partition' must always be set when "
+            << "'handle_type' is LEGION_SINGULAR_PROJECTION or "
+            << "LEGION_REGION_PROJECTION.";
         if (!req.partition.valid())
           Exception(INTERFACE_EXCEPTION, this) << "The 'partition' of "
-            << "region requirement " << index << " of " << get_logging_name()
-            << " (UID: " << get_unique_op_id() << ") is not well-formed. This "
-            << "likely means it was corrupted by application code.";
+            << "region requirement " << index << " of " << *this
+            << " is not well-formed. This likely means it was corrupted "
+            << "by application code.";
         // Check that partition  is in the same region tree
         if (req.partition.get_tree_id() != req.parent.get_tree_id())
           Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Partition "
             << req.partition << " is not from the same region tree (tree="
             << req.partition.get_tree_id() << ") as the 'parent' region (tree="
             << req.parent.get_tree_id() << ") for region requirement " 
-            << index << " of " << get_logging_name() << " (UID: " 
-            << get_unique_op_id()
-            << "). The partition for a projection region requirement "
+            << index << " of " << *this
+            << ". The partition for a projection region requirement "
             << "must always be from the same tree as the 'parent' region.";
         // Check to see if the partition is a below in parent in the tree
         if (!runtime->has_partition_path(req.parent.index_space,
@@ -1824,31 +1815,29 @@ namespace Legion {
           Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Partition "
             << req.partition << " does not have parent region " << req.parent
             << " as an ancestor in the region tree for region requirement "
-            << index << " of " << get_logging_name() << " (UID: "
-            << get_unique_op_id() << "). The partition must always have the "
-            << "'parent' region as an ancestor for privileges.";
+            << index << " of " << *this << "). The partition must always "
+            << "have the 'parent' region as an ancestor for privileges.";
       }
       else
       {
         if (!req.region.exists())
           Exception(INTERFACE_EXCEPTION, this) << "The 'region' of "
-            << "region requirement " << index << " of " << get_logging_name()
-            << " (UID: " << get_unique_op_id() << ") does not exist. The 'region'"
-            << " must always be set when 'handle_type' is "
-            << "LEGION_SINGULAR_PROJECTION or LEGION_REGION_PROJECTION.";
+            << "region requirement " << index << " of " << *this
+            << " does not exist. The 'region' must always be set when "
+            << "'handle_type' is LEGION_SINGULAR_PROJECTION "
+            << "or LEGION_REGION_PROJECTION.";
         if (!req.region.valid())
           Exception(INTERFACE_EXCEPTION, this) << "The 'region' of "
-            << "region requirement " << index << " of " << get_logging_name()
-            << " (UID: " << get_unique_op_id() << ") is not well-formed. This "
-            << "likely means it was corrupted by application code.";
+            << "region requirement " << index << " of " << *this
+            << " is not well-formed. This likely means it was corrupted "
+            << "by application code.";
         // Check that the region is in the same region tree
         if (req.region.get_tree_id() != req.parent.get_tree_id())
           Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Region "
             << req.region << " is not from the same region tree (tree="
             << req.region.get_tree_id() << ") as the 'parent' region (tree="
             << req.parent.get_tree_id() << ") for region requirement " 
-            << index << " of " << get_logging_name() << " (UID: " 
-            << get_unique_op_id() << "). The region for a region requirement "
+            << index << " of " << *this << ". The region for a region requirement "
             << "must always be from the same tree as the 'parent' region.";
         // Check to see if the partition is a below in parent in the tree
         if (!runtime->has_index_path(req.parent.index_space,
@@ -1856,8 +1845,7 @@ namespace Legion {
           Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Region "
             << req.region << " does not have parent region " << req.parent
             << " as an ancestor in the region tree for region requirement "
-            << index << " of " << get_logging_name() << " (UID: "
-            << get_unique_op_id() << "). The region must always have the "
+            << index << " of " << *this << ". The region must always have the "
             << "'parent' region as an ancestor for privileges.";
       }
       // Check that all the fields are contained in the field space
@@ -1867,10 +1855,10 @@ namespace Legion {
         if (!fs->has_field(*it))
           Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Field " << *it
             << " in privilege fields of region requirement " << index
-            << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-            << ") is not contained with field space " << fs->handle
-            << " of the parent region requirement. All privilege fields"
-            << " must be contained within the parent region's field space.";
+            << " of " << *this << " is not contained with field space " 
+            << fs->handle << " of the parent region requirement. All "
+            << "privilege fields must be contained within the parent "
+            << "region's field space.";
       // Check that the instance fields are unique and represented by privilege
       std::vector<FieldID> instance_fields(req.instance_fields);
       std::sort(instance_fields.begin(), instance_fields.end());
@@ -1879,10 +1867,9 @@ namespace Legion {
         if ((idx > 0) && (instance_fields[idx-1] == instance_fields[idx]))
           Exception(INTERFACE_EXCEPTION, this) << "Duplicate field "
             << instance_fields[idx] << " found in the 'instance_fields' of "
-            << "region requirement " << index << " of " << get_logging_name()
-            << " (UID: " << get_unique_op_id() << "). Each field in the "
-            << "'privilege_fields' should be represented exactly once in "
-            << "this 'instance_fields' of the region requirement.";
+            << "region requirement " << index << " of " << *this
+            << ". Each field in the 'privilege_fields' should be represented "
+            << "exactly once in the 'instance_fields' of the region requirement.";
         if (req.privilege_fields.find(instance_fields[idx]) ==
             req.privilege_fields.end())
         {
@@ -1894,17 +1881,15 @@ namespace Legion {
             std::string_view field_name((const char*)name, name_size);
             Exception(INTERFACE_EXCEPTION, this) << "Field " << field_name
               << " in 'instance_fields' of region requirement " << index
-              << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-              << ") is not contained in the 'privilege_fields'. Each field "
-              << "in the 'instance_fields' must also be contained in the "
-              << "'privilege_fields' of the region requirement.";
+              << " of " << *this << " is not contained in the 'privilege_fields'. "
+              << "Each field in the 'instance_fields' must also be contained in "
+              << "the 'privilege_fields' of the region requirement.";
           }
           else
             Exception(INTERFACE_EXCEPTION, this) << "Field " << instance_fields[idx]
               << " in 'instance_fields' of region requirement " << index
-              << " of " << get_logging_name() << " (UID: " << get_unique_op_id()
-              << ") is not contained in the 'privilege_fields'. Each field "
-              << "in the 'instance_fields' must also be contained in the "
+              << " of " << *this << " is not contained in the 'privilege_fields'. "
+              << "Each field in the 'instance_fields' must also be contained in the "
               << "'privilege_fields' of the region requirement.";
         }
       }
@@ -1995,48 +1980,24 @@ namespace Legion {
       assert(reported.exists());
       assert(!reported.has_triggered());
 #endif
-      std::string prov_str;
-      Provenance *provenance = get_provenance();
-      if (provenance != NULL) {
-        std::stringstream prov_ss;
-        prov_ss << ", provenance: " << provenance->human;
-        prov_str = prov_ss.str();
-      }
       const RegionRequirement &req = get_requirement(index); 
       // Read-only or reduction usage of uninitialized data is always an error
       if (IS_READ_ONLY(req))
-        REPORT_LEGION_ERROR(ERROR_UNINITIALIZED_USE,
-                      "Region requirement %d of operation %s (UID %lld%s) in "
-                      "parent task %s (UID %lld) is using uninitialized data "
-                      "for field(s) %s of logical region (%lld,%lld,%lld) with "
-                      "read-only privileges", index, get_logging_name(), 
-                      get_unique_op_id(), prov_str.c_str(),
-                      parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                      field_string, req.region.get_index_space().get_id(),
-                      req.region.get_field_space().get_id(), 
-                      req.region.get_tree_id())
+        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+          << "Region requirement " << index << " of " << *this
+          << " is using uninitialized data for field(s) " << field_string
+          << " of logical region " << req.region << " with read-only privileges.";
       else if (IS_REDUCE(req))
-        REPORT_LEGION_ERROR(ERROR_UNINITIALIZED_USE,
-                      "Region requirement %d of operation %s (UID %lld%s) in "
-                      "parent task %s (UID %lld) is using uninitialized data "
-                      "for field(s) %s of logical region (%lld,%lld,%lld) with "
-                      "reduction privileges", index, get_logging_name(), 
-                      get_unique_op_id(), prov_str.c_str(),
-                      parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                      field_string, req.region.get_index_space().get_id(),
-                      req.region.get_field_space().get_id(), 
-                      req.region.get_tree_id())
+        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+          << "Region requirement " << index << " of " << *this
+          << "is using uninitialized data for field(s) " << field_string
+          << " of logical region " << req.region << " with reduction privileges.";
       // Read-write usage is just a warning
       else if ((req.flags & LEGION_SUPPRESS_WARNINGS_FLAG) == 0)
-        REPORT_LEGION_WARNING(LEGION_WARNING_UNINITIALIZED_USE,
-                      "Region requirement %d of operation %s (UID %lld%s) in "
-                      "parent task %s (UID %lld) is using uninitialized data "
-                      "for field(s) %s of logical region (%lld,%lld,%lld)", index,
-                      get_logging_name(), get_unique_op_id(), prov_str.c_str(),
-                      parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                      field_string, req.region.get_index_space().get_id(),
-                      req.region.get_field_space().get_id(), 
-                      req.region.get_tree_id())
+        Exception(WARNING_EXCEPTION, this)
+          << "Region requirement " << index << " of " << *this
+          << " is using uninitialized data for fields(s) " << field_string
+          << " of " << req.region << ".";
       Runtime::trigger_event(reported);
     }
 
@@ -2141,14 +2102,11 @@ namespace Legion {
           default:
             {
               if (warn_if_not_copy) 
-              {
-                REPORT_LEGION_WARNING(LEGION_WARNING_NOT_COPY,
-                            "Mapper %s requested a profiling "
-                            "measurement of type %d which is not applicable to "
-                            "operation %s (UID %lld) and will be ignored.",
-                            mapper->get_mapper_name(), *it, get_logging_name(),
-                            get_unique_op_id());
-              }
+                Exception(WARNING_EXCEPTION, this)
+                  << "Mapper " << mapper->get_mapper_name()
+                  << "requested a profiling measurement of type " << *it
+                  << "which is not applicable to operation " << *this
+                  << "and therefore it will be ignored";
             }
         }
       }
@@ -2981,10 +2939,10 @@ namespace Legion {
         }
         // Ignore any instances which are not in the original set of sources
         if (!found)
-          REPORT_LEGION_WARNING(LEGION_WARNING_MAPPER_INVALID_INSTANCE,
-              "Ignoring invalid instance output from mapper %s for "
-              "select sources call on %s (UID %lld)",
-              mapper->get_mapper_name(), get_logging_name(), get_unique_op_id())
+          Exception(WARNING_EXCEPTION, this)
+            << "Ignoring invalid instance output from mapper "
+            << mapper->get_mapper_name() << " by select source call for "
+            << *this << ".";
       }
     }
 
@@ -3323,14 +3281,13 @@ namespace Legion {
           // work in this case so the arrival counts will need 
           // to look something like:
           //   std::map<InstanceView*,LegionMap<size_t,FieldMask> >
-          REPORT_LEGION_FATAL(
-              LEGION_FATAL_COLLECTIVE_PARTIAL_FIELD_OVERLAP,
-              "Something requested a very strange pattern for collective "
-              "instance rendezvous with different points asking to "
-              "rendezvous with different field sets on the same "
-              "physical instance. This isn't currently supported. "
-              "Please report your use case to the Legion "
-              "developer's mailing list.")
+          Exception(FATAL_EXCEPTION)
+              << "Something requested a very strange pattern for collective "
+              << "instance rendezvous with different points asking to "
+              << "rendezvous with different field sets on the same "
+              << "physical instance. This isn't currently supported. "
+              << "Please report your use case to the Legion "
+              << "developer's mailing list.";
       }
       else // No need to update counts since empty implies only one
       {
@@ -4745,8 +4702,7 @@ namespace Legion {
       if ((requirement.handle_type == LEGION_PARTITION_PROJECTION) || 
           (requirement.handle_type == LEGION_REGION_PROJECTION))
         Exception(INTERFACE_EXCEPTION, this) << "Detected a projection "
-          << "region requirement for " << get_logging_name()
-          << " (UID: " << get_unique_op_id() << "). Projection region "
+          << "region requirement for " <<  *this << ". Projection region "
           << "requirements are not permitted for inline mappings.";
       Operation::verify_requirement(req, index);
     }
@@ -5159,15 +5115,11 @@ namespace Legion {
                                 &acquired_instances, unacquired, 
                                 runtime->safe_mapper);
       if (bad_tree > 0)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from invocation of 'map_inline' "
-                      "on mapper %s. Mapper selected instance from region "
-                      "tree %lld to satisfy a region requirement for an inline "
-                      "mapping in task %s (ID %lld) whose region tree is %lld.", 
-                      mapper->get_mapper_name(),
-                      bad_tree, parent_ctx->get_task_name(),
-                      parent_ctx->get_unique_id(),
-                      requirement.region.get_tree_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_inline' on mapper "
+          << mapper->get_mapper_name() << ". Mapper selected instance from region tree "
+          << bad_tree << " to satisfy a region requirement for " << *this
+          << " whose region tree is " << requirement.region.get_tree_id() << ".";
       if (!missing_fields.empty())
       {
         for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
@@ -5181,15 +5133,11 @@ namespace Legion {
           log_run.error("Missing instance for field %s (FieldID: %d)",
                         static_cast<const char*>(name), *it);
         }
-        REPORT_LEGION_ERROR(ERROR_MISSING_INSTANCE_FIELD,
-                      "Invalid mapper output from invocation of 'map_inline' "
-                      "on mapper %s. Mapper failed to specify a physical "
-                      "instance for %zd fields of the region requirement to "
-                      "an inline mapping in task %s (ID %lld). The missing "
-                      "fields are listed below.", mapper->get_mapper_name(),
-                      missing_fields.size(), parent_ctx->get_task_name(),
-                      parent_ctx->get_unique_id())
-        
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_inline' on mapper "
+          << mapper->get_mapper_name() << ". Mapper failed to specify a physical "
+          << "instance for " << missing_fields.size() << " fields of the region "
+          << "requirement for " << *this << ". The missing fields are listed above."; 
       }
       if (!unacquired.empty())
       {
@@ -5197,41 +5145,33 @@ namespace Legion {
               unacquired.begin(); it != unacquired.end(); it++)
         {
           if (acquired_instances.find(*it) == acquired_instances.end())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from 'map_inline' invocation "
-                        "on mapper %s. Mapper selected physical instance for "
-                        "inline mapping in task %s (ID %lld) which has already "
-                        "been collected. If the mapper had properly acquired "
-                        "this instance as part of the mapper call it would "
-                        "have detected this. Please update the mapper to abide "
-                        "by proper mapping conventions.", 
-                        mapper->get_mapper_name(), parent_ctx->get_task_name(),
-                        parent_ctx->get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from 'map_inline' invocation on mapper "
+              << mapper->get_mapper_name() << ". Mapper selected physical instance "
+              << "for " << *this << " which has already been collected. If the mapper "
+              << "had properly acquired this instance as part of the mapper call "
+              << "it would have detected this. Please update the mapper to abide "
+              << "by proper mapping conventions."; 
         }
         // If we did successfully acquire them, still issue the warning
-        REPORT_LEGION_WARNING(ERROR_MAPPER_FAILED_ACQUIRE,
-                        "mapper %s faield to acquire instance "
-                        "for inline mapping operation in task %s (ID %lld) "
-                        "in 'map_inline' call. You may experience undefined "
-                        "behavior as a consequence.", mapper->get_mapper_name(),
-                        parent_ctx->get_task_name(), 
-                        parent_ctx->get_unique_id())
+        Exception(WARNING_EXCEPTION, this)
+          << "Mapper " << mapper->get_mapper_name() 
+          << "failed to acquire instance for " << *this
+          << "in 'map_inline' call. You may experience undefined "
+          << "behavior as a consequence.";
       }
       if (virtual_index >= 0)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from invocation of 'map_inline' "
-                      "on mapper %s. Mapper requested creation of a composite "
-                      "instance for inline mapping in task %s (ID %lld).",
-                      mapper->get_mapper_name(), parent_ctx->get_task_name(),
-                      parent_ctx->get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_inline' on mapper "
+          << mapper->get_mapper_name() << ". Mapper requested creation of a "
+          << "virtual mapping for " << *this << ". Inline mapping operations "
+          << "are not permitted to do perform virtual mappings.";
       if (!output.track_valid_region && !IS_READ_ONLY(requirement))
       {
-        REPORT_LEGION_WARNING(LEGION_WARNING_NON_READ_ONLY_UNTRACK_VALID,
-            "Ignoring request by mapper %s to not track valid instances "
-            "for inline mapping %lld in parent task %s (UID %lld) because "
-            "the region requirement does not have read-only privileges.",
-            mapper->get_mapper_name(), unique_op_id, 
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+        Exception(WARNING_EXCEPTION, this)
+          << "Ignoring request by mapper " << mapper->get_mapper_name()
+          << " to not track valid instances for " << *this << " because "
+          << "the region requirement does not have read-only privileges.";
         output.track_valid_region = true;
       }
       // If we are doing unsafe mapping, then we can return
@@ -5248,15 +5188,11 @@ namespace Legion {
         {
           const Memory mem = chosen_instances[idx].get_memory();
           if (visible_memories.find(mem) == visible_memories.end())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of "
-                          "'map_inline' on mapper %s. Mapper selected a "
-                          "physical instance in memory " IDFMT " which is "
-                          "not visible from processor " IDFMT ". The inline "
-                          "mapping operation was issued in task %s (ID %lld).",
-                          mapper->get_mapper_name(), mem.id, exec_proc.id,
-                          parent_ctx->get_task_name(), 
-                          parent_ctx->get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'map_inline' on mapper "
+              << mapper->get_mapper_name() << ". Mapper selected a physical "
+              << "instance in memory " << mem << " which is not visible from processor " 
+              << exec_proc << "."; 
         }
       }
       // Iterate over the instances and make sure they are all valid
@@ -5266,13 +5202,10 @@ namespace Legion {
       {
         PhysicalManager *manager = chosen_instances[idx].get_physical_manager();
         if (!manager->meets_regions(regions_to_check))
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of 'map_inline' "
-                        "on mapper %s. Mapper specified an instance that does "
-                        "not meet the logical region requirement. The inline "
-                        "mapping operation was issued in task %s (ID %lld).",
-                        mapper->get_mapper_name(), parent_ctx->get_task_name(),
-                        parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_inline' on mapper "
+            << mapper->get_mapper_name() << ". Mapper specified an instance that "
+            << "does not meet the logical region requirement.";
       }
       // If this is a reduction region requirement, make sure all the
       // chosen instances are specialized reduction instances
@@ -5280,28 +5213,22 @@ namespace Legion {
       {
         for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
           if (!chosen_instances[idx].get_manager()->is_reduction_manager())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of "
-                          "'map_inline' on mapper %s. Mapper failed to select "
-                          "specialized reduction instances for region "
-                          "requirement with reduction-only privileges for "
-                          "inline mapping operation in task %s (ID %lld).",
-                          mapper->get_mapper_name(),parent_ctx->get_task_name(),
-                          parent_ctx->get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'map_inline' on mapper "
+              << mapper->get_mapper_name() << ". Mapper failed to select "
+              << "specialized reduction instances for region requirement with "
+              << "reduction-only privileges for " << *this << ".";
       }
       else
       {
         for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
         {
           if (chosen_instances[idx].get_manager()->is_reduction_manager())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of "
-                          "'map_inline' on mapper %s. Mapper selected an "
-                          "illegal specialized reduction instance for region "
-                          "requirement without reduction privileges for "
-                          "inline mapping operation in task %s (ID %lld).",
-                          mapper->get_mapper_name(),parent_ctx->get_task_name(),
-                          parent_ctx->get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'map_inline' on mapper "
+              << mapper->get_mapper_name() << ". Mapper selected an illegal "
+              << "specialized reduction instance for region requirement without "
+              << "reduction privileges for " << *this << ".";
         }
       }
       if (layout_constraint_id > 0)
@@ -5315,14 +5242,10 @@ namespace Legion {
             chosen_instances[idx].get_physical_manager();
           const LayoutConstraint *conflict_constraint = NULL;
           if (manager->conflicts(constraints, &conflict_constraint))
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output. Mapper %s selected "
-                          "instance for inline mapping (ID %lld) in task %s "
-                          "(ID %lld) which failed to satisfy the corresponding "
-                          "layout constraints.", 
-                          mapper->get_mapper_name(), get_unique_op_id(),
-                          parent_ctx->get_task_name(), 
-                          parent_ctx->get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+              << " selected instance for " << *this 
+              << " which failed to satisfy the corresponding layout constraints.";
         }
         // See if there is a padding constraint to get reservations for
         if (constraints->padding_constraint.delta.get_dim() > 0)
@@ -5593,15 +5516,13 @@ namespace Legion {
             src_requirements[idx].instance_fields.size())
           Exception(INTERFACE_EXCEPTION, this)
             << "Missing instance fields for source region requirement " << idx
-            << "of copy operation UID: " << get_unique_op_id() << ". The 'instance_fields' "
-            << "member of source region requirements must contain exactly the same set of "
+            << "of " << *this <<  ". The 'instance_fields' member of source "
+            << "region requirements must contain exactly the same set of "
             << "fields as the 'privilege_fields' for copy operations.";
         if (!IS_READ_ONLY(src_requirements[idx]))
           Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Source region requirement "
-            << idx << " of copy operation UID: " << get_unique_op_id()
-            << "does not have read-only privileges. All source region requirements "
-            << "for copy operations must be read-only.";
-        
+            << idx << " of " << *this << "does not have read-only privileges. All "
+            << "source region requirements for copy operations must be read-only.";
         if (runtime->safe_model)
           verify_requirement(src_requirements[idx], idx);
         src_parent_indexes[idx] = parent_ctx->find_parent_region_index(this, src_requirements[idx]);
@@ -5621,22 +5542,20 @@ namespace Legion {
             dst_requirements[idx].instance_fields.size())
           Exception(INTERFACE_EXCEPTION, this)
             << "Missing instance fields for destination region requirement " << idx
-            << "of copy operation UID: " << get_unique_op_id() << ". The 'instance_fields' "
-            << "member of destination region requirements must contain exactly the same set of "
+            << "of " << *this << ". The 'instance_fields' member of destination region "
+            << "requirements must contain exactly the same set of "
             << "fields as the 'privilege_fields' for copy operations.";
         if (src_requirements[idx].instance_fields.size() != dst_requirements[idx].instance_fields.size())
           Exception(INTERFACE_EXCEPTION, this)
             << "The 'instance_fields' member of the source and destination region requirements at index"
             << idx << " do no have the same size (" << src_requirements[idx].instance_fields.size()
-            << " and " << dst_requirements[idx].instance_fields.size() 
-            << " respectively) for copy operation UID: " << get_unique_op_id()
-            << ".. The 'instance_fields' data structure must have the same number of fields for the "
-            << "copy operation to know how to zip the fields together."; 
+            << " and " << dst_requirements[idx].instance_fields.size() << " respectively) for " 
+            << *this << ". The 'instance_fields' data structure must have the same number of "
+            << "fields for the copy operation to know how to zip the fields together."; 
         if (!HAS_WRITE(dst_requirements[idx]))
           Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Destination region requirement "
-            << idx << " of copy operation UID: " << get_unique_op_id()
-            << "is not writing or reducing. All destination region requirements for "
-            << "copy operations must either be writing or reducing.";
+            << idx << " of " << *this << "is not writing or reducing. All destination "
+            << "region requirements for copy operations must either be writing or reducing.";
         if ((dst_requirements[idx].privilege == LEGION_READ_WRITE) &&
             (launcher.src_indirect_requirements.size() <= idx) &&
             (launcher.dst_indirect_requirements.size() <= idx) &&
@@ -5681,15 +5600,14 @@ namespace Legion {
       if (src_requirements.size() != dst_requirements.size())
         Exception(INTERFACE_EXCEPTION, this) << "Number of our source requirements ("
           << src_requirements.size() << ") does not match the number of destination "
-          << "requirements (" << dst_requirements.size() << ") for copy operation UID: "
-          << get_unique_op_id() << ".";
+          << "requirements (" << dst_requirements.size() << ") for " << *this << ".";
       if (!launcher.src_indirect_requirements.empty())
       {
         const size_t gather_size = launcher.src_indirect_requirements.size();
         if (gather_size != src_requirements.size())
           Exception(INTERFACE_EXCEPTION, this) << "Number of source indirect requirements ("
             << gather_size << ") does not match the number of source requirements (" 
-            << src_requirements.size() << ") for copy operation UID: " << get_unique_op_id() << ".";
+            << src_requirements.size() << ") for " << *this << ".";
         src_indirect_requirements.resize(gather_size);
         gather_parent_indexes.resize(gather_size);
         src_indirect_records.resize(gather_size);
@@ -5700,14 +5618,12 @@ namespace Legion {
           req.flags |= LEGION_NO_ACCESS_FLAG;
           if (req.privilege_fields.size() != 1)
             Exception(INTERFACE_EXCEPTION, this) << "Source indirect region requirement "
-              << idx << " for copy operation UID: " << get_unique_op_id() << " has "
-              << req.privilege_fields.size() << " fields, but indirection region "
-              << "requirements must always have exactly one field.";
+              << idx << " for " << *this << " has " << req.privilege_fields.size() 
+              << " fields, but indirection region requirements must always have exactly one field.";
           if (!IS_READ_ONLY(req))
             Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Source indirect region requirement "
-              << idx << " for copy operation UID: " << get_unique_op_id() << " does not have "
-              << "read-only privileges. All source indirect region requirements for copy "
-              << "operations must have read-only privileges.";
+              << idx << " for " << *this << " does not have read-only privileges. All source "
+              << "indirect region requirements for copy operations must have read-only privileges.";
           if (runtime->safe_model)
             verify_requirement(src_indirect_requirements[idx], src_requirements.size() +
                 dst_requirements.size() + idx);
@@ -5717,7 +5633,7 @@ namespace Legion {
           Exception(INTERFACE_EXCEPTION, this) << "Invalid 'src_indirect_is_range' "
             << "size in launcher. The number of entries " << launcher.src_indirect_is_range.size() 
             << " does not match the number of 'src_indirect_requirments' "
-            << gather_size << " for copy operation UID: " << get_unique_op_id() << ".";
+            << gather_size << " for " << *this << ".";
         for (unsigned idx = 0; idx < gather_size; idx++)
         {
           if (!launcher.src_indirect_is_range[idx])
@@ -5732,7 +5648,7 @@ namespace Legion {
           if (!IS_REDUCE(dst_requirements[idx]))
             Exception(PROGRAMMING_MODEL_EXCEPTION, this)
                 << "Invalid privileges for destination region requirement " << idx
-                << " for copy across UID: " << get_unique_op_id() << ". Destination "
+                << " for " << *this << ". Destination "
                 << "region requirements must use reduction privileges when "
                 << "there is a range-based source indirection field and there "
                 << "is no corresponding range indirection on the destination.";
@@ -5746,7 +5662,7 @@ namespace Legion {
         if (scatter_size != dst_requirements.size())
           Exception(INTERFACE_EXCEPTION, this) << "Number of destination indirect requirements ("
             << scatter_size << ") does not match the number of destination requirements (" 
-            << src_requirements.size() << ") for copy operation UID: " << get_unique_op_id() << ".";
+            << src_requirements.size() << ") for " << *this << ".";
         dst_indirect_requirements.resize(scatter_size);
         scatter_parent_indexes.resize(scatter_size);
         dst_indirect_records.resize(scatter_size);
@@ -5757,12 +5673,12 @@ namespace Legion {
           req.flags |= LEGION_NO_ACCESS_FLAG;
           if (req.privilege_fields.size() != 1)
             Exception(INTERFACE_EXCEPTION, this) << "Destination indirect region requirement "
-              << idx << " for copy operation UID: " << get_unique_op_id() << " has "
+              << idx << " for " << *this << " has "
               << req.privilege_fields.size() << " fields, but indirection region "
               << "requirements must always have exactly one field.";
           if (!IS_READ_ONLY(req))
             Exception(PROGRAMMING_MODEL_EXCEPTION, this) << "Destination indirect region requirement "
-              << idx << " for copy operation UID: " << get_unique_op_id() << " does not have "
+              << idx << " for " << *this << " does not have "
               << "read-only privileges. All destination indirect region requirements for copy "
               << "operations must have read-only privileges.";
           if (runtime->safe_model)
@@ -5774,7 +5690,7 @@ namespace Legion {
           Exception(INTERFACE_EXCEPTION, this) << "Invalid 'dst_indirect_is_range' "
             << "size in launcher. The number of entries " << launcher.src_indirect_is_range.size() 
             << " does not match the number of 'dst_indirect_requirments' "
-            << scatter_size << " for copy operation UID: " << get_unique_op_id() << ".";
+            << scatter_size << " for " << *this << ".";
         if (!src_indirect_requirements.empty())
         {
           // Full indirections need to have the same index space
@@ -5788,8 +5704,8 @@ namespace Legion {
             if (src_space != dst_space)
               Exception(PROGRAMMING_MODEL_EXCEPTION, this)
                 << "Mismatch between source indirect and destination indirect "
-                << "index spaces for requirement " << idx << " for copy operation UID: "
-                << get_unique_op_id() << ". Currently full-indirection copies must "
+                << "index spaces for requirement " << idx << " for "
+                << *this << ". Currently full-indirection copies must "
                 << "specify the index space for both indirection requirements.";
           }
         }
@@ -5883,8 +5799,7 @@ namespace Legion {
                 << "copy operations. Fields " << src_fields[fidx] << " and "
                 << dst_fields[fidx] << " of region requirement " << idx
                 << " have different sizes (" << src_size << " bytes and "
-                << dst_size << " bytes respectively) in copy operation UID: "
-                << get_unique_op_id() << ".";
+                << dst_size << " bytes respectively) in " << *this << ".";
           const CustomSerdezID src_serdez =
             runtime->get_field_serdez(src_space, src_fields[fidx]);
           const CustomSerdezID dst_serdez =
@@ -5895,7 +5810,7 @@ namespace Legion {
                << "region-to-region copy operations. Fields " << src_fields[fidx] 
                << " and " << dst_fields[fidx] << " of region requirement " << idx
                << " have different serdez modes (" << src_serdez << " and " << dst_serdez
-               << " respectively) in copy operation UID: " << get_unique_op_id() << ".";
+               << " respectively) in " << *this << ".";
         }
         if (idx < src_indirect_requirements.size())
         {
@@ -5915,8 +5830,7 @@ namespace Legion {
               << "incorrect size for the source region coordinate space. "
               << "Field " << fid << " of source indirect region requirement " << idx
               << " is " << idx_size << " bytes but the coordinate types of the "
-              << "source space is " << coord_size << " bytes for copy operation UID: "
-              << get_unique_op_id() << ".";
+              << "source space is " << coord_size << " bytes for " << *this << ".";
           const CustomSerdezID idx_serdez = runtime->get_field_serdez(
               src_idx_req.parent.get_field_space(), fid);
           if (idx_serdez != 0)
@@ -5924,7 +5838,7 @@ namespace Legion {
               <<  "Serdez fields are not permitted to be used as "
               << "indirection fields for copy operations. Field " << fid
               << "of source indirect region requirement " << idx 
-              << " in copy operation UID: " << get_unique_op_id() 
+              << " in " << *this
               << "has serdez function " << idx_serdez << ".";
         }
         if (idx >= dst_indirect_requirements.size())
@@ -5941,7 +5855,7 @@ namespace Legion {
                                   dst_space.get_type_tag(), diff_dims))
               Exception(DYNAMIC_TYPE_EXCEPTION, this)
                 << "Copy index space mismatch at index " << idx
-                << " of cross-region copy operation UID: " << get_unique_op_id()
+                << " of cross-region " << *this
                 << ". The index spaces of the source and destination requirements "
                 << "have incompatible types because they have different "
                 << (diff_dims ? "numbers of dimensions." : "coordinate_types.");
@@ -5958,7 +5872,7 @@ namespace Legion {
                                            dst_space.get_type_tag(), diff_dims))
               Exception(DYNAMIC_TYPE_EXCEPTION, this)
                 << "Copy index space mismatch at index " << idx
-                << " of cross-region copy operation UID: " << get_unique_op_id()
+                << " of cross-region " << *this
                 << ".  The index spaces of the source indirect requirement and "
                 << "the destination requirement have incompatible types because "
                 << "they have different " << (diff_dims ? "numbers of dimensions." : "coordinate types.");
@@ -5982,16 +5896,16 @@ namespace Legion {
               << "incorrect size for the destination region coordinate space. "
               << "Field " << fid << " of destination indirect region requirement "
               << idx << " is " << idx_size << " bytes but the coordinate types of "
-              << "the destination space is " << coord_size << " bytes for copy operation UID: "
-              << get_unique_op_id() << ".";
+              << "the destination space is " << coord_size << " bytes for "
+              << *this << ".";
           const CustomSerdezID idx_serdez = runtime->get_field_serdez(
               dst_idx_req.parent.get_field_space(), fid);
           if (idx_serdez != 0)
             Exception(DYNAMIC_TYPE_EXCEPTION, this)
               <<  "Serdez fields are not permitted to be used as indirection fields "
               << "for copy operations. Field " << fid << " of destination indirect "
-              << "region requirement " << idx << " in copy operation UID: "
-              << get_unique_op_id() << " has serdez function " << idx_serdez << ".";
+              << "region requirement " << idx << " in " << *this
+              << " has serdez function " << idx_serdez << ".";
           if (idx >= src_indirect_requirements.size())
           {
             // Scatter copy
@@ -6006,7 +5920,7 @@ namespace Legion {
                           dst_indirect_space.get_type_tag(), diff_dims))
               Exception(DYNAMIC_TYPE_EXCEPTION, this)
                 << "Copy index space mismatch at index " << idx
-                << " of cross-region copy operation UID: " << get_unique_op_id()
+                << " of cross-region " << *this
                 << ". The index spaces of the source requirement and the "
                 << "destination indirect requirement have incompatible types "
                 << "because they have different " 
@@ -6026,7 +5940,7 @@ namespace Legion {
                                   dst_indirect_space.get_type_tag(), diff_dims))
               Exception(DYNAMIC_TYPE_EXCEPTION, this)
                 << "Copy index space mismatch at index " << idx
-                << " of cross-region copy operation UID: " << get_unique_op_id()
+                << " of cross-region " << *this
                 << ". The index spaces of the source indirect requirement and "
                 << "the destination indirect requirement have incompatible "
                 << "types because they have different "
@@ -6646,29 +6560,17 @@ namespace Legion {
                   (kind != Memory::SOCKET_MEM) &&
                   (kind != Memory::Z_COPY_MEM))
               {
-                const char *mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-                  REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-                };
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                              "Invalid mapper output from invocation of "
-                              "'map_copy' on mapper %s for copy operation "
-                              "%lld in task %s (UID %lld). Mapper requested "
-                              "that Legion perform preimage optimization on "
-                              "the source indirection instances but mapped at "
-                              "least one of the source indirection instances "
-                              "to a %s memory which is not a host-visible "
-                              "memory. Realm only supports preimage "
-                              "computations on host-visibile memories (see "
-                              "Legion issue #516 for more details). For now, "
-                              "please ensure that all indirection instances "
-                              "are in host-visible memory when requesting the "
-                              "preimage optimization for copy operations.",
-                              mapper->get_mapper_name(), get_unique_op_id(),
-                              parent_ctx->get_task_name(),
-                              parent_ctx->get_unique_id(),
-                              mem_names[kind])
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output from invocation of 'map_copy' on mapper "
+                  << mapper->get_mapper_name() << " for " << *this
+                  << ". Mapper requested that Legion perform preimage optimization on "
+                  << "the source indirection instances but mapped at least one of "
+                  << "the source indirection instances to a " << kind
+                  << " which is not a host-visible memory. Realm only supports preimage "
+                  << "computations on host-visibile memories (see Legion issue #516 for "
+                  << "more details). For now, please ensure that all indirection instances "
+                  << "are in host-visible memory when requesting the "
+                  << "preimage optimization for copy operations.";
               }
             }
           }
@@ -6720,29 +6622,17 @@ namespace Legion {
                   (kind != Memory::SOCKET_MEM) &&
                   (kind != Memory::Z_COPY_MEM))
               {
-                const char *mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-                  REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-                };
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                              "Invalid mapper output from invocation of "
-                              "'map_copy' on mapper %s for copy operation "
-                              "%lld in task %s (UID %lld). Mapper requested "
-                              "that Legion perform preimage optimization on "
-                              "the destination indirection instances but "
-                              "mapped at least one of the destination "
-                              "indirection instances to a %s memory which is "
-                              "not a host-visible memory. Realm only supports "
-                              "preimage computations on host-visibile memories "
-                              "(see Legion issue #516 for more details). For "
-                              "now, please ensure that all indirection "
-                              "instances are in host-visible memory when "
-                              "requesting the preimage optimization for copy "
-                              "operations.", mapper->get_mapper_name(), 
-                              get_unique_op_id(), parent_ctx->get_task_name(),
-                              parent_ctx->get_unique_id(),
-                              mem_names[kind])
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output from invocation of 'map_copy' on mapper "
+                  << mapper->get_mapper_name() << " for " << *this 
+                  << ". Mapper requested that Legion perform preimage optimization on "
+                  << "the destination indirection instances but mapped at least one "
+                  << "of the destination indirection instances to a " << kind
+                  << " memory which is not a host-visible memory. Realm only supports "
+                  << "preimage computations on host-visibile memories (see Legion "
+                  << "issue #516 for more details). For now, please ensure that all "
+                  << "indirection instances are in host-visible memory when "
+                  << "requesting the preimage optimization for copy operations.";
               }
             }
           }
@@ -7020,15 +6910,12 @@ namespace Legion {
       bool is_src2 = idx2 < src_requirements.size();
       unsigned actual_idx1 = is_src1 ? idx1 : (idx1 - src_requirements.size());
       unsigned actual_idx2 = is_src2 ? idx2 : (idx2 - src_requirements.size());
-      REPORT_LEGION_ERROR(ERROR_ALIASED_REQION_REQUIREMENTS,
-                    "Aliased region requirements for copy operations "
-                    "are not permitted. Region requirement %d of %s "
-                    "requirements and %d of %s requirements interfering for "
-                    "copy operation (UID %lld) in task %s (UID %lld).",
-                    actual_idx1, is_src1 ? "source" : "destination",
-                    actual_idx2, is_src2 ? "source" : "destination",
-                    unique_op_id, parent_ctx->get_task_name(),
-                    parent_ctx->get_unique_id())
+      Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+        << "Aliased region requirements for copy operations are not permitted. "
+        << "Region requirement " << actual_idx1 << " of "
+        << (is_src1 ? "source" : "destination") << "requirements and "
+        << actual_idx2 << " of " << (is_src2 ? "source" : "destination")
+        << " requirements interfering for " << *this << ".";
     }
 
     //--------------------------------------------------------------------------
@@ -15146,10 +15033,7 @@ namespace Legion {
               << "of the resulting partition. Field " << fid
               << " has size " << field_size << " bytes but the coordinates "
               << "of color space " << color_space << " of partition " << pid
-              << " are " << coord_size << " bytes for dependent partition "
-              << "operation (UID " << get_unique_id() << ") in parent task "
-              << parent_ctx->get_task_name() << " (UID "
-              << parent_ctx->get_unique_id() << ").";
+              << " are " << coord_size << " bytes for " << *this << ".";
         const CustomSerdezID serdez = runtime->get_field_serdez(
             handle.get_field_space(), fid);
         if (serdez != 0)
@@ -15157,9 +15041,7 @@ namespace Legion {
               << "Serdez fields are not permitted to be used for any "
               << "dependent partitioning calls. Field " << fid 
               << " has serdez function " << serdez << " and was passed "
-              << "to partition-by-field operation (UID " << get_unique_id()
-              << ") in parent task " << parent_ctx->get_task_name()
-              << " (UID: " << parent_ctx->get_unique_id() << ").";
+              << "to partition-by-field " << *this << ".";
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -15210,10 +15092,7 @@ namespace Legion {
               << "match the size of the coordinate types of the projection "
               << "partition. Field " << fid << "  has size " << field_size
               << " bytes but the coordinates of the projection partition "
-              << pid << " are " << coord_size << " bytes for dependent "
-              << "partition operation (UID " << get_unique_op_id()
-              << ") in parent task " << parent_ctx->get_task_name()
-              << " (UID " << parent_ctx->get_unique_id() << ").";
+              << pid << " are " << coord_size << " bytes for " << *this << ".";
         const CustomSerdezID serdez = runtime->get_field_serdez(
             projection.get_field_space(), fid);
         if (serdez != 0)
@@ -15221,10 +15100,7 @@ namespace Legion {
             << "Serdez fields are not permitted to be used for any "
             << "dependent partitioning calls. Field " << fid
             << " has serdez function " << serdez 
-            << " and was passed to partition-by-image operation (UID "
-            << get_unique_op_id() << ") in parent task "
-            << parent_ctx->get_task_name() << " (UID"
-            << parent_ctx->get_unique_id() << ").";
+            << " and was passed to partition-by-image " << *this << "."; 
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -15277,9 +15153,7 @@ namespace Legion {
               << "partition. Field " << fid << " has size " << field_size
               << " bytes but the coordinates of the projection partition "
               << pid << "  are " << coord_size << " bytes for dependent "
-              << "partition operation (UID " << get_unique_op_id()
-              << ") in parent task " << parent_ctx->get_task_name()
-              << " (UID " << parent_ctx->get_unique_id() << ")."; 
+              << "partition " << *this << "."; 
         const CustomSerdezID serdez = runtime->get_field_serdez(
             projection.get_field_space(), fid);
         if (serdez != 0)
@@ -15287,10 +15161,7 @@ namespace Legion {
               << "Serdez fields are not permitted to be used for any "
               << "dependent partitioning calls. Field " << fid 
               << " has serdez function " << serdez 
-              << " and was passed to partition-by-image-range "
-              << "operation (UID " << get_unique_op_id() 
-              << ") in parent task " << parent_ctx->get_task_name()
-              << " (UID " << parent_ctx->get_unique_id() << ").";
+              << " and was passed to partition-by-image-range " << *this << ".";
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -15342,9 +15213,7 @@ namespace Legion {
               << "partition. Field " << fid << " has size " << field_size
               << " bytes but the coordinates of the projection partition "
               << proj << " are " << coord_size << " bytes for dependent "
-              << "partition operation (UID " << get_unique_op_id()
-              << ") in parent task " << parent_ctx->get_task_name()
-              << "(UID " << parent_ctx->get_unique_id() << ").";
+              << "partition " << *this << ".";
         const CustomSerdezID serdez = runtime->get_field_serdez(
             handle.get_field_space(), fid);
         if (serdez != 0)
@@ -15352,10 +15221,7 @@ namespace Legion {
               << "Serdez fields are not permitted to be used for any "
               << "dependent partitioning calls. Field " << fid 
               << " has serdez function " << serdez
-              << " and was passed to partition-by-preimage operation (UID "
-              << get_unique_op_id() << ") in parent task "
-              << parent_ctx->get_task_name() << " (UID "
-              << parent_ctx->get_unique_id() << ").";
+              << " and was passed to partition-by-preimage " << *this << ".";
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -15407,9 +15273,7 @@ namespace Legion {
               << "partition. Field " << fid << " has size " << field_size
               << " bytes but the coordinates of the projection partition "
               << proj << " are " << coord_size << " bytes for dependent "
-              << "partition operation (UID " << get_unique_op_id()
-              << ") in parent task " << parent_ctx->get_task_name()
-              << " (UID " << parent_ctx->get_unique_id() << ").";
+              << "partition " << *this << ".";
         const CustomSerdezID serdez = runtime->get_field_serdez(
             handle.get_field_space(), fid);
         if (serdez != 0)
@@ -15417,10 +15281,7 @@ namespace Legion {
               << "Serdez fields are not permitted to be used for any "
               << "dependent partitioning calls. Field " << fid 
               << " has serdez function " << serdez 
-              << " and was passed to partition-by-preimage-range "
-              << "operation (UID " << get_unique_op_id() << ") in parent task "
-              << parent_ctx->get_task_name() << " (UID "
-              << parent_ctx->get_unique_id() << ").";
+              << " and was passed to partition-by-preimage-range " << *this << ".";
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
@@ -15469,10 +15330,7 @@ namespace Legion {
               << "match the size of the range index space. Field " << fid
               << " has size " << field_size << " bytes but the coordinates of "
               << "the range index space " << range << " are " << coord_size
-              << " bytes for create-by-association operation (UID "
-              << get_unique_op_id() << ") in parent task "
-              << parent_ctx->get_task_name() << " (UID "
-              << parent_ctx->get_unique_id() << ").";
+              << " bytes for create-by-association " << *this << ".";
         const CustomSerdezID serdez = runtime->get_field_serdez(
             domain.get_field_space(), fid);
         if (serdez != 0)
@@ -15480,10 +15338,7 @@ namespace Legion {
               << "Serdez fields are not permitted to be used for any "
               << "dependent partitioning calls. Field " << fid
               << " has serdez function " << serdez 
-              << " and was passed to create-by-association operation (UID "
-              << get_unique_op_id() << ") in parent task "
-              << parent_ctx->get_task_name() << " (UID "
-              << parent_ctx->get_unique_id() << ").";
+              << " and was passed to create-by-association " << *this << ".";
       }
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       map_id = id;
