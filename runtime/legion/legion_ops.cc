@@ -7463,16 +7463,14 @@ namespace Legion {
                               &acquired_instances, unacquired, 
                               runtime->safe_mapper);
       if (bad_tree > 0)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from invocation of 'map_copy' "
-                      "on mapper %s. Mapper selected an instance from "
-                      "region tree %lld to satisfy %s region requirement %d "
-                      "for explicit region-to_region copy in task %s (ID %lld) "
-                      "but the logical region for this requirement is from "
-                      "region tree %lld.", mapper->get_mapper_name(), 
-                      bad_tree, get_req_type_name<REQ_TYPE>(), ridx,
-                      parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                      req.region.get_tree_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_copy' on mapper "
+          << mapper->get_mapper_name() << ". Mapper selected an instance from "
+          << "region tree " << bad_tree << " to satisfy "
+          << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
+          << "for explicit region-to_region " << *this
+          << " but the logical region for this requirement is from region tree "
+          << req.region.get_tree_id() << ".";
       if (!missing_fields.empty())
       {
         for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
@@ -7486,15 +7484,13 @@ namespace Legion {
           log_run.error("Missing instance for field %s (FieldID: %d)",
                         static_cast<const char*>(name), *it);
         }
-        REPORT_LEGION_ERROR(ERROR_MISSING_INSTANCE_FIELD,
-                      "Invalid mapper output from invocation of 'map_copy' "
-                      "on mapper %s. Mapper failed to specify a physical "
-                      "instance for %zd fields of the %s region requirement %d "
-                      "of explicit region-to-region copy in task %s (ID %lld). "
-                      "The missing fields are listed below.",
-                      mapper->get_mapper_name(), missing_fields.size(), 
-                      get_req_type_name<REQ_TYPE>(), ridx,
-                      parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_copy' on mapper "
+          << mapper->get_mapper_name() << ". Mapper failed to specify a physical "
+          << "instance for " << missing_fields.size() << " fields of the "
+          << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
+          << "of explicit region-to-region " << *this 
+          << ". The missing fields are listed above.";
       }
       if (!unacquired.empty())
       {
@@ -7502,80 +7498,59 @@ namespace Legion {
               unacquired.begin(); it != unacquired.end(); it++)
         {
           if (acquired_instances.find(*it) == acquired_instances.end())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from 'map_copy' invocation "
-                          "on mapper %s. Mapper selected physical instance "
-                          "for %s region requirement %d of explicit region-to-"
-                          "region copy in task %s (ID %lld) which has already "
-                          "been collected. If the mapper had properly acquired "
-                          "this instance as part of the mapper call it would "
-                          "have detected this. Please update the mapper to "
-                          "abide by proper mapping conventions.",
-                          mapper->get_mapper_name(), 
-                          get_req_type_name<REQ_TYPE>(), ridx,
-                          parent_ctx->get_task_name(),
-                          parent_ctx->get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from 'map_copy' invocation on mapper "
+              << mapper->get_mapper_name() << ". Mapper selected physical instance for "
+              << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
+              << " of explicit region-to-region " << *this << " which has already "
+              << "been collected. If the mapper had properly acquired this instance "
+              << "as part of the mapper call it would have detected this. Please "
+              << "update the mapper to abide by proper mapping conventions.";
         }
         // If we did successfully acquire them, still issue the warning
-        REPORT_LEGION_WARNING(LEGION_WARNING_MAPPER_FAILED_ACQUIRE,
-                        "mapper %s failed to acquire instances "
-                        "for %s region requirement %d of explicit region-to-"
-                        "region copy in task %s (ID %lld) in 'map_copy' call. "
-                        "You may experience undefined behavior as a "
-                        "consequence.", mapper->get_mapper_name(),
-                        get_req_type_name<REQ_TYPE>(), ridx,
-                        parent_ctx->get_task_name(),
-                        parent_ctx->get_unique_id());
+        Exception(MAPPER_EXCEPTION, this)
+          << "Mapper " << mapper->get_mapper_name() << " failed to acquire instances "
+          << "for " << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
+          << " of explicit region-to-region " << *this <<" in 'map_copy' call. "
+          << "You may experience undefined behavior as a consequence."; 
       }
       if (composite_idx >= 0)
       {
         // Destination is not allowed to have composite instances
         if (REQ_TYPE != SRC_REQ)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of 'map_copy' "
-                        "on mapper %s. Mapper requested the creation of a "
-                        "virtual instance for %s region requiremnt "
-                        "%d. Only source region requirements are permitted to "
-                        "be virtual instances for explicit region-to-region "
-                        "copy operations. Operation was issued in task %s "
-                        "(ID %lld).", mapper->get_mapper_name(), 
-                        get_req_type_name<REQ_TYPE>(), ridx,
-                        parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_copy' on mapper "
+            << mapper->get_mapper_name() << ". Mapper requested the creation of a "
+            << "virtual instance for " << get_req_type_name<REQ_TYPE>()
+            << " region requiremnt " << ridx 
+            << ". Only source region requirements are permitted to be virtual "
+            << "instances for explicit region-to-region " << *this << ".";
         if (is_reduce)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of 'map_copy' "
-                        "on mapper %s. Mapper requested the creation of a "
-                        "virtual instance for the %s requirement %d of "
-                        "an explicit region-to-region reduction. Only real "
-                        "physical instances are permitted to be sources of "
-                        "explicit region-to-region reductions. Operation was "
-                        "issued in task %s (ID %lld).", mapper->get_mapper_name(),
-                        get_req_type_name<REQ_TYPE>(), ridx, 
-                        parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_copy' on mapper "
+            << mapper->get_mapper_name() << ". Mapper requested the creation of a "
+            << "virtual instance for the " << get_req_type_name<REQ_TYPE>()
+            << " requirement " << ridx << " of an explicit region-to-region "
+            << "reduction for " << *this << ". Only real physical instances "
+            << "are permitted to be sources of explicit region-to-region reductions.";
         if (ridx < src_indirect_requirements.size())
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of 'map_copy' "
-                        "on mapper %s. Mapper requested the creation of a "
-                        "virtual instance for %s region requiremnt "
-                        "%d. Only source region requirements without source "
-                        "indirection requirements are permitted to "
-                        "be virtual instances for explicit region-to-region "
-                        "copy operations. Operation was issued in task %s "
-                        "(ID %lld).", mapper->get_mapper_name(), 
-                        get_req_type_name<REQ_TYPE>(), ridx,
-                        parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_copy' on mapper "
+            << mapper->get_mapper_name() << ". Mapper requested the creation of a "
+            << "virtual instance for " << get_req_type_name<REQ_TYPE>()
+            << " region requiremnt " << ridx 
+            << ". Only source region requirements without source indirection "
+            << "requirements are permitted to be virtual instances for explicit "
+            << "region-to-region " << *this << ".";
         if (ridx < dst_indirect_requirements.size())
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of 'map_copy' "
-                        "on mapper %s. Mapper requested the creation of a "
-                        "virtual instance for %s region requiremnt %d. "
-                        "Only source region requirements without destination "
-                        "indirection requirements are permitted to "
-                        "be virtual instances for explicit region-to-region "
-                        "copy operations. Operation was issued in task %s "
-                        "(ID %lld).", mapper->get_mapper_name(), 
-                        get_req_type_name<REQ_TYPE>(), ridx,
-                        parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_copy' on mapper "
+            << mapper->get_mapper_name() << ". Mapper requested the creation of a "
+            << "virtual instance for " << get_req_type_name<REQ_TYPE>()
+            << " region requiremnt " << ridx 
+            << ". Only source region requirements without destination "
+            << "indirection requirements are permitted to be virtual "
+            << "instances for explicit region-to-region " << *this << ".";
       }
       if (!runtime->safe_mapper)
         return composite_idx;
@@ -7588,16 +7563,12 @@ namespace Legion {
           continue;
         PhysicalManager *manager = man->as_physical_manager();
         if (!manager->meets_regions(regions_to_check))
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of 'map_copy' "
-                        "on mapper %s. Mapper specified an instance for %s "
-                        "region requirement at index %d that does not meet "
-                        "the logical region requirement. The copy operation "
-                        "was issued in task %s (ID %lld).",
-                        mapper->get_mapper_name(), 
-                        get_req_type_name<REQ_TYPE>(), ridx, 
-                        parent_ctx->get_task_name(),
-                        parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_copy' on mapper "
+            << mapper->get_mapper_name() << ". Mapper specified an instance for "
+            << get_req_type_name<REQ_TYPE>() << " region requirement at index "
+            << ridx << " of " << *this << " that does not meet the logical "
+            << "region requirement.";
       }
       // Make sure all the destinations are real instances, this has
       // to be true for all kinds of explicit copies including reductions
@@ -7606,15 +7577,12 @@ namespace Legion {
         if ((REQ_TYPE == SRC_REQ) && (int(idx) == composite_idx))
           continue;
         if (!targets[idx].get_manager()->is_physical_manager())
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of 'map_copy' "
-                        "on mapper %s. Mapper specified an illegal "
-                        "specialized instance as the target for %s "
-                        "region requirement %d of an explicit copy operation "
-                        "in task %s (ID %lld).", mapper->get_mapper_name(),
-                        get_req_type_name<REQ_TYPE>(), ridx,
-                        parent_ctx->get_task_name(), 
-                        parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_copy' on mapper "
+            << mapper->get_mapper_name() << ". Mapper specified an illegal "
+            << "specialized instance as the target for " 
+            << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
+            << " of " << *this << ".";
       }
       return composite_idx;
     }
@@ -7996,8 +7964,8 @@ namespace Legion {
     {
       // Enumerate the points
       enumerate_points(); 
-      // Check for interfering point requirements in debug mode
-      if (runtime->check_privileges)
+      // Check for interfering point requirements in safe mode
+      if (runtime->safe_model)
         check_point_requirements();
       // Launch the points
       std::vector<RtEvent> mapped_preconditions(points.size());
@@ -8196,18 +8164,16 @@ namespace Legion {
       unsigned actual_idx2 = is_src2 ? idx2 : (idx2 - src_requirements.size());
       // For now we only issue this warning in debug mode, eventually we'll
       // turn this on only when users request it when we do our debug refactor
-      REPORT_LEGION_WARNING(LEGION_WARNING_REGION_REQUIREMENTS_INDEX,
-                      "Region requirements %d and %d of index copy %lld in "
-                      "parent task %s (UID %lld) are potentially interfering. "
-                      "It's possible that this is a false positive if there "
-                      "are projection region requirements and each of the "
-                      "point copies are non-interfering. If the runtime is "
-                      "built in debug mode then it will check that the region "
-                      "requirements of all points are actually "
-                      "non-interfering. If you see no further error messages "
-                      "for this index task launch then everything is good.",
-                      actual_idx1, actual_idx2, unique_op_id, 
-                      parent_ctx->get_task_name(), parent_ctx->get_unique_id());
+      Exception(WARNING_EXCEPTION, this)
+        << "Region requirements " << actual_idx1 << " and " << actual_idx2
+        << " of index " << *this << " are potentially interfering. "
+        << "It's possible that this is a false positive if there "
+        << "are projection region requirements and each of the "
+        << "point copies are non-interfering. If the runtime is "
+        << "built in debug mode then it will check that the region "
+        << "requirements of all points are actually "
+        << "non-interfering. If you see no further error messages "
+        << "for this index task launch then everything is good.",
 #endif
       interfering_requirements.insert(std::pair<unsigned,unsigned>(idx1,idx2));
     }
@@ -8398,6 +8364,12 @@ namespace Legion {
                   point_reqs[it->first].get_index_space(), 
                   other_reqs[it->second].get_index_space()))
             {
+              Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+                << "Index space copy launch has interfering region requirements "
+                << it->first << " of point " << current_point 
+                << " and region requirement " << it->second << " of point "
+                << oit->first << " of " << *this << " that are interfering.";
+#if 0
               switch (current_point.get_dim())
               {
                 case 1:
@@ -8579,6 +8551,7 @@ namespace Legion {
                 default:
                   assert(false);
               }
+#endif
             }
           }
         }
@@ -8809,12 +8782,9 @@ namespace Legion {
             const IndexSpace dst_space = 
               dst_indirect_requirements[idx].region.get_index_space();
             if (src_space != dst_space)
-              REPORT_LEGION_ERROR(ERROR_COPY_SCATTER_REQUIREMENT,
-                  "Mismatch between source indirect and destination indirect "
-                  "index spaces for requirement %d for copy operation "
-                  "(ID %lld) in parent task %s (ID %lld)",
-                  idx, get_unique_id(), parent_ctx->get_task_name(),
-                  parent_ctx->get_unique_id())
+              Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+                << "Mismatch between source indirect and destination indirect "
+                << "index spaces for requirement " << idx << " for " << *this << ".";
           }
         }
       }
@@ -9475,12 +9445,11 @@ namespace Legion {
             const Domain *domain = static_cast<const Domain*>(
                 impl->find_runtime_buffer(parent_ctx, future_size));
             if (future_size != sizeof(Domain))
-              REPORT_LEGION_ERROR(ERROR_CREATION_FUTURE_TYPE_MISMATCH,
-                  "Future for index space creation in task %s (UID %lld) does "
-                  "not have the same size as sizeof(Domain) (e.g. %zd bytes). "
-                  "The type of futures for index space domains must be a "
-                  "Domain.", parent_ctx->get_task_name(), 
-                  parent_ctx->get_unique_id(), sizeof(Domain))
+              Exception(DYNAMIC_TYPE_EXCEPTION, this)
+                << "Future for index space creation by " << *this 
+                << " does not have the same size as sizeof(Domain) (e.g. "
+                << sizeof(Domain) << " bytes). The type of futures for "
+                << "index space domains must be a Domain."; 
             if (owner && index_space_node->set_domain(*domain)) 
               delete index_space_node;
             break;      
@@ -9494,12 +9463,12 @@ namespace Legion {
               const size_t *field_size = static_cast<const size_t*>(
                       impl->find_runtime_buffer(parent_ctx, future_size));
               if (future_size != sizeof(size_t))
-                REPORT_LEGION_ERROR(ERROR_FUTURE_SIZE_MISMATCH,
-                    "Size of future passed into dynamic field allocation for "
-                    "field %d is %zd bytes which not the same as sizeof(size_t)"
-                    " (%zd bytes). Futures passed into field allocation calls "
-                    "must contain data of the type size_t.",
-                    fields[idx], future_size, sizeof(size_t))
+                Exception(DYNAMIC_TYPE_EXCEPTION, this)
+                  << "Size of future passed into dynamic field allocation for "
+                  << "field " << fields[idx] << " is " << future_size
+                  << " bytes which not the same as sizeof(size_t) ("
+                  << sizeof(size_t) << " bytes). Futures passed into field "
+                  << "allocation calls must contain data of the type size_t.";
               if (owner)
               {
                 field_space_node->update_field_size(fields[idx], *field_size,
@@ -11116,12 +11085,11 @@ namespace Legion {
         const RegionRequirement &region_req =
           restricted_region.impl->get_requirement();
         if (region_req.privilege_fields != launcher.fields)
-          REPORT_LEGION_ERROR(ERROR_BAD_FIELD_PRIVILEGES,
-              "The privilege fields for release operation %lld in "
-              "task %s (UID %lld) do not match the fields for the "
-              "PhysicalRegion object being used for establishing "
-              "restricted coherence. The field sets must match exactly.",
-              get_unique_op_id(), ctx->get_task_name(), ctx->get_unique_id())
+          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+            << "The privilege fields for " << *this 
+            << "do not match the fields for the PhysicalRegion object being "
+            << "used for establishing restricted coherence. "
+            << "The field sets must match exactly.";
       }
       parent_region = launcher.parent_region;
       fields = launcher.fields; 
@@ -11867,12 +11835,11 @@ namespace Legion {
         const RegionRequirement &region_req =
           restricted_region.impl->get_requirement();
         if (region_req.privilege_fields != launcher.fields)
-          REPORT_LEGION_ERROR(ERROR_BAD_FIELD_PRIVILEGES,
-              "The privilege fields for release operation %lld in "
-              "task %s (UID %lld) do not match the fields for the "
-              "PhysicalRegion object being used for establishing "
-              "restricted coherence. The field sets must match exactly.",
-              get_unique_op_id(), ctx->get_task_name(), ctx->get_unique_id())
+          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+            << "The privilege fields for " << *this
+            << " do not match the fields for the PhysicalRegion object being "
+            << "used for establishing restricted coherence. The field sets "
+            << "must match exactly.";
       }
       parent_region = launcher.parent_region;
       fields = launcher.fields; 
@@ -13288,11 +13255,10 @@ namespace Legion {
       tag = launcher.mapping_tag;
       parent_task = ctx->get_task();
       if (ctx->is_concurrent_context())
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_CONCURRENT_EXECUTION,
-            "Illegal nested must epoch launch inside task %s (UID %lld) "
-            "which has a concurrent ancesstor (must epoch or index task). "
-            "Nested concurrency is not supported.", 
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+        Exception(FATAL_EXCEPTION, this)
+          << "Illegal nested must epoch launch which has a concurrent "
+          << "ancesstor (must epoch or concurrent index task). Nested "
+          << "concurrency is not currently supported.";
       if (runtime->legion_spy_enabled)
         LegionSpy::log_must_epoch_operation(ctx->get_unique_id(), unique_op_id);
       return result_map;
@@ -13612,27 +13578,18 @@ namespace Legion {
           Processor proc = output.task_processors[idx];
           SingleTask *task = single_tasks[idx];
           if (!proc.exists())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of "
-                "'map_must_epoch' on mapper %s. Mapper failed to specify "
-                "a valid processor for task %s (ID %lld) at index %d. Call "
-                "occurred in parent task %s (ID %lld).", 
-                mapper->get_mapper_name(), task->get_task_name(),
-                task->get_unique_id(), idx, parent_ctx->get_task_name(),
-                parent_ctx->get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'map_must_epoch' on mapper "
+              << mapper->get_mapper_name() << ". Mapper failed to specify "
+              << "a valid processor for " << *this << " at index " << idx << ".";
           if (target_procs.find(proc) != target_procs.end())
           {
             SingleTask *other = target_procs[proc];
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of "
-                "'map_must_epoch' on mapper %s. Mapper requests both tasks "
-                "%s (ID %lld) and %s (ID %lld) be mapped to the same "
-                "processor (" IDFMT ") which is illegal in a must epoch "
-                "launch. Must epoch was launched inside of task %s (ID %lld).",
-                mapper->get_mapper_name(), other->get_task_name(),
-                other->get_unique_id(), task->get_task_name(),
-                task->get_unique_id(), proc.id, parent_ctx->get_task_name(),
-                parent_ctx->get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'map_must_epoch' on mapper "
+              << mapper->get_mapper_name() << ". Mapper requests both tasks "
+              << *other << " and " << *task << " be mapped to the same "
+              << "processor (" << proc << ") which is illegal in a must epoch launch.";
           }
           target_procs[proc] = task;
           task->target_proc = proc;
@@ -14077,11 +14034,10 @@ namespace Legion {
         {
           TaskOp *src_task = find_task_by_index(src_index);
           TaskOp *dst_task = find_task_by_index(dst_index);
-          REPORT_LEGION_ERROR(ERROR_MUST_EPOCH_DEPENDENCE,
-                        "MUST EPOCH ERROR: dependence between task "
-              "%s (ID %lld) and task %s (ID %lld)\n",
-              src_task->get_task_name(), src_task->get_unique_id(),
-              dst_task->get_task_name(), dst_task->get_unique_id())
+          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+            << "Detected dependence between two tasks " << *src_task
+            << " and " << *dst_task << ". Non-simulataneous dependences "
+            << "between two tasks in a must-epoch launch are not permitted.";
         }
       }
     }
@@ -14215,15 +14171,15 @@ namespace Legion {
       {
         TaskOp *src_task = find_task_by_index(src_index);
         TaskOp *dst_task = find_task_by_index(dst_index);
-        REPORT_LEGION_ERROR(ERROR_MUST_EPOCH_DEPENDENCE,
-                      "MUST EPOCH ERROR: dependence between region %d "
-            "of task %s (ID %lld) and region %d of task %s (ID %lld) of "
-            " type %s", src_idx, src_task->get_task_name(),
-            src_task->get_unique_id(), dst_idx, 
-            dst_task->get_task_name(), dst_task->get_unique_id(),
-            (dtype == LEGION_TRUE_DEPENDENCE) ? "TRUE DEPENDENCE" :
+        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+          << "Detected dependence between region " << src_idx 
+          << " of " << *src_task << " and " << dst_idx << " of " 
+          << *dst_task << " of type " <<
+            ((dtype == LEGION_TRUE_DEPENDENCE) ? "TRUE DEPENDENCE" :
             (dtype == LEGION_ANTI_DEPENDENCE) ? "ANTI DEPENDENCE" :
               "ATOMIC DEPENDENCE")
+          << ". Non-simultaneous dependences between two tasks in a "
+          << "must epoch_launch are not permitted.";
       }
       else if (dtype == LEGION_SIMULTANEOUS_DEPENDENCE)
       {
@@ -15485,14 +15441,11 @@ namespace Legion {
         // if the partition operation is an image or image-range
         if (runtime->safe_mapper && !partition_node->is_complete(false) &&
               !thunk->safe_projection(partition_node->handle))
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of "
-                        "'select_partition_projection' on mapper %s."
-                        "Mapper selected a logical partition that is "
-                        "not complete for dependent partitioning operation "
-                        "in task %s (UID %lld).", mapper->get_mapper_name(),
-                        parent_ctx->get_task_name(), 
-                        parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of "
+            << "'select_partition_projection' on mapper "
+            << mapper->get_mapper_name() << ".Mapper selected a logical "
+            << "partition that is not complete for " << *this << ".";
         // Update the region requirement and other information
         requirement.partition = output.chosen_partition;
         requirement.handle_type = LEGION_PARTITION_PROJECTION;
@@ -15783,15 +15736,12 @@ namespace Legion {
                                 &acquired_instances, unacquired, 
                                 runtime->safe_mapper);
       if (bad_tree > 0)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from invocation of 'map_partition'"
-                      " on mapper %s. Mapper selected instance from region "
-                      "tree %lld to satisfy a region requirement for a partition "
-                      "mapping in task %s (ID %lld) whose logical region is "
-                      "from region tree %lld.", mapper->get_mapper_name(),
-                      bad_tree, parent_ctx->get_task_name(), 
-                      parent_ctx->get_unique_id(), 
-                      requirement.region.get_tree_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_partition' on mapper "
+          << mapper->get_mapper_name() << ". Mapper selected instance from region tree " 
+          << bad_tree << " to satisfy a region requirement for " << *this
+          << " whose logical region is from region tree "
+          << requirement.region.get_tree_id() << ".";
       if (!missing_fields.empty())
       {
         for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
@@ -15805,14 +15755,12 @@ namespace Legion {
           log_run.error("Missing instance for field %s (FieldID: %d)",
                         static_cast<const char*>(name), *it);
         }
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from invocation of 'map_partition'"
-                      " on mapper %s. Mapper failed to specify a physical "
-                      "instance for %zd fields of the region requirement to "
-                      "a partition mapping in task %s (ID %lld). The missing "
-                      "fields are listed below.", mapper->get_mapper_name(),
-                      missing_fields.size(), parent_ctx->get_task_name(),
-                      parent_ctx->get_unique_id());
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_partition' on mapper "
+          << mapper->get_mapper_name() << ". Mapper failed to specify a physical "
+          << "instance for " << missing_fields.size() 
+          << " fields of the region requirement for " << *this
+          << ". This missing fields are listed above.";
       }
       if (!unacquired.empty())
       {
@@ -15820,35 +15768,26 @@ namespace Legion {
               unacquired.begin(); it != unacquired.end(); it++)
         {
           if (acquired_instances.find(*it) == acquired_instances.end())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from 'map_partition' "
-                        "invocation on mapper %s. Mapper selected physical "
-                        "instance for partition mapping in task %s (ID %lld) "
-                        "which has already been collected. If the mapper had "
-                        "properly acquired this instance as part of the mapper "
-                        "call it would have detected this. Please update the "
-                        "mapper to abide by proper mapping conventions.", 
-                        mapper->get_mapper_name(), parent_ctx->get_task_name(),
-                        parent_ctx->get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from 'map_partition' invocation on mapper "
+              << mapper->get_mapper_name() << ". Mapper selected physical "
+              << "instance for " << *this << " which has already been collected. "
+              << "If the mapper had properly acquired this instance as part of the "
+              << "mapper call it would have detected this. Please update the "
+              << "mapper to abide by proper mapping conventions."; 
         }
         // If we did successfully acquire them, still issue the warning
-        REPORT_LEGION_WARNING(ERROR_MAPPER_FAILED_ACQUIRE,
-                        "WARNING: mapper %s faield to acquire instance "
-                        "for partition mapping operation in task %s (ID %lld) "
-                        "in 'map_partition' call. You may experience undefined "
-                        "behavior as a consequence.", mapper->get_mapper_name(),
-                        parent_ctx->get_task_name(), 
-                        parent_ctx->get_unique_id())
+        Exception(WARNING_EXCEPTION)
+          << "Mapper " << mapper->get_mapper_name() 
+          << " faield to acquire instance for " << *this
+          << "in 'map_partition' call. You may experience undefined "
+          << "behavior as a consequence.";
       }
       if (virtual_index >= 0)
-      {
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from invocation of 'map_partition'"
-                      " on mapper %s. Mapper requested creation of a composite "
-                      "instance for partition mapping in task %s (ID %lld).",
-                      mapper->get_mapper_name(), parent_ctx->get_task_name(),
-                      parent_ctx->get_unique_id())
-      } 
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_partition' on mapper "
+          << mapper->get_mapper_name() << ". Mapper requested creation of a virtual "
+          << "mapping for " << *this << ".";
       // If we are doing unsafe mapping, then we can return
       if (!runtime->safe_mapper)
         return output.track_valid_region;
@@ -15859,23 +15798,15 @@ namespace Legion {
       {
         PhysicalManager *manager = mapped_instances[idx].get_physical_manager();
         if (!manager->meets_regions(regions_to_check))
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of "
-                        "'map_partition' on mapper %s. Mapper specified an "
-                        "instance that does not meet the logical region "
-                        "requirement. The dependent partition operation was "
-                        "issued in task %s (ID %lld).", 
-                        mapper->get_mapper_name(),
-                        parent_ctx->get_task_name(),
-                        parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_partition' on mapper "
+            << mapper->get_mapper_name() << ". Mapper specified an instance that "
+            << "does not meet the logical region requirement for " << *this << ". ";
         if (manager->is_reduction_manager())
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of "
-                        "'map_partition' on mapper %s. Mapper selected an "
-                        "illegal specialized reduction instance for dependent "
-                        "partition operation in task %s (ID %lld).",
-                        mapper->get_mapper_name(),parent_ctx->get_task_name(),
-                        parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_partition' on mapper "
+            << mapper->get_mapper_name() << ". Mapper selected an illegal specialized "
+            << "reduction instance for " << *this << "."; 
         // This is a temporary check to guarantee that instances for 
         // dependent partitioning operations are in memories that 
         // Realm supports for now. In the future this should be fixed
@@ -15889,23 +15820,13 @@ namespace Legion {
             (mem_kind != Memory::SOCKET_MEM) &&
             (mem_kind != Memory::Z_COPY_MEM))
         {
-          const char *mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-            REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-          };
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of "
-                        "'map_partition' on mapper %s for dependent partition "
-                        "operation %lld in task %s (UID %lld). Mapper specified"
-                        " an instance in memory(memories) with kind %s which is"
-                        " not supported for dependent partition operations "
-                        "currently (see Legion issue #516). Please pick an "
-                        "instance in a CPU-visible memory for now.",
-                        mapper->get_mapper_name(), get_unique_op_id(),
-                        parent_ctx->get_task_name(), 
-                        parent_ctx->get_unique_id(), 
-                        mem_names[mem_kind])
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_partition' on mapper "
+            << mapper->get_mapper_name() << " for " << *this << ". Mapper specified"
+            << " an instance in memory(memories) with kind " << mem_kind 
+            << " which is not supported for dependent partition operations "
+            << "currently (see Legion issue #516). Please pick an "
+            << "instance in a CPU-visible memory for now.";
         }
       }
       return output.track_valid_region;
