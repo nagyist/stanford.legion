@@ -240,7 +240,7 @@ namespace Legion {
                        trace->skip_analysis(r.parent.get_tree_id()))
     //--------------------------------------------------------------------------
     {
-      if ((trace != NULL) && trace->has_physical_trace())
+      if (!skip_analysis && (trace != NULL) && trace->has_physical_trace())
         trace->get_physical_trace()->record_parent_req_fields(
             op->find_parent_index(idx), mask);
     }

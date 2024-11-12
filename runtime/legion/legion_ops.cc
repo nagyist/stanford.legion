@@ -4950,6 +4950,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -6938,17 +6939,39 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (idx < src_parent_indexes.size())
+      {
+        if (src_parent_indexes[idx] == DEFERRED_PARENT_INDEX)
+          src_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              src_requirements[idx], idx, false/*skip privilege*/, true/*force*/);
         return src_parent_indexes[idx];
+      }
       idx -= src_parent_indexes.size();
       if (idx < dst_parent_indexes.size())
+      {
+        if (dst_parent_indexes[idx] == DEFERRED_PARENT_INDEX)
+          dst_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              dst_requirements[idx], src_requirements.size() + idx,
+              false/*skip privilege*/, true/*force*/);
         return dst_parent_indexes[idx];
+      }
       idx -= dst_parent_indexes.size();
       if (idx < gather_parent_indexes.size())
+      {
+        if (gather_parent_indexes[idx] == DEFERRED_PARENT_INDEX)
+          gather_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              src_indirect_requirements[idx], src_requirements.size() + 
+              dst_requirements.size() + idx, false/*skip privilege*/, true/*force*/);
         return gather_parent_indexes[idx];
+      }
       idx -= gather_parent_indexes.size();
 #ifdef DEBUG_LEGION
       assert(idx < scatter_parent_indexes.size());
 #endif
+      if (scatter_parent_indexes[idx] == DEFERRED_PARENT_INDEX)
+          scatter_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              dst_indirect_requirements[idx], src_requirements.size() +
+              dst_requirements.size() + src_indirect_requirements.size() + idx,
+              false/*skip privilege*/, true/*force*/);
       return scatter_parent_indexes[idx];
     }
 
@@ -9951,6 +9974,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx < parent_req_indexes.size());
+      assert(parent_req_indexes[idx] != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_indexes[idx];
     }
@@ -10343,6 +10367,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -10527,6 +10552,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_idx != DEFERRED_PARENT_INDEX);
 #endif
       return parent_idx;
     }
@@ -10970,6 +10996,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -11350,6 +11377,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
 #endif
+      if (parent_req_index == DEFERRED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, true/*skip*/, true/*force*/);
       return parent_req_index;
     }
 
@@ -12104,6 +12134,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
 #endif
+      if (parent_req_index == DEFERRED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, true/*skip*/, true/*force*/);
       return parent_req_index;
     }
 
@@ -15989,6 +16022,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -17112,6 +17146,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
 #endif
+      if (parent_req_index == DEFERRED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, false/*skip*/, true/*force*/);
       return parent_req_index;
     }
 
@@ -18101,6 +18138,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -18645,6 +18683,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -19149,6 +19188,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -19899,6 +19939,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -20214,6 +20255,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != DEFERRED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }

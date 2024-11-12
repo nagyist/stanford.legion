@@ -3239,9 +3239,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     unsigned InnerContext::find_parent_region_index(Operation *op,
-        const RegionRequirement &req, unsigned index, bool skip_privileges)
+        const RegionRequirement &req, unsigned index, bool skip_privileges,
+        bool force_compute)
     //--------------------------------------------------------------------------
     {
+      // If we're in a fixed trace that means we've already done this check
+      // before and we know we've got a parent region so we'll defer actually
+      // doing it unless it is really necessary
+      if (!force_compute && (current_trace != NULL) && current_trace->is_fixed())
+        return Operation::DEFERRED_PARENT_INDEX;
       // We can check the fixed region requirements without the lock
       bool found_parent = false;
       for (unsigned idx = 0; idx < regions.size(); idx++)
