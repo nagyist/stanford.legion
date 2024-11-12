@@ -15077,7 +15077,7 @@ namespace Legion {
       requirement.add_field(fid);
       if (runtime->safe_model)
       {
-        verify_requirement(requirement);
+        verify_requirement(requirement, 0, true/*allow projection*/);
         const size_t field_size = 
           runtime->get_field_size(projection.get_field_space(), fid);
         const size_t coord_size = runtime->get_coordinate_size(
@@ -15137,7 +15137,7 @@ namespace Legion {
       requirement.add_field(fid);
       if (runtime->safe_model)
       {
-        verify_requirement(requirement);
+        verify_requirement(requirement, 0, true/*allow projection*/);
         const size_t field_size = 
           runtime->get_field_size(projection.get_field_space(), fid);
         const size_t coord_size = runtime->get_coordinate_size(
