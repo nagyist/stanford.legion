@@ -184,7 +184,9 @@ namespace Legion {
       void initialize_base_task(InnerContext *ctx,
             const Predicate &p, Processor::TaskFuncID tid,
             Provenance *provenance);
+#if 0
       void validate_region_requirements(void);
+#endif
     public:
       bool select_task_options(bool prioritize);
     public:
@@ -255,7 +257,7 @@ namespace Legion {
       void complete_point_projection(void);
       void finalize_output_region_trees(void);
     public:
-      void compute_parent_indexes(InnerContext *alt_context = NULL);
+      void compute_parent_indexes(bool force);
       void perform_intra_task_alias_analysis(void);
     public:
       // From Memoizable

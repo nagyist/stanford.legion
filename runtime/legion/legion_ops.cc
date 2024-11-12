@@ -4957,7 +4957,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_req_index != DEFERRED_PARENT_INDEX);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -6206,12 +6206,20 @@ namespace Legion {
       std::set<RtEvent> preconditions;
       src_versions.resize(src_requirements.size());
       for (unsigned idx = 0; idx < src_requirements.size(); idx++)
+      {
+        if (src_parent_indexes[idx] == TRACED_PARENT_INDEX)
+          src_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              src_requirements[idx], idx, false/*skip*/, true/*force*/);
         perform_versioning_analysis(idx, src_requirements[idx],
             src_versions[idx], preconditions);
+      }
       unsigned offset = src_requirements.size();
       dst_versions.resize(dst_requirements.size());
       for (unsigned idx = 0; idx < dst_requirements.size(); idx++)
       {
+        if (dst_parent_indexes[idx] == TRACED_PARENT_INDEX)
+          dst_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              dst_requirements[idx], offset + idx, false/*skip*/, true/*force*/);
         const bool is_reduce_req = IS_REDUCE(dst_requirements[idx]);
         // Perform this dependence analysis as if it was READ_WRITE
         // so that we can get the version numbers correct
@@ -6228,16 +6236,26 @@ namespace Legion {
       {
         gather_versions.resize(src_indirect_requirements.size());
         for (unsigned idx = 0; idx < src_indirect_requirements.size(); idx++)
+        {
+          if (gather_parent_indexes[idx] == TRACED_PARENT_INDEX)
+            gather_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+                src_indirect_requirements[idx], offset + idx, false/*skip*/, true/*force*/);
           perform_versioning_analysis(offset + idx, src_indirect_requirements[idx],
               gather_versions[idx], preconditions);
+        }
         offset += src_indirect_requirements.size();
       }
       if (!dst_indirect_requirements.empty())
       {
         scatter_versions.resize(dst_indirect_requirements.size());
         for (unsigned idx = 0; idx < dst_indirect_requirements.size(); idx++)
+        {
+          if (scatter_parent_indexes[idx] == TRACED_PARENT_INDEX)
+            scatter_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+                dst_indirect_requirements[idx], offset + idx, false/*skip*/, true/*force*/);
           perform_versioning_analysis(offset + idx, dst_indirect_requirements[idx],
               scatter_versions[idx], preconditions);
+        }
       }
       if (!preconditions.empty())
       {
@@ -6947,38 +6965,32 @@ namespace Legion {
     {
       if (idx < src_parent_indexes.size())
       {
-        if (src_parent_indexes[idx] == DEFERRED_PARENT_INDEX)
-          src_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
-              src_requirements[idx], idx, false/*skip privilege*/, true/*force*/);
+#ifdef DEBUG_LEGION
+        assert(src_parent_indexes[idx] != TRACED_PARENT_INDEX);
+#endif
         return src_parent_indexes[idx];
       }
       idx -= src_parent_indexes.size();
       if (idx < dst_parent_indexes.size())
       {
-        if (dst_parent_indexes[idx] == DEFERRED_PARENT_INDEX)
-          dst_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
-              dst_requirements[idx], src_requirements.size() + idx,
-              false/*skip privilege*/, true/*force*/);
+#ifdef DEBUG_LEGION
+        assert(dst_parent_indexes[idx] != TRACED_PARENT_INDEX);
+#endif
         return dst_parent_indexes[idx];
       }
       idx -= dst_parent_indexes.size();
       if (idx < gather_parent_indexes.size())
       {
-        if (gather_parent_indexes[idx] == DEFERRED_PARENT_INDEX)
-          gather_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
-              src_indirect_requirements[idx], src_requirements.size() + 
-              dst_requirements.size() + idx, false/*skip privilege*/, true/*force*/);
+#ifdef DEBUG_LEGION
+        assert(gather_parent_indexes[idx] != TRACED_PARENT_INDEX);
+#endif
         return gather_parent_indexes[idx];
       }
       idx -= gather_parent_indexes.size();
 #ifdef DEBUG_LEGION
       assert(idx < scatter_parent_indexes.size());
+      assert(scatter_parent_indexes[idx] != TRACED_PARENT_INDEX);
 #endif
-      if (scatter_parent_indexes[idx] == DEFERRED_PARENT_INDEX)
-          scatter_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
-              dst_indirect_requirements[idx], src_requirements.size() +
-              dst_requirements.size() + src_indirect_requirements.size() + idx,
-              false/*skip privilege*/, true/*force*/);
       return scatter_parent_indexes[idx];
     }
 
@@ -7992,6 +8004,24 @@ namespace Legion {
     void IndexCopyOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
+      // Check to see if we're in a trace in which case we need to compute the
+      // parent region indexes for all the region requirements again
+      if (trace != nullptr)
+      {
+        unsigned offset = 0;
+        for (unsigned idx = 0; idx < src_requirements.size(); idx++)
+          src_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              src_requirements[idx], offset++, false/*skip*/, true/*force*/);
+        for (unsigned idx = 0; idx < dst_requirements.size(); idx++)
+          dst_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              dst_requirements[idx], offset++, false/*skip*/, true/*force*/);
+        for (unsigned idx = 0; idx < src_indirect_requirements.size(); idx++)
+          gather_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              src_indirect_requirements[idx], offset++, false/*skip*/, true/*force*/);
+        for (unsigned idx = 0; idx < dst_indirect_requirements.size(); idx++)
+          scatter_parent_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              dst_indirect_requirements[idx], offset++, false/*skip*/, true/*force*/);
+      }
       // Enumerate the points
       enumerate_points(); 
       // Check for interfering point requirements in safe mode
@@ -9981,7 +10011,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx < parent_req_indexes.size());
-      assert(parent_req_indexes[idx] != DEFERRED_PARENT_INDEX);
+      assert(parent_req_indexes[idx] != TRACED_PARENT_INDEX);
 #endif
       return parent_req_indexes[idx];
     }
@@ -10374,7 +10404,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_req_index != DEFERRED_PARENT_INDEX);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -10559,7 +10589,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_idx != DEFERRED_PARENT_INDEX);
+      assert(parent_idx != TRACED_PARENT_INDEX);
 #endif
       return parent_idx;
     }
@@ -11003,7 +11033,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_req_index != DEFERRED_PARENT_INDEX);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -11279,6 +11309,9 @@ namespace Legion {
     void AcquireOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
+      if (parent_req_index == TRACED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, true/*skip privileges*/, true/*force*/);
       std::set<RtEvent> preconditions;
       perform_versioning_analysis(0/*idx*/,
                                                    requirement,
@@ -11383,10 +11416,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
-      if (parent_req_index == DEFERRED_PARENT_INDEX)
-        parent_req_index = parent_ctx->find_parent_region_index(this,
-            requirement, 0/*idx*/, true/*skip*/, true/*force*/);
       return parent_req_index;
     }
 
@@ -12034,6 +12065,9 @@ namespace Legion {
     void ReleaseOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
+      if (parent_req_index == TRACED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, true/*skip privileges*/, true/*force*/);
       std::set<RtEvent> preconditions;
       perform_versioning_analysis(0/*idx*/,
                                                    requirement,
@@ -12140,10 +12174,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
-      if (parent_req_index == DEFERRED_PARENT_INDEX)
-        parent_req_index = parent_ctx->find_parent_region_index(this,
-            requirement, 0/*idx*/, true/*skip*/, true/*force*/);
       return parent_req_index;
     }
 
@@ -16029,7 +16061,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_req_index != DEFERRED_PARENT_INDEX);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -17062,6 +17094,9 @@ namespace Legion {
     void FillOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
+      if (parent_req_index == TRACED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, false/*skip privileges*/, true/*force*/);
       std::set<RtEvent> preconditions;
       const RtEvent view_ready = initialize_fill_view();
       if (view_ready.exists())
@@ -17152,10 +17187,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
-      if (parent_req_index == DEFERRED_PARENT_INDEX)
-        parent_req_index = parent_ctx->find_parent_region_index(this,
-            requirement, 0/*idx*/, false/*skip*/, true/*force*/);
       return parent_req_index;
     }
 
@@ -17540,6 +17573,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const RtEvent view_ready = initialize_fill_view();
+      if (parent_req_index == TRACED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, false/*skip privileges*/, true/*force*/);
       // Enumerate the points
       enumerate_points();
       // Check for interfering point requirements in debug mode
@@ -18145,7 +18181,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_req_index != DEFERRED_PARENT_INDEX);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -18690,7 +18726,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_req_index != DEFERRED_PARENT_INDEX);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -19195,7 +19231,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_req_index != DEFERRED_PARENT_INDEX);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -19946,7 +19982,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_req_index != DEFERRED_PARENT_INDEX);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }
@@ -20262,7 +20298,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx == 0);
-      assert(parent_req_index != DEFERRED_PARENT_INDEX);
+      assert(parent_req_index != TRACED_PARENT_INDEX);
 #endif
       return parent_req_index;
     }

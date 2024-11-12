@@ -3247,7 +3247,7 @@ namespace Legion {
       // before and we know we've got a parent region so we'll defer actually
       // doing it unless it is really necessary
       if (!force_compute && (current_trace != NULL) && current_trace->is_fixed())
-        return Operation::DEFERRED_PARENT_INDEX;
+        return Operation::TRACED_PARENT_INDEX;
       // We can check the fixed region requirements without the lock
       bool found_parent = false;
       for (unsigned idx = 0; idx < regions.size(); idx++)

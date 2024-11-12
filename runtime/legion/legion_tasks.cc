@@ -488,7 +488,12 @@ namespace Legion {
       RezCheck z(rez);
       rez.serialize(parent_req_indexes.size());
       for (unsigned idx = 0; idx < parent_req_indexes.size(); idx++)
+      {
+        if (parent_req_indexes[idx] == TRACED_PARENT_INDEX)
+          parent_req_indexes[idx] = parent_ctx->find_parent_region_index(this,
+              logical_regions[idx], idx, false/*skip privilege*/, true/*force*/);
         rez.serialize(parent_req_indexes[idx]);
+      }
       rez.serialize(memo_state);
       rez.serialize(map_origin);
       if (map_origin)
@@ -707,6 +712,7 @@ namespace Legion {
       local_function = false;
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void TaskOp::validate_region_requirements(void)
     //--------------------------------------------------------------------------
@@ -743,6 +749,7 @@ namespace Legion {
             "disallowed.", idx, get_task_name(), get_unique_id())
       }
     }
+#endif
 
     //--------------------------------------------------------------------------
     bool TaskOp::select_task_options(bool prioritize)
@@ -1019,6 +1026,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(idx < parent_req_indexes.size());
+      assert(parent_req_indexes[idx] != TRACED_PARENT_INDEX);
 #endif
       return parent_req_indexes[idx];
     }
@@ -1978,29 +1986,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void TaskOp::compute_parent_indexes(InnerContext *alt_context/*= NULL*/)
+    void TaskOp::compute_parent_indexes(bool force)
     //--------------------------------------------------------------------------
     {
-      parent_req_indexes.resize(get_region_count());
-      InnerContext *use_ctx = (alt_context == NULL) ? parent_ctx : alt_context;
+      parent_req_indexes.resize(logical_regions.size());
       for (unsigned idx = 0; idx < logical_regions.size(); idx++)
       {
-        int parent_index = 
-          use_ctx->find_parent_region_req(logical_regions[idx]);
-        if (parent_index < 0)
-          REPORT_LEGION_ERROR(ERROR_PARENT_TASK_TASK,
-                           "Parent task %s (ID %lld) of task %s "
-                           "(ID %lld) does not have a region "
-                           "requirement for region "
-                           "(%llu,%llu,%llu) as a parent of child task's "
-                           "region requirement index %d",
-                           use_ctx->get_task_name(), 
-                           use_ctx->get_unique_id(),
-                           get_task_name(), get_unique_id(),
-                           logical_regions[idx].parent.index_space.get_id(),
-                           logical_regions[idx].parent.field_space.get_id(), 
-                           logical_regions[idx].parent.get_tree_id(), idx)
-        parent_req_indexes[idx] = parent_index;
+        if (!force && runtime->safe_model)
+          verify_requirement(logical_regions[idx], idx, is_index_space);
+        parent_req_indexes[idx] =
+          parent_ctx->find_parent_region_index(this, logical_regions[idx], 
+              idx, false/*skip*/, force);
       }
     }
 
@@ -5965,7 +5961,8 @@ namespace Legion {
         elide_future_return = true;
       else if (!must_epoch_launch)
         result = create_future();
-      validate_region_requirements(); 
+      // Make sure you do this after making the output regions
+      compute_parent_indexes(false/*force*/);
       // If this is the top-level task we can record some extra properties
       if (top_level)
         this->top_level_task = true;
@@ -6076,8 +6073,6 @@ namespace Legion {
       // local function tasks have no region requirements so nothing below
       if (local_function)
         return;
-      // First compute the parent indexes
-      compute_parent_indexes();
       update_no_access_regions();
       if (runtime->legion_spy_enabled)
       {
@@ -6119,6 +6114,11 @@ namespace Legion {
     void IndividualTask::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
+      // Compute the parent region indexes since we might not have 
+      // computed them when we launched the task but we're going to
+      // need them now
+      if (trace != nullptr)
+        compute_parent_indexes(true/*force*/);
       // Dumb case for must epoch operations, we need these to 
       // be mapped immediately, mapper be damned
       if (must_epoch != NULL)
@@ -8791,7 +8791,8 @@ namespace Legion {
       }
       else
         elide_future_return = true;
-      validate_region_requirements(); 
+      // Make sure you do this after making the output regions
+      compute_parent_indexes(false/*force*/);
       if (concurrent_task && parent_ctx->is_concurrent_context())
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_CONCURRENT_EXECUTION,
             "Illegal nested concurrent index space task launch %s (UID %lld) "
@@ -8930,7 +8931,8 @@ namespace Legion {
       if (serdez_redop_fns == NULL)
         reduction_future.impl->set_future_result_size(
             reduction_op->sizeof_rhs, runtime->address_space);
-      validate_region_requirements();
+      // Make sure you do this after making the output regions
+      compute_parent_indexes(false/*force*/);
       if (concurrent_task && parent_ctx->is_concurrent_context())
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_CONCURRENT_EXECUTION,
             "Illegal nested concurrent index space task launch %s (UID %lld) "
@@ -9047,8 +9049,6 @@ namespace Legion {
     void IndexTask::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
     {
-      // First compute the parent indexes
-      compute_parent_indexes(); 
       // Initialize the privilege paths
       if (!options_selected)
       {
@@ -9278,6 +9278,10 @@ namespace Legion {
       }
       else
       {
+        // If we had a trace then we might need to recompute our parent
+        // region indexes now since we might have skipped it earlier
+        if (trace != nullptr)
+          compute_parent_indexes(true/*force*/);
         // Enumerate the futures in the future map
         if ((redop == 0) && !elide_future_return)
           enumerate_futures(index_domain);

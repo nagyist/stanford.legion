@@ -420,7 +420,9 @@ namespace Legion {
       // requirement for an operation which is necessary for
       // issuing close operation on behalf of the operation.
       virtual unsigned find_parent_index(unsigned idx);
-      static constexpr unsigned DEFERRED_PARENT_INDEX = std::numeric_limits<unsigned>::max();
+      // A sentinel value for the context to use when we're tracing so
+      // we know we need to recompute the value of the parent index
+      static constexpr unsigned TRACED_PARENT_INDEX = std::numeric_limits<unsigned>::max();
       // Determine if this operation is an internal operation
       virtual bool is_internal_op(void) const { return false; }
       // Determine if this operation is a partition operation
