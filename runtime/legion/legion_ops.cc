@@ -16746,11 +16746,10 @@ namespace Legion {
         memcpy(value, launcher.argument.get_ptr(), value_size);
       }
       else
-        REPORT_LEGION_ERROR(ERROR_MISSING_FILL_VALUE,
-            "Fill operation %lld in task %s (UID %lld) was launched without "
-            "a fill value. All fill operations must be given a non-empty "
-            "argument or a future to use as a fill value.", get_unique_op_id(),
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+        Exception(INTERFACE_EXCEPTION, this)
+          << "No fill value found for " << *this << ". All fill operations "
+          << "must be given a non-empty argument or a future to use as a "
+          << "fill value.";
       grants = launcher.grants;
       wait_barriers = launcher.wait_barriers;
       arrive_barriers = launcher.arrive_barriers;
@@ -17387,11 +17386,10 @@ namespace Legion {
         memcpy(value, launcher.argument.get_ptr(), value_size);
       }
       else
-        REPORT_LEGION_ERROR(ERROR_MISSING_FILL_VALUE,
-            "Fill operation %lld in task %s (UID %lld) was launched without "
-            "a fill value. All fill operations must be given a non-empty "
-            "argument or a future to use as a fill value.", get_unique_op_id(),
-            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+        Exception(INTERFACE_EXCEPTION, this)
+          << "No fill value found for " << *this << ". All fill operations "
+          << "must be given a non-empty argument or a future to use as a "
+          << "fill value.";
       grants = launcher.grants;
       wait_barriers = launcher.wait_barriers;
       arrive_barriers = launcher.arrive_barriers;
@@ -17501,7 +17499,7 @@ namespace Legion {
       // Enumerate the points
       enumerate_points();
       // Check for interfering point requirements in debug mode
-      if (runtime->check_privileges)
+      if (runtime->safe_model)
         check_point_requirements(); 
       // Launch the points
       std::vector<RtEvent> mapped_preconditions(points.size());
@@ -17668,6 +17666,12 @@ namespace Legion {
           {
             const DomainPoint &p1 = points[idx1]->get_domain_point();
             const DomainPoint &p2 = points[idx2]->get_domain_point();
+            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+              << "Index space fill launch has interfering region "
+              << "requirement 0 of point " << p1 
+              << " is interfering with point " << p2
+              << " of " << *this << ".";
+#if 0
             switch (p1.get_dim())
             {
               case 1:
@@ -17828,6 +17832,7 @@ namespace Legion {
               default:
                 assert(false);
             }
+#endif
           }
         }
       }
@@ -18393,20 +18398,18 @@ namespace Legion {
           std::map<FieldID,const char*>::const_iterator finder =
             launcher.field_files.find(*it);
           if (finder == launcher.field_files.end())
-            REPORT_LEGION_ERROR(ERROR_ATTACH_HDF5,
-                "Unable to find field file name for field %d of "
-                "HDF5 file attach in parent task %s (UID %lld). "
-                "Every field in an HDF5 attach must have a corresponding "
-                "field file specified field_files.", *it,
-                parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+            Exception(INTERFACE_EXCEPTION, this)
+              << "Unable to find field file name for field " << *it
+              << " of HDF5 file " << *this 
+              << ". Every field in an HDF5 attach must have a "
+              << "corresponding field file specified field_files."; 
           hdf5_field_files.emplace_back(std::string(finder->second));
         }
 #else
-        REPORT_LEGION_ERROR(ERROR_ATTACH_HDF5,
-                  "Invalid attach HDF5 file in parent task %s (UID %lld). "
-                  "Legion must be built with HDF5 support to attach regions "
-                  "to HDF5 files", parent_ctx->get_task_name(),
-                  parent_ctx->get_unique_id())
+        Exception(INTERFACE_EXCEPTION, this)
+          << "Invalid attach HDF5 file " << *this
+          << ". Legion must be built with HDF5 support to attach regions "
+          << "to HDF5 files";
 #endif
       }
       if (launcher.external_resource != NULL)
@@ -18421,12 +18424,6 @@ namespace Legion {
         {
           case LEGION_EXTERNAL_POSIX_FILE:
             {
-              if (launcher.file_fields.empty()) 
-                REPORT_LEGION_WARNING(LEGION_WARNING_FILE_ATTACH_OPERATION,
-                                "FILE ATTACH OPERATION ISSUED WITH NO "
-                                "FIELD MAPPINGS IN TASK %s (ID %lld)! DID YOU "
-                                "FORGET THEM?!?", parent_ctx->get_task_name(),
-                                parent_ctx->get_unique_id())
               external_resource = new Realm::ExternalFileResource(
                   std::string(launcher.file_name), launcher.mode);
               break;
@@ -18449,32 +18446,24 @@ namespace Legion {
                 layout_constraint_set.pointer_constraint;
               if ((memory != pointer.memory) && pointer.memory.exists())
               {
-                const char *mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-                  REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-                };
-                REPORT_LEGION_WARNING(LEGION_WARNING_IMPRECISE_ATTACH_MEMORY,
-                    "WARNING: %s memory " IDFMT " in pointer constraint for "
-                    "attach operation %lld in parent task %s (UID %lld) differs "
-                    "from the Realm-suggested %s memory " IDFMT " for the "
-                    "external instance. Legion is going to use the more precise "
-                    "Realm-specified memory. Please make sure that you do not "
-                    "have any code in your application or your mapper that "
-                    "relies on the instance being in the originally specified "
-                    "memory. To silence this warning you can pass in a NO_MEMORY "
-                    "to the pointer constraint.",
-                    mem_names[pointer.memory.kind()], pointer.memory.id,
-                    unique_op_id, parent_ctx->get_task_name(),
-                    parent_ctx->get_unique_id(), mem_names[memory.kind()],
-                    memory.id);
+                Exception(WARNING_EXCEPTION, this)
+                  << "WARNING: " << pointer.memory.kind() << " memory "
+                  << pointer.memory << " in pointer constraint for " << *this
+                  << " differs from the Realm-suggested "
+                  << memory.kind() << " memory " << memory << " for the "
+                  << "external instance. Legion is going to use the more precise "
+                  << "Realm-specified memory. Please make sure that you do not "
+                  << "have any code in your application or your mapper that "
+                  << "relies on the instance being in the originally specified "
+                  << "memory. To silence this warning you can pass in a NO_MEMORY "
+                  << "to the pointer constraint.";
               }
               if (!layout_constraint_set.pointer_constraint.is_valid)
-                REPORT_LEGION_ERROR(ERROR_ATTACH_OPERATION_MISSING_POINTER,
-                              "EXTERNAL ARRAY ATTACH OPERATION ISSUED WITH NO "
-                              "POINTER CONSTRAINT IN TASK %s (ID %lld)!",
-                              parent_ctx->get_task_name(), 
-                              parent_ctx->get_unique_id())
+                Exception(INTERFACE_EXCEPTION, this)
+                  << "External array " << *this 
+                  << " issued with no pointer constraint. All external array "
+                  << "attach operations must have a pointer constraint "
+                  << "specified in the launcher.";
               break;
             }
           default:
@@ -19014,12 +19003,6 @@ namespace Legion {
         requirement = 
           RegionRequirement(upper_bound->as_partition_node()->handle,
             0/*fake*/, LEGION_WRITE_DISCARD, LEGION_EXCLUSIVE, launcher.parent);
-      if (launcher.privilege_fields.empty()) 
-        REPORT_LEGION_WARNING(LEGION_WARNING_FILE_ATTACH_OPERATION,
-                        "INDEX ATTACH OPERATION ISSUED WITH NO PRIVILEGE "
-                        " FIELDS IN TASK %s (ID %lld)! DID YOU FORGET "
-                        "TO SPECIFY THEM?!?", parent_ctx->get_task_name(),
-                        parent_ctx->get_unique_id())
       requirement.privilege_fields = launcher.privilege_fields;
       if (runtime->safe_model)
         verify_requirement(requirement);
@@ -19082,7 +19065,7 @@ namespace Legion {
             this, 0/*start*/, spaces.size(), spaces);
       // Save this for later when we go to detach it
       resources.impl->set_projection(requirement.projection);
-      if (runtime->check_privileges)
+      if (runtime->safe_model)
         check_point_requirements(spaces);
       if (runtime->legion_spy_enabled)
         log_requirement();
