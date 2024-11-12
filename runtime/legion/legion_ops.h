@@ -2104,7 +2104,6 @@ namespace Legion {
       void initialize_close(InnerContext *ctx, const RegionRequirement &req);
       // These is for internal close ops
       void initialize_close(Operation *creator, unsigned idx,
-                            unsigned parent_req_index,
                             const RegionRequirement &req);
       void perform_logging(Operation *creator, unsigned index, bool merge);
     public:
@@ -2117,9 +2116,7 @@ namespace Legion {
       virtual const RegionRequirement &get_requirement(unsigned idx = 0) const
       { return requirement; }
     public:
-      virtual void trigger_commit(void);
-    protected:
-      VersionInfo    version_info;
+      virtual void trigger_commit(void); 
     };
 
     /**
@@ -2153,10 +2150,8 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
     protected:
-      unsigned parent_req_index; 
-    protected:
       FieldMask close_mask;
-      VersionInfo version_info;
+      unsigned parent_req_index;
     };
 
     /**
@@ -2205,6 +2200,7 @@ namespace Legion {
                                          std::set<RtEvent> &applied) const;
     protected:
       unsigned parent_idx;
+      VersionInfo    version_info;
       InstanceSet target_instances;
       std::map<PhysicalManager*,unsigned> acquired_instances;
       std::set<RtEvent> map_applied_conditions;

@@ -10249,7 +10249,6 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void CloseOp::initialize_close(Operation *creator, unsigned idx,
-                                   unsigned parent_req_index,
                                    const RegionRequirement &req)
     //--------------------------------------------------------------------------
     {
@@ -10305,7 +10304,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       InternalOp::deactivate(freeop);
-      version_info.clear();
       if (mapper_data != NULL)
       {
         free(mapper_data);
@@ -10344,9 +10342,10 @@ namespace Legion {
                                   Operation *creator)
     //--------------------------------------------------------------------------
     {
-      parent_req_index = creator->find_parent_index(close_idx);
-      initialize_close(creator, close_idx, parent_req_index, req);
+      initialize_close(creator, close_idx, req);
       if (tracing)
+      {
+        parent_req_index = creator->find_parent_index(close_idx);
 #ifdef DEBUG_LEGION_COLLECTIVES
         trace->register_close(this, creator_req_idx,
             (req.handle_type == LEGION_SINGULAR_PROJECTION) ?
@@ -10355,8 +10354,13 @@ namespace Legion {
 #else
         trace->register_close(this, creator_req_idx, req);
 #endif
+      }
       else
+      {
+        if (trace == nullptr)
+          parent_req_index = creator->find_parent_index(close_idx);
         trace = NULL;
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -10364,6 +10368,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       CloseOp::activate();
+      parent_req_index = TRACED_PARENT_INDEX;
     }
 
     //--------------------------------------------------------------------------
@@ -10372,7 +10377,6 @@ namespace Legion {
     {
       CloseOp::deactivate(false/*free*/);
       close_mask.clear();
-      version_info.clear();
       if (freeop)
         runtime->free_operation(this);
     }
