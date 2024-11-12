@@ -10489,6 +10489,7 @@ namespace Legion {
       map_applied_conditions.clear();
       profiling_requests.clear();
       target_instances.clear();
+      version_info.clear();
       if (freeop)
         runtime->free_operation(this);
     }
