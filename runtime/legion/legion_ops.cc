@@ -1714,7 +1714,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void Operation::verify_requirement(const RegionRequirement &req,
-                                       unsigned index) const
+        unsigned index, bool allow_projections) const
     //--------------------------------------------------------------------------
     {
       // If this is a NO-ACCESS requirement then we don't care
@@ -1847,6 +1847,26 @@ namespace Legion {
             << " as an ancestor in the region tree for region requirement "
             << index << " of " << *this << ". The region must always have the "
             << "'parent' region as an ancestor for privileges.";
+      }
+      // Check the projection properties of the requirement
+      if (req.handle_type != LEGION_SINGULAR_PROJECTION)
+      {
+        if (allow_projections)
+        {
+          ProjectionFunction *function = runtime->find_projection_function(
+              req.projection, true/*can fail*/);
+          if (function == nullptr)
+            Exception(INTERFACE_EXCEPTION, this)
+              << "Unable to find projection function " << req.projection
+              << " for region requirement " << index << " of " << *this
+              << ". This means a projection function was not registered "
+              << "with that projection function ID.";
+        }
+        else
+          Exception(INTERFACE_EXCEPTION, this)
+            << "Detected a projection region requirement for region "
+            << "requirement " << index << " of " << *this << ". Projection "
+            << "region requirements are not supported for this kind of operation.";
       }
       // Check that all the fields are contained in the field space
       FieldSpaceNode *fs = runtime->get_node(req.parent.get_field_space());
@@ -4695,19 +4715,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapOp::verify_requirement(const RegionRequirement &req,
-                                   unsigned index) const
-    //--------------------------------------------------------------------------
-    {
-      if ((requirement.handle_type == LEGION_PARTITION_PROJECTION) || 
-          (requirement.handle_type == LEGION_REGION_PROJECTION))
-        Exception(INTERFACE_EXCEPTION, this) << "Detected a projection "
-          << "region requirement for " <<  *this << ". Projection region "
-          << "requirements are not permitted for inline mappings.";
-      Operation::verify_requirement(req, index);
-    }
-
-    //--------------------------------------------------------------------------
     void MapOp::activate(void)
     //--------------------------------------------------------------------------
     {
@@ -5525,7 +5532,7 @@ namespace Legion {
             << idx << " of " << *this << "does not have read-only privileges. All "
             << "source region requirements for copy operations must be read-only.";
         if (runtime->safe_model)
-          verify_requirement(src_requirements[idx], idx);
+          verify_requirement(src_requirements[idx], idx, this->is_index_space);
         src_parent_indexes[idx] = parent_ctx->find_parent_region_index(this, src_requirements[idx]);
       }
       dst_requirements.resize(launcher.dst_requirements.size());
@@ -5595,7 +5602,7 @@ namespace Legion {
           }
         }
         if (runtime->safe_model)
-          verify_requirement(dst_requirements[idx], src_requirements.size() + idx);
+          verify_requirement(dst_requirements[idx], src_requirements.size() + idx, this->is_index_space);
         dst_parent_indexes[idx] = parent_ctx->find_parent_region_index(this, dst_requirements[idx]);
       }
       if (src_requirements.size() != dst_requirements.size())
@@ -5627,7 +5634,7 @@ namespace Legion {
               << "indirect region requirements for copy operations must have read-only privileges.";
           if (runtime->safe_model)
             verify_requirement(src_indirect_requirements[idx], src_requirements.size() +
-                dst_requirements.size() + idx);
+                dst_requirements.size() + idx, this->is_index_space);
           gather_parent_indexes[idx] = parent_ctx->find_parent_region_index(this, src_indirect_requirements[idx]);
         }
         if (launcher.src_indirect_is_range.size() != gather_size)
@@ -5684,7 +5691,7 @@ namespace Legion {
               << "operations must have read-only privileges.";
           if (runtime->safe_model)
             verify_requirement(dst_indirect_requirements[idx], src_requirements.size() +
-                dst_requirements.size() + src_indirect_requirements.size() + idx);
+                dst_requirements.size() + src_indirect_requirements.size() + idx, this->is_index_space);
           scatter_parent_indexes[idx] = parent_ctx->find_parent_region_index(this, dst_indirect_requirements[idx]);
         }
         if (launcher.src_indirect_is_range.size() != scatter_size)
@@ -17411,7 +17418,7 @@ namespace Legion {
       }
       requirement.privilege_fields = launcher.fields;
       if (runtime->safe_model)
-        verify_requirement(requirement);
+        verify_requirement(requirement, 0/*index*/, true/*allow projection*/);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       // Note that this returns a fill view with a reference added to it
       if (launcher.future.impl != NULL)
@@ -19044,7 +19051,7 @@ namespace Legion {
             0/*fake*/, LEGION_WRITE_DISCARD, LEGION_EXCLUSIVE, launcher.parent);
       requirement.privilege_fields = launcher.privilege_fields;
       if (runtime->safe_model)
-        verify_requirement(requirement);
+        verify_requirement(requirement, 0/*index*/, true/*allow projectino*/);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       launch_space = launch_bounds;
       // Create the result and the point attach operations
@@ -20128,7 +20135,7 @@ namespace Legion {
             privilege_fields.begin(); it != privilege_fields.end(); it++)
         requirement.add_field(*it);
       if (runtime->safe_model)
-        verify_requirement(requirement);
+        verify_requirement(requirement, 0/*index*/, true/*allow projection*/);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       resources = ExternalResources(external);
       launch_space = launch_bounds;

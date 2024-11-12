@@ -451,8 +451,8 @@ namespace Legion {
                        LogicalRegion handle, EqSetTracker *tracker,
                        const FieldMask &mask, unsigned parent_req_index);
     public:
-      virtual void verify_requirement(const RegionRequirement &req,
-                                      unsigned index = 0) const;
+      void verify_requirement(const RegionRequirement &req,
+          unsigned index = 0, bool allow_projections = false) const;
       virtual void report_uninitialized_usage(const unsigned index,
                                               const char *field_string,
                                               RtUserEvent reported);
@@ -1268,8 +1268,6 @@ namespace Legion {
       virtual const Task* get_parent_task(void) const;
       virtual const std::string_view& get_provenance_string(
           bool human = true) const;
-      virtual void verify_requirement(const RegionRequirement &req,
-                                      unsigned index = 0) const;
     protected:
       virtual bool invoke_mapper(InstanceSet &mapped_instances,
                                std::vector<PhysicalManager*> &source_instances);
