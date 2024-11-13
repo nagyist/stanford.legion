@@ -1223,6 +1223,10 @@ namespace Legion {
       }
       else // We have valid points, so it goes on the ready queue
       {
+        // If we had a trace then we might need to recompute our parent
+        // region indexes now since we might have skipped it earlier
+        if (trace != nullptr)
+          compute_parent_indexes(true/*force*/);
         // Update the total number of points we're actually repsonsible
         // for now with this shard
         IndexSpaceNode *node = runtime->get_node(internal_space);
@@ -2394,6 +2398,9 @@ namespace Legion {
 #endif
       // Signal that all of our mapping dependences are satisfied
       runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/);
+      if (parent_req_index == TRACED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, false/*skip privileges*/, true/*force*/);
       std::set<RtEvent> preconditions;
       const RtEvent view_ready = initialize_fill_view();
       if (view_ready.exists())
@@ -7356,6 +7363,9 @@ namespace Legion {
 #endif
       // Signal that all of our mapping dependences are satisfied
       runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/);
+      if (parent_req_index == TRACED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, true/*skip privileges*/, true/*force*/);
       std::set<RtEvent> preconditions;
       perform_versioning_analysis(0/*idx*/,
                                                    requirement,
@@ -7553,6 +7563,9 @@ namespace Legion {
 #endif
       // Signal that all of our mapping dependences are satisfied
       runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/);
+      if (parent_req_index == TRACED_PARENT_INDEX)
+        parent_req_index = parent_ctx->find_parent_region_index(this,
+            requirement, 0/*idx*/, true/*skip privileges*/, true/*force*/);
       std::set<RtEvent> preconditions;
       perform_versioning_analysis(0/*idx*/,
                                                    requirement,
