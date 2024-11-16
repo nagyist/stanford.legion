@@ -19571,12 +19571,11 @@ namespace Legion {
             finder = launcher.field_files.find(*it);
           if ((finder == launcher.field_files.end()) ||
               (index >= finder->second.size()))
-            REPORT_LEGION_ERROR(ERROR_ATTACH_HDF5,
-                "Unable to find field file name for field %d of "
-                "HDF5 file attach in parent task %s (UID %lld). "
-                "Every field in an HDF5 attach must have a corresponding "
-                "field file specified field_files.", *it,
-                parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+            Exception(INTERFACE_EXCEPTION, this)
+              << "Unable to find field file name for field " << *it << " of "
+              << "HDF5 file " << *this << 
+              << ". Every field in an HDF5 attach must have a corresponding "
+              << "field file specified field_files.";
           hdf5_field_files.emplace_back(std::string(finder->second[index]));
         }
       }
@@ -19584,12 +19583,11 @@ namespace Legion {
       if (!launcher.external_resources.empty())
       {
         if (index >= launcher.external_resources.size())
-          REPORT_LEGION_ERROR(ERROR_INDEX_SPACE_ATTACH,
-              "Insufficient 'external_resource' provided by index attach "
-              "launch in parent task %s (UID %lld). Launcher has %zd logical "
-              "regions but only %zd external resources.", 
-              parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-              launcher.handles.size(), launcher.external_resources.size())
+          Exception(INTERFACE_EXCEPTION, this)
+            << "Insufficient 'external_resource' provided by index "
+            << *this << " launch. Launcher has " << launcher.handles.size()
+            << " logical regions but only "
+            << launcher.external_resources.size() << " external resources.";
         external_resource = launcher.external_resources[index]->clone(); 
       }
       else
@@ -19601,12 +19599,11 @@ namespace Legion {
           case LEGION_EXTERNAL_POSIX_FILE:
             {
               if (index >= launcher.file_names.size())
-                REPORT_LEGION_ERROR(ERROR_INDEX_SPACE_ATTACH,
-                    "Insufficient 'file_names' provided by index attach launch "
-                    "in parent task %s (UID %lld). Launcher has %zd logical "
-                    "regions but only %zd POSIX file names.", 
-                    parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                    launcher.handles.size(), launcher.file_names.size())
+                Exception(INTERFACE_EXCEPTION, this)
+                  << "Insufficient 'file_names' provided by index " << *this
+                  << ". Launcher has " << launcher.handles.size() 
+                  << " logical regions but only "
+                  << launcher.file_names.size() << " POSIX file names.";
               external_resource = new Realm::ExternalFileResource(
                   std::string(launcher.file_names[index]), launcher.mode); 
               break;
@@ -19614,18 +19611,16 @@ namespace Legion {
           case LEGION_EXTERNAL_HDF5_FILE:
             {
               if (index >= launcher.file_names.size())
-                REPORT_LEGION_ERROR(ERROR_INDEX_SPACE_ATTACH,
-                    "Insufficient 'file_names' provided by index attach launch "
-                    "in parent task %s (UID %lld). Launcher has %zd logical "
-                    "regions but only %zd HDF5 file names.", 
-                    parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                    launcher.handles.size(), launcher.file_names.size())
+                Exception(INTERFACE_EXCEPTION, this)
+                  << "Insufficient 'file_names' provided by index " << *this
+                  << ". Launcher has " << launcher.handles.size() 
+                  << " logical regions but only " << launcher.file_names.size()
+                  << " HDF5 file names."; 
 #ifndef LEGION_USE_HDF5
-              REPORT_LEGION_ERROR(ERROR_ATTACH_HDF5,
-                  "Invalid attach HDF5 file in parent task %s (UID %lld). "
-                  "Legion must be built with HDF5 support to attach regions "
-                  "to HDF5 files", parent_ctx->get_task_name(),
-                  parent_ctx->get_unique_id())
+              Exception(INTERFACE_EXCEPTION, this)
+                << "Invalid HDF5 file " << *this
+                << ". Legion must be built with HDF5 support to attach regions "
+                << "to HDF5 files";
 #else
               external_resource = new Realm::ExternalHDF5Resource(
                   launcher.file_names[index], launcher.mode);
@@ -19635,38 +19630,27 @@ namespace Legion {
           case LEGION_EXTERNAL_INSTANCE:
             {
               if (index >= launcher.pointers.size())
-                REPORT_LEGION_ERROR(ERROR_INDEX_SPACE_ATTACH,
-                    "Insufficient 'pointers' provided by index attach launch "
-                    "in parent task %s (UID %lld). Launcher has %zd logical "
-                    "regions but only %zd pointers names.", 
-                    parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-                    launcher.handles.size(), launcher.pointers.size())
+                Exception(INTERFACE_EXCEPTION, this)
+                  << "Insufficient 'pointers' provided by index " << *this
+                  << ". Launcher has " << launcher.handles.size()
+                  << " logical regions but only "
+                  << launcher.pointers.size() << " pointers names.";
               const PointerConstraint &pointer = launcher.pointers[index];
               external_resource = new Realm::ExternalMemoryResource(
                 pointer.ptr, launcher.footprint[index], false/*read only*/);
               const Memory memory = external_resource->suggested_memory();
               if ((memory != pointer.memory) && pointer.memory.exists())
-              {
-                const char *mem_names[] = {
-#define MEM_NAMES(name, desc) desc,
-                  REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-                };
-                REPORT_LEGION_WARNING(LEGION_WARNING_IMPRECISE_ATTACH_MEMORY,
-                    "WARNING: %s memory " IDFMT " in pointer constraint for "
-                    "attach operation %lld in parent task %s (UID %lld) "
-                    "differs from the Realm-suggested %s memory " IDFMT " "
-                    "for the external instance. Legion is going to use the "
-                    "more precise Realm-specified memory. Please make sure "
-                    "that you do not have any code in your application or "
-                    "your mapper that relies on the instance being in the "
-                    "originally specified memory. To silence this warning "
-                    "you can pass in a NO_MEMORY to the pointer constraint.",
-                    mem_names[pointer.memory.kind()], pointer.memory.id,
-                    unique_op_id, parent_ctx->get_task_name(),
-                    parent_ctx->get_unique_id(), mem_names[memory.kind()],
-                    memory.id);
-              }
+                Exception(WARNING_EXCEPTION, this)
+                  << "WARNING: " << pointer.memory.kind() << " memory "
+                  << pointer.memory << " in pointer constraint for " << *this
+                  << "differs from the Realm-suggested " << memory.kind()
+                  << " memory " << memory << " for the external instance. "
+                  << "Legion is going to use the more precise Realm-specified "
+                  << "memory. Please make sure that you do not have any code "
+                  << "in your application or your mapper that relies on the "
+                  << "instance being in the originally specified memory. To "
+                  << "silence this warning you can pass in a NO_MEMORY to "
+                  << "the pointer constraint.";
               break;
             }
           default:
@@ -19924,12 +19908,9 @@ namespace Legion {
       // references when we are done mapping
       PhysicalManager *manager = reference.get_physical_manager();
       if (!manager->is_external_instance())
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_DETACH_OPERATION,
-                      "Illegal detach operation (ID %lld) performed in "
-                      "task %s (ID %lld). Detach was performed on an region "
-                      "that had not previously been attached.",
-                      get_unique_op_id(), parent_ctx->get_task_name(),
-                      parent_ctx->get_unique_id())
+        Exception(INTERFACE_EXCEPTION, this)
+          << "Illegal " << *this << ". Detach was performed on an region "
+          << "that had not previously been attached.";
 #ifdef DEBUG_LEGION
       assert(!manager->is_reduction_manager()); 
 #endif
@@ -20773,13 +20754,12 @@ namespace Legion {
       if (instance != NULL)
       {
         if (output.size > return_type_size)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s returned tunable value of size %zd for selection of "
-              "tunable value %d in parent task %s (UID %lld) but the upper "
-              "bound size set by the launcher was only %zd",
-              mapper->get_mapper_name(), output.size, tunable_id,
-              parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-              return_type_size)
+          Exception(MAPPER_EXCEPTION, this)
+            << "Mapper " << mapper->get_mapper_name() 
+            << " returned tunable value of size " << output.size
+            << " for selection of tunable value " << tunable_id
+            << " but the upper bound size set by the launcher was only "
+            << return_type_size << ".";
         // Copy the result into the instance
         FutureInstance *local = 
             new FutureInstance(output.value, output.size, false/*eager*/,
@@ -21089,14 +21069,13 @@ namespace Legion {
         {
           Processor exec_proc = parent_ctx->get_executing_processor();
           MapperManager *mapper = runtime->find_mapper(exec_proc, mapper_id);
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output. Mapper %s specified an upper bound of "
-              "%zd bytes for future map all reduce in task %s (UID %lld) with "
-              "serdez redop %d. However, the actual size of the reduced value "
-              "is %zd bytes which exceeds the specified upper bound.",
-              mapper->get_mapper_name(), serdez_upper_bound, 
-              parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
-              redop_id, future_result_size)
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+            << " specified an upper bound of " << serdez_upper_bound
+            << " bytes for future map all reduce with serdez redop "
+            << redop_id << ". However, the actual size of the reduced value is "
+            << future_result_size 
+            << " bytes which exceeds the specified upper bound.";
         }
         done = finalize_serdez_targets();
       }
@@ -21130,14 +21109,12 @@ namespace Legion {
                 output.destination_memories.end(); /*nothing*/)
           {
             if (!it->exists())
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                    "Invalid mapper output. Mapper %s requested future map "
-                    "reduction future be mapped to a NO_MEMORY for future map "
-                    "reduction operation (%lld) in parent task %s (UID %lld) "
-                    "which is illegal. All requests for mapping output futures "
-                    "must be mapped to actual memories.",
-                    mapper->get_mapper_name(), unique_op_id,
-                    parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+                << " requested future map reduction future be mapped to a "
+                << "NO_MEMORY for " << *this
+                << " which is illegal. All requests for mapping output futures "
+                << "must be mapped to actual memories.";
             if (unique_memories.find(*it) == unique_memories.end())
             {
               unique_memories.insert(*it);
@@ -21148,14 +21125,12 @@ namespace Legion {
           }
         }
         else if (!output.destination_memories.front().exists())
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                  "Invalid mapper output. Mapper %s requested future map "
-                  "reduction future be mapped to a NO_MEMORY for future map "
-                  "reduction operation (%lld) in parent task %s (UID %lld) "
-                  "which is illegal. All requests for mapping output futures "
-                  "must be mapped to actual memories.",
-                  mapper->get_mapper_name(), unique_op_id,
-                  parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+            << " requested future map reduction future be mapped to a "
+            << "NO_MEMORY for future map " << *this
+            << " which is illegal. All requests for mapping output futures "
+            << "must be mapped to actual memories.";
         target_memories.swap(output.destination_memories);
       }
       else
@@ -21168,14 +21143,12 @@ namespace Legion {
       if (is_recording())
       {
         if (future_result_size == SIZE_MAX)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output. Mapper %s did not specify an upper "
-              "bound on serdez future all-reduce operation %lld being "
-              "traced in task %s (UID %lld). All serdez future reductions "
-              "being captured in traces must provide an upper bound on the "
-              "size of the future result.", mapper->get_mapper_name(),
-              get_unique_op_id(), parent_ctx->get_task_name(), 
-              parent_ctx->get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+            << " did not specify an upper bound on serdez future " << *this
+            << " being traced. All serdez future reductions being captured "
+            << "in traces must provide an upper bound on the size of the "
+            << "future result.";
         const TraceInfo trace_info(this);
         const TraceLocalID tlid = get_trace_local_id();
         trace_info.record_future_allreduce(tlid, target_memories,
