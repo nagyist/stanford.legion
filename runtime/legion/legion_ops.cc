@@ -19573,7 +19573,7 @@ namespace Legion {
               (index >= finder->second.size()))
             Exception(INTERFACE_EXCEPTION, this)
               << "Unable to find field file name for field " << *it << " of "
-              << "HDF5 file " << *this << 
+              << "HDF5 file " << *this
               << ". Every field in an HDF5 attach must have a corresponding "
               << "field file specified field_files.";
           hdf5_field_files.emplace_back(std::string(finder->second[index]));
