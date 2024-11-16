@@ -177,7 +177,7 @@ namespace Legion {
     } 
 
     //--------------------------------------------------------------------------
-    const char* MapperManager::get_mapper_name(void)
+    const char* MapperManager::get_mapper_name(void) const
     //--------------------------------------------------------------------------
     {
       return mapper->get_mapper_name();

@@ -72,7 +72,7 @@ namespace Legion {
                     MapperID map_id, Processor p, bool is_default);
       virtual ~MapperManager(void);
     public:
-      const char* get_mapper_name(void);
+      const char* get_mapper_name(void) const;
     public: // Task mapper calls
       void invoke_select_task_options(TaskOp *task, Mapper::TaskOptions &output,
                                       bool prioritize);
@@ -413,6 +413,14 @@ namespace Legion {
       long long                         pause_time;
       bool                              reentrant;
     };
+
+    //--------------------------------------------------------------------------
+    inline std::ostream& operator<<(std::ostream& os, const MapperManager &man)
+    //--------------------------------------------------------------------------
+    {
+      os << man.get_mapper_name();
+      return os;
+    }
 
   };
 };

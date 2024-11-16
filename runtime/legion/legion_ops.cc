@@ -2123,7 +2123,7 @@ namespace Legion {
             {
               if (warn_if_not_copy) 
                 Exception(WARNING_EXCEPTION, this)
-                  << "Mapper " << mapper->get_mapper_name()
+                  << "Mapper " << *mapper
                   << "requested a profiling measurement of type " << *it
                   << "which is not applicable to operation " << *this
                   << "and therefore it will be ignored";
@@ -2961,7 +2961,7 @@ namespace Legion {
         if (!found)
           Exception(WARNING_EXCEPTION, this)
             << "Ignoring invalid instance output from mapper "
-            << mapper->get_mapper_name() << " by select source call for "
+            << *mapper << " by select source call for "
             << *this << ".";
       }
     }
@@ -5125,7 +5125,7 @@ namespace Legion {
       if (bad_tree > 0)
         Exception(MAPPER_EXCEPTION, this)
           << "Invalid mapper output from invocation of 'map_inline' on mapper "
-          << mapper->get_mapper_name() << ". Mapper selected instance from region tree "
+          << *mapper << ". Mapper selected instance from region tree "
           << bad_tree << " to satisfy a region requirement for " << *this
           << " whose region tree is " << requirement.region.get_tree_id() << ".";
       if (!missing_fields.empty())
@@ -5143,7 +5143,7 @@ namespace Legion {
         }
         Exception(MAPPER_EXCEPTION, this)
           << "Invalid mapper output from invocation of 'map_inline' on mapper "
-          << mapper->get_mapper_name() << ". Mapper failed to specify a physical "
+          << *mapper << ". Mapper failed to specify a physical "
           << "instance for " << missing_fields.size() << " fields of the region "
           << "requirement for " << *this << ". The missing fields are listed above."; 
       }
@@ -5155,7 +5155,7 @@ namespace Legion {
           if (acquired_instances.find(*it) == acquired_instances.end())
             Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from 'map_inline' invocation on mapper "
-              << mapper->get_mapper_name() << ". Mapper selected physical instance "
+              << *mapper << ". Mapper selected physical instance "
               << "for " << *this << " which has already been collected. If the mapper "
               << "had properly acquired this instance as part of the mapper call "
               << "it would have detected this. Please update the mapper to abide "
@@ -5163,7 +5163,7 @@ namespace Legion {
         }
         // If we did successfully acquire them, still issue the warning
         Exception(WARNING_EXCEPTION, this)
-          << "Mapper " << mapper->get_mapper_name() 
+          << "Mapper " << *mapper 
           << "failed to acquire instance for " << *this
           << "in 'map_inline' call. You may experience undefined "
           << "behavior as a consequence.";
@@ -5171,13 +5171,13 @@ namespace Legion {
       if (virtual_index >= 0)
         Exception(MAPPER_EXCEPTION, this)
           << "Invalid mapper output from invocation of 'map_inline' on mapper "
-          << mapper->get_mapper_name() << ". Mapper requested creation of a "
+          << *mapper << ". Mapper requested creation of a "
           << "virtual mapping for " << *this << ". Inline mapping operations "
           << "are not permitted to do perform virtual mappings.";
       if (!output.track_valid_region && !IS_READ_ONLY(requirement))
       {
         Exception(WARNING_EXCEPTION, this)
-          << "Ignoring request by mapper " << mapper->get_mapper_name()
+          << "Ignoring request by mapper " << *mapper
           << " to not track valid instances for " << *this << " because "
           << "the region requirement does not have read-only privileges.";
         output.track_valid_region = true;
@@ -5198,7 +5198,7 @@ namespace Legion {
           if (visible_memories.find(mem) == visible_memories.end())
             Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from invocation of 'map_inline' on mapper "
-              << mapper->get_mapper_name() << ". Mapper selected a physical "
+              << *mapper << ". Mapper selected a physical "
               << "instance in memory " << mem << " which is not visible from processor " 
               << exec_proc << "."; 
         }
@@ -5212,7 +5212,7 @@ namespace Legion {
         if (!manager->meets_regions(regions_to_check))
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_inline' on mapper "
-            << mapper->get_mapper_name() << ". Mapper specified an instance that "
+            << *mapper << ". Mapper specified an instance that "
             << "does not meet the logical region requirement.";
       }
       // If this is a reduction region requirement, make sure all the
@@ -5223,7 +5223,7 @@ namespace Legion {
           if (!chosen_instances[idx].get_manager()->is_reduction_manager())
             Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from invocation of 'map_inline' on mapper "
-              << mapper->get_mapper_name() << ". Mapper failed to select "
+              << *mapper << ". Mapper failed to select "
               << "specialized reduction instances for region requirement with "
               << "reduction-only privileges for " << *this << ".";
       }
@@ -5234,7 +5234,7 @@ namespace Legion {
           if (chosen_instances[idx].get_manager()->is_reduction_manager())
             Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from invocation of 'map_inline' on mapper "
-              << mapper->get_mapper_name() << ". Mapper selected an illegal "
+              << *mapper << ". Mapper selected an illegal "
               << "specialized reduction instance for region requirement without "
               << "reduction privileges for " << *this << ".";
         }
@@ -5251,7 +5251,7 @@ namespace Legion {
           const LayoutConstraint *conflict_constraint = NULL;
           if (manager->conflicts(constraints, &conflict_constraint))
             Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+              << "Invalid mapper output. Mapper " << *mapper
               << " selected instance for " << *this 
               << " which failed to satisfy the corresponding layout constraints.";
         }
@@ -6588,7 +6588,7 @@ namespace Legion {
               {
                 Exception(MAPPER_EXCEPTION, this)
                   << "Invalid mapper output from invocation of 'map_copy' on mapper "
-                  << mapper->get_mapper_name() << " for " << *this
+                  << *mapper << " for " << *this
                   << ". Mapper requested that Legion perform preimage optimization on "
                   << "the source indirection instances but mapped at least one of "
                   << "the source indirection instances to a " << kind
@@ -6650,7 +6650,7 @@ namespace Legion {
               {
                 Exception(MAPPER_EXCEPTION, this)
                   << "Invalid mapper output from invocation of 'map_copy' on mapper "
-                  << mapper->get_mapper_name() << " for " << *this 
+                  << *mapper << " for " << *this 
                   << ". Mapper requested that Legion perform preimage optimization on "
                   << "the destination indirection instances but mapped at least one "
                   << "of the destination indirection instances to a " << kind
@@ -7507,7 +7507,7 @@ namespace Legion {
       if (bad_tree > 0)
         Exception(MAPPER_EXCEPTION, this)
           << "Invalid mapper output from invocation of 'map_copy' on mapper "
-          << mapper->get_mapper_name() << ". Mapper selected an instance from "
+          << *mapper << ". Mapper selected an instance from "
           << "region tree " << bad_tree << " to satisfy "
           << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
           << "for explicit region-to_region " << *this
@@ -7528,7 +7528,7 @@ namespace Legion {
         }
         Exception(MAPPER_EXCEPTION, this)
           << "Invalid mapper output from invocation of 'map_copy' on mapper "
-          << mapper->get_mapper_name() << ". Mapper failed to specify a physical "
+          << *mapper << ". Mapper failed to specify a physical "
           << "instance for " << missing_fields.size() << " fields of the "
           << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
           << "of explicit region-to-region " << *this 
@@ -7542,7 +7542,7 @@ namespace Legion {
           if (acquired_instances.find(*it) == acquired_instances.end())
             Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from 'map_copy' invocation on mapper "
-              << mapper->get_mapper_name() << ". Mapper selected physical instance for "
+              << *mapper << ". Mapper selected physical instance for "
               << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
               << " of explicit region-to-region " << *this << " which has already "
               << "been collected. If the mapper had properly acquired this instance "
@@ -7551,7 +7551,7 @@ namespace Legion {
         }
         // If we did successfully acquire them, still issue the warning
         Exception(MAPPER_EXCEPTION, this)
-          << "Mapper " << mapper->get_mapper_name() << " failed to acquire instances "
+          << "Mapper " << *mapper << " failed to acquire instances "
           << "for " << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
           << " of explicit region-to-region " << *this <<" in 'map_copy' call. "
           << "You may experience undefined behavior as a consequence."; 
@@ -7562,7 +7562,7 @@ namespace Legion {
         if (REQ_TYPE != SRC_REQ)
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_copy' on mapper "
-            << mapper->get_mapper_name() << ". Mapper requested the creation of a "
+            << *mapper << ". Mapper requested the creation of a "
             << "virtual instance for " << get_req_type_name<REQ_TYPE>()
             << " region requiremnt " << ridx 
             << ". Only source region requirements are permitted to be virtual "
@@ -7570,7 +7570,7 @@ namespace Legion {
         if (is_reduce)
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_copy' on mapper "
-            << mapper->get_mapper_name() << ". Mapper requested the creation of a "
+            << *mapper << ". Mapper requested the creation of a "
             << "virtual instance for the " << get_req_type_name<REQ_TYPE>()
             << " requirement " << ridx << " of an explicit region-to-region "
             << "reduction for " << *this << ". Only real physical instances "
@@ -7578,7 +7578,7 @@ namespace Legion {
         if (ridx < src_indirect_requirements.size())
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_copy' on mapper "
-            << mapper->get_mapper_name() << ". Mapper requested the creation of a "
+            << *mapper << ". Mapper requested the creation of a "
             << "virtual instance for " << get_req_type_name<REQ_TYPE>()
             << " region requiremnt " << ridx 
             << ". Only source region requirements without source indirection "
@@ -7587,7 +7587,7 @@ namespace Legion {
         if (ridx < dst_indirect_requirements.size())
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_copy' on mapper "
-            << mapper->get_mapper_name() << ". Mapper requested the creation of a "
+            << *mapper << ". Mapper requested the creation of a "
             << "virtual instance for " << get_req_type_name<REQ_TYPE>()
             << " region requiremnt " << ridx 
             << ". Only source region requirements without destination "
@@ -7607,7 +7607,7 @@ namespace Legion {
         if (!manager->meets_regions(regions_to_check))
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_copy' on mapper "
-            << mapper->get_mapper_name() << ". Mapper specified an instance for "
+            << *mapper << ". Mapper specified an instance for "
             << get_req_type_name<REQ_TYPE>() << " region requirement at index "
             << ridx << " of " << *this << " that does not meet the logical "
             << "region requirement.";
@@ -7621,7 +7621,7 @@ namespace Legion {
         if (!targets[idx].get_manager()->is_physical_manager())
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_copy' on mapper "
-            << mapper->get_mapper_name() << ". Mapper specified an illegal "
+            << *mapper << ". Mapper specified an illegal "
             << "specialized instance as the target for " 
             << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
             << " of " << *this << ".";
@@ -13657,14 +13657,14 @@ namespace Legion {
           if (!proc.exists())
             Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from invocation of 'map_must_epoch' on mapper "
-              << mapper->get_mapper_name() << ". Mapper failed to specify "
+              << *mapper << ". Mapper failed to specify "
               << "a valid processor for " << *this << " at index " << idx << ".";
           if (target_procs.find(proc) != target_procs.end())
           {
             SingleTask *other = target_procs[proc];
             Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from invocation of 'map_must_epoch' on mapper "
-              << mapper->get_mapper_name() << ". Mapper requests both tasks "
+              << *mapper << ". Mapper requests both tasks "
               << *other << " and " << *task << " be mapped to the same "
               << "processor (" << proc << ") which is illegal in a must epoch launch.";
           }
@@ -15521,7 +15521,7 @@ namespace Legion {
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of "
             << "'select_partition_projection' on mapper "
-            << mapper->get_mapper_name() << ".Mapper selected a logical "
+            << *mapper << ".Mapper selected a logical "
             << "partition that is not complete for " << *this << ".";
         // Update the region requirement and other information
         requirement.partition = output.chosen_partition;
@@ -15815,7 +15815,7 @@ namespace Legion {
       if (bad_tree > 0)
         Exception(MAPPER_EXCEPTION, this)
           << "Invalid mapper output from invocation of 'map_partition' on mapper "
-          << mapper->get_mapper_name() << ". Mapper selected instance from region tree " 
+          << *mapper << ". Mapper selected instance from region tree " 
           << bad_tree << " to satisfy a region requirement for " << *this
           << " whose logical region is from region tree "
           << requirement.region.get_tree_id() << ".";
@@ -15834,7 +15834,7 @@ namespace Legion {
         }
         Exception(MAPPER_EXCEPTION, this)
           << "Invalid mapper output from invocation of 'map_partition' on mapper "
-          << mapper->get_mapper_name() << ". Mapper failed to specify a physical "
+          << *mapper << ". Mapper failed to specify a physical "
           << "instance for " << missing_fields.size() 
           << " fields of the region requirement for " << *this
           << ". This missing fields are listed above.";
@@ -15847,7 +15847,7 @@ namespace Legion {
           if (acquired_instances.find(*it) == acquired_instances.end())
             Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from 'map_partition' invocation on mapper "
-              << mapper->get_mapper_name() << ". Mapper selected physical "
+              << *mapper << ". Mapper selected physical "
               << "instance for " << *this << " which has already been collected. "
               << "If the mapper had properly acquired this instance as part of the "
               << "mapper call it would have detected this. Please update the "
@@ -15855,7 +15855,7 @@ namespace Legion {
         }
         // If we did successfully acquire them, still issue the warning
         Exception(WARNING_EXCEPTION)
-          << "Mapper " << mapper->get_mapper_name() 
+          << "Mapper " << *mapper 
           << " faield to acquire instance for " << *this
           << "in 'map_partition' call. You may experience undefined "
           << "behavior as a consequence.";
@@ -15863,7 +15863,7 @@ namespace Legion {
       if (virtual_index >= 0)
         Exception(MAPPER_EXCEPTION, this)
           << "Invalid mapper output from invocation of 'map_partition' on mapper "
-          << mapper->get_mapper_name() << ". Mapper requested creation of a virtual "
+          << *mapper << ". Mapper requested creation of a virtual "
           << "mapping for " << *this << ".";
       // If we are doing unsafe mapping, then we can return
       if (!runtime->safe_mapper)
@@ -15877,12 +15877,12 @@ namespace Legion {
         if (!manager->meets_regions(regions_to_check))
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_partition' on mapper "
-            << mapper->get_mapper_name() << ". Mapper specified an instance that "
+            << *mapper << ". Mapper specified an instance that "
             << "does not meet the logical region requirement for " << *this << ". ";
         if (manager->is_reduction_manager())
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_partition' on mapper "
-            << mapper->get_mapper_name() << ". Mapper selected an illegal specialized "
+            << *mapper << ". Mapper selected an illegal specialized "
             << "reduction instance for " << *this << "."; 
         // This is a temporary check to guarantee that instances for 
         // dependent partitioning operations are in memories that 
@@ -15899,7 +15899,7 @@ namespace Legion {
         {
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'map_partition' on mapper "
-            << mapper->get_mapper_name() << " for " << *this << ". Mapper specified"
+            << *mapper << " for " << *this << ". Mapper specified"
             << " an instance in memory(memories) with kind " << mem_kind 
             << " which is not supported for dependent partition operations "
             << "currently (see Legion issue #516). Please pick an "
@@ -20755,7 +20755,7 @@ namespace Legion {
       {
         if (output.size > return_type_size)
           Exception(MAPPER_EXCEPTION, this)
-            << "Mapper " << mapper->get_mapper_name() 
+            << "Mapper " << *mapper 
             << " returned tunable value of size " << output.size
             << " for selection of tunable value " << tunable_id
             << " but the upper bound size set by the launcher was only "
@@ -21070,7 +21070,7 @@ namespace Legion {
           Processor exec_proc = parent_ctx->get_executing_processor();
           MapperManager *mapper = runtime->find_mapper(exec_proc, mapper_id);
           Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+            << "Invalid mapper output. Mapper " << *mapper
             << " specified an upper bound of " << serdez_upper_bound
             << " bytes for future map all reduce with serdez redop "
             << redop_id << ". However, the actual size of the reduced value is "
@@ -21110,7 +21110,7 @@ namespace Legion {
           {
             if (!it->exists())
               Exception(MAPPER_EXCEPTION, this)
-                << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+                << "Invalid mapper output. Mapper " << *mapper
                 << " requested future map reduction future be mapped to a "
                 << "NO_MEMORY for " << *this
                 << " which is illegal. All requests for mapping output futures "
@@ -21126,7 +21126,7 @@ namespace Legion {
         }
         else if (!output.destination_memories.front().exists())
           Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+            << "Invalid mapper output. Mapper " << *mapper
             << " requested future map reduction future be mapped to a "
             << "NO_MEMORY for future map " << *this
             << " which is illegal. All requests for mapping output futures "
@@ -21144,7 +21144,7 @@ namespace Legion {
       {
         if (future_result_size == SIZE_MAX)
           Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output. Mapper " << mapper->get_mapper_name()
+            << "Invalid mapper output. Mapper " << *mapper
             << " did not specify an upper bound on serdez future " << *this
             << " being traced. All serdez future reductions being captured "
             << "in traces must provide an upper bound on the size of the "

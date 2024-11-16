@@ -23532,8 +23532,10 @@ namespace Legion {
     void LeafContext::inline_child_task(TaskOp *child)
     //--------------------------------------------------------------------------
     {
+#if 0
       if (runtime->check_privileges)
         child->perform_privilege_checks();
+#endif
       if (runtime->legion_spy_enabled)
         LegionSpy::log_inline_task(child->get_unique_id());
       // Find the mapped physical regions associated with each of the

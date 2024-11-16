@@ -246,8 +246,10 @@ namespace Legion {
       // Tell the parent context that this task is in a ready queue
       void activate_outstanding_task(void);
       void deactivate_outstanding_task(void);
+#if 0
     public:
       void perform_privilege_checks(void);
+#endif
     public:
       void clone_task_op_from(TaskOp *rhs, Processor p,
                               bool stealable, bool duplicate_args);

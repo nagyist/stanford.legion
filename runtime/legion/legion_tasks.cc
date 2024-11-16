@@ -774,21 +774,19 @@ namespace Legion {
       mapper->invoke_select_task_options(this, options, prioritize);
       options_selected = true;
       if (options.initial_proc.kind() == Processor::UTIL_PROC)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-            "Invalid mapper output. Mapper %s requested that task %s (UID %lld)"
-            " initially be assigned to a utility processor in "
-            "'select_task_options.' Only application processor kinds are "
-            "permitted to be the target processor for tasks.",
-            mapper->get_mapper_name(), get_task_name(), get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output. Mapper " << *mapper
+          << " requested that " << *this << " initially be assigned to a "
+          << "utility processor in 'select_task_options.' Only application "
+          << "processor kinds are permitted to be the target processor for tasks.";
       target_proc = options.initial_proc;
       if (local_function && !runtime->is_local(target_proc))
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-            "Invalid mapper output. Mapper %s requested that local function "
-            "task %s (UID %lld) be assigned to processor " IDFMT " which is "
-            "not local to address space %d. Local function tasks must be "
-            "assigned to local processors.", mapper->get_mapper_name(),
-            get_task_name(), get_unique_id(),
-            target_proc.id, runtime->address_space)
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output. Mapper " << *mapper
+          << "requested that local function " << *this
+          << " be assigned to processor " << target_proc << " which is "
+          << "not local to address space " << runtime->address_space
+          << ". Local function tasks must be assigned to local processors.";
       stealable = options.stealable;
       map_origin = options.map_locally; 
       request_valid_instances = options.valid_instances;
@@ -798,15 +796,12 @@ namespace Legion {
         if (parent_ctx->is_priority_mutable())
           parent_ctx->set_current_priority(options.parent_priority);
         else
-          REPORT_LEGION_WARNING(LEGION_WARNING_INVALID_PRIORITY_CHANGE,
-                                "Mapper %s requested change of priority "
-                                "for parent task %s (UID %lld) when launching "
-                                "child task %s (UID %lld), but the parent "
-                                "context does not support parent task priority "
-                                "mutation", mapper->get_mapper_name(),
-                                parent_ctx->get_task_name(),
-                                parent_ctx->get_unique_id(), 
-                                get_task_name(), get_unique_id())
+          Exception(WARNING_EXCEPTION, this)
+            << "Mapper " << *mapper
+            << " requested change of priority for parent " 
+            << *(parent_ctx->owner_task)
+            << " when launching " << *this << " but the parent "
+            << "context does not support parent task priority mutation";
       }
       if (!options.check_collective_regions.empty() && is_index_space)
       {
@@ -822,12 +817,11 @@ namespace Legion {
           if (!IS_WRITE(req))
             check_collective_regions.push_back(*it);
           else if (!IS_COLLECTIVE(req))
-            REPORT_LEGION_WARNING(LEGION_WARNING_WRITE_PRIVILEGE_COLLECTIVE,
-                "Ignoring request by mapper %s to check for collective usage "
-                "for region requirement %d of task %s (UID %lld) because "
-                "region requirement has writing privileges.",
-                mapper->get_mapper_name(), *it, 
-                get_task_name(), unique_op_id)
+            Exception(WARNING_EXCEPTION, this)
+              << "Ignoring request by mapper " << *mapper
+              << " to check for collective usage for region requirement "
+              << *it << " of " << *this << " because region requirement "
+              << "has writing privileges.";
         }
         if (!check_collective_regions.empty())
         {
@@ -857,40 +851,37 @@ namespace Legion {
       {
         // Replication of concurrent index space task launches are illegal
         if (concurrent_task)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s request to replicate task %s (UID %lld) that is a "
-              "concurrent index space task launch in 'select_task_options'. "
-              "It is illegal to replicate the point tasks of a concurrent "
-              "index space task launch.", mapper->get_mapper_name(),
-              get_task_name(), get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Mapper " << *mapper << " request to replicate " << *this
+            << " that is a concurrent index space task launch in "
+            << "'select_task_options'. It is illegal to replicate the "
+            << "point tasks of a concurrent index space task launch.";
         // Replication of must epoch tasks are not allowed
         if (must_epoch_task)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s requested to replicate must epoch task %s (UID %lld). "
-              "Replication of must epoch tasks are not supported.",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Mapper " << *mapper << " requested to replicate must epoch "
+            << *this << ". Replication of must epoch tasks are not supported.";
         // Replication of origin-mapped tasks is not supported
         if (map_origin)
         {
-          REPORT_LEGION_WARNING(LEGION_WARNING_UNSUPPORTED_REPLICATION,
-              "Mapper %s requested to both replicate and origin map task %s "
-              "(UID %lld) in 'select_task_options'. Replication of origin-"
-              "mapped tasks is not currently supported and the request to "
-              "replicate the task will be ignored.", mapper->get_mapper_name(),
-              get_task_name(), get_unique_id())
+          Exception(WARNING_EXCEPTION, this)
+            << "Mapper " << *mapper << " requested to both replicate and origin map "
+            << *this << " in 'select_task_options'. Replication of origin-"
+            << "mapped tasks is not currently supported and the request to "
+            << "replicate the task will be ignored.";
           options.replicate = false;
         }
         // Output regions are not currently supported
         if (!output_regions.empty())
         {
-          REPORT_LEGION_WARNING(LEGION_WARNING_UNSUPPORTED_REPLICATION,
-              "Mapper %s requested to replicate task %s (UID %lld) with output "
-              "regions in 'select_task_options'. Legion does not currently "
-              "support replication of tasks with output regions at the moment. "
-              "You can request support for this feature by emailing the "
-              "the Legion developers list or opening a github issue. The "
-              "mapper call to replicate_task is being elided.",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id())
+          Exception(WARNING_EXCEPTION, this)
+            << "Mapper " << *mapper << " requested to replicate " << *this
+            << " with output regions in 'select_task_options'. Legion does "
+            << "not currently support replication of tasks with output "
+            << "regions at the moment. You can request support for this "
+            << "feature by emailing the the Legion developers list or "
+            << "opening a github issue. The mapper call to replicate_task " 
+            << "is being elided.";
           options.replicate = false;
         }
         // We allow replication of tasks with reduction privileges, but
@@ -903,15 +894,14 @@ namespace Legion {
         {
           if (!IS_REDUCE(logical_regions[idx]))
             continue;
-          REPORT_LEGION_WARNING(LEGION_WARNING_UNSUPPORTED_REPLICATION,
-              "Mapper %s requested to replicate task %s (UID %lld) with "
-              "reduction privilege on region requirement %d in "
-              "'select_task_options'. Legion does not currently support "
-              "replication of tasks with reduction privileges. "
-              "You can request support for this feature by emailing the "
-              "Legion developers list or opening a github issue. The mapper "
-              "call to replicate_task is being elided.",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id(), idx)
+          Exception(WARNING_EXCEPTION, this)
+            << "Mapper " << *mapper << " requested to replicate " << *this
+            << " with reduction privilege on region requirement " << idx
+            << " in 'select_task_options'. Legion does not currently support "
+            << "replication of tasks with reduction privileges. "
+            << "You can request support for this feature by emailing the "
+            << "Legion developers list or opening a github issue. The mapper "
+            << "call to replicate_task is being elided.";
           options.replicate = false;
           break;
         }
@@ -920,15 +910,13 @@ namespace Legion {
       if (options.inline_task)
       {
         if (concurrent_task)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s requested to inline concurrent task %s (UID %lld). "
-              "Inlining of concurrent tasks are not supported.",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Mapper " << *mapper << " requested to inline concurrent "
+            << *this << ". Inlining of concurrent tasks are not supported.";
         if (must_epoch_task)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s requested to inline must epoch task %s (UID %lld). "
-              "Inlining of must epoch tasks are not supported.",
-              mapper->get_mapper_name(), get_task_name(), get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Mapper " << *mapper << " requested to inline must epoch "
+            << *this << ". Inlining of must epoch tasks are not supported.";
         return true;
       }
       else
@@ -1128,6 +1116,7 @@ namespace Legion {
       parent_ctx->decrement_outstanding();
     } 
 
+#if 0
     //--------------------------------------------------------------------------
     void TaskOp::perform_privilege_checks(void)
     //--------------------------------------------------------------------------
@@ -1355,6 +1344,7 @@ namespace Legion {
         }
       }
     }
+#endif
 
     //--------------------------------------------------------------------------
     void TaskOp::clone_task_op_from(TaskOp *rhs, Processor p, 
@@ -1631,25 +1621,24 @@ namespace Legion {
       // Check the concurrent constraints
       if (impl->is_concurrent() && !concurrent_task && !must_epoch_task &&
           is_index_space && (index_domain.get_volume() > 1))
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT, "Mapper %s has mapped "
-              "task %s (UID %lld) to a concurrent task variant %s but this "
-              "task was not launched in a concurrent index space task launch "
-              "or must epoch launch. Concurrent task variants can only be used "
-              "in concurrent index space task launches or must epoch launches.",
-              local_mapper->get_mapper_name(),
-              get_task_name(), get_unique_id(), impl->get_name())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Mapper " << *local_mapper << " has mapped " << *this
+          << " to a concurrent task variant " << impl->get_name()
+          << " but this task was not launched in a concurrent index space "
+          << "task launch or must epoch launch. Concurrent task variants can "
+          << "only be used in concurrent index space task launches or must "
+          << "epoch launches.";
       else if (concurrent_task && !impl->is_concurrent() && is_index_space &&
           (index_domain.get_volume() > 1))
-        REPORT_LEGION_WARNING(LEGION_WARNING_UNUSED_CONCURRENCY,
-            "Mapper %s selected non-concurrent task variant %s for "
-            "task %s (UID %lld) which was launched as a concurrent index "
-            "space task launch. Concurrent index space task launches have "
-            "additional overhead associated with them so you should really "
-            "only use them if you intend to use concurrent task variants. "
-            "Also note this warning may turn into an error if any of the "
-            "point tasks of this index task selected a concurrent variant.",
-            local_mapper->get_mapper_name(), impl->get_name(),
-            get_task_name(), get_unique_id())
+        Exception(WARNING_EXCEPTION, this)
+          << "Mapper " << *local_mapper << " selected non-concurrent task variant "
+          << impl->get_name() << " for " << *this 
+          << " which was launched as a concurrent index space task launch. "
+          << "Concurrent index space task launches have additional overhead "
+          << "associated with them so you should really only use them if you "
+          << "intend to use concurrent task variants. Also note this warning "
+          << "may turn into an error if any of the point tasks of this index "
+          << "task selected a concurrent variant.";
       // Check the layout constraints first
       const TaskLayoutConstraintSet &layout_constraints = 
         impl->get_layout_constraints();
@@ -6093,9 +6082,11 @@ namespace Legion {
     void IndividualTask::perform_base_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
+#if 0
       if (runtime->check_privileges && 
           !is_top_level_task() && !local_function)
         perform_privilege_checks();
+#endif
       // To be correct with the new scheduler we also have to 
       // register mapping dependences on futures
       for (std::vector<Future>::const_iterator it = futures.begin();
@@ -9220,8 +9211,10 @@ namespace Legion {
     void IndexTask::perform_base_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
+#if 0
       if (runtime->check_privileges)
         perform_privilege_checks();
+#endif
       // To be correct with the new scheduler we also have to 
       // register mapping dependences on futures
       for (std::vector<Future>::const_iterator it = futures.begin();
