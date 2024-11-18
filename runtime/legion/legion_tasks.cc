@@ -10673,6 +10673,8 @@ namespace Legion {
         {
           LogicalRegion point_region = (function == NULL) ? req.region :
             function->project_point(this, rit->first, launch_domain, *itr);
+          if (!point_region.exists())
+            continue;
           Domain point_domain;
           runtime->find_domain(point_region.get_index_space(), point_domain);
           domains.emplace_back(std::make_pair(*itr, point_domain));

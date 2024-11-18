@@ -8430,6 +8430,8 @@ namespace Legion {
               points.begin(); pit != points.end(); pit++)
         {
           const RegionRequirement &req = (*pit)->get_requirement(rit->first);
+          if (!req.region.exists())
+            continue;
           IndexSpaceNode *node = runtime->get_node(req.region.get_index_space());
           Domain domain;
           node->get_domain(domain);
