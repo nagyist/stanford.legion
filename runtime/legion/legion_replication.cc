@@ -7071,7 +7071,7 @@ namespace Legion {
     {
       if (points.empty())
       {
-        if (runtime->check_privileges)
+        if (runtime->safe_model)
           check_point_requirements();
         // Still need to wait for our collectives to be done
         if (!map_applied_conditions.empty())
