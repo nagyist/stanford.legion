@@ -602,7 +602,7 @@ namespace Legion {
 					     const DomainPoint& dp)
   //----------------------------------------------------------------------------
   {
-    if (dp.dim == 0)
+    if (dp.dim > 0)
     {
       os << '(';
       for (int d = 0; d < dp.dim; d++)

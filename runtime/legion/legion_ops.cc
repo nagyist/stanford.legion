@@ -8447,7 +8447,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < dst_requirements.size(); idx++)
       {
         const RegionRequirement &req = dst_requirements[idx];
-        if (!IS_WRITE(req))
+        if (!IS_WRITE(req) || IS_COLLECTIVE(req))
           continue;
         // If the projection functions are invertible then we don't have to 
         // worry about interference because the runtime knows how to hook
