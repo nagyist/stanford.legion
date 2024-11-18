@@ -10717,10 +10717,11 @@ namespace Legion {
         }
         interfering_requirements.insert(std::pair<unsigned,unsigned>(idx,idx));
       }
-      if (interfering_requirements.empty())
+      if (interfering_requirements.empty() || launch_space->is_empty())
         return;
       Domain internal_domain, launch_domain;
-      runtime->find_domain(internal_space, internal_domain);
+      if (internal_space.exists())
+        runtime->find_domain(internal_space, internal_domain);
       launch_space->get_domain(launch_domain, true/*tight*/);
       // Exchange all the domains for the interfering requirements
       std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > point_domains;
