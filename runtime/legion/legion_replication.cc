@@ -966,6 +966,7 @@ namespace Legion {
       broadcast_collective = NULL;
       output_size_collective = NULL;
       collective_check_id = 0;
+      interfering_check_id = 0;
       slice_sharding_output = false;
       output_bar = RtBarrier::NO_RT_BARRIER;
       concurrent_mapping_rendezvous = NULL;
@@ -1141,6 +1142,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void ReplIndexTask::exchange_interfering_points(
+          const Domain &internal_domain, const Domain &launch_domain,
+          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &domain_points)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(interfering_check_id > 0);
+      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      assert(repl_ctx != NULL);
+#else
+      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+#endif
+      // Do the base call to get the local points
+      IndexTask::exchange_interfering_points(internal_domain, launch_domain, domain_points);
+      InterferingPointExchange exchange(repl_ctx, interfering_check_id);
+      exchange.exchange_domain_points(domain_points);
+    }
+
+    //--------------------------------------------------------------------------
     void ReplIndexTask::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
@@ -1173,6 +1193,8 @@ namespace Legion {
         internal_space =
           sharding_function->find_shard_space(repl_ctx->owner_shard->shard_id,
               launch_space, launch_space->handle, get_provenance());
+      if (runtime->safe_model)
+        check_point_requirements();
       // If we're recording then record the local_space
       if (is_recording())
       {
@@ -1624,6 +1646,8 @@ namespace Legion {
       }
       if (runtime->safe_mapper)
         collective_check_id = ctx->get_next_collective_index(COLLECTIVE_LOC_76);
+      if (runtime->safe_model)
+        interfering_check_id = ctx->get_next_collective_index(COLLECTIVE_LOC_69);
       if (concurrent_task)
       {
         concurrent_exchange_id =
@@ -3130,6 +3154,7 @@ namespace Legion {
       sharding_functor = UINT_MAX;
       sharding_function = NULL;
       shard_points = NULL;
+      interfering_check_id = 0;
 #ifdef DEBUG_LEGION
       sharding_collective = NULL;
 #endif
@@ -3226,6 +3251,24 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void ReplIndexCopyOp::exchange_interfering_points(
+      std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains) const
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(interfering_check_id > 0);
+      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      assert(repl_ctx != NULL);
+#else
+      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+#endif
+      // Do the base call to get the local points
+      IndexCopyOp::exchange_interfering_points(point_domains);
+      InterferingPointExchange exchange(repl_ctx, interfering_check_id);
+      exchange.exchange_domain_points(point_domains);
+    }
+
+    //--------------------------------------------------------------------------
     void ReplIndexCopyOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
@@ -3258,6 +3301,9 @@ namespace Legion {
       // If it's empty we're done, otherwise we go back on the queue
       if (!local_space.exists())
       {
+        // Check for interfering point requirements in safe mode
+        if (runtime->safe_model)
+          check_point_requirements();
         // If we have indirections then we still need to participate in those
         std::vector<RtEvent> done_events;
         if (!src_indirect_requirements.empty() &&
@@ -3603,6 +3649,8 @@ namespace Legion {
           Runtime::advance_barrier(post_indirection_barriers[idx]);
         }
       }
+      if (runtime->safe_model)
+        interfering_check_id = ctx->get_next_collective_index(COLLECTIVE_LOC_69);
     }
 
     //--------------------------------------------------------------------------
@@ -6940,6 +6988,7 @@ namespace Legion {
       collective = NULL;
       participants = NULL;
       sharding_function = NULL;
+      interfering_check_id = 0;
     }
 
     //--------------------------------------------------------------------------
@@ -6969,6 +7018,8 @@ namespace Legion {
       collective->exchange_spaces(spaces);
       participants = new ShardParticipantsExchange(ctx, COLLECTIVE_LOC_103);
       participants->exchange(points.size() > 0);
+      if (runtime->safe_model)
+        interfering_check_id = ctx->get_next_collective_index(COLLECTIVE_LOC_106);
     }
 
     //--------------------------------------------------------------------------
@@ -7006,8 +7057,6 @@ namespace Legion {
             this, local_start, local_size, spaces, false/*can use identity*/);
       // Save this for later when we go to detach it
       resources.impl->set_projection(requirement.projection);
-      if (runtime->check_privileges)
-        check_point_requirements(spaces);
       if (runtime->legion_spy_enabled)
         log_requirement();
       analyze_region_requirements(launch_space,
@@ -7022,6 +7071,8 @@ namespace Legion {
     {
       if (points.empty())
       {
+        if (runtime->check_privileges)
+          check_point_requirements();
         // Still need to wait for our collectives to be done
         if (!map_applied_conditions.empty())
           complete_mapping(Runtime::merge_events(map_applied_conditions));
@@ -7044,6 +7095,24 @@ namespace Legion {
         IndexAttachOp::trigger_ready();
     }
 
+    //--------------------------------------------------------------------------
+    void ReplIndexAttachOp::exchange_interfering_points(
+          std::vector<std::pair<DomainPoint,Domain> > &point_domains) const
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(interfering_check_id > 0);
+      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      assert(repl_ctx != NULL);
+#else
+      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+#endif
+      IndexAttachOp::exchange_interfering_points(point_domains);
+      InterferingPointExchange exchange(repl_ctx, interfering_check_id);
+      exchange.exchange_domain_points(point_domains);
+    }
+
+#if 0
     //--------------------------------------------------------------------------
     void ReplIndexAttachOp::check_point_requirements(
                                           const std::vector<IndexSpace> &spaces)
@@ -7079,6 +7148,7 @@ namespace Legion {
         }
       }
     }
+#endif
     
     //--------------------------------------------------------------------------
     bool ReplIndexAttachOp::are_all_direct_children(bool local)
@@ -17188,6 +17258,95 @@ namespace Legion {
     {
       perform_collective_sync();
       return collective_sets;
+    }
+
+    /////////////////////////////////////////////////////////////
+    // Interfering Point Exchange 
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    InterferingPointExchange::InterferingPointExchange(ReplicateContext *ctx,
+                                                       CollectiveID id)
+      : AllGatherCollective<true>(ctx, id)
+    //--------------------------------------------------------------------------
+    {
+    }
+
+    //--------------------------------------------------------------------------
+    InterferingPointExchange::~InterferingPointExchange(void)
+    //--------------------------------------------------------------------------
+    {
+    }
+
+    //--------------------------------------------------------------------------
+    void InterferingPointExchange::pack_collective_stage(
+                                     ShardID target, Serializer &rez, int stage)
+    //--------------------------------------------------------------------------
+    {
+      rez.serialize<size_t>(domain_points.size());
+      for (std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > >::const_iterator
+            pit = domain_points.begin(); pit != domain_points.end(); pit++)
+      {
+        rez.serialize(pit->first);
+        rez.serialize<size_t>(pit->second.size());
+        for (std::vector<std::pair<DomainPoint,Domain> >::const_iterator it =
+              pit->second.begin(); it != pit->second.end(); it++)
+        {
+          rez.serialize(it->first);
+          rez.serialize(it->second);
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void InterferingPointExchange::unpack_collective_stage(Deserializer &derez,
+                                                           int stage)
+    //--------------------------------------------------------------------------
+    {
+      size_t num_reqs;
+      derez.deserialize(num_reqs);
+      for (unsigned idx1 = 0; idx1 < num_reqs; idx1++)
+      {
+        unsigned req_idx;
+        derez.deserialize(req_idx);
+        size_t num_points;
+        derez.deserialize(num_points);
+        std::vector<std::pair<DomainPoint,Domain> > &points = domain_points[req_idx];
+        if (!participating)
+        {
+#ifdef DEBUG_LEGION
+          assert(stage == -1);
+#endif
+          points.clear();
+        }
+        const unsigned offset = points.size();
+        points.resize(offset + num_points);
+        for (unsigned idx2 = 0; idx2 < num_points; idx2++)
+        {
+          derez.deserialize(points[offset+idx2].first);
+          derez.deserialize(points[offset+idx2].second);
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void InterferingPointExchange::exchange_domain_points(
+        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &points)
+    //--------------------------------------------------------------------------
+    {
+      domain_points.swap(points);
+      perform_collective_sync();
+      points.swap(domain_points);
+    }
+
+    //--------------------------------------------------------------------------
+    void InterferingPointExchange::exchange_domain_points(
+        std::vector<std::pair<DomainPoint,Domain> > &points)
+    //--------------------------------------------------------------------------
+    {
+      domain_points[0].swap(points);
+      perform_collective_sync();
+      points.swap(domain_points[0]);
     }
 
     /////////////////////////////////////////////////////////////

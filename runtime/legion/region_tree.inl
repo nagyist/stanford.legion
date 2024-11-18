@@ -3034,6 +3034,40 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
+    bool IndexSpaceNodeT<DIM,T>::has_interfering_point(
+        const std::vector<std::pair<DomainPoint,Domain> > &test_points,
+        DomainPoint &interfering_point, DomainPoint to_skip)
+    //--------------------------------------------------------------------------
+    {
+      DomainT<DIM,T> space;
+      get_realm_index_space(space, true/*tight*/);
+      for (std::vector<std::pair<DomainPoint,Domain> >::const_iterator it =
+            test_points.begin(); it != test_points.end(); it++)
+      {
+        if (it->first == to_skip)
+          continue;
+        DomainT<DIM,T> other = it->second; 
+        // Check the bounds first to see if we can skip the test just
+        // based on those alone without loading the sparsity map
+        if (!space.bounds.overlaps(other.bounds))
+          continue;
+        if (!other.dense())
+        {
+          // Load its sparsity map on this node so we can test it
+          RtEvent ready(other.make_valid());
+          ready.wait();
+        }
+        if (space.overlaps(other))
+        {
+          interfering_point = it->first;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    //--------------------------------------------------------------------------
+    template<int DIM, typename T>
     ColorSpaceLinearizationT<DIM,T>*
                     IndexSpaceNodeT<DIM,T>::compute_linearization_metadata(void)
     //--------------------------------------------------------------------------

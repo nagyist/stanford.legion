@@ -1083,6 +1083,7 @@ namespace Legion {
       SEND_CONTROL_REPLICATION_PREDICATE_EXCHANGE,
       SEND_CONTROL_REPLICATION_CROSS_PRODUCT_EXCHANGE,
       SEND_CONTROL_REPLICATION_TRACING_SET_DEDUPLICATION,
+      SEND_CONTROL_REPLICATION_INTERFERING_POINT_EXCHANGE,
       SEND_CONTROL_REPLICATION_SLOW_BARRIER,
       SEND_PROFILER_EVENT_TRIGGER,
       SEND_PROFILER_EVENT_POISON,
@@ -1415,6 +1416,7 @@ namespace Legion {
         "Control Replication Collective Predicate Exchange",          \
         "Control Replication Collective Cross Product Exchange",      \
         "Control Replication Collective Tracing Set Deduplication",   \
+        "Control Replication Collective Interering Points Check",     \
         "Control Replication Collective Slow Barrier",                \
         "Send Profiler Event Trigger",                                \
         "Send Profiler Event Poison",                                 \
@@ -2273,8 +2275,8 @@ namespace Legion {
       COLLECTIVE_LOC_65 = 65,
       COLLECTIVE_LOC_66 = 66,
       COLLECTIVE_LOC_67 = 67,
-      //COLLECTIVE_LOC_68 = 68,
-      //COLLECTIVE_LOC_69 = 69,
+      COLLECTIVE_LOC_68 = 68,
+      COLLECTIVE_LOC_69 = 69,
       COLLECTIVE_LOC_70 = 70,
       COLLECTIVE_LOC_71 = 71,
       COLLECTIVE_LOC_72 = 72,
@@ -2311,6 +2313,7 @@ namespace Legion {
       COLLECTIVE_LOC_103 = 103,
       COLLECTIVE_LOC_104 = 104,
       COLLECTIVE_LOC_105 = 105,
+      COLLECTIVE_LOC_106 = 106,
     };
 
     enum ExceptionType {

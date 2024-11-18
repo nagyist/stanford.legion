@@ -1481,6 +1481,8 @@ namespace Legion {
       virtual const VersionInfo& get_version_info(unsigned idx) const;
       virtual const RegionRequirement& get_requirement(unsigned idx) const;
     protected:
+      unsigned get_requirement_offset(unsigned idx) const;
+      const char* get_requirement_name(unsigned idx) const;
       template<ReqType REQ_TYPE>
       static const char* get_req_type_name(void);
       template<ReqType REQ_TYPE>
@@ -1680,6 +1682,8 @@ namespace Legion {
       void handle_point_commit(RtEvent point_committed);
       void check_point_requirements(void);
     protected:
+      virtual void exchange_interfering_points(
+          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains) const;
       void log_index_copy_requirements(void);
     public:
       IndexSpaceNode*                                    launch_space;
@@ -2246,6 +2250,8 @@ namespace Legion {
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
       virtual const FieldMask& get_internal_mask(void) const;
+      // Ignore interfering requirements reports here
+      virtual void report_interfering_requirements(unsigned idx1,unsigned idx2) { }
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_mapping(void);
@@ -3839,7 +3845,9 @@ namespace Legion {
       void enumerate_points(void);
       void handle_point_complete(ApEvent effect);
       void handle_point_commit(void);
+#if 0
       void check_point_requirements(void);
+#endif
     protected:
       void log_index_fill_requirement(void);
     public:
@@ -4057,18 +4065,19 @@ namespace Legion {
       virtual void trigger_complete(ApEvent effects_done);
       virtual void trigger_commit(void);
       virtual unsigned find_parent_index(unsigned idx);
-      virtual void check_point_requirements(
-                    const std::vector<IndexSpace> &spaces);
       virtual bool are_all_direct_children(bool local) { return local; }
       virtual size_t get_collective_points(void) const;
     public:
       void handle_point_complete(ApEvent effects);
       void handle_point_commit(void);
+      void check_point_requirements(void);
     protected:
 #if 0
       void compute_parent_index(void);
       void check_privilege(void);
 #endif
+      virtual void exchange_interfering_points(
+          std::vector<std::pair<DomainPoint,Domain> > &point_domains) const;
       void log_requirement(void);
     protected:
       RegionRequirement                             requirement;
@@ -4093,6 +4102,8 @@ namespace Legion {
       virtual ~PointAttachOp(void);
     public:
       PointAttachOp& operator=(const PointAttachOp &rhs) = delete;
+    public:
+      inline const DomainPoint& get_index_point(void) const { return index_point; }
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);

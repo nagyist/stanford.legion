@@ -2226,6 +2226,9 @@ namespace Legion {
       virtual size_t get_num_dims(void) const = 0;
       virtual bool contains_point(const void *realm_point,TypeTag type_tag) = 0;
       virtual bool contains_point(const DomainPoint &point) = 0;
+      virtual bool has_interfering_point(
+          const std::vector<std::pair<DomainPoint,Domain> > &tests,
+          DomainPoint &interfering_point, DomainPoint to_skip) = 0;
     public:
       virtual LegionColor get_max_linearized_color(void) = 0;
       virtual LegionColor linearize_color(const DomainPoint &point) = 0;
@@ -2457,6 +2460,9 @@ namespace Legion {
       virtual size_t get_num_dims(void) const;
       virtual bool contains_point(const void *realm_point, TypeTag type_tag);
       virtual bool contains_point(const DomainPoint &point);
+      virtual bool has_interfering_point(
+          const std::vector<std::pair<DomainPoint,Domain> > &tests,
+          DomainPoint &interfering_point, DomainPoint to_skip);
     public:
       virtual LegionColor get_max_linearized_color(void);
       virtual LegionColor linearize_color(const DomainPoint &point);

@@ -1727,6 +1727,33 @@ namespace Legion {
     };
 
     /**
+     * \class InterferingPointExchange
+     *
+     */
+    class InterferingPointExchange : public AllGatherCollective<true> {
+    public:
+      InterferingPointExchange(ReplicateContext *ctx, CollectiveID id);
+      InterferingPointExchange(const InterferingPointExchange &rhs) = delete;
+      virtual ~InterferingPointExchange(void);
+    public:
+      InterferingPointExchange& operator=(
+          const InterferingPointExchange &rhs) = delete;
+    public:
+      virtual MessageKind get_message_kind(void) const
+        { return SEND_CONTROL_REPLICATION_INTERFERING_POINT_EXCHANGE; }
+      virtual void pack_collective_stage(ShardID target,
+                                         Serializer &rez, int stage);
+      virtual void unpack_collective_stage(Deserializer &derez, int stage);
+    public:
+      void exchange_domain_points( 
+        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &points);
+      void exchange_domain_points(
+          std::vector<std::pair<DomainPoint,Domain> > &points);
+    protected:
+      std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > domain_points;
+    };
+
+    /**
      * \class SlowBarrier
      * This class creates a collective that behaves like a barrier, but is
      * probably slower than Realm phase barriers. It's useful for cases
@@ -2034,6 +2061,9 @@ namespace Legion {
       virtual void record_intra_space_dependence(const DomainPoint &point,
                                                  const DomainPoint &next,
                                                  RtEvent point_mapped);
+      virtual void exchange_interfering_points(
+          const Domain &internal_domain, const Domain &launch_domain,
+          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &domain_points);
     public:
       // Output regions
       virtual void record_output_registered(RtEvent registered);
@@ -2050,6 +2080,7 @@ namespace Legion {
       FutureBroadcastCollective *broadcast_collective;
       OutputExtentExchange *output_size_collective;
       CollectiveID collective_check_id;
+      CollectiveID interfering_check_id;
       RtBarrier output_bar;
     protected:
       // Map of output sizes collected by this shard
@@ -2333,6 +2364,9 @@ namespace Legion {
     public:
       void initialize_replication(ReplicateContext *ctx);
     protected:
+      virtual void exchange_interfering_points(
+          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains) const;
+    protected:
       ShardingID sharding_functor;
       ShardingFunction *sharding_function;
       IndexSpaceNode *shard_points;
@@ -2341,6 +2375,7 @@ namespace Legion {
       std::vector<IndirectRecordExchange*> src_collectives;
       std::vector<IndirectRecordExchange*> dst_collectives;
       std::set<std::pair<DomainPoint,ShardID> > unique_intra_space_deps;
+      CollectiveID interfering_check_id;
 #ifdef DEBUG_LEGION
     public:
       inline void set_sharding_collective(ShardingGatherCollective *collective)
@@ -2798,16 +2833,18 @@ namespace Legion {
       virtual void trigger_prepipeline_stage(void);
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
-      virtual void check_point_requirements(
-                    const std::vector<IndexSpace> &spaces);
       virtual bool are_all_direct_children(bool local);
       virtual bool find_shard_participants(std::vector<ShardID> &shards);
     public:
       void initialize_replication(ReplicateContext *ctx);
     protected:
+      virtual void exchange_interfering_points(
+          std::vector<std::pair<DomainPoint,Domain> > &point_domains) const;
+    protected:
       IndexAttachExchange *collective;
       ShardParticipantsExchange *participants;
       ShardingFunction *sharding_function;
+      CollectiveID interfering_check_id;
     };
 
     /**

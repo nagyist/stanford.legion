@@ -16454,6 +16454,9 @@ namespace Legion {
               // second part of this condition
               ((prev.op == user.op) || (user.op->get_must_epoch_op() == NULL)))
           {
+            if ((prev.ctx_index == user.ctx_index) &&
+                !(check_mask * it->second))
+              user.op->report_interfering_requirements(prev.idx, user.idx);
             if (TRACK_DOM)
               dominator_mask -= it->second;
             continue;
@@ -16634,7 +16637,10 @@ namespace Legion {
         const LogicalUser &prev = *it->first;
         // Skip any users from the same operation for different requiremnts
         if (prev.ctx_index == user.ctx_index)
+        {
+          user.op->report_interfering_requirements(prev.idx, user.idx);
           continue;
+        }
         logical_analysis.record_close_dependence(root, user.idx, path_node,
                                                  it->first, overlap);
         it.filter(overlap);

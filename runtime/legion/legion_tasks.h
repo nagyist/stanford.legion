@@ -260,7 +260,9 @@ namespace Legion {
       void finalize_output_region_trees(void);
     public:
       void compute_parent_indexes(bool force);
+#if 0
       void perform_intra_task_alias_analysis(void);
+#endif
     public:
       // From Memoizable
       virtual const RegionRequirement& get_requirement(unsigned idx) const
@@ -905,7 +907,9 @@ namespace Legion {
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_replay(void);
+#if 0
       virtual void report_interfering_requirements(unsigned idx1,unsigned idx2);
+#endif
     public:
       virtual void predicate_false(void);
       virtual bool distribute_task(void);
@@ -1310,6 +1314,10 @@ namespace Legion {
       virtual void trigger_replay(void);
     public:
       void enumerate_futures(const Domain &domain);
+      void check_point_requirements(void);
+      virtual void exchange_interfering_points(
+          const Domain &internal_domain, const Domain &launch_domain,
+          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &domain_points);
     public:
       static void process_slice_mapped(Deserializer &derez,
                                        AddressSpaceID source);
@@ -1347,10 +1355,12 @@ namespace Legion {
       // For checking aliasing of points in debug mode only
       std::set<std::pair<unsigned,unsigned> > interfering_requirements;
       std::map<DomainPoint,std::vector<LogicalRegion> > point_requirements;
+#if 0
 #ifdef DEBUG_LEGION
     public:
       void check_point_requirements(
           const std::map<DomainPoint,std::vector<LogicalRegion> > &point_reqs);
+#endif
 #endif
     protected:
       std::vector<std::pair<SliceTask*,AddressSpace> > concurrent_slices;

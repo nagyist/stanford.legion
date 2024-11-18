@@ -1513,10 +1513,12 @@ namespace Legion {
         for (unsigned idx = 0; idx < logical_regions.size(); idx++)
           log_requirement(our_uid, idx, logical_regions[idx]);
       }
+#if 0
 #ifdef DEBUG_LEGION
       {
         perform_intra_task_alias_analysis();
       }
+#endif
 #endif
     } 
 
@@ -1533,6 +1535,7 @@ namespace Legion {
           parent_ctx->finalize_output_eqkd_tree(find_parent_index(offset+idx));
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void TaskOp::perform_intra_task_alias_analysis(void)
     //--------------------------------------------------------------------------
@@ -1609,6 +1612,7 @@ namespace Legion {
         }
       }
     }
+#endif
 
     //--------------------------------------------------------------------------
     void TaskOp::validate_variant_selection(MapperManager *local_mapper,
@@ -5973,9 +5977,11 @@ namespace Legion {
           LegionSpy::log_phase_barrier_wait(unique_op_id, e);
         }
       }
+#if 0
 #ifdef DEBUG_LEGION
       if (!launcher.independent_requirements)
         perform_intra_task_alias_analysis();
+#endif
 #endif
       return result;
     }
@@ -6141,13 +6147,23 @@ namespace Legion {
                                                          unsigned idx2)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_ALIASED_INTERFERING_REGION,
-                    "Aliased and interfering region requirements for "
-                    "individual tasks are not permitted. Region requirements "
-                    "%d and %d of task %s (UID %lld) in parent task %s "
-                    "(UID %lld) are interfering.", idx1, idx2, get_task_name(),
-                    get_unique_id(), parent_ctx->get_task_name(),
-                    parent_ctx->get_unique_id())
+#ifdef DEBUG_LEGION
+      assert(idx1 < idx2);
+#endif
+      // The logical dependence analysis can report this because there are
+      // interfering fields and regions, check to make sure there are alos
+      // interfering privileges and index spaces
+      const RegionRequirement &req1 = get_requirement(idx1);
+      const RegionRequirement &req2 = get_requirement(idx2);
+      if (IS_READ_ONLY(req1) && IS_READ_ONLY(req2))
+        return;
+      if (IS_REDUCE(req1) && IS_REDUCE(req2) && (req1.redop == req2.redop))
+        return;
+      if (!runtime->are_disjoint(req1.region.get_index_space(), req2.region.get_index_space()))
+        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+          << "Found aliasing region requirements " << idx1 << " and " << idx2
+          << " of " << *this << ". Individual task launches are not permitted "
+          << " to have interfering region requirements.";
     } 
 
     //--------------------------------------------------------------------------
@@ -6892,6 +6908,7 @@ namespace Legion {
       SingleTask::trigger_replay();
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void PointTask::report_interfering_requirements(unsigned idx1,
                                                     unsigned idx2)
@@ -7039,6 +7056,7 @@ namespace Legion {
           assert(false);
       }
     }
+#endif
 
     //--------------------------------------------------------------------------
     void PointTask::predicate_false(void)
@@ -9239,20 +9257,18 @@ namespace Legion {
     void IndexTask::report_interfering_requirements(unsigned idx1,unsigned idx2)
     //--------------------------------------------------------------------------
     {
-      // For now we only issue this warning in debug mode, eventually we'll
-      // turn this on only when users request it when we do our debug refactor
-      if ((logical_regions[idx1].handle_type == LEGION_SINGULAR_PROJECTION) &&
-          (logical_regions[idx2].handle_type == LEGION_SINGULAR_PROJECTION))
-        REPORT_LEGION_ERROR(ERROR_ALIASED_REGION_REQUIREMENTS,
-                          "Aliased region requirements for index tasks "
-                          "are not permitted. Region requirements %d and %d "
-                          "of task %s (UID %lld) in parent task %s (UID %lld) "
-                          "are interfering.", idx1, idx2, get_task_name(),
-                          get_unique_id(), parent_ctx->get_task_name(),
-                          parent_ctx->get_unique_id())
-      // Need a lock here in case this gets called in parallel by multiple
-      // slice tasks returning at the same time
-      AutoLock o_lock(op_lock);
+#ifdef DEBUG_LEGION
+      assert(idx1 < idx2);
+#endif
+      // The logical dependence analysis can report this because there are
+      // interfering fields and regions, check to make sure there are alos
+      // interfering privileges and index spaces
+      const RegionRequirement &req1 = get_requirement(idx1);
+      const RegionRequirement &req2 = get_requirement(idx2);
+      if (IS_READ_ONLY(req1) && IS_READ_ONLY(req2))
+        return;
+      if (IS_REDUCE(req1) && IS_REDUCE(req2) && (req1.redop == req2.redop))
+        return;
       interfering_requirements.insert(std::pair<unsigned,unsigned>(idx1,idx2));
     }
 
@@ -9260,6 +9276,8 @@ namespace Legion {
     void IndexTask::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
+      if (runtime->safe_model)
+        check_point_requirements();
       // Do a quick test for empty index space launches
       total_points = launch_space->get_volume();
       if (total_points == 0)
@@ -10327,6 +10345,7 @@ namespace Legion {
       derez.deserialize(points);
       RtEvent applied_condition;
       derez.deserialize(applied_condition);
+#if 0
 #ifdef DEBUG_LEGION
       if (!is_origin_mapped())
       {
@@ -10342,6 +10361,7 @@ namespace Legion {
         }
         check_point_requirements(local_requirements);
       }
+#endif
 #endif
       return_slice_mapped(points, applied_condition);
     }
@@ -10626,15 +10646,127 @@ namespace Legion {
       task->record_intra_space_dependence(point, next, mapped_event);
     }
 
+    //--------------------------------------------------------------------------
+    void IndexTask::exchange_interfering_points(
+        const Domain &internal_domain, const Domain &launch_domain,
+        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(point_domains.empty());
+      assert(!interfering_requirements.empty());
+#endif
+      for (std::set<std::pair<unsigned,unsigned> >::const_iterator rit =
+            interfering_requirements.begin(); rit !=
+            interfering_requirements.end(); rit++)
+      {
+        std::vector<std::pair<DomainPoint,Domain> > &domains = point_domains[rit->first];
+        // Already found it for this region requirements
+        if (!domains.empty())
+          continue;
+        domains.reserve(internal_domain.get_volume());
+        const RegionRequirement &req = regions[rit->first];
+        ProjectionFunction *function = NULL;
+        if (req.handle_type != LEGION_SINGULAR_PROJECTION)
+          function = runtime->find_projection_function(req.projection);
+        for (Domain::DomainPointIterator itr(internal_domain); itr; itr++)
+        {
+          LogicalRegion point_region = (function == NULL) ? req.region :
+            function->project_point(this, rit->first, launch_domain, *itr);
+          Domain point_domain;
+          runtime->find_domain(point_region.get_index_space(), point_domain);
+          domains.emplace_back(std::make_pair(*itr, point_domain));
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexTask::check_point_requirements(void)
+    //--------------------------------------------------------------------------
+    {
+      for (unsigned idx = 0; idx < regions.size(); idx++)
+      {
+        const RegionRequirement &req = regions[idx];
+        if (!IS_WRITE(req))
+          continue;
+        // If the projection functions are invertible then we don't have to 
+        // worry about interference because the runtime knows how to hook
+        // up those kinds of dependences
+        if (req.handle_type != LEGION_SINGULAR_PROJECTION)
+        {
+          if (req.projection == 0)
+          {
+            if (req.handle_type == LEGION_PARTITION_PROJECTION)
+            {
+              IndexPartNode *partition = runtime->get_node(req.partition.get_index_partition());
+              if (partition->is_disjoint())
+                continue;
+            }
+            else // Identity functor is invertible
+              continue;
+          }
+          else
+          {
+            ProjectionFunction *func = 
+              runtime->find_projection_function(req.projection);   
+            if (func->is_invertible)
+              continue;
+          }
+        }
+        interfering_requirements.insert(std::pair<unsigned,unsigned>(idx,idx));
+      }
+      if (interfering_requirements.empty())
+        return;
+      Domain internal_domain, launch_domain;
+      runtime->find_domain(internal_space, internal_domain);
+      launch_space->get_domain(launch_domain, true/*tight*/);
+      // Exchange all the domains for the interfering requirements
+      std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > point_domains;
+      exchange_interfering_points(internal_domain, launch_domain, point_domains);
+      // Iterate our local points and check their first region requirements
+      // against all the points in the second region requirements
+      for (std::set<std::pair<unsigned,unsigned> >::const_iterator rit =
+            interfering_requirements.begin(); rit !=
+            interfering_requirements.end(); rit++)
+      {
+        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > >::const_iterator
+          finder = point_domains.find(rit->first);
+#ifdef DEBUG_LEGION
+        assert(finder != point_domains.end());
+#endif
+        const RegionRequirement &req = get_requirement(rit->second);
+        ProjectionFunction *function = NULL;
+        if (req.handle_type != LEGION_SINGULAR_PROJECTION)
+          function = runtime->find_projection_function(req.projection);
+        for (Domain::DomainPointIterator itr(internal_domain); itr; itr++)
+        {
+          LogicalRegion point_region = (function == NULL) ? req.region :
+            function->project_point(this, rit->second, launch_domain, *itr);
+          IndexSpaceNode *node = runtime->get_node(point_region.get_index_space());
+          DomainPoint interfering;
+          if (node->has_interfering_point(finder->second, interfering,
+                (rit->first == rit->second) ? *itr : DomainPoint()))
+            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+              << "Index " << *this << " has interfering region requirements between "
+              << "region requirements " << rit->first << " of point task " << interfering
+              << " and " << rit->second << " of point task " << *itr
+              << ". Interfering region requirements are not permitted for index tasks.";
+        }
+      }
+    }
+
+#if 0
 #ifdef DEBUG_LEGION
     //--------------------------------------------------------------------------
     void IndexTask::check_point_requirements(
             const std::map<DomainPoint,std::vector<LogicalRegion> > &point_reqs)
     //--------------------------------------------------------------------------
     {
+#if 0
       // Need to run this if we haven't run it yet in order to populate
       // the interfering_requirements data structure
       perform_intra_task_alias_analysis();
+#endif
       std::set<std::pair<unsigned,unsigned> > local_interfering = 
         interfering_requirements;
       // Handle any region requirements that interfere with itself
@@ -10881,6 +11013,7 @@ namespace Legion {
         point_requirements.insert(*pit);
       }
     }
+#endif
 #endif
 
     /////////////////////////////////////////////////////////////
@@ -12139,6 +12272,7 @@ namespace Legion {
       }
       else
       {
+#if 0
 #ifdef DEBUG_LEGION
         // In debug mode, get all our point region requirements and
         // then pass them back to the index space task
@@ -12153,6 +12287,7 @@ namespace Legion {
             reqs[idx] = (*it)->regions[idx].region;
         }
         index_owner->check_point_requirements(local_requirements);
+#endif
 #endif
         index_owner->return_slice_mapped(points.size(), applied_condition); 
       }
@@ -12177,6 +12312,7 @@ namespace Legion {
       RezCheck z(rez);
       rez.serialize(points.size());
       rez.serialize(applied_condition);
+#if 0
 #ifdef DEBUG_LEGION
       if (!is_origin_mapped())
       {
@@ -12188,6 +12324,7 @@ namespace Legion {
             rez.serialize((*it)->regions[idx].region);
         }
       }
+#endif
 #endif
     }
 

@@ -6932,16 +6932,25 @@ namespace Legion {
     void CopyOp::report_interfering_requirements(unsigned idx1, unsigned idx2)
     //--------------------------------------------------------------------------
     {
-      bool is_src1 = idx1 < src_requirements.size();
-      bool is_src2 = idx2 < src_requirements.size();
-      unsigned actual_idx1 = is_src1 ? idx1 : (idx1 - src_requirements.size());
-      unsigned actual_idx2 = is_src2 ? idx2 : (idx2 - src_requirements.size());
-      Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-        << "Aliased region requirements for copy operations are not permitted. "
-        << "Region requirement " << actual_idx1 << " of "
-        << (is_src1 ? "source" : "destination") << "requirements and "
-        << actual_idx2 << " of " << (is_src2 ? "source" : "destination")
-        << " requirements interfering for " << *this << ".";
+#ifdef DEBUG_LEGION
+      assert(idx1 < idx2);
+#endif
+      // The logical dependence analysis can report this because there are
+      // interfering fields and regions, check to make sure there are alos
+      // interfering privileges and index spaces
+      const RegionRequirement &req1 = get_requirement(idx1);
+      const RegionRequirement &req2 = get_requirement(idx2);
+      if (IS_READ_ONLY(req1) && IS_READ_ONLY(req2))
+        return;
+      if (IS_REDUCE(req1) && IS_REDUCE(req2) && (req1.redop == req2.redop))
+        return;
+      if (!runtime->are_disjoint(req1.region.get_index_space(), req2.region.get_index_space()))
+        Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+          << "Found aliasing region requirements for " << *this << " between "
+          << get_requirement_offset(idx1) << " of " << get_requirement_name(idx1) 
+          << " region requirement and " << get_requirement_offset(idx2)
+          << " of " << get_requirement_name(idx2) << ". Aliased region "
+          << "region requirements can lead to races are not permitted.";
     }
 
     //--------------------------------------------------------------------------
@@ -7475,11 +7484,49 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    unsigned CopyOp::get_requirement_offset(unsigned idx) const
+    //--------------------------------------------------------------------------
+    {
+      if (idx < src_requirements.size())
+        return idx;
+      idx -= src_requirements.size();
+      if (idx < dst_requirements.size())
+        return idx;
+      idx -= dst_requirements.size();
+      if (idx < src_indirect_requirements.size())
+        return idx;
+      idx -= src_indirect_requirements.size();
+#ifdef DEBUG_LEGION
+      assert(idx < dst_indirect_requirements.size());
+#endif
+      return idx;
+    }
+
+    //--------------------------------------------------------------------------
+    const char* CopyOp::get_requirement_name(unsigned idx) const
+    //--------------------------------------------------------------------------
+    {
+      if (idx < src_requirements.size())
+        return "source";
+      idx -= src_requirements.size();
+      if (idx < dst_requirements.size())
+        return "destination";
+      idx -= dst_requirements.size();
+      if (idx < src_indirect_requirements.size())
+        return "source indirect";
+#ifdef DEBUG_LEGION
+      idx -= src_indirect_requirements.size();
+      assert(idx < dst_indirect_requirements.size());
+#endif
+      return "destination indirect";
+    }
+
+    //--------------------------------------------------------------------------
     template<CopyOp::ReqType REQ_TYPE>
     /*static*/ const char* CopyOp::get_req_type_name(void)
     //--------------------------------------------------------------------------
     {
-      const char *req_type_names[4] = {
+      static const char *req_type_names[4] = {
         "source", "destination", "source indirect", "destination indirect",
       };
       return req_type_names[REQ_TYPE];
@@ -8218,24 +8265,20 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      bool is_src1 = idx1 < src_requirements.size();
-      bool is_src2 = idx2 < src_requirements.size();
-      unsigned actual_idx1 = is_src1 ? idx1 : (idx1 - src_requirements.size());
-      unsigned actual_idx2 = is_src2 ? idx2 : (idx2 - src_requirements.size());
-      // For now we only issue this warning in debug mode, eventually we'll
-      // turn this on only when users request it when we do our debug refactor
-      Exception(WARNING_EXCEPTION, this)
-        << "Region requirements " << actual_idx1 << " and " << actual_idx2
-        << " of index " << *this << " are potentially interfering. "
-        << "It's possible that this is a false positive if there "
-        << "are projection region requirements and each of the "
-        << "point copies are non-interfering. If the runtime is "
-        << "built in debug mode then it will check that the region "
-        << "requirements of all points are actually "
-        << "non-interfering. If you see no further error messages "
-        << "for this index task launch then everything is good.",
+      assert(idx1 < idx2);
 #endif
-      interfering_requirements.insert(std::pair<unsigned,unsigned>(idx1,idx2));
+      // The logical dependence analysis can report this because there are
+      // interfering fields and regions, check to make sure there are alos
+      // interfering privileges and index spaces
+      const RegionRequirement &req1 = get_requirement(idx1);
+      const RegionRequirement &req2 = get_requirement(idx2);
+      if (IS_READ_ONLY(req1) && IS_READ_ONLY(req2))
+        return;
+      if (IS_REDUCE(req1) && IS_REDUCE(req2) && (req1.redop == req2.redop))
+        return;
+      // Save this if the runtime checks are on for it
+      if (runtime->safe_model)
+        interfering_requirements.emplace(std::make_pair(idx1,idx2));
     }
 
     //--------------------------------------------------------------------------
@@ -8366,10 +8409,41 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    void IndexCopyOp::exchange_interfering_points(
+      std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains) const
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(point_domains.empty());
+      assert(!interfering_requirements.empty());
+#endif
+      for (std::set<std::pair<unsigned,unsigned> >::const_iterator rit =
+            interfering_requirements.begin(); rit !=
+            interfering_requirements.end(); rit++)
+      {
+        std::vector<std::pair<DomainPoint,Domain> > &domains = point_domains[rit->first];
+        // Already found it for this region requirements
+        if (!domains.empty())
+          continue;
+        domains.reserve(points.size());
+        for (std::vector<PointCopyOp*>::const_iterator pit =
+              points.begin(); pit != points.end(); pit++)
+        {
+          const RegionRequirement &req = (*pit)->get_requirement(rit->first);
+          IndexSpaceNode *node = runtime->get_node(req.region.get_index_space());
+          Domain domain;
+          node->get_domain(domain);
+          domains.emplace_back(std::make_pair((*pit)->index_point,domain));
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
     void IndexCopyOp::check_point_requirements(void)
     //--------------------------------------------------------------------------
     {
       // Handle any region requirements which can interfere with itself
+      // which wouldn't have been picked up the logical analysis
       for (unsigned idx = 0; idx < dst_requirements.size(); idx++)
       {
         const RegionRequirement &req = dst_requirements[idx];
@@ -8380,10 +8454,24 @@ namespace Legion {
         // up those kinds of dependences
         if (req.handle_type != LEGION_SINGULAR_PROJECTION)
         {
-          ProjectionFunction *func = 
-            runtime->find_projection_function(req.projection);   
-          if (func->is_invertible)
-            continue;
+          if (req.projection == 0)
+          {
+            if (req.handle_type == LEGION_PARTITION_PROJECTION)
+            {
+              IndexPartNode *partition = runtime->get_node(req.partition.get_index_partition());
+              if (partition->is_disjoint())
+                continue;
+            }
+            else // Identity functor is invertible
+              continue;
+          }
+          else
+          {
+            ProjectionFunction *func = 
+              runtime->find_projection_function(req.projection);   
+            if (func->is_invertible)
+              continue;
+          }
         }
         const unsigned index = src_requirements.size() + idx;
         interfering_requirements.insert(
@@ -8392,6 +8480,39 @@ namespace Legion {
       // Nothing to do if there are no interfering requirements
       if (interfering_requirements.empty())
         return;
+      // Exchange all the domains for the interfering requirements
+      std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > point_domains;
+      exchange_interfering_points(point_domains);
+      // Iterate our local points and check their first region requirements
+      // against all the points in the second region requirements
+      for (std::set<std::pair<unsigned,unsigned> >::const_iterator rit =
+            interfering_requirements.begin(); rit !=
+            interfering_requirements.end(); rit++)
+      {
+        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > >::const_iterator
+          finder = point_domains.find(rit->first);
+#ifdef DEBUG_LEGION
+        assert(finder != point_domains.end());
+#endif
+        for (std::vector<PointCopyOp*>::const_iterator pit =
+              points.begin(); pit != points.end(); pit++)
+        {
+          const RegionRequirement &req = (*pit)->get_requirement(rit->second);
+          IndexSpaceNode *node = runtime->get_node(req.region.get_index_space());
+          DomainPoint interfering;
+          if (node->has_interfering_point(finder->second, interfering,
+                (rit->first == rit->second) ? (*pit)->index_point : DomainPoint()))
+            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+              << "Index " << *this << " has interfering region requirments between "
+              << get_requirement_name(rit->first) << " requirement " 
+              << get_requirement_offset(rit->first) << " of point " << interfering
+              << " and " << get_requirement_name(rit->second) << " requirement "
+              << get_requirement_offset(rit->second) << " of point " << (*pit)->index_point
+              << ". Interfering region requirements are not permitted for index "
+              << "copy operations.";
+        }
+      }
+#if 0
       std::map<DomainPoint,std::vector<LogicalRegion> > point_requirements;
       for (std::vector<PointCopyOp*>::const_iterator pit = points.begin();
             pit != points.end(); pit++)
@@ -8429,7 +8550,6 @@ namespace Legion {
                 << it->first << " of point " << current_point 
                 << " and region requirement " << it->second << " of point "
                 << oit->first << " of " << *this << " that are interfering.";
-#if 0
               switch (current_point.get_dim())
               {
                 case 1:
@@ -8611,11 +8731,11 @@ namespace Legion {
                 default:
                   assert(false);
               }
-#endif
             }
           }
         }
       }
+#endif
     }
 
     //--------------------------------------------------------------------------
@@ -17583,9 +17703,6 @@ namespace Legion {
             requirement, 0/*idx*/, false/*skip privileges*/, true/*force*/);
       // Enumerate the points
       enumerate_points();
-      // Check for interfering point requirements in debug mode
-      if (runtime->safe_model)
-        check_point_requirements(); 
       // Launch the points
       std::vector<RtEvent> mapped_preconditions(points.size());
       for (unsigned idx = 0; idx < points.size(); idx++)
@@ -17736,6 +17853,7 @@ namespace Legion {
         commit_operation(true/*deactivate*/);
     }
 
+#if 0
     //--------------------------------------------------------------------------
     void IndexFillOp::check_point_requirements(void)
     //--------------------------------------------------------------------------
@@ -17756,7 +17874,6 @@ namespace Legion {
               << "requirement 0 of point " << p1 
               << " is interfering with point " << p2
               << " of " << *this << ".";
-#if 0
             switch (p1.get_dim())
             {
               case 1:
@@ -17917,11 +18034,11 @@ namespace Legion {
               default:
                 assert(false);
             }
-#endif
           }
         }
       }
     }
+#endif
 
     ///////////////////////////////////////////////////////////// 
     // Point Fill Op 
@@ -19152,8 +19269,6 @@ namespace Legion {
             this, 0/*start*/, spaces.size(), spaces);
       // Save this for later when we go to detach it
       resources.impl->set_projection(requirement.projection);
-      if (runtime->safe_model)
-        check_point_requirements(spaces);
       if (runtime->legion_spy_enabled)
         log_requirement();
       analyze_region_requirements(launch_space);
@@ -19163,6 +19278,8 @@ namespace Legion {
     void IndexAttachOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
+      if (runtime->safe_model)
+        check_point_requirements();
       for (unsigned idx = 0; idx < points.size(); idx++)
       {
         map_applied_conditions.insert(points[idx]->get_mapped_event());
@@ -19444,25 +19561,39 @@ namespace Legion {
 #endif
 
     //--------------------------------------------------------------------------
-    void IndexAttachOp::check_point_requirements(
-                                          const std::vector<IndexSpace> &spaces)
+    void IndexAttachOp::exchange_interfering_points(
+        std::vector<std::pair<DomainPoint,Domain> > &point_domains) const
     //--------------------------------------------------------------------------
     {
-      for (unsigned idx1 = 1; idx1 < spaces.size(); idx1++)
+      point_domains.reserve(points.size());
+      for (std::vector<PointAttachOp*>::const_iterator it =
+            points.begin(); it != points.end(); it++)
       {
-        for (unsigned idx2 = 0; idx2 < idx1; idx2++)
-        {
-          if (!runtime->are_disjoint(spaces[idx1], spaces[idx2]))
-            REPORT_LEGION_ERROR(ERROR_INDEX_SPACE_ATTACH,
-                "Index attach operation (UID %lld) in parent task %s "
-                "(UID %lld) has interfering attachments to regions (%llu,%llu,%llu) "
-                "and (%llu,%llu,%llu). All regions must be non-interfering",
-                unique_op_id, parent_ctx->get_task_name(),
-                parent_ctx->get_unique_id(), spaces[idx1].get_id(),
-                requirement.parent.field_space.get_id(), requirement.parent.get_tree_id(),
-                spaces[idx2].get_id(), requirement.parent.field_space.get_id(),
-                requirement.parent.get_tree_id())
-        }
+        const RegionRequirement &req = (*it)->get_requirement(0/*index*/);
+        Domain point_domain;
+        runtime->find_domain(req.region.get_index_space(), point_domain);
+        point_domains.emplace_back(std::make_pair((*it)->get_index_point(), point_domain));
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexAttachOp::check_point_requirements(void)
+    //--------------------------------------------------------------------------
+    {
+      std::vector<std::pair<DomainPoint,Domain> > point_domains;
+      exchange_interfering_points(point_domains);
+      for (std::vector<PointAttachOp*>::const_iterator it =
+            points.begin(); it != points.end(); it++)
+      {
+        const RegionRequirement &req = (*it)->get_requirement(0/*index*/);
+        IndexSpaceNode *node = runtime->get_node(req.region.get_index_space());
+        DomainPoint interfering;
+        if (node->has_interfering_point(point_domains, interfering, (*it)->get_index_point()))
+          Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+            << "Index " << *this << " has interfering region requirements "
+            << "between point " << (*it)->get_index_point() << " and point "
+            << interfering << ". All regions specified for an index attach "
+            << "operation must have non-interfering regions.";
       }
     }
 
