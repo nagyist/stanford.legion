@@ -1768,21 +1768,12 @@ namespace Legion {
         {
           if (local_mapper == NULL)
             local_mapper = runtime->find_mapper(current_proc, map_id);
-          const char *constraint_names[] = {
-#define CONSTRAINT_NAMES(name, desc) desc,
-            LEGION_LAYOUT_CONSTRAINT_KINDS(CONSTRAINT_NAMES)
-#undef CONSTRAINT_NAMES
-          };
-          const char *constraint_name = 
-            constraint_names[conflict_constraint->get_constraint_kind()];
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output. Mapper %s selected variant "
-                        "%d for task %s (ID %lld). But instance selected "
-                        "for region requirement %d fails to satisfy the "
-                        "corresponding %s layout constraint.", 
-                        local_mapper->get_mapper_name(), impl->vid,
-                        get_task_name(), get_unique_id(), it->first,
-                        constraint_name)
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output. Mapper " << local_mapper->get_mapper_name()
+            << "selected variant " << *impl << " for " << *this
+            << ", but instance selected for region requirement " << it->first
+            << " fails to satisfy the corresponding "
+            << conflict_constraint->get_constraint_kind() << " layout constraint.";
         }
       }
       // Now we can test against the execution constraints
@@ -1797,13 +1788,11 @@ namespace Legion {
         {
           if (local_mapper == NULL)
             local_mapper = runtime->find_mapper(current_proc, map_id);
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output. Mapper %s selected variant %d "
-                      "for task %s (ID %lld). However, this variant does not "
-                      "permit running on processors of kind %s.",
-                      local_mapper->get_mapper_name(),
-                      impl->vid, get_task_name(), get_unique_id(),
-                      Processor::get_kind_name(kind))
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output. Mapper " << local_mapper->get_mapper_name()
+            << " selected variant " << *impl << " for " << *this
+            << ". However, this variant does not permit running on "
+            << kind << " processors.";
         }
       }
       // Then check the colocation constraints
@@ -1901,17 +1890,17 @@ namespace Legion {
             // check to make sure that all these region requirements have
             // the same region tree ID.
             if (req.region.get_tree_id() != tree_id)
-              REPORT_LEGION_ERROR(ERROR_INVALID_LOCATION_CONSTRAINT,
-                            "Invalid location constraint. Location constraint "
-                            "specified on region requirements %d and %d of "
-                            "variant %d of task %s, but region requirements "
-                            "contain regions that from different region trees "
-                            "(%lld and %lld). Colocation constraints must always "
-                            "be specified on region requirements with regions "
-                            "from the same region tree.", 
-                            *(con_it->indexes.begin()), *iit, impl->vid,
-                            get_task_name(), tree_id, 
-                            req.region.get_tree_id())
+              Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+                << "Invalid location constraint. Location constraint "
+                << "specified on region requirements " 
+                << *(con_it->indexes.begin()) << " and " << *iit
+                << " of variant " << *impl << " of " << *this
+                << ", but region requirements contain regions that "
+                << "from different region trees (" << tree_id
+                << " and " << req.region.get_tree_id()
+                << "). Colocation constraints must always "
+                << "be specified on region requirements with regions "
+                << "from the same region tree.";
             const InstanceSet &insts = physical_instances[*iit];
             if (local_mapper == NULL)
               local_mapper = runtime->find_mapper(current_proc, map_id);
@@ -1920,14 +1909,13 @@ namespace Legion {
               const InstanceRef &ref = insts[idx];
               InstanceManager *man = ref.get_manager();
               if (man->is_virtual_manager())
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                    "Invalid mapper output. Mapper %s selected a virtual "
-                    "instance for region requirement %d of task %s (UID %lld), "
-                    "but also selected variant %d which contains a colocation "
-                    "constraint for this region requirement. It is illegal to "
-                    "request a virtual mapping for a region requirement with a "
-                    "colocation constraint.", local_mapper->get_mapper_name(),
-                    *iit, get_task_name(), get_unique_id(), impl->vid)
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output. Mapper " << local_mapper->get_mapper_name()
+                  << " selected a virtual instance for region requirement "
+                  << *iit << " of " << *this << ", but also selected variant "
+                  << *impl << " which contains a colocation constraint for this "
+                  << "region requirement. It is illegal to request a virtual "
+                  << "mapping for a region requirement with a colocation constraint.";
               PhysicalManager *manager = man->as_physical_manager();
               const FieldMask &inst_mask = ref.get_valid_fields();
               std::vector<FieldID> field_names;
@@ -1943,19 +1931,16 @@ namespace Legion {
                 {
                   if (finder->second.first->get_instance() != 
                       manager->get_instance())
-                    REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output. Mapper %s selected variant "
-                          "%d for task %s (ID %lld). However, this variant "
-                          "requires that field %d of region requirements %d be "
-                          "co-located with prior requirement %d but it is not. "
-                          "Requirement %d mapped to instance " IDFMT " while "
-                          "prior requirement %d mapped to instance " IDFMT "",
-                          local_mapper->get_mapper_name(), impl->vid, 
-                          get_task_name(), get_unique_id(), 
-                          field_names[name_index], *iit, finder->second.second,
-                          *iit, manager->get_instance().id, 
-                          finder->second.second,
-                          finder->second.first->get_instance().id)
+                    Exception(MAPPER_EXCEPTION, this)
+                      << "Invalid mapper output. Mapper " << local_mapper->get_mapper_name()
+                      << " selected variant " << *impl << " for " << *this
+                      << ". However, this variant requires that field " 
+                      << field_names[name_index] << " of region requirements " << *iit
+                      << " be co-located with prior requirement " << finder->second.second
+                      << " but it is not. Requirement " << *iit << " mapped to instance " 
+                      << manager->get_instance() << " while prior requirement "
+                      << finder->second.second << " mapped to instance "
+                      << finder->second.first->get_instance() << ".";
                 }
                 else
                 {

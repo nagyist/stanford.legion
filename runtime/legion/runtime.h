@@ -2470,6 +2470,8 @@ namespace Legion {
       Exception& operator<<(Processor processor);
       Exception& operator<<(Memory::Kind kind);
       Exception& operator<<(Processor::Kind kind);
+      Exception& operator<<(PhysicalInstance inst);
+      Exception& operator<<(LayoutConstraintKind kind);
     public:
       const Operation *const op;
       const ExceptionType type;
@@ -6649,6 +6651,14 @@ namespace Legion {
           assert(false);
       }
       return DEFAULT_VIRTUAL_CHANNEL;
+    }
+
+    //--------------------------------------------------------------------------
+    inline std::ostream& operator<<(std::ostream &os, const VariantImpl &impl)
+    //--------------------------------------------------------------------------
+    {
+      os << impl.get_name();  
+      return os;
     }
 
   }; // namespace Internal 

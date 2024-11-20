@@ -17246,6 +17246,69 @@ namespace Legion {
       std::abort();
     }
 
+    //--------------------------------------------------------------------------
+    Exception& Exception::operator<<(Memory memory)
+    //--------------------------------------------------------------------------
+    {
+      (*this) << std::hex << memory.id << std::dec;
+      return *this;
+    }
+
+    //--------------------------------------------------------------------------
+    Exception& Exception::operator<<(Processor proc)
+    //--------------------------------------------------------------------------
+    {
+      (*this) << std::hex << proc.id << std::dec;
+      return *this;
+    }
+
+    //--------------------------------------------------------------------------
+    Exception& Exception::operator<<(Memory::Kind kind)
+    //--------------------------------------------------------------------------
+    {
+      static const char *memory_names[] = {
+#define MEMORY_NAMES(name, desc) #name,
+        REALM_MEMORY_KINDS(MEMORY_NAMES)
+#undef MEMORY_NAMES
+      };
+      (*this) << memory_names[kind];
+      return *this;
+    }
+
+    //--------------------------------------------------------------------------
+    Exception& Exception::operator<<(Processor::Kind kind)
+    //--------------------------------------------------------------------------
+    {
+      static const char *proc_names[] = {
+#define PROCESSOR_NAMES(name, desc) #name,
+        REALM_PROCESSOR_KINDS(PROCESSOR_NAMES)
+#undef PROCESSOR_NAMES
+      };
+      (*this) << proc_names[kind];
+      return *this;
+    }
+
+    //--------------------------------------------------------------------------
+    Exception& Exception::operator<<(PhysicalInstance inst)
+    //--------------------------------------------------------------------------
+    {
+      (*this) << std::hex << inst.id << std::dec;
+      return *this;
+    }
+
+    //--------------------------------------------------------------------------
+    Exception& Exception::operator<<(LayoutConstraintKind kind)
+    //--------------------------------------------------------------------------
+    {
+      static const char *constraint_names[] = {
+#define CONSTRAINT_NAMES(name, desc) desc,
+        LEGION_LAYOUT_CONSTRAINT_KINDS(CONSTRAINT_NAMES)
+#undef CONSTRAINT_NAMES
+      };
+      (*this) << constraint_names[kind];
+      return *this;
+    }
+
     /////////////////////////////////////////////////////////////
     // Legion Runtime 
     /////////////////////////////////////////////////////////////
