@@ -2755,24 +2755,23 @@ namespace Legion {
       {
         if (output.target_procs.empty())
         {
-          REPORT_LEGION_WARNING(LEGION_WARNING_EMPTY_OUTPUT_TARGET,
-                          "Empty output target_procs from call to 'map_task' "
-                          "by mapper %s for task %s (ID %lld). Adding the "
-                          "'target_proc' " IDFMT " as the default.",
-                          mapper->get_mapper_name(), get_task_name(),
-                          get_unique_id(), this->target_proc.id);
+          Exception(WARNING_EXCEPTION, this)
+            << "Empty output target_procs from call to 'map_task' "
+            << "by mapper " << *mapper << " for " << *this
+            << ". Adding the 'target_proc' " << this->target_proc
+            << " as the default.";
           output.target_procs.push_back(this->target_proc);
         }
         else if (output.target_procs.size() > 1)
         {
           if (concurrent_task)
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                "Mapper %s provided multiple target processors as output "
-                "from 'map_task' for task %s (UID %lld) which was launched "
-                "in a concurrent index space task launch. Mappers are only "
-                "permitted to specify a single target processor for mapping "
-                "tasks in concurrent index space task launches.",
-                mapper->get_mapper_name(), get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Mapper " << *mapper 
+              << " provided multiple target processors as output "
+              << "from 'map_task' for " << *this << " which was launched "
+              << "in a concurrent index space task launch. Mappers are only "
+              << "permitted to specify a single target processor for mapping "
+              << "tasks in concurrent index space task launches.";
         } 
         if (runtime->safe_mapper)
           validate_target_processors(output.target_procs);
@@ -2784,24 +2783,20 @@ namespace Legion {
       {
         if (output.target_procs.size() > 1)
         {
-          REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_SPURIOUS_TARGET,
-                          "Ignoring spurious additional target processors "
-                          "requested in 'map_task' for task %s (ID %lld) "
-                          "by mapper %s because task is part of a must "
-                          "epoch launch.", get_task_name(), get_unique_id(),
-                          mapper->get_mapper_name());
+          Exception(WARNING_EXCEPTION, this)
+            << "Ignoring spurious additional target processors "
+            << "requested in 'map_task' for " << *this << " by mapper "
+            << *mapper << " because task is part of a must epoch launch.";
         }
         if (!output.target_procs.empty() && 
                  (output.target_procs[0] != this->target_proc))
         {
-          REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_PROCESSOR_REQUEST,
-                          "Ignoring processor request of " IDFMT " for "
-                          "task %s (ID %lld) by mapper %s because task "
-                          "has already been mapped to processor " IDFMT
-                          " as part of a must epoch launch.", 
-                          output.target_procs[0].id, get_task_name(), 
-                          get_unique_id(), mapper->get_mapper_name(),
-                          this->target_proc.id);
+          Exception(WARNING_EXCEPTION, this)
+            << "Ignoring processor request of "
+            << output.target_procs.front() << " for " << *this
+            << " by mapper " << *mapper << " because task "
+            << "has already been mapped to processor " << this->target_proc
+            << " as part of a must epoch launch."; 
         }
         // Only one valid choice in this case, ignore everything else
         target_processors.push_back(this->target_proc);
@@ -2820,17 +2815,15 @@ namespace Legion {
           if (!future_memories[idx].exists())
             continue;
           if (future_memories[idx].address_space() != target_space)
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                "Invalid mapper output from invocation of '%s' on mapper %s "
-                "when mapping task %s (UID %lld). Mapper attempted to map "
-                "future %d to memory " IDFMT " in address space "
-                "%d which is not the same as address space %d of the target "
-                "processor " IDFMT ". Mapped futures must be in the same "
-                "address space as the target processor for task mappings.",
-                "map_task", mapper->get_mapper_name(), get_task_name(),
-                get_unique_id(), idx, future_memories[idx].id, 
-                future_memories[idx].address_space(), target_space,
-                this->target_proc.id)
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'map_task' on mapper "
+              << *mapper << "when mapping " << *this << ". Mapper attempted to map "
+              << "future " << idx << " to memory " << future_memories[idx]
+              << " in address space " << future_memories[idx].address_space()
+              << " which is not the same as address space " << target_space
+              << " of the target processor " << this->target_proc 
+              << ". Mapped futures must be in the same "
+              << "address space as the target processor for task mappings.";
           // Request the future memories be created
           const RtEvent future_mapped =
             futures[idx].impl->request_application_instance(
@@ -2907,12 +2900,11 @@ namespace Legion {
               }
             default:
               {
-                REPORT_LEGION_WARNING(LEGION_WARNING_MAPPER_REQUESTED_PROFILING,
-                              "Mapper %s requested a profiling "
-                    "measurement of type %d which is not applicable to "
-                    "task %s (UID %lld) and will be ignored.",
-                    mapper->get_mapper_name(), *it, get_task_name(),
-                    get_unique_id());
+                Exception(WARNING_EXCEPTION, this)
+                  << "Mapper " << *mapper << " requested a profiling "
+                  << "measurement of type " << *it 
+                  << " which is not applicable to " << *this
+                  << " and will be ignored.";
               }
           }
         }
@@ -2942,36 +2934,29 @@ namespace Legion {
         variant_impl = runtime->find_variant_impl(task_id, 
                                 output.chosen_variant, true/*can fail*/);
       else // TODO: invoke a generator if one exists
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from invocation of '%s' on "
-                      "mapper %s. Mapper specified an invalid task variant "
-                      "of ID 0 for task %s (ID %lld), but Legion does not yet "
-                      "support task generators.", "map_task", 
-                      mapper->get_mapper_name(), 
-                      get_task_name(), get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_task' on mapper "
+          << *mapper << ". Mapper specified an invalid task variant "
+          << "of ID 0 for " << *this << ", but Legion does not yet "
+          << "support task generators."; 
       if (variant_impl == NULL)
         // If we couldn't find or make a variant that is bad
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from invocation of '%s' on "
-                      "mapper %s. Mapper failed to specify a valid "
-                      "task variant or generator capable of create a variant "
-                      "implementation of task %s (ID %lld).",
-                      "map_task", mapper->get_mapper_name(), get_task_name(),
-                      get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_task' on mapper "
+          << *mapper << ". Mapper failed to specify a valid "
+          << "task variant or generator capable of create a variant "
+          << "implementation of " << *this << ".";
       // Record the future output size
       handle_future_size(variant_impl->return_type_size,
           variant_impl->has_return_type_size, map_applied_conditions);
       if (is_recording() && !variant_impl->has_return_type_size)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-            "Invalid mapper output from invocation of '%s' on mapper %s. "
-            "Mapper selected task variant %d when mapping task %s (UID %lld) "
-            "being recorded for trace %d in parent task %s (UID %lld). "
-            "However this variant does not specify a static upper bound "
-            "future size. All tasks recorded as part of a trace must use "
-            "variants with statically known future result sizes.", "map_task",
-            mapper->get_mapper_name(), output.chosen_variant, get_task_name(),
-            get_unique_id(), trace->tid, parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from invocation of 'map_task' on mapper "
+          << *mapper << ". Mapper selected task variant " << output.chosen_variant
+          << " when mapping " << *this << " being recorded for trace "
+          << trace->tid << ". However this variant does not specify a static "
+          << "upper bound future size. All tasks recorded as part of a trace must "
+          << "use variants with statically known future result sizes."; 
       // Save variant validation until we know which instances we'll be using 
 #ifdef DEBUG_LEGION
       // Check to see if any premapped region mappings changed
