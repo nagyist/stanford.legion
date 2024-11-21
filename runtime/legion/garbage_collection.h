@@ -309,7 +309,7 @@ namespace Legion {
       void unregister_collectable(std::set<RtEvent> &done_events);
       static void handle_unregister_collectable(Deserializer &derez);
     public:
-      RtEvent send_remote_registration(void);
+      RtEvent send_remote_registration(bool passing_global_ref);
       static void handle_did_remote_registration(Deserializer &derez,
                                                  AddressSpaceID source);
     protected:

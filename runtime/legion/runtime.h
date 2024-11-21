@@ -3138,7 +3138,7 @@ namespace Legion {
       friend class IndexSpaceExpression;
       IndexSpaceExpression* find_canonical_expression(IndexSpaceExpression *ex);
     public:
-      void remove_canonical_expression(IndexSpaceExpression *expr, size_t vol);
+      void remove_canonical_expression(IndexSpaceExpression *expr);
     public:
       // Methods for removing index space expression when they are done
       void remove_union_operation(IndexSpaceOperation *expr, 
@@ -3149,19 +3149,11 @@ namespace Legion {
                        IndexSpaceExpression *lhs, IndexSpaceExpression *rhs);
     public:
       // Remote expression methods
-      IndexSpaceExpression* find_or_request_remote_expression(
-              IndexSpaceExprID remote_expr_id, 
-              IndexSpaceExpression *origin, RtEvent *wait_for = NULL);
+      IndexSpaceExpression* find_or_create_remote_expression(
+          IndexSpaceExprID remote_expr_id, Deserializer &derez, bool &created);
       IndexSpaceExpression* find_remote_expression(
               const PendingRemoteExpression &pending_expression);
       void unregister_remote_expression(IndexSpaceExprID remote_expr_id);
-      void handle_remote_expression_request(Deserializer &derez,
-                                            AddressSpaceID source);
-      void handle_remote_expression_response(Deserializer &derez,
-                                             AddressSpaceID source);
-    protected:
-      IndexSpaceExpression* unpack_expression_value(Deserializer &derez,
-                                                    AddressSpaceID source);
     public:
       ArgumentMap create_argument_map(void);
     public:
@@ -3345,10 +3337,6 @@ namespace Legion {
                                            Serializer &rez);
       void send_index_space_colors_response(AddressSpaceID target,
                                             Serializer &rez);
-      void send_index_space_remote_expression_request(AddressSpaceID target,
-                                                      Serializer &rez);
-      void send_index_space_remote_expression_response(AddressSpaceID target,
-                                                       Serializer &rez);
       void send_index_space_generate_color_request(AddressSpaceID target,
                                                    Serializer &rez);
       void send_index_space_generate_color_response(AddressSpaceID target,
@@ -3798,10 +3786,6 @@ namespace Legion {
       void handle_index_space_colors_request(Deserializer &derez,
                                              AddressSpaceID source);
       void handle_index_space_colors_response(Deserializer &derez);
-      void handle_index_space_remote_expression_request(Deserializer &derez,
-                                                        AddressSpaceID source);
-      void handle_index_space_remote_expression_response(Deserializer &derez,
-                                                         AddressSpaceID source);
       void handle_index_space_generate_color_request(Deserializer &derez,
                                                      AddressSpaceID source);
       void handle_index_space_generate_color_response(Deserializer &derez);
@@ -4551,8 +4535,8 @@ namespace Legion {
       // In order for the symbolic analysis to work, we need to know that
       // we don't have multiple symbols for congruent expressions. This data
       // structure is used to find congruent expressions where they exist
-      std::map<std::pair<size_t,TypeTag>,
-               std::vector<IndexSpaceExpression*> > canonical_expressions;
+      typedef SmallPointerVector<IndexSpaceExpression,true> CanonicalSet;
+      std::unordered_map<uint64_t/*hash*/,CanonicalSet> canonical_expressions;
     private:
       mutable LocalLock provenance_lock;
       std::map<size_t,std::vector<Provenance*> > provenances;
@@ -6050,10 +6034,6 @@ namespace Legion {
           break;
         case SEND_INDEX_SPACE_COLORS_RESPONSE:
           break;
-        case SEND_INDEX_SPACE_REMOTE_EXPRESSION_REQUEST:
-          break;
-        case SEND_INDEX_SPACE_REMOTE_EXPRESSION_RESPONSE:
-          return EXPRESSION_VIRTUAL_CHANNEL;
         case SEND_INDEX_SPACE_GENERATE_COLOR_REQUEST:
           break;
         case SEND_INDEX_SPACE_GENERATE_COLOR_RESPONSE:

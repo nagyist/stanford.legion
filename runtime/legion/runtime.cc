@@ -3020,7 +3020,7 @@ namespace Legion {
       registered_with_runtime = true;
       RtEvent result;
       if (!is_owner())
-        result = send_remote_registration();
+        result = send_remote_registration(false/*pass reference*/);
       return result;
     }
 
@@ -4381,7 +4381,7 @@ namespace Legion {
       registered_with_runtime = true;
       RtEvent result;
       if (!is_owner())
-        result = send_remote_registration();
+        result = send_remote_registration(false/*pass reference*/);
       return result;
     }
 
@@ -12290,18 +12290,6 @@ namespace Legion {
           case SEND_INDEX_SPACE_COLORS_RESPONSE:
             {
               runtime->handle_index_space_colors_response(derez);
-              break;
-            }
-          case SEND_INDEX_SPACE_REMOTE_EXPRESSION_REQUEST:
-            {
-              runtime->handle_index_space_remote_expression_request(derez,
-                                                          remote_address_space);
-              break;
-            }
-          case SEND_INDEX_SPACE_REMOTE_EXPRESSION_RESPONSE:
-            {
-              runtime->handle_index_space_remote_expression_response(derez,
-                                                          remote_address_space);
               break;
             }
           case SEND_INDEX_SPACE_GENERATE_COLOR_REQUEST:
@@ -21197,25 +21185,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::send_index_space_remote_expression_request(
-                                         AddressSpaceID target, Serializer &rez)
-    //--------------------------------------------------------------------------
-    {
-      find_messenger(target)->send_message(
-        SEND_INDEX_SPACE_REMOTE_EXPRESSION_REQUEST, rez, true/*flush*/);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::send_index_space_remote_expression_response(
-                                         AddressSpaceID target, Serializer &rez)
-    //--------------------------------------------------------------------------
-    {
-      find_messenger(target)->send_message(
-          SEND_INDEX_SPACE_REMOTE_EXPRESSION_RESPONSE, rez,
-          true/*flush*/, true/*response*/);
-    }
-
-    //--------------------------------------------------------------------------
     void Runtime::send_index_space_generate_color_request(AddressSpaceID target,
                                                           Serializer &rez)
     //--------------------------------------------------------------------------
@@ -23894,22 +23863,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexSpaceNode::handle_colors_response(derez);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_index_space_remote_expression_request(
-                                     Deserializer &derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      handle_remote_expression_request(derez, source);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::handle_index_space_remote_expression_response(
-                                     Deserializer &derez, AddressSpaceID source)
-    //--------------------------------------------------------------------------
-    {
-      handle_remote_expression_response(derez, source);
     }
 
     //--------------------------------------------------------------------------
