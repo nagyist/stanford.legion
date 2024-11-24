@@ -1860,14 +1860,14 @@ namespace Legion {
                 continue;
               InstanceManager *man = ref.get_manager();
               if (man->is_virtual_manager())
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                    "Invalid mapper output. Mapper %s selected a virtual "
-                    "instance for region requirement %d of task %s (UID %lld), "
-                    "but also selected variant %d which contains a colocation "
-                    "constraint for this region requirement. It is illegal to "
-                    "request a virtual mapping for a region requirement with a "
-                    "colocation constraint.", local_mapper->get_mapper_name(),
-                    *iit, get_task_name(), get_unique_id(), impl->vid)
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output. Mapper " << *local_mapper
+                  << " selected a virtual instance for region requirement "
+                  << idx << " of " << *this << ", but also selected variant "
+                  << *impl << " which contains a colocation constraint for "
+                  << "this region requirement. It is illegal to request a "
+                  << "virtual mapping for a region requirement with a "
+                  << "colocation constraint."; 
               PhysicalManager *manager = man->as_physical_manager();
               int index = overlap.find_first_set();
               while (index >= 0)
@@ -3055,14 +3055,12 @@ namespace Legion {
         if (free_acquired)
           delete acquired;
         if (bad_tree > 0)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' on "
-                        "mapper %s. Mapper specified an instance from region "
-                        "tree %lld for use with region requirement %d of task "
-                        "%s (ID %lld) whose region is from region tree %lld.",
-                        "map_task",mapper->get_mapper_name(), bad_tree,
-                        idx, get_task_name(), get_unique_id(),
-                        regions[idx].region.get_tree_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_task' on mappper "
+            << *mapper << ". Mapper specified an instance from region tree "
+            << bad_tree << " for use with region requirement " << idx 
+            << " of " << *this << " whose region is from region tree "
+            << regions[idx].region.get_tree_id() << ".";
         if (!missing_fields.empty())
         {
           for (std::vector<FieldID>::const_iterator it = 
@@ -3077,15 +3075,11 @@ namespace Legion {
               log_run.error("Missing instance for field %s (FieldID: %d)",
                           static_cast<const char*>(name), *it);
           }
-          REPORT_LEGION_ERROR(ERROR_MISSING_INSTANCE_FIELD,
-                        "Invalid mapper output from invocation of '%s' on "
-                        "mapper %s. Mapper failed to specify an instance for "
-                        "%zd fields of region requirement %d on task %s "
-                        "(ID %lld). The missing fields are listed below.",
-                        "map_task", mapper->get_mapper_name(), 
-                        missing_fields.size(), idx, get_task_name(), 
-                        get_unique_id())
-          
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'map_task' on mapper "
+            << *mapper << ". Mapper failed to specify an instance for "
+            << missing_fields.size() << " fields of region requirement "
+            << idx << " of " << *this << ". The missing fields are listed above.";
         }
         if (!unacquired.empty())
         {
@@ -3095,49 +3089,40 @@ namespace Legion {
                 unacquired.begin(); it != unacquired.end(); it++)
           {
             if (acquired_instances->find(*it) == acquired_instances->end())
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                            "Invalid mapper output from 'map_task' "
-                            "invocation on mapper %s. Mapper selected "
-                            "physical instance for region requirement "
-                            "%d of task %s (ID %lld) which has already "
-                            "been collected. If the mapper had properly "
-                            "acquired this instance as part of the mapper "
-                            "call it would have detected this. Please "
-                            "update the mapper to abide by proper mapping "
-                            "conventions.", mapper->get_mapper_name(),
-                            idx, get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Invalid mapper output from 'map_task' invocation on mapper "
+                << *mapper << ". Mapper selected physical instance for region "
+                << "requirement " << idx << " of " << *this << " which has already "
+                << "been collected. If the mapper had properly acquired this "
+                << "instance as part of the mapper call it would have detected "
+                << "this. Please update the mapper to abide by proper mapping "
+                << "conventions."; 
           }
           // Event if we did successfully acquire them, still issue the warning
-          REPORT_LEGION_WARNING(LEGION_WARNING_MAPPER_FAILED_ACQUIRE,
-                          "mapper %s failed to acquire instances "
-                          "for region requirement %d of task %s (ID %lld) "
-                          "in 'map_task' call. You may experience "
-                          "undefined behavior as a consequence.",
-                          mapper->get_mapper_name(), idx, 
-                          get_task_name(), get_unique_id())
+          Exception(WARNING_EXCEPTION, this)
+            << "Mapper " << *mapper << " failed to acquire instances "
+            << "for region requirement " << idx << " of " << *this
+            << "in 'map_task' call. You may experience undefined "
+            << "behavior as a consequence.";
         }
         // See if they want a virtual mapping
         if (composite_idx >= 0)
         {
           // Everything better be all virtual or all real
           if (result.size() > 1)
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of '%s' on "
-                          "mapper %s. Mapper specified mixed composite and "
-                          "concrete instances for region requirement %d of "
-                          "task %s (ID %lld). Only full concrete instances "
-                          "or a single composite instance is supported.",
-                          "map_task", mapper->get_mapper_name(), idx, 
-                          get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'map_task' on mapper "
+              << *mapper << ". Mapper specified mixed virtual and concrete "
+              << "instances for region requirement " << idx << " of " << *this
+              << ". Only full concrete instances or a single virtual instance "
+              << "is supported.";
           if (!IS_EXCLUSIVE(regions[idx]))
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of '%s' on "
-                          "mapper %s. Illegal composite instance requested "
-                          "on region requirement %d of task %s (ID %lld) "
-                          "which has a relaxed coherence mode. Virtual "
-                          "mappings are only permitted for exclusive "
-                          "coherence.", "map_task", mapper->get_mapper_name(),
-                          idx, get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'map_task' on mapper "
+              << *mapper << ". Illegal composite instance requested on region "
+              << "requirement " << idx << " of " << *this
+              << " which has a relaxed coherence mode. Virtual mappings are "
+              << "only permitted for exclusive coherence.";
           virtual_mapped[idx] = true;
         }
         log_mapping_decision(idx, regions[idx], physical_instances[idx]);
@@ -3154,14 +3139,12 @@ namespace Legion {
             PhysicalManager *manager = result[idx2].get_physical_manager();
             if (!manager->meets_regions(regions_to_check))
               // Doesn't satisfy the region requirement
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                            "Invalid mapper output from invocation of '%s' on "
-                            "mapper %s. Mapper specified instance that does "
-                            "not meet region requirement %d for task %s "
-                            "(ID %lld). The index space for the instance has "
-                            "insufficient space for the requested logical "
-                            "region.", "map_task", mapper->get_mapper_name(),
-                            idx, get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Invalid mapper output from invocation of 'map_task' on mapper "
+                << *mapper << ". Mapper specified instance that does not meet "
+                << "region requirement " << idx << " for " << *this
+                << ". The index space for the instance has insufficient space "
+                << "for the requested logical region.";
           }
           if (!regions[idx].is_no_access() &&
               !variant_impl->is_no_access_region(idx))
@@ -3171,14 +3154,12 @@ namespace Legion {
               const Memory mem = result[idx2].get_memory();
               if (visible_memories.find(mem) == visible_memories.end())
                 // Not visible from all target processors
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                              "Invalid mapper output from invocation of '%s' "
-                              "on mapper %s. Mapper selected an instance for "
-                              "region requirement %d in memory " IDFMT " "
-                              "which is not visible from the target processors "
-                              "for task %s (ID %lld).", "map_task", 
-                              mapper->get_mapper_name(), idx, mem.id, 
-                              get_task_name(), get_unique_id())
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output from invocation of 'map_task' on mapper "
+                  << *mapper << ". Mapper selected an instance for region "
+                  << "requirement " << idx << " in memory " << mem
+                  << " which is not visible from the target processors for "
+                  << *this << ".";
             }
           }
           // If this is a reduction region requirement make sure all the 
@@ -3189,25 +3170,19 @@ namespace Legion {
             {
               PhysicalManager *manager = result[idx2].get_physical_manager();
               if (!manager->is_reduction_manager())
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                              "Invalid mapper output from invocation of '%s' "
-                              "on mapper %s. Mapper failed to choose a "
-                              "specialized reduction instance for region "
-                              "requirement %d of task %s (ID %lld) which has "
-                              "reduction privileges.", "map_task", 
-                              mapper->get_mapper_name(), idx,
-                              get_task_name(), get_unique_id())
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output from invocation of 'map_task' "
+                  << "on mapper " << *mapper << ". Mapper failed to choose a "
+                  << "specialized reduction instance for region requirement "
+                  << idx << " of " << *this << " which has reduction privileges.";
               else if (manager->redop != regions[idx].redop)
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                              "Invalid mapper output from invocation of '%s' "
-                              "on mapper %s. Mapper failed selected a "
-                              "specialized reduction instance with reduction "
-                              "operator %d for region requirement %d of task "
-                              "%s (ID %lld) which has reduction privileges "
-                              "on a different reduction operator %d.", 
-                              "map_task", mapper->get_mapper_name(), 
-                              manager->redop, idx, get_task_name(), 
-                              get_unique_id(), regions[idx].redop)
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output from invocation of 'map_task' on mapper "
+                  << *mapper << ". Mapper failed selected a specialized reduction "
+                  << "instance with reduction operator " << manager->redop 
+                  << " for region requirement " << idx << " of " << *this
+                  << " which has reduction privileges on a different reduction "
+                  << "operator " << regions[idx].redop << ".";
             }
           }
           else
@@ -3230,19 +3205,18 @@ namespace Legion {
       {
         // Now we prepare output instances
         if (runtime->safe_mapper)
+        {
           for (unsigned idx = 0; idx < output_regions.size(); idx++)
           {
             Memory target = output.output_targets[idx];
             if (!target.exists() ||
                 visible_memories.find(target) == visible_memories.end())
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                            "Invalid mapper output from invocation of '%s' "
-                            "on mapper %s. Mapper selected invalid "
-                            "target memory " IDFMT " for output region "
-                            "requirement %d of task %s (ID %lld).", "map_task",
-                            mapper->get_mapper_name(), target.id, idx,
-                            get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Invalid mapper output from invocation of 'map_task' on mapper "
+                << *mapper << ". Mapper selected invalid target memory " << target
+                << " for output region requirement " << idx << " of " << *this << ".";
           }
+        }
         const size_t output_offset = regions.size();
         for (unsigned idx = 0; idx < output_regions.size(); idx++)
         {
@@ -3281,12 +3255,11 @@ namespace Legion {
           if ((*it >= regions.size()) || !IS_READ_ONLY(regions[*it]))
           {
             if (*it < regions.size())
-              REPORT_LEGION_WARNING(LEGION_WARNING_NON_READ_ONLY_UNTRACK_VALID,
-                  "Ignoring request by mapper %s to not track valid instances "
-                  "for region requirement %d of task %s (UID %lld) because "
-                  "region requirement does not have read-only privileges.",
-                  mapper->get_mapper_name(), *it, 
-                  get_task_name(), unique_op_id)
+              Exception(WARNING_EXCEPTION, this)
+                << "Ignoring request by mapper " << *mapper 
+                << " to not track valid instances for region requirement "
+                << *it << " of " << *this << " because region requirement "
+                << "does not have read-only privileges.";
           }
           else
             untracked_valid_regions.push_back(*it);
