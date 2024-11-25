@@ -1278,7 +1278,7 @@ namespace Legion {
     public:
       virtual ApEvent get_expr_index_space(void *result, TypeTag tag, 
                                            bool need_tight_result) = 0;
-      virtual bool is_sparse() = 0;
+      virtual bool is_sparse(void) = 0;
       // If you ask for a tight index space you don't need to pay 
       // attention to the event returned as a precondition as it 
       // is guaranteed to be a no-event
@@ -1657,7 +1657,7 @@ namespace Legion {
     public:
       virtual ApEvent get_expr_index_space(void *result, TypeTag tag,
                                            bool need_tight_result);
-      virtual bool is_sparse();
+      virtual bool is_sparse(void);
       // If you ask for a tight index space you don't need to pay 
       // attention to the event returned as a precondition as it 
       // is guaranteed to be a no-event
@@ -2454,7 +2454,7 @@ namespace Legion {
       // From IndexSpaceExpression
       virtual ApEvent get_expr_index_space(void *result, TypeTag tag,
                                            bool need_tight_result);
-      virtual bool is_sparse();
+      virtual bool is_sparse(void);
       // If you ask for a tight index space you don't need to pay 
       // attention to the event returned as a precondition as it 
       // is guaranteed to be a no-event
@@ -3367,7 +3367,7 @@ namespace Legion {
       void invalidate_previous_sets(const FieldMask &mask,
               FieldMaskSet<EqKDNode<DIM,T> > &to_invalidate_previous);
       void record_child_all_previous(EqKDNode<DIM,T> *child, 
-                                     FieldMask &mask);
+                                     FieldMask mask);
     protected:
       mutable LocalLock node_lock;
       // Left and right sub-trees for different fields
