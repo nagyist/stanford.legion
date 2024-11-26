@@ -1314,9 +1314,8 @@ namespace Legion {
       virtual void trigger_replay(void);
     public:
       void enumerate_futures(const Domain &domain);
-      void check_point_requirements(void);
-      virtual void exchange_interfering_points(
-          const Domain &internal_domain, const Domain &launch_domain,
+      void start_check_point_requirements(void);
+      virtual void finish_check_point_requirements(
           std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &domain_points);
     public:
       static void process_slice_mapped(Deserializer &derez,

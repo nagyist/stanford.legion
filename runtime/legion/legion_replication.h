@@ -1730,9 +1730,10 @@ namespace Legion {
      * \class InterferingPointExchange
      *
      */
+    template<typename T>
     class InterferingPointExchange : public AllGatherCollective<true> {
     public:
-      InterferingPointExchange(ReplicateContext *ctx, CollectiveID id);
+      InterferingPointExchange(ReplicateContext *ctx, CollectiveID id, T *op);
       InterferingPointExchange(const InterferingPointExchange &rhs) = delete;
       virtual ~InterferingPointExchange(void);
     public:
@@ -1744,11 +1745,12 @@ namespace Legion {
       virtual void pack_collective_stage(ShardID target,
                                          Serializer &rez, int stage);
       virtual void unpack_collective_stage(Deserializer &derez, int stage);
+      virtual RtEvent post_complete_exchange(void);
     public:
       void exchange_domain_points( 
         std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &points);
-      void exchange_domain_points(
-          std::vector<std::pair<DomainPoint,Domain> > &points);
+    public:
+      T *const op;
     protected:
       std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > domain_points;
     };
@@ -2061,8 +2063,7 @@ namespace Legion {
       virtual void record_intra_space_dependence(const DomainPoint &point,
                                                  const DomainPoint &next,
                                                  RtEvent point_mapped);
-      virtual void exchange_interfering_points(
-          const Domain &internal_domain, const Domain &launch_domain,
+      virtual void finish_check_point_requirements(
           std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &domain_points);
     public:
       // Output regions
@@ -2081,6 +2082,7 @@ namespace Legion {
       OutputExtentExchange *output_size_collective;
       CollectiveID collective_check_id;
       CollectiveID interfering_check_id;
+      InterferingPointExchange<ReplIndexTask> *interfering_exchange;
       RtBarrier output_bar;
     protected:
       // Map of output sizes collected by this shard
@@ -2355,17 +2357,16 @@ namespace Legion {
           ApEvent &collective_post, const TraceInfo &trace_info,
           const InstanceSet &instances, const RegionRequirement &req,
           std::vector<IndirectRecord> &records, const bool sources);
-      virtual RtEvent finalize_exchange(const unsigned index,const bool source);
+      virtual RtEvent finalize_exchange(const unsigned index,const bool source); 
     public:
       virtual RtEvent find_intra_space_dependence(const DomainPoint &point);
       virtual void record_intra_space_dependence(const DomainPoint &point,
                                                  const DomainPoint &next,
                                                  RtEvent point_mapped);
+      virtual void finish_check_point_requirements(
+          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains);
     public:
       void initialize_replication(ReplicateContext *ctx);
-    protected:
-      virtual void exchange_interfering_points(
-          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains) const;
     protected:
       ShardingID sharding_functor;
       ShardingFunction *sharding_function;
@@ -2376,6 +2377,7 @@ namespace Legion {
       std::vector<IndirectRecordExchange*> dst_collectives;
       std::set<std::pair<DomainPoint,ShardID> > unique_intra_space_deps;
       CollectiveID interfering_check_id;
+      InterferingPointExchange<ReplIndexCopyOp> *interfering_exchange;
 #ifdef DEBUG_LEGION
     public:
       inline void set_sharding_collective(ShardingGatherCollective *collective)
@@ -2835,16 +2837,16 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual bool are_all_direct_children(bool local);
       virtual bool find_shard_participants(std::vector<ShardID> &shards);
+      virtual void finish_check_point_requirements(
+          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains);
     public:
       void initialize_replication(ReplicateContext *ctx);
-    protected:
-      virtual void exchange_interfering_points(
-          std::vector<std::pair<DomainPoint,Domain> > &point_domains) const;
     protected:
       IndexAttachExchange *collective;
       ShardParticipantsExchange *participants;
       ShardingFunction *sharding_function;
       CollectiveID interfering_check_id;
+      InterferingPointExchange<ReplIndexAttachOp> *interfering_exchange;
     };
 
     /**

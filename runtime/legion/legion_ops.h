@@ -1680,10 +1680,9 @@ namespace Legion {
       void enumerate_points(void);
       void handle_point_complete(ApEvent effects);
       void handle_point_commit(RtEvent point_committed);
-      void check_point_requirements(void);
-    protected:
-      virtual void exchange_interfering_points(
-          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains) const;
+      void start_check_point_requirements(void);
+      virtual void finish_check_point_requirements(
+          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains);
       void log_index_copy_requirements(void);
     public:
       IndexSpaceNode*                                    launch_space;
@@ -4070,14 +4069,14 @@ namespace Legion {
     public:
       void handle_point_complete(ApEvent effects);
       void handle_point_commit(void);
-      void check_point_requirements(void);
+      void start_check_point_requirements(void);
+      virtual void finish_check_point_requirements(
+          std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains);
     protected:
 #if 0
       void compute_parent_index(void);
       void check_privilege(void);
 #endif
-      virtual void exchange_interfering_points(
-          std::vector<std::pair<DomainPoint,Domain> > &point_domains) const;
       void log_requirement(void);
     protected:
       RegionRequirement                             requirement;
@@ -4085,6 +4084,7 @@ namespace Legion {
       IndexSpaceNode*                               launch_space;
       std::vector<PointAttachOp*>                   points;
       std::set<RtEvent>                             map_applied_conditions;
+      std::set<RtEvent>                             commit_preconditions;
       unsigned                                      parent_req_index;
       std::atomic<unsigned>                         points_completed;
       unsigned                                      points_committed;

@@ -9220,7 +9220,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (runtime->safe_model)
-        check_point_requirements();
+        start_check_point_requirements();
       // Do a quick test for empty index space launches
       total_points = launch_space->get_volume();
       if (total_points == 0)
@@ -10590,43 +10590,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void IndexTask::exchange_interfering_points(
-        const Domain &internal_domain, const Domain &launch_domain,
-        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains)
-    //--------------------------------------------------------------------------
-    {
-#ifdef DEBUG_LEGION
-      assert(point_domains.empty());
-      assert(!interfering_requirements.empty());
-#endif
-      for (std::set<std::pair<unsigned,unsigned> >::const_iterator rit =
-            interfering_requirements.begin(); rit !=
-            interfering_requirements.end(); rit++)
-      {
-        std::vector<std::pair<DomainPoint,Domain> > &domains = point_domains[rit->first];
-        // Already found it for this region requirements
-        if (!domains.empty())
-          continue;
-        domains.reserve(internal_domain.get_volume());
-        const RegionRequirement &req = regions[rit->first];
-        ProjectionFunction *function = NULL;
-        if (req.handle_type != LEGION_SINGULAR_PROJECTION)
-          function = runtime->find_projection_function(req.projection);
-        for (Domain::DomainPointIterator itr(internal_domain); itr; itr++)
-        {
-          LogicalRegion point_region = (function == NULL) ? req.region :
-            function->project_point(this, rit->first, launch_domain, *itr);
-          if (!point_region.exists())
-            continue;
-          Domain point_domain;
-          runtime->find_domain(point_region.get_index_space(), point_domain);
-          domains.emplace_back(std::make_pair(*itr, point_domain));
-        }
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    void IndexTask::check_point_requirements(void)
+    void IndexTask::start_check_point_requirements(void)
     //--------------------------------------------------------------------------
     {
       for (unsigned idx = 0; idx < regions.size(); idx++)
@@ -10668,7 +10632,42 @@ namespace Legion {
       launch_space->get_domain(launch_domain, true/*tight*/);
       // Exchange all the domains for the interfering requirements
       std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > point_domains;
-      exchange_interfering_points(internal_domain, launch_domain, point_domains);
+      for (std::set<std::pair<unsigned,unsigned> >::const_iterator rit =
+            interfering_requirements.begin(); rit !=
+            interfering_requirements.end(); rit++)
+      {
+        std::vector<std::pair<DomainPoint,Domain> > &domains = point_domains[rit->first];
+        // Already found it for this region requirements
+        if (!domains.empty())
+          continue;
+        domains.reserve(internal_domain.get_volume());
+        const RegionRequirement &req = regions[rit->first];
+        ProjectionFunction *function = NULL;
+        if (req.handle_type != LEGION_SINGULAR_PROJECTION)
+          function = runtime->find_projection_function(req.projection);
+        for (Domain::DomainPointIterator itr(internal_domain); itr; itr++)
+        {
+          LogicalRegion point_region = (function == NULL) ? req.region :
+            function->project_point(this, rit->first, launch_domain, *itr);
+          if (!point_region.exists())
+            continue;
+          Domain point_domain;
+          runtime->find_domain(point_region.get_index_space(), point_domain);
+          domains.emplace_back(std::make_pair(*itr, point_domain));
+        }
+      }
+      finish_check_point_requirements(point_domains);
+    }
+
+    //--------------------------------------------------------------------------
+    void IndexTask::finish_check_point_requirements(
+        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains)
+    //--------------------------------------------------------------------------
+    {
+      Domain internal_domain, launch_domain;
+      if (internal_space.exists())
+        runtime->find_domain(internal_space, internal_domain);
+      launch_space->get_domain(launch_domain, true/*tight*/);
       // Iterate our local points and check their first region requirements
       // against all the points in the second region requirements
       for (std::set<std::pair<unsigned,unsigned> >::const_iterator rit =

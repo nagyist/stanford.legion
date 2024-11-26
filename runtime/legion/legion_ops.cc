@@ -8073,7 +8073,7 @@ namespace Legion {
       enumerate_points(); 
       // Check for interfering point requirements in safe mode
       if (runtime->safe_model)
-        check_point_requirements();
+        start_check_point_requirements();
       // Launch the points
       std::vector<RtEvent> mapped_preconditions(points.size());
       for (unsigned idx = 0; idx < points.size(); idx++)
@@ -8409,39 +8409,46 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void IndexCopyOp::exchange_interfering_points(
-      std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains) const
+    void IndexCopyOp::finish_check_point_requirements(
+        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(point_domains.empty());
       assert(!interfering_requirements.empty());
 #endif
+      // Iterate our local points and check their first region requirements
+      // against all the points in the second region requirements
       for (std::set<std::pair<unsigned,unsigned> >::const_iterator rit =
             interfering_requirements.begin(); rit !=
             interfering_requirements.end(); rit++)
       {
-        std::vector<std::pair<DomainPoint,Domain> > &domains = point_domains[rit->first];
-        // Already found it for this region requirements
-        if (!domains.empty())
-          continue;
-        domains.reserve(points.size());
+        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > >::const_iterator
+          finder = point_domains.find(rit->first);
+#ifdef DEBUG_LEGION
+        assert(finder != point_domains.end());
+#endif
         for (std::vector<PointCopyOp*>::const_iterator pit =
               points.begin(); pit != points.end(); pit++)
         {
-          const RegionRequirement &req = (*pit)->get_requirement(rit->first);
-          if (!req.region.exists())
-            continue;
+          const RegionRequirement &req = (*pit)->get_requirement(rit->second);
           IndexSpaceNode *node = runtime->get_node(req.region.get_index_space());
-          Domain domain;
-          node->get_domain(domain);
-          domains.emplace_back(std::make_pair((*pit)->index_point,domain));
+          DomainPoint interfering;
+          if (node->has_interfering_point(finder->second, interfering,
+                (rit->first == rit->second) ? (*pit)->index_point : DomainPoint()))
+            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
+              << "Index " << *this << " has interfering region requirments between "
+              << get_requirement_name(rit->first) << " requirement " 
+              << get_requirement_offset(rit->first) << " of point " << interfering
+              << " and " << get_requirement_name(rit->second) << " requirement "
+              << get_requirement_offset(rit->second) << " of point " << (*pit)->index_point
+              << ". Interfering region requirements are not permitted for index "
+              << "copy operations.";
         }
       }
     }
 
     //--------------------------------------------------------------------------
-    void IndexCopyOp::check_point_requirements(void)
+    void IndexCopyOp::start_check_point_requirements(void)
     //--------------------------------------------------------------------------
     {
       // Handle any region requirements which can interfere with itself
@@ -8482,38 +8489,30 @@ namespace Legion {
       // Nothing to do if there are no interfering requirements
       if (interfering_requirements.empty())
         return;
-      // Exchange all the domains for the interfering requirements
+      // Get all of our local point domains
       std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > point_domains;
-      exchange_interfering_points(point_domains);
-      // Iterate our local points and check their first region requirements
-      // against all the points in the second region requirements
       for (std::set<std::pair<unsigned,unsigned> >::const_iterator rit =
             interfering_requirements.begin(); rit !=
             interfering_requirements.end(); rit++)
       {
-        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > >::const_iterator
-          finder = point_domains.find(rit->first);
-#ifdef DEBUG_LEGION
-        assert(finder != point_domains.end());
-#endif
+        std::vector<std::pair<DomainPoint,Domain> > &domains = point_domains[rit->first];
+        // Already found it for this region requirements
+        if (!domains.empty())
+          continue;
+        domains.reserve(points.size());
         for (std::vector<PointCopyOp*>::const_iterator pit =
               points.begin(); pit != points.end(); pit++)
         {
-          const RegionRequirement &req = (*pit)->get_requirement(rit->second);
+          const RegionRequirement &req = (*pit)->get_requirement(rit->first);
+          if (!req.region.exists())
+            continue;
           IndexSpaceNode *node = runtime->get_node(req.region.get_index_space());
-          DomainPoint interfering;
-          if (node->has_interfering_point(finder->second, interfering,
-                (rit->first == rit->second) ? (*pit)->index_point : DomainPoint()))
-            Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-              << "Index " << *this << " has interfering region requirments between "
-              << get_requirement_name(rit->first) << " requirement " 
-              << get_requirement_offset(rit->first) << " of point " << interfering
-              << " and " << get_requirement_name(rit->second) << " requirement "
-              << get_requirement_offset(rit->second) << " of point " << (*pit)->index_point
-              << ". Interfering region requirements are not permitted for index "
-              << "copy operations.";
+          Domain domain;
+          node->get_domain(domain);
+          domains.emplace_back(std::make_pair((*pit)->index_point,domain));
         }
       }
+      finish_check_point_requirements(point_domains);
 #if 0
       std::map<DomainPoint,std::vector<LogicalRegion> > point_requirements;
       for (std::vector<PointCopyOp*>::const_iterator pit = points.begin();
@@ -19162,6 +19161,7 @@ namespace Legion {
         (*it)->deactivate();
       points.clear();
       map_applied_conditions.clear();
+      commit_preconditions.clear();
       if (freeop)
         runtime->free_operation(this);
     }
@@ -19281,7 +19281,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (runtime->safe_model)
-        check_point_requirements();
+        start_check_point_requirements();
       for (unsigned idx = 0; idx < points.size(); idx++)
       {
         map_applied_conditions.insert(points[idx]->get_mapped_event());
@@ -19332,7 +19332,13 @@ namespace Legion {
         commit_now = (points.size() == points_committed);
       }
       if (commit_now)
-        commit_operation(true/*deactivate*/); 
+      {
+        if (!commit_preconditions.empty())
+          commit_operation(true/*deactivate*/,
+              Runtime::merge_events(commit_preconditions));
+        else
+          commit_operation(true/*deactivate*/); 
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -19346,7 +19352,13 @@ namespace Legion {
         commit_now = commit_request && (points.size() == points_committed);
       }
       if (commit_now)
-        commit_operation(true/*deactivate*/);
+      {
+        if (!commit_preconditions.empty())
+          commit_operation(true/*deactivate*/,
+              Runtime::merge_events(commit_preconditions));
+        else
+          commit_operation(true/*deactivate*/);
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -19563,34 +19575,42 @@ namespace Legion {
 #endif
 
     //--------------------------------------------------------------------------
-    void IndexAttachOp::exchange_interfering_points(
-        std::vector<std::pair<DomainPoint,Domain> > &point_domains) const
+    void IndexAttachOp::start_check_point_requirements(void)
     //--------------------------------------------------------------------------
     {
-      point_domains.reserve(points.size());
+      // Use a full vector here even though we have just one region requirement
+      // because we need the type of `finish_check_point_requirements' to be
+      // the same across all kinds of operations
+      std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > point_domains;
+      std::vector<std::pair<DomainPoint,Domain> > &domains = point_domains[0];
+      domains.reserve(points.size());
       for (std::vector<PointAttachOp*>::const_iterator it =
             points.begin(); it != points.end(); it++)
       {
         const RegionRequirement &req = (*it)->get_requirement(0/*index*/);
         Domain point_domain;
         runtime->find_domain(req.region.get_index_space(), point_domain);
-        point_domains.emplace_back(std::make_pair((*it)->get_index_point(), point_domain));
+        domains.emplace_back(std::make_pair((*it)->get_index_point(), point_domain));
       }
+      finish_check_point_requirements(point_domains);
     }
 
     //--------------------------------------------------------------------------
-    void IndexAttachOp::check_point_requirements(void)
+    void IndexAttachOp::finish_check_point_requirements(
+        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &point_domains)
     //--------------------------------------------------------------------------
     {
-      std::vector<std::pair<DomainPoint,Domain> > point_domains;
-      exchange_interfering_points(point_domains);
+#ifdef DEBUG_LEGION
+      assert(point_domains.size() == 1);
+#endif
+      std::vector<std::pair<DomainPoint,Domain> > &domains = point_domains[0];
       for (std::vector<PointAttachOp*>::const_iterator it =
             points.begin(); it != points.end(); it++)
       {
         const RegionRequirement &req = (*it)->get_requirement(0/*index*/);
         IndexSpaceNode *node = runtime->get_node(req.region.get_index_space());
         DomainPoint interfering;
-        if (node->has_interfering_point(point_domains, interfering, (*it)->get_index_point()))
+        if (node->has_interfering_point(domains, interfering, (*it)->get_index_point()))
           Exception(PROGRAMMING_MODEL_EXCEPTION, this)
             << "Index " << *this << " has interfering region requirements "
             << "between point " << (*it)->get_index_point() << " and point "
