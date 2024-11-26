@@ -3189,14 +3189,11 @@ namespace Legion {
           {
             for (unsigned idx2 = 0; idx2 < result.size(); idx2++)
               if (result[idx2].get_manager()->is_reduction_manager())
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                              "Invalid mapper output from invocation of '%s' "
-                              "on mapper %s. Mapper selected illegal "
-                              "specialized reduction instance for region "
-                              "requirement %d of task %s (ID %lld) which "
-                              "does not have reduction privileges.", "map_task",
-                              mapper->get_mapper_name(), idx, 
-                              get_task_name(), get_unique_id())
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output from invocation of 'map_task' on mapper "
+                  << *mapper << ". Mapper selected illegal specialized reduction "
+                  << "instance for region requirement " << idx << " of " << *this 
+                  << " which does not have reduction privileges.";
           }
         }
       }
@@ -3286,41 +3283,33 @@ namespace Legion {
             SpecializedConstraint(LEGION_AFFINE_SPECIALIZE, 0, false, true))
         .add_constraint(c.ordering_constraint);
 
-#ifdef DEBUG_LEGION
       const std::vector<DimensionKind> &ordering =
         constraints.ordering_constraint.ordering;
       if (ordering.empty())
       {
-        REPORT_LEGION_ERROR(ERROR_INVALID_OUTPUT_REGION_CONSTRAINTS,
-          "An ordering constraint must be specified for each output "
-          "region, but the mapper did not specify any ordering constraint "
-          "for output region %u of task %s (UID: %lld).",
-          index, get_task_name(), get_unique_op_id());
+        Exception(MAPPER_EXCEPTION, this)
+          << "An ordering constraint must be specified for each output "
+          << "region, but the mapper did not specify any ordering constraint "
+          << "for output region " << index << " of " << *this << ".";
       }
       else if (static_cast<int>(ordering.size()) != req.region.get_dim() + 1)
       {
-        REPORT_LEGION_ERROR(ERROR_INVALID_OUTPUT_REGION_CONSTRAINTS,
-          "The mapper chose an ordering constraint with %d dimensions "
-          "for output region %u of task %s (UID: %lld), but the region has "
-          "%d dimensions. Make sure you specify a correct ordering.",
-          static_cast<int>(ordering.size()) - 1, index, get_task_name(),
-          get_unique_op_id(), req.region.get_dim());
+        Exception(MAPPER_EXCEPTION, this)
+          << "The mapper chose an ordering constraint with "
+          << (ordering.size()-1) << " dimensions for output region " << index
+          << " of " << *this << ", but the region has " << req.region.get_dim()
+          << " dimensions. Make sure you specify a correct ordering.";
       }
-      else
+      // TODO: For now we only allow SOA layout with either the C order
+      // or the Fotran order for output instances.
+      else if (ordering.back() != LEGION_DIM_F)
       {
-        // TODO: For now we only allow SOA layout with either the C order
-        // or the Fotran order for output instances.
-        if (ordering.back() != LEGION_DIM_F)
-        {
-          REPORT_LEGION_FATAL(LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-            "Legion currently supports only the SOA layout for output regions, "
-            "but output region %u of task %s (UID: %lld) is mapped to a "
-            "non-SOA layout. Please update the mapper to use SOA layout "
-            "for all output regions.",
-            index, get_task_name(), get_unique_op_id());
-        }
+        Exception(FATAL_EXCEPTION, this)
+          << "Legion currently supports only the SOA layout for output regions, "
+          << "but output region " << index << " of " << *this << " is mapped to a "
+          << "non-SOA layout. Please update the mapper to use SOA layout "
+          << "for all output regions.";
       }
-#endif
       std::map<FieldID, std::pair<EqualityKind, size_t> > alignments;
       std::map<FieldID, off_t> offsets;
 
@@ -3568,31 +3557,23 @@ namespace Legion {
       {
         const Processor &proc = processors[idx];
         if (!proc.exists())
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output. Mapper %s requested an illegal "
-                        "NO_PROC for a target processor when mapping task %s "
-                        "(ID %lld).", mapper->get_mapper_name(), 
-                        get_task_name(), get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output. Mapper " << *mapper << " requested an "
+            << "illegal NO_PROC for a target processor when mapping " << *this << ".";
         else if (proc.kind() != kind)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output. Mapper %s requested processor "
-                        IDFMT " which is of kind %s when mapping task %s "
-                        "(ID %lld), but the target processor " IDFMT " has "
-                        "kind %s. Only one kind of processor is permitted.",
-                        mapper->get_mapper_name(), proc.id, 
-                        Processor::get_kind_name(proc.kind()), get_task_name(),
-                        get_unique_id(), this->target_proc.id, 
-                        Processor::get_kind_name(kind))
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output. Mapper " << *mapper << " requested "
+            << proc.kind() << " processor " << proc << " when mapping " << *this
+            << ", but the target processor " << this->target_proc << " is a "
+            << this->target_proc.kind() 
+            << "processor. Only one kind of processor is permitted.";
         if (proc.address_space() != space)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output. Mapper %s requested processor "
-                        IDFMT " which is in address space %d when mapping "
-                        "task %s (ID %lld) but the target processor " IDFMT 
-                        "is in address space %d. All target processors must "
-                        "be in the same address space.", 
-                        mapper->get_mapper_name(), proc.id,
-                        proc.address_space(), get_task_name(), get_unique_id(), 
-                        this->target_proc.id, space)
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output. Mapper " << *mapper << " requested processor "
+            << proc << " which is in address space " << proc.address_space() 
+            << " when mapping " << *this << " but the target processor "
+            << this->target_proc << " is in address space " << space
+            << ". All target processors must be in the same address space."; 
       }
     }
 
