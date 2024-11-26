@@ -7597,15 +7597,21 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::destroy_task_local_instance(Realm::RegionInstance instance)
+    void Runtime::destroy_task_local_instance(Realm::RegionInstance instance,
+                                              Realm::Event precondition)
     //--------------------------------------------------------------------------
     {
       if (Internal::implicit_context == NULL)
         Internal::Exception(Internal::INTERFACE_EXCEPTION)
             << "Illegal request to destroy a DeferredBuffer, DeferredValue, "
             << "or a DeferredReduction outside of a Legion task.";
-      return
-         Internal::implicit_context->destroy_task_local_instance(instance);
+      // Don't trust events passed in by users to be safe from poison
+      if (precondition.exists())
+        return Internal::implicit_context->destroy_task_local_instance(instance,
+            Internal::RtEvent(Realm::Event::ignorefaults(precondition)));
+      else
+        return Internal::implicit_context->destroy_task_local_instance(
+            instance, Internal::RtEvent::NO_RT_EVENT);
     }
 
     //--------------------------------------------------------------------------

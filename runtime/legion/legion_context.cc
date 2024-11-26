@@ -641,7 +641,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void TaskContext::destroy_task_local_instance(PhysicalInstance instance)
+    void TaskContext::destroy_task_local_instance(PhysicalInstance instance,
+                                                  RtEvent precondition)
     //--------------------------------------------------------------------------
     {
       std::map<PhysicalInstance,LgEvent>::iterator finder =
@@ -655,9 +656,9 @@ namespace Legion {
       MemoryManager *manager = 
         runtime->find_memory_manager(instance.get_location());
 #ifdef LEGION_MALLOC_INSTANCES
-      manager->free_legion_instance(RtEvent::NO_RT_EVENT, instance);
+      manager->free_legion_instance(precondition, instance);
 #else
-      manager->free_eager_instance(instance, RtEvent::NO_RT_EVENT);
+      manager->free_eager_instance(instance, precondition);
 #endif
     }
 
