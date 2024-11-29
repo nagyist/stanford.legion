@@ -3630,14 +3630,13 @@ namespace Legion {
       // that decides whether we're going to try to replicate this task
       if (is_recording())
       {
-        REPORT_LEGION_WARNING(LEGION_WARNING_UNSUPPORTED_REPLICATION,
-            "Unsupported request to replicate task %s (UID %lld) during "
-            "trace capture by mapper %s. Legion does not currently support "
-            "replication of tasks inside of physical traces at the moment. "
-            "You can request support for this feature by emailing the "
-            "the Legion developers list or opening a github issue. The "
-            "mapper call to replicate_task is being elided.",
-            get_task_name(), get_unique_id(), mapper->get_mapper_name())
+        Exception(WARNING_EXCEPTION, this)
+          << "Unsupported request to replicate " << *this << " during "
+          << "trace capture by " << *mapper << ". Legion does not currently support "
+          << "replication of tasks inside of physical traces at the moment. "
+          << "You can request support for this feature by emailing the "
+          << "the Legion developers list or opening a github issue. The "
+          << "mapper call to replicate_task is being elided.";
         replicate = false;
         return false;
       }
@@ -3654,14 +3653,13 @@ namespace Legion {
       }
       else if (output.target_processors.size() == 1)
       {
-        REPORT_LEGION_WARNING(LEGION_WARNING_IGNORED_REPLICATION,
-            "Mapper %s requested to replicate task %s (UID %lld) but "
-            "only reqeuested one shard to be made. Since one shard does "
-            "not actually constitute replication, Legion is ignoring this "
-            "request and the task will be mapped like normal. If the "
-            "mapper intended to not perform replication it should return "
-            "an empty vector of target processors for 'replicate_task'.",
-            mapper->get_mapper_name(), get_task_name(), get_unique_id())
+        Exception(WARNING_EXCEPTION, this)
+          << "Mapper " << *mapper << " requested to replicate " << *this
+          << " but only reqeuested one shard to be made. Since one shard does "
+          << "not actually constitute replication, Legion is ignoring this "
+          << "request and the task will be mapped like normal. If the "
+          << "mapper intended to not perform replication it should return "
+          << "an empty vector of target processors for 'replicate_task'.";
         replicate = false;
         return false;
       }
@@ -3671,73 +3669,58 @@ namespace Legion {
         var_impl = runtime->find_variant_impl(task_id,
             output.chosen_variant, true/*can_fail*/);
         if (var_impl == NULL)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper selected an invalid task "
-                        "variant %d for task %s (UID %lld) that was chosen "
-                        "to be replicated.", "replicate_task",
-                        mapper->get_mapper_name(), output.chosen_variant,
-                        get_task_name(), get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'replicate_task' "
+            << "on mapper " << *mapper << ". Mapper selected an invalid task "
+            << "variant " << output.chosen_variant << " for " << *this
+            << " that was chosen to be replicated.";
         // Check that the chosen variant is replicable
         if (!var_impl->is_replicable())
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper failed to pick an valid task "
-                        "variant %d for task %s (UID %lld) that was chosen "
-                        "to be replicated. Task variants selected for "
-                        "replication must be marked as replicable variants.",
-                        "replicate_task", mapper->get_mapper_name(),
-                        output.chosen_variant, get_task_name(), get_unique_id())
+          Exception(WARNING_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'replicate_task' "
+            << "on mapper " << *mapper << ". Mapper failed to pick an valid task "
+            << "variant " << output.chosen_variant << " for " << *this
+            << "that was chosen to be replicated. Task variants selected for "
+            << "replication must be marked as replicable variants.";
       }
       else
       {
         output.chosen_variant = 0;
         if (output.leaf_variants.size() != output.target_processors.size())
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper provided %zd leaf variants "
-                        "for %zd target processors for task %s (UID %lld). "
-                        "The same number of leaf variants must be provided "
-                        "as target processors.", "replicate_task", 
-                        mapper->get_mapper_name(), output.leaf_variants.size(),
-                        output.target_processors.size(), get_task_name(), 
-                        get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'replicate_task' "
+            << "on mapper " << *mapper << ". Mapper provided %zd leaf variants "
+            << "for " << output.leaf_variants.size() << " target processors for "
+            << *this << ". The same number of leaf variants must be provided "
+            << "as target processors.";
         for (unsigned idx = 0; idx < output.leaf_variants.size(); idx++)
         {
           VariantImpl *impl = runtime->find_variant_impl(task_id,
             output.leaf_variants[idx], true/*can_fail*/);
           if (impl == NULL)
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of '%s' "
-                          "on mapper %s. Mapper selected an invalid leaf task "
-                          "variant %d for task %s (UID %lld) that was chosen "
-                          "to be replicated.", "replicate_task",
-                          mapper->get_mapper_name(), output.leaf_variants[idx],
-                          get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'replicate_task' "
+              << "on mapper " << *mapper << ". Mapper selected an invalid leaf task "
+              << "variant " << output.leaf_variants[idx] << " for " << *this
+              << " that was chosen to be replicated.";
           if (var_impl == NULL)
             var_impl = impl;
           // Check that the chosen variant is a leaf
           if (!impl->is_leaf())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of '%s' "
-                          "on mapper %s. Mapper failed to pick an valid task "
-                          "variant %d for task %s (UID %lld) that was chosen "
-                          "to be replicated. All variants provided in the "
-                          "leaf_variants must be leaf task variants.",
-                          "replicate_task", mapper->get_mapper_name(),
-                          output.leaf_variants[idx], get_task_name(), 
-                          get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'replicate_task' "
+              << "on mapper " << *mapper << ". Mapper failed to pick an valid task "
+              << "variant " << output.leaf_variants[idx] << " for " << *this
+              << " that was chosen to be replicated. All variants provided in the "
+              << "leaf_variants must be leaf task variants.";
           // Check that the chosen variant is replicable
           if (!impl->is_replicable())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                          "Invalid mapper output from invocation of '%s' "
-                          "on mapper %s. Mapper failed to pick an valid task "
-                          "variant %d for task %s (UID %lld) that was chosen "
-                          "to be replicated. Task variants selected for "
-                          "replication must be marked as replicable variants.",
-                          "replicate_task", mapper->get_mapper_name(),
-                          output.leaf_variants[idx], get_task_name(), 
-                          get_unique_id()) 
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'replicate_task' "
+              << "on mapper " << *mapper << ". Mapper failed to pick an valid task "
+              << "variant " << output.leaf_variants[idx] << " for " << *this
+              << " that was chosen to be replicated. Task variants selected for "
+              << "replication must be marked as replicable variants.";
         }
       }
       if (runtime->safe_mapper)
@@ -3747,28 +3730,24 @@ namespace Legion {
         for (unsigned idx = 0; idx < output.target_processors.size(); idx++)
         {
           if (!output.target_processors[idx].exists())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper specified a NO_PROC in the "
-                        "vector of target processors when replicating "
-                        "task %s (UID %lld). All processors in "
-                        "target_processors must exist.", "replicate_task",
-                         mapper->get_mapper_name(),
-                         get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'replicate_task' "
+              << "on mapper " << *mapper << ". Mapper specified a NO_PROC in the "
+              << "vector of target processors when replicating " << *this
+              << ". All processors in target_processors must exist.";
           else if (!has_local && (runtime->address_space ==
                 output.target_processors[idx].address_space()))
             has_local = true;
         }
         if (!has_local)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-              "Invalid mapper output from invocation of '%s' on mapper %s. "
-              "Mapper did not provide a local processor when replicating "
-              "task %s (UID %lld). At last one shard of a replicated task "
-              "must be present on the node where the task is being mapped "
-              "to remain consistent with the semantics of 'map_task' which "
-              "would require this anyway even if the task were not replicated.",
-              "replicate_task", mapper->get_mapper_name(), get_task_name(),
-              get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from invocation of 'replicate_task' "
+            << "on mapper " << *mapper << ". Mapper did not provide a local "
+            << "processor when replicating " << *this << ". At last one shard "
+            << "of a replicated task must be present on the node where the "
+            << "task is being mapped to remain consistent with the semantics "
+            << "of 'map_task' which would require this anyway even if the task "
+            << "were not replicated.";
         // Check that the chosen variant works with all the targets processors
         if (output.leaf_variants.empty())
         {
@@ -3776,33 +3755,20 @@ namespace Legion {
             var_impl->execution_constraints.processor_constraint; 
           if (constraint.is_valid())
           {
-            const char *proc_names[] = {
-#define PROC_NAMES(name, desc) desc,
-              REALM_PROCESSOR_KINDS(PROC_NAMES)
-#undef PROC_NAMES
-            };
             for (unsigned idx = 0; idx < output.target_processors.size(); idx++)
               if (!constraint.can_use(output.target_processors[idx].kind()))
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper specified %s processor " IDFMT 
-                        " which cannot be used with variant %d when "
-                        "replicating task %s (UID %lld) as the variant does "
-                        "not support that kind of processor.", "replicate_task",
-                         mapper->get_mapper_name(), 
-                         proc_names[output.target_processors[idx].kind()],
-                         output.target_processors[idx].id,
-                         output.chosen_variant, 
-                         get_task_name(), get_unique_id())
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output from invocation of 'replicate_task' "
+                  << "on mapper " << *mapper << ". Mapper specified " 
+                  << output.target_processors[idx].kind() << " processor " 
+                  << output.target_processors[idx] << " which cannot be used "
+                  << "with variant " << output.chosen_variant << " when "
+                  << "replicating " << *this << " as the variant does "
+                  << "not support that kind of processor."; 
           }
         }
         else
         {
-          const char *proc_names[] = {
-#define PROC_NAMES(name, desc) desc,
-            REALM_PROCESSOR_KINDS(PROC_NAMES)
-#undef PROC_NAMES
-          };
           for (unsigned idx = 0; idx < output.target_processors.size(); idx++)
           {
             VariantImpl *impl = runtime->find_variant_impl(task_id,
@@ -3811,17 +3777,14 @@ namespace Legion {
               impl->execution_constraints.processor_constraint; 
             if (constraint.is_valid() &&
                 !constraint.can_use(output.target_processors[idx].kind()))
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper specified %s processor " IDFMT 
-                        " which cannot be used with variant %d when "
-                        "replicating task %s (UID %lld) as the variant does "
-                        "not support that kind of processor.", "replicate_task",
-                         mapper->get_mapper_name(), 
-                         proc_names[output.target_processors[idx].kind()],
-                         output.target_processors[idx].id,
-                         output.leaf_variants[idx], 
-                         get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Invalid mapper output from invocation of 'replicate_task' "
+                << "on mapper " << *mapper << ". Mapper specified "
+                << output.target_processors[idx].kind() << " processor "
+                << output.target_processors[idx] 
+                << " which cannot be used with variant " 
+                << output.leaf_variants[idx] << " when replicating " << *this
+                << " as the variant does not support that kind of processor.";
           }
         }
         // If the chosen variant is not a leaf check that processors are unique
@@ -3833,85 +3796,67 @@ namespace Legion {
           std::sort(sorted_procs.begin(), sorted_procs.end());
           for (unsigned idx = 1; idx < sorted_procs.size(); idx++)
             if (sorted_procs[idx-1] == sorted_procs[idx])
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper provided duplicate target "
-                        "processors for non-leaf task variant %d when "
-                        "replicating task %s (UID %lld). In order to control "
-                        "replicate a task all the target processors must be "
-                        "unique.", "replicate_task", mapper->get_mapper_name(),
-                        output.chosen_variant, get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Invalid mapper output from invocation of 'replicate_task' "
+                << "on mapper " << *mapper << ". Mapper provided duplicate target "
+                << "processors for non-leaf task variant " << output.chosen_variant
+                << " when replicating " << *this << ". In order to control "
+                << "replicate a task all the target processors must be unique.";
         }
         // Check that shard points match the size target processors if not empty
         if (!output.shard_points.empty())
         {
           if (!output.shard_domain.exists())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper provided shard_points without "
-                        "providing an associated shard_domain when replicating "
-                        "task %s (UID %lld). A shard domain must also be "
-                        "provided in conjunction with a set of shard points.",
-                        "replicate_task", mapper->get_mapper_name(),
-                        get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'replicate_task' "
+              << "on mapper " << *mapper << ". Mapper provided shard_points without "
+              << "providing an associated shard_domain when replicating " << *this
+              << ". A shard domain must also be provided in conjunction with a "
+              << "set of shard points.";
           if (output.shard_points.size() != output.target_processors.size())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper provided %zd shard_points "
-                        "which does not match the %zd target processors "
-                        "specified when replicating task %s (UID %lld). If "
-                        "shard_points are provided they must exactly match the "
-                        "number of target processors.", "replicate_task", 
-                        mapper->get_mapper_name(), output.shard_points.size(),
-                        output.target_processors.size(),
-                        get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'replicate_task' "
+              << "on mapper " << *mapper << ". Mapper provided " 
+              << output.shard_points.size() << " shard_points which does not "
+              << "match the " << output.target_processors.size()
+              << " target processors specified when replicating " << *this
+              << ". If shard_points are provided they must exactly match the "
+              << "number of target processors.";
           std::vector<DomainPoint> sorted_points = output.shard_points;
           std::sort(sorted_points.begin(), sorted_points.end());
           for (unsigned idx = 1; idx < sorted_points.size(); idx++)
             if (sorted_points[idx-1] == sorted_points[idx])
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper provided duplicate shard "
-                        "points when replicating task %s (UID %lld). In "
-                        "order to control replicate a task all the target "
-                        "processors must be unique.", "replicate_task", 
-                        mapper->get_mapper_name(),
-                        get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Invalid mapper output from invocation of 'replicate_task' "
+                << "on mapper " << *mapper << ". Mapper provided duplicate shard "
+                << "points when replicating " << *this << ". In order to control "
+                << "replicate a task all the target processors must be unique.";
         }
         // Check that shard domain volume matches number of points if not empty
         if (output.shard_domain.exists())
         {
           if (output.shard_points.empty())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper provided shard_domain without "
-                        "providing any associated shard_points when replicating"
-                        " task %s (UID %lld). The shard_points data structure "
-                        "must also be populated in conjunction with a "
-                        "shard_domain.", "replicate_task",
-                        mapper->get_mapper_name(),
-                        get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'replicate_task' "
+              << "on mapper " << *mapper << ". Mapper provided shard_domain without "
+              << "providing any associated shard_points when replicating" << *this
+              << ". The shard_points data structure must also be populated in "
+              << "conjunction with a shard_domain.";
           if (output.shard_points.size() != output.shard_domain.get_volume())
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper provided %zd shard_points "
-                        "for shard_domain with %zd points when replicating "
-                        "task %s (UID %lld). The number of shard_points must "
-                        "exactly match the volume of the shard_domain.",
-                        "replicate_task", mapper->get_mapper_name(),
-                        output.shard_points.size(), 
-                        output.shard_domain.get_volume(),
-                        get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Invalid mapper output from invocation of 'replicate_task' "
+              << "on mapper " << *mapper <<". Mapper provided " 
+              << output.shard_points.size() << " shard_points for "
+              << "shard_domain with " << output.shard_domain.get_volume()
+              << " points when replicating " << *this << ". The number of "
+              << "shard_points must exactly match the volume of the shard_domain.";
           for (unsigned idx = 0; idx < output.shard_points.size(); idx++)
             if (!output.shard_domain.contains(output.shard_points[idx]))
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from invocation of '%s' "
-                        "on mapper %s. Mapper provided a point in shard_points "
-                        "that is not contained in the shard_domain when "
-                        "replicating task %s (UID %lld). Each point in "
-                        "shard_points must exist in the shard_domain.", 
-                        "replicate_task", mapper->get_mapper_name(),
-                        get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Invalid mapper output from invocation of 'replicate_task' "
+                << "on mapper " << *mapper << ". Mapper provided a point in shard_points "
+                << "that is not contained in the shard_domain when replicating " << *this
+                << ". Each point in shard_points must exist in the shard_domain."; 
         }
       } 
       // Start building the data structures needed to make the ShardManager
@@ -3931,23 +3876,21 @@ namespace Legion {
           if (isomorphic_points && (output.shard_points[idx][0] != idx))
             isomorphic_points = false;
           if (output.shard_points[idx].get_dim() != dim)
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                "Mapper %s specified shard points with different "
-                "dimensionalities of %d and %d for 'replicate_task' "
-                "call for task %s (UID %lld). All shard points must have "
-                "the same dimenstionality.", mapper->get_mapper_name(),
-                dim, output.shard_points[idx].get_dim(),
-                get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Mapper " << *mapper << " specified shard points with different "
+              << "dimensionalities of " << dim << " and "
+              << output.shard_points[idx].get_dim() << " for 'replicate_task' "
+              << "call for " << *this << ". All shard points must have "
+              << "the same dimenstionality.";
           std::pair<std::map<DomainPoint,ShardID>::iterator,bool> result =
             shard_mapping.insert(std::pair<DomainPoint,ShardID>(
                   output.shard_points[idx],idx));
           if (!result.second)
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                "Mapper %s specified duplicate shard point names for shards "
-                "%d and %d in 'replicate_task' mapper call for task %s "
-                "(UID %lld). Each shard point must be given a unique name.",
-                mapper->get_mapper_name(), result.first->second, idx,
-                get_task_name(), get_unique_id())
+            Exception(MAPPER_EXCEPTION, this)
+              << "Mapper " << *mapper << " specified duplicate shard point "
+              << "names for shards " << result.first->second << " and " << idx
+              << " in 'replicate_task' mapper call for " << *this
+              << ". Each shard point must be given a unique name.";
         }
         for (std::map<DomainPoint,ShardID>::const_iterator it =
               shard_mapping.begin(); it != shard_mapping.end(); it++)
@@ -3957,14 +3900,12 @@ namespace Legion {
         }
         const int domain_dim = output.shard_domain.get_dim();
         if ((domain_dim > 0) && (domain_dim != dim))
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-              "Mapper %s specified a 'shard_domain' output with "
-              "dimensionality %d different than the %d dimension points "
-              "in 'shard_points' in 'replicate_task' call for task %s "
-              "(UID %lld). The dimensionality of 'shard_domain' must "
-              "match the dimensionality of the 'shard_points'.",
-              mapper->get_mapper_name(), domain_dim, dim,
-              get_task_name(), get_unique_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Mapper " << *mapper << " specified a 'shard_domain' output with "
+            << "dimensionality " << domain_dim << " different than the " << dim
+            << " dimension points in 'shard_points' in 'replicate_task' call for "
+            << *this << ". The dimensionality of 'shard_domain' must "
+            << "match the dimensionality of the 'shard_points'.";
       }
       else
       {
