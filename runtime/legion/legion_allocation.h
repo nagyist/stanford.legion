@@ -227,7 +227,7 @@ namespace Legion {
       LegionAllocation::trace_free(info, old_size);
       LegionAllocation::trace_allocation(info, new_size);
 #endif
-      return static_cast<T*>(std::realloc(ptr, new_size));
+      return static_cast<T*>(std::realloc(static_cast<void*>(ptr), new_size));
     }
 
     //--------------------------------------------------------------------------
