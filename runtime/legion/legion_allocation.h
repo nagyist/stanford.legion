@@ -24,6 +24,7 @@
 #include <deque>
 #include <vector>
 #include <limits>
+#include <cstring>
 #include <stddef.h>
 #include <functional>
 #include <stdlib.h>
@@ -255,6 +256,8 @@ namespace Legion {
     public:
       static inline void operator delete(void *ptr, std::size_t size);
       static inline void operator delete[](void *ptr, std::size_t size);
+      static inline void operator delete(void *ptr, void *place);
+      static inline void operator delete[](void *ptr, void *place);
     };
 
     //--------------------------------------------------------------------------
@@ -278,7 +281,7 @@ namespace Legion {
     /*static*/ inline void* Heapify<T,L>::operator new(std::size_t size, std::align_val_t alignment)
     //--------------------------------------------------------------------------
     {
-      return static_cast<void*>(legion_malloc<T,L>(size, alignment));
+      return static_cast<void*>(legion_malloc<T,L>(size, static_cast<std::size_t>(alignment)));
     }
 
     //--------------------------------------------------------------------------
@@ -286,7 +289,7 @@ namespace Legion {
     /*static*/ inline void* Heapify<T,L>::operator new[](std::size_t size, std::align_val_t alignment)
     //--------------------------------------------------------------------------
     {
-      return static_cast<void*>(legion_malloc<T,L>(size, alignment));
+      return static_cast<void*>(legion_malloc<T,L>(size, static_cast<std::size_t>(alignment)));
     }
 
     //--------------------------------------------------------------------------
@@ -325,6 +328,22 @@ namespace Legion {
       legion_free<T>(static_cast<T*>(ptr), size);
     }
 
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void Heapify<T,L>::operator delete(void *ptr, void *place)
+    //--------------------------------------------------------------------------
+    {
+      std::abort();
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void Heapify<T,L>::operator delete[](void *ptr, void *place)
+    //--------------------------------------------------------------------------
+    {
+      std::abort();
+    }
+
     // Same as Heapify but for overriding a base class definitions to keep
     // the compiler happy so it knows which definitions of operator new/delete
     // to use without getting confused
@@ -344,6 +363,8 @@ namespace Legion {
     public:
       static inline void operator delete(void *ptr, std::size_t size);
       static inline void operator delete[](void *ptr, std::size_t size);
+      static inline void operator delete(void *ptr, void *place);
+      static inline void operator delete[](void *ptr, void *place);
     };
 
     //--------------------------------------------------------------------------
@@ -367,7 +388,7 @@ namespace Legion {
     /*static*/ inline void* HeapifyMixin<T,B,L>::operator new(std::size_t size, std::align_val_t alignment)
     //--------------------------------------------------------------------------
     {
-      return static_cast<void*>(legion_malloc<T,L>(size, alignment));
+      return static_cast<void*>(legion_malloc<T,L>(size, static_cast<std::size_t>(alignment)));
     }
 
     //--------------------------------------------------------------------------
@@ -375,7 +396,7 @@ namespace Legion {
     /*static*/ inline void* HeapifyMixin<T,B,L>::operator new[](std::size_t size, std::align_val_t alignment)
     //--------------------------------------------------------------------------
     {
-      return static_cast<void*>(legion_malloc<T,L>(size, alignment));
+      return static_cast<void*>(legion_malloc<T,L>(size, static_cast<std::size_t>(alignment)));
     }
 
     //--------------------------------------------------------------------------
@@ -383,9 +404,8 @@ namespace Legion {
     /*static*/ inline void* HeapifyMixin<T,B,L>::operator new(std::size_t size, void *ptr)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_TRACE_ALLOCATION
-      LegionAllocation::trace_allocation(typeid(T), size);
-#endif
+      // No need to do tracing of allocations, that is handled when 
+      // legion_malloc is called for the type
       return ptr;
     }
 
@@ -394,9 +414,8 @@ namespace Legion {
     /*static*/ inline void* HeapifyMixin<T,B,L>::operator new[](std::size_t size, void *ptr)
     //--------------------------------------------------------------------------
     {
-#ifdef LEGION_TRACE_ALLOCATION
-      LegionAllocation::trace_allocation(typeid(T), size);
-#endif
+      // No need to do tracing of allocations, that is handled when 
+      // legion_malloc is called for the type
       return ptr;
     }
 
@@ -414,6 +433,22 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       legion_free<T>(static_cast<T*>(ptr), size);
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, typename B, AllocationLifetime L>
+    /*static*/ inline void HeapifyMixin<T,B,L>::operator delete(void *ptr, void *place)
+    //--------------------------------------------------------------------------
+    {
+      std::abort();
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, typename B, AllocationLifetime L>
+    /*static*/ inline void HeapifyMixin<T,B,L>::operator delete[](void *ptr, void *place)
+    //--------------------------------------------------------------------------
+    {
+      std::abort();
     }
 
     // A class to ensure that a type is never dynamically allocated
