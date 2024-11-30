@@ -141,6 +141,7 @@ namespace Legion {
       if (arglen > 0) {
         arg_manager.save_buffer(derez.get_current_pointer(), arglen);
         derez.advance_pointer(arglen);
+        args = arg_manager.get_buffer();
       }
       unpack_mappable(*this, derez); 
       derez.deserialize(is_index_space);
