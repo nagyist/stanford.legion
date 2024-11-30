@@ -257,8 +257,6 @@ namespace Legion {
      */
     class TraceCaptureOp : public TraceOp {
     public:
-      static const AllocationType alloc_type = TRACE_CAPTURE_OP_ALLOC;
-    public:
       TraceCaptureOp(void);
       TraceCaptureOp(const TraceCaptureOp &rhs) = delete;
       virtual ~TraceCaptureOp(void);
@@ -324,8 +322,6 @@ namespace Legion {
      */
     class TraceCompleteOp : public TraceOp, public CompleteOp {
     public:
-      static const AllocationType alloc_type = TRACE_COMPLETE_OP_ALLOC;
-    public:
       TraceCompleteOp(void);
       TraceCompleteOp(const TraceCompleteOp &rhs) = delete;
       virtual ~TraceCompleteOp(void);
@@ -356,8 +352,6 @@ namespace Legion {
      * if there is one that satisfies its preconditions.
      */
     class TraceReplayOp : public TraceOp {
-    public:
-      static const AllocationType alloc_type = TRACE_REPLAY_OP_ALLOC;
     public:
       TraceReplayOp(void);
       TraceReplayOp(const TraceReplayOp &rhs) = delete;
@@ -405,8 +399,6 @@ namespace Legion {
      */
     class TraceBeginOp : public TraceOp, public BeginOp {
     public:
-      static const AllocationType alloc_type = TRACE_BEGIN_OP_ALLOC;
-    public:
       TraceBeginOp(void);
       TraceBeginOp(const TraceBeginOp &rhs) = delete;
       virtual ~TraceBeginOp(void);
@@ -445,8 +437,6 @@ namespace Legion {
      * any other downstream operations attempt to map.
      */
     class TraceRecurrentOp : public TraceOp, public RecurrentOp {
-    public:
-      static const AllocationType alloc_type = TRACE_RECURRENT_OP_ALLOC;
     public:
       TraceRecurrentOp(void);
       TraceRecurrentOp(const TraceRecurrentOp &rhs) = delete;
@@ -659,7 +649,7 @@ namespace Legion {
      * \class TraceConditionSet
      */
     class TraceConditionSet : public EqSetTracker, public Collectable,
-                              public LegionHeapify<TraceConditionSet> {
+      public Heapify<TraceConditionSet,CONTEXT_LIFETIME> {
     public:
       TraceConditionSet(PhysicalTemplate *tpl, unsigned parent_req_index,
                         RegionTreeID tree_id, IndexSpaceExpression *expr,
@@ -725,7 +715,7 @@ namespace Legion {
      * before the template gets executed.
      */
     class PhysicalTemplate : public PhysicalTraceRecorder,
-                             public LegionHeapify<PhysicalTemplate> {
+      public Heapify<PhysicalTemplate,CONTEXT_LIFETIME> {
     public:
       struct ReplaySliceArgs : public LgTaskArgs<ReplaySliceArgs> {
       public:
@@ -1254,7 +1244,8 @@ namespace Legion {
      * same as a normal PhysicalTemplate but has some additional 
      * extensions for handling the effects of control replication.
      */
-    class ShardedPhysicalTemplate : public PhysicalTemplate {
+    class ShardedPhysicalTemplate : 
+      public HeapifyMixin<ShardedPhysicalTemplate,PhysicalTemplate,CONTEXT_LIFETIME> {
     public:
       enum UpdateKind {
         UPDATE_MUTATED_INST,
@@ -1303,14 +1294,6 @@ namespace Legion {
       ShardedPhysicalTemplate(const ShardedPhysicalTemplate &rhs) = delete;
       virtual ~ShardedPhysicalTemplate(void);
     public:
-      // Have to provide explicit overrides of operator new and 
-      // delete here to make sure we get the right ones. C++ does
-      // not let us have these in a sub-class or it doesn't know
-      // which ones to pick from.
-      static inline void* operator new(size_t count)
-      { return legion_alloc_aligned<ShardedPhysicalTemplate,true>(count); }
-      static inline void operator delete(void *ptr)
-      { free(ptr); }
       inline RtEvent chain_deferral_events(RtUserEvent deferral_event)
       {
         RtEvent continuation_pre;

@@ -83,6 +83,7 @@
                    (x==28) ? 11 : (x==29) ? 5 : (x==30) ? 10 : 9)
 #endif
 
+namespace Legion {
   // Internal helper name space for bitmasks
     namespace BitMaskHelp {
       // A class for Bitmask objects to inherit from to have their dynamic
@@ -10019,5 +10020,7 @@
       }
       delete oldmask;
     }
+
+} // namespace Legion
 
 #endif // __BITMASK_H__

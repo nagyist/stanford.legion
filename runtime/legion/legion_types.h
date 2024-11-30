@@ -41,6 +41,7 @@
 #include <unordered_map>
 
 #include "legion/legion_config.h"
+#include "legion/bitmask.h"
 
 // Make sure we have the appropriate defines in place for including realm
 #include "realm.h"
@@ -95,29 +96,6 @@
 #define LEGION_DISABLE_EVENT_PRUNING
 #endif
 #endif
-
-// forward declarations from bitmask.h
-template<typename T, unsigned int MAX,
-         unsigned SHIFT, unsigned MASK> class BitMask;
-template<typename T, unsigned int MAX,
-         unsigned SHIFT, unsigned MASK> class TLBitMask;
-#ifdef __SSE2__
-template<unsigned int MAX> class SSEBitMask;
-template<unsigned int MAX> class SSETLBitMask;
-#endif
-#ifdef __AVX__
-template<unsigned int MAX> class AVXBitMask;
-template<unsigned int MAX> class AVXTLBitMask;
-#endif
-#ifdef __ALTIVEC__
-template<unsigned int MAX> class PPCBitMask;
-template<unsigned int MAX> class PPCTLBitMask;
-#endif
-#ifdef __ARM_NEON
-template<unsigned int MAX> class NeonBitMask;
-template<unsigned int MAX> class NeonTLBitMask;
-#endif
-template<typename DT, unsigned BLOAT, bool BIDIR> class CompoundBitMask;
 
 namespace BindingLib { class Utility; } // BindingLib namespace
 

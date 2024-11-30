@@ -11659,8 +11659,12 @@ namespace Legion {
     //
     {
       receiving_buffer_size = max_message_size;
-      receiving_buffer = (uint8_t*)legion_malloc(MESSAGE_BUFFER_ALLOC,
-                                              receiving_buffer_size);
+      // Not really a VirtualChannel*
+      VirtualChannel *buffer =
+        legion_malloc<VirtualChannel,RUNTIME_LIFETIME>(
+            receiving_buffer_size, alignof(std::max_align_t));
+      static_assert(sizeof(uint8_t*) == sizeof(VirtualChannel*));
+      memcpy(&receiving_buffer, &buffer, sizeof(buffer));
 #ifdef DEBUG_LEGION
       assert(sending_buffer != NULL);
       assert(receiving_buffer != NULL);
@@ -11717,7 +11721,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       free(sending_buffer);
-      free(receiving_buffer);
+      VirtualChannel *buffer;
+      memcpy(&buffer, &receiving_buffer, sizeof(buffer));
+      legion_free<VirtualChannel>(buffer, receiving_buffer_size);
       receiving_buffer = NULL;
       receiving_buffer_size = 0;
       if (partial_assembly != NULL)
@@ -12100,8 +12106,10 @@ namespace Legion {
               {
                 // Same as max message size
                 message.size = sending_buffer_size;
-                message.buffer = 
-                  (uint8_t*)legion_malloc(MESSAGE_BUFFER_ALLOC, message.size);
+                VirtualChannel *buffer =
+                  legion_malloc<VirtualChannel,SHORT_BOUNDED_LIFETIME>(
+                      message.size, alignof(std::max_align_t));
+                memcpy(&message.buffer, &buffer, sizeof(buffer));
               }
               buffer_messages(num_messages, buffer, arglen,
                               message.buffer, message.size,
@@ -12121,7 +12129,7 @@ namespace Legion {
             uint8_t *final_buffer = NULL;
             size_t final_index = 0;
             unsigned final_messages = 0;
-            bool free_buffer = false;
+            bool free_buffer_size = 0;
             if (!ordered_channel)
             {
               AutoLock c_lock(channel_lock);
@@ -12141,7 +12149,7 @@ namespace Legion {
               final_index = finder->second.index;
               final_buffer = finder->second.buffer;
               final_messages = finder->second.messages;
-              free_buffer = true;
+              free_buffer_size = finder->second.size;
               partial_assembly->erase(finder);
             }
             else
@@ -12158,8 +12166,11 @@ namespace Legion {
             }
             handle_messages(final_messages, remote_address_space,
                                 final_buffer, final_index);
-            if (free_buffer)
-              free(final_buffer);
+            if (free_buffer_size > 0) {
+              VirtualChannel *to_free;
+              memcpy(&to_free, &final_buffer, sizeof(to_free));
+              legion_free<VirtualChannel>(to_free, free_buffer_size);
+            }
             break;
           }
         default:
@@ -13764,13 +13775,15 @@ namespace Legion {
         assert(new_buffer_size != 0); // would cause deallocation
 #endif
         // Now realloc the memory
-        void *new_ptr = legion_realloc(MESSAGE_BUFFER_ALLOC, receiving_buffer,
-                                       receiving_buffer_size, new_buffer_size);
+        VirtualChannel *buffer;
+        memcpy(&buffer, &receiving_buffer, sizeof(buffer));
+        buffer = legion_realloc<VirtualChannel,RUNTIME_LIFETIME>(
+            buffer, receiving_buffer_size, new_buffer_size);
+        memcpy(&receiving_buffer, &buffer, sizeof(buffer));
         receiving_buffer_size = new_buffer_size;
 #ifdef DEBUG_LEGION
-        assert(new_ptr != NULL);
+        assert(receiving_buffer != NULL);
 #endif
-        receiving_buffer = (uint8_t*)new_ptr;
       }
       // Copy the data in
       memcpy(receiving_buffer+receiving_index,args,arglen);
@@ -14279,10 +14292,8 @@ namespace Legion {
       if (name != NULL)
       {
         const size_t name_size = strlen(name) + 1; // for \0
-        char *name_copy = (char*)legion_malloc(SEMANTIC_INFO_ALLOC, name_size);
-        memcpy(name_copy, name, name_size);
         semantic_infos[LEGION_NAME_SEMANTIC_TAG] = 
-          SemanticInfo(name_copy, name_size, false/*mutable*/);
+          SemanticInfo(name, name_size, false/*mutable*/);
         if (runtime->legion_spy_enabled)
           LegionSpy::log_task_name(task_id, name);
         // Also set the initial name to be safe
@@ -14304,12 +14315,6 @@ namespace Legion {
     TaskImpl::~TaskImpl(void)
     //-------------------------------------------------------------------------
     {
-      for (std::map<SemanticTag,SemanticInfo>::const_iterator it = 
-            semantic_infos.begin(); it != semantic_infos.end(); it++)
-      {
-        legion_free(SEMANTIC_INFO_ALLOC, it->second.buffer,
-                    it->second.size);
-      }
       semantic_infos.clear();
       free(initial_name);
     }
@@ -14438,12 +14443,7 @@ namespace Legion {
         std::map<SemanticTag,SemanticInfo>::const_iterator finder = 
           semantic_infos.find(LEGION_NAME_SEMANTIC_TAG);
         if (finder != semantic_infos.end())
-        {
-          const char *result = NULL;
-          static_assert(sizeof(result) == sizeof(finder->second.buffer));
-          memcpy(&result, &finder->second.buffer, sizeof(result)); 
-          return result;
-        }
+          return static_cast<const char*>(finder->second.buffer.get_buffer());
       }
       // Couldn't find it so use the initial name
       return initial_name;
@@ -14459,8 +14459,6 @@ namespace Legion {
       if ((tag == LEGION_NAME_SEMANTIC_TAG) && (runtime->profiler != NULL))
         runtime->profiler->register_task_kind(task_id,(const char*)buffer,true);
 
-      void *local = legion_malloc(SEMANTIC_INFO_ALLOC, size);
-      memcpy(local, buffer, size);
       bool added = true;
       RtUserEvent to_trigger;
       {
@@ -14476,15 +14474,15 @@ namespace Legion {
             if (!finder->second.is_mutable)
             {
               // Note mutable so check to make sure that the bits are the same
-              if (size != finder->second.size)
+              if (size != finder->second.buffer.get_size())
                 REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
                               "Inconsistent Semantic Tag value "
                               "for tag %ld with different sizes of %zd"
                               " and %zd for task impl", 
-                              tag, size, finder->second.size)
+                              tag, size, finder->second.buffer.get_size())
               // Otherwise do a bitwise comparison
               {
-                const char *orig = (const char*)finder->second.buffer;
+                const char *orig = (const char*)finder->second.buffer.get_buffer();
                 const char *next = (const char*)buffer;
                 for (unsigned idx = 0; idx < size; idx++)
                 {
@@ -14502,25 +14500,21 @@ namespace Legion {
             else
             {
               // It is mutable so just overwrite it
-              legion_free(SEMANTIC_INFO_ALLOC, 
-                          finder->second.buffer, finder->second.size);
-              finder->second.buffer = local;
-              finder->second.size = size;
+              finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
           }
           else
           {
-            finder->second.buffer = local;
-            finder->second.size = size;
+            finder->second.buffer.save_buffer(buffer, size);
             to_trigger = finder->second.ready_event;
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
         }
         else
-          semantic_infos[tag] = SemanticInfo(local, size, is_mutable);
+          semantic_infos[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (to_trigger.exists())
         Runtime::trigger_event(to_trigger);
@@ -14551,8 +14545,6 @@ namespace Legion {
           }
         }
       }
-      else
-        legion_free(SEMANTIC_INFO_ALLOC, local, size);
     }
 
     //--------------------------------------------------------------------------
@@ -14573,8 +14565,8 @@ namespace Legion {
           // Already have the data so we are done
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             return true;
           }
           else if (is_remote)
@@ -14636,8 +14628,8 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_INVALID_SEMANTIC_TAG, 
             "invalid semantic tag %ld for task implementation", tag)
       }
-      result = finder->second.buffer;
-      size = finder->second.size;
+      result = finder->second.buffer.get_buffer();
+      size = finder->second.buffer.get_size();
       return true;
     }
 
@@ -14698,8 +14690,8 @@ namespace Legion {
         {
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
           }
           else if (!can_fail && wait_until)
@@ -16848,12 +16840,9 @@ namespace Legion {
       for (typename std::vector<OP*>::const_iterator it =
             available.begin(); it != available.end(); it++)
       {
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<OP,HasAllocType<OP>::value>::trace_free();
-#endif
         // Do explicit deletion to keep valgrind happy
         (*it)->~OP();
-        free(*it);
+        legion_free<OP>(*it, sizeof(WRAP));
       }
     }
 
@@ -16870,10 +16859,9 @@ namespace Legion {
       else
       {
         static_assert(sizeof(OP) == sizeof(WRAP), "wrapper sizes should match");
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<OP,HasAllocType<OP>::value>::trace_allocation();
-#endif
-        void *ptr = legion_alloc_aligned<WRAP,false/*bytes*/>(1/*count*/);
+        OP *ptr = 
+          legion_malloc<OP,CAN_DELETE ? SHORT_BOUNDED_LIFETIME : RUNTIME_LIFETIME>(
+              sizeof(WRAP), alignof(WRAP));
         op = new(ptr) WRAP();
       }
     }
@@ -16898,12 +16886,9 @@ namespace Legion {
       for (typename std::deque<OP*>::const_iterator it =
             available.begin(); it != available.end(); it++)
       {
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<OP,HasAllocType<OP>::value>::trace_free();
-#endif
         // Do explicit deletion to keep valgrind happy
         (*it)->~OP();
-        free(*it);
+        legion_free<OP>(*it, sizeof(WRAP));
       }
     }
 
@@ -16920,10 +16905,8 @@ namespace Legion {
       else
       {
         static_assert(sizeof(OP) == sizeof(WRAP), "wrapper sizes should match");
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<OP,HasAllocType<OP>::value>::trace_allocation();
-#endif
-        void *ptr = legion_alloc_aligned<WRAP,false/*bytes*/>(1/*count*/);
+        OP *ptr = 
+          legion_malloc<OP,SHORT_BOUNDED_LIFETIME>(sizeof(WRAP), alignof(WRAP));
         op = new(ptr) WRAP();
       }
     }
@@ -16941,12 +16924,9 @@ namespace Legion {
       {
         op = available.front();
         available.pop_front();
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<OP,HasAllocType<OP>::value>::trace_free();
-#endif
         // Do explicit deletion to keep valgrind happy
         op->~OP();
-        free(op);
+        legion_free<OP>(op, sizeof(WRAP));
       }
     }
 
@@ -16958,12 +16938,9 @@ namespace Legion {
       for (typename std::vector<OP*>::const_iterator it =
             available.begin(); it != available.end(); it++)
       {
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<OP,HasAllocType<OP>::value>::trace_free();
-#endif
         // Do explicit deletion to keep valgrind happy
         (*it)->~OP();
-        free(*it);
+        legion_free<OP>(*it, sizeof(OP));
       }
     }
 
@@ -16979,10 +16956,8 @@ namespace Legion {
       }
       else
       {
-#ifdef LEGION_TRACE_ALLOCATION
-        HandleAllocation<OP,HasAllocType<OP>::value>::trace_allocation();
-#endif
-        void *ptr = legion_alloc_aligned<OP,false/*bytes*/>(1/*count*/);
+        OP *ptr =
+          legion_malloc<OP,RUNTIME_LIFETIME>(sizeof(OP), alignof(OP));
         op = new(ptr) OP();
       }
     }
@@ -17476,9 +17451,6 @@ namespace Legion {
 
 #ifdef LEGION_TRACE_ALLOCATION
       allocation_tracing_count.store(0);
-      // Instantiate all the kinds of allocations
-      for (unsigned idx = ARGUMENT_MAP_ALLOC; idx < UNTRACKED_ALLOC; idx++)
-        allocation_manager[((AllocationType)idx)] = AllocationTracker();
 #endif
 #ifdef LEGION_GC
       {
@@ -17595,7 +17567,7 @@ namespace Legion {
         redop_table.erase(it);
       }
       for (LegionMap<uint64_t,LegionDeque<ProcessorGroupInfo>,
-            PROCESSOR_GROUP_ALLOC>::const_iterator git = 
+            RUNTIME_LIFETIME>::const_iterator git = 
             processor_groups.begin(); git != processor_groups.end(); git++)
         for (LegionDeque<ProcessorGroupInfo>::const_iterator it = 
               git->second.begin(); it != git->second.end(); it++)
@@ -26723,7 +26695,7 @@ namespace Legion {
            (DistributedCollectable*)NULL,RtUserEvent::NO_RT_USER_EVENT))).first;
       if (finder->second.first == NULL)
         finder->second.first =
-          (T*)legion_alloc_aligned<T,false/*bytes*/>(1/*count*/);
+          legion_malloc<T,LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
       return finder->second.first;
     }
 
@@ -26877,7 +26849,7 @@ namespace Legion {
         {
           if (pending_finder->second.first == NULL)
             pending_finder->second.first =
-              (T*)legion_alloc_aligned<T,false/*bytes*/>(1/*count*/);
+              legion_malloc<T,LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
           if (!pending_finder->second.second.exists())
             pending_finder->second.second = Runtime::create_rt_user_event();
           ready = pending_finder->second.second;
@@ -26885,7 +26857,7 @@ namespace Legion {
         }
         // This is the first request we've seen for this did, make it now
         // Allocate space for the result and type case
-        result = (T*)legion_alloc_aligned<T,false/*bytes*/>(1/*count*/);  
+        result = legion_malloc<T,LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
         RtUserEvent to_trigger = Runtime::create_rt_user_event();
         pending_collectables[did] = 
           std::pair<DistributedCollectable*,RtUserEvent>(result, to_trigger);
@@ -28874,14 +28846,17 @@ namespace Legion {
 
 #ifdef LEGION_TRACE_ALLOCATION 
     //--------------------------------------------------------------------------
-    void Runtime::trace_allocation(AllocationType type, size_t size, int elems)
+    void Runtime::trace_allocation(const std::type_info &info, size_t size, int elems)
     //--------------------------------------------------------------------------
     {
       if (prepared_for_shutdown)
         return;
+      const std::size_t hash = info.hash_code();
       AutoLock a_lock(allocation_lock);
-      std::map<AllocationType,AllocationTracker>::iterator finder = 
-        allocation_manager.find(type);
+      std::unordered_map<std::size_t,AllocationTracker>::iterator finder = 
+        allocation_manager.find(hash);
+      if (finder == allocation_manager.end())
+        finder = allocation_manager.emplace(std::make_pair(hash,AllocationTracker(info.name()))).first;
       size_t alloc_size = size * elems;
       finder->second.total_allocations += elems;
       finder->second.total_bytes += alloc_size;
@@ -28890,14 +28865,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::trace_free(AllocationType type, size_t size, int elems)
+    void Runtime::trace_free(const std::type_info &info, size_t size, int elems)
     //--------------------------------------------------------------------------
     {
       if (prepared_for_shutdown)
         return;
+      const std::size_t hash = info.hash_code();
       AutoLock a_lock(allocation_lock);
-      std::map<AllocationType,AllocationTracker>::iterator finder = 
-        allocation_manager.find(type);
+      std::unordered_map<std::size_t,AllocationTracker>::iterator finder = 
+        allocation_manager.find(hash);
       size_t free_size = size * elems;
       finder->second.total_allocations -= elems;
       finder->second.total_bytes -= free_size;
@@ -28910,7 +28886,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock a_lock(allocation_lock);
-      for (std::map<AllocationType,AllocationTracker>::iterator it = 
+      for (std::unordered_map<std::size_t,AllocationTracker>::iterator it = 
             allocation_manager.begin(); it != allocation_manager.end(); it++)
       {
         // Skip anything that is empty
@@ -28921,7 +28897,7 @@ namespace Legion {
           continue;
         log_allocation.info("%s on %d: "
             "total=%d total_bytes=%ld diff=%d diff_bytes=%lld",
-            get_allocation_name(it->first), address_space,
+            it->second.name, address_space,
             it->second.total_allocations, it->second.total_bytes,
             it->second.diff_allocations, (long long int)it->second.diff_bytes);
         it->second.diff_allocations = 0;
@@ -28933,6 +28909,7 @@ namespace Legion {
       log_allocation.info(" ");
     }
 
+#if 0
     //--------------------------------------------------------------------------
     /*static*/ const char* Runtime::get_allocation_name(AllocationType type)
     //--------------------------------------------------------------------------
@@ -29152,6 +29129,7 @@ namespace Legion {
       }
       return NULL;
     }
+#endif
 #endif
 
     //--------------------------------------------------------------------------
@@ -32146,45 +32124,20 @@ namespace Legion {
 #ifdef LEGION_TRACE_ALLOCATION
     //--------------------------------------------------------------------------
     /*static*/ void LegionAllocation::trace_allocation(
-                                       AllocationType a, size_t size, int elems)
+                             const std::type_info &info, size_t size, int elems)
     //--------------------------------------------------------------------------
     {
       if (runtime != NULL)
-        runtime->trace_allocation(a, size, elems);
+        runtime->trace_allocation(info, size, elems);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void LegionAllocation::trace_free(AllocationType a, 
+    /*static*/ void LegionAllocation::trace_free(const std::type_info &info, 
                                                  size_t size, int elems)
     //--------------------------------------------------------------------------
     {
       if (runtime != NULL)
-        runtime->trace_free(a, size, elems);
-    }
-
-    //--------------------------------------------------------------------------
-    /*static*/ Runtime* LegionAllocation::find_runtime(void)
-    //--------------------------------------------------------------------------
-    {
-      return runtime;
-    }
-
-    //--------------------------------------------------------------------------
-    /*static*/ void LegionAllocation::trace_allocation(
-                                       AllocationType a, size_t size, int elems)
-    //--------------------------------------------------------------------------
-    {
-      if (runtime != NULL)
-        runtime->trace_allocation(a, size, elems);
-    }
-
-    //--------------------------------------------------------------------------
-    /*static*/ void LegionAllocation::trace_free(
-                                       AllocationType a, size_t size, int elems)
-    //--------------------------------------------------------------------------
-    {
-      if (runtime != NULL)
-        runtime->trace_free(a, size, elems);
+        runtime->trace_free(info, size, elems);
     }
 #endif 
 

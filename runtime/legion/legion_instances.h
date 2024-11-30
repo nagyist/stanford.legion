@@ -37,7 +37,7 @@ namespace Legion {
      * description object.
      */
     class LayoutDescription : public Collectable,
-                              public LegionHeapify<LayoutDescription> {
+      public Heapify<LayoutDescription,LONG_BOUNDED_LIFETIME> {
     public:
       LayoutDescription(FieldSpaceNode *owner,
                         const FieldMask &mask,
@@ -234,9 +234,7 @@ namespace Legion {
      * of data; this includes both individual instances and collective instances
      */
     class PhysicalManager : public InstanceManager, 
-                            public LegionHeapify<PhysicalManager> {
-    public:
-      static const AllocationType alloc_type = PHYSICAL_MANAGER_ALLOC;
+      public Heapify<PhysicalManager,LONG_BOUNDED_LIFETIME> {
     public:
       enum InstanceKind {
         // Normal Realm allocations
@@ -595,7 +593,7 @@ namespace Legion {
      * represent all the virtual instances.
      */
     class VirtualManager : public InstanceManager,
-                           public LegionHeapify<VirtualManager> {
+      public Heapify<VirtualManager,RUNTIME_LIFETIME> {
     public:
       VirtualManager(DistributedID did, 
                      LayoutDescription *layout, CollectiveMapping *mapping);

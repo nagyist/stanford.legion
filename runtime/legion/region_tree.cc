@@ -1667,7 +1667,7 @@ namespace Legion {
         if ((get_must_epoch_op() == NULL) &&
             (get_operation_kind() != RESET_OP_KIND))
           refinement_mask = user_mask;
-        FieldMaskSet<RefinementOp,UNTRACKED_ALLOC,true> refinements;
+        FieldMaskSet<RefinementOp,TASK_LOCAL_LIFETIME,true> refinements;
         parent_node->register_logical_user(req.parent, *user, path,
              trace_info, proj_info, user_mask, unopened_mask,
              refinement_mask, logical_analysis, refinements, true/*root*/);
@@ -7294,9 +7294,6 @@ namespace Legion {
     IndexTreeNode::~IndexTreeNode(void)
     //--------------------------------------------------------------------------
     {
-      for (LegionMap<SemanticTag,SemanticInfo>::iterator it = 
-            semantic_info.begin(); it != semantic_info.end(); it++)
-        legion_free(SEMANTIC_INFO_ALLOC, it->second.buffer, it->second.size);
       if ((provenance != NULL) && provenance->remove_reference())
         delete provenance;
     } 
@@ -7310,9 +7307,6 @@ namespace Legion {
                                                     bool local_only)
     //--------------------------------------------------------------------------
     {
-      // Make a copy
-      void *local = legion_malloc(SEMANTIC_INFO_ALLOC, size);
-      memcpy(local, buffer, size);
       bool added = true;
       {
         AutoLock n_lock(node_lock); 
@@ -7328,15 +7322,15 @@ namespace Legion {
             {
               // It's not mutable so check to make 
               // sure that the bits are the same
-              if (size != finder->second.size)
+              if (size != finder->second.buffer.get_size())
                 REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
                   "Inconsistent Semantic Tag value "
                               "for tag %ld with different sizes of %zd"
                               " and %zd for index tree node", 
-                              tag, size, finder->second.size)
+                              tag, size, finder->second.buffer.get_size())
               // Otherwise do a bitwise comparison
               {
-                const char *orig = (const char*)finder->second.buffer;
+                const char *orig = (const char*)finder->second.buffer.get_buffer();
                 const char *next = (const char*)buffer;
                 for (unsigned idx = 0; idx < size; idx++)
                 {
@@ -7354,25 +7348,21 @@ namespace Legion {
             else
             {
               // Mutable so overwrite the result
-              legion_free(SEMANTIC_INFO_ALLOC, finder->second.buffer,
-                          finder->second.size);
-              finder->second.buffer = local;
-              finder->second.size = size;
+              finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
           }
           else
           {
-            finder->second.buffer = local;
-            finder->second.size = size;
+            finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by the caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
         }
         else
-          semantic_info[tag] = SemanticInfo(local, size, is_mutable);
+          semantic_info[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (added)
       {
@@ -7388,8 +7378,6 @@ namespace Legion {
             done.wait();
         }
       }
-      else
-        legion_free(SEMANTIC_INFO_ALLOC, local, size);
     }
 
     //--------------------------------------------------------------------------
@@ -7413,8 +7401,8 @@ namespace Legion {
           // Already have the data so we are done
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             return true;
           }
           else if (is_remote)
@@ -7478,8 +7466,8 @@ namespace Legion {
           "invalid semantic tag %ld for "
                             "index tree node", tag)
       }
-      result = finder->second.buffer;
-      size = finder->second.size;
+      result = finder->second.buffer.get_buffer();
+      size = finder->second.buffer.get_size();
       return true;
     }
 
@@ -7655,8 +7643,8 @@ namespace Legion {
         {
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
           }
           else if (!can_fail && wait_until)
@@ -8189,8 +8177,8 @@ namespace Legion {
             semantic_info.begin(); it != semantic_info.end(); it++)
       {
         rez.serialize(it->first);
-        rez.serialize(it->second.size);
-        rez.serialize(it->second.buffer, it->second.size);
+        rez.serialize<size_t>(it->second.buffer.get_size());
+        rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
         rez.serialize(it->second.is_mutable);
       } 
     }
@@ -9194,8 +9182,8 @@ namespace Legion {
         {
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
           }
           else if (!can_fail && wait_until)
@@ -10599,8 +10587,8 @@ namespace Legion {
             semantic_info.begin(); it != semantic_info.end(); it++)
       {
         rez.serialize(it->first);
-        rez.serialize(it->second.size);
-        rez.serialize(it->second.buffer, it->second.size);
+        rez.serialize<size_t>(it->second.buffer.get_size());
+        rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
         rez.serialize(it->second.is_mutable);
       }
     }
@@ -11395,12 +11383,12 @@ namespace Legion {
     {
       // Next we can delete our layouts
       for (std::map<LEGION_FIELD_MASK_FIELD_TYPE,LegionList<LayoutDescription*,
-            LAYOUT_DESCRIPTION_ALLOC>>::iterator it =
+            LONG_BOUNDED_LIFETIME>>::iterator it =
             layouts.begin(); it != layouts.end(); it++)
       {
-        LegionList<LayoutDescription*,LAYOUT_DESCRIPTION_ALLOC>
+        LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>
           &descs = it->second;
-        for (LegionList<LayoutDescription*,LAYOUT_DESCRIPTION_ALLOC>::iterator
+        for (LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>::iterator
               it = descs.begin(); it != descs.end(); it++)
         {
           if ((*it)->remove_reference())
@@ -11408,17 +11396,6 @@ namespace Legion {
         }
       }
       layouts.clear();
-      for (LegionMap<SemanticTag,SemanticInfo>::iterator it = 
-            semantic_info.begin(); it != semantic_info.end(); it++)
-      {
-        legion_free(SEMANTIC_INFO_ALLOC, it->second.buffer, it->second.size);
-      }
-      for (LegionMap<std::pair<FieldID,SemanticTag>,SemanticInfo>::iterator
-            it = semantic_field_info.begin(); 
-            it != semantic_field_info.end(); it++)
-      {
-        legion_free(SEMANTIC_INFO_ALLOC, it->second.buffer, it->second.size);
-      }
       if ((provenance != NULL) && provenance->remove_reference())
         delete provenance;
       // Unregister ourselves from the context
@@ -11576,8 +11553,6 @@ namespace Legion {
                                                      bool local_only)
     //--------------------------------------------------------------------------
     {
-      void *local = legion_malloc(SEMANTIC_INFO_ALLOC, size);
-      memcpy(local, buffer, size);
       bool added = true;
       {
         AutoLock n_lock(node_lock); 
@@ -11592,15 +11567,15 @@ namespace Legion {
             if (!finder->second.is_mutable)
             {
               // Check to make sure that the bits are the same
-              if (size != finder->second.size)
+              if (size != finder->second.buffer.get_size())
                 REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
                   "Inconsistent Semantic Tag value "
                               "for tag %ld with different sizes of %zd"
                               " and %zd for index tree node", 
-                              tag, size, finder->second.size)
+                              tag, size, finder->second.buffer.get_size())
               // Otherwise do a bitwise comparison
               {
-                const char *orig = (const char*)finder->second.buffer;
+                const char *orig = (const char*)finder->second.buffer.get_buffer();
                 const char *next = (const char*)buffer;
                 for (unsigned idx = 0; idx < size; idx++)
                 {
@@ -11618,25 +11593,21 @@ namespace Legion {
             else
             {
               // Mutable so we can overwrite 
-              legion_free(SEMANTIC_INFO_ALLOC, finder->second.buffer,
-                          finder->second.size);
-              finder->second.buffer = local;
-              finder->second.size = size;
+              finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
           }
           else
           {
-            finder->second.buffer = local;
-            finder->second.size = size;
+            finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
         }
         else
-          semantic_info[tag] = SemanticInfo(local, size, is_mutable);
+          semantic_info[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (added)
       {
@@ -11652,8 +11623,6 @@ namespace Legion {
             done.wait();
         }
       }
-      else
-        legion_free(SEMANTIC_INFO_ALLOC, local, size);
     }
 
     //--------------------------------------------------------------------------
@@ -11666,8 +11635,6 @@ namespace Legion {
                                                      bool local_only)
     //--------------------------------------------------------------------------
     {
-      void *local = legion_malloc(SEMANTIC_INFO_ALLOC, size);
-      memcpy(local, buffer, size);
       bool added = true;
       {
         AutoLock n_lock(node_lock); 
@@ -11682,15 +11649,15 @@ namespace Legion {
             if (!finder->second.is_mutable)
             {
               // Check to make sure that the bits are the same
-              if (size != finder->second.size)
+              if (size != finder->second.buffer.get_size())
                 REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
                               "Inconsistent Semantic Tag value "
                               "for tag %ld with different sizes of %zd"
                               " and %zd for index tree node", 
-                              tag, size, finder->second.size)
+                              tag, size, finder->second.buffer.get_size())
               // Otherwise do a bitwise comparison
               {
-                const char *orig = (const char*)finder->second.buffer;
+                const char *orig = (const char*)finder->second.buffer.get_buffer();
                 const char *next = (const char*)buffer;
                 for (unsigned idx = 0; idx < size; idx++)
                 {
@@ -11708,18 +11675,14 @@ namespace Legion {
             else
             {
               // Mutable so we can overwrite
-              legion_free(SEMANTIC_INFO_ALLOC, finder->second.buffer,
-                          finder->second.size);
-              finder->second.buffer = local;
-              finder->second.size = size;
+              finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
           }
           else
           {
-            finder->second.buffer = local;
-            finder->second.size = size;
+            finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
@@ -11728,7 +11691,7 @@ namespace Legion {
         else
         {
           semantic_field_info[std::pair<FieldID,SemanticTag>(fid,tag)] = 
-            SemanticInfo(local, size, is_mutable);
+            SemanticInfo(buffer, size, is_mutable);
         }
       }
       if (added)
@@ -11741,8 +11704,6 @@ namespace Legion {
           send_semantic_field_info(owner_space, fid, tag, 
                                    buffer, size, is_mutable); 
       }
-      else
-        legion_free(SEMANTIC_INFO_ALLOC, local, size);
     }
 
     //--------------------------------------------------------------------------
@@ -11763,8 +11724,8 @@ namespace Legion {
           // Already have the data so we are done
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             return true;
           }
           else if (is_remote)
@@ -11839,8 +11800,8 @@ namespace Legion {
                             "invalid semantic tag %ld for "
                             "field space %llu", tag, handle.get_id())
       }
-      result = finder->second.buffer;
-      size = finder->second.size;
+      result = finder->second.buffer.get_buffer();
+      size = finder->second.buffer.get_size();
       return true;
     }
 
@@ -11864,8 +11825,8 @@ namespace Legion {
           // Already have the data so we are done
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             return true;
           }
           else if (is_remote)
@@ -11941,8 +11902,8 @@ namespace Legion {
                             "invalid semantic tag %ld for field %d "
                             "of field space %llu", tag, fid, handle.get_id())
       }
-      result = finder->second.buffer;
-      size = finder->second.size;
+      result = finder->second.buffer.get_buffer();
+      size = finder->second.buffer.get_size();
       return true;
     }
 
@@ -12006,8 +11967,8 @@ namespace Legion {
         {
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
           }
           else if (!can_fail && wait_until)
@@ -12060,8 +12021,8 @@ namespace Legion {
         {
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
           }
           else if (!can_fail && wait_until)
@@ -14366,7 +14327,7 @@ namespace Legion {
         uint64_t hash_key = mask.get_hash_key();
         AutoLock n_lock(node_lock,1,false/*exclusive*/);
         std::map<LEGION_FIELD_MASK_FIELD_TYPE,LegionList<LayoutDescription*,
-          LAYOUT_DESCRIPTION_ALLOC>>::const_iterator finder = 
+          LONG_BOUNDED_LIFETIME>>::const_iterator finder = 
                                                       layouts.find(hash_key);
         if (finder == layouts.end())
           return NULL;
@@ -14405,7 +14366,7 @@ namespace Legion {
       uint64_t hash_key = mask.get_hash_key();
       AutoLock n_lock(node_lock,1,false/*exclusive*/);
       std::map<LEGION_FIELD_MASK_FIELD_TYPE,LegionList<LayoutDescription*,
-        LAYOUT_DESCRIPTION_ALLOC>>::const_iterator finder = 
+        LONG_BOUNDED_LIFETIME>>::const_iterator finder = 
                                                     layouts.find(hash_key);
 #ifdef DEBUG_LEGION
       assert(finder != layouts.end());
@@ -14449,11 +14410,11 @@ namespace Legion {
     {
       uint64_t hash_key = layout->allocated_fields.get_hash_key();
       AutoLock n_lock(node_lock);
-      LegionList<LayoutDescription*,LAYOUT_DESCRIPTION_ALLOC>
+      LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>
         &descs = layouts[hash_key];
       if (!descs.empty())
       {
-        for (LegionList<LayoutDescription*,LAYOUT_DESCRIPTION_ALLOC>
+        for (LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>
               ::const_iterator it = descs.begin(); it != descs.end(); it++)
         {
           if (layout->match_layout(*it, layout->total_dims))
@@ -14526,8 +14487,8 @@ namespace Legion {
                 semantic_info.begin(); it != semantic_info.end(); it++)
           {
             rez.serialize(it->first);
-            rez.serialize(it->second.size);
-            rez.serialize(it->second.buffer, it->second.size);
+            rez.serialize<size_t>(it->second.buffer.get_size());
+            rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
             rez.serialize(it->second.is_mutable);
           }
           rez.serialize<size_t>(semantic_field_info.size());
@@ -14538,8 +14499,8 @@ namespace Legion {
           {
             rez.serialize(it->first.first);
             rez.serialize(it->first.second);
-            rez.serialize(it->second.size);
-            rez.serialize(it->second.buffer, it->second.size);
+            rez.serialize(it->second.buffer.get_size());
+            rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
             rez.serialize(it->second.is_mutable);
           }
         }
@@ -15011,16 +14972,16 @@ namespace Legion {
       }
       std::vector<LEGION_FIELD_MASK_FIELD_TYPE> to_delete;
       for (std::map<LEGION_FIELD_MASK_FIELD_TYPE,LegionList<LayoutDescription*,
-                  LAYOUT_DESCRIPTION_ALLOC>>::iterator lit = 
+                  LONG_BOUNDED_LIFETIME>>::iterator lit = 
             layouts.begin(); lit != layouts.end(); lit++)
       {
         // If the bit is set, remove the layout descriptions
         if (lit->first & (1ULL << index))
         {
-          LegionList<LayoutDescription*,LAYOUT_DESCRIPTION_ALLOC>
+          LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>
             &descs = lit->second;
           bool perform_delete = true;
-          for (LegionList<LayoutDescription*,LAYOUT_DESCRIPTION_ALLOC>::iterator
+          for (LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>::iterator
                 it = descs.begin(); it != descs.end(); /*nothing*/)
           {
             if ((*it)->allocated_fields.is_set(index))
@@ -15593,11 +15554,6 @@ namespace Legion {
     RegionTreeNode::~RegionTreeNode(void)
     //--------------------------------------------------------------------------
     {
-      for (LegionMap<SemanticTag,SemanticInfo>::iterator it = 
-            semantic_info.begin(); it != semantic_info.end(); it++)
-      {
-        legion_free(SEMANTIC_INFO_ALLOC, it->second.buffer, it->second.size);
-      }
       if ((provenance != NULL) && provenance->remove_reference())
         delete provenance;
     }
@@ -15619,8 +15575,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Make a copy
-      void *local = legion_malloc(SEMANTIC_INFO_ALLOC, size);
-      memcpy(local, buffer, size);
       bool added = true;
       {
         AutoLock n_lock(node_lock); 
@@ -15634,15 +15588,15 @@ namespace Legion {
             if (!finder->second.is_mutable)
             {
               // Check to make sure that the bits are the same
-              if (size != finder->second.size)
+              if (size != finder->second.buffer.get_size())
                 REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
                   "Inconsistent Semantic Tag value "
                               "for tag %ld with different sizes of %zd"
                               " and %zd for region tree node", 
-                              tag, size, finder->second.size)
+                              tag, size, finder->second.buffer.get_size())
               // Otherwise do a bitwise comparison
               {
-                const char *orig = (const char*)finder->second.buffer;
+                const char *orig = (const char*)finder->second.buffer.get_buffer();
                 const char *next = (const char*)buffer;
                 for (unsigned idx = 0; idx < size; idx++)
                 {
@@ -15660,25 +15614,21 @@ namespace Legion {
             else
             {
               // Mutable so we can just overwrite it
-              legion_free(SEMANTIC_INFO_ALLOC, finder->second.buffer,
-                          finder->second.size);
-              finder->second.buffer = local;
-              finder->second.size = size;
+              finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
           }
           else
           {
-            finder->second.buffer = local;
-            finder->second.size = size;
+            finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
         }
         else
-          semantic_info[tag] = SemanticInfo(local, size, is_mutable);
+          semantic_info[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (added)
       {
@@ -15694,8 +15644,6 @@ namespace Legion {
             done.wait();
         }
       }
-      else
-        legion_free(SEMANTIC_INFO_ALLOC, local, size);
     }
 
     //--------------------------------------------------------------------------
@@ -15719,8 +15667,8 @@ namespace Legion {
           // Already have the data so we are done
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             return true;
           }
           else if (is_remote)
@@ -15782,8 +15730,8 @@ namespace Legion {
                             "invalid semantic tag %ld for "
                             "region tree node", tag)
       }
-      result = finder->second.buffer;
-      size = finder->second.size;
+      result = finder->second.buffer.get_buffer();
+      size = finder->second.buffer.get_size();
       return true;
     }
 
@@ -15810,7 +15758,7 @@ namespace Legion {
                                        FieldMask &refinement_mask,
                                        LogicalAnalysis &logical_analysis,
                                        FieldMaskSet<RefinementOp,
-                                        UNTRACKED_ALLOC,true> &refinements,
+                                        TASK_LOCAL_LIFETIME,true> &refinements,
                                        const bool root_node)
     //--------------------------------------------------------------------------
     {
@@ -15933,7 +15881,7 @@ namespace Legion {
                                                 nullptr,
                                                 IndexSpace::NO_SPACE);
         const RegionUsage ref_usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0);
-        for (FieldMaskSet<RefinementOp,UNTRACKED_ALLOC,true>::const_iterator
+        for (FieldMaskSet<RefinementOp,TASK_LOCAL_LIFETIME,true>::const_iterator
               it = refinements.begin(); it != refinements.end(); it++)
         {
           const LogicalUser refinement_user(it->first,
@@ -17036,8 +16984,8 @@ namespace Legion {
               rez2.serialize(initialized);
               rez2.serialize<size_t>(1);
               rez2.serialize(it->first);
-              rez2.serialize(it->second.size);
-              rez2.serialize(it->second.buffer, it->second.size);
+              rez2.serialize(it->second.buffer.get_size());
+              rez2.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
               rez2.serialize(it->second.is_mutable);
             }
             runtime->send_logical_region_semantic_info(target, rez2);
@@ -17061,8 +17009,8 @@ namespace Legion {
                 semantic_info.begin(); it != semantic_info.end(); it++)
           {
             rez.serialize(it->first);
-            rez.serialize(it->second.size);
-            rez.serialize(it->second.buffer, it->second.size);
+            rez.serialize(it->second.buffer.get_size());
+            rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
             rez.serialize(it->second.is_mutable);
           }
         }
@@ -17230,8 +17178,8 @@ namespace Legion {
         {
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
           }
           else if (!can_fail && wait_until)
@@ -17742,8 +17690,8 @@ namespace Legion {
             RezCheck z(rez);
             rez.serialize(handle);
             rez.serialize(it->first);
-            rez.serialize(it->second.size);
-            rez.serialize(it->second.buffer, it->second.size);
+            rez.serialize(it->second.buffer.get_size());
+            rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
             rez.serialize(it->second.is_mutable);
           }
           runtime->send_logical_partition_semantic_info(target, rez);
@@ -17818,8 +17766,8 @@ namespace Legion {
         {
           if (finder->second.is_valid())
           {
-            result = finder->second.buffer;
-            size = finder->second.size;
+            result = finder->second.buffer.get_buffer();
+            size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
           }
           else if (!can_fail && wait_until)

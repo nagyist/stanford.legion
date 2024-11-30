@@ -1224,8 +1224,6 @@ namespace Legion {
      */
     class MapOp : public ExternalMapping, public Operation {
     public:
-      static const AllocationType alloc_type = MAP_OP_ALLOC;
-    public:
       MapOp(void);
       MapOp(const MapOp &rhs) = delete;
       virtual ~MapOp(void);
@@ -1327,8 +1325,6 @@ namespace Legion {
      * using the low-level runtime copy facilities. 
      */
     class CopyOp : public ExternalCopy, public PredicatedOp {
-    public:
-      static const AllocationType alloc_type = COPY_OP_ALLOC;
     public:
       enum ReqType {
         SRC_REQ = 0,
@@ -1795,8 +1791,6 @@ namespace Legion {
         FenceOp *const op;
       };
     public:
-      static const AllocationType alloc_type = FENCE_OP_ALLOC;
-    public:
       FenceOp(void);
       FenceOp(const FenceOp &rhs) = delete;
       virtual ~FenceOp(void);
@@ -1843,8 +1837,6 @@ namespace Legion {
      */
     class FrameOp : public FenceOp {
     public:
-      static const AllocationType alloc_type = FRAME_OP_ALLOC;
-    public:
       FrameOp(void);
       FrameOp(const FrameOp &rhs) = delete;
       virtual ~FrameOp(void);
@@ -1869,8 +1861,6 @@ namespace Legion {
      * as the resolution of a future.
      */
     class CreationOp : public Operation {
-    public:
-      static const AllocationType alloc_type = CREATION_OP_ALLOC;
     public:
       enum CreationKind {
         INDEX_SPACE_CREATION,
@@ -1927,8 +1917,6 @@ namespace Legion {
      * until they are safe to be committed.
      */
     class DeletionOp : public Operation {
-    public:
-      static const AllocationType alloc_type = DELETION_OP_ALLOC;
     public:
       enum DeletionKind {
         INDEX_SPACE_DELETION,
@@ -2086,8 +2074,6 @@ namespace Legion {
      */
     class CloseOp : public ExternalClose, public InternalOp {
     public:
-      static const AllocationType alloc_type = CLOSE_OP_ALLOC;
-    public:
       CloseOp(void);
       CloseOp(const CloseOp &rhs) = delete;
       virtual ~CloseOp(void);
@@ -2225,8 +2211,6 @@ namespace Legion {
      */
     class RefinementOp : public InternalOp {
     public:
-      static const AllocationType alloc_type = REFINEMENT_OP_ALLOC;
-    public:
       RefinementOp(void);
       RefinementOp(const RefinementOp &rhs) = delete;
       virtual ~RefinementOp(void);
@@ -2323,8 +2307,6 @@ namespace Legion {
      * regions with simultaneous coherence.
      */
     class AcquireOp : public ExternalAcquire, public PredicatedOp {
-    public:
-      static const AllocationType alloc_type = ACQUIRE_OP_ALLOC;
     public:
       AcquireOp(void);
       AcquireOp(const AcquireOp &rhs) = delete;
@@ -2440,8 +2422,6 @@ namespace Legion {
      */
     class ReleaseOp : public ExternalRelease, public PredicatedOp {
     public:
-      static const AllocationType alloc_type = RELEASE_OP_ALLOC;
-    public:
       ReleaseOp(void);
       ReleaseOp(const ReleaseOp &rhs) = delete;
       virtual ~ReleaseOp(void);
@@ -2554,8 +2534,6 @@ namespace Legion {
      */
     class DynamicCollectiveOp : public MemoizableOp {
     public:
-      static const AllocationType alloc_type = DYNAMIC_COLLECTIVE_OP_ALLOC;
-    public:
       DynamicCollectiveOp(void);
       DynamicCollectiveOp(const DynamicCollectiveOp &rhs) = delete;
       virtual ~DynamicCollectiveOp(void);
@@ -2594,8 +2572,6 @@ namespace Legion {
      */
     class FuturePredOp : public Operation {
     public:
-      static const AllocationType alloc_type = FUTURE_PRED_OP_ALLOC;
-    public:
       FuturePredOp(void);
       FuturePredOp(const FuturePredOp &rhs) = delete;
       virtual ~FuturePredOp(void);
@@ -2629,8 +2605,6 @@ namespace Legion {
      */
     class NotPredOp : public Operation {
     public:
-      static const AllocationType alloc_type = NOT_PRED_OP_ALLOC;
-    public:
       NotPredOp(void);
       NotPredOp(const NotPredOp &rhs) = delete;
       virtual ~NotPredOp(void);
@@ -2659,8 +2633,6 @@ namespace Legion {
      * A class for and-ing other predicates
      */
     class AndPredOp : public Operation {
-    public:
-      static const AllocationType alloc_type = AND_PRED_OP_ALLOC;
     public:
       AndPredOp(void);
       AndPredOp(const AndPredOp &rhs) = delete;
@@ -2692,8 +2664,6 @@ namespace Legion {
      * A class for or-ing other predicates
      */
     class OrPredOp : public Operation {
-    public:
-      static const AllocationType alloc_type = OR_PRED_OP_ALLOC;
     public:
       OrPredOp(void);
       OrPredOp(const OrPredOp &rhs) = delete;
@@ -2731,8 +2701,6 @@ namespace Legion {
      */
     class MustEpochOp : public Operation, public MustEpoch, 
                         public ResourceTracker {
-    public:
-      static const AllocationType alloc_type = MUST_EPOCH_OP_ALLOC;
     public:
       struct DependenceRecord {
       public:
@@ -2965,8 +2933,6 @@ namespace Legion {
      * other pending partitions.
      */
     class PendingPartitionOp : public Operation {
-    public:
-      static const AllocationType alloc_type = PENDING_PARTITION_OP_ALLOC;
     protected:
       enum PendingPartitionKind
       {
@@ -3332,8 +3298,6 @@ namespace Legion {
      * the resulting partition.
      */
     class DependentPartitionOp : public ExternalPartition, public Operation {
-    public:
-      static const AllocationType alloc_type = DEPENDENT_PARTITION_OP_ALLOC;
     protected:
       // Track dependent partition operations as thunks
       class DepPartThunk {
@@ -3722,8 +3686,6 @@ namespace Legion {
      */
     class FillOp : public PredicatedOp, public ExternalFill {
     public:
-      static const AllocationType alloc_type = FILL_OP_ALLOC;
-    public:
       FillOp(void);
       FillOp(const FillOp &rhs) = delete;
       virtual ~FillOp(void);
@@ -3911,8 +3873,6 @@ namespace Legion {
      */
     class DiscardOp : public Operation {
     public:
-      static const AllocationType alloc_type = DISCARD_OP_ALLOC;
-    public:
       DiscardOp(void);
       DiscardOp(const DiscardOp &rhs) = delete;
       virtual ~DiscardOp(void);
@@ -3958,8 +3918,6 @@ namespace Legion {
      * Operation for attaching a file to a physical instance
      */
     class AttachOp : public Operation {
-    public:
-      static const AllocationType alloc_type = ATTACH_OP_ALLOC;
     public:
       AttachOp(void);
       AttachOp(const AttachOp &rhs) = delete;
@@ -4032,8 +3990,6 @@ namespace Legion {
      * to many subregions of a region tree with a single operation
      */
     class IndexAttachOp : public CollectiveViewCreator<Operation> {
-    public:
-      static const AllocationType alloc_type = ATTACH_OP_ALLOC;
     public:
       IndexAttachOp(void);
       IndexAttachOp(const IndexAttachOp &rhs) = delete;
@@ -4141,8 +4097,6 @@ namespace Legion {
      */
     class DetachOp : public Operation {
     public:
-      static const AllocationType alloc_type = DETACH_OP_ALLOC;
-    public:
       DetachOp(void);
       DetachOp(const DetachOp &rhs) = delete;
       virtual ~DetachOp(void);
@@ -4207,8 +4161,6 @@ namespace Legion {
      * This is an index space detach operation for performing many detaches
      */
     class IndexDetachOp : public CollectiveViewCreator<Operation> {
-    public:
-      static const AllocationType alloc_type = DETACH_OP_ALLOC;
     public:
       IndexDetachOp(void);
       IndexDetachOp(const IndexDetachOp &rhs) = delete;
@@ -4533,7 +4485,7 @@ namespace Legion {
      * for mapper calls and other operations
      */
     class RemoteMapOp : public ExternalMapping, public RemoteOp,
-                        public LegionHeapify<RemoteMapOp> {
+      public Heapify<RemoteMapOp,OPERATION_LIFETIME> {
     public:
       RemoteMapOp(Operation *ptr, AddressSpaceID src);
       RemoteMapOp(const RemoteMapOp &rhs) = delete;
@@ -4566,7 +4518,7 @@ namespace Legion {
      * for mapper calls and other operations
      */
     class RemoteCopyOp : public ExternalCopy, public RemoteOp,
-                         public LegionHeapify<RemoteCopyOp> {
+      public Heapify<RemoteCopyOp,OPERATION_LIFETIME> {
     public:
       RemoteCopyOp(Operation *ptr, AddressSpaceID src);
       RemoteCopyOp(const RemoteCopyOp &rhs) = delete;
@@ -4599,7 +4551,7 @@ namespace Legion {
      * for mapper calls and other operations
      */
     class RemoteCloseOp : public ExternalClose, public RemoteOp,
-                          public LegionHeapify<RemoteCloseOp> {
+      public Heapify<RemoteCloseOp,OPERATION_LIFETIME> {
     public:
       RemoteCloseOp(Operation *ptr, AddressSpaceID src);
       RemoteCloseOp(const RemoteCloseOp &rhs) = delete;
@@ -4632,7 +4584,7 @@ namespace Legion {
      * for mapper calls and other operations
      */
     class RemoteAcquireOp : public ExternalAcquire, public RemoteOp,
-                            public LegionHeapify<RemoteAcquireOp> {
+      public Heapify<RemoteAcquireOp,OPERATION_LIFETIME> {
     public:
       RemoteAcquireOp(Operation *ptr, AddressSpaceID src);
       RemoteAcquireOp(const RemoteAcquireOp &rhs) = delete;
@@ -4661,7 +4613,7 @@ namespace Legion {
      * for mapper calls and other operations
      */
     class RemoteReleaseOp : public ExternalRelease, public RemoteOp,
-                            public LegionHeapify<RemoteReleaseOp> {
+      public Heapify<RemoteReleaseOp,OPERATION_LIFETIME> {
     public:
       RemoteReleaseOp(Operation *ptr, AddressSpaceID src);
       RemoteReleaseOp(const RemoteReleaseOp &rhs) = delete;
@@ -4694,7 +4646,7 @@ namespace Legion {
      * for mapper calls and other operations
      */
     class RemoteFillOp : public ExternalFill, public RemoteOp,
-                         public LegionHeapify<RemoteFillOp> {
+      public Heapify<RemoteFillOp,OPERATION_LIFETIME> {
     public:
       RemoteFillOp(Operation *ptr, AddressSpaceID src);
       RemoteFillOp(const RemoteFillOp &rhs) = delete;
@@ -4723,7 +4675,7 @@ namespace Legion {
      * mapper calls and other operations
      */
     class RemoteDiscardOp : public RemoteOp,
-                            public LegionHeapify<RemoteDiscardOp> {
+      public Heapify<RemoteDiscardOp,OPERATION_LIFETIME> {
     public:
       RemoteDiscardOp(Operation *ptr, AddressSpaceID src);
       RemoteDiscardOp(const RemoteDiscardOp &rhs) = delete;
@@ -4749,7 +4701,7 @@ namespace Legion {
      * used for mapper calls and other operations
      */
     class RemotePartitionOp : public ExternalPartition, public RemoteOp,
-                              public LegionHeapify<RemotePartitionOp> {
+      public Heapify<RemotePartitionOp,OPERATION_LIFETIME> {
     public:
       RemotePartitionOp(Operation *ptr, AddressSpaceID src);
       RemotePartitionOp(const RemotePartitionOp &rhs) = delete;
@@ -4785,7 +4737,7 @@ namespace Legion {
      * mapper calls and other operations
      */
     class RemoteAttachOp : public RemoteOp,
-                           public LegionHeapify<RemoteAttachOp> {
+      public Heapify<RemoteAttachOp,OPERATION_LIFETIME> {
     public:
       RemoteAttachOp(Operation *ptr, AddressSpaceID src);
       RemoteAttachOp(const RemoteAttachOp &rhs) = delete;
@@ -4811,7 +4763,7 @@ namespace Legion {
      * mapper calls and other operations
      */
     class RemoteDetachOp : public RemoteOp,
-                           public LegionHeapify<RemoteDetachOp> {
+      public Heapify<RemoteDetachOp,OPERATION_LIFETIME> {
     public:
       RemoteDetachOp(Operation *ptr, AddressSpaceID src);
       RemoteDetachOp(const RemoteDetachOp &rhs) = delete;
@@ -4841,7 +4793,7 @@ namespace Legion {
      * mapper calls and other operations
      */
     class RemoteDeletionOp : public RemoteOp,
-                             public LegionHeapify<RemoteDeletionOp> {
+      public Heapify<RemoteDeletionOp,OPERATION_LIFETIME> {
     public:
       RemoteDeletionOp(Operation *ptr, AddressSpaceID src);
       RemoteDeletionOp(const RemoteDeletionOp &rhs) = delete;
@@ -4869,7 +4821,7 @@ namespace Legion {
      * physical template replays
      */
     class RemoteTraceOp : public RemoteOp,
-                          public LegionHeapify<RemoteTraceOp> {
+      public Heapify<RemoteTraceOp,OPERATION_LIFETIME> {
     public:
       RemoteTraceOp(Operation *ptr, AddressSpaceID src, OpKind k);
       RemoteTraceOp(const RemoteTraceOp &rhs) = delete;

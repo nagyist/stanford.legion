@@ -12823,7 +12823,7 @@ namespace Legion {
     {
       const ReductionOp *redop = Runtime::get_reduction_op(collective.redop);
       const size_t result_size = redop->sizeof_lhs;
-      void *result_buffer = legion_malloc(FUTURE_RESULT_ALLOC, result_size);
+      void *result_buffer = std::malloc(result_size);
       ApBarrier prev = Runtime::get_previous_phase(collective.phase_barrier);
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG

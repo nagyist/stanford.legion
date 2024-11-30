@@ -111,7 +111,7 @@ namespace Legion {
      * \class VersionInfo
      * A class for tracking version information about region usage
      */
-    class VersionInfo : public LegionHeapify<VersionInfo> {
+    class VersionInfo : public Heapify<VersionInfo,OPERATION_LIFETIME> {
     public:
       VersionInfo(void);
       VersionInfo(const VersionInfo &rhs);
@@ -812,8 +812,6 @@ namespace Legion {
      */
     struct PhysicalUser : public Collectable {
     public:
-      static const AllocationType alloc_type = PHYSICAL_USER_ALLOC;
-    public:
       PhysicalUser(const RegionUsage &u, IndexSpaceExpression *expr,
           ApEvent term, UniqueID op_id, unsigned index, bool copy, bool covers);
       PhysicalUser(const PhysicalUser &rhs) = delete;
@@ -859,7 +857,7 @@ namespace Legion {
                      const FieldMask &mask);
       void remove_child(RegionTreeNode *child);
     public:
-      typedef FieldMaskSet<RegionTreeNode,UNTRACKED_ALLOC,true/*ordered*/>
+      typedef FieldMaskSet<RegionTreeNode,SHORT_BOUNDED_LIFETIME,true/*ordered*/>
         OrderedFieldMaskChildren;
       OrderedFieldMaskChildren open_children;
       OpenState open_state;
@@ -1226,7 +1224,7 @@ namespace Legion {
      * on a region node in the region tree.
      */
     class RegionRefinementTracker : public RefinementTracker,
-      public LegionHeapify<RegionRefinementTracker> {
+      public Heapify<RegionRefinementTracker,CONTEXT_LIFETIME> {
     public:
       RegionRefinementTracker(RegionNode *node);
       RegionRefinementTracker(const RegionRefinementTracker &rhs) = delete;
@@ -1278,7 +1276,7 @@ namespace Legion {
      * on a region node in the region tree.
      */
     class PartitionRefinementTracker : public RefinementTracker,
-      public LegionHeapify<PartitionRefinementTracker> {
+      public Heapify<PartitionRefinementTracker,CONTEXT_LIFETIME> {
     public:
       PartitionRefinementTracker(PartitionNode *node);
       PartitionRefinementTracker(
@@ -1339,9 +1337,7 @@ namespace Legion {
      * is effectively all the information at the analysis
      * wavefront for this particular logical region.
      */
-    class LogicalState : public LegionHeapify<LogicalState> {
-    public:
-      static const AllocationType alloc_type = CURRENT_STATE_ALLOC;
+    class LogicalState : public Heapify<LogicalState,CONTEXT_LIFETIME> {
     public:
       LogicalState(RegionTreeNode *owner, ContextID ctx);
       LogicalState(const LogicalState &state) = delete;
@@ -1390,11 +1386,11 @@ namespace Legion {
     public:
       RegionTreeNode *const owner;
     public:
-      LegionList<FieldState,LOGICAL_FIELD_STATE_ALLOC> field_states;
+      LegionList<FieldState,SHORT_BOUNDED_LIFETIME> field_states;
       // Note that even though these are field mask sets keyed on pointers
       // we mark them as determinsitic so that shards always iterate over
       // these elements in the same order
-      typedef FieldMaskSet<LogicalUser,UNTRACKED_ALLOC,true/*determinisitic*/>
+      typedef FieldMaskSet<LogicalUser,SHORT_BOUNDED_LIFETIME,true/*determinisitic*/>
         OrderedFieldMaskUsers;
       OrderedFieldMaskUsers curr_epoch_users, prev_epoch_users; 
     protected:
@@ -1449,9 +1445,10 @@ namespace Legion {
      * that we have at most one refinement change for all region requirements
      * in an operation that touch the same fields of the same region tree.
      */
-    class LogicalAnalysis {
+    class LogicalAnalysis : public NoHeapify{
+#if 0
     public:
-      struct PendingClose : public LegionHeapify<PendingClose> {
+      struct PendingClose : public Heapify<PendingClose> {
       public:
         PendingClose(RegionTreeNode *n, unsigned idx)
           : node(n), req_idx(idx) { }
@@ -1460,6 +1457,7 @@ namespace Legion {
         RegionTreeNode *const node;
         const unsigned req_idx;
       };
+#endif
     public:
       static constexpr unsigned NO_OUTPUT_OFFSET = UINT_MAX;
       LogicalAnalysis(Operation *op, unsigned output_offset = NO_OUTPUT_OFFSET);
@@ -1468,7 +1466,7 @@ namespace Legion {
     public:
       LogicalAnalysis& operator=(const LogicalAnalysis &rhs) = delete;
     public:
-      typedef FieldMaskSet<RefinementOp,UNTRACKED_ALLOC,true/*ordered*/>
+      typedef FieldMaskSet<RefinementOp,TASK_LOCAL_LIFETIME,true/*ordered*/>
         OrderedRefinements;
       void record_pending_refinement(LogicalRegion privilege,
                                      unsigned req_index,
@@ -1508,7 +1506,7 @@ namespace Legion {
      * \class InstanceRef
      * A class for keeping track of references to physical instances
      */
-    class InstanceRef : public LegionHeapify<InstanceRef> {
+    class InstanceRef : public Heapify<InstanceRef,OPERATION_LIFETIME> {
     public:
       InstanceRef(bool composite = false);
       InstanceRef(const InstanceRef &rhs);
@@ -1689,9 +1687,7 @@ namespace Legion {
      * that can be issued together.
      */
     class CopyFillAggregator : public CopyFillGuard,
-                               public LegionHeapify<CopyFillAggregator> {
-    public:
-      static const AllocationType alloc_type = COPY_FILL_AGGREGATOR_ALLOC;
+      public Heapify<CopyFillAggregator,OPERATION_LIFETIME> {
     public:
       struct CopyFillAggregation : public LgTaskArgs<CopyFillAggregation>,
                                    public PhysicalTraceInfo {
@@ -1746,7 +1742,7 @@ namespace Legion {
         const FieldMask src_mask;
         CopyAcrossHelper *const across_helper;
       };
-      class CopyUpdate : public Update, public LegionHeapify<CopyUpdate> {
+      class CopyUpdate : public Update, public Heapify<CopyUpdate,OPERATION_LIFETIME> {
       public:
         CopyUpdate(InstanceView *src, PhysicalManager *man,
                    const FieldMask &mask,
@@ -1770,7 +1766,7 @@ namespace Legion {
         PhysicalManager *const src_man; // which source manager for collectives
         const ReductionOpID redop;
       };
-      class FillUpdate : public Update, public LegionHeapify<FillUpdate> {
+      class FillUpdate : public Update, public Heapify<FillUpdate,OPERATION_LIFETIME> {
       public:
         FillUpdate(FillView *src, const FieldMask &mask,
                    IndexSpaceExpression *expr, PredEvent guard,
@@ -2360,7 +2356,7 @@ namespace Legion {
      * For finding valid instances in equivalence set trees
      */
     class ValidInstAnalysis : public PhysicalAnalysis,
-                              public LegionHeapify<ValidInstAnalysis> {
+      public Heapify<ValidInstAnalysis,OPERATION_LIFETIME> {
     public:
       ValidInstAnalysis(Operation *op, unsigned index,
                         IndexSpaceExpression *expr, ReductionOpID redop = 0);
@@ -2398,7 +2394,7 @@ namespace Legion {
      * a set of equivalence sets
      */
     class InvalidInstAnalysis : public PhysicalAnalysis,
-                                public LegionHeapify<InvalidInstAnalysis> {
+      public Heapify<InvalidInstAnalysis,OPERATION_LIFETIME> {
     public:
       InvalidInstAnalysis(Operation *op, unsigned index,
                           IndexSpaceExpression *expr,
@@ -2440,7 +2436,7 @@ namespace Legion {
      * For checking that some views are not in the set of valid instances
      */
     class AntivalidInstAnalysis : public PhysicalAnalysis,
-                                  public LegionHeapify<AntivalidInstAnalysis> {
+      public Heapify<AntivalidInstAnalysis,OPERATION_LIFETIME> {
     public:
       AntivalidInstAnalysis(Operation *op, unsigned index,
                           IndexSpaceExpression *expr,
@@ -2482,7 +2478,7 @@ namespace Legion {
      * For performing updates on equivalence set trees
      */
     class UpdateAnalysis : public CollectiveCopyFillAnalysis,
-                           public LegionHeapify<UpdateAnalysis> {
+      public Heapify<UpdateAnalysis,OPERATION_LIFETIME> {
     public:
       UpdateAnalysis(Operation *op, unsigned index,
                      const RegionRequirement &req, RegionNode *node,
@@ -2563,7 +2559,7 @@ namespace Legion {
      * For performing acquires on equivalence set trees
      */
     class AcquireAnalysis : public RegistrationAnalysis,
-                            public LegionHeapify<AcquireAnalysis> {
+      public Heapify<AcquireAnalysis,OPERATION_LIFETIME> {
     public: 
       AcquireAnalysis(Operation *op, unsigned index,
                       RegionNode *node, const PhysicalTraceInfo &t_info);
@@ -2602,7 +2598,7 @@ namespace Legion {
      * For performing releases on equivalence set trees
      */
     class ReleaseAnalysis : public CollectiveCopyFillAnalysis,
-                            public LegionHeapify<ReleaseAnalysis> {
+      public Heapify<ReleaseAnalysis,OPERATION_LIFETIME> {
     public:
       ReleaseAnalysis(Operation *op, unsigned index,
                       ApEvent precondition, RegionNode *node,
@@ -2648,7 +2644,7 @@ namespace Legion {
      * For performing copy across traversals on equivalence set trees
      */
     class CopyAcrossAnalysis : public PhysicalAnalysis,
-                               public LegionHeapify<CopyAcrossAnalysis> {
+      public Heapify<CopyAcrossAnalysis,OPERATION_LIFETIME> {
     public:
       CopyAcrossAnalysis(Operation *op, 
                          unsigned src_index, unsigned dst_index,
@@ -2762,7 +2758,7 @@ namespace Legion {
      * For performing overwrite traversals on equivalence set trees
      */
     class OverwriteAnalysis : public PhysicalAnalysis,
-                              public LegionHeapify<OverwriteAnalysis> {
+      public Heapify<OverwriteAnalysis,OPERATION_LIFETIME> {
     public:
       OverwriteAnalysis(Operation *op, unsigned index,
                         const RegionUsage &usage, IndexSpaceExpression *expr,
@@ -2857,7 +2853,7 @@ namespace Legion {
      * For performing filter traversals on equivalence set trees
      */
     class FilterAnalysis : public RegistrationAnalysis,
-                           public LegionHeapify<FilterAnalysis> {
+      public Heapify<FilterAnalysis,OPERATION_LIFETIME> {
     public:
       FilterAnalysis(Operation *op, unsigned index,
                      RegionNode *node, const PhysicalTraceInfo &trace_info,
@@ -2956,7 +2952,7 @@ namespace Legion {
      */
     class MakeCollectiveValid : 
       public CollectiveRefinementTree<MakeCollectiveValid>,
-      public LegionHeapify<MakeCollectiveValid> {
+      public Heapify<MakeCollectiveValid,OPERATION_LIFETIME> {
     public:
       MakeCollectiveValid(CollectiveView *view,
           const FieldMaskSet<IndexSpaceExpression> &needed_exprs);
@@ -2993,7 +2989,7 @@ namespace Legion {
      */
     class CollectiveAntiAlias : 
       public CollectiveRefinementTree<CollectiveAntiAlias>,
-      public LegionHeapify<CollectiveAntiAlias> {
+      public Heapify<CollectiveAntiAlias,OPERATION_LIFETIME> {
     public:
       CollectiveAntiAlias(CollectiveView *view);
       CollectiveAntiAlias(std::vector<DistributedID> &&insts,
@@ -3032,7 +3028,7 @@ namespace Legion {
      */
     class InitializeCollectiveReduction :
       public CollectiveRefinementTree<InitializeCollectiveReduction>,
-      public LegionHeapify<InitializeCollectiveReduction> {
+      public Heapify<InitializeCollectiveReduction,OPERATION_LIFETIME> {
     public:
       InitializeCollectiveReduction(AllreduceView *view,
                                     IndexSpaceExpression *expr);
@@ -3236,9 +3232,10 @@ namespace Legion {
      * into sub equivalence sets which then subsum it's responsibility.
      */
     class EquivalenceSet : public DistributedCollectable,
-                           public LegionHeapify<EquivalenceSet> {
+      public Heapify<EquivalenceSet,CONTEXT_LIFETIME> {
     public:
-      struct ReplicatedOwnerState : public LegionHeapify<ReplicatedOwnerState> {
+      struct ReplicatedOwnerState : 
+        public Heapify<ReplicatedOwnerState,CONTEXT_LIFETIME> {
       public:
         ReplicatedOwnerState(bool valid);
       public:
@@ -3825,9 +3822,7 @@ namespace Legion {
      * point that doesn't involve tracing the entire tree.
      */
     class VersionManager : public EqSetTracker, 
-                           public LegionHeapify<VersionManager> {
-    public:
-      static const AllocationType alloc_type = VERSION_MANAGER_ALLOC;
+      public Heapify<VersionManager,LONG_BOUNDED_LIFETIME> {
     public: 
       struct FinalizeOutputEquivalenceSetArgs :
         public LgTaskArgs<FinalizeOutputEquivalenceSetArgs> {

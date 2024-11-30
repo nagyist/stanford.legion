@@ -8178,7 +8178,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     ShardedPhysicalTemplate::ShardedPhysicalTemplate(PhysicalTrace *trace,
                                     ApEvent fence_event, ReplicateContext *ctx)
-      : PhysicalTemplate(trace, fence_event), repl_ctx(ctx),
+      : HeapifyMixin<ShardedPhysicalTemplate,PhysicalTemplate,CONTEXT_LIFETIME>(
+          trace, fence_event), repl_ctx(ctx),
         local_shard(repl_ctx->owner_shard->shard_id), 
         total_shards(repl_ctx->shard_manager->total_shards),
         template_index(repl_ctx->register_trace_template(this)),

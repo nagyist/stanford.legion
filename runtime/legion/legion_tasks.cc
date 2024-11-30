@@ -37,7 +37,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ExternalTask::ExternalTask(void)
-      : Task(), arg_manager(NULL)
+      : Task()
     //--------------------------------------------------------------------------
     {
     }
@@ -75,9 +75,9 @@ namespace Legion {
       rez.serialize(arrive_barriers.size());
       for (unsigned idx = 0; idx < arrive_barriers.size(); idx++)
         pack_phase_barrier(arrive_barriers[idx], rez);
-      rez.serialize<bool>((arg_manager != NULL));
       rez.serialize(arglen);
-      rez.serialize(args,arglen);
+      if (arglen > 0)
+        rez.serialize(args,arglen);
       pack_mappable(*this, rez);
       rez.serialize(is_index_space);
       rez.serialize(concurrent_task);
@@ -137,23 +137,10 @@ namespace Legion {
       arrive_barriers.resize(num_arrive_barriers);
       for (unsigned idx = 0; idx < arrive_barriers.size(); idx++)
         unpack_phase_barrier(arrive_barriers[idx], derez);
-      bool has_arg_manager;
-      derez.deserialize(has_arg_manager);
       derez.deserialize(arglen);
-      if (arglen > 0)
-      {
-        if (has_arg_manager)
-        {
-#ifdef DEBUG_LEGION
-          assert(arg_manager == NULL);
-#endif
-          arg_manager = new AllocManager(arglen);
-          arg_manager->add_reference();
-          args = arg_manager->get_allocation();
-        }
-        else
-          args = legion_malloc(TASK_ARGS_ALLOC, arglen);
-        derez.deserialize(args,arglen);
+      if (arglen > 0) {
+        arg_manager.save_buffer(derez.get_current_pointer(), arglen);
+        derez.advance_pointer(arglen);
       }
       unpack_mappable(*this, derez); 
       derez.deserialize(is_index_space);
@@ -400,7 +387,6 @@ namespace Legion {
       replicate = false; 
       local_cached = false;
       forward_progress_cached = false;
-      arg_manager = NULL;
       target_proc = Processor::NO_PROC;
       mapper = NULL;
       must_epoch = NULL;
@@ -422,18 +408,9 @@ namespace Legion {
       grants.clear();
       wait_barriers.clear();
       arrive_barriers.clear();
+      arg_manager.clear();
       if (args != NULL)
       {
-        if (arg_manager != NULL)
-        {
-          // If the arg manager is not NULL then we delete the
-          // argument manager and just zero out the arguments
-          if (arg_manager->remove_reference())
-            delete (arg_manager);
-          arg_manager = NULL;
-        }
-        else
-          legion_free(TASK_ARGS_ALLOC, args, arglen);
         args = NULL;
         arglen = 0;
       }
@@ -1375,31 +1352,13 @@ namespace Legion {
       this->wait_barriers = rhs->wait_barriers;
       this->arrive_barriers = rhs->arrive_barriers;
       this->arglen = rhs->arglen;
-      if (rhs->arg_manager != NULL)
-      {
-        if (duplicate_args)
-        {
-#ifdef DEBUG_LEGION
-          assert(arg_manager == NULL);
-#endif
-          this->arg_manager = new AllocManager(this->arglen); 
-          this->arg_manager->add_reference();
-          this->args = this->arg_manager->get_allocation();
-          memcpy(this->args, rhs->args, this->arglen);
+      if (this->arglen > 0) {
+        if (duplicate_args) { 
+          arg_manager.save_buffer(rhs->arg_manager.get_buffer(), this->arglen);
+          this->args = arg_manager.get_buffer();
+        } else {
+          this->args = rhs->args;
         }
-        else
-        {
-          // No need to actually do the copy in this case
-          this->arg_manager = rhs->arg_manager; 
-          this->arg_manager->add_reference();
-          this->args = arg_manager->get_allocation();
-        }
-      }
-      else if (arglen > 0)
-      {
-        // If there is no argument manager then we do the copy no matter what
-        this->args = legion_malloc(TASK_ARGS_ALLOC, arglen);
-        memcpy(args,rhs->args,arglen);
       }
       this->map_id = rhs->map_id;
       this->tag = rhs->tag;
@@ -2051,19 +2010,6 @@ namespace Legion {
     RemoteTaskOp::~RemoteTaskOp(void)
     //--------------------------------------------------------------------------
     {
-      if (args != NULL)
-      {
-        if (arg_manager != NULL)
-        {
-          // If the arg manager is not NULL then we delete the
-          // argument manager and just zero out the arguments
-          if (arg_manager->remove_reference())
-            delete (arg_manager);
-          arg_manager = NULL;
-        }
-        else
-          legion_free(TASK_ARGS_ALLOC, args, arglen);
-      }
       if (local_args != NULL)
         free(local_args);
     }
@@ -5047,8 +4993,6 @@ namespace Legion {
       concurrent_precondition.interpreted = RtUserEvent::NO_RT_USER_EVENT;
       concurrent_task_barrier = RtBarrier::NO_RT_BARRIER;
       children_commit_invoked = false;
-      predicate_false_result = NULL;
-      predicate_false_size = 0;
       concurrent_lamport_clock = 0;
       concurrent_variant = 0;
       concurrent_poisoned = false;
@@ -5092,13 +5036,7 @@ namespace Legion {
       output_region_options.clear();
       output_region_extents.clear();
       slices.clear(); 
-      if (predicate_false_result != NULL)
-      {
-        legion_free(PREDICATE_ALLOC, predicate_false_result, 
-                    predicate_false_size);
-        predicate_false_result = NULL;
-        predicate_false_size = 0;
-      }
+      predicate_false_result.clear();
       predicate_false_future = Future();
       intra_space_dependences.clear();
     }
@@ -5313,16 +5251,10 @@ namespace Legion {
       if (!elide_future_return)
       {
         this->predicate_false_future = rhs->predicate_false_future;
-        this->predicate_false_size = rhs->predicate_false_size;
-        if (this->predicate_false_size > 0)
-        {
-#ifdef DEBUG_LEGION
-          assert(this->predicate_false_result == NULL);
-#endif
-          this->predicate_false_result = malloc(this->predicate_false_size);
-          memcpy(this->predicate_false_result, rhs->predicate_false_result,
-                 this->predicate_false_size);
-        }
+        if (rhs->predicate_false_result.get_size() > 0)
+          this->predicate_false_result.save_buffer(
+              rhs->predicate_false_result.get_buffer(),
+              rhs->predicate_false_result.get_size());
       }
       if (rhs->concurrent_task)
       {
@@ -5697,8 +5629,6 @@ namespace Legion {
       DETAILED_PROFILER(runtime, ACTIVATE_INDIVIDUAL_CALL);
       SingleTask::activate();
       output_regions_registered = RtEvent::NO_RT_EVENT;
-      predicate_false_result = NULL;
-      predicate_false_size = 0;
       orig_task = this;
       remote_unique_id = get_unique_id();
       sent_remotely = false;
@@ -5711,13 +5641,7 @@ namespace Legion {
     {
       DETAILED_PROFILER(runtime, DEACTIVATE_INDIVIDUAL_CALL);
       SingleTask::deactivate(false/*free*/);
-      if (predicate_false_result != NULL)
-      {
-        legion_free(PREDICATE_ALLOC, predicate_false_result, 
-                    predicate_false_size);
-        predicate_false_result = NULL;
-        predicate_false_size = 0;
-      }
+      predicate_false_result.clear();
       // Remove our reference on the future
       result = Future();
       predicate_false_future = Future();
@@ -5744,10 +5668,9 @@ namespace Legion {
       wait_barriers = launcher.wait_barriers;
       update_arrival_barriers(launcher.arrive_barriers);
       arglen = launcher.argument.get_size();
-      if (arglen > 0)
-      {
-        args = legion_malloc(TASK_ARGS_ALLOC, arglen);
-        memcpy(args,launcher.argument.get_ptr(),arglen);
+      if (arglen > 0) {
+        arg_manager.save_buffer(launcher.argument.get_ptr(), arglen);
+        args = arg_manager.get_buffer();
       }
       map_id = launcher.map_id;
       tag = launcher.tag;
@@ -5790,21 +5713,10 @@ namespace Legion {
       {
         if (launcher.predicate_false_future.impl != NULL)
           predicate_false_future = launcher.predicate_false_future;
-        else
-        {
-          predicate_false_size = launcher.predicate_false_result.get_size();
-          if (predicate_false_size > 0)
-          {
-#ifdef DEBUG_LEGION
-            assert(predicate_false_result == NULL);
-#endif
-            predicate_false_result = 
-              legion_malloc(PREDICATE_ALLOC, predicate_false_size);
-            memcpy(predicate_false_result, 
-                   launcher.predicate_false_result.get_ptr(),
-                   predicate_false_size);
-          }
-        }
+        else if (launcher.predicate_false_result.get_size() > 0)
+          predicate_false_result.save_buffer(
+              launcher.predicate_false_result.get_ptr(),
+              launcher.predicate_false_result.get_size());
       } 
       if (launcher.local_function_task)
       {
@@ -6044,9 +5956,9 @@ namespace Legion {
         // Set the future to the false result
         if (predicate_false_future.impl == NULL)
         {
-          if (predicate_false_size > 0)
-            result.impl->set_local(predicate_false_result,
-                                   predicate_false_size, false/*own*/);
+          if (predicate_false_result.get_size() > 0)
+            result.impl->set_local(predicate_false_result.get_buffer(),
+                predicate_false_result.get_size(), false/*own*/);
           else
             result.impl->set_result(ApEvent::NO_AP_EVENT, NULL);
         }
@@ -6382,9 +6294,9 @@ namespace Legion {
         // Set the future to the false result
         if (predicate_false_future.impl == NULL)
         {
-          if (predicate_false_size > 0)
-            result.impl->set_local(predicate_false_result,
-                                   predicate_false_size, false/*own*/);
+          if (predicate_false_result.get_size() > 0)
+            result.impl->set_local(predicate_false_result.get_buffer(),
+                predicate_false_result.get_size(), false/*own*/);
           else
             result.impl->set_result(ApEvent::NO_AP_EVENT, NULL);
         }
@@ -6434,9 +6346,10 @@ namespace Legion {
           predicate_false_future.impl->pack_future(rez, target);
         else
           rez.serialize<DistributedID>(0);
-        rez.serialize(predicate_false_size);
-        if (predicate_false_size > 0)
-          rez.serialize(predicate_false_result, predicate_false_size);
+        rez.serialize<size_t>(predicate_false_result.get_size());
+        if (predicate_false_result.get_size() > 0)
+          rez.serialize(predicate_false_result.get_buffer(),
+              predicate_false_result.get_size());
       }
       Provenance *provenance = get_provenance();
       if (provenance != NULL)
@@ -6495,14 +6408,12 @@ namespace Legion {
         result = FutureImpl::unpack_future(derez);
         // Unpack the predicate false infos
         predicate_false_future = FutureImpl::unpack_future(derez);
+        size_t predicate_false_size;
         derez.deserialize(predicate_false_size);
-        if (predicate_false_size > 0)
-        {
-#ifdef DEBUG_LEGION
-          assert(predicate_false_result == NULL);
-#endif
-          predicate_false_result = malloc(predicate_false_size);
-          derez.deserialize(predicate_false_result, predicate_false_size);
+        if (predicate_false_size > 0) {
+          predicate_false_result.save_buffer(derez.get_current_pointer(),
+              predicate_false_size);
+          derez.advance_pointer(predicate_false_size);
         }
       }
       if (is_origin_mapped())
@@ -8598,15 +8509,9 @@ namespace Legion {
       wait_barriers = launcher.wait_barriers;
       update_arrival_barriers(launcher.arrive_barriers);
       arglen = launcher.global_arg.get_size();
-      if (arglen > 0)
-      {
-#ifdef DEBUG_LEGION
-        assert(arg_manager == NULL);
-#endif
-        arg_manager = new AllocManager(arglen);
-        arg_manager->add_reference();
-        args = arg_manager->get_allocation();
-        memcpy(args, launcher.global_arg.get_ptr(), arglen);
+      if (arglen > 0) {
+        arg_manager.save_buffer(launcher.global_arg.get_ptr(), arglen);
+        args = arg_manager.get_buffer();
       }
       // Very important that these freezes occur before we initialize
       // this operation because they can launch creation operations to
@@ -8729,15 +8634,9 @@ namespace Legion {
       wait_barriers = launcher.wait_barriers;
       update_arrival_barriers(launcher.arrive_barriers);
       arglen = launcher.global_arg.get_size();
-      if (arglen > 0)
-      {
-#ifdef DEBUG_LEGION
-        assert(arg_manager == NULL);
-#endif
-        arg_manager = new AllocManager(arglen);
-        arg_manager->add_reference();
-        args = arg_manager->get_allocation();
-        memcpy(args, launcher.global_arg.get_ptr(), arglen);
+      if (arglen > 0) {
+        arg_manager.save_buffer(launcher.global_arg.get_ptr(), arglen);
+        args = arg_manager.get_buffer();
       }
       // Very important that these freezes occur before we initialize
       // this operation because they can launch creation operations to
@@ -8896,20 +8795,9 @@ namespace Legion {
     {
       if (pred_future.impl != NULL)
         predicate_false_future = pred_future;
-      else
-      {
-        predicate_false_size = pred_arg.get_size();
-        if (predicate_false_size > 0)
-        {
-#ifdef DEBUG_LEGION
-          assert(predicate_false_result == NULL);
-#endif
-          predicate_false_result = 
-            legion_malloc(PREDICATE_ALLOC, predicate_false_size);
-          memcpy(predicate_false_result, pred_arg.get_ptr(),
-                 predicate_false_size);
-        }
-      }
+      else if (pred_arg.get_size() > 0)
+        predicate_false_result.save_buffer(pred_arg.get_ptr(),
+            pred_arg.get_size());
     }
 
     //--------------------------------------------------------------------------
@@ -9372,9 +9260,9 @@ namespace Legion {
               for (Domain::DomainPointIterator itr(local_domain); itr; itr++)
               {
                 Future f = future_map.impl->get_future(itr.p, true/*internal*/);
-                if (predicate_false_size > 0)
-                  f.impl->set_local(predicate_false_result,
-                                    predicate_false_size, false/*own*/);
+                if (predicate_false_result.get_size() > 0)
+                  f.impl->set_local(predicate_false_result.get_buffer(),
+                      predicate_false_result.get_size(), false/*own*/);
                 else
                   f.impl->set_result(ApEvent::NO_AP_EVENT, NULL);
               }
@@ -11207,9 +11095,10 @@ namespace Legion {
           predicate_false_future.impl->pack_future(rez, target);
         else
           rez.serialize<DistributedID>(0);
-        rez.serialize(predicate_false_size);
-        if (predicate_false_size > 0)
-          rez.serialize(predicate_false_result, predicate_false_size);
+        rez.serialize<size_t>(predicate_false_result.get_size());
+        if (predicate_false_result.get_size() > 0)
+          rez.serialize(predicate_false_result.get_buffer(),
+              predicate_false_result.get_size());
       }
       Provenance *provenance = get_provenance();
       if (provenance != NULL)
@@ -11278,14 +11167,13 @@ namespace Legion {
                                                         parent_ctx);
         // Unpack the predicate false infos
         predicate_false_future = FutureImpl::unpack_future(derez);
+        size_t predicate_false_size;
         derez.deserialize(predicate_false_size);
         if (predicate_false_size > 0)
         {
-#ifdef DEBUG_LEGION
-          assert(predicate_false_result == NULL);
-#endif
-          predicate_false_result = malloc(predicate_false_size);
-          derez.deserialize(predicate_false_result, predicate_false_size);
+          predicate_false_result.save_buffer(derez.get_current_pointer(),
+              predicate_false_size);
+          derez.advance_pointer(predicate_false_size);
         }
       }
       // Unpack the provenance before unpacking any point tasks so
@@ -11560,7 +11448,7 @@ namespace Legion {
       result->initialize_base_task(parent_ctx, Predicate::TRUE_PRED,
                                    this->task_id, get_provenance());
       result->clone_task_op_from(this, this->target_proc, 
-                                 false/*stealable*/, true/*duplicate*/);
+                                 false/*stealable*/, false/*duplicate*/);
       result->is_index_space = true;
       result->must_epoch_task = this->must_epoch_task;
       result->index_domain = this->index_domain;
@@ -11643,9 +11531,9 @@ namespace Legion {
           parent_ctx->did, coordinate, get_provenance());
       if (predicate_false_future.impl == NULL)
       {
-        if (predicate_false_size > 0)
-          impl->set_local(predicate_false_result,
-                                 predicate_false_size, false/*own*/);
+        if (predicate_false_result.get_size() > 0)
+          impl->set_local(predicate_false_result.get_buffer(),
+              predicate_false_result.get_size(), false/*own*/);
         else
           impl->set_result(ApEvent::NO_AP_EVENT, NULL);
       }

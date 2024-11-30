@@ -3033,8 +3033,6 @@ namespace Legion {
      */
     class ReplTraceCaptureOp : public ReplTraceOp {
     public:
-      static const AllocationType alloc_type = TRACE_CAPTURE_OP_ALLOC;
-    public:
       ReplTraceCaptureOp(void);
       ReplTraceCaptureOp(const ReplTraceCaptureOp &rhs) = delete;
       virtual ~ReplTraceCaptureOp(void);
@@ -3111,8 +3109,6 @@ namespace Legion {
      */
     class ReplTraceCompleteOp : public ReplTraceComplete<ReplCompleteOp> {
     public:
-      static const AllocationType alloc_type = TRACE_COMPLETE_OP_ALLOC;
-    public:
       ReplTraceCompleteOp(void);
       ReplTraceCompleteOp(const ReplTraceCompleteOp &rhs) = delete;
       virtual ~ReplTraceCompleteOp(void);
@@ -3140,8 +3136,6 @@ namespace Legion {
      * Control replicated version of TraceReplayOp
      */
     class ReplTraceReplayOp : public ReplTraceOp {
-    public:
-      static const AllocationType alloc_type = TRACE_REPLAY_OP_ALLOC;
     public:
       ReplTraceReplayOp(void);
       ReplTraceReplayOp(const ReplTraceReplayOp &rhs) = delete;
@@ -3212,8 +3206,6 @@ namespace Legion {
      */
     class ReplTraceBeginOp : public ReplTraceBegin<ReplBeginOp> {
     public:
-      static const AllocationType alloc_type = TRACE_BEGIN_OP_ALLOC;
-    public:
       ReplTraceBeginOp(void);
       ReplTraceBeginOp(const ReplTraceBeginOp &rhs) = delete;
       virtual ~ReplTraceBeginOp(void);
@@ -3244,8 +3236,6 @@ namespace Legion {
      */
     class ReplTraceRecurrentOp : 
       public ReplTraceBegin<ReplTraceComplete<ReplRecurrentOp> > {
-    public:
-      static const AllocationType alloc_type = TRACE_RECURRENT_OP_ALLOC;
     public:
       ReplTraceRecurrentOp(void);
       ReplTraceRecurrentOp(const ReplTraceRecurrentOp &rhs) = delete;

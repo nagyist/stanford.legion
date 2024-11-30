@@ -722,7 +722,7 @@ namespace Legion {
     class InnerContext : public TaskContext,
                          public ResourceTracker, 
                          public InstanceDeletionSubscriber,
-                         public LegionHeapify<InnerContext> {
+                         public Heapify<InnerContext,CONTEXT_LIFETIME> {
     public:
       enum ReplayStatus {
         TRACE_NOT_REPLAYING = 0,
@@ -1969,7 +1969,7 @@ namespace Legion {
       // this data structure requires the inline lock because
       // unordered detach operations can touch it without synchronizing
       // with the executing task
-      LegionList<PhysicalRegion,TASK_INLINE_REGION_ALLOC> inline_regions;
+      LegionList<PhysicalRegion,CONTEXT_LIFETIME> inline_regions;
     protected:
       mutable LocalLock                     child_op_lock;
       // Track whether this task has finished executing
@@ -2034,7 +2034,7 @@ namespace Legion {
       CompletionQueue                                deferred_commit_comp_queue;
     protected:
       // Traces for this task's execution
-      LegionMap<TraceID,LogicalTrace*,TASK_TRACES_ALLOC> traces;
+      LegionMap<TraceID,LogicalTrace*,CONTEXT_LIFETIME> traces;
       LogicalTrace *current_trace;
       LogicalTrace *previous_trace;
       uint64_t current_trace_blocking_index;
@@ -2123,8 +2123,8 @@ namespace Legion {
         std::vector<AttachProjectionFunctor*> > attach_functions;
     protected:
       // Resources that can build up over a task's lifetime
-      LegionDeque<Reservation,TASK_RESERVATION_ALLOC> context_locks;
-      LegionDeque<ApBarrier,TASK_BARRIER_ALLOC> context_barriers;
+      LegionDeque<Reservation,CONTEXT_LIFETIME> context_locks;
+      LegionDeque<ApBarrier,CONTEXT_LIFETIME> context_barriers;
     protected:
       // Collective instance rendezvous data structures
       mutable LocalLock                                 collective_lock;
@@ -2142,7 +2142,8 @@ namespace Legion {
      * create their own tasks for performing
      * computation.
      */
-    class TopLevelContext : public InnerContext {
+    class TopLevelContext : 
+      public HeapifyMixin<TopLevelContext,InnerContext,CONTEXT_LIFETIME> {
     public:
       TopLevelContext(Processor executing,
           coord_t normal_id, coord_t implicit_id,
@@ -2186,7 +2187,8 @@ namespace Legion {
      * A replicate context is a special kind of inner context for
      * executing control-replicated tasks.
      */
-    class ReplicateContext : public InnerContext {
+    class ReplicateContext : 
+      public HeapifyMixin<ReplicateContext,InnerContext,CONTEXT_LIFETIME> {
     public: 
       struct ISBroadcast {
       public:
@@ -3462,7 +3464,8 @@ namespace Legion {
      * A remote copy of a TaskContext for the 
      * execution of sub-tasks on remote notes.
      */
-    class RemoteContext : public InnerContext {
+    class RemoteContext : 
+      public HeapifyMixin<RemoteContext,InnerContext,CONTEXT_LIFETIME> {
     public:
       RemoteContext(DistributedID did,
                     CollectiveMapping *mapping = NULL);
@@ -3569,7 +3572,7 @@ namespace Legion {
      * A context for the execution of a leaf task
      */
     class LeafContext : public TaskContext,
-                        public LegionHeapify<LeafContext> {
+                        public Heapify<LeafContext,CONTEXT_LIFETIME> {
     public:
       LeafContext(SingleTask *owner,bool inline_task = false);
       LeafContext(const LeafContext &rhs) = delete;

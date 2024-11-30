@@ -900,7 +900,7 @@ namespace Legion {
      * Finding the interfering users then just requires traversing the top
      * node and any overlapping sub nodes and then doing this recursively.
      */
-    class ExprView : public LegionHeapify<ExprView>, public Collectable {
+    class ExprView : public Heapify<ExprView,CONTEXT_LIFETIME>, public Collectable {
     public:
       typedef LegionMap<ApEvent,FieldMaskSet<PhysicalUser> > EventFieldUsers;
     public:
@@ -1051,12 +1051,7 @@ namespace Legion {
      * instance in a specific memory.
      */
     class MaterializedView : public IndividualView, 
-                             public LegionHeapify<MaterializedView> {
-    public:
-      static const AllocationType alloc_type = MATERIALIZED_VIEW_ALLOC; 
-    public:
-      typedef LegionMap<VersionID,FieldMaskSet<IndexSpaceExpression>,
-                        PHYSICAL_VERSION_ALLOC> VersionFieldExprs;  
+                             public Heapify<MaterializedView,CONTEXT_LIFETIME> {  
     public:
       struct DeferMaterializedViewArgs : 
         public LgTaskArgs<DeferMaterializedViewArgs> {
@@ -1100,6 +1095,8 @@ namespace Legion {
       // This will allow us to detect when physical instances are no
       // longer valid from a particular view when doing rollbacks for
       // resilience or mis-speculation.
+      // typedef LegionMap<VersionID,FieldMaskSet<IndexSpaceExpression>,
+      //                    PHYSICAL_VERSION_ALLOC> VersionFieldExprs;
       //VersionFieldExprs current_versions;
     };
 
@@ -1109,9 +1106,7 @@ namespace Legion {
      * must contain the same copy of data.
      */
     class ReplicatedView : public CollectiveView,
-                           public LegionHeapify<ReplicatedView> {
-    public:
-      static const AllocationType alloc_type = REPLICATED_VIEW_ALLOC;
+                           public Heapify<ReplicatedView,CONTEXT_LIFETIME> {
     public:
       ReplicatedView(DistributedID did, DistributedID ctx_did,
                      const std::vector<IndividualView*> &views,
@@ -1132,9 +1127,7 @@ namespace Legion {
      * in a specific memory.
      */
     class ReductionView : public IndividualView,
-                          public LegionHeapify<ReductionView> {
-    public:
-      static const AllocationType alloc_type = REDUCTION_VIEW_ALLOC;
+                          public Heapify<ReductionView,CONTEXT_LIFETIME> {
     public:
       struct DeferReductionViewArgs : 
         public LgTaskArgs<DeferReductionViewArgs> {
@@ -1178,9 +1171,7 @@ namespace Legion {
      * all need to be reduced together to produce valid reduction data
      */
     class AllreduceView : public CollectiveView,
-                          public LegionHeapify<AllreduceView> {
-    public:
-      static const AllocationType alloc_type = ALLREDUCE_VIEW_ALLOC;
+                          public Heapify<AllreduceView,CONTEXT_LIFETIME> {
     public:
       AllreduceView(DistributedID did, DistributedID ctx_did,
                     const std::vector<IndividualView*> &views,
@@ -1489,9 +1480,7 @@ namespace Legion {
      * fields with a default value.
      */
     class FillView : public DeferredView,
-                     public LegionHeapify<FillView> {
-    public:
-      static const AllocationType alloc_type = FILL_VIEW_ALLOC;
+                     public Heapify<FillView,CONTEXT_LIFETIME> {
     public:
       struct DeferIssueFill : public LgTaskArgs<DeferIssueFill> {
       public:
@@ -1594,9 +1583,7 @@ namespace Legion {
      * but it seems to work.
      */
     class PhiView : public DeferredView, 
-                    public LegionHeapify<PhiView> {
-    public:
-      static const AllocationType alloc_type = PHI_VIEW_ALLOC;
+                    public Heapify<PhiView,CONTEXT_LIFETIME> {
     public:
       struct DeferPhiViewRegistrationArgs : 
         public LgTaskArgs<DeferPhiViewRegistrationArgs> {

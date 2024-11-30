@@ -7292,7 +7292,7 @@ namespace Legion {
       }
       // Also unmap any of our inline mapped physical regions
       AutoLock i_lock(inline_lock);
-      for (LegionList<PhysicalRegion,TASK_INLINE_REGION_ALLOC>::const_iterator
+      for (LegionList<PhysicalRegion,CONTEXT_LIFETIME>::const_iterator
             it = inline_regions.begin(); it != inline_regions.end(); it++)
       {
         if (it->is_mapped())
@@ -12448,7 +12448,8 @@ namespace Legion {
     TopLevelContext::TopLevelContext(Processor p, 
         coord_t normal_id, coord_t implicit_id, 
         DistributedID id, CollectiveMapping *mapping)
-      : InnerContext(NULL, -1, false/*full inner*/,
+      : HeapifyMixin<TopLevelContext,InnerContext,CONTEXT_LIFETIME>(
+          (SingleTask*)NULL, -1, false/*full inner*/,
                      dummy_requirements, dummy_output_requirements,
                      dummy_indexes, dummy_mapped, ApEvent::NO_AP_EVENT,
                      id, false, false, false, mapping),
@@ -12543,7 +12544,7 @@ namespace Legion {
                                  ApEvent exec_fence,
                                  ShardManager *manager, bool inline_task,
                                  bool implicit_task, bool concurrent)
-      : InnerContext(owner, d, full, reqs, out_reqs, parent_indexes,
+      : HeapifyMixin<ReplicateContext,InnerContext,CONTEXT_LIFETIME>(owner, d, full, reqs, out_reqs, parent_indexes,
          virt_mapped, exec_fence, 0, inline_task, implicit_task, concurrent),
         owner_shard(owner), shard_manager(manager),
         total_shards(shard_manager->total_shards),
@@ -22593,7 +22594,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     RemoteContext::RemoteContext(DistributedID id,
                                  CollectiveMapping *mapping)
-      : InnerContext(NULL, -1, false/*full inner*/, remote_task.regions,
+      : HeapifyMixin<RemoteContext,InnerContext,CONTEXT_LIFETIME>(
+          (SingleTask*)NULL, -1, false/*full inner*/, remote_task.regions,
                      remote_task.output_regions, local_parent_req_indexes,
                      local_virtual_mapped, ApEvent::NO_AP_EVENT, id,
                      false, false, false, mapping),

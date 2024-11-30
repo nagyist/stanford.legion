@@ -1771,9 +1771,7 @@ namespace Legion {
 
     template<int DIM, typename T>
     class IndexSpaceUnion : public IndexSpaceOperationT<DIM,T>,
-        public LegionHeapify<IndexSpaceUnion<DIM,T> > {
-    public:
-      static const AllocationType alloc_type = UNION_EXPR_ALLOC;
+        public Heapify<IndexSpaceUnion<DIM,T>,LONG_BOUNDED_LIFETIME> {
     public:
       IndexSpaceUnion(const std::vector<IndexSpaceExpression*> &to_union);
       IndexSpaceUnion(const Rect<DIM,T> &bounds);
@@ -1809,9 +1807,7 @@ namespace Legion {
 
     template<int DIM, typename T>
     class IndexSpaceIntersection : public IndexSpaceOperationT<DIM,T>,
-        public LegionHeapify<IndexSpaceIntersection<DIM,T> > {
-    public:
-      static const AllocationType alloc_type = INTERSECTION_EXPR_ALLOC;
+        public Heapify<IndexSpaceIntersection<DIM,T>,LONG_BOUNDED_LIFETIME> {
     public:
       IndexSpaceIntersection(
           const std::vector<IndexSpaceExpression*> &to_inter);
@@ -1849,9 +1845,7 @@ namespace Legion {
 
     template<int DIM, typename T>
     class IndexSpaceDifference : public IndexSpaceOperationT<DIM,T>,
-        public LegionHeapify<IndexSpaceDifference<DIM,T> > {
-    public:
-      static const AllocationType alloc_type = DIFFERENCE_EXPR_ALLOC;
+        public Heapify<IndexSpaceDifference<DIM,T>,LONG_BOUNDED_LIFETIME> {
     public:
       IndexSpaceDifference(IndexSpaceExpression *lhs,IndexSpaceExpression *rhs);
       IndexSpaceDifference(const Rect<DIM,T> &bounds);
@@ -1898,9 +1892,7 @@ namespace Legion {
      */
     template<int DIM, typename T>
     class InternalExpression : public IndexSpaceOperationT<DIM,T>,
-        public LegionHeapify<InternalExpression<DIM,T> > {
-    public:
-      static const AllocationType alloc_type = INSTANCE_EXPR_ALLOC;
+        public Heapify<InternalExpression<DIM,T>,LONG_BOUNDED_LIFETIME> {
     public:
       InternalExpression(const Rect<DIM,T> *rects, size_t num_rects);
       InternalExpression(const InternalExpression<DIM,T> &rhs) = delete;
@@ -1944,9 +1936,7 @@ namespace Legion {
      */
     template<int DIM, typename T>
     class RemoteExpression : public IndexSpaceOperationT<DIM,T>,
-        public LegionHeapify<RemoteExpression<DIM,T> > {
-    public:
-      static const AllocationType alloc_type = REMOTE_EXPR_ALLOC;
+        public Heapify<RemoteExpression<DIM,T>,LONG_BOUNDED_LIFETIME> {
     public:
       RemoteExpression(IndexSpaceExprID eid,
           DistributedID did, IndexSpaceOperation *op,
@@ -2431,7 +2421,7 @@ namespace Legion {
      */
     template<int DIM, typename T>
     class IndexSpaceNodeT : public IndexSpaceNode,
-                            public LegionHeapify<IndexSpaceNodeT<DIM,T> > {
+                            public Heapify<IndexSpaceNodeT<DIM,T>,LONG_BOUNDED_LIFETIME> {
     public:
       IndexSpaceNodeT(IndexSpace handle,
                       IndexPartNode *parent, LegionColor color, 
@@ -3281,7 +3271,7 @@ namespace Legion {
      */
     template<int DIM, typename T>
     class EqKDNode : public EqKDTreeT<DIM,T>,
-      public LegionHeapify<EqKDNode<DIM,T> > {
+      public Heapify<EqKDNode<DIM,T>,CONTEXT_LIFETIME> {
     public:
       EqKDNode(const Rect<DIM,T> &bounds);
       EqKDNode(const EqKDNode &rhs) = delete;
@@ -3910,7 +3900,7 @@ namespace Legion {
      */
     template<int DIM, typename T>
     class IndexPartNodeT : public IndexPartNode,
-                           public LegionHeapify<IndexPartNodeT<DIM,T> > {
+                           public Heapify<IndexPartNodeT<DIM,T>,LONG_BOUNDED_LIFETIME> {
     public:
       IndexPartNodeT(IndexPartition p,
                      IndexSpaceNode *par, IndexSpaceNode *color_space,
@@ -4003,7 +3993,7 @@ namespace Legion {
      * pointed at by nodes in the region trees.
      */
     class FieldSpaceNode : 
-      public LegionHeapify<FieldSpaceNode>, public DistributedCollectable {
+      public Heapify<FieldSpaceNode,LONG_BOUNDED_LIFETIME>, public DistributedCollectable {
     public:
       enum FieldAllocationState {
         FIELD_ALLOC_INVALID, // field_infos is invalid
@@ -4317,8 +4307,8 @@ namespace Legion {
       // Keep track of the layouts associated with this field space
       // Index them by their hash of their field mask to help
       // differentiate them.
-      std::map<LEGION_FIELD_MASK_FIELD_TYPE,LegionList<LayoutDescription*,
-                          LAYOUT_DESCRIPTION_ALLOC> > layouts;
+      std::map<LEGION_FIELD_MASK_FIELD_TYPE,
+        LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME> > layouts;
     private:
       LegionMap<SemanticTag,SemanticInfo> semantic_info;
       LegionMap<std::pair<FieldID,SemanticTag>,SemanticInfo>
@@ -4404,7 +4394,7 @@ namespace Legion {
                                  FieldMask &refinement_mask,
                                  LogicalAnalysis &logical_analysis,
                                  FieldMaskSet<RefinementOp,
-                                  UNTRACKED_ALLOC,true> &refinements,
+                                  TASK_LOCAL_LIFETIME,true> &refinements,
                                  const bool root_node);
       void add_open_field_state(LogicalState &state,
                                 const LogicalUser &user,
@@ -4488,7 +4478,7 @@ namespace Legion {
       virtual void send_node(Serializer &rez, AddressSpaceID target) = 0;
     public:
       // Logical helper operations
-      typedef FieldMaskSet<LogicalUser,UNTRACKED_ALLOC,true/*deterministic*/>
+      typedef FieldMaskSet<LogicalUser,SHORT_BOUNDED_LIFETIME,true/*deterministic*/>
         OrderedFieldMaskUsers;
       template<bool TRACK_DOM>
       FieldMask perform_dependence_checks(LogicalRegion privilege_root,
@@ -4523,7 +4513,7 @@ namespace Legion {
      * \class RegionNode
      * Represent a region in a region tree
      */
-    class RegionNode : public RegionTreeNode, public LegionHeapify<RegionNode> {
+    class RegionNode : public RegionTreeNode, public Heapify<RegionNode,LONG_BOUNDED_LIFETIME> {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
@@ -4630,7 +4620,7 @@ namespace Legion {
      * Represent an instance of a partition in a region tree.
      */
     class PartitionNode : public RegionTreeNode, 
-                          public LegionHeapify<PartitionNode> {
+                          public Heapify<PartitionNode,LONG_BOUNDED_LIFETIME> {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:

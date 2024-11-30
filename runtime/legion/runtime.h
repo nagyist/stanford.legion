@@ -51,37 +51,7 @@ code, __FILE__, __LINE__, message);                       \
 }
 
 namespace Legion {
-  namespace Internal {  
-
-    /**
-     * A class for deduplicating memory used with task arguments
-     * and knowing when to collect the data associated with it
-     */
-    class AllocManager : public Collectable,
-                         public LegionHeapify<AllocManager> {
-    public:
-      static const AllocationType alloc_type = ALLOC_MANAGER_ALLOC;
-    public:
-      AllocManager(size_t arglen)
-        : Collectable(), 
-          allocation(legion_malloc(ALLOC_INTERNAL_ALLOC, arglen)), 
-          allocation_size(arglen) { }
-      AllocManager(const AllocManager &rhs)
-        : Collectable(), allocation(NULL), allocation_size(0)
-      { assert(false); /*should never be called*/ }
-      ~AllocManager(void)
-      { legion_free(ALLOC_INTERNAL_ALLOC, allocation, allocation_size); }
-    public:
-      AllocManager& operator=(const AllocManager &rhs)
-      { assert(false); /*should never be called*/ return *this; }
-    public:
-      inline void* get_allocation(void) const { return allocation; }
-      inline size_t get_allocation_size(void) const
-      { return allocation_size; }
-    private:
-      void *const allocation;
-      size_t allocation_size;
-    };
+  namespace Internal {
 
     /**
      * \class ArgumentMapImpl
@@ -96,9 +66,7 @@ namespace Legion {
      * points and values.
      */
     class ArgumentMapImpl : public Collectable,
-                            public LegionHeapify<ArgumentMapImpl> {
-    public:
-      static const AllocationType alloc_type = ARGUMENT_MAP_ALLOC;
+                            public Heapify<ArgumentMapImpl,SHORT_BOUNDED_LIFETIME> {
     public:
       ArgumentMapImpl(void);
       ArgumentMapImpl(const FutureMap &rhs);
@@ -245,9 +213,7 @@ namespace Legion {
      * to manage garbage collection of distributed futures
      */
     class FutureImpl : public DistributedCollectable,
-                       public LegionHeapify<FutureImpl> {
-    public:
-      static const AllocationType alloc_type = FUTURE_ALLOC;
+                       public Heapify<FutureImpl,SHORT_BOUNDED_LIFETIME> {
     public:
       struct ContributeCollectiveArgs : 
         public LgTaskArgs<ContributeCollectiveArgs> {
@@ -642,9 +608,7 @@ namespace Legion {
      * given point anywhere in the machine.
      */
     class FutureMapImpl : public DistributedCollectable,
-                          public LegionHeapify<FutureMapImpl> {
-    public:
-      static const AllocationType alloc_type = FUTURE_MAP_ALLOC;
+                          public Heapify<FutureMapImpl,SHORT_BOUNDED_LIFETIME> {
     public:
       FutureMapImpl(TaskContext *ctx, Operation *op, IndexSpaceNode *domain,
                     DistributedID did, Provenance *provenance,
@@ -817,9 +781,7 @@ namespace Legion {
      * guaranteed to only be running on one processor.
      */
     class PhysicalRegionImpl : public Collectable,
-                               public LegionHeapify<PhysicalRegionImpl> {
-    public:
-      static const AllocationType alloc_type = PHYSICAL_REGION_ALLOC;
+                               public Heapify<PhysicalRegionImpl,CONTEXT_LIFETIME> {
     public:
       PhysicalRegionImpl(const RegionRequirement &req, RtEvent mapped_event,
             ApEvent ready_event, ApUserEvent term_event, bool mapped, 
@@ -941,9 +903,7 @@ namespace Legion {
      * exclusively by a single task.
      */
     class OutputRegionImpl : public Collectable,
-                             public LegionHeapify<OutputRegionImpl> {
-    public:
-      static const AllocationType alloc_type = OUTPUT_REGION_ALLOC;
+                             public Heapify<OutputRegionImpl,OPERATION_LIFETIME> {
     private:
       struct LayoutCreator {
       public:
@@ -1052,9 +1012,7 @@ namespace Legion {
      * to logical regions in the same region tree
      */
     class ExternalResourcesImpl : public Collectable,
-                                  public LegionHeapify<ExternalResourcesImpl> {
-    public:
-      static const AllocationType alloc_type = EXTERNAL_RESOURCES_ALLOC;
+                                  public Heapify<ExternalResourcesImpl,SHORT_BOUNDED_LIFETIME> {
     public:
       ExternalResourcesImpl(InnerContext *context, size_t num_regions,
                             RegionTreeNode *upper, IndexSpaceNode *launch,
@@ -1098,9 +1056,7 @@ namespace Legion {
      * locks.  Grants continues accepting registrations
      * until the runtime marks that it is no longer active.
      */
-    class GrantImpl : public Collectable, public LegionHeapify<GrantImpl> {
-    public:
-      static const AllocationType alloc_type = GRANT_ALLOC;
+    class GrantImpl : public Collectable, public Heapify<GrantImpl,SHORT_BOUNDED_LIFETIME> {
     public:
       struct ReservationRequest {
       public:
@@ -1137,9 +1093,7 @@ namespace Legion {
     };
 
     class LegionHandshakeImpl : public Collectable,
-                       public LegionHeapify<LegionHandshakeImpl> {
-    public:
-      static const AllocationType alloc_type = MPI_HANDSHAKE_ALLOC;
+                       public Heapify<LegionHandshakeImpl,LONG_BOUNDED_LIFETIME> {
     public:
       LegionHandshakeImpl(bool init_in_ext, int ext_participants, 
                           int legion_participants);
@@ -1726,7 +1680,7 @@ namespace Legion {
       // represents a range of memory that can be collected
       // This data structure is protected by the manager_lock
       typedef LegionMap<PhysicalManager*,GCPriority,
-                        MEMORY_INSTANCES_ALLOC> TreeInstances;
+                        LONG_BOUNDED_LIFETIME> TreeInstances;
       std::map<RegionTreeID,TreeInstances> current_instances;
       // Keep track of all groupings of instances based on their 
       // garbage collection priorities and placement in memory
@@ -2015,9 +1969,7 @@ namespace Legion {
      * This class is used for storing all the meta-data associated 
      * with a logical task
      */
-    class TaskImpl : public LegionHeapify<TaskImpl> {
-    public:
-      static const AllocationType alloc_type = TASK_IMPL_ALLOC;
+    class TaskImpl : public Heapify<TaskImpl,RUNTIME_LIFETIME> {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
@@ -2086,9 +2038,7 @@ namespace Legion {
      * This class is used for storing all the meta-data associated
      * with a particular variant implementation of a task
      */
-    class VariantImpl : public LegionHeapify<VariantImpl> { 
-    public:
-      static const AllocationType alloc_type = VARIANT_IMPL_ALLOC;
+    class VariantImpl : public Heapify<VariantImpl,RUNTIME_LIFETIME> { 
     public:
       VariantImpl(VariantID vid, TaskImpl *owner, 
                   const TaskVariantRegistrar &registrar, 
@@ -2166,9 +2116,7 @@ namespace Legion {
      */
     class LayoutConstraints : 
       public LayoutConstraintSet, public DistributedCollectable,
-      public LegionHeapify<LayoutConstraints> {
-    public:
-      static const AllocationType alloc_type = LAYOUT_CONSTRAINTS_ALLOC; 
+      public Heapify<LayoutConstraints,RUNTIME_LIFETIME> {
     public:
       LayoutConstraints(LayoutConstraintID layout_id, FieldSpace handle, 
                         bool inter, DistributedID did = 0);
@@ -2541,7 +2489,7 @@ namespace Legion {
      * an extra function call overhead to every runtime call because C++
      * is terrible and doesn't have mix-in classes.
      */
-    class Runtime : public LegionHeapify<Runtime> {
+    class Runtime : public Heapify<Runtime,RUNTIME_LIFETIME> {
     public:
       struct LegionConfiguration {
       public:
@@ -4356,10 +4304,9 @@ namespace Legion {
       unsigned generate_random_integer(void);
 #ifdef LEGION_TRACE_ALLOCATION
     public:
-      void trace_allocation(AllocationType type, size_t size, int elems);
-      void trace_free(AllocationType type, size_t size, int elems);
+      void trace_allocation(const std::type_info &info, size_t size, int elems);
+      void trace_free(const std::type_info &info, size_t size, int elems);
       void dump_allocation_info(void);
-      static const char* get_allocation_name(AllocationType type);
 #endif
     public:
       // These are the static methods that become the meta-tasks
@@ -4647,7 +4594,7 @@ namespace Legion {
     protected:
       mutable LocalLock group_lock;
       LegionMap<uint64_t,LegionDeque<ProcessorGroupInfo>,
-                PROCESSOR_GROUP_ALLOC> processor_groups;
+                RUNTIME_LIFETIME> processor_groups;
     protected:
       mutable LocalLock processor_mapping_lock;
       std::map<Processor,unsigned> processor_mapping;
@@ -4656,7 +4603,7 @@ namespace Legion {
     protected:
       mutable LocalLock distributed_collectable_lock;
       LegionMap<DistributedID,DistributedCollectable*,
-                RUNTIME_DIST_COLLECT_ALLOC> dist_collectables;
+                LONG_BOUNDED_LIFETIME> dist_collectables;
       std::map<DistributedID,
         std::pair<DistributedCollectable*,RtUserEvent> > pending_collectables;
     protected:
@@ -4680,9 +4627,11 @@ namespace Legion {
     protected:
       struct AllocationTracker {
       public:
-        AllocationTracker(void)
-          : total_allocations(0), total_bytes(0),
+        AllocationTracker(const char *n)
+          : name(n), total_allocations(0), total_bytes(0),
             diff_allocations(0), diff_bytes(0) { }
+      public:
+        const char *const name;
       public:
         unsigned total_allocations;
         size_t         total_bytes;
@@ -4690,7 +4639,7 @@ namespace Legion {
         off_t           diff_bytes;
       };
       mutable LocalLock allocation_lock; // leak this lock intentionally
-      std::map<AllocationType,AllocationTracker> allocation_manager;
+      std::unordered_map<std::size_t,AllocationTracker> allocation_manager;
       std::atomic<unsigned long long> allocation_tracing_count;
 #endif
     private:

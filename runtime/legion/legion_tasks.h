@@ -48,7 +48,7 @@ namespace Legion {
     public:
       virtual void set_context_index(uint64_t index) = 0;
     protected:
-      AllocManager *arg_manager;
+      BufferManager<Task,OPERATION_LIFETIME> arg_manager;
     };
 
     /**
@@ -741,8 +741,7 @@ namespace Legion {
       bool children_commit_invoked;
     protected:
       Future predicate_false_future;
-      void *predicate_false_result;
-      size_t predicate_false_size;
+      BufferManager<MultiTask,OPERATION_LIFETIME> predicate_false_result;
     protected:
       std::map<DomainPoint,RtEvent> intra_space_dependences;
     protected:
@@ -759,9 +758,7 @@ namespace Legion {
      * launch calls performed by the runtime.
      */
     class IndividualTask : public SingleTask,
-                           public LegionHeapify<IndividualTask> {
-    public:
-      static const AllocationType alloc_type = INDIVIDUAL_TASK_ALLOC;
+      public Heapify<IndividualTask,RUNTIME_LIFETIME> {
     public:
       IndividualTask(void);
       IndividualTask(const IndividualTask &rhs) = delete;
@@ -865,8 +862,7 @@ namespace Legion {
       UniqueID remote_unique_id;
     protected:
       Future predicate_false_future;
-      void *predicate_false_result;
-      size_t predicate_false_size;
+      BufferManager<IndividualTask,OPERATION_LIFETIME> predicate_false_result;
     protected:
       bool sent_remotely;
     protected:
@@ -882,9 +878,7 @@ namespace Legion {
      * slice task owner.
      */
     class PointTask : public SingleTask, public ProjectionPoint,
-                      public LegionHeapify<PointTask> {
-    public:
-      static const AllocationType alloc_type = POINT_TASK_ALLOC;
+      public Heapify<PointTask,OPERATION_LIFETIME> {
     public:
       PointTask(void);
       PointTask(const PointTask &rhs) = delete;
@@ -1151,7 +1145,8 @@ namespace Legion {
      * slice tasks for the index space will be distributed around
      * the machine and eventually returned to this index space task.
      */
-    class IndexTask : public MultiTask, public LegionHeapify<IndexTask> {
+    class IndexTask : public MultiTask,
+      public Heapify<IndexTask,RUNTIME_LIFETIME> {
     private:
       struct OutputRegionTagCreator {
       public:
@@ -1179,8 +1174,6 @@ namespace Legion {
         TypeTag *type_tag;
         int color_ndim;
       };
-    public:
-      static const AllocationType alloc_type = INDEX_TASK_ALLOC;
     public:
       IndexTask(void);
       IndexTask(const IndexTask &rhs) = delete;
@@ -1373,9 +1366,7 @@ namespace Legion {
      * slicing up the domain of the index space task launch.
      */
     class SliceTask : public MultiTask, public ResourceTracker,
-                      public LegionHeapify<SliceTask> {
-    public:
-      static const AllocationType alloc_type = SLICE_TASK_ALLOC;
+      public Heapify<SliceTask,OPERATION_LIFETIME> {
     public:
       SliceTask(void);
       SliceTask(const SliceTask &rhs) = delete;
