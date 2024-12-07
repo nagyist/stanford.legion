@@ -17704,17 +17704,6 @@ namespace Legion {
             requirement, 0/*idx*/, false/*skip privileges*/, true/*force*/);
       // Enumerate the points
       enumerate_points();
-      // Launch the points
-      std::vector<RtEvent> mapped_preconditions(points.size());
-      for (unsigned idx = 0; idx < points.size(); idx++)
-      {
-        mapped_preconditions[idx] = points[idx]->get_mapped_event();
-        points[idx]->launch(view_ready);
-      }
-      // Include any map applied conditions as well
-      if (!map_applied_conditions.empty())
-        mapped_preconditions.insert(mapped_preconditions.end(),
-            map_applied_conditions.begin(), map_applied_conditions.end());
       if (future.impl != NULL)
       {
 #ifdef DEBUG_LEGION
@@ -17724,11 +17713,17 @@ namespace Legion {
         const RtEvent buffer_ready = 
           future.impl->request_runtime_instance(this, false/*eager*/);
         if (buffer_ready.exists())
-          mapped_preconditions.push_back(buffer_ready);
+          map_applied_conditions.insert(buffer_ready);
+      }
+      // Launch the points
+      for (unsigned idx = 0; idx < points.size(); idx++)
+      {
+        map_applied_conditions.insert(points[idx]->get_mapped_event());
+        points[idx]->launch(view_ready);
       }
       // Record that we are mapped when all our points are mapped
       // and we are executed when all our points are executed
-      complete_mapping(Runtime::merge_events(mapped_preconditions));
+      complete_mapping(Runtime::merge_events(map_applied_conditions));
     }
 
     //--------------------------------------------------------------------------
