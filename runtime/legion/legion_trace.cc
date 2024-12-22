@@ -942,6 +942,14 @@ namespace Legion {
       }
     }
 
+    //--------------------------------------------------------------------------
+    void LogicalTrace::invalidate_equivalence_sets(void) const 
+    //--------------------------------------------------------------------------
+    {
+      if (physical_trace != NULL)
+        physical_trace->invalidate_equivalence_sets();
+    }
+
     /////////////////////////////////////////////////////////////
     // TraceOp 
     /////////////////////////////////////////////////////////////
@@ -1780,6 +1788,15 @@ namespace Legion {
         parent_req_fields[index] = mask;
       else
         finder->second |= mask;
+    }
+
+    //--------------------------------------------------------------------------
+    void PhysicalTrace::invalidate_equivalence_sets(void) const
+    //--------------------------------------------------------------------------
+    {
+      for (std::vector<PhysicalTemplate*>::const_iterator it =
+            templates.begin(); it != templates.end(); it++)
+        (*it)->invalidate_equivalence_sets();
     }
 
     //--------------------------------------------------------------------------
@@ -4529,6 +4546,21 @@ namespace Legion {
         postconditions[idx]->apply_postconditions(op, idx, applied_events);
     }
 
+    //--------------------------------------------------------------------------
+    void PhysicalTemplate::invalidate_equivalence_sets(void) const
+    //--------------------------------------------------------------------------
+    {
+      for (std::vector<TraceConditionSet*>::const_iterator it =
+            preconditions.begin(); it != preconditions.end(); it++)
+        (*it)->invalidate_equivalence_sets();
+      for (std::vector<TraceConditionSet*>::const_iterator it =
+            anticonditions.begin(); it != anticonditions.end(); it++)
+        (*it)->invalidate_equivalence_sets();
+      for (std::vector<TraceConditionSet*>::const_iterator it =
+            postconditions.begin(); it != postconditions.end(); it++)
+        (*it)->invalidate_equivalence_sets();
+    }
+
 #if 0
     //--------------------------------------------------------------------------
     bool PhysicalTemplate::check_preconditions(ReplTraceReplayOp *op,
@@ -7066,6 +7098,18 @@ namespace Legion {
       mapping.postmap_task = output.postmap_task;
       mapping.future_locations = output.future_locations;
       mapping.physical_instances = physical_instances;
+      for (std::map<Memory,PoolBounds>::const_iterator it =
+            output.leaf_pool_bounds.begin(); it !=
+            output.leaf_pool_bounds.end(); it++)
+      {
+        // Check to see if it is is bounded, if it is we can safe it, if not
+        // then we already issued a warning in the task that this is going
+        // to invalidate the trace replay so do that now
+        if (it->second.is_bounded())
+          mapping.pool_bounds.insert(*it);
+        else
+          record_no_consensus();
+      }
       for (std::deque<InstanceSet>::iterator it =
            mapping.physical_instances.begin(); it !=
            mapping.physical_instances.end(); ++it)
@@ -7086,6 +7130,7 @@ namespace Legion {
                                              bool &postmap_task,
                               std::vector<Processor> &target_procs,
                               std::vector<Memory> &future_locations,
+                              std::map<Memory,PoolBounds> &pool_bounds,
                               std::deque<InstanceSet> &physical_instances) const
     //--------------------------------------------------------------------------
     {
@@ -7103,6 +7148,7 @@ namespace Legion {
       postmap_task = finder->second.postmap_task;
       target_procs = finder->second.target_procs;
       future_locations = finder->second.future_locations;
+      pool_bounds = finder->second.pool_bounds;
       physical_instances = finder->second.physical_instances;
     }
 

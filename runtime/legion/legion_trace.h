@@ -190,6 +190,7 @@ namespace Legion {
     public:
       bool has_physical_trace(void) const { return (physical_trace != NULL); }
       PhysicalTrace* get_physical_trace(void) { return physical_trace; }
+      void invalidate_equivalence_sets(void) const;
     protected:
       void replay_operation_dependences(Operation *op,
           const LegionVector<DependenceRecord> &dependences);
@@ -503,7 +504,6 @@ namespace Legion {
       inline bool is_recording(void) const { return recording; }
       inline bool is_replaying(void) const { return !recording; }
       inline bool is_recurrent(void) const { return recurrent; }
-      size_t get_expected_operation_count(void) const;
     public:
       void record_parent_req_fields(unsigned index, const FieldMask &mask);
       void find_condition_sets(std::map<EquivalenceSet*,unsigned> &sets) const;
@@ -520,6 +520,7 @@ namespace Legion {
           std::set<RtEvent> &map_applied_events,
           std::set<ApEvent> &execution_preconditions,
           bool has_blocking_call, bool has_intermediate_fence);
+      void invalidate_equivalence_sets(void) const;
     protected:
       bool find_replay_template(BeginOp *op,
             std::set<RtEvent> &map_applied_conditions,
@@ -751,6 +752,7 @@ namespace Legion {
         bool                    postmap_task;
         std::vector<Processor>  target_procs;
         std::vector<Memory>     future_locations;
+        std::map<Memory,PoolBounds> pool_bounds;
         std::deque<InstanceSet> physical_instances;
       };
       typedef LegionMap<TraceLocalID,CachedMapping> CachedMappings;
@@ -899,6 +901,7 @@ namespace Legion {
       bool check_preconditions(void);
       void apply_postconditions(FenceOp *op,
                                 std::set<RtEvent> &applied_events);
+      void invalidate_equivalence_sets(void) const;
     public:
       bool can_start_replay(void);
       void register_operation(MemoizableOp *op);
@@ -943,6 +946,7 @@ namespace Legion {
                              bool &postmap_task,
                              std::vector<Processor> &target_proc,
                              std::vector<Memory> &future_locations,
+                             std::map<Memory,PoolBounds> &pool_bounds,
                              std::deque<InstanceSet> &physical_instances) const;
       void get_task_reservations(SingleTask *task,
                              std::map<Reservation,bool> &reservations) const;

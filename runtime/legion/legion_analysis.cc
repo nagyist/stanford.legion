@@ -34,6 +34,68 @@ namespace Legion {
     LEGION_EXTERN_LOGGER_DECLARATIONS
 
     /////////////////////////////////////////////////////////////
+    // Task Tree Coordinates
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    bool TaskTreeCoordinates::operator==(const TaskTreeCoordinates &rhs) const
+    //--------------------------------------------------------------------------
+    {
+      if (coordinates.size() != rhs.size())
+        return false;
+      for (unsigned idx = 0; idx < coordinates.size(); idx++)
+        if (coordinates[idx] != rhs[idx])
+          return false;
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    bool TaskTreeCoordinates::operator!=(const TaskTreeCoordinates &rhs) const
+    //--------------------------------------------------------------------------
+    {
+      return !((*this) == rhs);
+    }
+
+    //--------------------------------------------------------------------------
+    bool TaskTreeCoordinates::same_index_space(
+                                           const TaskTreeCoordinates &rhs) const
+    //--------------------------------------------------------------------------
+    {
+      if (coordinates.size() != rhs.size())
+        return false;
+      // Must the same coordinates for all but the last level
+      for (unsigned idx = 0; idx < (coordinates.size()-1); idx++)
+        if (coordinates[idx] != rhs[idx])
+          return false;
+      // Last leve just needs to have the same context index
+      if (coordinates.back().context_index != rhs.back().context_index)
+        return false;
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    void TaskTreeCoordinates::serialize(Serializer &rez) const 
+    //--------------------------------------------------------------------------
+    {
+      rez.serialize<size_t>(coordinates.size());
+      for (std::vector<ContextCoordinate>::const_iterator it =
+            coordinates.begin(); it != coordinates.end(); it++)
+        it->serialize(rez);
+    }
+
+    //--------------------------------------------------------------------------
+    void TaskTreeCoordinates::deserialize(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      size_t num_coordinates;
+      derez.deserialize(num_coordinates);
+      coordinates.resize(num_coordinates);
+      for (std::vector<ContextCoordinate>::iterator it =
+            coordinates.begin(); it != coordinates.end(); it++)
+        it->deserialize(derez);
+    }
+
+    /////////////////////////////////////////////////////////////
     // Users and Info 
     /////////////////////////////////////////////////////////////
 
@@ -955,6 +1017,14 @@ namespace Legion {
           rez.serialize<size_t>(output.future_locations.size());
           for (unsigned idx = 0; idx < output.future_locations.size(); idx++)
             rez.serialize(output.future_locations[idx]);
+          rez.serialize<size_t>(output.leaf_pool_bounds.size());
+          for (std::map<Memory,PoolBounds>::const_iterator it =
+                output.leaf_pool_bounds.begin(); it !=
+                output.leaf_pool_bounds.end(); it++)
+          {
+            rez.serialize(it->first);
+            rez.serialize(it->second);
+          }
           rez.serialize(output.chosen_variant);
           rez.serialize(output.task_priority);
           rez.serialize<bool>(output.postmap_task);
@@ -1509,6 +1579,14 @@ namespace Legion {
               output.future_locations.resize(num_future_locations);
               for (unsigned idx = 0; idx < num_future_locations; idx++)
                 derez.deserialize(output.future_locations[idx]);
+            }
+            size_t num_pool_bounds;
+            derez.deserialize(num_pool_bounds);
+            for (unsigned idx = 0; idx < num_pool_bounds; idx++)
+            {
+              Memory memory;
+              derez.deserialize(memory);
+              derez.deserialize(output.leaf_pool_bounds[memory]);
             }
             derez.deserialize(output.chosen_variant);
             derez.deserialize(output.task_priority);
@@ -19649,7 +19727,8 @@ namespace Legion {
            invalid_updates, reduction_updates, restricted_updates, 
            released_updates, &read_only_guards, &reduction_fill_guards, 
            precondition_updates, anticondition_updates,
-           postcondition_updates, dirty_updates, true/*pack refs*/);
+           postcondition_updates, dirty_updates, true/*pack refs*/,
+           true/*pack tracing reference*/);
       if (precondition_updates != NULL)
         delete precondition_updates;
       if (anticondition_updates != NULL)
@@ -19679,7 +19758,7 @@ namespace Legion {
               const TraceViewSet *anticondition_updates,
               const TraceViewSet *postcondition_updates,
               const FieldMaskSet<IndexSpaceExpression> *dirty_updates,
-              const bool pack_references)
+              const bool pack_references, const bool pack_tracing_references)
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(valid_updates.size());
@@ -19788,15 +19867,15 @@ namespace Legion {
       else
         rez.serialize<size_t>(0);
       if (precondition_updates != NULL)
-        precondition_updates->pack(rez, target, pack_references); 
+        precondition_updates->pack(rez, target, pack_tracing_references);
       else
         rez.serialize<size_t>(0);
       if (anticondition_updates != NULL)
-        anticondition_updates->pack(rez, target, pack_references); 
+        anticondition_updates->pack(rez, target, pack_tracing_references);
       else
         rez.serialize<size_t>(0);
       if (postcondition_updates != NULL)
-        postcondition_updates->pack(rez, target, pack_references); 
+        postcondition_updates->pack(rez, target, pack_tracing_references);
       else
         rez.serialize<size_t>(0);
       if (dirty_updates != NULL)
@@ -20047,7 +20126,7 @@ namespace Legion {
                   precondition_updates, anticondition_updates,
                   postcondition_updates, dirty_updates, &read_only_updates,
                   &reduction_fill_updates, applied_events, true/*need lock*/,
-                  forward_to_owner, true/*unpack references*/); 
+                  forward_to_owner, true/*unpack tracing references*/); 
     }
 
     //--------------------------------------------------------------------------
@@ -20144,7 +20223,7 @@ namespace Legion {
           dargs->anticondition_updates, dargs->postcondition_updates,
           dargs->dirty_updates, dargs->read_only_updates, 
           dargs->reduction_fill_updates, applied_events, true/*needs lock*/, 
-          dargs->forward_to_owner, true/*unpack refs*/);
+          dargs->forward_to_owner, true/*unpack tracing refs*/);
       if (!applied_events.empty())
         Runtime::trigger_event(dargs->done_event, 
             Runtime::merge_events(applied_events));
@@ -20484,14 +20563,13 @@ namespace Legion {
           invalidate_state(set_expr, true/*covers*/, mask, record_invalidate);
         else
           invalidate_state(overlap, false/*covers*/, mask, record_invalidate);
-
       }
       // Call back to the destination to apply the state
       dst->apply_state(valid_updates, initialized_updates, invalid_updates,
             reduction_updates, restricted_updates, released_updates, 
             precondition_updates, anticondition_updates, postcondition_updates,
             dirty_updates, NULL/*guards*/, NULL/*guards*/, applied_events, 
-            need_dst_lock, true/*forward to owner*/, true/*unpack references*/);
+            need_dst_lock, true/*forward to owner*/, false/*unpack tracing*/);
       // Remove the temporary references that we added to keep everything alive
       for (std::vector<IndexSpaceExpression*>::const_iterator it =
             temp_refs.begin(); it != temp_refs.end(); it++)
@@ -20964,7 +21042,7 @@ namespace Legion {
                   FieldMaskSet<CopyFillGuard> *reduction_fill_guard_updates,
                   std::vector<RtEvent> &applied_events, 
                   const bool needs_lock, const bool forward_to_owner,
-                  const bool unpack_references)
+                  const bool unpack_tracing_references)
     //--------------------------------------------------------------------------
     {
       if (needs_lock)
@@ -20976,7 +21054,7 @@ namespace Legion {
                     postcondition_updates, dirty_updates, 
                     read_only_guard_updates, reduction_fill_guard_updates, 
                     applied_events, false/*needs lock*/, forward_to_owner,
-                    unpack_references);
+                    unpack_tracing_references);
         return;
       }
       if (!is_logical_owner() && forward_to_owner)
@@ -21029,7 +21107,8 @@ namespace Legion {
                      released_updates, read_only_guard_updates, 
                      reduction_fill_guard_updates, precondition_updates,
                      anticondition_updates, postcondition_updates, 
-                     dirty_updates, !unpack_references);
+                     dirty_updates, false/*pack references*/,
+                     !unpack_tracing_references);
         }
         runtime->send_equivalence_set_clone_response(logical_owner_space, rez);
         applied_events.push_back(done_event);
@@ -21046,12 +21125,9 @@ namespace Legion {
         else
           record_instances(it->first, false/*covers*/,
               it->second.get_valid_mask(), it->second);
-        if (unpack_references)
-        {
-          for (FieldMaskSet<LogicalView>::const_iterator vit =
-                it->second.begin(); vit != it->second.end(); vit++)
-            vit->first->unpack_valid_ref();
-        }
+        for (FieldMaskSet<LogicalView>::const_iterator vit =
+              it->second.begin(); vit != it->second.end(); vit++)
+          vit->first->unpack_valid_ref();
       }
       for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
             initialized_updates.begin(); it != initialized_updates.end(); it++)
@@ -21079,24 +21155,19 @@ namespace Legion {
             std::pair<InstanceView*,IndexSpaceExpression*> > >::iterator
             it = reduction_updates.begin(); it != reduction_updates.end(); it++)
       {
-        if (unpack_references)
-        {
-          // Need to make a local copy here since this can destroy the list
-          std::vector<InstanceView*> local_reductions;
-          local_reductions.reserve(it->second.size());
-          for (std::list<std::pair<InstanceView*,
-                                   IndexSpaceExpression*> >::const_iterator
-                vit = it->second.begin(); vit != it->second.end(); vit++)
-            local_reductions.push_back(vit->first);
-          // Update the reductions
-          update_reductions(it->first, it->second);
-          // Then unpack our valid references
-          for (std::vector<InstanceView*>::const_iterator it =
-                local_reductions.begin(); it != local_reductions.end(); it++)
-            (*it)->unpack_valid_ref();
-        }
-        else
-          update_reductions(it->first, it->second);
+        // Need to make a local copy here since this can destroy the list
+        std::vector<InstanceView*> local_reductions;
+        local_reductions.reserve(it->second.size());
+        for (std::list<std::pair<InstanceView*,
+                                 IndexSpaceExpression*> >::const_iterator
+              vit = it->second.begin(); vit != it->second.end(); vit++)
+          local_reductions.push_back(vit->first);
+        // Update the reductions
+        update_reductions(it->first, it->second);
+        // Then unpack our valid references
+        for (std::vector<InstanceView*>::const_iterator it =
+              local_reductions.begin(); it != local_reductions.end(); it++)
+          (*it)->unpack_valid_ref();
       }
       for (LegionMap<IndexSpaceExpression*,
             FieldMaskSet<InstanceView> >::const_iterator rit =
@@ -21108,8 +21179,7 @@ namespace Legion {
         {
           record_restriction(covers ? set_expr : rit->first, covers,
                              it->second, it->first);
-          if (unpack_references)
-            it->first->unpack_valid_ref();
+          it->first->unpack_valid_ref();
         }
       }
       for (LegionMap<IndexSpaceExpression*,
@@ -21118,12 +21188,9 @@ namespace Legion {
       {
         update_released(it->first, (it->first->get_volume() == dst_volume),
                         it->second);
-        if (unpack_references)
-        {
-          for (FieldMaskSet<InstanceView>::const_iterator vit =
-                it->second.begin(); vit != it->second.end(); vit++)
-            vit->first->unpack_valid_ref();
-        }
+        for (FieldMaskSet<InstanceView>::const_iterator vit =
+              it->second.begin(); vit != it->second.end(); vit++)
+          vit->first->unpack_valid_ref();
       }
       if (precondition_updates != NULL)
       {
@@ -21135,13 +21202,13 @@ namespace Legion {
         if (tracing_preconditions == NULL)
         {
           tracing_preconditions = precondition_updates;
-          if (unpack_references)
+          if (unpack_tracing_references)
             tracing_preconditions->unpack_references();
         }
         else
         {
           precondition_updates->merge(*tracing_preconditions);
-          if (unpack_references)
+          if (unpack_tracing_references)
             precondition_updates->unpack_references();
           delete precondition_updates;
         }
@@ -21156,13 +21223,13 @@ namespace Legion {
         if (tracing_anticonditions == NULL)
         {
           tracing_anticonditions = anticondition_updates;
-          if (unpack_references)
+          if (unpack_tracing_references)
             tracing_anticonditions->unpack_references();
         }
         else
         {
           anticondition_updates->merge(*tracing_anticonditions);
-          if (unpack_references)
+          if (unpack_tracing_references)
             anticondition_updates->unpack_references();
           delete anticondition_updates;
         }
@@ -21177,13 +21244,13 @@ namespace Legion {
         if (tracing_postconditions == NULL)
         {
           tracing_postconditions = postcondition_updates;
-          if (unpack_references)
+          if (unpack_tracing_references)
             tracing_postconditions->unpack_references();
         }
         else
         {
           postcondition_updates->merge(*tracing_postconditions);
-          if (unpack_references)
+          if (unpack_tracing_references)
             postcondition_updates->unpack_references();
           delete postcondition_updates;
         }

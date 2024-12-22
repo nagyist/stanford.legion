@@ -94,7 +94,7 @@ namespace Legion {
       // Return true if we should profile this profiling response
       virtual bool handle_profiling_response(
           const Realm::ProfilingResponse &response, const void *orig,
-          size_t orig_length, LgEvent &fevent) = 0;
+          size_t orig_length, LgEvent &fevent, bool &failed_alloc) = 0;
     };
 
     struct ProfilingResponseBase {
@@ -859,7 +859,7 @@ namespace Legion {
       // Process low-level runtime profiling results
       virtual bool handle_profiling_response(
           const Realm::ProfilingResponse &response, const void *orig,
-          size_t orig_length, LgEvent &fevent);
+          size_t orig_length, LgEvent &fevent, bool &failed_alloc);
     public:
       // Dump all the results
       void finalize(void);

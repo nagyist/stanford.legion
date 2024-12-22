@@ -24,7 +24,9 @@
 #include "legion/legion_profiling.h"
 #include "legion/garbage_collection.h"
 
+#include <numeric>
 #include <algorithm>
+#include <numeric>
 
 namespace Legion {
   namespace Internal {
@@ -1368,7 +1370,8 @@ namespace Legion {
                            const std::vector<size_t> &field_sizes,
                            bool compact, void **piece_list = NULL,
                            size_t *piece_list_size = NULL,
-                           size_t *num_pieces = NULL) = 0;
+                           size_t *num_pieces = NULL,
+                           size_t base_alignment = 32) = 0;
       // Return the expression with a resource ref on the expression
       virtual IndexSpaceExpression* create_layout_expression(
                            const void *piece_list, size_t piece_list_size) = 0;
@@ -1484,7 +1487,8 @@ namespace Legion {
                                const std::vector<size_t> &field_sizes,
                                bool compact, void **piece_list = NULL,
                                size_t *piece_list_size = NULL,
-                               size_t *num_pieces = NULL) const;
+                               size_t *num_pieces = NULL,
+                               size_t base_alignment = 32) const;
       template<int DIM, typename T>
       inline IndexSpaceExpression* create_layout_expression_internal(
                                const Realm::IndexSpace<DIM,T> &space,
@@ -1724,7 +1728,8 @@ namespace Legion {
                            const std::vector<size_t> &field_sizes,
                            bool compact, void **piece_list = NULL, 
                            size_t *piece_list_size = NULL,
-                           size_t *num_pieces = NULL);
+                           size_t *num_pieces = NULL,
+                           size_t base_alignment = 32);
       virtual IndexSpaceExpression* create_layout_expression(
                            const void *piece_list, size_t piece_list_size);
       virtual bool meets_layout_expression(IndexSpaceExpression *expr,
@@ -2679,7 +2684,8 @@ namespace Legion {
                            const std::vector<size_t> &field_sizes,
                            bool compact, void **piece_list = NULL, 
                            size_t *piece_list_size = NULL,
-                           size_t *num_pieces = NULL);
+                           size_t *num_pieces = NULL,
+                           size_t base_alignment = 32);
       virtual IndexSpaceExpression* create_layout_expression(
                            const void *piece_list, size_t piece_list_size);
       virtual bool meets_layout_expression(IndexSpaceExpression *expr,

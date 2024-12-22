@@ -2073,7 +2073,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool Operation::handle_profiling_response(
         const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent)
+        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
     //--------------------------------------------------------------------------
     {
       // Should only be called for inherited types
@@ -2094,7 +2094,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       parent_ctx->compute_task_tree_coordinates(coords);
-      coords.push_back(ContextCoordinate(context_index, DomainPoint()));
+      coords.emplace_back(get_task_tree_coordinate());
+    }
+
+    //--------------------------------------------------------------------------
+    ContextCoordinate Operation::get_task_tree_coordinate(void) const
+    //--------------------------------------------------------------------------
+    {
+      return ContextCoordinate(context_index, DomainPoint());
     }
 
     //--------------------------------------------------------------------------
@@ -5334,7 +5341,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool MapOp::handle_profiling_response(
         const Realm::ProfilingResponse &response, const void *orig, 
-        size_t orig_length, LgEvent &fevent)
+        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -7709,7 +7716,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool CopyOp::handle_profiling_response(
         const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent)
+        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -9548,12 +9555,8 @@ namespace Legion {
               // Have to request internal buffers before completing mapping
               // in case we have to make an instance as part of it
               FutureImpl *impl = futures[0].impl;
-              const RtEvent mapped = 
-                impl->request_runtime_instance(this, false/*eager*/);
-              if (mapped.exists())
-                complete_mapping(mapped);
-              else
-                complete_mapping();
+              impl->request_runtime_instance(this);
+              complete_mapping();
               const RtEvent ready = impl->find_runtime_instance_ready();
               if (ready.exists() && !ready.has_triggered())
                 parent_ctx->add_to_trigger_execution_queue(this, ready);
@@ -9574,10 +9577,7 @@ namespace Legion {
               for (unsigned idx = 0; idx < futures.size(); idx++)
               {
                 FutureImpl *impl = futures[idx].impl;
-                const RtEvent mapped =
-                  impl->request_runtime_instance(this,false/*eager*/);
-                if (mapped.exists())
-                  mapped_events.push_back(mapped);
+                impl->request_runtime_instance(this);
                 const RtEvent subscribed = impl->find_runtime_instance_ready();
                 if (subscribed.exists())
                   ready_events.push_back(subscribed);
@@ -10786,7 +10786,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool PostCloseOp::handle_profiling_response(
         const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent)
+        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -11853,7 +11853,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool AcquireOp::handle_profiling_response(
         const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent)
+        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -12642,7 +12642,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool ReleaseOp::handle_profiling_response(
         const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent)
+        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -12962,8 +12962,8 @@ namespace Legion {
       // Mark that we completed mapping this operation
       if (to_predicate)
       {
-        complete_mapping(
-            future.impl->request_runtime_instance(this, false/*eager*/));
+        future.impl->request_runtime_instance(this);
+        complete_mapping();
         const RtEvent ready = future.impl->find_runtime_instance_ready();
         if (ready.exists() && !ready.has_triggered())
           parent_ctx->add_to_trigger_execution_queue(this, ready);
@@ -14922,10 +14922,7 @@ namespace Legion {
       for (std::map<DomainPoint,FutureImpl*>::const_iterator it =
             sources.begin(); it != sources.end(); it++)
       {
-        const RtEvent mapped =
-          it->second->request_runtime_instance(this, false/*eager*/);
-        if (mapped.exists())
-          mapped_events.insert(mapped);
+        it->second->request_runtime_instance(this);
         const RtEvent ready = it->second->find_runtime_instance_ready();
         if (ready.exists())
           ready_events.insert(ready);
@@ -16406,7 +16403,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     bool DependentPartitionOp::handle_profiling_response(
         const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent)
+        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -17251,10 +17248,7 @@ namespace Legion {
         assert(future.impl != NULL);
 #endif
         // This will make sure we have a mapping locally
-        const RtEvent buffer_ready = 
-          future.impl->request_runtime_instance(this, false/*eager*/);
-        if (buffer_ready.exists())
-          map_applied_conditions.insert(buffer_ready);
+        future.impl->request_runtime_instance(this);
       }
       if (is_recording())
         trace_info.record_complete_replay(map_applied_conditions);
@@ -17710,10 +17704,7 @@ namespace Legion {
         assert(future.impl != NULL);
 #endif
         // This will make sure we have a mapping locally
-        const RtEvent buffer_ready = 
-          future.impl->request_runtime_instance(this, false/*eager*/);
-        if (buffer_ready.exists())
-          map_applied_conditions.insert(buffer_ready);
+        future.impl->request_runtime_instance(this);
       }
       // Launch the points
       for (unsigned idx = 0; idx < points.size(); idx++)
@@ -18862,6 +18853,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       pack_local_remote_operation(rez);      
+      const ContextCoordinate coordinate = get_task_tree_coordinate();
+      rez.serialize(coordinate.index_point);
     }
 
     //--------------------------------------------------------------------------
@@ -20187,6 +20180,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       pack_local_remote_operation(rez);
+      const ContextCoordinate coordinate = get_task_tree_coordinate();
+      rez.serialize(coordinate.index_point);
     }
 
 #if 0
@@ -20842,10 +20837,7 @@ namespace Legion {
       for (std::vector<Future>::const_iterator it =
             futures.begin(); it != futures.end(); it++)
       {
-        const RtEvent mapped = 
-          it->impl->request_runtime_instance(this, false/*eager*/);
-        if (mapped.exists())
-          mapped_events.push_back(mapped);
+        it->impl->request_runtime_instance(this);
         const RtEvent ready = it->impl->find_runtime_instance_ready();
         if (ready.exists())
           ready_events.push_back(ready);
@@ -20858,8 +20850,11 @@ namespace Legion {
       {
         MemoryManager *manager = 
           runtime->find_memory_manager(runtime->runtime_system_memory);
-        instance = manager->create_future_instance(this, unique_op_id,
-                                      return_type_size, false/*eager*/);
+        TaskTreeCoordinates coordinates;
+        compute_task_tree_coordinates(coordinates);
+        // Safe to block here indefinitely waiting for unbounded pools
+        instance = manager->create_future_instance(unique_op_id,
+            coordinates, return_type_size, NULL/*safe_for_unbounded_pools*/);
         complete_mapping(futures_mapped);
       }
       // Also make sure we wait for any execution fences that we have
@@ -20910,7 +20905,7 @@ namespace Legion {
             << return_type_size << ".";
         // Copy the result into the instance
         FutureInstance *local = 
-            new FutureInstance(output.value, output.size, false/*eager*/,
+            new FutureInstance(output.value, output.size,
                 true/*external*/, output.take_ownership);
         const ApEvent done = 
           instance->copy_from(local, this, ApEvent::NO_AP_EVENT);
@@ -21040,10 +21035,7 @@ namespace Legion {
                                      FutureImpl *future)
     //--------------------------------------------------------------------------
     {
-      const RtEvent ready =
-        future->request_runtime_instance(this, false/*eager*/);
-      if (ready.exists() && !ready.has_triggered())
-        preconditions.push_back(ready);
+      future->request_runtime_instance(this);
     }
 
     //--------------------------------------------------------------------------
@@ -21097,7 +21089,7 @@ namespace Legion {
       // create an external instance for the current allocation
       FutureInstance *serdez_redop_instance = 
         new FutureInstance(serdez_redop_buffer, future_result_size,
-          false/*eager*/, true/*external*/, false/*own allocation*/);
+          true/*external*/, false/*own allocation*/);
       std::vector<ApEvent> done_events;
       for (std::vector<FutureInstance*>::const_iterator it =
             targets.begin(); it != targets.end(); it++)
@@ -21320,6 +21312,8 @@ namespace Legion {
       const size_t result_size = 
         ((serdez_redop_fns == NULL) || (serdez_upper_bound == SIZE_MAX)) ?
         future_result_size : serdez_upper_bound;
+      TaskTreeCoordinates coordinates;
+      compute_task_tree_coordinates(coordinates);
       int runtime_visible = -1;
       for (std::vector<Memory>::const_iterator it =
             target_memories.begin(); it != target_memories.end(); it++)
@@ -21328,8 +21322,10 @@ namespace Legion {
             FutureInstance::check_meta_visible(*it))
           runtime_visible = targets.size();
         MemoryManager *manager = runtime->find_memory_manager(*it);
-        FutureInstance *instance = manager->create_future_instance(this, 
-            unique_op_id, result_size, false/*eager*/);
+        // Safe to block here indefinitely waiting for unbounded pools
+        FutureInstance *instance = manager->create_future_instance(
+            unique_op_id, coordinates, result_size,
+            NULL/*safe for unbounded pools*/);
         targets.push_back(instance);
       }
       // This is an important optimization: if we're doing a small
@@ -22826,13 +22822,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       pack_remote_base(rez);
+      rez.serialize(index_point); 
     }
 
     //--------------------------------------------------------------------------
     void RemoteAttachOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      // Nothing for the moment
+      derez.deserialize(index_point);
     }
 
     ///////////////////////////////////////////////////////////// 
@@ -22911,13 +22908,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       pack_remote_base(rez);
+      rez.serialize(index_point);
     }
 
     //--------------------------------------------------------------------------
     void RemoteDetachOp::unpack(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      // Nothing for the moment
+      derez.deserialize(index_point);
     }
 
     ///////////////////////////////////////////////////////////// 
