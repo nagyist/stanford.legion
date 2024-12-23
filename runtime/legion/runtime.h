@@ -3136,7 +3136,8 @@ namespace Legion {
       bool is_top_level_region(LogicalRegion handle);
     public:
       IndexSpaceNode* create_index_space(IndexSpace handle, 
-                              const Domain *domain,
+                              const Domain &domain,
+                              bool take_ownership,
                               Provenance *provenance,
                               CollectiveMapping *mapping = NULL,
                               IndexSpaceExprID expr_id = 0,
@@ -3162,8 +3163,8 @@ namespace Legion {
                               IndexSpaceExprID expr_id = 0);
     public:
       // We know the domain of the index space
-      IndexSpaceNode* create_node(IndexSpace is, const void *bounds, 
-                                  bool is_domain, IndexPartNode *par, 
+      IndexSpaceNode* create_node(IndexSpace is, const Domain &bounds, 
+                                  bool take_ownership, IndexPartNode *par, 
                                   LegionColor color,
                                   RtEvent initialized, Provenance *provenance,
                                   ApEvent is_ready = ApEvent::NO_AP_EVENT,
@@ -4437,7 +4438,7 @@ namespace Legion {
                           TaskContext *ctx, uint64_t coord, IndexSpace domain,
                           Provenance *provenance);
       IndexSpace find_or_create_index_slice_space(const Domain &launch_domain,
-                                    TypeTag type_tag, Provenance *provenance);
+          bool take_ownership, TypeTag type_tag, Provenance *provenance);
     public:
       void increment_outstanding_top_level_tasks(void);
       void decrement_outstanding_top_level_tasks(void);
@@ -4834,7 +4835,8 @@ namespace Legion {
         std::pair<DistributedCollectable*,RtUserEvent> > pending_collectables;
     protected:
       mutable LocalLock is_slice_lock;
-      std::map<std::pair<Domain,TypeTag>,IndexSpace> index_slice_spaces;
+      std::map<std::pair<Domain,TypeTag>,
+        std::pair<IndexSpace,RtUserEvent> > index_slice_spaces;
     protected:
       // The runtime keeps track of remote contexts so they
       // can be re-used by multiple tasks that get sent remotely

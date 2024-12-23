@@ -6971,7 +6971,7 @@ namespace Legion {
     {
       collective_pre = local_pre;
       collective_post = local_post;
-      records.emplace_back(IndirectRecord(req, insts));
+      records.emplace_back(IndirectRecord(req, insts, 1/*total points*/));
       return RtEvent::NO_RT_EVENT;
     }
 
@@ -7816,7 +7816,7 @@ namespace Legion {
       launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
       if (!launcher.launch_domain.exists())
-        launch_space->get_domain(index_domain);
+        index_domain = launch_space->get_tight_domain();
       else
         index_domain = launcher.launch_domain;
       sharding_space = launcher.sharding_space;
@@ -8170,10 +8170,9 @@ namespace Legion {
       // Need to get the launch domain in case it is different than
       // the original index domain due to control replication
       IndexSpaceNode *local_points = get_shard_points();
-      Domain launch_domain;
-      local_points->get_domain(launch_domain);
+      Domain launch_domain = local_points->get_tight_domain();
       // Now enumerate the points
-      size_t num_points = launch_domain.get_volume();
+      size_t num_points = local_points->get_volume();
 #ifdef DEBUG_LEGION
       assert(num_points > 0);
 #endif
@@ -8346,7 +8345,7 @@ namespace Legion {
         assert(src_indirect_records[index].size() < points.size());
 #endif
         src_indirect_records[index].emplace_back(
-            IndirectRecord(req, insts));
+            IndirectRecord(req, insts, launch_space->get_volume()));
         exchange.src_records.push_back(&records);
         if (src_indirect_records[index].size() == points.size())
           return finalize_exchange(index, true/*sources*/);
@@ -8383,7 +8382,7 @@ namespace Legion {
         assert(dst_indirect_records[index].size() < points.size());
 #endif
         dst_indirect_records[index].emplace_back(
-            IndirectRecord(req, insts));
+            IndirectRecord(req, insts, launch_space->get_volume()));
         exchange.dst_records.push_back(&records);
         if (dst_indirect_records[index].size() == points.size())
           return finalize_exchange(index, false/*sources*/);
@@ -8514,8 +8513,7 @@ namespace Legion {
           if (!req.region.exists())
             continue;
           IndexSpaceNode *node = runtime->get_node(req.region.get_index_space());
-          Domain domain;
-          node->get_domain(domain);
+          Domain domain = node->get_tight_domain();
           domains.emplace_back(std::make_pair((*pit)->index_point,domain));
         }
       }
@@ -9631,7 +9629,8 @@ namespace Legion {
                 << " does not have the same size as sizeof(Domain) (e.g. "
                 << sizeof(Domain) << " bytes). The type of futures for "
                 << "index space domains must be a Domain."; 
-            if (owner && index_space_node->set_domain(*domain)) 
+            if (owner && index_space_node->set_domain(*domain,
+                  ApEvent::NO_AP_EVENT, true/*take ownership*/))
               delete index_space_node;
             break;      
           }
@@ -13434,8 +13433,9 @@ namespace Legion {
       if (!launch_space.exists())
       {
         if (!launch_domain.exists())
-          compute_launch_space(launcher);
-        launch_space = ctx->find_index_launch_space(launch_domain, provenance);
+          launch_space = compute_launch_space(launcher, provenance);
+        else
+          launch_space = ctx->find_index_launch_space(launch_domain,provenance);
       }
       if (!launch_domain.exists())
       {
@@ -14072,7 +14072,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::compute_launch_space(const MustEpochLauncher &launcher)
+    IndexSpace MustEpochOp::compute_launch_space(
+                      const MustEpochLauncher &launcher, Provenance *provenance)
     //--------------------------------------------------------------------------
     {
       const size_t single_tasks = launcher.single_tasks.size();
@@ -14134,6 +14135,8 @@ namespace Legion {
             default:
               assert(false);
           }
+          return parent_ctx->find_index_launch_space(launch_domain,
+              provenance, true/*take ownership*/);
         }
         else // Easy case of a single index task
         {
@@ -14141,6 +14144,7 @@ namespace Legion {
           if (!launch_domain.exists())
             runtime->find_domain(
                 launcher.index_tasks[0].launch_space, launch_domain);
+          return parent_ctx->find_index_launch_space(launch_domain, provenance);
         }
       }
       else
@@ -14170,11 +14174,14 @@ namespace Legion {
             default:
               assert(false);
           }
+          return parent_ctx->find_index_launch_space(launch_domain,
+              provenance, true/*take ownership*/);
         }
         else // Easy case of a single point task
         {
           DomainPoint point = launcher.single_tasks[0].point;
           launch_domain = Domain(point, point);
+          return parent_ctx->find_index_launch_space(launch_domain, provenance);
         }
       }
     }
@@ -15665,10 +15672,9 @@ namespace Legion {
         // Need to get the launch domain in case it is different than
         // the original index domain due to control replication
         IndexSpaceNode *local_points = get_shard_points();
-        Domain launch_domain;
-        local_points->get_domain(launch_domain);
+        Domain launch_domain = local_points->get_tight_domain();
         // Now enumerate the points and kick them off
-        size_t num_points = launch_domain.get_volume();
+        size_t num_points = local_points->get_volume();
 #ifdef DEBUG_LEGION
         assert(num_points > 0);
 #endif
@@ -15798,7 +15804,8 @@ namespace Legion {
 #endif
       IndexSpaceNode *node = runtime->get_node(handle);
       Domain domain;
-      ApEvent domain_ready = node->get_domain(domain, false/*need tight*/);
+      ApUserEvent to_trigger;
+      ApEvent domain_ready = node->get_loose_domain(domain, to_trigger);
       if (is_index_space)
       {
         // Update our data structure and see if we are the ones
@@ -15831,6 +15838,8 @@ namespace Legion {
               Runtime::merge_events(&info, index_preconditions), instances);
           Runtime::trigger_event(&info, intermediate_index_event, done_event);
         }
+        if (to_trigger.exists())
+          Runtime::trigger_event(NULL, to_trigger, intermediate_index_event);
         return intermediate_index_event;
       }
       else
@@ -15854,8 +15863,10 @@ namespace Legion {
           else
             instances_ready = domain_ready;
         }
-        return thunk->perform(this, fid,
-                              instances_ready, instances);
+        ApEvent result = thunk->perform(this, fid, instances_ready, instances);
+        if (to_trigger.exists())
+          Runtime::trigger_event(NULL, to_trigger, result);
+        return result;
       }
     }
 
@@ -17547,7 +17558,7 @@ namespace Legion {
       launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
       if (!launcher.launch_domain.exists())
-        launch_space->get_domain(index_domain);
+        index_domain = launch_space->get_tight_domain();
       else
         index_domain = launcher.launch_domain;
       sharding_space = launcher.sharding_space;
@@ -17794,10 +17805,9 @@ namespace Legion {
       // Need to get the launch domain in case it is different than
       // the original index domain due to control replication
       IndexSpaceNode *local_points = get_shard_points();
-      Domain launch_domain;
-      local_points->get_domain(launch_domain);
+      Domain launch_domain = local_points->get_tight_domain();
       // Now enumerate the points
-      size_t num_points = launch_domain.get_volume();
+      size_t num_points = local_points->get_volume();
 #ifdef DEBUG_LEGION
       assert(num_points > 0);
 #endif
