@@ -991,6 +991,8 @@ namespace Legion {
       SEND_LIBRARY_PROJECTION_RESPONSE,
       SEND_LIBRARY_SHARDING_REQUEST,
       SEND_LIBRARY_SHARDING_RESPONSE,
+      SEND_LIBRARY_CONCURRENT_REQUEST,
+      SEND_LIBRARY_CONCURRENT_RESPONSE,
       SEND_LIBRARY_TASK_REQUEST,
       SEND_LIBRARY_TASK_RESPONSE,
       SEND_LIBRARY_REDOP_REQUEST,
@@ -1323,6 +1325,8 @@ namespace Legion {
         "Send Library Projection Response",                           \
         "Send Library Sharding Request",                              \
         "Send Library Sharding Response",                             \
+        "Send Library Concurrent Request",                            \
+        "Send Library Concurrent Response",                           \
         "Send Library Task Request",                                  \
         "Send Library Task Response",                                 \
         "Send Library Redop Request",                                 \
@@ -2617,6 +2621,7 @@ namespace Legion {
     class ShardRendezvous;
     class ProjectionTreeExchange;
     class TimeoutMatchExchange;
+    class ConcurrentAllreduce;
 
     // This is the pointer to the runtime singleton
     extern Runtime *runtime;
@@ -2866,6 +2871,7 @@ namespace Legion {
   typedef ::legion_type_handle TypeHandle;
   typedef ::legion_projection_id_t ProjectionID;
   typedef ::legion_sharding_id_t ShardingID;
+  typedef ::legion_concurrent_id_t ConcurrentID;
   typedef ::legion_region_tree_id_t RegionTreeID;
   typedef ::legion_distributed_id_t DistributedID;
   typedef ::legion_distributed_id_t IndexSpaceID;
