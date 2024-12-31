@@ -95,7 +95,7 @@ namespace Legion {
           void (*freefunc)(const Realm::ExternalInstanceResource&),
           Provenance *provenance, bool shard_local);
       virtual Future consensus_match(const void *input, void *output,
-          size_t num_elements, size_t element_size, Provenance *provenance);
+          size_t num_elements, size_t element_size, Provenance *provenance); 
     public:
       virtual VariantID register_variant(const TaskVariantRegistrar &registrar,
                           const void *user_data, size_t user_data_size,
@@ -517,7 +517,8 @@ namespace Legion {
         Provenance *provenance) = 0;
       virtual void end_trace(TraceID tid, bool deprecated,
                              Provenance *provenance) = 0;
-      virtual void record_blocking_call(uint64_t future_coordinate) = 0;
+      virtual void record_blocking_call(uint64_t future_coordinate,
+                                        bool invalidate_trace = true) = 0;
       virtual void wait_on_future(FutureImpl *future, RtEvent ready) = 0;
       virtual void wait_on_future_map(FutureMapImpl *map, RtEvent ready) = 0;
     public:
@@ -984,11 +985,12 @@ namespace Legion {
       };
       typedef CollectiveViewCreatorBase::CollectiveResult CollectiveResult; 
     public:
-      InnerContext(SingleTask *owner, int depth, 
+      InnerContext(const Mapper::ContextConfigOutput &config,
+                   SingleTask *owner, int depth, 
                    bool full_inner, const std::vector<RegionRequirement> &reqs,
                    const std::vector<OutputRequirement> &output_reqs,
                    const std::vector<unsigned> &parent_indexes,
-                   const std::vector<bool> &virt_mapped,
+                   const std::vector<bool> &virt_mapped, TaskPriority priority,
                    ApEvent execution_fence, DistributedID did = 0,
                    bool inline_task = false, bool implicit_task = false,
                    bool concurrent_task = false,
@@ -1607,6 +1609,8 @@ namespace Legion {
       virtual void insert_unordered_ops(AutoLock &d_lock);
       void issue_unordered_operations(AutoLock &d_lock, 
                 std::vector<Operation*> &ready_operations);
+      virtual unsigned minimize_repeat_results(unsigned ready,
+                                               bool &double_wait_interval);
     public:
       void add_to_prepipeline_queue(Operation *op);
       bool process_prepipeline_stage(void);
@@ -1692,7 +1696,8 @@ namespace Legion {
           Provenance *provenance);
       virtual void end_trace(TraceID tid, bool deprecated,
                              Provenance *provenance);
-      virtual void record_blocking_call(uint64_t future_coordinate);
+      virtual void record_blocking_call(uint64_t future_coordinate,
+                                        bool invalidate_trace = true);
       virtual void wait_on_future(FutureImpl *future, RtEvent ready);
       virtual void wait_on_future_map(FutureMapImpl *map, RtEvent ready);
     public:
@@ -1723,7 +1728,6 @@ namespace Legion {
       // Override by RemoteTask and TopLevelTask
       virtual InnerContext* find_top_context(InnerContext *previous = NULL);
     public:
-      void configure_context(MapperManager *mapper, TaskPriority priority);
       virtual void initialize_region_tree_contexts(
           const std::vector<RegionRequirement> &clone_requirements,
           const LegionVector<VersionInfo> &version_infos,
@@ -1967,7 +1971,7 @@ namespace Legion {
       // Pending computations for equivalence set trees
       std::map<unsigned,RtUserEvent>            pending_equivalence_set_trees;
     protected:
-      Mapper::ContextConfigOutput           context_configuration;
+      const Mapper::ContextConfigOutput     context_configuration;
       TaskTreeCoordinates                   context_coordinates;
     protected:
       // TODO: In the future convert these into std::span so that they
@@ -2146,7 +2150,7 @@ namespace Legion {
       mutable LocalLock                                 collective_lock;
       // Only valid on the onwer context node
       std::map<RegionTreeID,
-               std::vector<CollectiveResult*> >         collective_results;
+               std::vector<CollectiveResult*> >         collective_results; 
     };
 
     /**
@@ -2168,6 +2172,8 @@ namespace Legion {
       virtual ~TopLevelContext(void);
     public:
       TopLevelContext& operator=(const TopLevelContext &rhs) = delete;
+    public:
+      static Mapper::ContextConfigOutput configure_toplevel_context(void);
     public:
       virtual void pack_remote_context(Serializer &rez, 
           AddressSpaceID target, bool replicate = false);
@@ -2475,12 +2481,13 @@ namespace Legion {
         const bool verify_every_call;
       };
     public:
-      ReplicateContext(ShardTask *owner,int d,bool full_inner,
+      ReplicateContext(const Mapper::ContextConfigOutput &config,
+                       ShardTask *owner,int d,bool full_inner,
                        const std::vector<RegionRequirement> &reqs,
                        const std::vector<OutputRequirement> &output_reqs,
                        const std::vector<unsigned> &parent_indexes,
                        const std::vector<bool> &virt_mapped,
-                       ApEvent execution_fence_event,
+                       TaskPriority priority, ApEvent execution_fence_event,
                        ShardManager *manager, bool inline_task, 
                        bool implicit_task = false, bool concurrent = false);
       ReplicateContext(const ReplicateContext &rhs) = delete;
@@ -2914,6 +2921,8 @@ namespace Legion {
       void finalize_unordered_collective(AutoLock &d_lock);
       virtual void insert_unordered_ops(AutoLock &d_lock);
       virtual void progress_unordered_operations(bool end_task = false);
+      virtual unsigned minimize_repeat_results(unsigned ready,
+                                               bool &double_wait_interval);
       virtual Future execute_task(const TaskLauncher &launcher,
                                   std::vector<OutputRequirement> *outputs,
                                   Provenance *provenance);
@@ -3442,6 +3451,11 @@ namespace Legion {
       unsigned unordered_ops_counter;
       unsigned unordered_ops_epoch;
       UnorderedExchange *unordered_collective;
+    protected:
+      // Collective for auto-tracing to determine the number of minimum
+      // number of repeat jobs that are ready across all the shards
+      AllReduceCollective<
+        MinReduction<unsigned>,false> *minimize_repeats_collective;
     };
 
     /**
@@ -3491,6 +3505,8 @@ namespace Legion {
       virtual ~RemoteContext(void);
     public:
       RemoteContext& operator=(const RemoteContext &rhs) = delete;
+    public:
+      static Mapper::ContextConfigOutput configure_remote_context(void);
     public:
       virtual Task* get_task(void);
       virtual UniqueID get_unique_id(void) const;
@@ -4005,7 +4021,8 @@ namespace Legion {
           Provenance *provenance);
       virtual void end_trace(TraceID tid, bool deprecated,
                              Provenance *provenance);
-      virtual void record_blocking_call(uint64_t future_coordinate);
+      virtual void record_blocking_call(uint64_t future_coordinate,
+                                        bool invalidate_trace = true);
       virtual void wait_on_future(FutureImpl *future, RtEvent ready);
       virtual void wait_on_future_map(FutureMapImpl *map, RtEvent ready);
     public:

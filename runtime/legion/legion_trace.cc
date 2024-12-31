@@ -1216,6 +1216,14 @@ namespace Legion {
       TraceOp::trigger_mapping();
     }
 
+    //--------------------------------------------------------------------------
+    bool TraceCompleteOp::record_trace_hash(TraceRecognizer &recognizer, 
+                                            uint64_t opidx)
+    //--------------------------------------------------------------------------
+    {
+      return false;
+    }
+
 #if 0
     /////////////////////////////////////////////////////////////
     // TraceReplayOp
@@ -1476,6 +1484,14 @@ namespace Legion {
       return new PhysicalTemplate(physical, get_completion_event());
     }
 
+    //--------------------------------------------------------------------------
+    bool TraceBeginOp::record_trace_hash(TraceRecognizer &recognizer, 
+                                         uint64_t opidx)
+    //--------------------------------------------------------------------------
+    {
+      return false;
+    }
+
     /////////////////////////////////////////////////////////////
     // TraceRecurrentOp
     /////////////////////////////////////////////////////////////
@@ -1630,6 +1646,14 @@ namespace Legion {
       if (remove_trace_reference && previous->remove_reference())
         delete previous;
       TraceOp::trigger_mapping();
+    }
+
+    //--------------------------------------------------------------------------
+    bool TraceRecurrentOp::record_trace_hash(TraceRecognizer &recognizer, 
+                                             uint64_t opidx)
+    //--------------------------------------------------------------------------
+    {
+      return false;
     }
 
     //--------------------------------------------------------------------------
@@ -2019,12 +2043,12 @@ namespace Legion {
         bool has_blocking_call, bool has_intermediate_fence)
     //--------------------------------------------------------------------------
     {
-#ifdef DEBUG_LEGION
-      assert(current_template != NULL);
-#endif
       PhysicalTemplate *non_idempotent_template = NULL;
       if (recording)
       {
+#ifdef DEBUG_LEGION
+        assert(current_template != NULL);
+#endif
         // Complete the recording. If we recorded a replayable template
         // and it is idempotent then we can replay it right away
         if (complete_recording(op, map_applied_conditions,
@@ -4841,8 +4865,12 @@ namespace Legion {
       op->end_replayable_exchange(replayable);
       if (is_replayable())
       {
+        // The user can't ask for both no transitive reduction and inlining
+        // of the transitive reduction.
+        assert(!(runtime->no_transitive_reduction &&
+                 runtime->inline_transitive_reduction));
         // Optimize will sync the idempotency computation
-        optimize(op, false/*do transitive reduction inline*/);
+        optimize(op, runtime->inline_transitive_reduction);
         std::fill(events.begin(), events.end(), ApEvent::NO_AP_EVENT);
         event_map.clear();
         // Defer performing the transitive reduction because it might
@@ -4851,7 +4879,8 @@ namespace Legion {
         // optimizations are done so that they don't race on mutating
         // the instruction and event data structures
         if (!runtime->no_trace_optimization &&
-            !runtime->no_transitive_reduction)
+            !runtime->no_transitive_reduction &&
+            !runtime->inline_transitive_reduction)
         {
           TransitiveReductionState *state = 
             new TransitiveReductionState(Runtime::create_rt_user_event());

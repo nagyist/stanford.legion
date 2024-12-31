@@ -348,6 +348,7 @@ namespace Legion {
       virtual OpKind get_operation_kind(void) const;
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_mapping(void); 
+      virtual bool record_trace_hash(TraceRecognizer &identifier, uint64_t idx);
     protected:
       virtual FenceOp* get_complete_operation(void) { return this; }
     protected:
@@ -426,6 +427,7 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
+      virtual bool record_trace_hash(TraceRecognizer &identifier, uint64_t idx);
     public:
       virtual ApEvent get_begin_completion(void) 
         { return get_completion_event(); }
@@ -466,6 +468,7 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
+      virtual bool record_trace_hash(TraceRecognizer &identifier, uint64_t idx);
     public:
       virtual FenceOp* get_begin_operation(void) { return this; }
       virtual ApEvent get_begin_completion(void) 
