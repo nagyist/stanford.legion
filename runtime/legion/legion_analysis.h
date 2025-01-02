@@ -244,12 +244,14 @@ namespace Legion {
       virtual void pack_recorder(Serializer &rez) = 0;
     public:
       virtual void record_replay_mapping(ApEvent lhs, unsigned op_kind,
-                           const TraceLocalID &tlid, bool register_memo) = 0;
+                           const TraceLocalID &tlid, bool register_memo,
+                           std::set<RtEvent> &applied_events) = 0;
       virtual void request_term_event(ApUserEvent &term_event) = 0;
       virtual void record_create_ap_user_event(ApUserEvent &lhs, 
                                                const TraceLocalID &tlid) = 0;
       virtual void record_trigger_event(ApUserEvent lhs, ApEvent rhs,
-                                        const TraceLocalID &tlid) = 0;
+                                        const TraceLocalID &tlid,
+                                        std::set<RtEvent> &applied) = 0;
     public:
       virtual void record_merge_events(ApEvent &lhs, ApEvent rhs,
                                        const TraceLocalID &tlid) = 0;
@@ -389,8 +391,7 @@ namespace Legion {
     public:
       RemoteTraceRecorder(AddressSpaceID origin,
                           const TraceLocalID &tlid, PhysicalTemplate *tpl, 
-                          DistributedID repl_did, TraceID tid,
-                          std::set<RtEvent> &applied_events);
+                          DistributedID repl_did, TraceID tid);
       RemoteTraceRecorder(const RemoteTraceRecorder &rhs) = delete;
       virtual ~RemoteTraceRecorder(void);
     public:
@@ -402,12 +403,14 @@ namespace Legion {
       virtual void pack_recorder(Serializer &rez); 
     public:
       virtual void record_replay_mapping(ApEvent lhs, unsigned op_kind,
-                           const TraceLocalID &tlid, bool register_memo);
+                           const TraceLocalID &tlid, bool register_memo,
+                           std::set<RtEvent> &applied_events);
       virtual void request_term_event(ApUserEvent &term_event);
       virtual void record_create_ap_user_event(ApUserEvent &hs, 
                                                const TraceLocalID &tlid);
       virtual void record_trigger_event(ApUserEvent lhs, ApEvent rhs,
-                                        const TraceLocalID &tlid);
+                                        const TraceLocalID &tlid,
+                                        std::set<RtEvent> &applied);
     public:
       virtual void record_merge_events(ApEvent &lhs, ApEvent rhs,
                                        const TraceLocalID &tlid);
@@ -512,7 +515,7 @@ namespace Legion {
           const std::vector<Memory> &target_memories, size_t future_size);
     public:
       static PhysicalTraceRecorder* unpack_remote_recorder(Deserializer &derez,
-          const TraceLocalID &tlid, std::set<RtEvent> &applied_events);
+          const TraceLocalID &tlid);
       static void handle_remote_update(Deserializer &derez, 
                                        AddressSpaceID source);
       static void handle_remote_response(Deserializer &derez);
@@ -524,9 +527,6 @@ namespace Legion {
       PhysicalTemplate *const remote_tpl;
       const DistributedID repl_did;
       const TraceID trace_id;
-    protected:
-      mutable LocalLock applied_lock;
-      std::set<RtEvent> &applied_events;
     };
 
     /**
@@ -544,10 +544,11 @@ namespace Legion {
                 const TraceLocalID &tlid);
     public:
       inline void record_replay_mapping(ApEvent lhs, unsigned op_kind,
-                                        bool register_memo) const
+          bool register_memo, std::set<RtEvent> &applied_events) const
         {
           base_sanity_check();
-          rec->record_replay_mapping(lhs, op_kind, tlid, register_memo);
+          rec->record_replay_mapping(lhs, op_kind, tlid, register_memo,
+                                     applied_events);
         }
       inline void request_term_event(ApUserEvent &term_event) const
         {
@@ -559,10 +560,11 @@ namespace Legion {
           base_sanity_check();
           rec->record_create_ap_user_event(result, tlid);
         }
-      inline void record_trigger_event(ApUserEvent result, ApEvent rhs) const
+      inline void record_trigger_event(ApUserEvent result, ApEvent rhs,
+          std::set<RtEvent> &applied_events) const
         {
           base_sanity_check();
-          rec->record_trigger_event(result, rhs, tlid);
+          rec->record_trigger_event(result, rhs, tlid, applied_events);
         }
       inline void record_merge_events(PredEvent &result,
                                       PredEvent e1, PredEvent e2) const
@@ -799,8 +801,7 @@ namespace Legion {
                           std::set<RtEvent> &applied) const;
     public:
       void pack_trace_info(Serializer &rez) const;
-      static PhysicalTraceInfo unpack_trace_info(Deserializer &derez,
-          std::set<RtEvent> &applied_events);
+      static PhysicalTraceInfo unpack_trace_info(Deserializer &derez);
     private:
       inline void sanity_check(void) const
         {
@@ -2320,8 +2321,7 @@ namespace Legion {
     public:
       RemoteCollectiveAnalysis(size_t ctx_index, unsigned req_index,
                                IndexSpaceID match_space, RemoteOp *op,
-                               Deserializer &derez,
-                               std::set<RtEvent> &applied_events);
+                               Deserializer &derez);
       virtual ~RemoteCollectiveAnalysis(void);
       virtual size_t get_context_index(void) const { return context_index; }
       virtual unsigned get_requirement_index(void) const
@@ -2333,8 +2333,7 @@ namespace Legion {
       virtual void add_analysis_reference(void) { add_reference(); }
       virtual bool remove_analysis_reference(void) 
         { return remove_reference(); }
-      static RemoteCollectiveAnalysis* unpack(Deserializer &derez,
-          std::set<RtEvent> &applied_events);
+      static RemoteCollectiveAnalysis* unpack(Deserializer &derez);
     public:
       const size_t context_index;
       const unsigned requirement_index;

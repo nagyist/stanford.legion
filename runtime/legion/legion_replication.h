@@ -919,8 +919,8 @@ namespace Legion {
      */
     class MustEpochDependenceExchange : public AllGatherCollective<false> {
     public:
-      MustEpochDependenceExchange(ReplicateContext *ctx, 
-                                  CollectiveIndexLocation loc);
+      MustEpochDependenceExchange(CollectiveID id, ReplicateContext *ctx, 
+          std::map<DomainPoint,RtUserEvent> &mapped_events);
       MustEpochDependenceExchange(
           const MustEpochDependenceExchange &rhs) = delete;
       virtual ~MustEpochDependenceExchange(void);
@@ -933,11 +933,8 @@ namespace Legion {
       virtual void pack_collective_stage(ShardID target,
                                          Serializer &rez, int stage);
       virtual void unpack_collective_stage(Deserializer &derez, int stage);
-    public:
-      void exchange_must_epoch_dependences(
-                            std::map<DomainPoint,RtUserEvent> &mapped_events);
     protected:
-      std::map<DomainPoint,RtUserEvent> mapping_dependences;
+      std::map<DomainPoint,RtUserEvent> &mapped_events;
     };
 
     /**
@@ -947,8 +944,9 @@ namespace Legion {
      */
     class MustEpochCompletionExchange : public AllGatherCollective<false> {
     public:
-      MustEpochCompletionExchange(ReplicateContext *ctx,
-                                  CollectiveIndexLocation loc);
+      MustEpochCompletionExchange(CollectiveID id, ReplicateContext *ctx,
+          std::vector<RtEvent> &local_mapped_events,
+          std::vector<ApEvent> &local_completion_events);
       MustEpochCompletionExchange(
           const MustEpochCompletionExchange &rhs) = delete;
       virtual ~MustEpochCompletionExchange(void);
@@ -962,12 +960,10 @@ namespace Legion {
                                          Serializer &rez, int stage);
       virtual void unpack_collective_stage(Deserializer &derez, int stage);
     public:
-      void exchange_must_epoch_completion(RtEvent mapped, ApEvent complete,
-                                          std::set<RtEvent> &tasks_mapped,
-                                          std::set<ApEvent> &tasks_complete);
+      RtEvent finish_exchange(ReplMustEpochOp *op);
     protected:
-      std::set<RtEvent> tasks_mapped;
-      std::set<ApEvent> tasks_complete;
+      std::vector<RtEvent> &local_mapped_events;
+      std::vector<ApEvent> &local_complete_events;
     }; 
 
     /**
@@ -1530,8 +1526,11 @@ namespace Legion {
      */
     class ConcurrentAllreduce : public AllGatherCollective<false> {
     public:
-      ConcurrentAllreduce(ReplicateContext *ctx, CollectiveID id,
-                          Color color, MultiTask::ConcurrentGroup &group);
+      // For ReplIndexTask
+      ConcurrentAllreduce(ReplicateContext *ctx, CollectiveID id, Color color,
+          const std::vector<ShardID> &shards);
+      // For ReplMustEpochOp
+      ConcurrentAllreduce(CollectiveIndexLocation loc, ReplicateContext *ctx);
       ConcurrentAllreduce(const ConcurrentAllreduce &rhs) = delete;
       virtual ~ConcurrentAllreduce(void);
     public:
@@ -1542,11 +1541,23 @@ namespace Legion {
       virtual void pack_collective_stage(ShardID target,
                                          Serializer &rez, int stage);
       virtual void unpack_collective_stage(Deserializer &derez, int stage);
+      // for ReplIndextask
+      void perform_concurrent_allreduce(MultiTask::ConcurrentGroup &group);
+      // for ReplMustEpochOp
+      void perform_concurrent_allreduce(
+          std::vector<std::pair<IndividualTask*,AddressSpaceID> > &single_tasks,
+          std::vector<std::pair<SliceTask*,AddressSpace> > &slice_tasks,
+          uint64_t lamport_clock, bool poisoned);
     protected:
       virtual RtEvent post_complete_exchange(void);
     protected:
       const Color color;
-      MultiTask::ConcurrentGroup &group;
+      std::vector<std::pair<IndividualTask*,AddressSpaceID> > single_tasks;
+      std::vector<std::pair<SliceTask*,AddressSpace> > slice_tasks;
+      RtBarrier task_barrier;
+      uint64_t lamport_clock;
+      VariantID variant;
+      bool poisoned;
     };
 
     /**
@@ -2551,8 +2562,7 @@ namespace Legion {
       virtual void instantiate_tasks(InnerContext *ctx,
                                      const MustEpochLauncher &launcher);
       virtual MapperManager* invoke_mapper(void);
-      virtual void map_and_distribute(std::set<RtEvent> &tasks_mapped,
-                                      std::set<ApEvent> &tasks_complete);
+      virtual RtEvent map_and_distribute(void);
       virtual bool has_prepipeline_stage(void) const { return true; }
       virtual void trigger_prepipeline_stage(void);
       virtual void receive_resources(uint64_t return_index,
@@ -2569,12 +2579,13 @@ namespace Legion {
               std::vector<DeletedPartition> &deleted_partitions,
               std::set<RtEvent> &preconditions);
     public:
-      void map_replicate_tasks(void);
-      void distribute_replicate_tasks(void);
+      virtual uint64_t collective_lamport_allreduce(
+          uint64_t lamport_clock, bool need_result);
+      virtual void finalize_concurrent_mapped(void);
+      virtual void finish_concurrent_allreduce(void);
     public:
       void initialize_replication(ReplicateContext *ctx);
       Domain get_shard_domain(void) const;
-      size_t count_shard_local_points(IndexSpaceNode *launch_domain);
     public:
       bool has_return_resources(void) const;
       static void handle_defer_return_resources(const void *args);
@@ -2585,9 +2596,13 @@ namespace Legion {
       bool collective_map_must_epoch_call;
       MustEpochMappingBroadcast *mapping_broadcast;
       MustEpochMappingExchange *mapping_exchange;
-      MustEpochDependenceExchange *dependence_exchange;
-      MustEpochCompletionExchange *completion_exchange;
+      CollectiveID collective_exchange_id;
+      AllReduceCollective<MaxReduction<uint64_t>,false> *collective_exchange;
+      ConcurrentAllreduce *concurrent_exchange;
+      CollectiveID dependence_exchange_id;
+      CollectiveID completion_exchange_id;
       std::set<SingleTask*> shard_single_tasks;
+      RtBarrier concurrent_mapped_barrier;
       RtBarrier resource_return_barrier;
 #ifdef DEBUG_LEGION
     public:

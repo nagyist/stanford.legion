@@ -1492,7 +1492,7 @@ namespace Legion {
                        const std::vector<CopySrcDstField> &dst_fields,
                        PhysicalManager *manager, ApEvent precondition,
                        PredEvent pred_guard, CollectiveKind collective,
-                       bool fill_restrict);
+                       bool fill_restrict, std::set<RtEvent> &applied);
       public:
         FillView *const view;
         Operation *const op;
@@ -1503,6 +1503,7 @@ namespace Legion {
         const ApEvent precondition;
         const PredEvent pred_guard;
         const CollectiveKind collective;
+        const RtUserEvent applied;
         const ApUserEvent done;
         const bool fill_restricted;
       };

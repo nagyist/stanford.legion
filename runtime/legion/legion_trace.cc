@@ -7235,7 +7235,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PhysicalTemplate::record_replay_mapping(ApEvent lhs,
-                 unsigned op_kind, const TraceLocalID &tlid, bool register_memo)
+                 unsigned op_kind, const TraceLocalID &tlid, bool register_memo,
+                 std::set<RtEvent> &applied_events)
     //--------------------------------------------------------------------------
     {
       AutoLock tpl_lock(template_lock);
@@ -7279,7 +7280,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PhysicalTemplate::record_trigger_event(ApUserEvent lhs, ApEvent rhs,
-                                                const TraceLocalID &tlid)
+        const TraceLocalID &tlid, std::set<RtEvent> &applied)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -7371,7 +7372,7 @@ namespace Legion {
       if (!lhs.exists() || (rhs.find(lhs) != rhs.end()))
       {
         ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-        Runtime::trigger_event(NULL, rename, lhs);
+        Runtime::trigger_event_untraced(rename, lhs);
         lhs = rename;
       }
 #endif
@@ -7555,7 +7556,7 @@ namespace Legion {
       if (!lhs.exists())
       {
         ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-        Runtime::trigger_event(NULL, rename);
+        Runtime::trigger_event_untraced(rename);
         lhs = rename;
       }
 
@@ -7588,7 +7589,7 @@ namespace Legion {
       if (!lhs.exists())
       {
         ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-        Runtime::trigger_event(NULL, rename);
+        Runtime::trigger_event_untraced(rename);
         lhs = rename;
       }
 
@@ -7784,7 +7785,7 @@ namespace Legion {
     {
       // Always make a fresh event here for these
       ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-      Runtime::trigger_event(NULL, rename, lhs);
+      Runtime::trigger_event_untraced(rename, lhs);
       lhs = rename;
       AutoLock tpl_lock(template_lock);
 #ifdef DEBUG_LEGION
@@ -8303,7 +8304,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ShardedPhysicalTemplate::record_trigger_event(ApUserEvent lhs,
-                                          ApEvent rhs, const TraceLocalID &tlid)
+        ApEvent rhs, const TraceLocalID &tlid, std::set<RtEvent> &applied)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -8316,7 +8317,7 @@ namespace Legion {
       RtEvent done = repl_ctx->shard_manager->send_trace_event_trigger(
           trace->logical_trace->tid, event_space, lhs, rhs, tlid);
       if (done.exists())
-        done.wait();
+        applied.insert(done);
     }
 
     //--------------------------------------------------------------------------
@@ -8422,14 +8423,14 @@ namespace Legion {
       if (event_space != runtime->address_space)
       {
         ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-        Runtime::trigger_event(NULL, rename, lhs);
+        Runtime::trigger_event_untraced(rename, lhs);
         lhs = rename;
       }
 #ifndef LEGION_DISABLE_EVENT_PRUNING
       else if (!lhs.exists() || (rhs.find(lhs) != rhs.end()))
       {
         ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-        Runtime::trigger_event(NULL, rename, lhs);
+        Runtime::trigger_event_untraced(rename, lhs);
         lhs = rename;
       }
 #endif
@@ -8515,14 +8516,14 @@ namespace Legion {
       if (event_space != runtime->address_space)
       {
         ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-        Runtime::trigger_event(NULL, rename, lhs);
+        Runtime::trigger_event_untraced(rename, lhs);
         lhs = rename;
       }
 #ifndef LEGION_DISABLE_EVENT_PRUNING
       else if (!lhs.exists())
       {
         ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-        Runtime::trigger_event(NULL, rename);
+        Runtime::trigger_event_untraced(rename);
         lhs = rename;
       }
       else
@@ -8532,7 +8533,7 @@ namespace Legion {
           if (lhs != rhs[idx])
             continue;
           ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-          Runtime::trigger_event(NULL, rename, lhs);
+          Runtime::trigger_event_untraced(rename, lhs);
           lhs = rename;
           break;
         }
@@ -8710,7 +8711,7 @@ namespace Legion {
         if (event_space != runtime->address_space)
         {
           ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-          Runtime::trigger_event(NULL, rename, lhs);
+          Runtime::trigger_event_untraced(rename, lhs);
           lhs = rename;
         }
       }
@@ -8746,7 +8747,7 @@ namespace Legion {
         if (event_space != runtime->address_space)
         {
           ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-          Runtime::trigger_event(NULL, rename, lhs);
+          Runtime::trigger_event_untraced(rename, lhs);
           lhs = rename;
         }
       }
@@ -8778,7 +8779,7 @@ namespace Legion {
         if (event_space != runtime->address_space)
         {
           ApUserEvent rename = Runtime::create_ap_user_event(NULL);
-          Runtime::trigger_event(NULL, rename, lhs);
+          Runtime::trigger_event_untraced(rename, lhs);
           lhs = rename;
         }
       }
@@ -10365,7 +10366,7 @@ namespace Legion {
       assert(user_events[lhs].exists());
       assert(events[lhs].id == user_events[lhs].id);
 #endif
-      Runtime::trigger_event(NULL, user_events[lhs], events[rhs]);
+      Runtime::trigger_event_untraced(user_events[lhs], events[rhs]);
     }
 
     //--------------------------------------------------------------------------
