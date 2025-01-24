@@ -1747,6 +1747,7 @@ namespace Legion {
                                 const std::vector<PhysicalManager*> &instances);
       static void handle_notify_collected_instances(Deserializer &derez);
     public:
+      size_t compute_future_alignment(size_t size) const;
       FutureInstance* create_future_instance(UniqueID creator_id, 
           const TaskTreeCoordinates &coordinates, size_t size,
           RtEvent *safe_for_unbounded_pools);

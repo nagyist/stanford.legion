@@ -11016,7 +11016,7 @@ namespace Legion {
         if (refinement_node->is_region())
         {
           RegionNode *root = refinement_node->as_region_node();
-          LegionSpy::log_logical_requirement(unique_op_id, creator_req_idx,
+          LegionSpy::log_logical_requirement(unique_op_id, 0/*idx*/,
                                         true/*region*/,
                                         root->handle.index_space.get_id(),
                                         root->handle.field_space.get_id(),
@@ -11027,7 +11027,7 @@ namespace Legion {
         else
         {
           PartitionNode *root = refinement_node->as_partition_node();
-          LegionSpy::log_logical_requirement(unique_op_id, creator_req_idx,
+          LegionSpy::log_logical_requirement(unique_op_id, 0/*idx*/,
                                         false/*region*/,
                                         root->handle.index_partition.get_id(),
                                         root->handle.field_space.get_id(),
@@ -11055,7 +11055,7 @@ namespace Legion {
       {
         std::set<FieldID> fields;
         refinement_node->column_source->get_field_set(mask, parent_ctx, fields);
-        LegionSpy::log_requirement_fields(unique_op_id, creator_req_idx,fields);
+        LegionSpy::log_requirement_fields(unique_op_id, 0/*idx*/, fields);
       }
     }
 
