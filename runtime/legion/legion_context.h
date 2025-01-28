@@ -117,6 +117,9 @@ namespace Legion {
           const void *arg2 = NULL, size_t arg2len = 0);
       virtual void post_semantic_attach(void);
     public:
+      virtual RtEvent find_pointwise_dependence(uint64_t context_index,
+          const DomainPoint &point, ShardID shard,
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT) = 0;
       virtual void return_resources(ResourceTracker *target,
                                     uint64_t return_index,
                                     std::set<RtEvent> &preconditions) = 0;
@@ -1733,6 +1736,12 @@ namespace Legion {
                                   std::vector<LogicalUser*> &to_delete,
                                   TimeoutMatchExchange *&exchange);
     public:
+      virtual std::pair<bool,bool> has_pointwise_dominance(
+          ProjectionSummary *one, ProjectionSummary *two);
+      virtual RtEvent find_pointwise_dependence(uint64_t context_index,
+          const DomainPoint &point, ShardID shard,
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+    public:
       void record_fill_view_creation(FillView *view);
       void record_fill_view_creation(DistributedID future_did, FillView *view);
       FillView* find_or_create_fill_view(FillOp *op, 
@@ -2061,6 +2070,9 @@ namespace Legion {
     protected:
       // Our cached set of index spaces for immediate domains
       std::map<Domain,IndexSpace> index_launch_spaces;
+    protected:
+      std::map<uint64_t,
+        std::map<DomainPoint,RtUserEvent> > pending_pointwise_dependences;
     protected:
       // Dependence tracking information for phase barriers
       mutable LocalLock                                   phase_barrier_lock;
@@ -2979,6 +2991,12 @@ namespace Legion {
                                   std::vector<LogicalUser*> &to_delete,
                                   TimeoutMatchExchange *&exchange);
     public:
+      virtual std::pair<bool,bool> has_pointwise_dominance(
+          ProjectionSummary *one, ProjectionSummary *two);
+      virtual RtEvent find_pointwise_dependence(uint64_t context_index,
+          const DomainPoint &point, ShardID shard,
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+    public:
       virtual Lock create_lock(void);
       virtual void destroy_lock(Lock l);
       virtual Grant acquire_grant(const std::vector<LockRequest> &requests);
@@ -3467,6 +3485,7 @@ namespace Legion {
       virtual UniqueID get_unique_id(void) const;
       virtual ShardID get_shard_id(void) const { return shard_id; }
       virtual DistributedID get_replication_id(void) const { return repl_id; }
+      virtual size_t get_total_shards(void) const { return total_shards; }
       void unpack_remote_context(Deserializer &derez);
       virtual InnerContext* find_parent_context(void);
     public:
@@ -3491,6 +3510,9 @@ namespace Legion {
                                        std::vector<RtEvent> &applied_events,
                                        bool sharded = false, bool first = true,
                                        const CollectiveMapping *mapping = NULL);
+      virtual RtEvent find_pointwise_dependence(uint64_t context_index,
+          const DomainPoint &point, ShardID shard,
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
       virtual void find_trace_local_sets(unsigned req_index,
                             const FieldMask &mask,
                             std::map<EquivalenceSet*,unsigned> &current_sets,
@@ -3525,6 +3547,7 @@ namespace Legion {
                                                       AddressSpaceID source);
       static void handle_find_collective_view_response(Deserializer &derez);
       static void handle_refine_equivalence_sets(Deserializer &derez);
+      static void handle_pointwise_dependence(Deserializer &derez);
       static void handle_find_trace_local_sets_request(Deserializer &derez,
           AddressSpaceID source);
       static void handle_find_trace_local_sets_response(Deserializer &derez);
@@ -3581,6 +3604,9 @@ namespace Legion {
                 const std::vector<PhysicalRegion> &parent_regions,
                 std::deque<InstanceSet> &physical_instances);
       virtual bool is_leaf_context(void) const;
+      virtual RtEvent find_pointwise_dependence(uint64_t context_index,
+          const DomainPoint &point, ShardID shard,
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
       virtual void return_resources(ResourceTracker *target, 
                                     uint64_t return_index,
                                     std::set<RtEvent> &preconditions);

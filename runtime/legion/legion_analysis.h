@@ -131,16 +131,15 @@ namespace Legion {
       const RegionUsage usage;
       Operation *const op;
       const size_t ctx_index;
+      const UniqueID uid;
       // Since internal operations have the same ctx_index as their
       // creator we need a way to distinguish them from the creator
       const unsigned internal_idx;
       const unsigned idx;
       const GenerationID gen;
       ProjectionSummary *const shard_proj;
-#ifdef LEGION_SPY
-      const UniqueID uid;
-#endif
-    };
+      const bool pointwise_analyzable;
+    }; 
 
     /**
      * \class VersionInfo
@@ -1054,6 +1053,7 @@ namespace Legion {
       virtual bool is_unique_shards(void) const = 0;
       virtual bool interferes(ProjectionNode *other,
           ShardID local, bool &dominates) const = 0;
+      virtual bool pointwise_dominates(const ProjectionNode *other) const = 0;
       virtual void extract_shard_summaries(bool supports_name_based_analysis,
           ShardID local_shard, size_t total_shards,
           std::map<LogicalRegion,RegionSummary> &regions,
@@ -1080,6 +1080,7 @@ namespace Legion {
       virtual bool is_unique_shards(void) const;
       virtual bool interferes(ProjectionNode *other,
           ShardID local, bool &dominates) const;
+      virtual bool pointwise_dominates(const ProjectionNode *other) const;
       virtual void extract_shard_summaries(bool supports_name_based_analysis,
           ShardID local_shard, size_t total_shards,
           std::map<LogicalRegion,RegionSummary> &regions,
@@ -1090,6 +1091,7 @@ namespace Legion {
           std::map<LogicalPartition,PartitionSummary> &partitions);
       bool has_interference(ProjectionRegion *other, ShardID local,
                             bool &dominates) const;
+      bool has_pointwise_dominance(const ProjectionRegion *other) const;
       void add_user(ShardID shard);
       void add_child(ProjectionPartition *child);
     public:
@@ -1117,6 +1119,7 @@ namespace Legion {
       virtual bool is_unique_shards(void) const;
       virtual bool interferes(ProjectionNode *other,
           ShardID local, bool &dominates) const;
+      virtual bool pointwise_dominates(const ProjectionNode *other) const;
       virtual void extract_shard_summaries(bool supports_name_based_analysis,
           ShardID local_shard, size_t total_shards,
           std::map<LogicalRegion,RegionSummary> &regions,
@@ -1127,6 +1130,7 @@ namespace Legion {
           std::map<LogicalPartition,PartitionSummary> &partitions);
       bool has_interference(ProjectionPartition *other, ShardID local,
                             bool &dominates) const;
+      bool has_pointwise_dominance(const ProjectionPartition *other) const;
       void add_child(ProjectionRegion *child);
     public:
       PartitionNode *const partition;
@@ -1396,6 +1400,8 @@ namespace Legion {
       void remove_projection_summary(ProjectionSummary *summary);
       bool has_interfering_shards(LogicalAnalysis &analysis,
           ProjectionSummary *one, ProjectionSummary *two, bool &dominates);
+      bool record_pointwise_dependence(LogicalAnalysis &analysis,
+          const LogicalUser &prev, const LogicalUser &next, bool &dominates);
 #ifdef DEBUG_LEGION
       void sanity_check(void) const;
 #endif
@@ -1469,6 +1475,11 @@ namespace Legion {
       std::unordered_map<ProjectionSummary*,
         std::unordered_map<ProjectionSummary*,
          std::pair<bool/*interferes*/,bool/*dominates*/> > > interfering_shards;
+      // Track which pairs of projection summaries have point-wise mapping
+      // dependences between them.
+      std::unordered_map<ProjectionSummary*,
+       std::unordered_map<ProjectionSummary*,
+       std::pair<bool/*pointwise*/,bool/*dominates*/> > > pointwise_dependences;
     };
 
     typedef DynamicTableAllocator<LogicalState,10,8> LogicalStateAllocator;
