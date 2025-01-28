@@ -3346,14 +3346,13 @@ namespace Legion {
         MemoryPool *pool = manager->create_memory_pool(get_unique_id(),
             coordinates, it->second, NULL/*safe_for_unbounded_pools*/);
         if (pool == NULL)
-          REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to reserve a dynamic memory pool of %zd bytes for "
-              "leaf task %s (UID %lld) in %s memory during trace replay. "
-              "You are actually out of memory here so you'll need to "
-              "either allocate more memory for this kind of memory when "
-              "you configure Realm which may necessitate finding a bigger "
-              "machine.", it->second.size, get_task_name(), get_unique_id(),
-              manager->get_name())
+          Exception(RESOURCE_EXCEPTION, this)
+              << "Failed to reserve a dynamic memory pool of " << it->second.size
+              << " bytes for " << *this << " in " << manager->get_name()
+              << " memory during trace replay. You are actually out of memory "
+              << "here so you'll need to either allocate more memory for this "
+              << "kind of memory when you configure Realm which may necessitate "
+              << "finding a bigger machine.";
         leaf_memory_pools.emplace(std::make_pair(it->first, pool));
       }
       // Make sure to propagate any future sizes that we know about here
@@ -3526,41 +3525,33 @@ namespace Legion {
       // are counting by frames or by outstanding tasks.
       if ((context_configuration.min_tasks_to_schedule == 0) && 
           (context_configuration.min_frames_to_schedule == 0))
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from call 'configure_context' "
-                      "on mapper %s. One of 'min_tasks_to_schedule' and "
-                      "'min_frames_to_schedule' must be non-zero for task "
-                      "%s (ID %lld)", mapper->get_mapper_name(),
-                      get_task_name(), get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from call 'configure_context' "
+            << "on mapper " << *mapper << ". One of 'min_tasks_to_schedule' and "
+            << "'min_frames_to_schedule' must be non-zero for " << *this << ".";
       // Hysteresis percentage is an unsigned so can't be less than 0
       if (context_configuration.hysteresis_percentage > 100)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from call 'configure_context' "
-                      "on mapper %s. The 'hysteresis_percentage' %d is not "
-                      "a value between 0 and 100 for task %s (ID %lld)",
-                      mapper->get_mapper_name(), 
-                      context_configuration.hysteresis_percentage,
-                      get_task_name(), get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from call 'configure_context' "
+          << "on mapper " << *mapper << ". The 'hysteresis_percentage' "
+          << context_configuration.hysteresis_percentage << " is not "
+          << "a value between 0 and 100 for " << *this << ".";
       if (context_configuration.meta_task_vector_width == 0)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from call 'configure context' "
-                      "on mapper %s for task %s (ID %lld). The "
-                      "'meta_task_vector_width' must be a non-zero value.",
-                      mapper->get_mapper_name(),
-                      get_task_name(), get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from call 'configure context' "
+          << "on mapper " << *this << " for " << *this << ". The "
+          << "'meta_task_vector_width' must be a non-zero value.";
       if (context_configuration.max_templates_per_trace == 0)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output from call 'configure context' "
-                      "on mapper %s for task %s (ID %lld). The "
-                      "'max_templates_per_trace' must be a non-zero value.",
-                      mapper->get_mapper_name(),
-                      get_task_name(), get_unique_id())
+        Exception(MAPPER_EXCEPTION, this)
+          << "Invalid mapper output from call 'configure context' "
+          << "on mapper " << *mapper << " for " << *this << ". The "
+          << "'max_templates_per_trace' must be a non-zero value.";
       if (context_configuration.auto_tracing_enabled && runtime->no_tracing)
       {
-        log_auto_trace.warning("Waring disabling automatic tracing requested "
-            "by mapper %s for task %s (UID %lld) because tracing was disabled "
-            " on the command line.", mapper->get_mapper_name(),
-            get_task_name(), get_unique_id());
+        Exception(WARNING_EXCEPTION, this)
+          << "Waring disabling automatic tracing requested by mapper "
+          << *mapper << " for " << *this << " because tracing was "
+          << "disabled on the command line.";
         context_configuration.auto_tracing_enabled = false;
       }
       // If we're counting by frames set min_tasks_to_schedule to zero
@@ -4295,35 +4286,29 @@ namespace Legion {
         RegionRequirement &req = regions[idx];
         if (req.is_restricted())
         {
-          REPORT_LEGION_WARNING(LEGION_WARNING_MAPPER_REQUESTED_POST,
-                          "Mapper %s requested post mapping "
-                          "instances be created for region requirement %d "
-                          "of task %s (ID %lld), but this region requirement "
-                          "is restricted. The request is being ignored.",
-                          mapper->get_mapper_name(), idx, 
-                          get_task_name(), get_unique_id());
+          Exception(WARNING_EXCEPTION, this)
+              << "Mapper " << *mapper << " requested post mapping "
+              << "instances be created for region requirement " << idx
+              << "of " << *this << ", but this region requirement "
+              << "is restricted. The request is being ignored.";
           continue;
         }
         if (IS_NO_ACCESS(req))
         {
-          REPORT_LEGION_WARNING(LEGION_WARNING_MAPPER_REQUESTED_POST,
-                          "Mapper %s requested post mapping "
-                          "instances be created for region requirement %d "
-                          "of task %s (ID %lld), but this region requirement "
-                          "has NO_ACCESS privileges. The request is being "
-                          "ignored.", mapper->get_mapper_name(), idx,
-                          get_task_name(), get_unique_id());
+          Exception(WARNING_EXCEPTION, this)
+              << "Mapper " << *mapper << " requested post mapping "
+              << "instances be created for region requirement " << idx
+              << "of task " << *this << ", but this region requirement "
+              << "has NO_ACCESS privileges. The request is being ignored.";
           continue;
         }
         if (IS_REDUCE(req))
         {
-          REPORT_LEGION_WARNING(LEGION_WARNING_MAPPER_REQUESTED_POST,
-                          "Mapper %s requested post mapping "
-                          "instances be created for region requirement %d "
-                          "of task %s (ID %lld), but this region requirement "
-                          "has REDUCE privileges. The request is being "
-                          "ignored.", mapper->get_mapper_name(), idx,
-                          get_task_name(), get_unique_id());
+          Exception(WARNING_EXCEPTION, this)
+              << "Mapper " << *mapper << "requested post mapping "
+              << "instances be created for region requirement " << idx
+              << "of " << *this << ", but this region requirement "
+              << "has REDUCE privileges. The request is being ignored.";
           continue;
         }
         // Convert the post-mapping  
@@ -4337,14 +4322,12 @@ namespace Legion {
                                 get_acquired_instances_ref(),
                               unacquired, runtime->safe_mapper);
         if (bad_tree > 0)
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                        "Invalid mapper output from 'postmap_task' invocation "
-                        "on mapper %s. Mapper provided an instance from region "
-                        "tree %lld for use in satisfying region requirement %d "
-                        "of task %s (ID %lld) whose region is from region tree "
-                        "%lld.", mapper->get_mapper_name(), bad_tree,
-                        idx, get_task_name(), get_unique_id(), 
-                        regions[idx].region.get_tree_id())
+          Exception(MAPPER_EXCEPTION, this)
+            << "Invalid mapper output from 'postmap_task' invocation on mapper "
+            << *mapper << ". Mapper provided an instance from region tree " 
+            << bad_tree << " for use in satisfying region requirement " << idx
+            << " of " << *this << " whose region is from region tree "
+            << regions[idx].region.get_tree_id() << ".";
         if (!unacquired.empty())
         {
           std::map<PhysicalManager*,unsigned> *acquired_instances = 
@@ -4353,36 +4336,30 @@ namespace Legion {
                 unacquired.begin(); uit != unacquired.end(); uit++)
           {
             if (acquired_instances->find(*uit) == acquired_instances->end())
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                            "Invalid mapper output from 'postmap_task' "
-                            "invocation on mapper %s. Mapper selected "
-                            "physical instance for region requirement "
-                            "%d of task %s (ID %lld) which has already "
-                            "been collected. If the mapper had properly "
-                            "acquired this instance as part of the mapper "
-                            "call it would have detected this. Please "
-                            "update the mapper to abide by proper mapping "
-                            "conventions.", mapper->get_mapper_name(),
-                            idx, get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output from 'postmap_task' "
+                  << "invocation on mapper " << *mapper << ". Mapper selected "
+                  << "physical instance for region requirement " << idx
+                  << " of " << *this << " which has already "
+                  << "been collected. If the mapper had properly "
+                  << "acquired this instance as part of the mapper "
+                  << "call it would have detected this. Please update the "
+                  << "mapper to abide by proper mapping conventions.";
           }
           // If we did successfully acquire them, still issue the warning
-          REPORT_LEGION_WARNING(LEGION_WARNING_MAPPER_FAILED_ACQUIRE,
-                          "mapper %s failed to acquires instances "
-                          "for region requirement %d of task %s (ID %lld) "
-                          "in 'postmap_task' call. You may experience "
-                          "undefined behavior as a consequence.",
-                          mapper->get_mapper_name(), idx, 
-                          get_task_name(), get_unique_id());
+          Exception(WARNING_EXCEPTION, this)
+            << "Mapper " << *mapper << " failed to acquires instances "
+            << "for region requirement " << idx << " of " << *this
+            << "in 'postmap_task' call. You may experience "
+            << "undefined behavior as a consequence.";
         }
         if (had_composite)
         {
-          REPORT_LEGION_WARNING(LEGION_WARNING_MAPPER_REQUESTED_COMPOSITE,
-                          "Mapper %s requested a composite "
-                          "instance be created for region requirement %d "
-                          "of task %s (ID %lld) for a post mapping. The "
-                          "request is being ignored.",
-                          mapper->get_mapper_name(), idx,
-                          get_task_name(), get_unique_id());
+          Exception(WARNING_EXCEPTION, this)
+              << "Mapper " << *mapper << " requested a virtual "
+              << "instance be created for region requirement " << idx
+              << " of " << *this << " for a post mapping. The "
+              << "request is being ignored.";
           continue;
         }
         if (runtime->safe_mapper)
@@ -4393,13 +4370,11 @@ namespace Legion {
           {
             PhysicalManager *manager = result[check_idx].get_physical_manager();
             if (!manager->meets_regions(regions_to_check))
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                            "Invalid mapper output from invocation of "
-                            "'postmap_task' on mapper %s. Mapper specified an "
-                            "instance region requirement %d of task %s "
-                            "(ID %lld) that does not meet the logical region "
-                            "requirement.", mapper->get_mapper_name(), idx, 
-                            get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                  << "Invalid mapper output from invocation of 'postmap_task' "
+                  << "on mapper " << *mapper << ". Mapper specified an "
+                  << "instance region requirement " << idx << " of " << *this
+                  << " that does not meet the logical region requirement.";
           }
         }
         log_mapping_decision(idx, regions[idx], result, true/*postmapping*/);
@@ -4438,18 +4413,15 @@ namespace Legion {
       {
         Provenance *provenance = get_provenance();
         if (provenance != NULL)
-          REPORT_LEGION_ERROR(ERROR_FUTURE_SIZE_BOUNDS_EXCEEDED,
-              "Task %s (UID %lld, provenance: %.*s) used a task "
-              "variant with a maximum return size of %zd but "
-              "returned a result of %zd bytes.",
-              get_task_name(), get_unique_id(), int(provenance->human.length()),
-              provenance->human.data(), *future_return_size, instance->size)
+          Exception(DYNAMIC_TYPE_EXCEPTION, this)
+              << "Task " << *this << " used a task variant "
+              << "with a maximum return size of " << *future_return_size
+              << " but returned a result of " << instance->size << " bytes.";
         else
-          REPORT_LEGION_ERROR(ERROR_FUTURE_SIZE_BOUNDS_EXCEEDED,
-              "Task %s (UID %lld) used a task variant with a maximum "
-              "return size of %zd but returned a result of %zd bytes.",
-              get_task_name(), get_unique_id(),
-              *future_return_size, instance->size)
+          Exception(DYNAMIC_TYPE_EXCEPTION, this)
+              << "Task " << *this << " used a task variant with a maximum "
+              << "return size of " << *future_return_size 
+              << " but returned a result of " << instance->size << " bytes.";
       }
     }
 
@@ -4478,18 +4450,10 @@ namespace Legion {
         query.only_kind(it->first);
         query.best_affinity_to(target_proc);
         if (query.count() == 0)
-        {
-          const char *mem_names[] = {
-#define MEM_NAMES(name, desc) #name,
-            REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-          };
-          REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Unable to find a visible %s memory from processor " IDFMT 
-              "for task %s (UID %lld) for creating dynamic memory pool "
-              "from static constraint.", mem_names[it->first],
-              target_proc.id, get_task_name(), get_unique_id());
-        }
+          Exception(MAPPER_EXCEPTION, this)
+            << "Unable to find a visible " << it->first
+            << " memory from processor " << target_proc << " for " << *this
+            << " for creating dynamic memory pool from static constraint.";
         const Memory target = query.first();
         // Check to see if we also got a dynamic memory pool bound, if we 
         // did then it needs to tighten what already existed
@@ -4505,60 +4469,51 @@ namespace Legion {
               const PoolBounds &static_bounds = it->second;
               const PoolBounds &dynamic_bounds = finder->second;
               if (static_bounds.size < dynamic_bounds.size)
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                    "Mapper %s dynamically requested %zd bytes for pool"
-                    " in %s memory for task %s (UID %lld), but the selected "
-                    "variant %d specified a static bound of %zd bytes. "
-                    "Dynamically requested memory allocations must be further "
-                    "refinements of the upper bounds provided by the chosen "
-                    "task variant.", mapper->get_mapper_name(),
-                    dynamic_bounds.size, manager->get_name(), get_task_name(),
-                    get_unique_id(), variant->vid, static_bounds.size)
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Mapper " << *mapper << "dynamically requested "
+                  << dynamic_bounds.size << " bytes for pool in "
+                  << manager->get_name() << " memory for " << *this
+                  << ", but the selected variant " << variant->vid
+                  << " specified a static bound of " 
+                  << dynamic_bounds.alignment << " bytes. "
+                  << "Dynamically requested memory allocations must be further "
+                  << "refinements of the upper bounds provided by the chosen "
+                  << "task variant."; 
               else if (static_bounds.alignment < dynamic_bounds.alignment)
-                REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                    "Mapper %s dynamically requested a minimum alignment of %d "
-                    "bytes for pool in %s memory for task %s (UID %lld), but "
-                    "the selected variant %d specified a static minimum "
-                    "alignment of %d bytes. Dynamically requested memory "
-                    "allocations must be further refinements of the "
-                    "alignments provided by the chosen task variant.",
-                    mapper->get_mapper_name(), dynamic_bounds.alignment, 
-                    manager->get_name(), get_task_name(), get_unique_id(),
-                    variant->vid, static_bounds.alignment)
+                Exception(MAPPER_EXCEPTION, this)
+                  << "Mapper " << *mapper << " dynamically requested a "
+                  << "minimum alignment of " << dynamic_bounds.alignment
+                  << " bytes for pool in " << manager->get_name()
+                  << " memory for " << *this << ", but the selected variant "
+                  << variant->vid << " specified a static minimum alignment of "
+                  << static_bounds.alignment << " bytes. Dynamically requested "
+                  << "memory allocations must be further refinements of the "
+                  << "alignments provided by the chosen task variant.";
             }
             else
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                  "Mapper %s dynamically requested an unbounded pool "
-                  "in %s memory for task %s (UID %lld), but the selected "
-                  "variant %d specified a static bound of %zdd bytes. "
-                  "Dynamically requested memory allocations must be further "
-                  "refinements of the upper bounds provided by the chosen "
-                  "task variant.", mapper->get_mapper_name(),
-                  manager->get_name(), get_task_name(), get_unique_id(),
-                  variant->vid, it->second.size);
+              Exception(MAPPER_EXCEPTION, this)
+                << "Mapper " << *mapper << " dynamically requested an unbounded pool "
+                << "in " << manager->get_name() << " memory for " << *this
+                << ", but the selected variant " << variant->vid 
+                << " specified a static bound of " << it->second.size << " bytes. "
+                << "Dynamically requested memory allocations must be further "
+                << "refinements of the upper bounds provided by the chosen "
+                << "task variant.";
           }
           else if (!finder->second.is_bounded())
           {
             // Else if the static variant had no bounds we know that the
             // dynamic one is at least as tight as the static one
             if (runtime->runtime_warnings)
-            {
-              const char *mem_names[] = {
-#define MEM_NAMES(name, desc) #name,
-                REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-              };
-              REPORT_LEGION_WARNING(LEGION_WARNING_UNBOUND_MEMORY_POOL,
-                  "Selected variant %s of task %s (UID %lld) was registered "
-                  "with an unbound memory pool for %s memory and mapper %s "
-                  "failed to tighten the bound. Unbound memory pools are "
-                  "very bad for performance and we strongly encourage all "
-                  "users to avoid using them except for extenuating "
-                  "circumstances when the amount of dynamic memory required "
-                  "by a task is truly unbounded.", variant->get_name(),
-                  get_task_name(), get_unique_id(), mem_names[it->first],
-                  mapper->get_mapper_name())
-            }
+              Exception(WARNING_EXCEPTION, this)
+                << "Selected variant " << variant->get_name() << " of " << *this
+                << " was registered with an unbound memory pool for "
+                << it->first << " memory and mapper " << *mapper
+                << "failed to tighten the bound. Unbound memory pools are "
+                << "very bad for performance and we strongly encourage all "
+                << "users to avoid using them except for extenuating "
+                << "circumstances when the amount of dynamic memory required "
+                << "by a task is truly unbounded.";
           }
         }
         else
@@ -4569,67 +4524,43 @@ namespace Legion {
           if (it->second.scope == LEGION_STRICT_UNBOUNDED_POOL)
           {
             if (concurrent_task)
-            {
-              const char *mem_names[] = {
-#define MEM_NAMES(name, desc) #name,
-                REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-              };
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                  "Mapper %s selected variant %s which statically mandates a "
-                  "strict unbounded memory pool in %s memory for "
-                  "concurrent task %s (UID %lld). Strict unbounded "
-                  "memory pools are not permitted to be used when "
-                  "mapping concurrent index space tasks because they "
-                  "can lead to deadlocks. Instead you should use either "
-                  "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
-                  "LEGION_PERMISSIVE_UNBOUNDED_POOL scope or pick a "
-                  "different task variant for mapping this task.",
-                  mapper->get_mapper_name(), variant->get_name(),
-                  mem_names[it->first], get_task_name(), get_unique_id())
-            }
+              Exception(MAPPER_EXCEPTION, this)
+                << "Mapper " << *mapper << " selected variant "
+                << variant->get_name() << " which statically mandates a "
+                << "strict unbounded memory pool in " << it->first
+                << " memory for concurrent task " << *this << ". Strict unbounded "
+                << "memory pools are not permitted to be used when "
+                << "mapping concurrent index space tasks because they "
+                << "can lead to deadlocks. Instead you should use either "
+                << "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
+                << "LEGION_PERMISSIVE_UNBOUNDED_POOL scope or pick a "
+                << "different task variant for mapping this task.";
             else if (!check_collective_regions.empty())
-            {
-              const char *mem_names[] = {
-#define MEM_NAMES(name, desc) #name,
-                REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-              };
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                  "Mapper %s selected variant %s which statically mandates a "
-                  "strict unbounded memory pool in %s memory for "
-                  "task %s (UID %lld) while the mapper also requested "
-                  "collective mapping of %zd region requirements. "
-                  "Strict unbounded memory pools are not permitted to be "
-                  "used in conjunction with collective mapping because they "
-                  "can lead to deadlocks. Instead you should use "
-                  "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
-                  "LEGION_PERMISSIVE_UNBOUNDED_POOL scope or pick a "
-                  "different task variant for mapping this task or "
-                  "opt not to perform collective mapping of any regions.",
-                  mapper->get_mapper_name(), variant->get_name(),
-                  mem_names[it->first], get_task_name(), get_unique_id(),
-                  check_collective_regions.size())
-            }
+              Exception(MAPPER_EXCEPTION, this)
+                << "Mapper " << *mapper << " selected variant "
+                << variant->get_name() << " which statically mandates a "
+                << "strict unbounded memory pool in " << it->first
+                << " memory for task " << *this << " while the mapper also requested "
+                << "collective mapping of " << check_collective_regions.size()
+                << " region requirements. "
+                << "Strict unbounded memory pools are not permitted to be "
+                << "used in conjunction with collective mapping because they "
+                << "can lead to deadlocks. Instead you should use "
+                << "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
+                << "LEGION_PERMISSIVE_UNBOUNDED_POOL scope or pick a "
+                << "different task variant for mapping this task or "
+                << "opt not to perform collective mapping of any regions.";
           }
           if (!it->second.is_bounded() && runtime->runtime_warnings)
-          {
-            const char *mem_names[] = {
-#define MEM_NAMES(name, desc) #name,
-              REALM_MEMORY_KINDS(MEM_NAMES) 
-#undef MEM_NAMES
-            };
-            REPORT_LEGION_WARNING(LEGION_WARNING_UNBOUND_MEMORY_POOL,
-                "Selected variant %s of task %s (UID %lld) was registered "
-                "with an unbound memory pool for %s memory and mapper %s "
-                "failed to tighten the bound. Unbound memory pools are "
-                "very bad for performance and we strongly encourage all "
-                "users to avoid using them except for extenuating "
-                "circumstances when the amount of dynamic memory required "
-                "by a task is truly unbounded.", variant->get_name(),
-                get_task_name(), get_unique_id(), mem_names[it->first],
-                mapper->get_mapper_name())
-          }
+            Exception(WARNING_EXCEPTION, this)
+              << "Selected variant " << variant->get_name() << " of task "
+              << *this << " was registered with an unbound memory pool for "
+              << it->first << " memory and mapper " << *mapper
+              << "failed to tighten the bound. Unbound memory pools are "
+              << "very bad for performance and we strongly encourage all "
+              << "users to avoid using them except for extenuating "
+              << "circumstances when the amount of dynamic memory required "
+              << "by a task is truly unbounded.";
           dynamic_pool_bounds.emplace(std::make_pair(target, it->second));
         }
       }
@@ -4654,11 +4585,10 @@ namespace Legion {
           // tasks to make deferred buffers on memories that are "remote" 
           // from where they are executing
           if (it->first.address_space() != target_proc.address_space())
-            REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-                  "%s memory " IDFMT " is not visible from the target processor"
-                  " of task %s (UID %lld) for creating dynamic memory pool.", 
-                  manager->get_name(), it->first.id, get_task_name(),
-                  get_unique_id());
+            Exception(MAPPER_EXCEPTION, this)
+              << manager->get_name() << " memory " << it->first
+              << " is not visible from the target processor of " << *this
+              << " for creating dynamic memory pool."; 
           unbounded_pools.push_back(manager);
           uint64_t lamport_clock = 
             manager->order_collective_unbounded_pools(this);
@@ -4707,11 +4637,10 @@ namespace Legion {
         // to make deferred buffers on memories that are "remote" from where
         // they are executing
         if (it->first.address_space() != target_proc.address_space())
-          REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-                "%s memory " IDFMT " is not visible from the target processor "
-                "of task %s (UID %lld) for creating dynamic memory pool.", 
-                manager->get_name(), it->first.id, get_task_name(),
-                get_unique_id());
+          Exception(MAPPER_EXCEPTION, this)
+            << manager->get_name() << " memory " << it->first
+            << " is not visible from the target processor of " << *this
+            << " for creating dynamic memory pool."; 
         if (it->second.is_bounded())
         {
           // Check to see if acquired a memory pool for this already
@@ -4735,45 +4664,40 @@ namespace Legion {
           if (it->second.scope == LEGION_STRICT_UNBOUNDED_POOL)
           {
             if (concurrent_task)
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                  "Mapper %s dynamically requested a "  
-                  "strict unbounded memory pool in %s memory for "
-                  "concurrent task %s (UID %lld). Strict unbounded "
-                  "memory pools are not permitted to be used when "
-                  "mapping concurrent index space tasks because they "
-                  "can lead to deadlocks. Instead you should use either "
-                  "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
-                  "LEGION_PERMISSIVE_UNBOUNDED_POOL scope when specifying "
-                  "the kind of unbound memory pool for this task.",
-                  mapper->get_mapper_name(), manager->get_name(),
-                  get_task_name(), get_unique_id())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Mapper " << *mapper << " dynamically requested a "  
+                << "strict unbounded memory pool in " << manager->get_name()
+                << " memory for concurrent task " << *this << ". Strict unbounded "
+                << "memory pools are not permitted to be used when "
+                << "mapping concurrent index space tasks because they "
+                << "can lead to deadlocks. Instead you should use either "
+                << "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
+                << "LEGION_PERMISSIVE_UNBOUNDED_POOL scope when specifying "
+                << "the kind of unbound memory pool for this task.";
             else if (!check_collective_regions.empty())
-              REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                  "Mapper %s dynamically requested a " 
-                  "strict unbounded memory pool in %s memory for "
-                  "task %s (UID %lld) while also requesting a "
-                  "collective mapping of %zd region requirements. "
-                  "Strict unbounded memory pools are not permitted to be "
-                  "used in conjunction with collective mapping because they "
-                  "can lead to deadlocks. Instead you should use "
-                  "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
-                  "LEGION_PERMISSIVE_UNBOUNDED_POOL scope for any unbounded "
-                  "memory pools for this task or alternatively choosen not "
-                  "to perform collective mapping of any region requirements.",
-                  mapper->get_mapper_name(), manager->get_name(),
-                  get_task_name(), get_unique_id(),
-                  check_collective_regions.size())
+              Exception(MAPPER_EXCEPTION, this)
+                << "Mapper " << *mapper << " dynamically requested a " 
+                << "strict unbounded memory pool in " << manager->get_name()
+                << " memory for task " << *this << " while also requesting a "
+                << "collective mapping of " << check_collective_regions.size()
+                << " region requirements. "
+                << "Strict unbounded memory pools are not permitted to be "
+                << "used in conjunction with collective mapping because they "
+                << "can lead to deadlocks. Instead you should use "
+                << "LEGION_INDEX_TASK_UNBOUNDED_POOL or "
+                << "LEGION_PERMISSIVE_UNBOUNDED_POOL scope for any unbounded "
+                << "memory pools for this task or alternatively choosen not "
+                << "to perform collective mapping of any region requirements.";
             if (runtime->runtime_warnings &&
                 (variant->leaf_pool_bounds.find(it->first.kind()) ==
                  variant->leaf_pool_bounds.end()))
-              REPORT_LEGION_WARNING(LEGION_WARNING_UNBOUND_MEMORY_POOL,
-                  "Mapper %s requested an unbound memory pool in %s memory for "
-                  "leaf task %s (UID %lld). Unbound memory pools are very bad "
-                  "for performance and we strongly encourage all users to avoid"
-                  " using them except for extenuating circumstances when the "
-                  "amount of dynamic memory required by a task is truly "
-                  "unbounded.", mapper->get_mapper_name(), manager->get_name(),
-                  get_task_name(), get_unique_id())
+              Exception(WARNING_EXCEPTION, this)
+                << "Mapper " << *mapper << " requested an unbound memory pool in "
+                << manager->get_name() << " memory for leaf task " << *this
+                <<". Unbound memory pools are very bad "
+                << "for performance and we strongly encourage all users to avoid"
+                << " using them except for extenuating circumstances when the "
+                << "amount of dynamic memory required by a task is truly unbounded.";
           }
           // If this is our first unbounded allocation then we need to 
           // wait for it to safe for us to do it 
@@ -4846,17 +4770,16 @@ namespace Legion {
               coordinates, it->second, &try_again);
         } while (try_again.exists());
         if (pool == NULL)
-          REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to reserve a dynamic memory pool of %zd bytes for "
-              "leaf task %s (UID %lld) in %s memory. You are actually out "
-              "of memory here so you'll need to either allocate more memory "
-              "for this kind of memory when you configure Realm which may "
-              "necessitate finding a bigger machine. If you want to avoid "
-              "finding out that you're out of memory this way you should "
-              "instead use the 'MapperRuntime::acquire_pool' call to make "
-              "sure that memory can be reserved for all pools in advance.",
-              it->second.size, get_task_name(), get_unique_id(),
-              manager->get_name())
+          Exception(RESOURCE_EXCEPTION, this)
+            << "Failed to reserve a dynamic memory pool of " << it->second.size
+            << " bytes for leaf task " << *this << " in " << manager->get_name()
+            << " memory. You are actually out "
+            << "of memory here so you'll need to either allocate more memory "
+            << "for this kind of memory when you configure Realm which may "
+            << "necessitate finding a bigger machine. If you want to avoid "
+            << "finding out that you're out of memory this way you should "
+            << "instead use the 'MapperRuntime::acquire_pool' call to make "
+            << "sure that memory can be reserved for all pools in advance.";
         leaf_memory_pools.emplace(std::make_pair(it->first, pool));
         // Keep track of all our unbounded pools
         if (!it->second.is_bounded())
