@@ -463,8 +463,6 @@ namespace Legion {
       assert(finder != detailed_base_gc_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
-      if (finder->second == 0)
-        detailed_base_gc_references.erase(finder);
       if (gc_references == 0)
         return can_delete(gc);
       else
@@ -487,8 +485,6 @@ namespace Legion {
       assert(finder != detailed_nested_gc_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
-      if (finder->second == 0)
-        detailed_nested_gc_references.erase(finder);
       if (gc_references == 0)
         return can_delete(gc);
       else
@@ -547,8 +543,6 @@ namespace Legion {
       assert(finder != detailed_base_resource_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
-      if (finder->second == 0)
-        detailed_base_resource_references.erase(finder);
       if (resource_references == 0)
         return can_delete(gc);
       else
@@ -571,8 +565,6 @@ namespace Legion {
       assert(finder != detailed_nested_resource_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
-      if (finder->second == 0)
-        detailed_nested_resource_references.erase(finder);
       if (resource_references == 0)
         return can_delete(gc);
       else
@@ -625,6 +617,14 @@ namespace Legion {
         runtime->send_did_downgrade_update(remote_inst, rez);
         downgrade_owner = remote_inst;
       }
+      else if (remaining_responses > 0)
+      {
+        // Another hairy case: if we receive a notification of a new remote
+        // instance and we're in the middle of a downgrade check, we can't
+        // trust the results of our downgrade attempt anymore without also
+        // querying the new instance that has just been added.
+        notready_owner = remote_inst;
+      }
       remote_instances.add(remote_inst);
     }
 
@@ -650,7 +650,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RtEvent DistributedCollectable::send_remote_registration(
-                                                        bool passing_global_ref)
+                                                      bool has_global_reference)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -658,7 +658,7 @@ namespace Legion {
       assert(registered_with_runtime);
 #endif
       RtUserEvent registered_event;
-      if (!passing_global_ref)
+      if (!has_global_reference)
         registered_event = Runtime::create_rt_user_event();
       Serializer rez;
       {
@@ -685,8 +685,6 @@ namespace Legion {
       target->update_remote_instances(source);
       if (done_event.exists())
         Runtime::trigger_event(done_event);
-      else
-        target->unpack_global_ref();
     }
 
     //--------------------------------------------------------------------------
@@ -695,7 +693,10 @@ namespace Legion {
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_global<false/*need lock*/>());
+      // Must be in a global state when packing a reference
+      assert((current_state == VALID_REF_STATE) ||
+          (current_state == GLOBAL_REF_STATE) ||
+          (current_state == PENDING_GLOBAL_REF_STATE));
 #endif
       sent_global_references += cnt;
     }
@@ -1526,8 +1527,6 @@ namespace Legion {
       assert(finder != detailed_base_valid_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
-      if (finder->second == 0)
-        detailed_base_valid_references.erase(finder);
       if (valid_references == 0)
         return can_delete(gc);
       else
@@ -1550,8 +1549,6 @@ namespace Legion {
       assert(finder != detailed_nested_valid_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
-      if (finder->second == 0)
-        detailed_nested_valid_references.erase(finder);
       if (valid_references == 0)
         return can_delete(gc);
       else
@@ -1801,7 +1798,8 @@ namespace Legion {
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_valid<false/*need lock*/>());
+      // Must be valid when packing a reference
+      assert(current_state == VALID_REF_STATE);
 #endif
       sent_valid_references += cnt;
     }

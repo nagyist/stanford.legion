@@ -3761,8 +3761,7 @@ namespace Legion {
                                          AddressSpaceID source);
       static void handle_capture_response(Deserializer &derez,
                                           AddressSpaceID source);
-      static void handle_filter_invalidations(Deserializer &derez,
-                                              Runtime *runtime);
+      static void handle_filter_invalidations(Deserializer &derez);
     public:
       // Note this context refers to the context from which the views are
       // created in. Normally this is the same as the context in which the

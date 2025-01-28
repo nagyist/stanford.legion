@@ -14269,7 +14269,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void EquivalenceSet::handle_filter_invalidations(
-        Deserializer &derez, Runtime *runtime)
+        Deserializer &derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);

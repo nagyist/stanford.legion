@@ -404,7 +404,7 @@ namespace Legion {
       // must be holding lock
       void pack_future_result(Serializer &rez, AddressSpaceID target);
     public:
-      RtEvent record_future_registered(void);
+      RtEvent record_future_registered(bool has_global_reference);
       static void handle_future_result(Deserializer &derez);
       static void handle_future_result_size(Deserializer &derez,
                                   AddressSpaceID source);
@@ -661,7 +661,7 @@ namespace Legion {
       void register_dependence(Operation *consumer_op);
       void process_future_response(Deserializer &derez);
     public:
-      RtEvent record_future_map_registered(void);
+      void record_future_map_registered(void);
       static void handle_future_map_future_request(Deserializer &derez,
                               AddressSpaceID source);
       static void handle_future_map_future_response(Deserializer &derez);
@@ -4486,6 +4486,9 @@ namespace Legion {
                                         DistributedID ctx_did,
                                         const ContextCoordinate &coordinate,
                                         Provenance *provenance,
+                                        bool has_global_reference,
+                                        // Can be ignored with global ref
+                                        RtEvent &registered,
                                         Operation *op = NULL,
                                         GenerationID op_gen = 0, 
                                         UniqueID op_uid = 0,
