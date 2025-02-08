@@ -3127,15 +3127,31 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     UntypedDeferredValue::UntypedDeferredValue(void)
-      : instance(Realm::RegionInstance::NO_INST), field_size(0)
+      : instance(Realm::RegionInstance::NO_INST)
     //--------------------------------------------------------------------------
     {
     }
 
     //--------------------------------------------------------------------------
-    UntypedDeferredValue::UntypedDeferredValue(size_t fs, Memory memory,
+    UntypedDeferredValue::UntypedDeferredValue(size_t field_size, Memory memory,
                                     const void *initial_value, size_t alignment) 
-      : field_size(fs)
+    //--------------------------------------------------------------------------
+    {
+      initialize(memory, field_size, initial_value, alignment); 
+    }
+
+    //--------------------------------------------------------------------------
+    UntypedDeferredValue::UntypedDeferredValue(size_t field_size,
+        Memory::Kind memkind, const void *initial_value, size_t alignment) 
+    //--------------------------------------------------------------------------
+    {
+      const Memory memory = find_memory_by_kind(memkind, true/*value*/);
+      initialize(memory, field_size, initial_value, alignment);
+    }
+
+    //--------------------------------------------------------------------------
+    void UntypedDeferredValue::initialize(Memory memory, size_t field_size,
+        const void *initial_value, size_t alignment)
     //--------------------------------------------------------------------------
     {
       const Realm::Point<1,coord_t> zero(0);
@@ -3148,53 +3164,36 @@ namespace Legion {
         Realm::InstanceLayoutGeneric::choose_instance_layout(bounds, 
             constraints, dim_order);
       layout->alignment_reqd = alignment;
-      instance =
-        Internal::implicit_context->create_task_local_instance(memory, layout);
+      instance = allocate_instance(memory, layout);
       if (initial_value != NULL)
       {
-        Realm::ProfilingRequestSet no_requests; 
-        std::vector<Realm::CopySrcDstField> dsts(1);
-        dsts[0].set_field(instance, 0/*field id*/, field_size);
-        const Internal::LgEvent wait_on(
-            bounds.fill(dsts, no_requests, initial_value, field_size));
-        if (wait_on.exists())
-          wait_on.wait();
+        // Check to see if we can write to it directly
+        Runtime *runtime = Runtime::get_runtime();
+        Context ctx = Runtime::get_context();
+        const Processor exec_proc = runtime->get_executing_processor(ctx);
+        Machine machine = Realm::Machine::get_machine();
+        if (machine.has_affinity(exec_proc, memory))
+        {
+          // Has affinity so we shold jsut be able to memcpy this
+          void *ptr = instance.pointer_untyped(0/*offset*/, field_size);
+          std::memcpy(ptr, initial_value, field_size);
+        }
+        else
+        {
+          Realm::ProfilingRequestSet no_requests; 
+          std::vector<Realm::CopySrcDstField> dsts(1);
+          dsts[0].set_field(instance, 0/*field id*/, field_size);
+          const Internal::LgEvent wait_on(
+              bounds.fill(dsts, no_requests, initial_value, field_size));
+          if (wait_on.exists())
+            wait_on.wait();
+        }
       }
     }
 
     //--------------------------------------------------------------------------
-    UntypedDeferredValue::UntypedDeferredValue(size_t fs, Memory::Kind memkind,
-                                    const void *initial_value, size_t alignment) 
-      : field_size(fs)
-    //--------------------------------------------------------------------------
-    {
-      const Memory memory = find_memory_by_kind(memkind);
-      const Realm::Point<1,coord_t> zero(0);
-      Realm::IndexSpace<1,coord_t> bounds = Realm::Rect<1,coord_t>(zero, zero);
-      const std::vector<size_t> field_sizes(1, field_size);
-      Realm::InstanceLayoutConstraints constraints(field_sizes, 0/*blocking*/);
-      int dim_order[1];
-      dim_order[0] = 0;
-      Realm::InstanceLayoutGeneric *layout = 
-        Realm::InstanceLayoutGeneric::choose_instance_layout(bounds, 
-            constraints, dim_order);
-      layout->alignment_reqd = alignment;
-      instance =
-        Internal::implicit_context->create_task_local_instance(memory, layout);
-      if (initial_value != NULL)
-      {
-        Realm::ProfilingRequestSet no_requests; 
-        std::vector<Realm::CopySrcDstField> dsts(1);
-        dsts[0].set_field(instance, 0/*field id*/, field_size);
-        const Internal::LgEvent wait_on(
-            bounds.fill(dsts, no_requests, initial_value, field_size));
-        if (wait_on.exists())
-          wait_on.wait();
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    /*static*/ Memory UntypedDeferredValue::find_memory_by_kind(Memory::Kind kind)
+    /*static*/ Memory UntypedDeferredValue::find_memory_by_kind(
+        Memory::Kind kind, bool value)
     //--------------------------------------------------------------------------
     {
       Machine machine = Realm::Machine::get_machine();
@@ -3213,16 +3212,25 @@ namespace Legion {
       if (finder.count() == 0)
         Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Unable to find associated " << kind << " memory kind for "
-          << exec_proc << " when performed an (Untyped)DeferredValue creation";
+          << exec_proc << " when performed an (Untyped)Deferred" 
+          << (value ? "Value" : "Buffer") << " creation";
       return finder.first();
+    }
+
+    //--------------------------------------------------------------------------
+    UntypedDeferredValue::UntypedDeferredValue(const UntypedDeferredValue &rhs)
+      : instance(rhs.instance)
+    //--------------------------------------------------------------------------
+    {
     }
 
     //--------------------------------------------------------------------------
     void UntypedDeferredValue::finalize(Context ctx) const
     //--------------------------------------------------------------------------
     {
-      Runtime::legion_task_postamble(ctx,instance.pointer_untyped(0,field_size),
-                                     field_size, true/*owner*/, instance);
+      const size_t size = field_size();
+      Runtime::legion_task_postamble(ctx, instance.pointer_untyped(0, size),
+                                     size, true/*owner*/, instance);
     }
 
     //--------------------------------------------------------------------------
@@ -3230,6 +3238,45 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return instance;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ Realm::RegionInstance UntypedDeferredValue::allocate_instance(
+        Memory memory, Realm::InstanceLayoutGeneric *layout)
+    //--------------------------------------------------------------------------
+    {
+      if (Internal::implicit_context == NULL)
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+            << "Illegal request to create a DeferredBuffer, DeferredValue, "
+            << "or a DeferredReduction outside of a Legion task.";
+      return 
+         Internal::implicit_context->create_task_local_instance(memory, layout);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void UntypedDeferredValue::destroy_instance(
+        Realm::RegionInstance instance, Realm::Event precondition)
+    //--------------------------------------------------------------------------
+    {
+      if (Internal::implicit_context == NULL)
+        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+            << "Illegal request to destroy a DeferredBuffer, DeferredValue, "
+            << "or a DeferredReduction outside of a Legion task.";
+      // Don't trust events passed in by users to be safe from poison
+      if (precondition.exists())
+        return Internal::implicit_context->destroy_task_local_instance(instance,
+            Internal::RtEvent(Realm::Event::ignorefaults(precondition)));
+      else
+        return Internal::implicit_context->destroy_task_local_instance(
+            instance, Internal::RtEvent::NO_RT_EVENT);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ Domain UntypedDeferredValue::get_index_space_bounds(
+                                                               IndexSpace space)
+    //--------------------------------------------------------------------------
+    {
+      return Runtime::get_runtime()->get_index_space_domain(space);
     }
 
     //--------------------------------------------------------------------------
@@ -7705,37 +7752,6 @@ namespace Legion {
     {
       AutoCall<Internal::RUNTIME_LOG_ONCE_CALL> call(ctx, __func__);
       ctx->log_once(message);
-    }
-
-    //--------------------------------------------------------------------------
-    Realm::RegionInstance Runtime::create_task_local_instance(Memory memory,
-                                           Realm::InstanceLayoutGeneric *layout)
-    //--------------------------------------------------------------------------
-    {
-      if (Internal::implicit_context == NULL)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
-            << "Illegal request to create a DeferredBuffer, DeferredValue, "
-            << "or a DeferredReduction outside of a Legion task.";
-      return 
-         Internal::implicit_context->create_task_local_instance(memory, layout);
-    }
-
-    //--------------------------------------------------------------------------
-    void Runtime::destroy_task_local_instance(Realm::RegionInstance instance,
-                                              Realm::Event precondition)
-    //--------------------------------------------------------------------------
-    {
-      if (Internal::implicit_context == NULL)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
-            << "Illegal request to destroy a DeferredBuffer, DeferredValue, "
-            << "or a DeferredReduction outside of a Legion task.";
-      // Don't trust events passed in by users to be safe from poison
-      if (precondition.exists())
-        return Internal::implicit_context->destroy_task_local_instance(instance,
-            Internal::RtEvent(Realm::Event::ignorefaults(precondition)));
-      else
-        return Internal::implicit_context->destroy_task_local_instance(
-            instance, Internal::RtEvent::NO_RT_EVENT);
     }
 
     //--------------------------------------------------------------------------
