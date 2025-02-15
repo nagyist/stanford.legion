@@ -17,7 +17,8 @@
 #include "hip_cuda_compat/hip_cuda.h"
 #include "realm/hip/hiphijack_api.h"
 #endif
-#include "legion/internface/redop.h"
+#include "legion/interface/redop.h"
+#include "legion/interface/runtime.h"
 
 namespace Legion {
   namespace Internal {

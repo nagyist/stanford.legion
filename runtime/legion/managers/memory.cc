@@ -24,6 +24,19 @@
 #include "legion/nodes/region.h"
 #include "legion/tasks/single.h"
 
+#ifdef LEGION_USE_CUDA
+#include <cuda.h>
+#ifdef LEGION_MALLOC_INSTANCES
+#include "realm/cuda/cuda_access.h"
+#endif
+#endif
+#ifdef LEGION_USE_HIP
+#include <hip/hip_runtime.h>
+#ifdef LEGION_MALLOC_INSTANCES
+#include "realm/hip/hip_access.h"
+#endif
+#endif
+
 namespace Legion {
   namespace Internal {
 
