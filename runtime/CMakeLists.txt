@@ -815,38 +815,196 @@ list(APPEND MAPPER_SRC
 # Legion runtime
 list(APPEND LEGION_SRC
   legion.h
-  legion/bitmask.h
-  legion/garbage_collection.h             legion/garbage_collection.cc
-  legion/legion_allocation.h
-  legion/legion_analysis.h                legion/legion_analysis.cc
-  legion/legion_c.h                       legion/legion_c.cc
-  legion/legion_config.h
-  legion/legion_constraint.h              legion/legion_constraint.cc
-  legion/legion_context.h                 legion/legion_context.cc
-  legion/legion_c_util.h
-  legion/legion.cc
-  legion/legion.inl
+  legion/legion_c.h
+  legion/legion_constraint.h
   legion/legion_domain.h
-  legion/legion_domain.inl
-  legion/legion_instances.h               legion/legion_instances.cc
-  legion/legion_mapping.h                 legion/legion_mapping.cc
-  legion/legion_ops.h                     legion/legion_ops.cc
-  legion/legion_profiling.h               legion/legion_profiling.cc
-  legion/legion_profiling_serializer.h    legion/legion_profiling_serializer.cc
-  legion/legion_profiling_version.h
-  legion/legion_replication.h             legion/legion_replication.cc
-  legion/legion_spy.h                     legion/legion_spy.cc
-  legion/legion_tasks.h                   legion/legion_tasks.cc
-  legion/legion_trace.h                   legion/legion_trace.cc
-  legion/legion_auto_trace.h              legion/legion_auto_trace.cc
-  legion/trie.h
-  legion/legion_types.h
-  legion/legion_utilities.h
-  legion/legion_views.h                   legion/legion_views.cc
-  legion/legion_redop.h                   legion/legion_redop.cc
-  legion/mapper_manager.h                 legion/mapper_manager.cc
-  legion/region_tree.h                    legion/region_tree.cc
-  legion/runtime.h                        legion/runtime.cc
+  legion/legion_mapping.h
+  legion/legion_redop.h
+  legion/analysis/acquire.h               legion/analysis/acquire.cc
+  legion/analysis/across.h                legion/analysis/across.cc
+  legion/analysis/aggregator.h            legion/analysis/aggregator.cc
+  legion/analysis/collective.h            legion/analysis/collective.cc
+  legion/analysis/equivalence_set.h       legion/analysis/equivalence_set.cc
+  legion/analysis/filter.h                legion/analysis/filter.cc
+  legion/analysis/logical.h               legion/analysis/logical.cc
+  legion/analysis/overwrite.h             legion/analysis/overwrite.cc
+  legion/analysis/physical.h              legion/analysis/physical.cc
+  legion/analysis/projection.h            legion/analysis/projection.cc
+  legion/analysis/refinement.h            legion/analysis/refinement.cc
+  legion/analysis/registration.h          legion/analysis/registration.cc
+  legion/analysis/release.h               legion/analysis/release.cc
+  legion/analysis/update.h                legion/analysis/update.cc
+  legion/analysis/valid.h                 legion/analysis/valid.cc
+  legion/analysis/versioning.h            legion/analysis/versioning.cc
+  legion/bindings/c_bindings.h            legion/bindings/c_bindings.cc
+  legion/bindings/c_bindings_util.h
+  legion/contexts/context.h               legion/contexts/context.cc
+  legion/contexts/context.inl
+  legion/contexts/inner.h                 legion/contexts/inner.cc
+  legion/contexts/leaf.h                  legion/contexts/leaf.cc
+  legion/contexts/remote.h                legion/contexts/remote.cc
+  legion/contexts/replicate.h             legion/contexts/replicate.cc
+  legion/contexts/toplevel.h              legion/contexts/toplevel.cc
+  legion/core/allocation.h
+  legion/core/exception.h                 legion/core/exception.cc
+  legion/core/garbage_collection.h        legion/core/garbage_collection.cc
+  legion/core/metatask.h
+  legion/core/runtime.h                   legion/core/runtime.cc
+  legion/core/runtime.inl
+  legion/instances/builder.h              legion/instances/builder.cc
+  legion/instances/instance.h             legion/instances/instance.cc
+  legion/instances/instance.inl
+  legion/instances/layout.h               legion/instances/layout.cc
+  legion/instances/physical.h             legion/instances/physical.cc
+  legion/instances/physical.inl
+  legion/instances/virtual.h              legion/instances/virtual.cc
+  legion/interface/accessors.h            legion/interface/accessors.cc
+  legion/interface/accessors.inl
+  legion/interface/argument_map.h         legion/interface/argument_map.cc
+  legion/interface/argument_map.inl       legion/interface/argument_map_impl.h
+  legion/interface/buffers.h              legion/interface/buffers.inl
+  legion/interface/config.h
+  legion/interface/constraints.h          legion/interface/constraints.cc
+  legion/interface/data.h                 legion/interface/data.cc
+  legion/interface/data.inl               legion/interface/data_impl.h
+  legion/interface/functors.h             legion/interface/functors.cc
+  legion/interface/functors_impl.h
+  legion/interface/future.h               legion/interface/future.cc
+  legion/interface/future.inl             legion/interface/future_impl.h
+  legion/interface/future_map.h           legion/interface/future_map.cc
+  legion/interface/future_map.inl         legion/interface/future_map_impl.h
+  legion/interface/geometry.h             legion/interface/geometry.inl
+  legion/interface/interop.h              legion/interface/interop.cc
+  legion/interface/interop_impl.h
+  legion/interface/launchers.h            legion/interface/launchers.cc
+  legion/interface/launchers.inl
+  legion/interface/mapping.h              legion/interface/mapping.cc
+  legion/interface/mapping.inl
+  legion/interface/output_region.h        legion/interface/output_region.cc
+  legion/interface/output_region.inl      legion/interface/output_region_impl.h
+  legion/interface/physical_region.h      legion/interface/physical_region.cc
+  legion/interface/physical_region.inl    legion/interface/physical_region_impl.h
+  legion/interface/predicate.h            legion/interface/predicate.cc
+  legion/interface/predicate.inl          legion/interface/predicate_impl.h
+  legion/interface/redop.h                legion/interface/redop.cc
+  legion/interface/redop.inl
+  legion/interface/registrars.h           legion/interface/registrars.cc
+  legion/interface/registrars.inl
+  legion/interface/requirements.h         legion/interface/requirements.cc
+  legion/interface/requirements.inl
+  legion/interface/runtime.h              legion/interface/runtime.cc
+  legion/interface/runtime.inl
+  legion/interface/sync.h                 legion/interface/sync.cc
+  legion/interface/sync.inl               legion/interface/sync_impl.h
+  legion/interface/transforms.h           legion/interface/transforms.inl
+  legion/interface/types.h
+  legion/interface/values.h               legion/interface/values.cc
+  legion/interface/values.inl
+  legion/managers/mapper.h                legion/managers/mapper.cc
+  legion/managers/memory.h                legion/managers/memory.cc
+  legion/managers/message.h               legion/managers/message.cc
+  legion/managers/message.inl
+  legion/managers/processor.h             legion/managers/processor.cc
+  legion/managers/shard.h                 legion/managers/shard.cc
+  legion/managers/shutdown.h              legion/managers/shutdown.cc
+  legion/nodes/across.h                   legion/nodes/across.cc
+  legion/nodes/across.inl
+  legion/nodes/expression.h               legion/nodes/expression.cc
+  legion/nodes/expression.inl
+  legion/nodes/field.h                    legion/nodes/field.cc
+  legion/nodes/index.h                    legion/nodes/index.cc
+  legion/nodes/index.inl
+  legion/nodes/kdtree.h                   legion/nodes/kdtree.inl
+  legion/nodes/region.h                   legion/nodes/region.cc
+  legion/operations/acquire.h             legion/operations/acquire.cc
+  legion/operations/allreduce.h           legion/operations/allreduce.cc
+  legion/operations/attach.h              legion/operations/attach.h
+  legion/operations/begin.h               legion/operations/begin.cc
+  legion/operations/boolean.h             legion/operations/boolean.cc
+  legion/operations/close.h               legion/operations/close.cc
+  legion/operations/collective.h          legion/operations/collective.cc
+  legion/operations/complete.h            legion/operations/complete.cc
+  legion/operations/copy.h                legion/operations/copy.cc
+  legion/operations/creation.h            legion/operations/creation.cc
+  legion/operations/deletion.h            legion/operations/deletion.cc
+  legion/operations/dependent.h           legion/operations/dependent.cc
+  legion/operations/detach.h              legion/operations/detach.cc
+  legion/operations/discard.h             legion/operations/discard.cc
+  legion/operations/dynamic.h             legion/operations/dynamic.cc
+  legion/operations/factory.h             legion/operations/factory.cc
+  legion/operations/fence.h               legion/operations/fence.cc
+  legion/operations/fill.h                legion/operations/fill.cc
+  legion/operations/frame.h               legion/operations/frame.cc
+  legion/operations/internal.h            legion/operations/internal.cc
+  legion/operations/mapping.h             legion/operations/mapping.cc
+  legion/operations/memoizable.h          legion/operations/memoizable.cc
+  legion/operations/memoizable.inl
+  legion/operations/mustepoch.h           legion/operations/mustepoch.cc
+  legion/operations/operation.h           legion/operations/operation.cc
+  legion/operations/partition.h           legion/operations/partition.cc
+  legion/operations/pointwise.h           legion/operations/pointwise.cc
+  legion/operations/predicate.h           legion/operations/predicate.cc
+  legion/operations/predicate.inl
+  legion/operations/recurrent.h           legion/operations/recurrent.cc
+  legion/operations/refinement.h          legion/operations/refinement.cc
+  legion/operations/release.h             legion/operations/release.cc
+  legion/operations/remote.h              legion/operations/remote.cc
+  legion/operations/reset.h               legion/operations/reset.cc
+  legion/operations/timing.h              legion/operations/timing.cc
+  legion/operations/trace.h               legion/operations/trace.cc
+  legion/operations/tunable.h             legion/operations/tunable.cc
+  legion/tasks/index.h                    legion/tasks/index.cc
+  legion/tasks/individual.h               legion/tasks/individual.cc
+  legion/tasks/multi.h                    legion/tasks/multi.cc
+  legion/tasks/point.h                    legion/tasks/point.cc
+  legion/tasks/remote.h                   legion/tasks/remote.cc
+  legion/tasks/shard.h                    legion/tasks/shard.cc
+  legion/tasks/single.h                   legion/tasks/single.cc
+  legion/tasks/slice.h                    legion/tasks/slice.cc
+  legion/tasks/task.h                     legion/tasks/task.cc
+  legion/tools/profiler.h                 legion/tools/profiler.cc
+  legion/tools/profiler.inl               legion/tools/profiler_version.h
+  legion/tools/serializer.h               legion/tools/serializer.cc
+  legion/tools/spy.h                      legion/tools/types.h
+  legion/tracing/automatic.h              legion/tracing/automatic.cc
+  legion/tracing/cache.h                  legion/tracing/cache.cc
+  legion/tracing/instructions.h           legion/tracing/instructions.cc
+  legion/tracing/logical.h                legion/tracing/logical.cc
+  legion/tracing/physical.h               legion/tracing/physical.cc
+  legion/tracing/physical.inl
+  legion/tracing/recognizer.h             legion/tracing/recognizer.cc
+  legion/tracing/recording.h              legion/tracing/recording.cc
+  legion/tracing/shard.h                  legion/tracing/shard.cc
+  legion/tracing/template.h               legion/tracing/template.cc
+  legion/tracing/trie.h
+  legion/tracing/viewset.h                legion/tracing/viewset.cc
+  legion/tracing/watcher.h                legion/tracing/watcher.cc
+  legion/utilities/bitmask.h              legion/utilities/bitmask.inl
+  legion/utilities/buffers.h
+  legion/utilities/collectives.h          legion/utilities/collectives.cc
+  legion/utilities/coordinates.h          legion/utilities/coordinates.cc
+  legion/utilities/dynamic_table.h        legion/utilities/dynamic_table.inl
+  legion/utilities/fieldmask_set.h        legion/utilities/fieldmask_set.inl
+  legion/utilities/hasher.h               legion/utilities/hasher.inl
+  legion/utilities/instance_set.h         legion/utilities/instance_set.cc
+  legion/utilities/privileges.h
+  legion/utilities/provenance.h           legion/utilities/provenance.cc
+  legion/utilities/resources.h            legion/utilities/resources.cc
+  legion/utilities/serdez.h               legion/utilities/serdez.inl
+  legion/utilities/small_vector.h         legion/utilities/small_vector.inl
+  legion/views/allreduce.h                legion/views/allreduce.cc
+  legion/views/collective.h               legion/views/collective.cc
+  legion/views/deferred.h                 legion/views/deferred.cc
+  legion/views/fill.h                     legion/views/fill.cc
+  legion/views/individual.h               legion/views/individual.cc
+  legion/views/individual.inl
+  legion/views/instance.h                 legion/views/instance.cc
+  legion/views/logical.h                  legion/views/logical.cc
+  legion/views/logical.inl
+  legion/views/materialized.h             legion/views/materialized.cc
+  legion/views/phi.h                      legion/views/phi.cc
+  legion/views/reduction.h                legion/views/reduction.cc
+  legion/views/replicate.h                legion/views/replicate.cc
 )
 
 if(Legion_USE_HIP)
@@ -863,13 +1021,13 @@ endif()
 
 if(Legion_USE_CUDA)
   list(APPEND LEGION_SRC
-    legion/legion_redop.cu
+    legion/interface/redop.cu
   )
 endif()
 
 if(Legion_USE_HIP)
   list(APPEND LEGION_HIP_SRC
-    legion/legion_redop.cu
+    legion/interface/redop.cu
   )
 endif()
 
@@ -877,7 +1035,7 @@ endif()
 foreach(INST_N1 RANGE 1 ${LEGION_MAX_DIM})
   # use cmake's configure_file for a portable way of creating wrapper
   #  source files
-  set(SRCFILE legion/region_tree)
+  set(SRCFILE legion/nodes/nodes)
   configure_file(${PROJECT_SOURCE_DIR}/cmake/deppart_tmpl.cc.in ${SRCFILE}_${INST_N1}.cc)
   list(APPEND LEGION_SRC ${SRCFILE}_${INST_N1}.cc)
 
@@ -891,9 +1049,9 @@ endforeach()
 # Legion Fortran
 if(Legion_USE_Fortran)
   list(APPEND LEGION_FORTRAN_SRC
-    legion/legion_f_types.f90
-    legion/legion_f_c_interface.f90
-    legion/legion_f.f90
+    legion/bindings/f_types.f90
+    legion/bindings/f_c_interface.f90
+    legion/bindings/f_bindings.f90
   )
 endif()
 

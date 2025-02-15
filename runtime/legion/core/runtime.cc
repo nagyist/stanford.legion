@@ -1,0 +1,17430 @@
+/* Copyright 2025 Stanford University, NVIDIA Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "legion/core/runtime.h"
+#include "legion/analysis/acquire.h"
+#include "legion/analysis/across.h"
+#include "legion/analysis/aggregator.h"
+#include "legion/analysis/filter.h"
+#include "legion/analysis/overwrite.h"
+#include "legion/analysis/release.h"
+#include "legion/analysis/valid.h"
+#include "legion/analysis/update.h"
+#include "legion/contexts/remote.h"
+#include "legion/contexts/replicate.h"
+#include "legion/contexts/toplevel.h"
+#include "legion/instances/virtual.h"
+#include "legion/interface/functors_impl.h"
+#include "legion/interface/future_impl.h"
+#include "legion/managers/mapper.h"
+#include "legion/managers/message.h"
+#include "legion/managers/processor.h"
+#include "legion/managers/shard.h"
+#include "legion/nodes/expression.h"
+#include "legion/nodes/region.h"
+#include "legion/operations/copy.h"
+#include "legion/operations/deletion.h"
+#include "legion/operations/mustepoch.h"
+#include "legion/operations/remote.h"
+#include "legion/operations/timing.h"
+#include "legion/tasks/index.h"
+#include "legion/tasks/individual.h"
+#include "legion/tasks/slice.h"
+#include "legion/tracing/recognizer.h"
+#include "legion/tracing/shard.h"
+#include "legion/utilities/provenance.h"
+#include "legion/views/allreduce.h"
+#include "legion/views/fill.h"
+#include "legion/views/materialized.h"
+#include "legion/views/phi.h"
+#include "legion/views/reduction.h"
+#include "legion/views/replicate.h"
+#include "mappers/default_mapper.h"
+#include "mappers/test_mapper.h"
+#include "mappers/replay_mapper.h"
+#include "mappers/debug_mapper.h"
+#include "realm/cmdline.h"
+
+#include <algorithm>
+#include <stdlib.h>
+#include <unistd.h> // sleep for warnings
+
+#ifdef LEGION_TRACE_ALLOCATION
+#include <sys/resource.h>
+#endif
+#ifdef LEGION_USE_CUDA
+#include <cuda.h>
+#ifdef LEGION_MALLOC_INSTANCES
+#include "realm/cuda/cuda_access.h"
+#endif
+#endif
+#ifdef LEGION_USE_HIP
+#include <hip/hip_runtime.h>
+#ifdef LEGION_MALLOC_INSTANCES
+#include "realm/hip/hip_access.h"
+#endif
+#endif
+
+namespace Legion {
+  namespace Internal {
+
+    // If you add a logger, update the forward delarations in types.h 
+    Realm::Logger log_legion("legion");
+    Realm::Logger log_run("runtime");
+    Realm::Logger log_task("tasks");
+    Realm::Logger log_index("index_spaces");
+    Realm::Logger log_field("field_spaces");
+    Realm::Logger log_region("regions");
+    Realm::Logger log_inst("instances");
+    Realm::Logger log_variant("variants");
+    Realm::Logger log_allocation("allocation");
+    Realm::Logger log_migration("migration");
+    Realm::Logger log_prof("legion_prof");
+    Realm::Logger log_garbage("legion_gc");
+    Realm::Logger log_shutdown("shutdown");
+    Realm::Logger log_tracing("tracing");
+    Realm::Logger log_auto_trace("auto_trace");
+    Realm::Logger log_spy("legion_spy");
+
+    Runtime *runtime = NULL;
+    thread_local TaskContext *implicit_context = NULL;
+    thread_local MappingCallInfo *implicit_mapper_call = NULL;
+    thread_local LegionProfInstance *implicit_profiler = NULL;
+    thread_local AutoLock *local_lock_list = NULL;
+    thread_local UniqueID implicit_provenance = 0;
+    thread_local LgEvent implicit_fevent = LgEvent::NO_LG_EVENT;
+    thread_local RegistrationCallbackMode inside_registration_callback=NO_REGISTRATION_CALLBACK;
+    thread_local ImplicitReferenceTracker *implicit_reference_tracker = NULL;
+#ifdef DEBUG_LEGION_CALLERS
+    thread_local LgTaskID implicit_task_kind = LG_SCHEDULER_ID;
+    thread_local LgTaskID implicit_task_caller = LG_SCHEDULER_ID;
+#endif
+
+    const LgEvent LgEvent::NO_LG_EVENT = {};
+    const ApEvent ApEvent::NO_AP_EVENT = {};
+    const ApUserEvent ApUserEvent::NO_AP_USER_EVENT = {};
+    const ApBarrier ApBarrier::NO_AP_BARRIER = {};
+    const RtEvent RtEvent::NO_RT_EVENT = {};
+    const RtUserEvent RtUserEvent::NO_RT_USER_EVENT = {};
+    const RtBarrier RtBarrier::NO_RT_BARRIER = {};
+    const PredEvent PredEvent::NO_PRED_EVENT = {};
+    const PredUserEvent PredUserEvent::NO_PRED_USER_EVENT = {};
+
+    //--------------------------------------------------------------------------
+    void LgEvent::begin_context_wait(Context ctx, bool from_application) const
+    //--------------------------------------------------------------------------
+    {
+      ctx->begin_wait(*this, from_application);
+    }
+
+    //--------------------------------------------------------------------------
+    void LgEvent::end_context_wait(Context ctx, bool from_application) const
+    //--------------------------------------------------------------------------
+    {
+      ctx->end_wait(*this, from_application);
+    }
+    
+    //--------------------------------------------------------------------------
+    void LgEvent::begin_mapper_call_wait(MappingCallInfo *call) const
+    //--------------------------------------------------------------------------
+    {
+      call->begin_wait();
+    }
+
+    //--------------------------------------------------------------------------
+    void LgEvent::record_event_wait(LegionProfInstance *profiler,
+                                    Realm::Backtrace &bt) const
+    //--------------------------------------------------------------------------
+    {
+      profiler->record_event_wait(*this, bt);
+    }
+
+    //--------------------------------------------------------------------------
+    void LgEvent::record_event_trigger(LgEvent precondition) const
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(exists());
+      assert(implicit_profiler != NULL);
+#endif
+      implicit_profiler->record_event_trigger(*this, precondition);
+    }
+
+    //--------------------------------------------------------------------------
+    static inline bool compare_expressions(IndexSpaceExpression *one,
+                                           IndexSpaceExpression *two)
+    //--------------------------------------------------------------------------
+    {
+      return (one->expr_id < two->expr_id); 
+    }
+
+    struct CompareExpressions {
+    public:
+      inline bool operator()(IndexSpaceExpression *one,
+                             IndexSpaceExpression *two) const
+      { return compare_expressions(one, two); }
+    };
+
+    /////////////////////////////////////////////////////////////
+    // Operation Creator 
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    OperationCreator::OperationCreator(void)
+      : result(NULL)
+    //--------------------------------------------------------------------------
+    {
+    }
+
+    //--------------------------------------------------------------------------
+    OperationCreator::~OperationCreator(void)
+    //--------------------------------------------------------------------------
+    {
+      // If we still have a result then it's because it wasn't consumed need 
+      // we need to remove it's reference that was added by the constructor 
+      if ((result != NULL) && result->remove_base_resource_ref(REGION_TREE_REF))
+        delete result;
+    }
+
+    //--------------------------------------------------------------------------
+    void OperationCreator::produce(IndexSpaceOperation *op)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(result == NULL);
+#endif
+      result = op;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* OperationCreator::consume(void)
+    //--------------------------------------------------------------------------
+    {
+      if (result == NULL)
+        create_operation();
+#ifdef DEBUG_LEGION
+      assert(result != NULL);
+#endif
+      // Add an expression reference here since this is going to be put
+      // into the region tree expression trie data structure, the reference
+      // will be removed when the expressions is removed from the trie
+      result->add_base_gc_ref(REGION_TREE_REF);
+      return result;
+    }
+    
+    /////////////////////////////////////////////////////////////
+    // Pending Registrations 
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    PendingVariantRegistration::PendingVariantRegistration(VariantID v,
+                                  size_t return_size, bool has_return_size, 
+                                  const TaskVariantRegistrar &reg,
+                                  const void *udata, size_t udata_size,
+                                  const CodeDescriptor &realm, 
+                                  const char *task_name)
+      : vid(v), return_type_size(return_size),
+        has_return_type_size(has_return_size), registrar(reg), 
+        realm_desc(realm), logical_task_name(NULL)
+    //--------------------------------------------------------------------------
+    {
+      // If we're doing a pending registration, this is a static
+      // registration so we don't have to register it globally
+      registrar.global_registration = false;
+      // Make sure we own the task variant name
+      if (reg.task_variant_name != NULL)
+        registrar.task_variant_name = strdup(reg.task_variant_name);
+      // We need to own the user data too
+      if (udata != NULL)
+      {
+        user_data_size = udata_size;
+        user_data = malloc(user_data_size);
+        memcpy(user_data,udata,user_data_size);
+      }
+      else
+      {
+        user_data_size = 0;
+        user_data = NULL;
+      }
+      if (task_name != NULL)
+        logical_task_name = strdup(task_name);
+    }
+
+    //--------------------------------------------------------------------------
+    PendingVariantRegistration::PendingVariantRegistration(
+                                          const PendingVariantRegistration &rhs)
+    //--------------------------------------------------------------------------
+    {
+      // should never be called
+      assert(false);
+    }
+
+    //--------------------------------------------------------------------------
+    PendingVariantRegistration::~PendingVariantRegistration(void)
+    //--------------------------------------------------------------------------
+    {
+      if (registrar.task_variant_name != NULL)
+        free(const_cast<char*>(registrar.task_variant_name));
+      if (user_data != NULL)
+        free(user_data);
+      if (logical_task_name != NULL)
+        free(logical_task_name);
+    }
+
+    //--------------------------------------------------------------------------
+    PendingVariantRegistration& PendingVariantRegistration::operator=(
+                                          const PendingVariantRegistration &rhs)
+    //--------------------------------------------------------------------------
+    {
+      // should never be called
+      assert(false);
+      return *this;
+    }
+
+    //--------------------------------------------------------------------------
+    void PendingVariantRegistration::perform_registration(void)
+    //--------------------------------------------------------------------------
+    {
+      // If we have a logical task name, attach the name info
+      // Do this first before any logging for the variant
+      if (logical_task_name != NULL)
+        runtime->attach_semantic_information(registrar.task_id, 
+                          LEGION_NAME_SEMANTIC_TAG, logical_task_name, 
+                          strlen(logical_task_name)+1, 
+                          false/*mutable*/, false/*send to owner*/);
+      runtime->register_variant(registrar, user_data, user_data_size,
+            realm_desc, return_type_size, has_return_type_size, vid, 
+            false/*check task*/, true/*check context*/, true/*preregistered*/);
+    }   
+
+    /////////////////////////////////////////////////////////////
+    // Legion Runtime 
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    Runtime::Runtime(Machine m, const LegionConfiguration &config, 
+                     bool background, InputArgs args, 
+                     AddressSpaceID unique, Memory system,
+                     const std::set<Processor> &locals,
+                     const std::set<Processor> &local_utilities,
+                     const std::set<AddressSpaceID> &address_spaces,
+                     const std::map<Processor,AddressSpaceID> &processor_spaces,
+                     bool default_mapper)
+      : external(new Legion::Runtime(this)),
+        mapper_runtime(new Legion::Mapping::MapperRuntime(this)),
+        machine(m), runtime_system_memory(system), address_space(unique), 
+        total_address_spaces(address_spaces.size()),
+        runtime_stride(address_spaces.size()), profiler(NULL),
+        virtual_manager(NULL), 
+        num_utility_procs(local_utilities.empty() ? locals.size() : 
+                          local_utilities.size()), input_args(args),
+        initial_task_window_size(config.initial_task_window_size),
+        initial_task_window_hysteresis(config.initial_task_window_hysteresis),
+        initial_tasks_to_schedule(config.initial_tasks_to_schedule),
+        initial_meta_task_vector_width(config.initial_meta_task_vector_width),
+        max_message_size(config.max_message_size),
+        gc_epoch_size(config.gc_epoch_size),
+        max_control_replication_contexts(
+                      config.max_control_replication_contexts),
+        max_local_fields(config.max_local_fields),
+        max_replay_parallelism(config.max_replay_parallelism),
+        safe_control_replication(config.safe_control_replication),
+        program_order_execution(config.program_order_execution),
+        dump_physical_traces(config.dump_physical_traces),
+        no_tracing(config.no_tracing),
+        no_physical_tracing(config.no_physical_tracing || no_tracing ||
+                            program_order_execution),
+        no_auto_tracing(config.no_auto_tracing || no_tracing || 
+                        program_order_execution),
+        no_trace_optimization(config.no_trace_optimization),
+        no_fence_elision(config.no_fence_elision),
+        no_transitive_reduction(config.no_transitive_reduction),
+        inline_transitive_reduction(config.inline_transitive_reduction),
+        replay_on_cpus(config.replay_on_cpus),
+        verify_partitions(config.verify_partitions),
+        runtime_warnings(config.runtime_warnings),
+        warnings_backtrace(config.warnings_backtrace),
+        warnings_are_errors(config.warnings_are_errors),
+        report_leaks(config.report_leaks),
+        record_registration(config.record_registration),
+        stealing_disabled(config.stealing_disabled),
+        resilient_mode(config.resilient_mode),
+        unsafe_launch(config.unsafe_launch),
+#ifdef DEBUG_LEGION
+        safe_mapper(!config.unsafe_mapper),
+#else
+        safe_mapper(config.safe_mapper),
+#endif
+        safe_model(config.safe_model),
+        safe_tracing(config.safe_tracing),
+        disable_independence_tests(config.disable_independence_tests),
+        enable_pointwise_analysis(config.enable_pointwise_analysis),
+        legion_spy_enabled(config.legion_spy_enabled),
+        supply_default_mapper(default_mapper),
+        enable_test_mapper(config.enable_test_mapper),
+        legion_ldb_enabled(!config.ldb_file.empty()),
+        replay_file(legion_ldb_enabled ? config.ldb_file : config.replay_file),
+#ifdef DEBUG_LEGION
+        verbose_logging(config.verbose_logging),
+#endif
+        check_privileges(config.check_privileges),
+        dump_free_ranges(config.dump_free_ranges),
+        legion_collective_radix(config.legion_collective_radix),
+        mpi_rank_table((mpi_rank >= 0) ? new MPIRankTable(
+          legion_collective_radix, address_space, total_address_spaces) : NULL),
+        prepared_for_shutdown(false), total_outstanding_tasks(0), 
+        outstanding_top_level_tasks(initialize_outstanding_top_level_tasks(
+              address_space, total_address_spaces, legion_collective_radix)),
+        local_procs(locals), local_utils(local_utilities),
+        proc_spaces(processor_spaces),
+        unique_index_tree_id((unique == 0) ? runtime_stride : unique),
+        unique_field_id(LEGION_MAX_APPLICATION_FIELD_ID + 
+                        ((unique == 0) ? runtime_stride : unique)),
+        unique_operation_id((unique == 0) ? runtime_stride : unique),
+        unique_code_descriptor_id(LG_TASK_ID_AVAILABLE +
+                        ((unique == 0) ? runtime_stride : unique)),
+        unique_constraint_id(LEGION_MAX_APPLICATION_LAYOUT_ID + 
+            (((LEGION_MAX_APPLICATION_LAYOUT_ID % runtime_stride) <= unique) ?
+             (runtime_stride - 
+              ((LEGION_MAX_APPLICATION_LAYOUT_ID % runtime_stride) - unique)) :
+             (unique - (LEGION_MAX_APPLICATION_LAYOUT_ID % runtime_stride)))),
+        unique_is_expr_id((unique == 0) ? runtime_stride : unique),
+        unique_top_level_task_id((unique == 0) ? runtime_stride : unique),
+        unique_provenance_id((unique == 0) ? runtime_stride : unique),
+        unique_implicit_top_level_task_id(0),
+#ifdef LEGION_SPY
+        unique_indirections_id((unique == 0) ? runtime_stride : unique),
+#endif
+        unique_task_id(get_current_static_task_id()+unique),
+        unique_mapper_id(get_current_static_mapper_id()+unique),
+        unique_trace_id(get_current_static_trace_id()+unique),
+        unique_projection_id(get_current_static_projection_id()+unique),
+        unique_sharding_id(get_current_static_sharding_id()+unique),
+        unique_concurrent_id(get_current_static_concurrent_id()+ unique),
+        unique_redop_id(get_current_static_reduction_id()+unique),
+        unique_serdez_id(get_current_static_serdez_id()+unique),
+        unique_library_mapper_id(LEGION_INITIAL_LIBRARY_ID_OFFSET),
+        unique_library_trace_id(LEGION_INITIAL_LIBRARY_ID_OFFSET),
+        unique_library_projection_id(LEGION_INITIAL_LIBRARY_ID_OFFSET),
+        unique_library_sharding_id(LEGION_INITIAL_LIBRARY_ID_OFFSET),
+        unique_library_concurrent_id(LEGION_INITIAL_LIBRARY_ID_OFFSET),
+        unique_library_task_id(LEGION_INITIAL_LIBRARY_ID_OFFSET),
+        unique_library_redop_id(LEGION_INITIAL_LIBRARY_ID_OFFSET),
+        unique_library_serdez_id(LEGION_INITIAL_LIBRARY_ID_OFFSET),
+        unique_distributed_id((unique == 0) ? runtime_stride : unique)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(runtime == NULL);
+#endif
+      runtime = this;
+#ifdef DEBUG_LEGION
+      assert((unique_constraint_id % runtime_stride) == unique);
+#endif
+      if (LEGION_MAX_NUM_NODES <= address_space)
+        REPORT_LEGION_ERROR(ERROR_MAXIMUM_NODES_EXCEEDED,
+            "Maximum number of nodes exceeded. Detected node %d but "
+            "'LEGION_MAX_NUM_NODES' is set to %d. Change the value of "
+            "'LEGION_MAX_NUM_NODES' in legion_config.h and recompile. "
+            "Please note that 'LEGION_MAX_NUM_NODES' must be a power of two.",
+            address_space, LEGION_MAX_NUM_NODES)
+      log_run.debug("Initializing Legion runtime in address space %x",
+                            address_space);
+      // Construct a local utility processor group
+      if (local_utils.empty())
+      {
+        // make the utility group the set of all the local processors
+#ifdef DEBUG_LEGION
+        assert(!locals.empty());
+#endif
+        if (locals.size() == 1)
+          utility_group = *(locals.begin());
+        else
+        {
+          std::vector<Processor> util_group(locals.begin(), locals.end());
+          utility_group = ProcessorGroup::create_group(util_group);
+        }
+        local_group = utility_group;
+      }
+      else
+      {
+        if (local_utils.size() == 1)
+          utility_group = *(local_utils.begin());
+        else
+        {
+          std::vector<Processor> util_g(local_utils.begin(), local_utils.end());
+          utility_group = ProcessorGroup::create_group(util_g);
+        }
+        std::vector<Processor> all_local(locals.begin(), locals.end());
+        all_local.insert(all_local.end(),local_utils.begin(),local_utils.end());
+        local_group = ProcessorGroup::create_group(all_local);
+      }
+#ifdef DEBUG_LEGION
+      assert(utility_group.exists());
+#endif
+      // For each of the processors in our local set construct a manager
+      for (std::set<Processor>::const_iterator it = local_procs.begin();
+            it != local_procs.end(); it++)
+      {
+#ifdef DEBUG_LEGION
+        assert((*it).kind() != Processor::UTIL_PROC);
+#endif
+        ProcessorManager *manager = new ProcessorManager(*it,
+				    (*it).kind(),
+                                    LEGION_DEFAULT_MAPPER_SLOTS, 
+                                    stealing_disabled,
+                                    !replay_file.empty());
+        proc_managers[*it] = manager;
+      }
+      // Initialize the message manager array so that we can construct
+      // message managers lazily as they are needed
+      for (unsigned idx = 0; idx < LEGION_MAX_NUM_NODES; idx++)
+        message_managers[idx].store(NULL);
+      
+      // Make the default number of contexts
+      // No need to hold the lock yet because nothing is running
+      total_contexts = LEGION_DEFAULT_CONTEXTS;
+      available_contexts.resize(LEGION_DEFAULT_CONTEXTS);
+      // Add in reverse order so lower numbers get popped off first
+      for (unsigned idx = 0; idx < LEGION_DEFAULT_CONTEXTS; idx++)
+        available_contexts[idx] = LEGION_DEFAULT_CONTEXTS-(idx+1);
+      // Initialize our random number generator state
+      random_state[0] = address_space & 0xFFFF; // low-order bits of node ID 
+      random_state[1] = (address_space >> 16) & 0xFFFF; // high-order bits
+      random_state[2] = LEGION_INIT_SEED;
+      // Do some mixing
+      for (int i = 0; i < 256; i++)
+        nrand48(random_state);
+      // We've intentionally switched this to profile all the nodes if we're 
+      // profiling any nodes since some information about things like copies
+      // usage of instances are now split across multiple log files
+      if (config.num_profiling_nodes > 0)
+        initialize_legion_prof(config);
+
+      if (config.legion_spy_enabled)
+        log_local_machine();
+
+#ifdef LEGION_TRACE_ALLOCATION
+      allocation_tracing_count.store(0);
+#endif
+#ifdef LEGION_GC
+      {
+        REFERENCE_NAMES_ARRAY(reference_names);
+        for (unsigned idx = 0; idx < LAST_SOURCE_REF; idx++)
+        {
+          log_garbage.info("GC Source Kind %d %s", idx, reference_names[idx]);
+        }
+      }
+#endif 
+#ifdef DEBUG_SHUTDOWN_HANG
+      outstanding_counts = std::vector<std::atomic<int> >(LG_LAST_TASK_ID);
+      for (unsigned idx = 0; idx < outstanding_counts.size(); idx++)
+        outstanding_counts[idx].store(0);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    Runtime::~Runtime(void)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(outstanding_operations.empty());
+#endif
+      if (profiler != NULL)
+      {
+        delete profiler;
+        profiler = NULL;
+      }
+      // Make sure we don't send anymore messages
+      for (unsigned idx = 0; idx < LEGION_MAX_NUM_NODES; idx++)
+      {
+        MessageManager *manager = message_managers[idx].load();
+        if (manager != NULL)
+        {
+          delete manager;
+          message_managers[idx].store(NULL);
+        }
+      } 
+      // Free any input arguments
+      if (input_args.argc > 0)
+      {
+        for (int i = 0; i < input_args.argc; i++)
+          if (input_args.argv[i] != NULL)
+            free(input_args.argv[i]);
+        free(input_args.argv);
+      }
+      delete external;
+      delete mapper_runtime;
+      // Avoid duplicate deletions on these for separate runtime
+      // instances by just leaking them for now
+      for (std::map<ProjectionID,ProjectionFunction*>::
+            iterator it = projection_functions.begin(); 
+            it != projection_functions.end(); it++)
+      {
+        delete it->second;
+      } 
+      projection_functions.clear();
+      for (std::map<ShardingID,ShardingFunctor*>::iterator it = 
+            sharding_functors.begin(); it != 
+            sharding_functors.end(); it++)
+      {
+        delete it->second;
+      }
+      sharding_functors.clear();
+      for (std::map<ConcurrentID,ConcurrentColoringFunctor*>::iterator it =
+              concurrent_functors.begin(); it !=
+              concurrent_functors.end(); it++)
+          delete it->second;
+      concurrent_functors.clear();
+      for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+            proc_managers.begin(); it != proc_managers.end(); it++)
+      {
+        delete it->second;
+      }
+      proc_managers.clear(); 
+      for (std::map<TaskID,TaskImpl*>::const_iterator it = 
+            task_table.begin(); it != task_table.end(); it++)
+      {
+        delete (it->second);
+      }
+      task_table.clear();
+      for (std::deque<VariantImpl*>::const_iterator it = 
+            variant_table.begin(); it != variant_table.end(); it++)
+      {
+        delete (*it);
+      }
+      variant_table.clear();
+      // Skip this if we are in separate runtime mode
+      while (!layout_constraints_table.empty())
+      {
+        std::map<LayoutConstraintID,LayoutConstraints*>::iterator next_it = 
+          layout_constraints_table.begin();
+        LayoutConstraints *next = next_it->second;
+        layout_constraints_table.erase(next_it);
+        if (next->remove_base_resource_ref(RUNTIME_REF))
+          delete (next);
+      }
+      while (!layout_constraints_table.empty())
+      {
+        std::map<LayoutConstraintID,LayoutConstraints*>::iterator next_it = 
+          layout_constraints_table.begin();
+        LayoutConstraints *next = next_it->second;
+        layout_constraints_table.erase(next_it);
+        if (next->remove_base_resource_ref(RUNTIME_REF))
+          delete (next);
+      }
+      // We can also delete all of our reduction operators
+      ReductionOpTable &redop_table = get_reduction_table(true/*safe*/);
+      while (!redop_table.empty())
+      {
+        ReductionOpTable::iterator it = redop_table.begin();
+        // Free ReductionOp *'s with free, not delete!
+        static_assert(
+          std::is_trivially_destructible<typename std::decay<decltype(*(it->second))>::type>::value,
+          "ReducionOp must be trivially destructible"
+        );
+        free(it->second);
+        redop_table.erase(it);
+      }
+      for (LegionMap<uint64_t,LegionDeque<ProcessorGroupInfo>,
+            RUNTIME_LIFETIME>::const_iterator git = 
+            processor_groups.begin(); git != processor_groups.end(); git++)
+        for (LegionDeque<ProcessorGroupInfo>::const_iterator it = 
+              git->second.begin(); it != git->second.end(); it++)
+          it->processor_group.destroy();
+      for (std::map<Memory,MemoryManager*>::const_iterator it =
+            memory_managers.begin(); it != memory_managers.end(); it++)
+      {
+        delete it->second;
+      }
+      memory_managers.clear();
+      for (std::map<size_t,std::vector<Provenance*> >::const_iterator pit =
+            provenances.begin(); pit != provenances.end(); pit++)
+        for (std::vector<Provenance*>::const_iterator it =
+              pit->second.begin(); it != pit->second.end(); it++)
+          if ((*it)->remove_reference())
+            delete (*it);
+      provenances.clear();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_static_variants(void)
+    //--------------------------------------------------------------------------
+    {
+      std::deque<PendingVariantRegistration*> &pending_variants = 
+        get_pending_variant_table();
+      if (!pending_variants.empty())
+      {
+        for (std::deque<PendingVariantRegistration*>::const_iterator it =
+              pending_variants.begin(); it != pending_variants.end(); it++)
+        {
+          (*it)->perform_registration();
+          delete *it;
+        }
+        pending_variants.clear();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    CollectiveMapping* Runtime::register_static_constraints(
+        uint64_t &next_static_did, LayoutConstraintID &virtual_layout_id)
+    //--------------------------------------------------------------------------
+    {
+      // Register any pending constraint sets
+      std::map<LayoutConstraintID,LayoutConstraintRegistrar> 
+        &pending_constraints = get_pending_constraint_table();
+      // Create a collective mapping for all the nodes
+      CollectiveMapping *mapping = NULL;
+      if (total_address_spaces > 1)
+      {
+        std::vector<AddressSpaceID> all_spaces(total_address_spaces);
+        for (unsigned idx = 0; idx < total_address_spaces; idx++)
+          all_spaces[idx] = idx;
+        mapping = new CollectiveMapping(all_spaces, legion_collective_radix);
+      }
+      unsigned already_used = 0;
+      // Now do the registrations
+      std::map<AddressSpaceID,unsigned> address_counts;
+      for (std::map<LayoutConstraintID,LayoutConstraintRegistrar>::
+            const_iterator it = pending_constraints.begin(); 
+            it != pending_constraints.end(); it++)
+      {
+        if (LEGION_MAX_APPLICATION_LAYOUT_ID < it->first)
+          already_used++;
+        register_layout(it->second, it->first,
+          get_next_static_distributed_id(next_static_did), mapping);
+      }
+      // Now register the virtual layout constraints
+      LayoutConstraintRegistrar virtual_registrar;
+      virtual_registrar.add_constraint(
+          SpecializedConstraint(LEGION_VIRTUAL_SPECIALIZE));
+      virtual_layout_id = LEGION_MAX_APPLICATION_LAYOUT_ID + ++already_used;
+      register_layout(virtual_registrar, virtual_layout_id,
+          get_next_static_distributed_id(next_static_did), mapping);
+      // Bump up our unique constraint ID if we already used the IDs statically
+      while (unique_constraint_id <=
+          (LEGION_MAX_APPLICATION_LAYOUT_ID + already_used))
+        unique_constraint_id += runtime_stride;
+      pending_constraints.clear();
+      return mapping;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_static_projections(void)
+    //--------------------------------------------------------------------------
+    {
+      std::map<ProjectionID,ProjectionFunctor*> &pending_projection_functors =
+        get_pending_projection_table();
+      for (std::map<ProjectionID,ProjectionFunctor*>::const_iterator it =
+            pending_projection_functors.begin(); it !=
+            pending_projection_functors.end(); it++)
+      {
+        it->second->set_runtime(external);
+        register_projection_functor(it->first, it->second, true/*need check*/,
+                          true/*was preregistered*/, NULL, true/*pregistered*/);
+      }
+      register_projection_functor(0, 
+          new IdentityProjectionFunctor(this->external), false/*need check*/,
+                        true/*was preregistered*/, NULL, true/*preregistered*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_static_sharding_functors(void)
+    //--------------------------------------------------------------------------
+    {
+      std::map<ShardingID,ShardingFunctor*> &pending_sharding_functors = 
+        get_pending_sharding_table();
+      for (std::map<ShardingID,ShardingFunctor*>::const_iterator it = 
+            pending_sharding_functors.begin(); it !=
+            pending_sharding_functors.end(); it++)
+        register_sharding_functor(it->first, it->second, true/*zero check*/,
+                    true/*was preregistered*/, NULL, true/*preregistered*/);
+      register_sharding_functor(0,
+          new CyclicShardingFunctor(), false/*need check*/, 
+          true/*was preregistered*/, NULL, true/*preregistered*/);
+      // Register the attach-detach sharding functor
+      ReplicateContext::register_attach_detach_sharding_functor();
+      // Register the universal sharding functor
+      ReplicateContext::register_universal_sharding_functor();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_static_concurrent_functors(void)
+    //--------------------------------------------------------------------------
+    {
+      std::map<ConcurrentID,ConcurrentColoringFunctor*> 
+        &pending_concurrent_functors = get_pending_concurrent_table();
+      for (std::map<ConcurrentID,ConcurrentColoringFunctor*>::const_iterator 
+            it = pending_concurrent_functors.begin(); it !=
+            pending_concurrent_functors.end(); it++)
+        register_concurrent_functor(it->first, it->second, true/*zero check*/,
+                    true/*was preregistered*/, NULL, true/*preregistered*/);
+      register_concurrent_functor(0,
+          new ZeroColoringFunctor(), false/*need check*/,
+          true/*was preregistered*/, NULL, true/*preregistered*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::initialize_legion_prof(const LegionConfiguration &config)
+    //--------------------------------------------------------------------------
+    {
+      // For the profiler we want to find as many "holes" in the execution
+      // as possible in which to run profiler tasks so we can minimize the
+      // overhead on the application. To do this we want profiler tasks to
+      // run on any processor that has a dedicated core which is either any
+      // CPU processor a utility processor. There's no need to use GPU or
+      // I/O processors since they share the same cores as the utility cores. 
+      // In the future we can relax this to use any processor core that doesn't
+      // support multiple threads executing concurrently (e.g. I/O procs) as
+      // that could lead to a lot of profiling instances being made since this
+      // will clear the implicit_profiler if we're not self-profiling and then
+      // we'll have to make new instances in 
+      // LegionProfiler::find_or_create_profiling_instance the next time we
+      // go to profile anything on that processor.
+      std::vector<Processor> prof_procs(local_utils.begin(), local_utils.end());
+      for (std::set<Processor>::const_iterator it = local_procs.begin();
+            it != local_procs.end(); it++)
+      {
+        if (it->kind() == Processor::LOC_PROC)
+          prof_procs.push_back(*it);
+      }
+#ifdef DEBUG_LEGION
+      assert(!prof_procs.empty());
+#endif
+      const Processor target_proc_for_profiler = prof_procs.size() > 1 ?
+        ProcessorGroup::create_group(prof_procs) : prof_procs.front();
+      LG_TASK_DESCRIPTIONS(lg_task_descriptions);
+      LG_MESSAGE_DESCRIPTIONS(lg_message_descriptions);
+      static_assert((LG_MESSAGE_ID+1) == LG_LAST_TASK_ID,
+          "LG_MESSAGE_ID must always be the last meta-task ID");
+      profiler = new LegionProfiler(target_proc_for_profiler,
+                                    machine, LG_MESSAGE_ID,
+                                    lg_task_descriptions, LAST_SEND_KIND, 
+                                    lg_message_descriptions,
+                                    LAST_OP_KIND,
+                                    Operation::op_names,
+                                    config.serializer_type.c_str(),
+                                    config.prof_logfile.c_str(),
+                                    total_address_spaces,
+                                    config.prof_footprint_threshold << 20,
+                                    config.prof_target_latency,
+                                    config.prof_call_threshold,
+                                    config.slow_config_ok,
+                                    config.prof_self_profile,
+                                    config.prof_no_critical_paths,
+                                    config.prof_all_critical_arrivals);
+      MAPPER_CALL_NAMES(lg_mapper_calls);
+      profiler->record_mapper_call_kinds(lg_mapper_calls, LAST_MAPPER_CALL);
+      RUNTIME_CALL_DESCRIPTIONS(lg_runtime_calls);
+      profiler->record_runtime_call_kinds(lg_runtime_calls, 
+                                          LAST_RUNTIME_CALL_KIND);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::log_local_machine(void) const
+    //--------------------------------------------------------------------------
+    {
+      std::set<Processor::Kind> proc_kinds;
+      Machine::ProcessorQuery local_procs(machine);
+      local_procs.local_address_space();
+#define COUNTER(X,Y) +1
+      constexpr size_t num_procs = REALM_PROCESSOR_KINDS(COUNTER);
+      static_assert(num_procs == 9, "Add new processor kinds"); 
+#undef COUNTER
+      // Log processors
+      for (Machine::ProcessorQuery::iterator it = local_procs.begin();
+            it != local_procs.end(); it++)
+      {
+        Processor::Kind kind = it->kind();
+        if (proc_kinds.find(kind) == proc_kinds.end())
+        {
+          switch (kind)
+          {
+            case Processor::NO_KIND:
+              {
+                LegionSpy::log_processor_kind(kind, "NoProc");
+                break;
+              }
+            case Processor::TOC_PROC:
+              {
+                LegionSpy::log_processor_kind(kind, "GPU");
+                break;
+              }
+            case Processor::LOC_PROC:
+              {
+                LegionSpy::log_processor_kind(kind, "CPU");
+                break;
+              }
+            case Processor::UTIL_PROC:
+              {
+                LegionSpy::log_processor_kind(kind, "Utility");
+                break;
+              }
+            case Processor::IO_PROC:
+              {
+                LegionSpy::log_processor_kind(kind, "IO");
+                break;
+              }
+            case Processor::PROC_GROUP:
+              {
+                LegionSpy::log_processor_kind(kind, "ProcGroup");
+                break;
+              }
+            case Processor::PROC_SET:
+              {
+                LegionSpy::log_processor_kind(kind, "ProcSet");
+                break;
+              }
+            case Processor::OMP_PROC:
+              {
+                LegionSpy::log_processor_kind(kind, "OpenMP");
+                break;
+              }
+            case Processor::PY_PROC:
+              {
+                LegionSpy::log_processor_kind(kind, "Python");
+                break;
+              }
+            default:
+              assert(false); // unknown processor kind
+          }
+          proc_kinds.insert(kind);
+        }
+        LegionSpy::log_processor(it->id, kind);
+      }
+      // Log memories
+      std::set<Memory::Kind> mem_kinds;
+      Machine::MemoryQuery local_mems(machine);
+      local_mems.local_address_space();
+#define COUNTER(X,Y) +1
+      constexpr size_t num_mems = REALM_MEMORY_KINDS(COUNTER);
+      static_assert(num_mems == 15, "Add new memory kinds"); 
+#undef COUNTER
+      for (Machine::MemoryQuery::iterator it = local_mems.begin();
+            it != local_mems.end(); it++)
+      {
+        Memory::Kind kind = it->kind();
+        if (mem_kinds.find(kind) == mem_kinds.end())
+        {
+          switch (kind)
+          {
+	    case Memory::GLOBAL_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "GASNet");
+                break;
+              }
+	    case Memory::SYSTEM_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "System");
+                break;
+              }
+	    case Memory::REGDMA_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "Registered");
+                break;
+              }
+	    case Memory::SOCKET_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "NUMA");
+                break;
+              }
+	    case Memory::Z_COPY_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "Zero-Copy");
+                break;
+              }
+	    case Memory::GPU_FB_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "Framebuffer");
+                break;
+              }
+	    case Memory::DISK_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "Disk");
+                break;
+              }
+	    case Memory::HDF_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "HDF");
+                break;
+              }
+	    case Memory::FILE_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "File");
+                break;
+              }
+	    case Memory::LEVEL3_CACHE:
+              {
+                LegionSpy::log_memory_kind(kind, "L3");
+                break;
+              }
+	    case Memory::LEVEL2_CACHE:
+              {
+                LegionSpy::log_memory_kind(kind, "L2");
+                break;
+              }
+	    case Memory::LEVEL1_CACHE:
+              {
+                LegionSpy::log_memory_kind(kind, "L1");
+                break;
+              }
+            case Memory::GPU_MANAGED_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "UVM");
+                break;
+              }
+            case Memory::GPU_DYNAMIC_MEM:
+              {
+                LegionSpy::log_memory_kind(kind, "Dynamic Framebuffer");
+                break;
+              }
+            default:
+              assert(false); // unknown memory kind
+          }
+        }
+        LegionSpy::log_memory(it->id, it->capacity(), it->kind());
+      }
+      // Log Proc-Mem Affinity
+      Machine::ProcessorQuery local_procs2(machine);
+      local_procs2.local_address_space();
+      for (Machine::ProcessorQuery::iterator pit = local_procs2.begin();
+            pit != local_procs2.end(); pit++)
+      {
+        std::vector<ProcessorMemoryAffinity> affinities;
+        machine.get_proc_mem_affinity(affinities, *pit);
+        for (std::vector<ProcessorMemoryAffinity>::const_iterator it = 
+              affinities.begin(); it != affinities.end(); it++)
+        {
+          LegionSpy::log_proc_mem_affinity(pit->id, it->m.id, 
+                                           it->bandwidth, it->latency);
+        }
+      }
+      // Log Mem-Mem Affinity
+      Machine::MemoryQuery local_mems2(machine);
+      local_mems2.local_address_space();
+      for (Machine::MemoryQuery::iterator mit = local_mems2.begin();
+            mit != local_mems2.begin(); mit++)
+      {
+        std::vector<MemoryMemoryAffinity> affinities;
+        machine.get_mem_mem_affinity(affinities, *mit);
+        for (std::vector<MemoryMemoryAffinity>::const_iterator it = 
+              affinities.begin(); it != affinities.end(); it++)
+        {
+          LegionSpy::log_mem_mem_affinity(it->m1.id, it->m2.id, 
+                                          it->bandwidth, it->latency);
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::initialize_mappers(void)
+    //--------------------------------------------------------------------------
+    {
+      if (replay_file.empty()) // This is the normal path
+      {
+        if (enable_test_mapper)
+        {
+          // Make test mappers for everyone
+          for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+                proc_managers.begin(); it != proc_managers.end(); it++)
+          {
+            Mapper *mapper = 
+              new Mapping::TestMapper(mapper_runtime, machine, it->first);
+            MapperManager *wrapper = wrap_mapper(mapper, 0, it->first);
+            it->second->add_mapper(0, wrapper, false/*check*/, true/*owns*/);
+          }
+        }
+        else if (supply_default_mapper)
+        {
+          // Make default mappers for everyone
+          for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+                proc_managers.begin(); it != proc_managers.end(); it++)
+          {
+            Mapper *mapper = 
+              new Mapping::DefaultMapper(mapper_runtime, machine, it->first);
+            MapperManager *wrapper = 
+             wrap_mapper(mapper, 0, it->first, true/*is default mapper*/);
+            it->second->add_mapper(0, wrapper, false/*check*/, true/*owns*/);
+          } 
+        }
+      }
+      else // This is the replay/debug path
+      {
+        if (legion_ldb_enabled)
+        {
+          // This path is not quite ready yet
+          assert(false);
+          for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+                proc_managers.begin(); it != proc_managers.end(); it++)
+          {
+            Mapper *mapper = new Mapping::DebugMapper(mapper_runtime, 
+                                    machine, it->first, replay_file.c_str());
+            MapperManager *wrapper = wrap_mapper(mapper, 0, it->first);
+            it->second->add_mapper(0, wrapper, false/*check*/, true/*owns*/, 
+                                    true/*skip replay*/);
+          }
+        }
+        else
+        {
+          for (std::map<Processor,ProcessorManager*>::const_iterator it =
+                proc_managers.begin(); it != proc_managers.end(); it++)
+          {
+            Mapper *mapper = new Mapping::ReplayMapper(mapper_runtime, 
+                                    machine, it->first, replay_file.c_str());
+            MapperManager *wrapper = wrap_mapper(mapper, 0, it->first);
+            it->second->add_mapper(0, wrapper, false/*check*/, true/*owns*/,
+                                    true/*skip replay*/);
+          }
+        }
+      }
+      
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::initialize_virtual_manager(uint64_t &next_static_did,
+               LayoutConstraintID virtual_layout_id, CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(virtual_manager == NULL);
+#endif
+      // make a layout constraints
+      FieldMask all_ones(LEGION_FIELD_MASK_FIELD_ALL_ONES);
+      std::vector<unsigned> mask_index_map;
+      std::vector<CustomSerdezID> serdez;
+      std::vector<std::pair<FieldID,size_t> > field_sizes;
+      LayoutConstraints *virtual_constraints =
+        find_layout_constraints(virtual_layout_id);
+      LayoutDescription *layout = 
+        new LayoutDescription(all_ones, virtual_constraints);
+      virtual_manager = new VirtualManager(0/*did*/, layout, mapping);
+      virtual_manager->add_base_gc_ref(NEVER_GC_REF);
+    }
+
+    //--------------------------------------------------------------------------
+    TopLevelContext* Runtime::initialize_runtime(Processor first_proc)
+    //--------------------------------------------------------------------------
+    {  
+      // If we have an MPI rank table do the exchanges before initializing
+      // the mappers as they may want to look at the rank table
+      if (mpi_rank_table != NULL)
+        mpi_rank_table->perform_rank_exchange();
+      // Starts at 1 since 0 is a reserved ID for the virtual manager
+      uint64_t next_static_did = 1;
+      // Pull in any static registrations that were done
+      LayoutConstraintID virtual_layout_id = 0;
+      CollectiveMapping *mapping =
+        register_static_constraints(next_static_did, virtual_layout_id);
+      register_static_variants();
+      register_static_projections();
+      register_static_sharding_functors();
+      register_static_concurrent_functors();
+      // Has to come after registring the static constraints
+      initialize_virtual_manager(next_static_did, virtual_layout_id, mapping);
+      // Initialize the mappers
+      initialize_mappers(); 
+      // Finally perform the registration callback methods
+      std::vector<RegistrationCallback> &registration_callbacks
+        = get_pending_registration_callbacks();
+      if (!registration_callbacks.empty())
+      {
+        log_run.info("Invoking registration callback functions...");
+        for (std::vector<RegistrationCallback>::const_iterator it = 
+              registration_callbacks.begin(); it !=
+              registration_callbacks.end(); it++)
+        {
+          perform_registration_callback(it->has_args ?
+              (void*)it->callback.withargs : (void*)it->callback.withoutargs,
+              it->buffer.get_ptr(), it->buffer.get_size(), it->has_args,
+              false/*global*/, true/*preregistered*/, it->deduplicate,
+              it->dedup_tag);
+          if (it->buffer.get_size() > 0)
+            free(it->buffer.get_ptr());
+        }
+        log_run.info("Finished execution of registration callbacks");
+        registration_callbacks.clear();
+      }
+      // If we have main top-level task, make a context for it
+      if (legion_main_set)
+      {
+        TopLevelContext *top_context = new TopLevelContext(first_proc,
+            get_unique_top_level_task_id(), 0/*implicit*/,
+            get_next_static_distributed_id(next_static_did), mapping);
+        top_context->register_with_runtime();
+        return top_context;
+      }
+      else
+        return NULL;
+    }
+
+#ifdef LEGION_USE_LIBDL
+    //--------------------------------------------------------------------------
+    void Runtime::send_registration_callback(AddressSpaceID target,
+                                         Realm::DSOReferenceImplementation *dso,
+                                         RtEvent global_done_event,
+                                         std::set<RtEvent> &applied_events,
+                                         const void *buffer, size_t buffer_size,
+                                         bool withargs, bool deduplicate,
+                                         size_t dedup_tag)
+    //--------------------------------------------------------------------------
+    {
+      const RtUserEvent done_event = Runtime::create_rt_user_event();
+      Serializer rez;
+      {
+        RezCheck z(rez);
+        const size_t dso_size = dso->dso_name.size() + 1;
+        const size_t sym_size = dso->symbol_name.size() + 1;
+        rez.serialize(dso_size);
+        rez.serialize(dso->dso_name.c_str(), dso_size);
+        rez.serialize(sym_size);
+        rez.serialize(dso->symbol_name.c_str(), sym_size);
+        rez.serialize(buffer_size);
+        if (buffer_size > 0)
+          rez.serialize(buffer, buffer_size);
+        rez.serialize<bool>(withargs);
+        rez.serialize<bool>(deduplicate);
+        rez.serialize(dedup_tag);
+        rez.serialize(global_done_event);
+        rez.serialize(done_event);
+      }
+      find_messenger(target)->send_message(SEND_REGISTRATION_CALLBACK, rez,
+                                                              true/*flush*/);
+      applied_events.insert(done_event);
+    }
+#endif // LEGION_USE_LIBDL
+
+    //--------------------------------------------------------------------------
+    RtEvent Runtime::perform_registration_callback(void *callback,
+                                 const void *buffer, size_t buffer_size,
+                                 bool withargs, bool global, bool preregistered,
+                                 bool deduplicate, size_t dedup_tag)
+    //--------------------------------------------------------------------------
+    { 
+      if (inside_registration_callback)
+        REPORT_LEGION_ERROR(ERROR_NESTED_REGISTRATION_CALLBACKS,
+            "Nested registration callbacks are not permitted in Legion")
+      RegistrationKey global_key;
+#ifdef LEGION_USE_LIBDL
+      Realm::DSOReferenceImplementation *dso = NULL;
+      if (global)
+      {
+        // No such thing as global registration if there's only one addres space
+        if (total_address_spaces > 1)
+        {
+          // Convert this to it's portable representation or raise an error
+          // This is a little scary, we could still be inside of dlopen when
+          // we get this call as part of the constructor for a shared object
+          // and yet we're about to do a call to dladdr. This seems to work
+          // but there is no documentation anywhere about whether this is 
+          // legal or safe to do...
+          Realm::FunctionPointerImplementation impl((void (*)(void))callback);
+#ifdef DEBUG_LEGION
+          assert(callback_translator.can_translate(
+                typeid(Realm::FunctionPointerImplementation),
+                typeid(Realm::DSOReferenceImplementation)));
+#endif
+          dso = static_cast<Realm::DSOReferenceImplementation*>(
+              callback_translator.translate(&impl, 
+                typeid(Realm::DSOReferenceImplementation)));
+          if (dso == NULL)
+            REPORT_LEGION_FATAL(LEGION_FATAL_CALLBACK_NOT_PORTABLE,
+                "Global registration callback function pointer %p is not "
+                "portable. All registration callbacks requesting to be "
+                "performed 'globally' must be able to be recognized by "
+                "a call to 'dladdr'. This requires that they come from a "
+                "shared object or the binary is linked with the '-rdynamic' "
+                "flag.", callback)
+          global_key = 
+            RegistrationKey(dedup_tag, dso->dso_name, dso->symbol_name); 
+        }
+        else
+          global = false;
+      }
+#else
+      if (global)
+      {
+        if (total_address_spaces > 1)
+          REPORT_LEGION_ERROR(ERROR_ILLEGAL_PERFORM_REGISTRATION_CALLBACK,
+              "Global registration callbacks are not supported in multi-node "
+              "executions without support for libdl. Please build Legion "
+              "with LEGION_USE_LIBDL defined.")
+        else
+          global = false;
+      }
+#endif
+      RtEvent local_done, global_done;
+      RtUserEvent local_perform, global_perform;
+      if (deduplicate)
+      {
+        AutoLock c_lock(callback_lock); 
+        if (global)
+        {
+          // See if we're going to perform this or not
+          std::map<RegistrationKey,RtEvent>::const_iterator local_finder =
+            global_local_done.find(global_key);
+          if (local_finder == global_local_done.end())
+          {
+            local_perform = Runtime::create_rt_user_event();
+            global_local_done[global_key] = local_perform;
+            // Check to see if we have any pending global callbacks to 
+            // notify about being done locally
+            std::map<RegistrationKey,std::set<RtUserEvent> >::iterator
+              pending_finder = pending_remote_callbacks.find(global_key);
+            if (pending_finder != pending_remote_callbacks.end())
+            {
+              for (std::set<RtUserEvent>::const_iterator it = 
+                    pending_finder->second.begin(); it != 
+                    pending_finder->second.end(); it++)
+                Runtime::trigger_event(*it, local_perform);
+              pending_remote_callbacks.erase(pending_finder);
+            }
+          }
+          else
+            local_done = local_finder->second;
+          // Now see if we need to do our global registration callbacks
+          std::map<RegistrationKey,RtEvent>::const_iterator global_finder = 
+            global_callbacks_done.find(global_key);
+          if (global_finder == global_callbacks_done.end())
+          {
+            global_perform = Runtime::create_rt_user_event();
+            global_callbacks_done[global_key] = global_perform;
+          }
+          else
+            global_done = global_finder->second;
+        }
+        else
+        {
+          std::map<void*,RtEvent>::const_iterator
+            local_finder = local_callbacks_done.find(callback);
+          if (local_finder == local_callbacks_done.end())
+          {
+            local_perform = Runtime::create_rt_user_event();
+            local_callbacks_done[callback] = local_perform;
+          }
+          else
+            return local_finder->second;
+        }
+      }
+      else if (global)
+        global_perform = Runtime::create_rt_user_event();
+      // Do the local callback and record it now 
+      if (!deduplicate || local_perform.exists())
+      {
+        // All the pregistered cases are effectively global too
+        if (global || preregistered)
+          inside_registration_callback = GLOBAL_REGISTRATION_CALLBACK;
+        else
+          inside_registration_callback = LOCAL_REGISTRATION_CALLBACK;
+        if (withargs)
+        {
+          RegistrationWithArgsCallbackFnptr callbackwithargs =
+            (RegistrationWithArgsCallbackFnptr)callback;
+          RegistrationCallbackArgs args{ machine, external, 
+            local_procs, UntypedBuffer(buffer, buffer_size) };
+          (*callbackwithargs)(args);
+        }
+        else
+        {
+          RegistrationCallbackFnptr callbackwithoutargs =
+            (RegistrationCallbackFnptr)callback;
+          (*callbackwithoutargs)(machine, external, local_procs);
+        }
+        inside_registration_callback = NO_REGISTRATION_CALLBACK;
+        if (local_perform.exists())
+          Runtime::trigger_event(local_perform);
+        if (!global)
+          return local_perform;
+      }
+#ifdef LEGION_USE_LIBDL
+#ifdef DEBUG_LEGION
+      assert(global);
+#endif
+      if (global_done.exists())
+      {
+        delete dso;
+        return global_done;
+      }
+#ifdef DEBUG_LEGION
+      assert(global_perform.exists());
+#endif
+      // See if we're inside of a task and can use that to help do the 
+      // global invocations of this registration callback
+      if (!deduplicate || (implicit_context == NULL))
+      {
+        // This means we're in an external thread asking for us to
+        // perform a global registration so just send out messages
+        // to all the nodes asking them to do the registration
+        std::set<RtEvent> preconditions;
+        for (AddressSpaceID space = 0; space < total_address_spaces; space++)
+        {
+          if (space == address_space)
+            continue;
+          send_registration_callback(space, dso, global_perform, preconditions,
+              buffer, buffer_size, withargs, deduplicate, dedup_tag);
+        }
+        if (!preconditions.empty())
+          Runtime::trigger_event(global_perform,
+              Runtime::merge_events(preconditions));
+        else
+          Runtime::trigger_event(global_perform);
+      }
+      else
+      {
+        std::set<RtEvent> preconditions;
+        implicit_context->perform_global_registration_callbacks(
+            dso, buffer, buffer_size, withargs, dedup_tag, local_done,
+            global_perform, preconditions);
+        if (!preconditions.empty())
+          Runtime::trigger_event(global_perform,
+              Runtime::merge_events(preconditions));
+        else
+          Runtime::trigger_event(global_perform);
+      }
+      delete dso;
+#endif // LEGION_USE_LIBDL
+      return global_perform;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::finalize_runtime(std::vector<RtEvent> &shutdown_preconditions)
+    //--------------------------------------------------------------------------
+    {
+      // We send messages to the next address spaces up the
+      // tree from us to do the shutdown
+      Realm::ProfilingRequestSet empty_requests;
+      AddressSpaceID start = address_space * legion_collective_radix + 1;
+      for (int idx = 0; idx < legion_collective_radix; idx++)
+      {
+        AddressSpaceID next = start + idx;
+        if (total_address_spaces <= next)
+          break;
+        MessageManager *messenger = find_messenger(next);
+        shutdown_preconditions.push_back(RtEvent(messenger->target.spawn(
+                LG_SHUTDOWN_TASK_ID, NULL, 0, empty_requests)));
+      }
+      // Have the memory managers for deletion of all their instances
+      for (std::map<Memory,MemoryManager*>::const_iterator it =
+           memory_managers.begin(); it != memory_managers.end(); it++)
+        it->second->finalize();
+      if (profiler != NULL)
+        profiler->finalize();
+    }
+    
+    //--------------------------------------------------------------------------
+    ApEvent Runtime::launch_mapper_task(Mapper *mapper, Processor proc, 
+                                        TaskID tid, const UntypedBuffer &arg,
+                                        MapperID map_id)
+    //--------------------------------------------------------------------------
+    {
+      // Get a remote task to serve as the top of the top-level task
+      TopLevelContext *map_context = new TopLevelContext(proc, 
+          get_unique_top_level_task_id(), 0/*implicit*/);
+      map_context->add_base_gc_ref(RUNTIME_REF);
+      TaskLauncher launcher(tid, arg, Predicate::TRUE_PRED, map_id);
+      // Get an individual task to be the top-level task
+      IndividualTask *mapper_task = get_operation<IndividualTask>();
+      Future f = mapper_task->initialize_task(map_context, launcher, 
+                          NULL/*provenance*/, true/*top level*/);
+      mapper_task->set_current_proc(proc);
+      mapper_task->select_task_options(false/*prioritize*/);
+      // Add a reference to the future impl to prevent it being collected
+      f.impl->add_base_gc_ref(META_TASK_REF);
+      // Create a meta-task to return the results to the mapper
+      MapperTaskArgs args(f.impl, map_id, proc, map_context);
+      ApEvent post(issue_runtime_meta_task(args, LG_LATENCY_WORK_PRIORITY,
+                                           mapper_task->get_commit_event()));
+      // Mark that we have another outstanding top level task
+      increment_outstanding_top_level_tasks();
+      // Now we can put it on the queue
+      add_to_ready_queue(proc, mapper_task);
+      return post;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::process_mapper_task_result(const MapperTaskArgs *args)
+    //--------------------------------------------------------------------------
+    {
+#if 0
+      MapperManager *mapper = find_mapper(args->proc, args->map_id);
+      Mapper::MapperTaskResult result;
+      result.mapper_event = args->event;
+      result.result = args->future->get_untyped_result();
+      result.result_size = args->future->get_untyped_size();
+      mapper->invoke_handle_task_result(result);
+#else
+      assert(false); // update this
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::create_shared_ownership(IndexSpace handle,
+              const bool total_sharding_collective, const bool unpack_reference)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = runtime->get_node(handle);
+      if (!node->check_valid_and_increment(APPLICATION_REF))
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
+            "Illegal call to add shared ownership to index space %llu "
+            "which has already been deleted", handle.get_id())
+      if (!node->is_owner())
+      {
+#ifdef DEBUG_LEGION
+        assert(!unpack_reference);
+#endif
+        if (!total_sharding_collective)
+        {
+          node->pack_valid_ref();
+          Serializer rez;
+          {
+            RezCheck z(rez);
+            rez.serialize<int>(0);
+            rez.serialize(handle);
+          }
+          send_shared_ownership(node->owner_space, rez);
+        }
+        node->remove_base_valid_ref(APPLICATION_REF);
+      }
+      else if (unpack_reference)
+        node->unpack_valid_ref();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::create_shared_ownership(IndexPartition handle,
+              const bool total_sharding_collective, const bool unpack_reference)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *node = runtime->get_node(handle);
+      if (!node->check_valid_and_increment(APPLICATION_REF))
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
+            "Illegal call to add shared ownership to index partition %llu "
+            "which has already been deleted", handle.get_id())
+      if (!node->is_owner())
+      {
+#ifdef DEBUG_LEGION
+        assert(!unpack_reference);
+#endif
+        if (!total_sharding_collective)
+        {
+          node->pack_valid_ref();
+          Serializer rez;
+          {
+            RezCheck z(rez);
+            rez.serialize<int>(1);
+            rez.serialize(handle);
+          }
+          send_shared_ownership(node->owner_space, rez);
+        }
+        node->remove_base_valid_ref(APPLICATION_REF);
+      }
+      else if (unpack_reference)
+        node->unpack_valid_ref();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::create_shared_ownership(FieldSpace handle,
+              const bool total_sharding_collective, const bool unpack_reference)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = runtime->get_node(handle);
+      if (!node->check_global_and_increment(APPLICATION_REF))
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
+            "Illegal call to add shared ownership to field space %llu "
+            "which has already been deleted", handle.get_id())
+      if (!node->is_owner())
+      {
+#ifdef DEBUG_LEGION
+        assert(!unpack_reference);
+#endif
+        if (!total_sharding_collective)
+        {
+          node->pack_global_ref();
+          Serializer rez;
+          {
+            RezCheck z(rez);
+            rez.serialize<int>(2);
+            rez.serialize(handle);
+          }
+          send_shared_ownership(node->owner_space, rez);
+        }
+        node->remove_base_gc_ref(APPLICATION_REF);
+      }
+      else if (unpack_reference)
+        node->unpack_global_ref();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::create_shared_ownership(LogicalRegion handle,
+              const bool total_sharding_collective, const bool unpack_reference)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode *node = runtime->get_node(handle);
+      if (!node->check_global_and_increment(APPLICATION_REF))
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_SHARED_OWNERSHIP,
+            "Illegal call to add shared ownership to logical region "
+            "(%llu,%llu,%llu) which has already been deleted", 
+            handle.index_space.get_id(), handle.field_space.get_id(),
+            handle.get_tree_id())
+      if (!node->is_owner())
+      {
+#ifdef DEBUG_LEGION
+        assert(!unpack_reference);
+#endif
+        if (!total_sharding_collective)
+        {
+          node->pack_global_ref();
+          Serializer rez;
+          {
+            RezCheck z(rez);
+            rez.serialize<int>(3);
+            rez.serialize(handle);
+          }
+          send_shared_ownership(node->owner_space, rez);
+        }
+        node->remove_base_gc_ref(APPLICATION_REF);
+      }
+      else if (unpack_reference)
+        node->unpack_global_ref();
+    }
+
+    //--------------------------------------------------------------------------
+    TraceID Runtime::generate_dynamic_trace_id(bool check_context/*= true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != NULL))
+        return implicit_context->generate_dynamic_trace_id();
+      TraceID result = unique_trace_id.fetch_add(runtime_stride);
+      // Check for hitting the library limit
+      if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
+        REPORT_LEGION_FATAL(LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
+            "Dynamic Trace IDs exceeded library ID offset %d",
+            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      return result;
+    }
+    
+    //--------------------------------------------------------------------------
+    TraceID Runtime::generate_library_trace_ids(const char *name, size_t count)
+    //--------------------------------------------------------------------------
+    {
+      // Easy case if the user asks for no IDs
+      if (count == 0)
+        return LEGION_AUTO_GENERATE_ID;
+      const std::string library_name(name); 
+      // Take the lock in read only mode and see if we can find the result
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(library_lock,1,false/*exclusive*/);
+        std::map<std::string,LibraryTraceIDs>::const_iterator finder = 
+          library_trace_ids.find(library_name);
+        if (finder != library_trace_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != count)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "TraceID generation counts %zd and %zd differ for library %s",
+                finder->second.count, count, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+      }
+      RtUserEvent request_event;
+      if (!wait_on.exists())
+      {
+        AutoLock l_lock(library_lock);
+        // Check to make sure we didn't lose the race
+        std::map<std::string,LibraryTraceIDs>::const_iterator finder = 
+          library_trace_ids.find(library_name);
+        if (finder != library_trace_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != count)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "TraceID generation counts %zd and %zd differ for library %s",
+                finder->second.count, count, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+        if (!wait_on.exists())
+        {
+          LibraryTraceIDs &record = library_trace_ids[library_name];
+          record.count = count;
+          if (address_space == 0)
+          {
+            // We're going to make the result
+            record.result = unique_library_trace_id;
+            unique_library_trace_id += count;
+#ifdef DEBUG_LEGION
+            assert(unique_library_trace_id > record.result);
+#endif
+            record.result_set = true;
+            return record.result;
+          }
+          else
+          {
+            // We're going to request the result
+            request_event = Runtime::create_rt_user_event();
+            record.ready = request_event;
+            record.result_set = false;
+            wait_on = request_event;
+          }
+        }
+      }
+      // Should only get here on nodes other than 0
+#ifdef DEBUG_LEGION
+      assert(address_space > 0);
+      assert(wait_on.exists());
+#endif
+      if (request_event.exists())
+      {
+        // Include the null terminator in length
+        const size_t string_length = strlen(name) + 1;
+        // Send the request to node 0 for the result
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize<size_t>(string_length);
+          rez.serialize(name, string_length);
+          rez.serialize<size_t>(count);
+          rez.serialize(request_event);
+        }
+        send_library_trace_request(0/*target*/, rez);
+      }
+      wait_on.wait();
+      // When we wake up we should be able to find the result
+      AutoLock l_lock(library_lock,1,false/*exclusive*/);
+      std::map<std::string,LibraryTraceIDs>::const_iterator finder = 
+          library_trace_ids.find(library_name);
+#ifdef DEBUG_LEGION
+      assert(finder != library_trace_ids.end());
+      assert(finder->second.result_set);
+#endif
+      return finder->second.result;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ TraceID& Runtime::get_current_static_trace_id(void)
+    //--------------------------------------------------------------------------
+    {
+      static TraceID next_trace_id = LEGION_MAX_APPLICATION_TRACE_ID;
+      return next_trace_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ TraceID Runtime::generate_static_trace_id(void)
+    //--------------------------------------------------------------------------
+    {
+      TraceID &next_trace = get_current_static_trace_id();
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'generate_static_trace_id' after "
+                      "the runtime has been started!")
+      return next_trace++;
+    }
+
+    //--------------------------------------------------------------------------
+    Mapper* Runtime::get_mapper(MapperID id, Processor target)
+    //--------------------------------------------------------------------------
+    {
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(target);
+      if (finder == proc_managers.end())
+        REPORT_LEGION_ERROR(ERROR_INVALID_PROCESSOR_NAME, 
+         "Invalid processor " IDFMT " passed to get mapper call.", target.id);
+      return finder->second->find_mapper(id)->mapper;
+    }
+
+    //--------------------------------------------------------------------------
+    MappingCallInfo* Runtime::begin_mapper_call(MapperID id, Processor target,
+                                                Operation *op)
+    //--------------------------------------------------------------------------
+    {
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(target);
+      if (finder == proc_managers.end())
+        REPORT_LEGION_ERROR(ERROR_INVALID_PROCESSOR_NAME, "Invalid processor "
+                            IDFMT " passed to begin mapper call.", target.id)
+      MapperManager *manager = finder->second->find_mapper(id);
+      return new MappingCallInfo(manager, APPLICATION_MAPPER_CALL, op);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::end_mapper_call(MappingCallInfo *info)
+    //--------------------------------------------------------------------------
+    {
+      delete info;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_MPI_interop_configured(void)
+    //--------------------------------------------------------------------------
+    {
+      return (mpi_rank_table != NULL);
+    }
+
+    //--------------------------------------------------------------------------
+    const std::map<int,AddressSpace>& Runtime::find_forward_MPI_mapping(void)
+    //--------------------------------------------------------------------------
+    {
+      if (mpi_rank_table == NULL)
+        REPORT_LEGION_ERROR(ERROR_MPI_INTEROPERABILITY_NOT_CONFIGURED, 
+             "Forward MPI mapping call not supported without "
+                      "calling configure_MPI_interoperability during "
+                      "start up")
+#ifdef DEBUG_LEGION
+      assert(!mpi_rank_table->forward_mapping.empty());
+#endif
+      return mpi_rank_table->forward_mapping;
+    }
+
+    //--------------------------------------------------------------------------
+    const std::map<AddressSpace,int>& Runtime::find_reverse_MPI_mapping(void)
+    //--------------------------------------------------------------------------
+    {
+      if (mpi_rank_table == NULL)
+        REPORT_LEGION_ERROR(ERROR_MPI_INTEROPERABILITY_NOT_CONFIGURED,
+             "Reverse MPI mapping call not supported without "
+                      "calling configure_MPI_interoperability during "
+                      "start up")
+#ifdef DEBUG_LEGION
+      assert(!mpi_rank_table->reverse_mapping.empty());
+#endif
+      return mpi_rank_table->reverse_mapping;
+    }
+
+    //--------------------------------------------------------------------------
+    int Runtime::find_local_MPI_rank(void)
+    //-------------------------------------------------------------------------
+    {
+      if (mpi_rank_table == NULL)
+        REPORT_LEGION_ERROR(ERROR_MPI_INTEROPERABILITY_NOT_CONFIGURED,
+             "Findling local MPI rank not supported without "
+                      "calling configure_MPI_interoperability during "
+                      "start up")
+      return mpi_rank;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::add_mapper(MapperID map_id, Mapper *mapper, Processor proc)
+    //--------------------------------------------------------------------------
+    {
+      // If we have a custom mapper then silently ignore this
+      if (!replay_file.empty() || enable_test_mapper)
+      {
+        // We take ownership of these things so delete it now
+        delete mapper;
+        return;
+      }
+      const bool all_local_procs = !proc.exists();
+      if (all_local_procs)
+      {
+        std::vector<Processor> all_local_processors;
+        all_local_processors.reserve(proc_managers.size());
+        for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+              proc_managers.begin(); it != proc_managers.end(); it++)
+          all_local_processors.push_back(it->first);
+        proc = find_processor_group(all_local_processors);
+      }
+      // First, wrap this mapper in a mapper manager
+      MapperManager *manager = wrap_mapper(mapper, map_id, proc);
+      if (all_local_procs)
+      {
+        bool own = true;
+        // Save it to all the managers
+        for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+              proc_managers.begin(); it != proc_managers.end(); it++)
+        {
+          it->second->add_mapper(map_id, manager, true/*check*/, own);
+          own = false;
+        }
+      }
+      else if (proc.address_space() == address_space)
+      {
+#ifdef DEBUG_LEGION
+        assert(proc_managers.find(proc) != proc_managers.end());
+#endif
+        proc_managers[proc]->add_mapper(map_id, manager, 
+                                        true/*check*/, true/*own*/);
+      }
+      else
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_MAPPER_PROCESSOR,
+            "Illegal attempt to register mapper %s as mapper %d "
+            "for processor " IDFMT ". That processor is not local to the "
+            "process where 'Runtime::add_mapper' was called.",
+            manager->get_mapper_name(), map_id, proc.id);
+    }
+
+    //--------------------------------------------------------------------------
+    Mapping::MapperRuntime* Runtime::get_mapper_runtime(void)
+    //--------------------------------------------------------------------------
+    {
+      return mapper_runtime;
+    }
+
+    //--------------------------------------------------------------------------
+    MapperID Runtime::generate_dynamic_mapper_id(bool check_context/*= true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != NULL))
+        return implicit_context->generate_dynamic_mapper_id();
+      MapperID result = unique_mapper_id.fetch_add(runtime_stride);
+      // Check for hitting the library limit
+      if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
+        REPORT_LEGION_FATAL(LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
+            "Dynamic Mapper IDs exceeded library ID offset %d",
+            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    MapperID Runtime::generate_library_mapper_ids(const char *name, size_t cnt)
+    //--------------------------------------------------------------------------
+    {
+      // Easy case if the user asks for no IDs
+      if (cnt == 0)
+        return LEGION_AUTO_GENERATE_ID;
+      const std::string library_name(name); 
+      // Take the lock in read only mode and see if we can find the result
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(library_lock,1,false/*exclusive*/);
+        std::map<std::string,LibraryMapperIDs>::const_iterator finder = 
+          library_mapper_ids.find(library_name);
+        if (finder != library_mapper_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "MapperID generation counts %zd and %zd differ for library %s",
+                finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+      }
+      RtUserEvent request_event;
+      if (!wait_on.exists())
+      {
+        AutoLock l_lock(library_lock);
+        // Check to make sure we didn't lose the race
+        std::map<std::string,LibraryMapperIDs>::const_iterator finder = 
+          library_mapper_ids.find(library_name);
+        if (finder != library_mapper_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "MapperID generation counts %zd and %zd differ for library %s",
+                finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+        if (!wait_on.exists())
+        {
+          LibraryMapperIDs &record = library_mapper_ids[library_name];
+          record.count = cnt;
+          if (address_space == 0)
+          {
+            // We're going to make the result
+            record.result = unique_library_mapper_id;
+            unique_library_mapper_id += cnt;
+#ifdef DEBUG_LEGION
+            assert(unique_library_mapper_id > record.result);
+#endif
+            record.result_set = true;
+            return record.result;
+          }
+          else
+          {
+            // We're going to request the result
+            request_event = Runtime::create_rt_user_event();
+            record.ready = request_event;
+            record.result_set = false;
+            wait_on = request_event;
+          }
+        }
+      }
+      // Should only get here on nodes other than 0
+#ifdef DEBUG_LEGION
+      assert(address_space > 0);
+      assert(wait_on.exists());
+#endif
+      if (request_event.exists())
+      {
+        // Include the null terminator in length
+        const size_t string_length = strlen(name) + 1;
+        // Send the request to node 0 for the result
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize<size_t>(string_length);
+          rez.serialize(name, string_length);
+          rez.serialize<size_t>(cnt);
+          rez.serialize(request_event);
+        }
+        send_library_mapper_request(0/*target*/, rez);
+      }
+      wait_on.wait();
+      // When we wake up we should be able to find the result
+      AutoLock l_lock(library_lock,1,false/*exclusive*/);
+      std::map<std::string,LibraryMapperIDs>::const_iterator finder = 
+          library_mapper_ids.find(library_name);
+#ifdef DEBUG_LEGION
+      assert(finder != library_mapper_ids.end());
+      assert(finder->second.result_set);
+#endif
+      return finder->second.result;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ MapperID& Runtime::get_current_static_mapper_id(void)
+    //--------------------------------------------------------------------------
+    {
+      static MapperID current_mapper_id = LEGION_MAX_APPLICATION_MAPPER_ID;
+      return current_mapper_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ MapperID Runtime::generate_static_mapper_id(void)
+    //--------------------------------------------------------------------------
+    {
+      MapperID &next_mapper = get_current_static_mapper_id(); 
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'generate_static_mapper_id' after "
+                      "the runtime has been started!")
+      return next_mapper++;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::replace_default_mapper(Mapper *mapper, Processor proc)
+    //--------------------------------------------------------------------------
+    {
+      // If we have a custom mapper then silently ignore this
+      if (!replay_file.empty() || enable_test_mapper)
+      {
+        // We take ownership of mapper so delete it now
+        delete mapper;
+        return;
+      }
+      const bool all_local_procs = !proc.exists();
+      if (all_local_procs)
+      {
+        std::vector<Processor> all_local_processors;
+        all_local_processors.reserve(proc_managers.size());
+        for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+              proc_managers.begin(); it != proc_managers.end(); it++)
+          all_local_processors.push_back(it->first);
+        proc = find_processor_group(all_local_processors);
+      }
+      // First, wrap this mapper in a mapper manager
+      MapperManager *manager = wrap_mapper(mapper, 0, proc); 
+      if (all_local_procs)
+      {
+        bool own = true;
+        // Save it to all the managers
+        for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+              proc_managers.begin(); it != proc_managers.end(); it++)
+        {
+          it->second->replace_default_mapper(manager, own);
+          own = false;
+        }
+      }
+      else if (local_procs.find(proc) != local_procs.end())
+      {
+#ifdef DEBUG_LEGION
+        assert(proc_managers.find(proc) != proc_managers.end());
+#endif
+        proc_managers[proc]->replace_default_mapper(manager, true/*own*/);
+      }
+      else
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_MAPPER_PROCESSOR,
+            "Illegal attempt to register mapper %s as the default mapper "
+            "for processor " IDFMT ". That processor is not local to the "
+            "process where 'Runtime::replace_default_mapper' was called.",
+            manager->get_mapper_name(), proc.id);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ MapperManager* Runtime::wrap_mapper(Mapper *mapper,
+                                  MapperID map_id, Processor p, bool is_default)
+    //--------------------------------------------------------------------------
+    {
+      MapperManager *manager = NULL;
+      switch (mapper->get_mapper_sync_model())
+      {
+        case Mapper::CONCURRENT_MAPPER_MODEL:
+          {
+            manager = new ConcurrentManager(mapper, map_id, p, is_default);
+            break;
+          }
+        case Mapper::SERIALIZED_REENTRANT_MAPPER_MODEL:
+          {
+            manager = new SerializingManager(mapper, map_id, p, 
+                                             true/*reentrant*/, is_default);
+            break;
+          }
+        case Mapper::SERIALIZED_NON_REENTRANT_MAPPER_MODEL:
+          {
+            manager = new SerializingManager(mapper, map_id, p,
+                                             false/*reentrant*/, is_default);
+            break;
+          }
+        default:
+          assert(false);
+      }
+      return manager;
+    }
+
+    //--------------------------------------------------------------------------
+    MapperManager* Runtime::find_mapper(MapperID map_id)
+    //--------------------------------------------------------------------------
+    {
+      for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+            proc_managers.begin(); it != proc_managers.end(); it++)
+      {
+        MapperManager *result = it->second->find_mapper(map_id);
+        if (result != NULL)
+          return result;
+      }
+      return NULL;
+    }
+
+    //--------------------------------------------------------------------------
+    MapperManager* Runtime::find_mapper(Processor target, MapperID map_id)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(target.exists());
+#endif
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(target);
+#ifdef DEBUG_LEGION
+      assert(finder != proc_managers.end());
+#endif
+      return finder->second->find_mapper(map_id);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_non_default_mapper(void) const
+    //--------------------------------------------------------------------------
+    {
+      for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+            proc_managers.begin(); it != proc_managers.end(); it++)
+        if (it->second->has_non_default_mapper())
+          return true;
+      return false;
+    }
+
+    //--------------------------------------------------------------------------
+    ProjectionID Runtime::generate_dynamic_projection_id(
+                                                   bool check_context/*= true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != NULL))
+        return implicit_context->generate_dynamic_projection_id();
+      ProjectionID result = unique_projection_id.fetch_add(runtime_stride);
+      // Check for hitting the library limit
+      if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
+        REPORT_LEGION_FATAL(LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
+            "Dynamic Projection IDs exceeded library ID offset %d",
+            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    ProjectionID Runtime::generate_library_projection_ids(const char *name, 
+                                                          size_t cnt)
+    //--------------------------------------------------------------------------
+    {
+      // Easy case if the user asks for no IDs
+      if (cnt == 0)
+        return LEGION_AUTO_GENERATE_ID;
+      const std::string library_name(name); 
+      // Take the lock in read only mode and see if we can find the result
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(library_lock,1,false/*exclusive*/);
+        std::map<std::string,LibraryProjectionIDs>::const_iterator finder = 
+          library_projection_ids.find(library_name);
+        if (finder != library_projection_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "ProjectionID generation counts %zd and %zd differ for "
+                "library %s", finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+      }
+      RtUserEvent request_event;
+      if (!wait_on.exists())
+      {
+        AutoLock l_lock(library_lock);
+        // Check to make sure we didn't lose the race
+        std::map<std::string,LibraryProjectionIDs>::const_iterator finder = 
+          library_projection_ids.find(library_name);
+        if (finder != library_projection_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "ProjectionID generation counts %zd and %zd differ for "
+                "library %s", finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+        if (!wait_on.exists())
+        {
+          LibraryProjectionIDs &record = library_projection_ids[library_name];
+          record.count = cnt;
+          if (address_space == 0)
+          {
+            // We're going to make the result
+            record.result = unique_library_projection_id;
+            unique_library_projection_id += cnt;
+#ifdef DEBUG_LEGION
+            assert(unique_library_projection_id > record.result);
+#endif
+            record.result_set = true;
+            return record.result;
+          }
+          else
+          {
+            // We're going to request the result
+            request_event = Runtime::create_rt_user_event();
+            record.ready = request_event;
+            record.result_set = false;
+            wait_on = request_event;
+          }
+        }
+      }
+      // Should only get here on nodes other than 0
+#ifdef DEBUG_LEGION
+      assert(address_space > 0);
+      assert(wait_on.exists());
+#endif
+      if (request_event.exists())
+      {
+        // Include the null terminator in length
+        const size_t string_length = strlen(name) + 1;
+        // Send the request to node 0 for the result
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize<size_t>(string_length);
+          rez.serialize(name, string_length);
+          rez.serialize<size_t>(cnt);
+          rez.serialize(request_event);
+        }
+        send_library_projection_request(0/*target*/, rez);
+      }
+      wait_on.wait();
+      // When we wake up we should be able to find the result
+      AutoLock l_lock(library_lock,1,false/*exclusive*/);
+      std::map<std::string,LibraryProjectionIDs>::const_iterator finder = 
+          library_projection_ids.find(library_name);
+#ifdef DEBUG_LEGION
+      assert(finder != library_projection_ids.end());
+      assert(finder->second.result_set);
+#endif
+      return finder->second.result;
+    }
+    
+    //--------------------------------------------------------------------------
+    /*static*/ ProjectionID& Runtime::get_current_static_projection_id(void)
+    //--------------------------------------------------------------------------
+    {
+      static ProjectionID current_projection_id = 
+        LEGION_MAX_APPLICATION_PROJECTION_ID;
+      return current_projection_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ProjectionID Runtime::generate_static_projection_id(void)
+    //--------------------------------------------------------------------------
+    {
+      ProjectionID &next_projection = get_current_static_projection_id();
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'generate_static_projection_id' after "
+                      "the runtime has been started!");
+      return next_projection++;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_projection_functor(ProjectionID pid,
+                                              ProjectionFunctor *functor,
+                                              bool need_zero_check,
+                                              bool silence_warnings,
+                                              const char *warning_string,
+                                              bool preregistered)
+    //--------------------------------------------------------------------------
+    {
+      if (need_zero_check && (pid == 0))
+        REPORT_LEGION_ERROR(ERROR_RESERVED_PROJECTION_ID, 
+                            "ProjectionID zero is reserved.\n");
+      if (!preregistered && !inside_registration_callback && !silence_warnings)
+        REPORT_LEGION_WARNING(LEGION_WARNING_NON_CALLBACK_REGISTRATION,
+            "Projection functor %d was dynamically registered outside of a "
+            "registration callback invocation. In the near future this will "
+            "become an error in order to support task subprocesses. Please "
+            "use 'perform_registration_callback' to generate a callback where "
+            "it will be safe to perform dynamic registrations.", pid)
+      if (!silence_warnings && (total_address_spaces > 1) &&
+          (inside_registration_callback != GLOBAL_REGISTRATION_CALLBACK))
+        REPORT_LEGION_WARNING(LEGION_WARNING_DYNAMIC_PROJECTION_REG,
+                        "Projection functor %d is being dynamically "
+                        "registered for a multi-node run with %d nodes. It is "
+                        "currently the responsibility of the application to "
+                        "ensure that this projection functor is registered on "
+                        "all nodes where it will be required. "
+                        "Warning string: %s", pid, total_address_spaces,
+                        (warning_string == NULL) ? "" : warning_string)
+      ProjectionFunction *function = new ProjectionFunction(pid, functor);
+      AutoLock p_lock(projection_lock);
+      std::map<ProjectionID,ProjectionFunction*>::
+        const_iterator finder = projection_functions.find(pid);
+      if (finder != projection_functions.end())
+        REPORT_LEGION_ERROR(ERROR_DUPLICATE_PROJECTION_ID, 
+                      "ProjectionID %d has already been used in "
+                      "the region projection table\n", pid)
+      projection_functions[pid] = function;
+      if (legion_spy_enabled)
+        LegionSpy::log_projection_function(pid, function->depth, 
+                                           function->is_invertible);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::preregister_projection_functor(ProjectionID pid,
+                                                     ProjectionFunctor *functor)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'preregister_projection_functor' after "
+                      "the runtime has started!")
+      if (pid == 0)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_PROJECTION_ID, 
+                            "ProjectionID zero is reserved.\n");
+      std::map<ProjectionID,ProjectionFunctor*> &pending_projection_functors =
+        get_pending_projection_table();
+      std::map<ProjectionID,ProjectionFunctor*>::const_iterator finder = 
+        pending_projection_functors.find(pid);
+      if (finder != pending_projection_functors.end())
+        REPORT_LEGION_ERROR(ERROR_DUPLICATE_PROJECTION_ID, 
+                      "ProjectionID %d has already been used in "
+                      "the region projection table\n", pid)
+      pending_projection_functors[pid] = functor;
+    }
+
+    //--------------------------------------------------------------------------
+    ProjectionFunction* Runtime::find_projection_function(ProjectionID pid,
+                                                          bool can_fail)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock p_lock(projection_lock,1,false/*exclusive*/);
+      std::map<ProjectionID,ProjectionFunction*>::
+        const_iterator finder = projection_functions.find(pid);
+      if (finder == projection_functions.end())
+      {
+        if (can_fail)
+          return NULL;
+        REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_ID, 
+                        "Unable to find registered region projection ID %d. "
+                        "Please upgrade to using projection functors!", pid);
+      }
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ProjectionFunctor* Runtime::get_projection_functor(
+                                                               ProjectionID pid) 
+    //--------------------------------------------------------------------------
+    {
+      if (runtime_started)
+      {
+        ProjectionFunction *func = 
+          runtime->find_projection_function(pid, true/*can fail*/);
+        if (func != NULL)
+          return func->functor;
+      }
+      else
+      {
+        std::map<ProjectionID,ProjectionFunctor*> &pending_projection_functors =
+          get_pending_projection_table();
+        std::map<ProjectionID,ProjectionFunctor*>::const_iterator finder = 
+          pending_projection_functors.find(pid);
+        if (finder != pending_projection_functors.end())
+          return finder->second;
+      }
+      return NULL;
+    }
+
+    //--------------------------------------------------------------------------
+    ShardingID Runtime::generate_dynamic_sharding_id(bool check_context/*true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != NULL))
+        return implicit_context->generate_dynamic_sharding_id();
+      ShardingID result = unique_sharding_id.fetch_add(runtime_stride); 
+      // Check for hitting the library limit
+      if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
+        REPORT_LEGION_FATAL(LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
+            "Dynamic Sharding IDs exceeded library ID offset %d",
+            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    ShardingID Runtime::generate_library_sharding_ids(const char *name,
+                                                      size_t cnt)
+    //--------------------------------------------------------------------------
+    {
+      // Easy case if the user asks for no IDs
+      if (cnt == 0)
+        return LEGION_AUTO_GENERATE_ID;
+      const std::string library_name(name); 
+      // Take the lock in read only mode and see if we can find the result
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(library_lock,1,false/*exclusive*/);
+        std::map<std::string,LibraryShardingIDs>::const_iterator finder = 
+          library_sharding_ids.find(library_name);
+        if (finder != library_sharding_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+               "ShardingID generation counts %zd and %zd differ for library %s",
+               finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+      }
+      RtUserEvent request_event;
+      if (!wait_on.exists())
+      {
+        AutoLock l_lock(library_lock);
+        // Check to make sure we didn't lose the race
+        std::map<std::string,LibraryShardingIDs>::const_iterator finder = 
+          library_sharding_ids.find(library_name);
+        if (finder != library_sharding_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+               "ShardingID generation counts %zd and %zd differ for library %s",
+               finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+        if (!wait_on.exists())
+        {
+          LibraryShardingIDs &record = library_sharding_ids[library_name];
+          record.count = cnt;
+          if (address_space == 0)
+          {
+            // We're going to make the result
+            record.result = unique_library_sharding_id;
+            unique_library_sharding_id += cnt;
+#ifdef DEBUG_LEGION
+            assert(unique_library_sharding_id > record.result);
+#endif
+            record.result_set = true;
+            return record.result;
+          }
+          else
+          {
+            // We're going to request the result
+            request_event = Runtime::create_rt_user_event();
+            record.ready = request_event;
+            record.result_set = false;
+            wait_on = request_event;
+          }
+        }
+      }
+      // Should only get here on nodes other than 0
+#ifdef DEBUG_LEGION
+      assert(address_space > 0);
+      assert(wait_on.exists());
+#endif
+      if (request_event.exists())
+      {
+        // Include the null terminator in length
+        const size_t string_length = strlen(name) + 1;
+        // Send the request to node 0 for the result
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize<size_t>(string_length);
+          rez.serialize(name, string_length);
+          rez.serialize<size_t>(cnt);
+          rez.serialize(request_event);
+        }
+        send_library_sharding_request(0/*target*/, rez);
+      }
+      wait_on.wait();
+      // When we wake up we should be able to find the result
+      AutoLock l_lock(library_lock,1,false/*exclusive*/);
+      std::map<std::string,LibraryShardingIDs>::const_iterator finder = 
+          library_sharding_ids.find(library_name);
+#ifdef DEBUG_LEGION
+      assert(finder != library_sharding_ids.end());
+      assert(finder->second.result_set);
+#endif
+      return finder->second.result;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ShardingID& Runtime::get_current_static_sharding_id(void)
+    //--------------------------------------------------------------------------
+    {
+      // + 2 since we use that for first one for the attach-detach functor
+      // and the second one for the universal functor
+      static ShardingID current_sharding_id =
+        LEGION_MAX_APPLICATION_SHARDING_ID + 2;
+      return current_sharding_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ShardingID Runtime::generate_static_sharding_id(void)
+    //--------------------------------------------------------------------------
+    {
+      ShardingID &next_sharding = get_current_static_sharding_id();
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START,
+                      "Illegal call to 'generate_static_sharding_id' after "
+                      "the runtime has been started!")
+      return next_sharding++;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_sharding_functor(ShardingID sid,
+                                            ShardingFunctor *functor,
+                                            bool need_zero_check,
+                                            bool silence_warnings,
+                                            const char *warning_string,
+                                            bool preregistered)
+    //--------------------------------------------------------------------------
+    {
+      if (sid == UINT_MAX)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_SHARDING_ID,
+            "ERROR: %d (UINT_MAX) is a reserved sharding ID.", UINT_MAX)
+      else if (need_zero_check && (sid == 0))
+        REPORT_LEGION_ERROR(ERROR_RESERVED_SHARDING_ID,
+                            "ERROR: ShardingID zero is reserved.")
+      if (!preregistered && !inside_registration_callback && !silence_warnings)
+        REPORT_LEGION_WARNING(LEGION_WARNING_NON_CALLBACK_REGISTRATION,
+            "Sharding functor %d was dynamically registered outside of a "
+            "registration callback invocation. In the near future this will "
+            "become an error in order to support task subprocesses. Please "
+            "use 'perform_registration_callback' to generate a callback where "
+            "it will be safe to perform dynamic registrations.", sid)
+      if (!silence_warnings && (total_address_spaces > 1) &&
+          (inside_registration_callback != GLOBAL_REGISTRATION_CALLBACK))
+        REPORT_LEGION_WARNING(LEGION_WARNING_DYNAMIC_SHARDING_REG,
+                        "WARNING: Sharding functor %d is being dynamically "
+                        "registered for a multi-node run with %d nodes. It is "
+                        "currently the responsibility of the application to "
+                        "ensure that this sharding functor is registered on "
+                        "all nodes where it will be required. "
+                        "Warning string: %s", sid, total_address_spaces,
+                        (warning_string == NULL) ? "" : warning_string)
+      AutoLock s_lock(sharding_lock);
+      std::map<ShardingID,ShardingFunctor*>::const_iterator finder = 
+        sharding_functors.find(sid);
+      if (finder != sharding_functors.end())
+        REPORT_LEGION_ERROR(ERROR_DUPLICATE_SHARDING_ID,
+                      "ERROR: ShardingID %d has already been used by another "
+                      "sharding functor.", sid)
+      sharding_functors[sid] = functor;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::preregister_sharding_functor(ShardingID sid,
+                                                       ShardingFunctor *functor)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START,
+                      "Illegal call to 'preregister_sharding_functor' after "
+                      "the runtime has started!");
+      if (sid == UINT_MAX)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_SHARDING_ID,
+            "ERROR: %d (UINT_MAX) is a reserved sharding ID.", UINT_MAX)
+      else if (sid == 0)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_SHARDING_ID,
+                            "ERROR: ShardingID zero is reserved.")
+      std::map<ShardingID,ShardingFunctor*> &pending_sharding_functors = 
+        get_pending_sharding_table();
+      std::map<ShardID,ShardingFunctor*>::const_iterator finder = 
+        pending_sharding_functors.find(sid);
+      if (finder != pending_sharding_functors.end())
+        REPORT_LEGION_ERROR(ERROR_DUPLICATE_SHARDING_ID,
+                      "ERROR: ShardingID %d has already been used by another "
+                      "sharding functor.", sid)
+      pending_sharding_functors[sid] = functor;
+    }
+
+    //--------------------------------------------------------------------------
+    ShardingFunctor* Runtime::find_sharding_functor(ShardingID sid, 
+                                                    bool can_fail)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock s_lock(sharding_lock,1,false/*exclusive*/);
+      std::map<ShardingID,ShardingFunctor*>::const_iterator finder = 
+        sharding_functors.find(sid);
+      if (finder == sharding_functors.end())
+      {
+        if (can_fail)
+          return NULL;
+        REPORT_LEGION_ERROR(ERROR_INVALID_SHARDING_ID,
+                    "Unable to find registered sharding functor ID %d.", sid)
+      }
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ShardingFunctor* Runtime::get_sharding_functor(ShardingID sid)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_started)
+      {
+        std::map<ShardingID,ShardingFunctor*> &pending_sharding_functors = 
+          get_pending_sharding_table();
+        std::map<ShardID,ShardingFunctor*>::const_iterator finder = 
+          pending_sharding_functors.find(sid);
+        if (finder == pending_sharding_functors.end())
+          return NULL;
+        else
+          return finder->second;
+      }
+      else
+        return runtime->find_sharding_functor(sid, true/*can fail*/);
+    }
+
+    //--------------------------------------------------------------------------
+    ConcurrentID Runtime::generate_dynamic_concurrent_id(
+                                                     bool check_context/*true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != NULL))
+        return implicit_context->generate_dynamic_concurrent_id();
+      ConcurrentID result = unique_concurrent_id.fetch_add(runtime_stride);
+      // Check for hitting the library limit
+      if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
+        REPORT_LEGION_FATAL(LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
+            "Dynamic Concurrent Coloring IDs exceeded library ID offset %d",
+            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    ConcurrentID Runtime::generate_library_concurrent_ids(const char *name,
+                                                          size_t cnt)
+    //--------------------------------------------------------------------------
+    {
+      // Easy case if the user asks for no IDs
+      if (cnt == 0)
+        return LEGION_AUTO_GENERATE_ID;
+      const std::string library_name(name); 
+      // Take the lock in read only mode and see if we can find the result
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(library_lock,1,false/*exclusive*/);
+        std::map<std::string,LibraryConcurrentIDs>::const_iterator finder = 
+          library_concurrent_ids.find(library_name);
+        if (finder != library_concurrent_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+               "ConcurrentID generation counts %zd and %zd differ for "
+               "library %s", finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+      }
+      RtUserEvent request_event;
+      if (!wait_on.exists())
+      {
+        AutoLock l_lock(library_lock);
+        // Check to make sure we didn't lose the race
+        std::map<std::string,LibraryConcurrentIDs>::const_iterator finder = 
+          library_concurrent_ids.find(library_name);
+        if (finder != library_concurrent_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+               "ConcurrentID generation counts %zd and %zd differ for "
+               "library %s", finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+        if (!wait_on.exists())
+        {
+          LibraryConcurrentIDs &record = library_concurrent_ids[library_name];
+          record.count = cnt;
+          if (address_space == 0)
+          {
+            // We're going to make the result
+            record.result = unique_library_concurrent_id;
+            unique_library_concurrent_id += cnt;
+#ifdef DEBUG_LEGION
+            assert(unique_library_concurrent_id > record.result);
+#endif
+            record.result_set = true;
+            return record.result;
+          }
+          else
+          {
+            // We're going to request the result
+            request_event = Runtime::create_rt_user_event();
+            record.ready = request_event;
+            record.result_set = false;
+            wait_on = request_event;
+          }
+        }
+      }
+      // Should only get here on nodes other than 0
+#ifdef DEBUG_LEGION
+      assert(address_space > 0);
+      assert(wait_on.exists());
+#endif
+      if (request_event.exists())
+      {
+        // Include the null terminator in length
+        const size_t string_length = strlen(name) + 1;
+        // Send the request to node 0 for the result
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize<size_t>(string_length);
+          rez.serialize(name, string_length);
+          rez.serialize<size_t>(cnt);
+          rez.serialize(request_event);
+        }
+        send_library_concurrent_request(0/*target*/, rez);
+      }
+      wait_on.wait();
+      // When we wake up we should be able to find the result
+      AutoLock l_lock(library_lock,1,false/*exclusive*/);
+      std::map<std::string,LibraryConcurrentIDs>::const_iterator finder =
+          library_concurrent_ids.find(library_name);
+#ifdef DEBUG_LEGION
+      assert(finder != library_concurrent_ids.end());
+      assert(finder->second.result_set);
+#endif
+      return finder->second.result;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ConcurrentID& Runtime::get_current_static_concurrent_id(void)
+    //--------------------------------------------------------------------------
+    {
+      static ConcurrentID current_concurrent_id =
+        LEGION_MAX_APPLICATION_CONCURRENT_ID;
+      return current_concurrent_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ConcurrentID Runtime::generate_static_concurrent_id(void)
+    //--------------------------------------------------------------------------
+    {
+      ConcurrentID &next_concurrent = get_current_static_concurrent_id();
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START,
+            "Illegal call to 'generate_static_concurrent_colorin_id' after "
+            "the runtime has been started!")
+      return next_concurrent++;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_concurrent_functor(ConcurrentID cid,
+                                            ConcurrentColoringFunctor *functor,
+                                            bool need_zero_check,
+                                            bool silence_warnings,
+                                            const char *warning_string,
+                                            bool preregistered)
+    //--------------------------------------------------------------------------
+    {
+      if (cid == UINT_MAX)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_CONCURRENT_ID,
+            "ERROR: %d (UINT_MAX) is a reserved concurrent ID.", UINT_MAX)
+      else if (need_zero_check && (cid == 0))
+        REPORT_LEGION_ERROR(ERROR_RESERVED_CONCURRENT_ID,
+                            "ERROR: ConcurrentID zero is reserved.")
+      if (!preregistered && !inside_registration_callback && !silence_warnings)
+        REPORT_LEGION_WARNING(LEGION_WARNING_NON_CALLBACK_REGISTRATION,
+            "Concurrent coloring functor %d was dynamically registered outside "
+            "of a registration callback invocation. In the near future this "
+            "will become an error in order to support task subprocesses. Please"
+            " use 'perform_registration_callback' to generate a callback where "
+            "it will be safe to perform dynamic registrations.", cid)
+      if (!silence_warnings && (total_address_spaces > 1) &&
+          (inside_registration_callback != GLOBAL_REGISTRATION_CALLBACK))
+        REPORT_LEGION_WARNING(LEGION_WARNING_DYNAMIC_CONCURRENT_REG,
+                        "WARNING: Concurrent coloring functor %d is being "
+                        "dynamically registered for a multi-node run with %d "
+                        "nodes. It is currently the responsibility of the "
+                        "application to ensure that this concurrent coloring "
+                        "functor is registered on all nodes where it will be "
+                        "required. Warning string: %s", cid, 
+                        total_address_spaces,
+                        (warning_string == NULL) ? "" : warning_string)
+      AutoLock s_lock(concurrent_lock);
+      std::map<ConcurrentID,ConcurrentColoringFunctor*>::const_iterator finder = 
+        concurrent_functors.find(cid);
+      if (finder != concurrent_functors.end())
+        REPORT_LEGION_ERROR(ERROR_DUPLICATE_CONCURRENT_ID,
+                      "ERROR: ConcurrentID %d has already been used by another "
+                      "concurrent coloring functor.", cid)
+      concurrent_functors[cid] = functor;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::preregister_concurrent_functor(ConcurrentID cid,
+                                             ConcurrentColoringFunctor *functor)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START,
+                      "Illegal call to 'preregister_concurrent_colorin_functor'"
+                      " after the runtime has started!");
+      if (cid == UINT_MAX)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_CONCURRENT_ID,
+            "ERROR: %d (UINT_MAX) is a reserved concurrent ID.", UINT_MAX)
+      else if (cid == 0)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_CONCURRENT_ID,
+                            "ERROR: ConcurrentID zero is reserved.")
+      std::map<ConcurrentID,ConcurrentColoringFunctor*> 
+        &pending_concurrent_functors = get_pending_concurrent_table();
+      std::map<ConcurrentID,ConcurrentColoringFunctor*>::const_iterator finder =
+        pending_concurrent_functors.find(cid);
+      if (finder != pending_concurrent_functors.end())
+        REPORT_LEGION_ERROR(ERROR_DUPLICATE_CONCURRENT_ID,
+                      "ERROR: ConcurrentID %d has already been used by another "
+                      "concurrent coloring functor.", cid)
+      pending_concurrent_functors[cid] = functor;
+    }
+
+    //--------------------------------------------------------------------------
+    ConcurrentColoringFunctor* Runtime::find_concurrent_coloring_functor(
+                                                ConcurrentID cid, bool can_fail)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock c_lock(concurrent_lock,1,false/*exclusive*/);
+      std::map<ConcurrentID,ConcurrentColoringFunctor*>::const_iterator finder =
+        concurrent_functors.find(cid);
+      if (finder == concurrent_functors.end())
+      {
+        if (can_fail)
+          return NULL;
+        REPORT_LEGION_ERROR(ERROR_INVALID_CONCURRENT_ID,
+          "Unable to find registered concurrent coloring functor ID %d.", cid)
+      }
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ConcurrentColoringFunctor* Runtime::get_concurrent_functor(
+                                                               ConcurrentID cid)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_started)
+      {
+        std::map<ConcurrentID,ConcurrentColoringFunctor*> 
+          &pending_concurrent_functors = get_pending_concurrent_table();
+        std::map<ConcurrentID,ConcurrentColoringFunctor*>::const_iterator
+          finder = pending_concurrent_functors.find(cid);
+        if (finder == pending_concurrent_functors.end())
+          return NULL;
+        else
+          return finder->second;
+      }
+      else
+        return runtime->find_concurrent_coloring_functor(cid, true/*can fail*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::unregister_projection_functor(ProjectionID pid)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(runtime_started);
+#endif
+      AutoLock p_lock(projection_lock);
+      std::map<ProjectionID,ProjectionFunction*>::iterator finder =
+        projection_functions.find(pid);
+      if (finder != projection_functions.end())
+      {
+        delete finder->second;
+        projection_functions.erase(finder);
+        return;
+      }
+      assert(false);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::attach_semantic_information(TaskID task_id, SemanticTag tag,
+           const void *buffer, size_t size, bool is_mutable, bool send_to_owner)
+    //--------------------------------------------------------------------------
+    {
+      if ((implicit_context != NULL) && 
+          !implicit_context->perform_semantic_attach(__func__, 
+            ReplicateContext::REPLICATE_ATTACH_TASK_INFO, &task_id,
+            sizeof(task_id), tag, buffer, size, is_mutable, send_to_owner))
+        return;
+      if ((tag == LEGION_NAME_SEMANTIC_TAG) && legion_spy_enabled)
+        LegionSpy::log_task_name(task_id, static_cast<const char*>(buffer));
+      TaskImpl *impl = find_or_create_task_impl(task_id);
+      impl->attach_semantic_information(tag, address_space, buffer, size, 
+                                        is_mutable, send_to_owner);
+      if (implicit_context != NULL)
+        implicit_context->post_semantic_attach();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::attach_semantic_information(IndexSpace handle, 
+                                              SemanticTag tag,
+                                              const void *buffer, size_t size,
+                                              bool is_mutable)
+    //--------------------------------------------------------------------------
+    {
+      bool global = true;
+      if ((implicit_context != NULL) && 
+          !implicit_context->perform_semantic_attach(__func__,
+            ReplicateContext::REPLICATE_ATTACH_INDEX_SPACE_INFO, &handle,
+            sizeof(handle), tag, buffer, size, is_mutable, global))
+        return;
+      get_node(handle)->attach_semantic_information(tag, address_space, 
+                                          buffer, size, is_mutable, !global);
+      if (implicit_context != NULL)
+        implicit_context->post_semantic_attach();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::attach_semantic_information(IndexPartition handle, 
+                                              SemanticTag tag,
+                                              const void *buffer, size_t size,
+                                              bool is_mutable)
+    //--------------------------------------------------------------------------
+    {
+      bool global = true;
+      if ((implicit_context != NULL) && 
+          !implicit_context->perform_semantic_attach(__func__,
+            ReplicateContext::REPLICATE_ATTACH_INDEX_PARTITION_INFO, &handle,
+            sizeof(handle), tag, buffer, size, is_mutable, global))
+        return;
+      get_node(handle)->attach_semantic_information(tag, address_space, 
+                                          buffer, size, is_mutable, !global);
+      if (implicit_context != NULL)
+        implicit_context->post_semantic_attach();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::attach_semantic_information(FieldSpace handle, 
+                                              SemanticTag tag,
+                                              const void *buffer, size_t size,
+                                              bool is_mutable)
+    //--------------------------------------------------------------------------
+    {
+      bool global = true;
+      if ((implicit_context != NULL) && 
+          !implicit_context->perform_semantic_attach(__func__,
+            ReplicateContext::REPLICATE_ATTACH_FIELD_SPACE_INFO, &handle,
+            sizeof(handle), tag, buffer, size, is_mutable, global))
+        return;
+      get_node(handle)->attach_semantic_information(tag, address_space, 
+                                          buffer, size, is_mutable, !global);
+      if (implicit_context != NULL)
+        implicit_context->post_semantic_attach();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::attach_semantic_information(FieldSpace handle, FieldID fid,
+                                              SemanticTag tag,
+                                              const void *buffer, size_t size,
+                                              bool is_mutable)
+    //--------------------------------------------------------------------------
+    {
+      bool global = true;
+      if ((implicit_context != NULL) && 
+          !implicit_context->perform_semantic_attach(__func__,
+            ReplicateContext::REPLICATE_ATTACH_FIELD_INFO, &handle,
+            sizeof(handle), tag, buffer, size, is_mutable, global, 
+            &fid, sizeof(fid)))
+        return;
+      get_node(handle)->attach_semantic_information(fid, tag, address_space, 
+                                          buffer, size, is_mutable, !global);
+      if (implicit_context != NULL)
+        implicit_context->post_semantic_attach();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::attach_semantic_information(LogicalRegion handle, 
+                                              SemanticTag tag,
+                                              const void *buffer, size_t size,
+                                              bool is_mutable)
+    //--------------------------------------------------------------------------
+    {
+      bool global = true;
+      if ((implicit_context != NULL) && 
+          !implicit_context->perform_semantic_attach(__func__,
+            ReplicateContext::REPLICATE_ATTACH_LOGICAL_REGION_INFO, &handle,
+            sizeof(handle), tag, buffer, size, is_mutable, global))
+        return;
+      get_node(handle)->attach_semantic_information(tag, address_space, 
+                                          buffer, size, is_mutable, !global);
+      if (implicit_context != NULL)
+        implicit_context->post_semantic_attach();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::attach_semantic_information(LogicalPartition handle, 
+                                              SemanticTag tag,
+                                              const void *buffer, size_t size,
+                                              bool is_mutable)
+    //--------------------------------------------------------------------------
+    {
+      bool global = true;
+      if ((implicit_context != NULL) && 
+          !implicit_context->perform_semantic_attach(__func__,
+            ReplicateContext::REPLICATE_ATTACH_LOGICAL_PARTITION_INFO, &handle,
+            sizeof(handle), tag, buffer, size, is_mutable, global))
+        return;
+      get_node(handle)->attach_semantic_information(tag, address_space, 
+                                          buffer, size, is_mutable, !global);
+      if (implicit_context != NULL)
+        implicit_context->post_semantic_attach();
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::retrieve_semantic_information(TaskID task_id,SemanticTag tag,
+              const void *&result, size_t &size, bool can_fail, bool wait_until)
+    //--------------------------------------------------------------------------
+    {
+      TaskImpl *impl = find_or_create_task_impl(task_id);
+      return impl->retrieve_semantic_information(tag, result, size, 
+                                                 can_fail, wait_until);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::retrieve_semantic_information(IndexSpace handle,
+                                                SemanticTag tag,
+                                                const void *&result, 
+                                                size_t &size, bool can_fail,
+                                                bool wait_until)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
+                                                   can_fail, wait_until);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::retrieve_semantic_information(IndexPartition handle,
+                                                SemanticTag tag,
+                                                const void *&result, 
+                                                size_t &size, bool can_fail,
+                                                bool wait_until)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
+                                                   can_fail, wait_until);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::retrieve_semantic_information(FieldSpace handle,
+                                                SemanticTag tag,
+                                                const void *&result, 
+                                                size_t &size, bool can_fail,
+                                                bool wait_until)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
+                                                   can_fail, wait_until);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::retrieve_semantic_information(FieldSpace handle, FieldID fid,
+                                                SemanticTag tag,
+                                                const void *&result, 
+                                                size_t &size, bool can_fail,
+                                                bool wait_until)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(handle)->retrieve_semantic_information(fid, tag, result, 
+                                                   size, can_fail, wait_until);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::retrieve_semantic_information(LogicalRegion handle,
+                                                SemanticTag tag,
+                                                const void *&result, 
+                                                size_t &size, bool can_fail,
+                                                bool wait_until)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
+                                                   can_fail, wait_until);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::retrieve_semantic_information(LogicalPartition handle,
+                                                SemanticTag tag,
+                                                const void *&result, 
+                                                size_t &size, bool can_fail,
+                                                bool wait_until)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(handle)->retrieve_semantic_information(tag, result, size,
+                                                   can_fail, wait_until);
+    }
+
+    //--------------------------------------------------------------------------
+    TaskID Runtime::generate_dynamic_task_id(bool check_context/*= true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != NULL))
+        return implicit_context->generate_dynamic_task_id();
+      TaskID result = unique_task_id.fetch_add(runtime_stride);
+      // Check for hitting the library limit
+      if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
+        REPORT_LEGION_FATAL(LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
+            "Dynamic Task IDs exceeded library ID offset %d",
+            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    TaskID Runtime::generate_library_task_ids(const char *name, size_t cnt)
+    //--------------------------------------------------------------------------
+    {
+      // Easy case if the user asks for no IDs
+      if (cnt == 0)
+        return LEGION_AUTO_GENERATE_ID;
+      const std::string library_name(name); 
+      // Take the lock in read only mode and see if we can find the result
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(library_lock,1,false/*exclusive*/);
+        std::map<std::string,LibraryTaskIDs>::const_iterator finder = 
+          library_task_ids.find(library_name);
+        if (finder != library_task_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "TaskID generation counts %zd and %zd differ for library %s",
+                finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+      }
+      RtUserEvent request_event;
+      if (!wait_on.exists())
+      {
+        AutoLock l_lock(library_lock);
+        // Check to make sure we didn't lose the race
+        std::map<std::string,LibraryTaskIDs>::const_iterator finder = 
+          library_task_ids.find(library_name);
+        if (finder != library_task_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != cnt)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "TaskID generation counts %zd and %zd differ for library %s",
+                finder->second.count, cnt, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+        if (!wait_on.exists())
+        {
+          LibraryTaskIDs &record = library_task_ids[library_name];
+          record.count = cnt;
+          if (address_space == 0)
+          {
+            // We're going to make the result
+            record.result = unique_library_task_id;
+            unique_library_task_id += cnt;
+#ifdef DEBUG_LEGION
+            assert(unique_library_task_id > record.result);
+#endif
+            record.result_set = true;
+            return record.result;
+          }
+          else
+          {
+            // We're going to request the result
+            request_event = Runtime::create_rt_user_event();
+            record.ready = request_event;
+            record.result_set = false;
+            wait_on = request_event;
+          }
+        }
+      }
+      // Should only get here on nodes other than 0
+#ifdef DEBUG_LEGION
+      assert(address_space > 0);
+      assert(wait_on.exists());
+#endif
+      if (request_event.exists())
+      {
+        // Include the null terminator in length
+        const size_t string_length = strlen(name) + 1;
+        // Send the request to node 0 for the result
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize<size_t>(string_length);
+          rez.serialize(name, string_length);
+          rez.serialize<size_t>(cnt);
+          rez.serialize(request_event);
+        }
+        send_library_task_request(0/*target*/, rez);
+      }
+      wait_on.wait();
+      // When we wake up we should be able to find the result
+      AutoLock l_lock(library_lock,1,false/*exclusive*/);
+      std::map<std::string,LibraryTaskIDs>::const_iterator finder = 
+          library_task_ids.find(library_name);
+#ifdef DEBUG_LEGION
+      assert(finder != library_task_ids.end());
+      assert(finder->second.result_set);
+#endif
+      return finder->second.result;
+    }
+
+    //--------------------------------------------------------------------------
+    VariantID Runtime::register_variant(const TaskVariantRegistrar &registrar,
+                                  const void *user_data, size_t user_data_size,
+                                  const CodeDescriptor &realm_code_desc,
+                                  size_t return_type_size, bool has_return_size,
+                                  VariantID vid /*= AUTO_GENERATE_ID*/,
+                                  bool check_task_id /*= true*/,
+                                  bool check_context /*= true*/,
+                                  bool preregistered /*= false*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != NULL))
+        return implicit_context->register_variant(registrar, user_data,
+         user_data_size, realm_code_desc, return_type_size, has_return_size,
+         vid, check_task_id);
+      // TODO: figure out a way to make this check safe with dynamic generation
+#if 0
+      if (check_task_id && 
+          (registrar.task_id >= LEGION_MAX_APPLICATION_TASK_ID))
+        REPORT_LEGION_ERROR(ERROR_MAX_APPLICATION_TASK_ID_EXCEEDED, 
+                      "Error registering task with ID %d. Exceeds the "
+                      "statically set bounds on application task IDs of %d. "
+                      "See %s in legion_config.h.", 
+                      registrar.task_id, LEGION_MAX_APPLICATION_TASK_ID, 
+                      LEGION_MACRO_TO_STRING(LEGION_MAX_APPLICATION_TASK_ID))
+#endif  
+      // First find the task implementation
+      TaskImpl *task_impl = find_or_create_task_impl(registrar.task_id);
+      // See if we need to make a new variant ID
+      if (vid == LEGION_AUTO_GENERATE_ID) // Make a variant ID to use
+        vid = task_impl->get_unique_variant_id();
+      else if (vid == 0)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_VARIANT_ID,
+                      "Error registering variant for task ID %d with "
+                      "variant ID 0. Variant ID 0 is reserved for task "
+                      "generators.", registrar.task_id)
+      // Make our variant and add it to the set of variants
+      VariantImpl *impl = new VariantImpl(vid, task_impl, registrar,
+                                          return_type_size, has_return_size,
+                                          realm_code_desc, user_data, 
+                                          user_data_size);
+      // Add this variant to the owner
+      task_impl->add_variant(impl);
+      {
+        AutoLock tv_lock(task_variant_lock);
+        variant_table.push_back(impl);
+      }
+      // If this is a global registration we need to broadcast the variant
+      if (registrar.global_registration && (total_address_spaces > 1))
+      {
+        RtUserEvent done_event = Runtime::create_rt_user_event();
+        impl->broadcast_variant(done_event, address_space, 0);
+        done_event.wait();
+      }
+      if (legion_spy_enabled)
+        LegionSpy::log_task_variant(registrar.task_id, vid, 
+                                    impl->is_inner(), impl->is_leaf(),
+                                    impl->is_idempotent(), impl->get_name());
+      return vid;
+    }
+
+    //--------------------------------------------------------------------------
+    TaskImpl* Runtime::find_or_create_task_impl(TaskID task_id)
+    //--------------------------------------------------------------------------
+    {
+      {
+        AutoLock tv_lock(task_variant_lock,1,false/*exclusive*/);
+        std::map<TaskID,TaskImpl*>::const_iterator finder = 
+          task_table.find(task_id);
+        if (finder != task_table.end())
+          return finder->second;
+      }
+      AutoLock tv_lock(task_variant_lock);
+      std::map<TaskID,TaskImpl*>::const_iterator finder = 
+        task_table.find(task_id);
+      // Check to see if we lost the race
+      if (finder == task_table.end())
+      {
+        TaskImpl *result = new TaskImpl(task_id);
+        task_table[task_id] = result;
+        return result;
+      }
+      else // Lost the race as it already exists
+        return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    TaskImpl* Runtime::find_task_impl(TaskID task_id)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock tv_lock(task_variant_lock,1,false/*exclusive*/);
+      std::map<TaskID,TaskImpl*>::const_iterator finder = 
+        task_table.find(task_id);
+#ifdef DEBUG_LEGION
+      assert(finder != task_table.end());
+#endif
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    VariantImpl* Runtime::find_variant_impl(TaskID task_id, 
+                                             VariantID variant_id,bool can_fail)
+    //--------------------------------------------------------------------------
+    {
+      TaskImpl *owner = find_or_create_task_impl(task_id);
+      return owner->find_variant_impl(variant_id, can_fail);
+    }
+
+    //--------------------------------------------------------------------------
+    ReductionOpID Runtime::generate_dynamic_reduction_id(
+                                                   bool check_context/*= true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != NULL))
+        return implicit_context->generate_dynamic_reduction_id();
+      ReductionOpID result = unique_redop_id.fetch_add(runtime_stride);
+      // Check for hitting the library limit
+      if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
+        REPORT_LEGION_FATAL(LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
+            "Dynamic Reduction IDs exceeded library ID offset %d",
+            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    ReductionOpID Runtime::generate_library_reduction_ids(const char *name,
+                                                          size_t count)
+    //--------------------------------------------------------------------------
+    {
+      // Easy case if the user asks for no IDs
+      if (count == 0)
+        return (ReductionOpID)LEGION_AUTO_GENERATE_ID;
+      const std::string library_name(name); 
+      // Take the lock in read only mode and see if we can find the result
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(library_lock,1,false/*exclusive*/);
+        std::map<std::string,LibraryRedopIDs>::const_iterator finder = 
+          library_redop_ids.find(library_name);
+        if (finder != library_redop_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != count)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "ReductionOpID generation counts %zd and %zd differ for "
+                "library %s", finder->second.count, count, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+      }
+      RtUserEvent request_event;
+      if (!wait_on.exists())
+      {
+        AutoLock l_lock(library_lock);
+        // Check to make sure we didn't lose the race
+        std::map<std::string,LibraryRedopIDs>::const_iterator finder = 
+          library_redop_ids.find(library_name);
+        if (finder != library_redop_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != count)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "ReductionOpID generation counts %zd and %zd differ for "
+                "library %s", finder->second.count, count, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+        if (!wait_on.exists())
+        {
+          LibraryRedopIDs &record = library_redop_ids[library_name];
+          record.count = count;
+          if (address_space == 0)
+          {
+            // We're going to make the result
+            record.result = unique_library_redop_id;
+            unique_library_redop_id += count;
+#ifdef DEBUG_LEGION
+            assert(unique_library_redop_id > unsigned(record.result));
+#endif
+            record.result_set = true;
+            return record.result;
+          }
+          else
+          {
+            // We're going to request the result
+            request_event = Runtime::create_rt_user_event();
+            record.ready = request_event;
+            record.result_set = false;
+            wait_on = request_event;
+          }
+        }
+      }
+      // Should only get here on nodes other than 0
+#ifdef DEBUG_LEGION
+      assert(address_space > 0);
+      assert(wait_on.exists());
+#endif
+      if (request_event.exists())
+      {
+        // Include the null terminator in length
+        const size_t string_length = strlen(name) + 1;
+        // Send the request to node 0 for the result
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize<size_t>(string_length);
+          rez.serialize(name, string_length);
+          rez.serialize<size_t>(count);
+          rez.serialize(request_event);
+        }
+        send_library_redop_request(0/*target*/, rez);
+      }
+      wait_on.wait();
+      // When we wake up we should be able to find the result
+      AutoLock l_lock(library_lock,1,false/*exclusive*/);
+      std::map<std::string,LibraryRedopIDs>::const_iterator finder = 
+          library_redop_ids.find(library_name);
+#ifdef DEBUG_LEGION
+      assert(finder != library_redop_ids.end());
+      assert(finder->second.result_set);
+#endif
+      return finder->second.result;
+    }
+
+    //--------------------------------------------------------------------------
+    CustomSerdezID Runtime::generate_dynamic_serdez_id(
+                                                   bool check_context/*= true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (check_context && (implicit_context != NULL))
+        return implicit_context->generate_dynamic_serdez_id();
+      CustomSerdezID result = unique_serdez_id.fetch_add(runtime_stride);
+      // Check for hitting the library limit
+      if (result >= LEGION_INITIAL_LIBRARY_ID_OFFSET)
+        REPORT_LEGION_FATAL(LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET,
+            "Dynamic Custom Serdez IDs exceeded library ID offset %d",
+            LEGION_INITIAL_LIBRARY_ID_OFFSET)
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    CustomSerdezID Runtime::generate_library_serdez_ids(const char *name,
+                                                        size_t count)
+    //--------------------------------------------------------------------------
+    {
+      // Easy case if the user asks for no IDs
+      if (count == 0)
+        return (CustomSerdezID)LEGION_AUTO_GENERATE_ID;
+      const std::string library_name(name); 
+      // Take the lock in read only mode and see if we can find the result
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(library_lock,1,false/*exclusive*/);
+        std::map<std::string,LibrarySerdezIDs>::const_iterator finder = 
+          library_serdez_ids.find(library_name);
+        if (finder != library_serdez_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != count)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "CustomSerdezID generation counts %zd and %zd differ for "
+                "library %s", finder->second.count, count, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+      }
+      RtUserEvent request_event;
+      if (!wait_on.exists())
+      {
+        AutoLock l_lock(library_lock);
+        // Check to make sure we didn't lose the race
+        std::map<std::string,LibrarySerdezIDs>::const_iterator finder = 
+          library_serdez_ids.find(library_name);
+        if (finder != library_serdez_ids.end())
+        {
+          // First do a check to see if the counts match
+          if (finder->second.count != count)
+            REPORT_LEGION_ERROR(ERROR_LIBRARY_COUNT_MISMATCH,
+                "CustomSerdezID generation counts %zd and %zd differ for "
+                "library %s", finder->second.count, count, name)
+          if (finder->second.result_set)
+            return finder->second.result;
+          // This should never happen unless we are on a node other than 0
+#ifdef DEBUG_LEGION
+          assert(address_space > 0);
+#endif
+          wait_on = finder->second.ready;
+        }
+        if (!wait_on.exists())
+        {
+          LibrarySerdezIDs &record = library_serdez_ids[library_name];
+          record.count = count;
+          if (address_space == 0)
+          {
+            // We're going to make the result
+            record.result = unique_library_serdez_id;
+            unique_library_serdez_id += count;
+#ifdef DEBUG_LEGION
+            assert(unique_library_serdez_id > unsigned(record.result));
+#endif
+            record.result_set = true;
+            return record.result;
+          }
+          else
+          {
+            // We're going to request the result
+            request_event = Runtime::create_rt_user_event();
+            record.ready = request_event;
+            record.result_set = false;
+            wait_on = request_event;
+          }
+        }
+      }
+      // Should only get here on nodes other than 0
+#ifdef DEBUG_LEGION
+      assert(address_space > 0);
+      assert(wait_on.exists());
+#endif
+      if (request_event.exists())
+      {
+        // Include the null terminator in length
+        const size_t string_length = strlen(name) + 1;
+        // Send the request to node 0 for the result
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize<size_t>(string_length);
+          rez.serialize(name, string_length);
+          rez.serialize<size_t>(count);
+          rez.serialize(request_event);
+        }
+        send_library_serdez_request(0/*target*/, rez);
+      }
+      wait_on.wait();
+      // When we wake up we should be able to find the result
+      AutoLock l_lock(library_lock,1,false/*exclusive*/);
+      std::map<std::string,LibrarySerdezIDs>::const_iterator finder = 
+          library_serdez_ids.find(library_name);
+#ifdef DEBUG_LEGION
+      assert(finder != library_serdez_ids.end());
+      assert(finder->second.result_set);
+#endif
+      return finder->second.result;
+    }
+
+    //--------------------------------------------------------------------------
+    MemoryManager* Runtime::find_memory_manager(Memory mem)
+    //--------------------------------------------------------------------------
+    {
+      {
+        AutoLock m_lock(memory_manager_lock,1,false/*exclusive*/);
+        std::map<Memory,MemoryManager*>::const_iterator finder = 
+          memory_managers.find(mem);
+        if (finder != memory_managers.end())
+          return finder->second;
+      }
+      // Not there?  Take exclusive lock and check again, create if needed
+      AutoLock m_lock(memory_manager_lock);
+      std::map<Memory,MemoryManager*>::const_iterator finder =
+        memory_managers.find(mem);
+      if (finder != memory_managers.end())
+        return finder->second;
+      // Really do need to create it (and put it in the map)
+      MemoryManager *result = new MemoryManager(mem);
+      memory_managers[mem] = result;
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    AddressSpaceID Runtime::find_address_space(Memory handle) const
+    //--------------------------------------------------------------------------
+    {
+      // Just use the standard translation for now
+      AddressSpaceID result = handle.address_space();
+      return result;
+    } 
+
+    //--------------------------------------------------------------------------
+    MessageManager* Runtime::find_messenger(AddressSpaceID sid)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(sid < LEGION_MAX_NUM_NODES);
+      assert(sid != address_space); // shouldn't be sending messages to ourself
+#endif
+      MessageManager *result = message_managers[sid].load();
+      if (result != NULL)
+        return result;
+      // If we made it here, then we don't have a message manager yet
+      // re-take the lock and re-check to see if we don't have a manager
+      // If we still don't then we need to make one
+      RtEvent wait_on;
+      bool send_request = false;
+      {
+        AutoLock m_lock(message_manager_lock);
+        // Re-check to see if we lost the race, force the compiler
+        // to re-load the value here
+        result = message_managers[sid].load();
+        if (result != NULL)
+          return result;
+        // Figure out if there is an event to wait on yet
+        std::map<AddressSpace,RtUserEvent>::const_iterator finder = 
+          pending_endpoint_requests.find(sid);
+        if (finder == pending_endpoint_requests.end())
+        {
+          RtUserEvent done = Runtime::create_rt_user_event();
+          pending_endpoint_requests[sid] = done;
+          wait_on = done;
+          send_request = true;
+        }
+        else
+          wait_on = finder->second;
+      }
+      if (send_request)
+      {
+#ifdef DEBUG_LEGION
+        bool found = false;
+#endif
+        // Find a processor on which to send the task
+        for (std::map<Processor,AddressSpaceID>::const_iterator it = 
+              proc_spaces.begin(); it != proc_spaces.end(); it++)
+        {
+          if (it->second != sid)
+            continue;
+#ifdef DEBUG_LEGION
+          found = true;
+#endif
+          Serializer rez;
+          {
+            RezCheck z(rez);
+            rez.serialize<bool>(true); // request
+            rez.serialize(utility_group);
+          }
+          const Realm::ProfilingRequestSet empty_requests;
+          it->first.spawn(LG_ENDPOINT_TASK_ID, rez.get_buffer(),
+              rez.get_used_bytes(), empty_requests);
+          break;
+        }
+#ifdef DEBUG_LEGION
+        assert(found);
+#endif
+      }
+#ifdef DEBUG_LEGION
+      assert(wait_on.exists());
+#endif
+      if (!wait_on.has_triggered())
+        wait_on.wait();
+      // When we wake up there should be a result
+      result = message_managers[sid].load();
+#ifdef DEBUG_LEGION
+      assert(result != NULL);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    MessageManager* Runtime::find_messenger(Processor target)
+    //--------------------------------------------------------------------------
+    {
+      return find_messenger(find_address_space(target));
+    }
+
+    //--------------------------------------------------------------------------
+    AddressSpaceID Runtime::find_address_space(Processor target) const
+    //--------------------------------------------------------------------------
+    {
+      std::map<Processor,AddressSpaceID>::const_iterator finder = 
+        proc_spaces.find(target);
+      if (finder != proc_spaces.end())
+        return finder->second;
+#ifdef DEBUG_LEGION
+      // If we get here then this better be a processor group
+      assert(target.kind() == Processor::PROC_GROUP);
+#endif
+      AutoLock m_lock(message_manager_lock,1,false/*exclusive*/);
+      finder = endpoint_spaces.find(target);
+#ifdef DEBUG_LEGION
+      assert(finder != endpoint_spaces.end());
+#endif
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_endpoint_creation(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      bool request;
+      derez.deserialize(request);
+      Processor remote_utility_group;
+      derez.deserialize(remote_utility_group);
+      if (request)
+      {
+        Serializer rez;
+        {
+          RezCheck z2(rez);
+          rez.serialize<bool>(false/*request*/);
+          rez.serialize(utility_group);
+          rez.serialize(address_space);
+        }
+        const Realm::ProfilingRequestSet empty_requests;
+        remote_utility_group.spawn(LG_ENDPOINT_TASK_ID, rez.get_buffer(),
+            rez.get_used_bytes(), empty_requests); 
+      }
+      else
+      {
+        AddressSpaceID remote_space;
+        derez.deserialize(remote_space);
+        AutoLock m_lock(message_manager_lock);
+        message_managers[remote_space].store(new MessageManager(remote_space,
+                                    max_message_size, remote_utility_group));
+        // Also update the endpoint spaces
+        endpoint_spaces[remote_utility_group] = remote_space;
+        std::map<AddressSpaceID,RtUserEvent>::iterator finder = 
+          pending_endpoint_requests.find(remote_space);
+#ifdef DEBUG_LEGION
+        assert(finder != pending_endpoint_requests.end());
+#endif
+        Runtime::trigger_event(finder->second);
+        pending_endpoint_requests.erase(finder);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::process_mapper_message(Processor target, MapperID map_id,
+                                     Processor source, const void *message,
+                                     size_t message_size, unsigned message_kind)
+    //--------------------------------------------------------------------------
+    {
+      if (is_local(target))
+      {
+        Mapper::MapperMessage message_args;
+        message_args.sender = source;
+        message_args.kind = message_kind;
+        message_args.message = message;
+        message_args.size = message_size;
+        message_args.broadcast = false;
+        MapperManager *mapper = find_mapper(target, map_id);
+        mapper->invoke_handle_message(&message_args);
+      }
+      else
+      {
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize(target);
+          rez.serialize(map_id);
+          rez.serialize(source);
+          rez.serialize(message_kind);
+          rez.serialize(message_size);
+          rez.serialize(message, message_size);
+        }
+        send_mapper_message(find_address_space(target), rez);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::process_mapper_broadcast(MapperID map_id, Processor source, 
+                                    const void *message, size_t message_size, 
+                                    unsigned message_kind, int radix, int index)
+    //--------------------------------------------------------------------------
+    {
+      // First forward the message onto any remote nodes
+      int base = index * radix;
+      int init = source.address_space();
+      // The runtime stride is the same as the number of nodes
+      const int total_nodes = total_address_spaces;
+      for (int r = 1; r <= radix; r++)
+      {
+        int offset = base + r;
+        // If we've handled all of our nodes then we are done
+        if (offset >= total_nodes)
+          break;
+        AddressSpaceID target = (init + offset) % total_nodes;
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize(map_id);
+          rez.serialize(source);
+          rez.serialize(message_kind);
+          rez.serialize(radix);
+          rez.serialize(offset);
+          rez.serialize(message_size);
+          rez.serialize(message, message_size);
+        }
+        send_mapper_broadcast(target, rez);
+      }
+      // Then send it to all our local mappers, set will deduplicate
+      std::set<MapperManager*> managers;
+      for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+            proc_managers.begin(); it != proc_managers.end(); it++)
+      {
+        managers.insert(it->second->find_mapper(map_id));
+      }
+      Mapper::MapperMessage message_args;
+      message_args.sender = source;
+      message_args.kind = message_kind;
+      message_args.message = message;
+      message_args.size = message_size;
+      message_args.broadcast = true;
+      for (std::set<MapperManager*>::const_iterator it = 
+            managers.begin(); it != managers.end(); it++)
+        (*it)->invoke_handle_message(&message_args);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_message(MessageKind message, AddressSpaceID target,
+                               Serializer &rez, bool flush, bool response)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(message, rez, flush, response);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_startup_barrier(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_STARTUP_BARRIER, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_task(IndividualTask *task)
+    //--------------------------------------------------------------------------
+    {
+      Processor target = task->target_proc;
+      if (!target.exists())
+        REPORT_LEGION_ERROR(ERROR_INVALID_TARGET_PROC, 
+                      "Mapper requested invalid NO_PROC as target proc!");
+      // Check to see if the target processor is still local 
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(target);
+      if (finder != proc_managers.end())
+      {
+        // Update the current processor
+        task->set_current_proc(target);
+        finder->second->add_to_ready_queue(task);
+      }
+      else
+      {
+        MessageManager *manager = find_messenger(target);
+        Serializer rez;
+        bool deactivate_task;
+        const AddressSpaceID target_addr = find_address_space(target);
+        {
+          RezCheck z(rez);
+          rez.serialize(target);
+          rez.serialize(task->get_task_kind());
+          deactivate_task = task->pack_task(rez, target_addr);
+        }
+        manager->send_message(TASK_MESSAGE, rez, true/*flush*/);
+        if (deactivate_task)
+          task->deactivate();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_task(SliceTask *task)
+    //--------------------------------------------------------------------------
+    {
+      const Processor target = task->target_proc;
+#ifdef DEBUG_LEGION
+      assert(!is_local(target));
+#endif
+      MessageManager *manager = find_messenger(target);
+      Serializer rez;
+      bool deactivate_task;
+      const AddressSpaceID target_addr = find_address_space(target);
+      {
+        RezCheck z(rez);
+        rez.serialize(target);
+        rez.serialize(task->get_task_kind());
+        deactivate_task = task->pack_task(rez, target_addr);
+      }
+      manager->send_message(TASK_MESSAGE, rez, true/*flush*/);
+      if (deactivate_task)
+        task->deactivate();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_tasks(Processor target, std::vector<SingleTask*> &tasks)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(!tasks.empty());
+      assert(target.exists());
+#endif
+      // Check to see if the target processor is still local 
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(target);
+      if (finder != proc_managers.end())
+      {
+        // Still local
+        for (std::vector<SingleTask*>::const_iterator it = tasks.begin();
+              it != tasks.end(); it++)
+        {
+          // Update the current processor
+          (*it)->set_current_proc(target);
+          finder->second->add_to_ready_queue(*it);
+        }
+      }
+      else
+      {
+        std::sort(tasks.begin(), tasks.end());
+        // Send each of these tasks, if some of the tasks share the same
+        // slice they might end up getting sent together
+        while (!tasks.empty())
+        {
+          SingleTask *task = tasks.back();
+          tasks.pop_back();
+          if (task->send_task(target, tasks))
+            task->deactivate();
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_steal_request(
+              const std::multimap<Processor,MapperID> &targets, Processor thief)
+    //--------------------------------------------------------------------------
+    {
+      for (std::multimap<Processor,MapperID>::const_iterator it = 
+            targets.begin(); it != targets.end(); it++)
+      {
+        Processor target = it->first;
+        std::map<Processor,ProcessorManager*>::const_iterator finder = 
+          proc_managers.find(target);
+        if (finder == proc_managers.end())
+        {
+          // Need to send remotely
+          MessageManager *manager = find_messenger(target);
+          Serializer rez;
+          {
+            RezCheck z(rez);
+            rez.serialize(target);
+            rez.serialize(thief);
+            int num_mappers = targets.count(target);
+            rez.serialize(num_mappers);
+            for ( ; it != targets.upper_bound(target); it++)
+              rez.serialize(it->second);
+          }
+          manager->send_message(STEAL_MESSAGE, rez, true/*flush*/);
+        }
+        else
+        {
+          // Still local, so notify the processor manager
+          std::vector<MapperID> thieves;
+          for ( ; it != targets.upper_bound(target); it++)
+            thieves.push_back(it->second);
+          finder->second->process_steal_request(thief, thieves);
+          
+        }
+        if (it == targets.end())
+          break;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_advertisements(const std::set<Processor> &targets,
+                                            MapperID map_id, Processor source)
+    //--------------------------------------------------------------------------
+    {
+      std::set<MessageManager*> already_sent;
+      for (std::set<Processor>::const_iterator it = targets.begin();
+            it != targets.end(); it++)
+      {
+        std::map<Processor,ProcessorManager*>::const_iterator finder = 
+          proc_managers.find(*it);
+        if (finder != proc_managers.end())
+        {
+          // still local
+          finder->second->process_advertisement(source, map_id);
+        }
+        else
+        {
+          // otherwise remote, check to see if we already sent it
+          MessageManager *messenger = find_messenger(*it);
+          if (already_sent.find(messenger) != already_sent.end())
+            continue;
+          Serializer rez;
+          {
+            RezCheck z(rez);
+            rez.serialize(source);
+            rez.serialize(map_id);
+          }
+          messenger->send_message(ADVERTISEMENT_MESSAGE, rez, true/*flush*/);
+          already_sent.insert(messenger);
+        }
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_task_replay(AddressSpaceID target,Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REMOTE_TASK_REPLAY, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_task_profiling_response(Processor target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REMOTE_TASK_PROFILING_RESPONSE,
+                                          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_shared_ownership(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_SHARED_OWNERSHIP, rez,
+                                      true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_request(AddressSpaceID target,
+                                           Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_REQUEST, rez, 
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_response(AddressSpaceID target,
+                                            Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_RESPONSE, rez, 
+                                                          false/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_return(AddressSpaceID target,
+                                     Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_RETURN, rez,
+                      true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_set(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_SET, rez,
+                                      true/*flush*/, true/*return*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_child_request(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_CHILD_REQUEST, rez,
+                                                                true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_child_response(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_CHILD_RESPONSE, rez,
+                                               true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_colors_request(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_COLORS_REQUEST, rez,
+                                                                 true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_colors_response(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_COLORS_RESPONSE,
+                                        rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_generate_color_request(AddressSpaceID target,
+                                                          Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_INDEX_SPACE_GENERATE_COLOR_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_generate_color_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_INDEX_SPACE_GENERATE_COLOR_RESPONSE, rez,
+            true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_release_color(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // This has to go on the reference virtual channel so that it is 
+      // handled before the owner node is deleted
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_RELEASE_COLOR, rez,
+                                                                true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_notification(AddressSpaceID target,
+                                                    Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_PARTITION_NOTIFICATION,
+                                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_request(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_PARTITION_REQUEST, rez,
+                                                              true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_response(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_PARTITION_RESPONSE, rez,
+                                                              false/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_return(AddressSpaceID target,
+                                     Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_PARTITION_RETURN, rez,
+                        true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_child_request(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_PARTITION_CHILD_REQUEST,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_child_response(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_PARTITION_CHILD_RESPONSE,
+                                          rez, true/*flush*/, true/*response*/); 
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_child_replication(AddressSpaceID target,
+                                                         Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_INDEX_PARTITION_CHILD_REPLICATION, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_disjoint_update(AddressSpaceID target,
+                                          Serializer &rez, RtEvent precondition)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_INDEX_PARTITION_DISJOINT_UPDATE, rez, true/*flush*/, 
+            true/*response*/, precondition);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_shard_rects_request(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_INDEX_PARTITION_SHARD_RECTS_REQUEST,
+                              rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_shard_rects_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_INDEX_PARTITION_SHARD_RECTS_RESPONSE,
+              rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_remote_interference_request(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_REQUEST,
+                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_remote_interference_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_INDEX_PARTITION_REMOTE_INTERFERENCE_RESPONSE,
+                        rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_node(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // Will be flushed by return
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_NODE, rez,
+                                                      false/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_request(AddressSpaceID target,
+                                           Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_REQUEST, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_return(AddressSpaceID target,
+                                          Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_RETURN, rez,
+                                        true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_allocator_request(AddressSpaceID target,
+                                                     Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_ALLOCATOR_REQUEST,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_allocator_response(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_ALLOCATOR_RESPONSE,
+                                          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_allocator_invalidation(AddressSpaceID target,
+                                                          Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_FIELD_SPACE_ALLOCATOR_INVALIDATION, rez,
+          true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_allocator_flush(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_ALLOCATOR_FLUSH,
+                                        rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_allocator_free(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_ALLOCATOR_FREE,
+                                                        rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_infos_request(AddressSpaceID target, 
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_INFOS_REQUEST, rez,
+                                                                true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_infos_response(AddressSpaceID target, 
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_INFOS_RESPONSE, rez,
+                                               true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_alloc_request(AddressSpaceID target,
+                                           Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_ALLOC_REQUEST, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_size_update(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // put this on the reference virtual channel since it has no effects
+      // tracking and we need to make sure it is handled before references
+      // are removed from the remote copies
+      find_messenger(target)->send_message(SEND_FIELD_SIZE_UPDATE, rez,
+                                      true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_free(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_FREE, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_free_indexes(AddressSpaceID target,Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_FREE_INDEXES,
+                                                  rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_layout_invalidation(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // Send this on the reference virtual channel since it's effects
+      // are not being tracked and we need to know it is handled before
+      // the remote objects have their references removed
+      find_messenger(target)->send_message(
+        SEND_FIELD_SPACE_LAYOUT_INVALIDATION, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_local_field_alloc_request(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LOCAL_FIELD_ALLOC_REQUEST, rez,
+                                                                true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_local_field_alloc_response(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LOCAL_FIELD_ALLOC_RESPONSE, rez,
+                                               true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_local_field_free(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LOCAL_FIELD_FREE, rez,
+                                                        true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_local_field_update(AddressSpaceID target,Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LOCAL_FIELD_UPDATE, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_top_level_region_request(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_TOP_LEVEL_REGION_REQUEST, rez,
+                                                                true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_top_level_region_return(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_TOP_LEVEL_REGION_RETURN, rez,
+                                            true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_destruction(IndexSpace handle, 
+                                               AddressSpaceID target,
+                                               std::set<RtEvent> &applied)
+    //--------------------------------------------------------------------------
+    {
+      Serializer rez;
+      {
+        RezCheck z(rez);
+        rez.serialize(handle);
+        const RtUserEvent done = create_rt_user_event();
+        rez.serialize(done);
+        applied.insert(done);
+      }
+      // Put this message on the same virtual channel as the unregister
+      // messages for distributed collectables to make sure that they 
+      // are properly ordered
+      find_messenger(target)->send_message(INDEX_SPACE_DESTRUCTION_MESSAGE,
+                                                        rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_destruction(IndexPartition handle, 
+                                                   AddressSpaceID target,
+                                                   std::set<RtEvent> &applied)
+    //--------------------------------------------------------------------------
+    {
+      Serializer rez;
+      {
+        RezCheck z(rez);
+        rez.serialize(handle);
+        const RtUserEvent done = create_rt_user_event();
+        rez.serialize(done);
+        applied.insert(done);
+      }
+      // Put this message on the same virtual channel as the unregister
+      // messages for distributed collectables to make sure that they 
+      // are properly ordered
+      find_messenger(target)->send_message(
+        INDEX_PARTITION_DESTRUCTION_MESSAGE, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_destruction(FieldSpace handle, 
+                                               AddressSpaceID target,
+                                               std::set<RtEvent> &applied)
+    //--------------------------------------------------------------------------
+    {
+      Serializer rez;
+      {
+        RezCheck z(rez);
+        rez.serialize(handle);
+        const RtUserEvent done = create_rt_user_event();
+        rez.serialize(done);
+        applied.insert(done);
+      }
+      // Put this message on the same virtual channel as the unregister
+      // messages for distributed collectables to make sure that they 
+      // are properly ordered
+      find_messenger(target)->send_message(FIELD_SPACE_DESTRUCTION_MESSAGE,
+                                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_logical_region_destruction(LogicalRegion handle, 
+                                                  AddressSpaceID target,
+                                                  std::set<RtEvent> &applied)
+    //--------------------------------------------------------------------------
+    {
+      Serializer rez;
+      {
+        RezCheck z(rez);
+        rez.serialize(handle);
+        const RtUserEvent done = create_rt_user_event();
+        rez.serialize(done);
+        applied.insert(done);
+      }
+      // Put this message on the same virtual channel as the unregister
+      // messages for distributed collectables to make sure that they 
+      // are properly ordered
+      find_messenger(target)->send_message(LOGICAL_REGION_DESTRUCTION_MESSAGE,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_individual_remote_future_size(Processor target,
+                                                     Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(INDIVIDUAL_REMOTE_FUTURE_SIZE,
+                                      rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_individual_remote_output_registration(Processor target,
+                                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        INDIVIDUAL_REMOTE_OUTPUT_REGISTRATION,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_individual_remote_mapped(Processor target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(INDIVIDUAL_REMOTE_MAPPED, rez,
+                                          true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_individual_remote_complete(Processor target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(INDIVIDUAL_REMOTE_COMPLETE, rez,
+                                          true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_individual_remote_commit(Processor target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(INDIVIDUAL_REMOTE_COMMIT, rez,
+                                        true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_individual_concurrent_allreduce_request(Processor target,
+                                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          INDIVIDUAL_CONCURRENT_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_individual_concurrent_allreduce_response(
+        AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          INDIVIDUAL_CONCURRENT_RESPONSE, rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_remote_mapped(Processor target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SLICE_REMOTE_MAPPED, rez,
+                                    true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_remote_complete(Processor target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SLICE_REMOTE_COMPLETE, rez,
+                                      true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_remote_commit(Processor target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SLICE_REMOTE_COMMIT, rez,
+                                    true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_rendezvous_concurrent_mapped(Processor target,
+                                                          Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SLICE_RENDEZVOUS_CONCURRENT_MAPPED,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_collective_allreduce_request(Processor target,
+                                                          Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SLICE_COLLECTIVE_ALLREDUCE_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_collective_allreduce_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SLICE_COLLECTIVE_ALLREDUCE_RESPONSE,
+          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_concurrent_allreduce_request(Processor target,
+                                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SLICE_CONCURRENT_ALLREDUCE_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_concurrent_allreduce_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SLICE_CONCURRENT_ALLREDUCE_RESPONSE,
+          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_find_intra_space_dependence(Processor target,
+                                                         Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SLICE_FIND_INTRA_DEP, rez,
+                                                      true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_remote_rendezvous(Processor target,Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SLICE_REMOTE_COLLECTIVE_RENDEZVOUS,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_remote_versioning_rendezvous(Processor target,
+                                                          Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SLICE_REMOTE_VERSIONING_COLLECTIVE_RENDEZVOUS, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_remote_output_extents(Processor target, 
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SLICE_REMOTE_OUTPUT_EXTENTS, rez, 
+          true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_slice_remote_output_registration(Processor target, 
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SLICE_REMOTE_OUTPUT_REGISTRATION,
+          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_remote_registration(AddressSpaceID target, 
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_REMOTE_REGISTRATION, rez,
+                                               true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_downgrade_request(AddressSpaceID target,
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_DOWNGRADE_REQUEST, rez,
+                                                        true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_downgrade_response(AddressSpaceID target,
+                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_DOWNGRADE_RESPONSE, rez,
+                                              true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_downgrade_success(AddressSpaceID target,
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_DOWNGRADE_SUCCESS, rez,
+                                                        true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_downgrade_update(AddressSpaceID target,
+                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_DOWNGRADE_UPDATE, rez,
+                                                              true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_downgrade_restart(AddressSpaceID target,
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_DOWNGRADE_RESTART, rez,
+                                            true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_acquire_global_request(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_GLOBAL_ACQUIRE_REQUEST,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_acquire_global_response(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_GLOBAL_ACQUIRE_RESPONSE,
+                                          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_acquire_valid_request(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_VALID_ACQUIRE_REQUEST,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_did_acquire_valid_response(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(DISTRIBUTED_VALID_ACQUIRE_RESPONSE,
+                                          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_created_region_contexts(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_CREATED_REGION_CONTEXTS,
+                                    rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_atomic_reservation_request(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_ATOMIC_RESERVATION_REQUEST, rez,
+                                                                 true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_atomic_reservation_response(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_ATOMIC_RESERVATION_RESPONSE,
+                                        rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_padded_reservation_request(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_PADDED_RESERVATION_REQUEST, rez,
+                                                                 true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_padded_reservation_response(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_PADDED_RESERVATION_RESPONSE,
+                                        rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_materialized_view(AddressSpaceID target,Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_MATERIALIZED_VIEW,
+                              rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_fill_view(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FILL_VIEW,
+                      rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_fill_view_value(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FILL_VIEW_VALUE,
+                            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_phi_view(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_PHI_VIEW,
+                      rez, true/*flush*/, true/*response*/); 
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_reduction_view(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REDUCTION_VIEW,
+                           rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_replicated_view(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPLICATED_VIEW,
+                           rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_allreduce_view(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_ALLREDUCE_VIEW,
+                           rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_instance_manager(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INSTANCE_MANAGER,
+                              rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_manager_update(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_MANAGER_UPDATE,
+                          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_distribute_fill(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_DISTRIBUTE_FILL, rez,
+                                                                 true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_distribute_point(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_DISTRIBUTE_POINT,
+                                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_distribute_pointwise(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_DISTRIBUTE_POINTWISE, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_distribute_reduction(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_DISTRIBUTE_REDUCTION, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_distribute_broadcast(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_DISTRIBUTE_BROADCAST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_distribute_reducecast(AddressSpaceID target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_DISTRIBUTE_REDUCECAST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_distribute_hourglass(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_DISTRIBUTE_HOURGLASS, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_distribute_allreduce(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_DISTRIBUTE_ALLREDUCE, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_hammer_reduction(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_HAMMER_REDUCTION,
+                                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_fuse_gather(AddressSpaceID target,
+                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_FUSE_GATHER,
+                                                      rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_register_user_request(AddressSpaceID target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_USER_REQUEST,
+                                                      rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_register_user_response(AddressSpaceID target,
+                                                         Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_USER_RESPONSE,
+                                    rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_individual_register_user(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_REGISTER_USER,
+                                                        rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_remote_instances_request(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_REMOTE_INSTANCES_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_remote_instances_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_REMOTE_INSTANCES_RESPONSE,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_nearest_instances_request(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_NEAREST_INSTANCES_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_nearest_instances_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_NEAREST_INSTANCES_RESPONSE,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_remote_registration(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_REMOTE_REGISTRATION,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_finalize_mapping(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_FINALIZE_MAPPING,
+                                          rez, true/*flush*/, true/*return*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_creation(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_VIEW_CREATION,
+                                                        rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_deletion(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_VIEW_DELETION,
+                                                        rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_release(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_VIEW_RELEASE,
+                                                        rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_notification(AddressSpaceID target,
+                                                    Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_VIEW_NOTIFICATION,
+                                                        rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_make_valid(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_VIEW_MAKE_VALID,
+                                                        rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_make_invalid(AddressSpaceID target,
+                                                    Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_COLLECTIVE_VIEW_MAKE_INVALID,
+                                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_invalidate_request(AddressSpaceID target,
+                                                          Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_VIEW_INVALIDATE_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_invalidate_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_VIEW_INVALIDATE_RESPONSE,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_add_remote_reference(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_VIEW_ADD_REMOTE_REFERENCE, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_collective_view_remove_remote_reference(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COLLECTIVE_VIEW_REMOVE_REMOTE_REFERENCE, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_create_top_view_request(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_CREATE_TOP_VIEW_REQUEST, rez,
+                                                              true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_create_top_view_response(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_CREATE_TOP_VIEW_RESPONSE, rez,
+                                              true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_view_request(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_VIEW_REQUEST, rez, 
+                                                    true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_view_register_user(AddressSpaceID target,Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_VIEW_REGISTER_USER, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_view_find_copy_preconditions_request(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_VIEW_FIND_COPY_PRE_REQUEST, rez,
+                                                                 true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_view_add_copy_user(AddressSpaceID target,Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_VIEW_ADD_COPY_USER, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_view_find_last_users_request(AddressSpaceID target,
+                                                    Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_VIEW_FIND_LAST_USERS_REQUEST,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_view_find_last_users_response(AddressSpaceID target,
+                                                     Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_VIEW_FIND_LAST_USERS_RESPONSE,
+                                          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_future_result(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FUTURE_RESULT, rez,
+                                  true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_future_result_size(AddressSpaceID target,Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // This message is asynchronous with other processes for futures so we
+      // put it on the reference virtual channel to ensure that the future
+      // is not collected before it arrives
+      find_messenger(target)->send_message(SEND_FUTURE_RESULT_SIZE,
+                                rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_future_subscription(AddressSpaceID target,
+                                           Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // Since this message is fused with doing the remote registration for
+      // the future it also needs to go on the same virtual channel as 
+      // send_did_remote_registration which is the REFERENCE_VIRTUAL_CHANNEL 
+      find_messenger(target)->send_message(SEND_FUTURE_SUBSCRIPTION, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_future_create_instance_request(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FUTURE_CREATE_INSTANCE_REQUEST,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_future_create_instance_response(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_FUTURE_CREATE_INSTANCE_RESPONSE,
+          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_future_map_request_future(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FUTURE_MAP_REQUEST, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_future_map_response_future(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FUTURE_MAP_RESPONSE, rez,
+                                        true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_future_map_find_pointwise(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FUTURE_MAP_POINTWISE, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_compute_equivalence_sets(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_REPL_COMPUTE_EQUIVALENCE_SETS, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_output_equivalence_set(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_REPL_OUTPUT_EQUIVALENCE_SET, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_refine_equivalence_sets(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_REPL_REFINE_EQUIVALENCE_SETS, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_equivalence_set_notification(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_REPL_EQUIVALENCE_SET_NOTIFICATION, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_broadcast_update(AddressSpaceID target,
+                                                          Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_BROADCAST_UPDATE,
+                                                    rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_created_regions(AddressSpaceID target,
+                                                         Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_CREATED_REGIONS,
+                                                    rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_trace_event_request(
+                                         AddressSpaceID target, Serializer &rez) 
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_TRACE_EVENT_REQUEST,
+                                                      rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_trace_event_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_TRACE_EVENT_RESPONSE,
+                                      rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_trace_event_trigger(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_TRACE_EVENT_TRIGGER,
+                                      rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_trace_frontier_request(
+                                         AddressSpaceID target, Serializer &rez) 
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_TRACE_FRONTIER_REQUEST,
+                                                      rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_trace_frontier_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_TRACE_FRONTIER_RESPONSE,
+                                        rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_trace_update(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_TRACE_UPDATE,
+                                                rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_find_trace_local_sets(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_FIND_TRACE_SETS,
+                                                rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_implicit_rendezvous(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_IMPLICIT_RENDEZVOUS,
+                                                    rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_find_collective_view(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_FIND_COLLECTIVE_VIEW,
+                                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_pointwise_dependence(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPL_POINTWISE_DEPENDENCE,
+                                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_mapper_message(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_MAPPER_MESSAGE, rez,
+                                                      true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_mapper_broadcast(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_MAPPER_BROADCAST, rez,
+                                                        true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_task_impl_semantic_request(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_TASK_IMPL_SEMANTIC_REQ, rez,
+                                                              true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_semantic_request(AddressSpaceID target,
+                                                    Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_SEMANTIC_REQ, rez,
+                                                                true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_semantic_request(AddressSpaceID target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_PARTITION_SEMANTIC_REQ,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_semantic_request(AddressSpaceID target,
+                                                    Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_SEMANTIC_REQ, rez,
+                                                                true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_semantic_request(AddressSpaceID target,
+                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SEMANTIC_REQ, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_logical_region_semantic_request(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LOGICAL_REGION_SEMANTIC_REQ,
+                                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_logical_partition_semantic_request(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LOGICAL_PARTITION_SEMANTIC_REQ,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_task_impl_semantic_info(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_TASK_IMPL_SEMANTIC_INFO, rez,
+                                            true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_space_semantic_info(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_SPACE_SEMANTIC_INFO, rez,
+                                              true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_index_partition_semantic_info(AddressSpaceID target,
+                                                     Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INDEX_PARTITION_SEMANTIC_INFO,
+                                          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_space_semantic_info(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SPACE_SEMANTIC_INFO, rez,
+                                              true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_field_semantic_info(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FIELD_SEMANTIC_INFO, rez,
+                                        true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_logical_region_semantic_info(AddressSpaceID target,
+                                                    Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LOGICAL_REGION_SEMANTIC_INFO,
+                                        rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_logical_partition_semantic_info(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_LOGICAL_PARTITION_SEMANTIC_INFO,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_response(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REMOTE_CONTEXT_RESPONSE, rez,
+                                            true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_physical_request(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_REMOTE_CONTEXT_PHYSICAL_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_physical_response(AddressSpaceID target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_REMOTE_CONTEXT_PHYSICAL_RESPONSE, rez,
+              true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_find_collective_view_request(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_find_collective_view_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_REMOTE_CONTEXT_FIND_COLLECTIVE_VIEW_RESPONSE, rez, 
+              true/*flush*/, true/*response*/);
+    } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_refine_equivalence_sets(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_REMOTE_CONTEXT_REFINE_EQUIVALENCE_SETS, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_pointwise_dependence(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_REMOTE_CONTEXT_POINTWISE_DEPENDENCE, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_find_trace_local_sets_request(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_REQUEST,
+          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_context_find_trace_local_sets_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_REMOTE_CONTEXT_FIND_TRACE_LOCAL_SETS_RESPONSE,
+          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_compute_equivalence_sets_request(AddressSpaceID target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COMPUTE_EQUIVALENCE_SETS_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_compute_equivalence_sets_response(AddressSpaceID target,
+                                                         Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COMPUTE_EQUIVALENCE_SETS_RESPONSE,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_compute_equivalence_sets_pending(AddressSpaceID target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_COMPUTE_EQUIVALENCE_SETS_PENDING,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_output_equivalence_set_request(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_OUTPUT_EQUIVALENCE_SET_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_output_equivalence_set_response(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_OUTPUT_EQUIVALENCE_SET_RESPONSE,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_cancel_equivalence_sets_subscription(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_CANCEL_EQUIVALENCE_SETS_SUBSCRIPTION, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_invalidate_equivalence_sets_subscription(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_INVALIDATE_EQUIVALENCE_SETS_SUBSCRIPTION,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_creation(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EQUIVALENCE_SET_CREATION,
+          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_reuse(AddressSpaceID target,
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EQUIVALENCE_SET_REUSE, rez,
+                                              true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_response(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EQUIVALENCE_SET_RESPONSE, rez,
+                                              true/*flush*/, true/*response*/);
+    } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_replication_request(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REPLICATION_REQUEST,
+                                  rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_replication_response(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REPLICATION_RESPONSE,
+                rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_migration(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EQUIVALENCE_SET_MIGRATION, rez,
+                                              true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_owner_update(AddressSpaceID target,
+                                                    Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_OWNER_UPDATE,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_clone_request(AddressSpaceID target,
+                                                     Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EQUIVALENCE_SET_CLONE_REQUEST,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_clone_response(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EQUIVALENCE_SET_CLONE_RESPONSE,
+                                          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_capture_request(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_CAPTURE_REQUEST,
+                              rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_capture_response(AddressSpaceID target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_CAPTURE_RESPONSE,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_request_instances(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INSTANCES, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_request_invalid(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REMOTE_REQUEST_INVALID, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_request_antivalid(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_EQUIVALENCE_SET_REMOTE_REQUEST_ANTIVALID,
+                                    rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_updates(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REMOTE_UPDATES, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_acquires(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REMOTE_ACQUIRES, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_releases(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REMOTE_RELEASES, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_copies_across(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REMOTE_COPIES_ACROSS, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_overwrites(AddressSpaceID target,
+                                                         Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REMOTE_OVERWRITES, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_filters(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EQUIVALENCE_SET_REMOTE_FILTERS,
+                                                            rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_remote_instances(AddressSpaceID target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_REMOTE_INSTANCES, rez,
+              true/*flush*/, true/*return*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_equivalence_set_filter_invalidations(
+        AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_EQUIVALENCE_SET_FILTER_INVALIDATIONS, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_instance_request(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INSTANCE_REQUEST, rez,
+                                                        true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_instance_response(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_INSTANCE_RESPONSE, rez,
+                                      true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_external_create_request(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EXTERNAL_CREATE_REQUEST, rez,
+                                                              true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_external_create_response(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EXTERNAL_CREATE_RESPONSE, rez,
+                                              true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_external_attach(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EXTERNAL_ATTACH, rez,
+                                                      true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_external_detach(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_EXTERNAL_DETACH, rez,
+                                                      true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_priority_update(AddressSpaceID target,Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_PRIORITY_UPDATE, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_request(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_REQUEST, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_response(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_RESPONSE, rez, 
+                                true/*flush*/, true/*response*/);
+    } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_acquire(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_ACQUIRE, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_failed(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_FAILED, rez,
+                                true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_mismatch(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_MISMATCH, rez,
+                                true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_notify(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_NOTIFY, rez,
+                                                true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_debug_request(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_DEBUG_REQUEST, rez,
+                                                        true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_debug_response(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_DEBUG_RESPONSE, rez,
+                                       true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_gc_record_event(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_GC_RECORD_EVENT, rez,
+                                                        true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_acquire_request(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_ACQUIRE_REQUEST, rez,
+                                                      true/*flush*/);
+    }
+    
+    //--------------------------------------------------------------------------
+    void Runtime::send_acquire_response(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_ACQUIRE_RESPONSE, rez,
+                                      true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_variant_broadcast(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_VARIANT_BROADCAST, rez,
+                                                        true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_constraint_request(AddressSpaceID target, 
+                                           Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // This is paging in constraints so it needs its own virtual channel
+      find_messenger(target)->send_message(SEND_CONSTRAINT_REQUEST,
+                                                  rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_constraint_response(AddressSpaceID target, 
+                                            Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // This is paging in constraints so it needs its own virtual channel
+      find_messenger(target)->send_message(SEND_CONSTRAINT_RESPONSE, rez,
+                                        true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_constraint_release(AddressSpaceID target,
+                                           Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_CONSTRAINT_RELEASE,
+                                                  rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_mpi_rank_exchange(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_MPI_RANK_EXCHANGE, rez,
+                                                        true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_replicate_distribution(AddressSpaceID target,
+                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPLICATE_DISTRIBUTION,
+                                           rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_replicate_collective_versioning(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPLICATE_COLLECTIVE_VERSIONING,
+                                           rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_replicate_collective_mapping(AddressSpaceID target,
+                                                    Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPLICATE_COLLECTIVE_MAPPING,
+                                           rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_replicate_rendezvous_virtual_mappings(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPLICATE_VIRTUAL_RENDEZVOUS,
+                                           rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_replicate_startup_complete(AddressSpaceID target, 
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPLICATE_STARTUP_COMPLETE,
+                                                    rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_replicate_post_mapped(AddressSpaceID target, 
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPLICATE_POST_MAPPED,
+                                                    rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_replicate_trigger_complete(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPLICATE_TRIGGER_COMPLETE,
+                                                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_replicate_trigger_commit(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REPLICATE_TRIGGER_COMMIT,
+                                                        rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_control_replicate_rendezvous_message(
+                                         AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_CONTROL_REPLICATE_RENDEZVOUS_MESSAGE,
+                                rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_mapper_request(AddressSpaceID target, 
+                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_MAPPER_REQUEST, rez,
+                                                              true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_mapper_response(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_MAPPER_RESPONSE, rez,
+                                            true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_trace_request(AddressSpaceID target, 
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_TRACE_REQUEST, rez,
+                                                            true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_trace_response(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_TRACE_RESPONSE, rez,
+                                            true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_projection_request(AddressSpaceID target, 
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_PROJECTION_REQUEST, rez,
+                                                                 true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_projection_response(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_PROJECTION_RESPONSE,
+                                        rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_sharding_request(AddressSpaceID target, 
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_SHARDING_REQUEST,
+                                                       rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_sharding_response(AddressSpaceID target,
+                                                 Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_SHARDING_RESPONSE,
+                                     rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_concurrent_request(AddressSpaceID target, 
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_CONCURRENT_REQUEST,
+                                                       rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_concurrent_response(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_CONCURRENT_RESPONSE,
+                                       rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_task_request(AddressSpaceID target, 
+                                            Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_TASK_REQUEST, rez,
+                                                            true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_task_response(AddressSpaceID target,
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_TASK_RESPONSE, rez,
+                                          true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_redop_request(AddressSpaceID target, 
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_REDOP_REQUEST, rez,
+                                                            true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_redop_response(AddressSpaceID target,
+                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_REDOP_RESPONSE, rez,
+                                            true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_serdez_request(AddressSpaceID target, 
+                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_SERDEZ_REQUEST, rez,
+                                                              true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_library_serdez_response(AddressSpaceID target,
+                                               Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_LIBRARY_SERDEZ_RESPONSE, rez,
+                                            true/*flush*/, true/*response*/);
+    } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_op_report_uninitialized(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_REMOTE_OP_REPORT_UNINIT, rez,
+                                                              true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_op_profiling_count_update(AddressSpaceID target,
+                                                        Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_REMOTE_OP_PROFILING_COUNT_UPDATE, rez, 
+          true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_op_completion_effect(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_REMOTE_OP_COMPLETION_EFFECT, rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_trace_update(AddressSpaceID target, 
+                                           Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // All these messages must be on the same ordered virtual channel
+      // so that they are ordered in their program order and handled on
+      // the target node in this order as they would have been if they
+      // were being handled directly on the owner node
+      find_messenger(target)->send_message(SEND_REMOTE_TRACE_UPDATE, rez,
+                                                          true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_remote_trace_response(AddressSpaceID target, 
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // No need for responses to be ordered so they can be handled on
+      // the default virtual channel in whatever order
+      find_messenger(target)->send_message(SEND_REMOTE_TRACE_RESPONSE, rez,
+                                          true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_free_external_allocation(AddressSpaceID target,
+                                                Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FREE_EXTERNAL_ALLOCATION,
+                                      rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_notify_collected_instances(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_NOTIFY_COLLECTED_INSTANCES,
+                                           rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_create_memory_pool_request(AddressSpaceID target,
+                                                  Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_CREATE_MEMORY_POOL_REQUEST,
+                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_create_memory_pool_response(AddressSpaceID target,
+                                                   Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_CREATE_MEMORY_POOL_RESPONSE,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_create_future_instance_request(AddressSpaceID target,
+                                                      Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+        SEND_CREATE_FUTURE_INSTANCE_REQUEST,
+                          rez, true/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_create_future_instance_response(AddressSpaceID target,
+                                                       Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(
+          SEND_CREATE_FUTURE_INSTANCE_RESPONSE,
+            rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_free_future_instance(AddressSpaceID target,
+                                            Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_FREE_FUTURE_INSTANCE,
+                                rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_profiler_event_trigger(AddressSpaceID target,
+                                              Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // Never flush these
+      find_messenger(target)->send_message(SEND_PROFILER_EVENT_TRIGGER,
+          rez, false/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_profiler_event_poison(AddressSpaceID target,
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      // Never flush these
+      find_messenger(target)->send_message(SEND_PROFILER_EVENT_POISON,
+          rez, false/*flush*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_shutdown_notification(AddressSpaceID target, 
+                                             Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_SHUTDOWN_NOTIFICATION, rez,
+                        true/*flush*/, false/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::send_shutdown_response(AddressSpaceID target, Serializer &rez)
+    //--------------------------------------------------------------------------
+    {
+      find_messenger(target)->send_message(SEND_SHUTDOWN_RESPONSE, rez,
+                        true/*flush*/, false/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_startup_barrier(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RtBarrier startup_barrier;
+      derez.deserialize(startup_barrier);
+      broadcast_startup_barrier(startup_barrier);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_task(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      TaskOp::process_unpack_task(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_steal(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Processor target;
+      derez.deserialize(target);
+      Processor thief;
+      derez.deserialize(thief);
+      int num_mappers;
+      derez.deserialize(num_mappers);
+      std::vector<MapperID> thieves(num_mappers);
+      for (int idx = 0; idx < num_mappers; idx++)
+        derez.deserialize(thieves[idx]);
+#ifdef DEBUG_LEGION
+      assert(proc_managers.find(target) != proc_managers.end());
+#endif
+      proc_managers[target]->process_steal_request(thief, thieves);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_advertisement(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Processor source;
+      derez.deserialize(source);
+      MapperID map_id;
+      derez.deserialize(map_id);
+      // Just advertise it to all the managers
+      for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+            proc_managers.begin(); it != proc_managers.end(); it++)
+      {
+        it->second->process_advertisement(source, map_id);
+      }
+    }
+
+#ifdef LEGION_USE_LIBDL
+    //--------------------------------------------------------------------------
+    void Runtime::handle_registration_callback(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(implicit_context == NULL);
+      assert(runtime!= NULL);
+#endif
+      DerezCheck z(derez);
+      size_t dso_size;
+      derez.deserialize(dso_size);
+      const std::string dso_name((const char*)derez.get_current_pointer());
+      derez.advance_pointer(dso_size);
+      size_t sym_size;
+      derez.deserialize(sym_size);
+      const std::string sym_name((const char*)derez.get_current_pointer());
+      derez.advance_pointer(sym_size);
+      size_t buffer_size;
+      derez.deserialize(buffer_size);
+      const void *buffer = derez.get_current_pointer();
+      if (buffer_size > 0)
+        derez.advance_pointer(buffer_size);
+      bool withargs;
+      derez.deserialize<bool>(withargs);
+      bool deduplicate;
+      derez.deserialize(deduplicate);
+      size_t dedup_tag;
+      derez.deserialize(dedup_tag);
+      RtEvent global_done_event;
+      derez.deserialize(global_done_event);
+      RtUserEvent done_event;
+      derez.deserialize(done_event);
+
+      // Converting the DSO reference could call dlopen and might block
+      // us if the constructor for that shared object requests its own
+      // global registration callback, so register our guards first
+      const RegistrationKey key(dedup_tag, dso_name, sym_name);
+      if (deduplicate)
+      {
+        AutoLock c_lock(callback_lock);
+        // First see if the local case has already been done in which case
+        // we know that we are done also when it is done
+        std::map<RegistrationKey,RtEvent>::const_iterator finder =
+          global_local_done.find(key);
+        if (finder != global_local_done.end())
+        {
+          Runtime::trigger_event(done_event, finder->second);
+          return;
+        }
+        // No one has attempted a global registration callback here yet
+        // Record that we are pending and put in a guard for all the
+        // of the global registrations being done
+        if (global_callbacks_done.find(key) == global_callbacks_done.end())
+          global_callbacks_done[key] = global_done_event;
+        pending_remote_callbacks[key].insert(done_event);
+      }
+
+      // Now we can do the translation of ourselves to get the function pointer
+      Realm::DSOReferenceImplementation dso(dso_name, sym_name);
+#ifdef DEBUG_LEGION
+      assert(callback_translator.can_translate(
+            typeid(Realm::DSOReferenceImplementation),
+            typeid(Realm::FunctionPointerImplementation)));
+#endif
+      Realm::FunctionPointerImplementation *impl = 
+        static_cast<Realm::FunctionPointerImplementation*>(
+            callback_translator.translate(&dso, 
+              typeid(Realm::FunctionPointerImplementation)));
+#ifdef DEBUG_LEGION
+      assert(impl != NULL);
+#endif
+      void* callback = impl->get_impl<void*>();
+      RtEvent precondition;
+      // Now take the lock and see if we need to perform anything
+      if (deduplicate)
+      {
+        AutoLock c_lock(callback_lock);
+        std::map<RegistrationKey,std::set<RtUserEvent> >::iterator finder =
+            pending_remote_callbacks.find(key);
+        // If someone already handled everything then we are done
+        if (finder != pending_remote_callbacks.end())
+        {
+          // We should still be in there
+#ifdef DEBUG_LEGION
+          assert(finder->second.find(done_event) != finder->second.end());
+#endif
+          finder->second.erase(done_event);
+          if (finder->second.empty())
+            pending_remote_callbacks.erase(finder);
+          // Now see if anyone else has done the local registration
+          std::map<void*,RtEvent>::const_iterator
+            finder = local_callbacks_done.find(callback);
+          if (finder != local_callbacks_done.end())
+          {
+#ifdef DEBUG_LEGION
+            assert(finder->second.exists());
+#endif
+            precondition = finder->second;
+          }
+          else
+          {
+            local_callbacks_done[callback] = done_event;
+            global_local_done[key] = done_event; 
+          }
+        }
+        else // We were already handled so nothing to do
+          done_event = RtUserEvent::NO_RT_USER_EVENT;
+      }
+      if (!deduplicate || done_event.exists())
+      {
+        // This is the signal that we need to do the callback
+        if (!precondition.exists())
+        {
+          inside_registration_callback = GLOBAL_REGISTRATION_CALLBACK;
+          if (withargs)
+          {
+            RegistrationWithArgsCallbackFnptr callbackwithargs =
+              (RegistrationWithArgsCallbackFnptr)callback;
+            RegistrationCallbackArgs args{ machine, external, 
+              local_procs, UntypedBuffer(buffer, buffer_size) };
+            (*callbackwithargs)(args);
+          }
+          else
+          {
+            RegistrationCallbackFnptr callbackwithoutargs =
+              (RegistrationCallbackFnptr)callback;
+            (*callbackwithoutargs)(machine, external, local_procs);
+          }
+          inside_registration_callback = NO_REGISTRATION_CALLBACK;
+        }
+        if (done_event.exists())
+          Runtime::trigger_event(done_event, precondition);
+      }
+      // Delete our resources that we allocated
+      delete impl;
+    }
+#endif // LEGION_USE_LIBDL
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_task_replay(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      TaskOp::process_remote_replay(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_task_profiling_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      SingleTask::process_remote_profiling_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_shared_ownership(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      int kind;
+      derez.deserialize(kind);
+      switch (kind)
+      {
+        case 0:
+          {
+            IndexSpace handle;
+            derez.deserialize(handle);
+            create_shared_ownership(handle, false, true);
+            break;
+          }
+        case 1:
+          {
+            IndexPartition handle;
+            derez.deserialize(handle);
+            create_shared_ownership(handle, false, true);
+            break;
+          }
+        case 2:
+          {
+            FieldSpace handle;
+            derez.deserialize(handle);
+            create_shared_ownership(handle, false, true);
+            break;
+          }
+        case 3:
+          {
+            LogicalRegion handle;
+            derez.deserialize(handle);
+            create_shared_ownership(handle, false, true);
+            break;
+          }
+        default:
+          assert(false);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_node_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_response(Deserializer &derez,
+                                              AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_node_creation(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_return(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_node_return(derez); 
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_set(Deserializer &derez,
+                                         AddressSpaceID source) 
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_index_space_set(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_child_request(Deserializer &derez,
+                                                   AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_node_child_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_child_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_node_child_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_colors_request(Deserializer &derez,
+                                                    AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_colors_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_colors_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_colors_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_generate_color_request(Deserializer &derez,
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_generate_color_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_generate_color_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_generate_color_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_release_color(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_release_color(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_notification(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_notification(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_node_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_response(Deserializer &derez,
+                                                  AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_node_creation(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_return(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_node_return(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_child_request(Deserializer &derez,
+                                                       AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_node_child_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_child_response(Deserializer &derez,
+                                                        AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_node_child_response(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_child_replication(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_child_replication(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_disjoint_update(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_node_disjoint_update(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_shard_rects_request(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_shard_rects_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_shard_rects_response(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_shard_rects_response(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_remote_interference_request(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_remote_interference_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_remote_interference_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_remote_interference_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_node(Deserializer &derez, 
+                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_node_creation(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_node_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_return(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_node_return(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_allocator_request(Deserializer &derez,
+                                                       AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_allocator_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_allocator_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_allocator_response( derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_allocator_invalidation(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_allocator_invalidation(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_allocator_flush(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_allocator_flush(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_allocator_free(Deserializer &derez,
+                                                    AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_allocator_free(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_infos_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_infos_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_infos_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_infos_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_alloc_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_alloc_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_size_update(Deserializer &derez,
+                                           AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_field_size_update(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_free(Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_field_free(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_free_indexes(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_field_free_indexes(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_layout_invalidation(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_layout_invalidation(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_local_field_alloc_request(Deserializer &derez,
+                                                   AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_local_alloc_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_local_field_alloc_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_local_alloc_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_local_field_free(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_local_free(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_local_field_update(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_local_field_update(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_top_level_region_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode::handle_top_level_request(derez); 
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_top_level_region_return(Deserializer &derez,
+                                                 AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode::handle_top_level_return(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_destruction(Deserializer &derez,
+                                                 AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      IndexSpace handle;
+      derez.deserialize(handle);
+      RtUserEvent done;
+      derez.deserialize(done);
+#ifdef DEBUG_LEGION
+      assert(done.exists());
+#endif
+      std::set<RtEvent> applied;
+      destroy_index_space(handle, source, applied);
+      if (!applied.empty())
+        Runtime::trigger_event(done, Runtime::merge_events(applied));
+      else
+        Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_destruction(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      IndexPartition handle;
+      derez.deserialize(handle);
+      RtUserEvent done;
+      derez.deserialize(done);
+#ifdef DEBUG_LEGION
+      assert(done.exists());
+#endif
+      std::set<RtEvent> applied;
+      destroy_index_partition(handle, applied);
+      if (!applied.empty())
+        Runtime::trigger_event(done, Runtime::merge_events(applied));
+      else
+        Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_destruction(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      FieldSpace handle;
+      derez.deserialize(handle);
+      RtUserEvent done;
+      derez.deserialize(done);
+#ifdef DEBUG_LEGION
+      assert(done.exists());
+#endif
+      std::set<RtEvent> applied;
+      destroy_field_space(handle, applied);
+      if (!applied.empty())
+        Runtime::trigger_event(done, Runtime::merge_events(applied));
+      else
+        Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_logical_region_destruction(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      LogicalRegion handle;
+      derez.deserialize(handle);
+      RtUserEvent done;
+      derez.deserialize(done);
+      std::set<RtEvent> applied;
+      destroy_logical_region(handle, applied);
+      if (done.exists())
+      {
+        if (!applied.empty())
+          Runtime::trigger_event(done, Runtime::merge_events(applied));
+        else
+          Runtime::trigger_event(done);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_individual_remote_future_size(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualTask::process_unpack_remote_future_size(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_individual_remote_output_registration(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualTask::handle_remote_output_registration(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_individual_remote_mapped(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualTask::process_unpack_remote_mapped(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_individual_remote_complete(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualTask::process_unpack_remote_complete(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_individual_remote_commit(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualTask::process_unpack_remote_commit(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_individual_concurrent_request(Deserializer &derez,
+                                                       AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndividualTask::handle_concurrent_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_individual_concurrent_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualTask::handle_concurrent_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_remote_mapped(Deserializer &derez,
+                                             AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexTask::process_slice_mapped(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_remote_complete(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexTask::process_slice_complete(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_remote_commit(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexTask::process_slice_commit(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_rendezvous_concurrent_mapped(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      SliceTask::handle_rendezvous_concurrent_mapped(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_collective_allreduce_request(Deserializer &derez,
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      SliceTask::handle_collective_allreduce_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_collective_allreduce_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      SliceTask::handle_collective_allreduce_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_concurrent_allreduce_request(Deserializer &derez,
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      SliceTask::handle_concurrent_allreduce_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_concurrent_allreduce_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      SliceTask::handle_concurrent_allreduce_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_find_intra_dependence(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndexTask::process_slice_find_intra_dependence(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_remote_collective_rendezvous(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      SliceTask::handle_collective_rendezvous(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_remote_collective_versioning_rendezvous(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      SliceTask::handle_collective_versioning_rendezvous(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_remote_output_extents(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      SliceTask::handle_remote_output_extents(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_slice_remote_output_registration(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      SliceTask::handle_remote_output_registration(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_remote_registration(Deserializer &derez,
+                                                 AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable::handle_did_remote_registration(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_created_region_contexts(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_created_region_contexts(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_atomic_reservation_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualView::handle_atomic_reservation_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_atomic_reservation_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualView::handle_atomic_reservation_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_padded_reservation_request(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_padded_reservation_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_padded_reservation_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_padded_reservation_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_materialized_view(Deserializer &derez) 
+    //--------------------------------------------------------------------------
+    {
+      MaterializedView::handle_send_materialized_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_fill_view(Deserializer &derez) 
+    //--------------------------------------------------------------------------
+    {
+      FillView::handle_send_fill_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_fill_view_value(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FillView::handle_send_fill_view_value(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_phi_view(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhiView::handle_send_phi_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_reduction_view(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ReductionView::handle_send_reduction_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_replicated_view(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ReplicatedView::handle_send_replicated_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_allreduce_view(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      AllreduceView::handle_send_allreduce_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_instance_manager(Deserializer &derez,
+                                               AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_send_manager(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_send_manager_update(Deserializer &derez,
+                                             AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_send_manager_update(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_distribute_fill(Deserializer &derez,
+                                                    AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_distribute_fill(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_distribute_point(Deserializer &derez,
+                                                     AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_distribute_point(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_distribute_pointwise(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_distribute_pointwise(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_distribute_reduction(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      AllreduceView::handle_distribute_reduction(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_distribute_broadcast(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_distribute_broadcast(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_distribute_reducecast(Deserializer &derez,
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_distribute_reducecast(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_distribute_hourglass(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_distribute_hourglass(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_distribute_allreduce(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      AllreduceView::handle_distribute_allreduce(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_hammer_reduction(Deserializer &derez,
+                                                     AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      AllreduceView::handle_hammer_reduction(source, derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_fuse_gather(Deserializer &derez,
+                                                AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_fuse_gather(source, derez); 
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_user_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_register_user_request(derez);
+    } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_downgrade_request(Deserializer &derez,
+                                               AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable::handle_downgrade_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_downgrade_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable::handle_downgrade_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_downgrade_success(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable::handle_downgrade_success(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_downgrade_update(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable::handle_downgrade_update(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_downgrade_restart(Deserializer &derez,
+                                               AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable::handle_downgrade_restart(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_global_acquire_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable::handle_global_acquire_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_global_acquire_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable::handle_global_acquire_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_valid_acquire_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ValidDistributedCollectable::handle_valid_acquire_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_did_valid_acquire_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ValidDistributedCollectable::handle_valid_acquire_response(derez);
+    }
+    
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_user_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_register_user_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_user_registration(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualView::handle_collective_user_registration(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_remote_instances_request(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_remote_instances_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_remote_instances_response(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_remote_instances_response(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_nearest_instances_request(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_nearest_instances_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_nearest_instances_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_nearest_instances_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_remote_registration(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_remote_analysis_registration(derez);
+    }
+    
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_finalize_mapping(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveViewCreatorBase::handle_finalize_collective_mapping(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_creation(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      InnerContext::handle_create_collective_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_deletion(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      InnerContext::handle_delete_collective_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_release(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      InnerContext::handle_release_collective_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_notification(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_collective_view_deletion(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_make_valid(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_make_valid(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_make_invalid(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_make_invalid(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_invalidate_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_invalidate_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_invalidate_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_invalidate_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_add_remote_reference(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_add_remote_reference(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_collective_view_remove_remote_reference(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      CollectiveView::handle_remove_remote_reference(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_create_top_view_request(Deserializer &derez,
+                                                 AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_top_view_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_create_top_view_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_top_view_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_view_request(Deserializer &derez) 
+    //--------------------------------------------------------------------------
+    {
+      LogicalView::handle_view_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_manager_request(Deserializer &derez) 
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_manager_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_future_result(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FutureImpl::handle_future_result(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_future_result_size(Deserializer &derez,
+                                            AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FutureImpl::handle_future_result_size(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_future_subscription(Deserializer &derez,
+                                             AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FutureImpl::handle_future_subscription(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_future_create_instance_request(Deserializer &derez,
+                                                        AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FutureImpl::handle_future_create_instance_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_future_create_instance_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FutureImpl::handle_future_create_instance_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_future_map_future_request(Deserializer &derez,
+                                                   AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FutureMapImpl::handle_future_map_future_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_future_map_future_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FutureMapImpl::handle_future_map_future_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_future_map_find_pointwise(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FutureMapImpl::handle_future_map_find_pointwise(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_compute_equivalence_sets(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::process_compute_equivalence_sets(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_output_equivalence_set(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::process_output_equivalence_set(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_refine_equivalence_sets(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::process_refine_equivalence_sets(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_equivalence_set_notification(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::process_equivalence_set_notification(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_broadcast_update(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_broadcast_update(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_created_regions(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_created_regions(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_trace_event_request(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_trace_event_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_trace_event_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_trace_event_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_trace_event_trigger(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_trace_event_trigger(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_trace_frontier_request(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_trace_frontier_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_trace_frontier_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_trace_frontier_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_trace_update(Deserializer &derez,
+                                                        AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::process_trace_update(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_find_trace_local_sets(
+        Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::process_find_trace_local_sets(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_implicit_rendezvous(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ImplicitShardManager::handle_remote_rendezvous(derez);  
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_find_collective_view(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_find_collective_view(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_pointwise_dependence(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_pointwise_dependence(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_view_register_user(Deserializer &derez,
+                                            AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      InstanceView::handle_view_register_user(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_view_copy_pre_request(Deserializer &derez,
+                                               AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndividualView::handle_view_find_copy_pre_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_view_add_copy_user(Deserializer &derez,
+                                            AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndividualView::handle_view_add_copy_user(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_view_find_last_users_request(Deserializer &derez,
+                                                      AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndividualView::handle_view_find_last_users_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_view_find_last_users_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      IndividualView::handle_view_find_last_users_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_mapper_message(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Processor target;
+      derez.deserialize(target);
+      MapperID map_id;
+      derez.deserialize(map_id);
+      Processor source;
+      derez.deserialize(source);
+      unsigned message_kind;
+      derez.deserialize(message_kind);
+      size_t message_size;
+      derez.deserialize(message_size);
+      const void *message = derez.get_current_pointer();
+      derez.advance_pointer(message_size);
+      process_mapper_message(target, map_id, source, message, 
+                             message_size, message_kind);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_mapper_broadcast(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      MapperID map_id;
+      derez.deserialize(map_id);
+      Processor source;
+      derez.deserialize(source);
+      unsigned message_kind;
+      derez.deserialize(message_kind);
+      int radix;
+      derez.deserialize(radix);
+      int index;
+      derez.deserialize(index);
+      size_t message_size;
+      derez.deserialize(message_size);
+      const void *message = derez.get_current_pointer();
+      derez.advance_pointer(message_size);
+      process_mapper_broadcast(map_id, source, message, 
+                               message_size, message_kind, radix, index);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_task_impl_semantic_request(Deserializer &derez,
+                                                     AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      TaskImpl::handle_semantic_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_semantic_request(Deserializer &derez,
+                                                      AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_semantic_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_semantic_request(Deserializer &derez, 
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_semantic_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_semantic_request(Deserializer &derez,
+                                                      AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_semantic_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_semantic_request(Deserializer &derez,
+                                                AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_field_semantic_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_logical_region_semantic_request(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode::handle_semantic_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_logical_partition_semantic_request(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PartitionNode::handle_semantic_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_task_impl_semantic_info(Deserializer &derez,
+                                                  AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      TaskImpl::handle_semantic_info(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_space_semantic_info(Deserializer &derez,
+                                                   AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode::handle_semantic_info(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_index_partition_semantic_info(Deserializer &derez, 
+                                                       AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode::handle_semantic_info(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_space_semantic_info(Deserializer &derez,
+                                                   AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_semantic_info(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_field_semantic_info(Deserializer &derez,
+                                             AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_field_semantic_info(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_logical_region_semantic_info(Deserializer &derez,
+                                                      AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode::handle_semantic_info(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_logical_partition_semantic_info(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PartitionNode::handle_semantic_info(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_context_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_context_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_physical_request(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_physical_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_physical_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_physical_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_find_collective_view_request(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_find_collective_view_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_find_collective_view_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_find_collective_view_response(derez);
+    } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_refine_equivalence_sets(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_refine_equivalence_sets(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_pointwise_dependence(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_pointwise_dependence(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_find_trace_local_sets_request(
+        Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_find_trace_local_sets_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_context_find_trace_local_sets_response(
+        Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteContext::handle_find_trace_local_sets_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_compute_equivalence_sets_request(Deserializer &derez,
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      InnerContext::handle_compute_equivalence_sets_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_compute_equivalence_sets_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      InnerContext::handle_compute_equivalence_sets_response(derez); 
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_compute_equivalence_sets_pending(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EqSetTracker::handle_pending_equivalence_set(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_output_equivalence_set_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      InnerContext::handle_output_equivalence_set_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_output_equivalence_set_response(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      InnerContext::handle_output_equivalence_set_response(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_cancel_equivalence_sets_subscription(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      EqSetTracker::handle_cancel_subscription(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_invalidate_equivalence_sets_subscription(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      EqSetTracker::handle_invalidate_subscription(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_creation(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EqSetTracker::handle_equivalence_set_creation(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_reuse(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EqSetTracker::handle_equivalence_set_reuse(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_request(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_equivalence_set_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_equivalence_set_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_replication_request(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_replication_request(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_replication_response(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_replication_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_migration(Deserializer &derez,
+                                                   AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_migration(derez, source); 
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_owner_update(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_owner_update(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_clone_request(Deserializer &derez,
+                                                       AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_clone_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_clone_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_clone_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_capture_request(Deserializer &derez,
+                                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_capture_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_capture_response(Deserializer &derez,
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_capture_response(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_request_instances(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      ValidInstAnalysis::handle_remote_request_instances(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_request_invalid(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      InvalidInstAnalysis::handle_remote_request_invalid(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_request_antivalid(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      AntivalidInstAnalysis::handle_remote_request_antivalid(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_updates(Deserializer &derez,
+                                                        AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      UpdateAnalysis::handle_remote_updates(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_acquires(Deserializer &derez,
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      AcquireAnalysis::handle_remote_acquires(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_releases(Deserializer &derez,
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      ReleaseAnalysis::handle_remote_releases(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_copies_across(
+                                     Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      CopyAcrossAnalysis::handle_remote_copies_across(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_overwrites(Deserializer &derez,
+                                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      OverwriteAnalysis::handle_remote_overwrites(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_filters(Deserializer &derez,
+                                                        AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FilterAnalysis::handle_remote_filters(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_remote_instances(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalAnalysis::handle_remote_instances(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_equivalence_set_filter_invalidations(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      EquivalenceSet::handle_filter_invalidations(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_instance_request(Deserializer &derez, 
+                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory target_memory;
+      derez.deserialize(target_memory);
+      MemoryManager *manager = find_memory_manager(target_memory);
+      manager->process_instance_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_instance_response(Deserializer &derez,
+                                           AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory target_memory;
+      derez.deserialize(target_memory);
+      MemoryManager *manager = find_memory_manager(target_memory);
+      manager->process_instance_response(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_external_create_request(Deserializer &derez,
+                                                 AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_external_create_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_external_create_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode::handle_external_create_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_external_attach(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory target_memory;
+      derez.deserialize(target_memory);
+      DistributedID did;
+      derez.deserialize(did);
+      RtEvent manager_ready;
+      PhysicalManager *manager = 
+        find_or_request_instance_manager(did, manager_ready);
+      RtUserEvent done_event;
+      derez.deserialize(done_event);
+      MemoryManager *memory_manager = find_memory_manager(target_memory);
+      if (manager_ready.exists() && !manager_ready.has_triggered())
+        manager_ready.wait();
+      RtEvent local_done = memory_manager->attach_external_instance(manager);
+      Runtime::trigger_event(done_event, local_done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_external_detach(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      Memory target_memory;
+      derez.deserialize(target_memory);
+      DistributedID did;
+      derez.deserialize(did);
+      RtEvent manager_ready;
+      PhysicalManager *manager = 
+        find_or_request_instance_manager(did, manager_ready);
+      MemoryManager *memory_manager = find_memory_manager(target_memory);
+      if (manager_ready.exists() && !manager_ready.has_triggered())
+        manager_ready.wait();
+      memory_manager->detach_external_instance(manager);
+      manager->unpack_valid_ref();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_priority_update(Deserializer &derez,
+                                            AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_garbage_collection_priority_update(derez,
+                                                                 source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_request(Deserializer &derez, AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_garbage_collection_request(derez, source); 
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_garbage_collection_response(derez); 
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_acquire(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_garbage_collection_acquire(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_failed(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_garbage_collection_failed(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_mismatch(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_garbage_collection_mismatch(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_notify(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_garbage_collection_notify(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_debug_request(Deserializer &derez,
+                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_garbage_collection_debug_request(derez,
+                                                               source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_debug_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_garbage_collection_debug_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_gc_record_event(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_record_event(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_acquire_request(Deserializer &derez, 
+                                         AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_acquire_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_acquire_response(Deserializer &derez, 
+                                          AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      PhysicalManager::handle_acquire_response(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_variant_broadcast(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      VariantImpl::handle_variant_broadcast(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_constraint_request(Deserializer &derez,
+                                             AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      LayoutConstraints::process_request(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_constraint_response(Deserializer &derez,
+                                             AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      LayoutConstraints::process_response(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_constraint_release(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      LayoutConstraintID layout_id;
+      derez.deserialize(layout_id);
+      release_layout(layout_id);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_top_level_task_complete(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      decrement_outstanding_top_level_tasks();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_mpi_rank_exchange(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(Runtime::mpi_rank_table != NULL);
+#endif
+      Runtime::mpi_rank_table->handle_mpi_rank_exchange(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_replicate_distribution(Deserializer &derez) 
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_distribution(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_replicate_collective_versioning(Deserializer &derez) 
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_collective_versioning(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_replicate_collective_mapping(Deserializer &derez) 
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_collective_mapping(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_replicate_virtual_rendezvous(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_virtual_rendezvous(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_replicate_startup_complete(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_startup_complete(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_replicate_post_mapped(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_post_mapped(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_replicate_trigger_complete(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_trigger_complete(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_replicate_trigger_commit(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::handle_trigger_commit(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_control_replicate_rendezvous_message(
+                                                            Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      ShardManager::process_rendezvous_message(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_mapper_request(Deserializer &derez,
+                                                AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+      
+      MapperID result = generate_library_mapper_ids(name, count);
+      Serializer rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      send_library_mapper_response(source, rez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_mapper_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      MapperID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock); 
+        std::map<std::string,LibraryMapperIDs>::iterator finder = 
+          library_mapper_ids.find(library_name);
+#ifdef DEBUG_LEGION
+        assert(finder != library_mapper_ids.end());
+        assert(!finder->second.result_set);
+        assert(finder->second.ready == done);
+#endif
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_trace_request(Deserializer &derez,
+                                               AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+      
+      TraceID result = generate_library_trace_ids(name, count);
+      Serializer rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      send_library_trace_response(source, rez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_trace_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      TraceID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock); 
+        std::map<std::string,LibraryTraceIDs>::iterator finder = 
+          library_trace_ids.find(library_name);
+#ifdef DEBUG_LEGION
+        assert(finder != library_trace_ids.end());
+        assert(!finder->second.result_set);
+        assert(finder->second.ready == done);
+#endif
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_projection_request(Deserializer &derez,
+                                                    AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+      
+      ProjectionID result = generate_library_projection_ids(name, count);
+      Serializer rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      send_library_projection_response(source, rez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_projection_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      ProjectionID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock); 
+        std::map<std::string,LibraryProjectionIDs>::iterator finder = 
+          library_projection_ids.find(library_name);
+#ifdef DEBUG_LEGION
+        assert(finder != library_projection_ids.end());
+        assert(!finder->second.result_set);
+        assert(finder->second.ready == done);
+#endif
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_sharding_request(Deserializer &derez,
+                                                  AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+      
+      ShardingID result = generate_library_sharding_ids(name, count);
+      Serializer rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      send_library_sharding_response(source, rez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_sharding_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      ShardingID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock); 
+        std::map<std::string,LibraryShardingIDs>::iterator finder = 
+          library_sharding_ids.find(library_name);
+#ifdef DEBUG_LEGION
+        assert(finder != library_sharding_ids.end());
+        assert(!finder->second.result_set);
+        assert(finder->second.ready == done);
+#endif
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_concurrent_request(Deserializer &derez,
+                                                    AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+      
+      ConcurrentID result = generate_library_concurrent_ids(name, count);
+      Serializer rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      send_library_concurrent_response(source, rez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_concurrent_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      ConcurrentID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock); 
+        std::map<std::string,LibraryConcurrentIDs>::iterator finder = 
+          library_concurrent_ids.find(library_name);
+#ifdef DEBUG_LEGION
+        assert(finder != library_concurrent_ids.end());
+        assert(!finder->second.result_set);
+        assert(finder->second.ready == done);
+#endif
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_task_request(Deserializer &derez,
+                                              AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+      
+      TaskID result = generate_library_task_ids(name, count);
+      Serializer rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      send_library_task_response(source, rez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_task_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      TaskID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock); 
+        std::map<std::string,LibraryTaskIDs>::iterator finder = 
+          library_task_ids.find(library_name);
+#ifdef DEBUG_LEGION
+        assert(finder != library_task_ids.end());
+        assert(!finder->second.result_set);
+        assert(finder->second.ready == done);
+#endif
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_redop_request(Deserializer &derez,
+                                               AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+      
+      ReductionOpID result = generate_library_reduction_ids(name, count);
+      Serializer rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      send_library_redop_response(source, rez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_redop_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      ReductionOpID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock); 
+        std::map<std::string,LibraryRedopIDs>::iterator finder = 
+          library_redop_ids.find(library_name);
+#ifdef DEBUG_LEGION
+        assert(finder != library_redop_ids.end());
+        assert(!finder->second.result_set);
+        assert(finder->second.ready == done);
+#endif
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_serdez_request(Deserializer &derez,
+                                                AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      size_t count;
+      derez.deserialize(count);
+      RtUserEvent done;
+      derez.deserialize(done);
+      
+      CustomSerdezID result = generate_library_serdez_ids(name, count);
+      Serializer rez;
+      {
+        RezCheck z2(rez);
+        rez.serialize(string_length);
+        rez.serialize(name, string_length);
+        rez.serialize(result);
+        rez.serialize(done);
+      }
+      send_library_serdez_response(source, rez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_library_serdez_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DerezCheck z(derez);
+      size_t string_length;
+      derez.deserialize(string_length);
+      const char *name = (const char*)derez.get_current_pointer();
+      derez.advance_pointer(string_length);
+      CustomSerdezID result;
+      derez.deserialize(result);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const std::string library_name(name);
+      {
+        AutoLock l_lock(library_lock); 
+        std::map<std::string,LibrarySerdezIDs>::iterator finder = 
+          library_serdez_ids.find(library_name);
+#ifdef DEBUG_LEGION
+        assert(finder != library_serdez_ids.end());
+        assert(!finder->second.result_set);
+        assert(finder->second.ready == done);
+#endif
+        finder->second.result = result;
+        finder->second.result_set = true;
+      }
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_op_report_uninitialized(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteOp::handle_report_uninitialized(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_op_profiling_count_update(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteOp::handle_report_profiling_count_update(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_op_completion_effect(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      RemoteOp::handle_completion_effect(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_shutdown_notification(Deserializer &derez,
+                                               AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      ShutdownManager::handle_shutdown_notification(derez, source);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_shutdown_response(Deserializer &derez) 
+    //--------------------------------------------------------------------------
+    {
+      ShutdownManager::handle_shutdown_response(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::create_physical_instance(Memory target_memory,
+                                     const LayoutConstraintSet &constraints,
+                                     const std::vector<LogicalRegion> &regions,
+                                     const TaskTreeCoordinates &coordinates,
+                                     MappingInstance &result,
+                                     Processor processor, 
+                                     bool acquire, GCPriority priority,
+                                     bool tight_bounds, 
+                                     const LayoutConstraint **unsat,
+                                     size_t *footprint, UniqueID creator_id,
+                                     RtEvent *safe_for_unbounded_pools)
+    //--------------------------------------------------------------------------
+    {
+      MemoryManager *manager = find_memory_manager(target_memory);
+      if (unsat != NULL)
+      {
+        LayoutConstraintKind unsat_kind = LEGION_SPECIALIZED_CONSTRAINT;
+        unsigned unsat_index = 0;
+        if (!manager->create_physical_instance(constraints, regions, 
+              coordinates, result, processor, acquire, priority, tight_bounds,
+              &unsat_kind, &unsat_index, footprint, 
+              safe_for_unbounded_pools, creator_id))
+        {
+          *unsat = constraints.convert_unsatisfied(unsat_kind, unsat_index);
+          return false;
+        }
+        else
+          return true;
+      }
+      else
+        return manager->create_physical_instance(constraints, regions, 
+            coordinates, result, processor, acquire, priority, tight_bounds,
+            NULL, NULL, footprint, safe_for_unbounded_pools, creator_id);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::create_physical_instance(Memory target_memory,
+                                     LayoutConstraints *constraints,
+                                     const std::vector<LogicalRegion> &regions,
+                                     const TaskTreeCoordinates &coordinates,
+                                     MappingInstance &result,
+                                     Processor processor,
+                                     bool acquire, GCPriority priority,
+                                     bool tight_bounds, 
+                                     const LayoutConstraint **unsat,
+                                     size_t *footprint, UniqueID creator_id,
+                                     RtEvent *safe_for_unbounded_pools)
+    //--------------------------------------------------------------------------
+    { 
+      MemoryManager *manager = find_memory_manager(target_memory);
+      if (unsat != NULL)
+      {
+        LayoutConstraintKind unsat_kind = LEGION_SPECIALIZED_CONSTRAINT;
+        unsigned unsat_index = 0;
+        if (!manager->create_physical_instance(constraints, regions, 
+              coordinates, result, processor, acquire, priority,
+              tight_bounds, &unsat_kind, &unsat_index, footprint,
+              safe_for_unbounded_pools, creator_id))
+        {
+          *unsat = constraints->convert_unsatisfied(unsat_kind, unsat_index);
+          return false;
+        }
+        else
+          return true;
+      }
+      else
+        return manager->create_physical_instance(constraints, regions, 
+            coordinates, result, processor, acquire, priority, tight_bounds,
+            NULL, NULL, footprint, safe_for_unbounded_pools, creator_id);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::find_or_create_physical_instance(Memory target_memory,
+                                     const LayoutConstraintSet &constraints,
+                                     const std::vector<LogicalRegion> &regions,
+                                     const TaskTreeCoordinates &coordinates,
+                                     MappingInstance &result, bool &created, 
+                                     Processor processor,
+                                     bool acquire, GCPriority priority,
+                                     bool tight_bounds, 
+                                     const LayoutConstraint **unsat,
+                                     size_t *footprint, UniqueID creator_id,
+                                     RtEvent *safe_for_unbounded_pools)
+    //--------------------------------------------------------------------------
+    {
+      MemoryManager *manager = find_memory_manager(target_memory);
+      if (unsat != NULL)
+      {
+        LayoutConstraintKind unsat_kind = LEGION_SPECIALIZED_CONSTRAINT;
+        unsigned unsat_index = 0;
+        if (!manager->find_or_create_physical_instance(constraints, regions,
+              coordinates, result, created, processor, acquire, priority,
+              tight_bounds, &unsat_kind, &unsat_index, footprint,
+              safe_for_unbounded_pools, creator_id))
+        {
+          *unsat = constraints.convert_unsatisfied(unsat_kind, unsat_index);
+          return false;
+        }
+        else
+          return true;
+      }
+      else
+        return manager->find_or_create_physical_instance(constraints, regions, 
+            coordinates, result, created, processor, acquire, priority,
+            tight_bounds, NULL, NULL, footprint, safe_for_unbounded_pools,
+            creator_id);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::find_or_create_physical_instance(Memory target_memory,
+                                    LayoutConstraints *constraints,
+                                    const std::vector<LogicalRegion> &regions,
+                                    const TaskTreeCoordinates &coordinates,
+                                    MappingInstance &result, bool &created, 
+                                    Processor processor,
+                                    bool acquire, GCPriority priority,
+                                    bool tight_bounds, 
+                                    const LayoutConstraint **unsat,
+                                    size_t *footprint, UniqueID creator_id,
+                                    RtEvent *safe_for_unbounded_pools)
+    //--------------------------------------------------------------------------
+    { 
+      MemoryManager *manager = find_memory_manager(target_memory);
+      if (unsat != NULL)
+      {
+        LayoutConstraintKind unsat_kind = LEGION_SPECIALIZED_CONSTRAINT;
+        unsigned unsat_index = 0;
+        if (!manager->find_or_create_physical_instance(constraints, regions,
+              coordinates, result, created, processor, acquire, priority,
+              tight_bounds, &unsat_kind, &unsat_index, footprint,
+              safe_for_unbounded_pools, creator_id))
+        {
+          *unsat = constraints->convert_unsatisfied(unsat_kind, unsat_index);
+          return false;
+        }
+        else
+          return true;
+      }
+      else
+        return manager->find_or_create_physical_instance(constraints, regions,
+            coordinates, result, created, processor, acquire, priority,
+            tight_bounds, NULL, NULL, footprint, safe_for_unbounded_pools,
+            creator_id);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::find_physical_instance(Memory target_memory,
+                                      const LayoutConstraintSet &constraints,
+                                      const std::vector<LogicalRegion> &regions,
+                                      MappingInstance &result, bool acquire,
+                                      bool tight_region_bounds)
+    //--------------------------------------------------------------------------
+    {
+      MemoryManager *manager = find_memory_manager(target_memory);
+      return manager->find_physical_instance(constraints, regions,
+                            result, acquire, tight_region_bounds);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::find_physical_instance(Memory target_memory,
+                                      LayoutConstraints *constraints,
+                                      const std::vector<LogicalRegion> &regions,
+                                      MappingInstance &result, bool acquire,
+                                      bool tight_region_bounds)
+    //--------------------------------------------------------------------------
+    {
+      MemoryManager *manager = find_memory_manager(target_memory);
+      return manager->find_physical_instance(constraints, regions, 
+                            result, acquire, tight_region_bounds);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::find_physical_instances(Memory target_memory,
+                                      const LayoutConstraintSet &constraints,
+                                      const std::vector<LogicalRegion> &regions,
+                                      std::vector<MappingInstance> &results, 
+                                      bool acquire, bool tight_region_bounds)
+    //--------------------------------------------------------------------------
+    {
+      MemoryManager *manager = find_memory_manager(target_memory);
+      return manager->find_physical_instances(constraints, regions, 
+                            results, acquire, tight_region_bounds);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::find_physical_instances(Memory target_memory,
+                                      LayoutConstraints *constraints,
+                                      const std::vector<LogicalRegion> &regions,
+                                      std::vector<MappingInstance> &results, 
+                                      bool acquire, bool tight_region_bounds)
+    //--------------------------------------------------------------------------
+    {
+      MemoryManager *manager = find_memory_manager(target_memory);
+      return manager->find_physical_instances(constraints, regions, 
+                            results, acquire, tight_region_bounds);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::release_tree_instances(RegionTreeID tid)
+    //--------------------------------------------------------------------------
+    {
+      std::map<Memory,MemoryManager*> copy_managers;
+      {
+        AutoLock m_lock(memory_manager_lock,1,false/*exclusive*/);
+        copy_managers = memory_managers;
+      }
+      for (std::map<Memory,MemoryManager*>::const_iterator it = 
+            copy_managers.begin(); it != copy_managers.end(); it++)
+        it->second->release_tree_instances(tid);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::process_schedule_request(Processor proc)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(local_procs.find(proc) != local_procs.end());
+#endif
+      log_run.debug("Running scheduler on processor " IDFMT "", proc.id);
+      ProcessorManager *manager = proc_managers[proc];
+      manager->perform_scheduling();
+#ifdef LEGION_TRACE_ALLOCATION
+      unsigned long long trace_count = allocation_tracing_count.fetch_add(1); 
+      if ((trace_count % LEGION_TRACE_ALLOCATION_FREQUENCY) == 0)
+        dump_allocation_info();
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::process_message_task(const void *args, size_t arglen)
+    //--------------------------------------------------------------------------
+    {
+      const char *buffer = (const char*)args;
+      AddressSpaceID sender = *((const AddressSpaceID*)buffer);
+      buffer += sizeof(sender);
+      arglen -= sizeof(sender);
+      find_messenger(sender)->receive_message(buffer, arglen);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::activate_context(InnerContext *context)
+    //--------------------------------------------------------------------------
+    {
+      for (std::map<Processor,ProcessorManager*>::const_iterator it =
+            proc_managers.begin(); it != proc_managers.end(); it++)
+      {
+        it->second->activate_context(context);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::deactivate_context(InnerContext *context)
+    //--------------------------------------------------------------------------
+    {
+      for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+            proc_managers.begin(); it != proc_managers.end(); it++)
+      {
+        it->second->deactivate_context(context);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::add_to_ready_queue(Processor p, SingleTask *task)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(p.kind() != Processor::UTIL_PROC);
+      assert(proc_managers.find(p) != proc_managers.end());
+#endif
+      proc_managers[p]->add_to_ready_queue(task);
+    }
+
+    //--------------------------------------------------------------------------
+    Processor Runtime::find_processor_group(const std::vector<Processor> &procs)
+    //--------------------------------------------------------------------------
+    {
+      // Compute a hash of all the processor ids to avoid testing all sets 
+      // Only need to worry about local IDs since all processors are
+      // in this address space.
+      ProcessorMask local_mask = find_processor_mask(procs);
+      uint64_t hash = local_mask.get_hash_key();
+      AutoLock g_lock(group_lock);
+      std::map<uint64_t,LegionDeque<ProcessorGroupInfo> >::iterator 
+        finder = processor_groups.find(hash);
+      if (finder != processor_groups.end())
+      {
+        for (LegionDeque<ProcessorGroupInfo>::const_iterator it = 
+              finder->second.begin(); it != finder->second.end(); it++)
+        {
+          if (local_mask == it->processor_mask)
+            return it->processor_group;
+        }
+      }
+      // If we make it here create a new processor group and add it
+      ProcessorGroup group = ProcessorGroup::create_group(procs);
+      if (finder != processor_groups.end())
+        finder->second.push_back(ProcessorGroupInfo(group, local_mask));
+      else
+        processor_groups[hash].push_back(ProcessorGroupInfo(group, local_mask));
+      return group;
+    }
+
+    //--------------------------------------------------------------------------
+    ProcessorMask Runtime::find_processor_mask(
+                                            const std::vector<Processor> &procs)
+    //--------------------------------------------------------------------------
+    {
+      ProcessorMask result;
+      std::vector<Processor> need_allocation;
+      {
+        AutoLock p_lock(processor_mapping_lock,1,false/*exclusive*/);
+        for (std::vector<Processor>::const_iterator it = procs.begin();
+              it != procs.end(); it++)
+        {
+          std::map<Processor,unsigned>::const_iterator finder = 
+            processor_mapping.find(*it);
+          if (finder == processor_mapping.end())
+          {
+            need_allocation.push_back(*it);
+            continue;
+          }
+          result.set_bit(finder->second);
+        }
+      }
+      if (need_allocation.empty())
+        return result;
+      AutoLock p_lock(processor_mapping_lock);
+      for (std::vector<Processor>::const_iterator it = 
+            need_allocation.begin(); it != need_allocation.end(); it++)
+      {
+        // Check to make sure we didn't lose the race
+        std::map<Processor,unsigned>::const_iterator finder = 
+            processor_mapping.find(*it);
+        if (finder != processor_mapping.end())
+        {
+          result.set_bit(finder->second);
+          continue;
+        }
+        unsigned next_index = processor_mapping.size();
+#ifdef DEBUG_LEGION
+        assert(next_index < LEGION_MAX_NUM_PROCS);
+#endif
+        processor_mapping[*it] = next_index;
+        result.set_bit(next_index);
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::order_concurrent_task_launch(Processor proc, SingleTask *task,
+                    ApEvent precondition, ApUserEvent ready, VariantID vid)
+    //--------------------------------------------------------------------------
+    {
+      std::map<Processor,ProcessorManager*>::const_iterator finder =
+        proc_managers.find(proc);
+#ifdef DEBUG_LEGION
+      assert(finder != proc_managers.end());
+#endif
+      finder->second->order_concurrent_task_launch(task, precondition,
+                                                   ready, vid);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::end_concurrent_task(Processor proc)
+    //--------------------------------------------------------------------------
+    {
+      std::map<Processor,ProcessorManager*>::const_iterator finder =
+        proc_managers.find(proc);
+#ifdef DEBUG_LEGION
+      assert(finder != proc_managers.end());
+#endif
+      finder->second->end_concurrent_task();
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedID Runtime::get_next_static_distributed_id(uint64_t &next_did)
+    //--------------------------------------------------------------------------
+    {
+      DistributedID result = next_did++;
+      // If we're the owner we have to bump the available ones here too
+      if (determine_owner(result) == address_space)
+      {
+#ifdef DEBUG_LEGION
+#ifndef NDEBUG
+        DistributedID expected =
+#endif
+#endif
+          get_available_distributed_id();
+#ifdef DEBUG_LEGION
+        assert(result == expected);
+#endif
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedID Runtime::get_available_distributed_id(void)
+    //--------------------------------------------------------------------------
+    {
+      DistributedID result = unique_distributed_id.fetch_add(runtime_stride);
+#ifdef DEBUG_LEGION
+      // Check for overflow
+      assert(result < LEGION_DISTRIBUTED_ID_MASK);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedID Runtime::get_remote_distributed_id(AddressSpaceID target)
+    //--------------------------------------------------------------------------
+    {
+      std::atomic<DistributedID> result(0);
+      const RtUserEvent done = Runtime::create_rt_user_event();
+      Serializer rez;
+      rez.serialize(&result);
+      rez.serialize(done);
+      find_messenger(target)->send_message(SEND_REMOTE_DISTRIBUTED_ID_REQUEST,
+                                                            rez, true/*flush*/);
+      if (!done.has_triggered())
+        done.wait();
+#ifdef DEBUG_LEGION
+      assert(result.load() != 0);
+#endif
+      return result.load();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_distributed_id_request(Deserializer &derez,
+                                                       AddressSpaceID source)
+    //--------------------------------------------------------------------------
+    {
+      std::atomic<DistributedID> *target;
+      derez.deserialize(target);
+      RtUserEvent done;
+      derez.deserialize(done);
+
+      const DistributedID did = get_available_distributed_id();
+      Serializer rez;
+      rez.serialize(did);
+      rez.serialize(target);
+      rez.serialize(done);
+      find_messenger(source)->send_message(SEND_REMOTE_DISTRIBUTED_ID_RESPONSE,
+                                          rez, true/*flush*/, true/*response*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::handle_remote_distributed_id_response(Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      DistributedID did;
+      derez.deserialize(did);
+      std::atomic<DistributedID> *target;
+      derez.deserialize(target);
+      target->store(did);
+      RtUserEvent done;
+      derez.deserialize(done);
+      Runtime::trigger_event(done);
+    }
+
+    //--------------------------------------------------------------------------
+    AddressSpaceID Runtime::determine_owner(DistributedID did) const
+    //--------------------------------------------------------------------------
+    {
+      return ((did & LEGION_DISTRIBUTED_ID_MASK) % total_address_spaces);
+    }
+
+    //--------------------------------------------------------------------------
+    size_t Runtime::find_distance(AddressSpaceID src, AddressSpaceID dst) const
+    //--------------------------------------------------------------------------
+    {
+      size_t abs_diff = (src < dst) ? (dst - src) : (src - dst);
+      return (abs_diff < (total_address_spaces / 2)) ? abs_diff : 
+        (total_address_spaces - abs_diff);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_distributed_collectable(DistributedID did,
+                                                   DistributedCollectable *dc)
+    //--------------------------------------------------------------------------
+    {
+      did &= LEGION_DISTRIBUTED_ID_MASK;
+      RtUserEvent to_trigger;
+      {
+        AutoLock dc_lock(distributed_collectable_lock);
+        // If we make it here then we have the lock
+#ifdef DEBUG_LEGION
+        assert(dist_collectables.find(did) == dist_collectables.end());
+#endif
+        dist_collectables[did] = dc;
+        // See if this was a pending collectable
+        std::map<DistributedID,
+                 std::pair<DistributedCollectable*,RtUserEvent> >::iterator 
+            finder = pending_collectables.find(did);
+        if (finder != pending_collectables.end())
+        {
+#ifdef DEBUG_LEGION
+          assert((finder->second.first == dc) || 
+                 (finder->second.first == NULL));
+#endif
+          to_trigger = finder->second.second;
+          pending_collectables.erase(finder);
+        }
+      }
+      if (to_trigger.exists())
+        Runtime::trigger_event(to_trigger);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::unregister_distributed_collectable(DistributedID did)
+    //--------------------------------------------------------------------------
+    {
+      did &= LEGION_DISTRIBUTED_ID_MASK;
+      AutoLock d_lock(distributed_collectable_lock);
+      std::map<DistributedID,DistributedCollectable*>::iterator finder =
+        dist_collectables.find(did);
+#ifdef DEBUG_LEGION
+      assert(finder != dist_collectables.end());
+#endif
+      dist_collectables.erase(finder);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_distributed_collectable(DistributedID did)
+    //--------------------------------------------------------------------------
+    {
+      did &= LEGION_DISTRIBUTED_ID_MASK;
+      AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
+      return (dist_collectables.find(did) != dist_collectables.end());
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedCollectable* Runtime::find_distributed_collectable(
+                                                              DistributedID did)
+    //--------------------------------------------------------------------------
+    {
+      RtEvent ready;
+      DistributedCollectable *result = NULL;
+      const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
+      {
+        AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
+        std::map<DistributedID,DistributedCollectable*>::const_iterator finder =
+          dist_collectables.find(to_find);
+        if (finder == dist_collectables.end())
+        {
+          // Check to see if it is in the pending set too
+          std::map<DistributedID,
+            std::pair<DistributedCollectable*,RtUserEvent> >::const_iterator
+              pending_finder = pending_collectables.find(to_find);
+          if (pending_finder != pending_collectables.end())
+          {
+            result = pending_finder->second.first;
+            ready = pending_finder->second.second;
+          }
+        }
+        else
+          return finder->second;
+      }
+      if (!ready.exists())
+      {
+        AutoLock d_lock(distributed_collectable_lock);
+        // Try again to see if we lost the race
+        std::map<DistributedID,DistributedCollectable*>::const_iterator 
+          finder = dist_collectables.find(to_find);
+        if (finder == dist_collectables.end())
+        {
+          // Check to see if it is in the pending set too
+          std::map<DistributedID,
+            std::pair<DistributedCollectable*,RtUserEvent> >::iterator
+              pending_finder = pending_collectables.find(to_find);
+          if (pending_finder == pending_collectables.end())
+            pending_finder = pending_collectables.emplace(std::make_pair(
+                  to_find, std::pair<DistributedCollectable*,RtUserEvent>(
+                    (DistributedCollectable*)NULL,
+                    RtUserEvent::NO_RT_USER_EVENT))).first;
+          result = pending_finder->second.first;
+          if (!pending_finder->second.second.exists())
+            pending_finder->second.second = Runtime::create_rt_user_event();
+          ready = pending_finder->second.second;
+        }
+        else
+          return finder->second;
+      }
+      if (!ready.has_triggered())
+        ready.wait();
+      if (result != NULL)
+        return result;
+      AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
+      std::map<DistributedID,DistributedCollectable*>::const_iterator finder =
+        dist_collectables.find(to_find);
+#ifdef DEBUG_LEGION
+      assert(finder != dist_collectables.end());
+#endif
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedCollectable* Runtime::weak_find_distributed_collectable(
+                                                              DistributedID did)
+    //--------------------------------------------------------------------------
+    {
+      const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
+      AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
+      std::map<DistributedID,DistributedCollectable*>::const_iterator finder =
+        dist_collectables.find(to_find);
+      if (finder == dist_collectables.end())
+        return NULL;
+      finder->second->add_base_resource_ref(RUNTIME_REF);
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T>
+    void* Runtime::find_or_create_pending_collectable_location(
+                                                              DistributedID did)
+    //--------------------------------------------------------------------------
+    {
+      did &= LEGION_DISTRIBUTED_ID_MASK;
+      AutoLock d_lock(distributed_collectable_lock);
+#ifdef DEBUG_LEGION
+      assert(dist_collectables.find(did) == dist_collectables.end());
+#endif
+      std::map<DistributedID,std::pair<DistributedCollectable*,RtUserEvent> >::
+        iterator finder = pending_collectables.find(did);
+      if (finder == pending_collectables.end())
+        finder = pending_collectables.emplace(std::make_pair(did,
+          std::pair<DistributedCollectable*,RtUserEvent>(
+           (DistributedCollectable*)NULL,RtUserEvent::NO_RT_USER_EVENT))).first;
+      if (finder->second.first == NULL)
+        finder->second.first =
+          legion_malloc<T,LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
+      return finder->second.first;
+    }
+
+    // Instantiate the template for types that use it
+    template void*
+    Runtime::find_or_create_pending_collectable_location<RemoteContext>(
+                                                            DistributedID);
+    template void*
+    Runtime::find_or_create_pending_collectable_location<PhysicalManager>(
+                                                            DistributedID);
+    template void*
+    Runtime::find_or_create_pending_collectable_location<EquivalenceSet>(
+                                                            DistributedID);
+    template void*
+    Runtime::find_or_create_pending_collectable_location<MaterializedView>(
+                                                            DistributedID);
+    template void*
+    Runtime::find_or_create_pending_collectable_location<ReductionView>(
+                                                            DistributedID);
+    template void*
+    Runtime::find_or_create_pending_collectable_location<FillView>(
+                                                            DistributedID);
+    template void*
+    Runtime::find_or_create_pending_collectable_location<PhiView>(
+                                                            DistributedID);
+    template void*
+    Runtime::find_or_create_pending_collectable_location<ReplicatedView>(
+                                                            DistributedID);
+    template void*
+    Runtime::find_or_create_pending_collectable_location<AllreduceView>(
+                                                            DistributedID);
+
+    //--------------------------------------------------------------------------
+    LogicalView* Runtime::find_or_request_logical_view(DistributedID did,
+                                                       RtEvent &ready)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable *dc = NULL;
+      if (LogicalView::is_materialized_did(did))
+        dc = find_or_request_distributed_collectable<
+         MaterializedView,SEND_VIEW_REQUEST>(did,ready);
+      else if (LogicalView::is_reduction_did(did))
+        dc = find_or_request_distributed_collectable<
+          ReductionView, SEND_VIEW_REQUEST>(did,ready);
+      else if (LogicalView::is_fill_did(did))
+        dc = find_or_request_distributed_collectable<
+          FillView, SEND_VIEW_REQUEST>(did, ready);
+      else if (LogicalView::is_replicated_did(did))
+        dc = find_or_request_distributed_collectable<
+          ReplicatedView, SEND_VIEW_REQUEST>(did, ready);
+      else if (LogicalView::is_allreduce_did(did))
+        dc = find_or_request_distributed_collectable<
+          AllreduceView, SEND_VIEW_REQUEST>(did, ready);
+      else if (LogicalView::is_phi_did(did))
+        dc = find_or_request_distributed_collectable<
+          PhiView, SEND_VIEW_REQUEST>(did, ready);
+      else
+        assert(false);
+      // Have to static cast since the memory might not have been initialized
+      return static_cast<LogicalView*>(dc);
+    }
+
+    //--------------------------------------------------------------------------
+    PhysicalManager* Runtime::find_or_request_instance_manager(
+                                              DistributedID did, RtEvent &ready)
+    //--------------------------------------------------------------------------
+    {
+      DistributedCollectable *dc = NULL;
+      if (InstanceManager::is_physical_did(did))
+        dc = find_or_request_distributed_collectable<
+          PhysicalManager, SEND_MANAGER_REQUEST>(did, ready);
+      else
+        assert(false);
+      // Have to static cast since the memory might not have been initialized
+      return static_cast<PhysicalManager*>(dc);
+    }
+
+    //--------------------------------------------------------------------------
+    EquivalenceSet* Runtime::find_or_request_equivalence_set(DistributedID did,
+                                                             RtEvent &ready)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == EQUIVALENCE_SET_DC);
+#endif
+      DistributedCollectable *dc = find_or_request_distributed_collectable<
+        EquivalenceSet, SEND_EQUIVALENCE_SET_REQUEST>(did, ready);
+      // Have to static cast since the memory might not have been initialized
+      return static_cast<EquivalenceSet*>(dc);
+    }
+
+    //--------------------------------------------------------------------------
+    InnerContext* Runtime::find_or_request_inner_context(DistributedID did)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == INNER_CONTEXT_DC);
+#endif
+      RtEvent ready;
+      DistributedCollectable *dc = find_or_request_distributed_collectable<
+        RemoteContext, SEND_REMOTE_CONTEXT_REQUEST>(did, ready);
+      if (ready.exists() && !ready.has_triggered())
+        ready.wait();
+      return static_cast<InnerContext*>(dc);
+    }
+
+    //--------------------------------------------------------------------------
+    ShardManager* Runtime::find_shard_manager(DistributedID did, bool can_fail)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == SHARD_MANAGER_DC);
+#endif
+      if (can_fail)
+      {
+        const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
+        AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
+        std::map<DistributedID,DistributedCollectable*>::const_iterator 
+          finder = dist_collectables.find(to_find);
+        if (finder == dist_collectables.end())
+          return NULL;
+        else
+          return static_cast<ShardManager*>(finder->second);
+      }
+      else
+        return static_cast<ShardManager*>(find_distributed_collectable(did));
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, MessageKind MK>
+    DistributedCollectable* Runtime::find_or_request_distributed_collectable(
+                                          DistributedID to_find, RtEvent &ready)
+    //--------------------------------------------------------------------------
+    {
+      const DistributedID did = LEGION_DISTRIBUTED_ID_FILTER(to_find);
+      DistributedCollectable *result = NULL;
+      {
+        AutoLock d_lock(distributed_collectable_lock);
+        std::map<DistributedID,DistributedCollectable*>::const_iterator finder =
+          dist_collectables.find(did);
+        // If we've already got it, then we are done
+        if (finder != dist_collectables.end())
+        {
+          ready = RtEvent::NO_RT_EVENT;
+          return finder->second;
+        }
+        // If it is already pending, we can just return the ready event
+        std::map<DistributedID,std::pair<DistributedCollectable*,RtUserEvent> 
+          >::iterator pending_finder = pending_collectables.find(did);
+        if (pending_finder != pending_collectables.end())
+        {
+          if (pending_finder->second.first == NULL)
+            pending_finder->second.first =
+              legion_malloc<T,LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
+          if (!pending_finder->second.second.exists())
+            pending_finder->second.second = Runtime::create_rt_user_event();
+          ready = pending_finder->second.second;
+          return pending_finder->second.first;
+        }
+        // This is the first request we've seen for this did, make it now
+        // Allocate space for the result and type case
+        result = legion_malloc<T,LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
+        RtUserEvent to_trigger = Runtime::create_rt_user_event();
+        pending_collectables[did] = 
+          std::pair<DistributedCollectable*,RtUserEvent>(result, to_trigger);
+        ready = to_trigger;
+      }
+      AddressSpaceID target = determine_owner(did);
+#ifdef DEBUG_LEGION
+      assert(target != address_space); // shouldn't be sending to ourself
+#endif
+      // Now send the message
+      Serializer rez;
+      {
+        RezCheck z(rez);
+        rez.serialize(to_find);
+        rez.serialize(address_space);
+      }
+      find_messenger(target)->send_message(MK, rez, true/*flush*/);
+      return result;
+    }
+    
+    //--------------------------------------------------------------------------
+    FutureImpl* Runtime::find_or_create_future(DistributedID did,
+                                               DistributedID ctx_did,
+                                               const ContextCoordinate &coord,
+                                               Provenance *provenance,
+                                               bool has_global_reference,
+                                               RtEvent &registered,
+                                               Operation *op, GenerationID gen,
+                                               UniqueID op_uid, int op_depth, 
+                                               CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      did &= LEGION_DISTRIBUTED_ID_MASK; 
+      {
+        AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
+        std::map<DistributedID,DistributedCollectable*>::const_iterator 
+          finder = dist_collectables.find(did);
+        if (finder != dist_collectables.end())
+        {
+#ifdef DEBUG_LEGION
+          FutureImpl *result = dynamic_cast<FutureImpl*>(finder->second);
+          assert(result != NULL);
+#else
+          FutureImpl *result = static_cast<FutureImpl*>(finder->second);
+#endif
+          return result;
+        }
+      }
+      InnerContext *context = find_or_request_inner_context(ctx_did);
+      FutureImpl *result = new FutureImpl(context, false/*register*/, did,
+          op, gen, coord, op_uid, op_depth, provenance, mapping);
+      // Retake the lock and see if we lost the race
+      AutoLock d_lock(distributed_collectable_lock);
+      std::map<DistributedID,DistributedCollectable*>::const_iterator 
+        finder = dist_collectables.find(did);
+      if (finder != dist_collectables.end())
+      {
+        // We lost the race
+        delete result;
+#ifdef DEBUG_LEGION
+        result = dynamic_cast<FutureImpl*>(finder->second);
+        assert(result != NULL);
+#else
+        result = static_cast<FutureImpl*>(finder->second);
+#endif
+        return result;
+      }
+      registered = result->record_future_registered(has_global_reference);
+      dist_collectables[did] = result;
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    FutureMapImpl* Runtime::find_or_create_future_map(DistributedID did,
+              TaskContext *ctx, uint64_t coord, IndexSpace domain,
+              Provenance *provenance, const std::optional<uint64_t> &ctx_index)
+    //--------------------------------------------------------------------------
+    {
+      did &= LEGION_DISTRIBUTED_ID_MASK;
+      {
+        AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
+        std::map<DistributedID,DistributedCollectable*>::const_iterator 
+          finder = dist_collectables.find(did);
+        if (finder != dist_collectables.end())
+        {
+#ifdef DEBUG_LEGION
+          FutureMapImpl *result = dynamic_cast<FutureMapImpl*>(finder->second);
+          assert(result != NULL);
+#else
+          FutureMapImpl *result = static_cast<FutureMapImpl*>(finder->second);
+#endif
+          return result;
+        }
+      }
+#ifdef DEBUG_LEGION
+      assert(domain.exists());
+#endif
+      IndexSpaceNode *domain_node = get_node(domain);
+      FutureMapImpl *result = new FutureMapImpl(ctx, domain_node, did,
+           coord, ctx_index, provenance, false/*register now*/);
+      AutoLock d_lock(distributed_collectable_lock);
+      std::map<DistributedID,DistributedCollectable*>::const_iterator 
+        finder = dist_collectables.find(did);
+      if (finder != dist_collectables.end())
+      {
+        // We lost the race
+        delete result;
+#ifdef DEBUG_LEGION
+        result = dynamic_cast<FutureMapImpl*>(finder->second);
+        assert(result != NULL);
+#else
+        result = static_cast<FutureMapImpl*>(finder->second);
+#endif
+        return result;
+      }
+      result->record_future_map_registered();
+      dist_collectables[did] = result;
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpace Runtime::find_or_create_index_slice_space(const Domain &domain,
+                  bool take_ownership, TypeTag type_tag, Provenance *provenance)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(type_tag != 0);
+#endif
+      const std::pair<Domain,TypeTag> key(domain, type_tag);
+      {
+        AutoLock is_lock(is_slice_lock,1,false/*exclusive*/);
+        std::map<std::pair<Domain,TypeTag>,
+          std::pair<IndexSpace,RtUserEvent> >::const_iterator finder =
+          index_slice_spaces.find(key);
+        if (finder != index_slice_spaces.end() && finder->second.first.exists())
+        {
+          if (take_ownership && !domain.dense())
+          {
+            Domain copy = domain;
+            copy.destroy();
+          }
+          return finder->second.first;
+        }
+      }
+      RtEvent wait_on;
+      {
+        // Retake the lock in excluisve mode
+        AutoLock is_lock(is_slice_lock);
+        // See if we lost the race
+        std::map<std::pair<Domain,TypeTag>,
+          std::pair<IndexSpace,RtUserEvent> >::iterator finder =
+          index_slice_spaces.find(key);
+        if (finder != index_slice_spaces.end())
+        {
+          if (finder->second.first.exists())
+          {
+            if (take_ownership && !domain.dense())
+            {
+              Domain copy = domain;
+              copy.destroy();
+            }
+            return finder->second.first;
+          }
+          else if (!finder->second.second.exists())
+            finder->second.second = Runtime::create_rt_user_event();
+          wait_on = finder->second.second;
+        }
+        else
+        {
+          // Insert it as a guard since we're going to make it
+          index_slice_spaces.emplace(std::make_pair(key,std::make_pair(
+                  IndexSpace::NO_SPACE,RtUserEvent::NO_RT_USER_EVENT)));
+        }
+      }
+      if (!wait_on.exists())
+      {
+        const IndexSpace result(get_unique_index_space_id(),
+                                get_unique_index_tree_id(), type_tag);
+        create_node(result, domain, take_ownership, NULL/*parent*/,
+            0/*color*/, RtEvent::NO_RT_EVENT, provenance,
+            ApEvent::NO_AP_EVENT, 0/*expr id*/, NULL/*mapping*/,
+            true/*add root reference*/);
+        if (legion_spy_enabled)
+          LegionSpy::log_top_index_space(result.get_id(), address_space,
+              (provenance == NULL) ? std::string_view() : provenance->human);
+        // Overwrite and leak for now, don't care too much as this 
+        // should occur infrequently
+        AutoLock is_lock(is_slice_lock);
+        std::map<std::pair<Domain,TypeTag>,
+          std::pair<IndexSpace,RtUserEvent> >::iterator finder =
+            index_slice_spaces.find(key);
+#ifdef DEBUG_LEGION
+        assert(finder != index_slice_spaces.end());
+        assert(!finder->second.first.exists());
+#endif
+        finder->second.first = result;
+        if (finder->second.second.exists())
+          Runtime::trigger_event(finder->second.second);
+        return result;
+      }
+      else
+      {
+        if (take_ownership && !domain.dense())
+        {
+          Domain copy = domain;
+          copy.destroy();
+        }
+        wait_on.wait();
+        AutoLock is_lock(is_slice_lock,1,false/*exclusive*/);
+          std::map<std::pair<Domain,TypeTag>,
+            std::pair<IndexSpace,RtUserEvent> >::const_iterator finder =
+            index_slice_spaces.find(key);
+#ifdef DEBUG_LEGION
+        assert(finder != index_slice_spaces.end());
+        assert(finder->second.first.exists());
+#endif
+        return finder->second.first;
+      }
+    } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::increment_outstanding_top_level_tasks(void)
+    //--------------------------------------------------------------------------
+    {
+      unsigned previous = outstanding_top_level_tasks.fetch_add(1);
+      if (previous == 0)
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_TOP_LEVEL_TASK_CREATION,
+            "Illegal attempt to launch a top-level task after "
+            "Runtime::wait_for_shutdown has been called. All top-level tasks "
+            "must be created on a node before signaling to the runtime that "
+            "the client is ready for Legion to shutdown on that node.")
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::decrement_outstanding_top_level_tasks(void)
+    //--------------------------------------------------------------------------
+    {
+      unsigned previous = outstanding_top_level_tasks.fetch_sub(1);
+#ifdef DEBUG_LEGION
+      assert(previous > 0);
+#endif
+      if (previous == 1)
+      {
+        if (address_space > 0)
+        {
+          // Send a message to the next node down the tree to remove our
+          // guard reference that we have there
+          AddressSpaceID parent = (address_space - 1) / legion_collective_radix;
+          Serializer rez;
+          find_messenger(parent)->send_message(SEND_TOP_LEVEL_TASK_COMPLETE,
+                                                          rez, true/*flush*/);
+        }
+        else // We're the owner node so start the quiesence algorithm
+          issue_runtime_shutdown_attempt();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::issue_runtime_shutdown_attempt(void)
+    //--------------------------------------------------------------------------
+    {
+      ShutdownManager::RetryShutdownArgs args(
+            ShutdownManager::CHECK_TERMINATION);
+      // Issue this with a low priority so that other meta-tasks
+      // have an opportunity to run
+      issue_runtime_meta_task(args, LG_LOW_PRIORITY);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::initiate_runtime_shutdown(AddressSpaceID source,
+                                           ShutdownManager::ShutdownPhase phase,
+                                           ShutdownManager *owner)
+    //--------------------------------------------------------------------------
+    {
+      log_shutdown.info("Received notification on node %d for phase %d",
+                        address_space, phase);
+      // If this is the first phase, do all our normal stuff
+      if (phase == ShutdownManager::CHECK_TERMINATION)
+      {
+        // Get the preconditions for any outstanding operations still
+        // available for garabage collection and wait on them to 
+        // try and get close to when there are no more outstanding tasks
+        std::map<Memory,MemoryManager*> copy_managers;
+        {
+          AutoLock m_lock(memory_manager_lock,1,false/*exclusive*/);
+          copy_managers = memory_managers;
+        }
+        std::set<ApEvent> wait_events;
+        for (std::map<Memory,MemoryManager*>::const_iterator it = 
+              copy_managers.begin(); it != copy_managers.end(); it++)
+          it->second->find_shutdown_preconditions(wait_events);
+        if (!wait_events.empty())
+        {
+          RtEvent wait_on = Runtime::protect_merge_events(wait_events);
+          wait_on.wait();
+        }
+      }
+      else if ((phase == ShutdownManager::CHECK_SHUTDOWN) && 
+                !prepared_for_shutdown)
+      {
+        // First time we check for shutdown we do the prepare for shutdown
+        prepare_runtime_shutdown();  
+      }
+      ShutdownManager *shutdown_manager = 
+        new ShutdownManager(phase, source, 
+                            LEGION_SHUTDOWN_RADIX, owner);
+      if (shutdown_manager->attempt_shutdown())
+        delete shutdown_manager;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::confirm_runtime_shutdown(ShutdownManager *shutdown_manager, 
+                                           bool phase_one)
+    //--------------------------------------------------------------------------
+    {
+      if (has_outstanding_tasks())
+      {
+        shutdown_manager->record_outstanding_tasks();
+#ifdef DEBUG_LEGION
+        LG_TASK_DESCRIPTIONS(meta_task_names);
+        AutoLock out_lock(outstanding_task_lock,1,false/*exclusive*/);
+        for (std::map<std::pair<unsigned,bool>,unsigned>::const_iterator it =
+              outstanding_task_counts.begin(); it != 
+              outstanding_task_counts.end(); it++)
+        {
+          if (it->second == 0)
+            continue;
+          if (it->first.second)
+            log_shutdown.info("RT %d: %d outstanding meta task(s) %s",
+                              address_space, it->second, 
+                              meta_task_names[it->first.first]);
+          else                
+            log_shutdown.info("RT %d: %d outstanding application task(s) %d",
+                              address_space, it->second, it->first.first);
+        }
+#endif
+      }
+      // Check all our message managers for outstanding messages
+      for (unsigned idx = 0; idx < LEGION_MAX_NUM_NODES; idx++)
+      {
+        MessageManager *manager = message_managers[idx].load();
+        if (manager != NULL)
+          manager->confirm_shutdown(shutdown_manager, phase_one);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::prepare_runtime_shutdown(void)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(!prepared_for_shutdown);
+      assert(virtual_manager != NULL);
+#endif
+      // Search through all our distributed collectables and find any
+      // futures which are leaking and therefore need to be finalized
+      std::vector<FutureImpl*> leaked_futures;
+      {
+        // Also have any leaking futures force delete their instances 
+        AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
+        for (std::map<DistributedID,DistributedCollectable*>::const_iterator it
+              = dist_collectables.begin(); it != dist_collectables.end(); it++)
+        {
+          // See if this is a future
+          if (LEGION_DISTRIBUTED_HELP_DECODE(it->second->did) != FUTURE_DC)
+            continue;
+#ifdef DEBUG_LEGION
+          FutureImpl *impl = dynamic_cast<FutureImpl*>(it->second);
+          assert(impl != NULL);
+#else
+          FutureImpl *impl = static_cast<FutureImpl*>(it->second);
+#endif
+          impl->add_base_resource_ref(RUNTIME_REF);
+          leaked_futures.push_back(impl);
+        }
+      }
+      for (std::vector<FutureImpl*>::const_iterator it =
+            leaked_futures.begin(); it != leaked_futures.end(); it++)
+      {
+        (*it)->prepare_for_shutdown();
+        if ((*it)->remove_base_resource_ref(RUNTIME_REF))
+          delete (*it);
+      }
+      for (std::map<Memory,MemoryManager*>::const_iterator it = 
+            memory_managers.begin(); it != memory_managers.end(); it++)
+        it->second->prepare_for_shutdown();
+      // Do processor managers after memory managers in case we need to
+      // report any deleted instances back to the mappers
+      for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+            proc_managers.begin(); it != proc_managers.end(); it++)
+        it->second->prepare_for_shutdown();
+      // Destroy any index slice spaces that we made during execution
+      std::set<RtEvent> applied;
+      for (std::map<std::pair<Domain,TypeTag>,
+            std::pair<IndexSpace,RtUserEvent> >::const_iterator it =
+            index_slice_spaces.begin(); it != index_slice_spaces.end(); it++)
+        destroy_index_space(it->second.first, address_space, applied);
+      for (std::map<ProjectionID,ProjectionFunction*>::const_iterator it =
+           projection_functions.begin(); it != projection_functions.end(); it++)
+        it->second->prepare_for_shutdown();
+      std::vector<LayoutConstraints*> to_remove;
+      {
+        AutoLock l_lock(layout_constraints_lock,1,false/*exclusive*/);
+        for (std::map<LayoutConstraintID,LayoutConstraints*>::const_iterator
+              it = layout_constraints_table.begin(); it !=
+              layout_constraints_table.end(); it++)
+          if (it->second->is_owner() && !it->second->internal)
+            to_remove.push_back(it->second);
+      }
+      if (!to_remove.empty())
+      {
+        for (std::vector<LayoutConstraints*>::const_iterator it = 
+              to_remove.begin(); it != to_remove.end(); it++)
+          if ((*it)->remove_base_gc_ref(APPLICATION_REF))
+            delete (*it);
+      }
+      if (!redop_fill_views.empty())
+      {
+        for (std::map<ReductionOpID,FillView*>::const_iterator it =
+              redop_fill_views.begin(); it != redop_fill_views.end(); it++)
+          if (it->second->remove_base_valid_ref(RUNTIME_REF))
+            delete it->second;
+        redop_fill_views.clear();
+      }
+      if (virtual_manager->remove_base_gc_ref(NEVER_GC_REF))
+        delete virtual_manager;
+      virtual_manager = NULL;
+      if (!applied.empty())
+      {
+        const RtEvent wait_on = Runtime::merge_events(applied);
+        if (wait_on.exists() && !wait_on.has_triggered())
+          wait_on.wait();
+      }
+      prepared_for_shutdown = true;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_outstanding_tasks(void)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      AutoLock out_lock(outstanding_task_lock);
+      return (total_outstanding_tasks > 0);
+#else
+      return total_outstanding_tasks.load();
+#endif
+    }
+
+#ifdef DEBUG_LEGION
+    //--------------------------------------------------------------------------
+    void Runtime::increment_total_outstanding_tasks(unsigned tid, bool meta)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock out_lock(outstanding_task_lock); 
+      total_outstanding_tasks++;
+      std::pair<unsigned,bool> key(tid,meta);
+      std::map<std::pair<unsigned,bool>,unsigned>::iterator finder = 
+        outstanding_task_counts.find(key);
+      if (finder == outstanding_task_counts.end())
+        outstanding_task_counts[key] = 1;
+      else
+        finder->second++;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::decrement_total_outstanding_tasks(unsigned tid, bool meta)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock out_lock(outstanding_task_lock);
+      assert(total_outstanding_tasks > 0);
+      total_outstanding_tasks--;
+      std::pair<unsigned,bool> key(tid,meta);
+      std::map<std::pair<unsigned,bool>,unsigned>::iterator finder = 
+        outstanding_task_counts.find(key);
+      assert(finder != outstanding_task_counts.end());
+      assert(finder->second > 0);
+      finder->second--;
+    }
+#endif
+
+    //--------------------------------------------------------------------------
+    IndexSpaceNode* Runtime::create_index_space(IndexSpace handle,
+                                        const Domain &domain,
+                                        bool take_ownership,
+                                        Provenance *provenance,
+                                        CollectiveMapping *mapping,
+                                        IndexSpaceExprID expr_id,
+                                        ApEvent ready /*=ApEvent::NO_AP_EVENT*/,
+                                        RtEvent init /*= RtEvent::NO_RT_EVENT*/)
+    //--------------------------------------------------------------------------
+    {
+      return create_node(handle, domain, take_ownership, NULL/*parent*/, 
+                         0/*color*/, init, provenance, ready, expr_id,
+                         mapping, true/*add root reference*/);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceNode* Runtime::create_union_space(IndexSpace handle,
+                    Provenance *provenance,
+                    const std::vector<IndexSpace> &sources, 
+                    RtEvent initialized, CollectiveMapping *collective_mapping,
+                    IndexSpaceExprID expr_id)
+    //--------------------------------------------------------------------------
+    {
+      // Construct the set of index space expressions
+      std::set<IndexSpaceExpression*> exprs;
+      for (std::vector<IndexSpace>::const_iterator it = 
+            sources.begin(); it != sources.end(); it++)
+      {
+        if (!it->exists())
+          continue;
+        exprs.insert(get_node(*it));
+      }
+#ifdef DEBUG_LEGION
+      assert(!exprs.empty());
+#endif
+      IndexSpaceExpression *expr = union_index_spaces(exprs);
+      return expr->create_node(handle, initialized, provenance,
+                               collective_mapping, expr_id);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceNode* Runtime::create_intersection_space(
+                                        IndexSpace handle,
+                                        Provenance *provenance,
+                                        const std::vector<IndexSpace> &sources,
+                                        RtEvent initialized, 
+                                        CollectiveMapping *collective_mapping,
+                                        IndexSpaceExprID expr_id) 
+    //--------------------------------------------------------------------------
+    {
+      // Construct the set of index space expressions
+      std::set<IndexSpaceExpression*> exprs;
+      for (std::vector<IndexSpace>::const_iterator it = 
+            sources.begin(); it != sources.end(); it++)
+      {
+        if (!it->exists())
+          continue;
+        exprs.insert(get_node(*it));
+      }
+#ifdef DEBUG_LEGION
+      assert(!exprs.empty());
+#endif
+      IndexSpaceExpression *expr = intersect_index_spaces(exprs);
+      return expr->create_node(handle, initialized, provenance,
+                               collective_mapping, expr_id);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceNode* Runtime::create_difference_space(
+                                         IndexSpace handle,
+                                         Provenance *provenance,
+                                         IndexSpace left, IndexSpace right, 
+                                         RtEvent initialized, 
+                                         CollectiveMapping *collective_mapping,
+                                         IndexSpaceExprID expr_id)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(left.exists());
+#endif
+      IndexSpaceNode *lhs = get_node(left);
+      if (!right.exists())
+        return lhs->create_node(handle, initialized, provenance,
+                                collective_mapping);
+      IndexSpaceNode *rhs = get_node(right);
+      IndexSpaceExpression *expr = subtract_index_spaces(lhs, rhs);
+      return expr->create_node(handle, initialized, provenance,
+                               collective_mapping, expr_id);
+    } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::destroy_index_space(IndexSpace handle,
+                                              AddressSpaceID source,
+                                              std::set<RtEvent> &applied,
+                                              const CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle);
+      if (node->invalidate_root(source, applied, mapping))
+        delete node;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::destroy_index_partition(IndexPartition handle,
+                                                   std::set<RtEvent> &applied,
+                                               const CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      const AddressSpaceID owner_space = 
+        IndexPartNode::get_owner_space(handle);
+      if (mapping != NULL)
+      {
+        if (mapping->contains(owner_space))
+        {
+          // If we're the owner space node then we do the removal
+          if (owner_space == address_space)
+          {
+            IndexPartNode *node = get_node(handle);
+            if (node->remove_base_valid_ref(APPLICATION_REF))
+              delete node;
+          }
+        }
+        else
+        {
+          const AddressSpaceID nearest = mapping->find_nearest(owner_space);
+          if (nearest == address_space)
+            send_index_partition_destruction(handle, owner_space, applied);
+        }
+      }
+      else
+      {
+        if (owner_space == address_space)
+        {
+          IndexPartNode *node = get_node(handle);
+          if (node->remove_base_valid_ref(APPLICATION_REF))
+            delete node;
+        }
+        else
+          send_index_partition_destruction(handle,owner_space,applied);
+      }
+    }  
+
+    //--------------------------------------------------------------------------
+    size_t Runtime::get_coordinate_size(IndexSpace handle, bool range)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(handle)->get_coordinate_size(range);
+    } 
+
+    //--------------------------------------------------------------------------
+    IndexPartition Runtime::get_index_partition(IndexSpace parent,
+                                                         Color color)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *parent_node = get_node(parent);
+      IndexPartNode *child_node = parent_node->get_child(color);
+      return child_node->handle;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_index_subspace(IndexPartition parent,
+                                              const void *realm_color,
+                                              TypeTag type_tag)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *parent_node = get_node(parent);
+      return parent_node->color_space->contains_point(realm_color, type_tag);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpace Runtime::get_index_subspace(IndexPartition parent,
+                                                    const void *realm_color,
+                                                    TypeTag type_tag)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *parent_node = get_node(parent);
+      LegionColor child_color = 
+        parent_node->color_space->linearize_color(realm_color, type_tag);
+      IndexSpaceNode *child_node = parent_node->get_child(child_color);
+      return child_node->handle;
+    } 
+
+    //--------------------------------------------------------------------------
+    void Runtime::get_index_space_domain(IndexSpace handle,
+                                               void *realm_is, TypeTag type_tag)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle);
+      node->get_index_space_domain(realm_is, type_tag);
+    }
+
+    //--------------------------------------------------------------------------
+    Domain Runtime::get_index_partition_color_space(IndexPartition p)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *part = get_node(p);
+      const IndexSpace color_space = part->color_space->handle;
+      switch (NT_TemplateHelper::get_dim(color_space.get_type_tag()))
+      {
+#define DIMFUNC(DIM) \
+        case DIM: \
+          { \
+            DomainT<DIM,coord_t> color_index_space; \
+            get_index_space_domain(color_space, &color_index_space, \
+                NT_TemplateHelper::encode_tag<DIM,coord_t>()); \
+            return Domain(color_index_space); \
+          }
+        LEGION_FOREACH_N(DIMFUNC)
+#undef DIMFUNC
+        default:
+          assert(false);
+      }
+      return Domain::NO_DOMAIN;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::get_index_partition_color_space(IndexPartition p,
+                                               void *realm_is, TypeTag type_tag)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *part = get_node(p);
+      const IndexSpace color_space = part->color_space->handle;
+      get_index_space_domain(color_space, realm_is, type_tag);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpace Runtime::get_index_partition_color_space_name(IndexPartition p)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(p)->color_space->handle;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::get_index_space_partition_colors(IndexSpace sp,
+                                                        std::set<Color> &colors)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(sp);
+      std::vector<LegionColor> temp_colors;
+      node->get_colors(temp_colors); 
+      for (std::vector<LegionColor>::const_iterator it = temp_colors.begin();
+            it != temp_colors.end(); it++)
+        colors.insert(*it);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::get_index_space_color_point(IndexSpace handle,
+                                            void *realm_color, TypeTag type_tag)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle);
+      if (node->parent == NULL)
+      {
+        // We know the answer here
+        if (type_tag != NT_TemplateHelper::encode_tag<1,coord_t>())
+          REPORT_LEGION_ERROR(ERROR_DYNAMIC_TYPE_MISMATCH,
+            "Dynamic type mismatch in 'get_index_space_color'")
+        Realm::Point<1,coord_t> *color = 
+          (Realm::Point<1,coord_t>*)realm_color;
+        *color = Realm::Point<1,coord_t>(0);
+        return;
+      }
+      // Otherwise we can get the color for the partition color space
+      IndexSpaceNode *color_space = node->parent->color_space;
+      color_space->delinearize_color(node->color, realm_color, type_tag);
+    }
+
+    //--------------------------------------------------------------------------
+    DomainPoint Runtime::get_index_space_color_point(IndexSpace handle)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle);
+      return node->get_domain_point_color();
+    }
+
+    //--------------------------------------------------------------------------
+    Color Runtime::get_index_partition_color(IndexPartition handle)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *node = get_node(handle);
+      return node->color;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpace Runtime::get_parent_index_space(IndexPartition handle)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *node = get_node(handle);
+      return node->parent->handle;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_parent_index_partition(IndexSpace handle)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle);
+      return (node->parent != NULL);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexPartition Runtime::get_parent_index_partition(
+                                                              IndexSpace handle)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle);
+      if (node->parent == NULL)
+        REPORT_LEGION_ERROR(ERROR_PARENT_INDEX_PARTITION_REQUESTED,
+          "Parent index partition requested for "
+                            "index space %llu with no parent. Use "
+                            "has_parent_index_partition to check "
+                            "before requesting a parent.", handle.get_id())
+      return node->parent->handle;
+    }
+
+    //--------------------------------------------------------------------------
+    unsigned Runtime::get_index_space_depth(IndexSpace handle)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(handle)->depth;
+    }
+
+    //--------------------------------------------------------------------------
+    unsigned Runtime::get_index_partition_depth(IndexPartition handle)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(handle)->depth;
+    }
+
+    //--------------------------------------------------------------------------
+    size_t Runtime::get_domain_volume(IndexSpace handle)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle);
+      return node->get_volume();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::find_domain(IndexSpace handle, Domain &launch_domain)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle);
+      launch_domain = node->get_tight_domain();
+    }
+
+    //--------------------------------------------------------------------------
+    void MultiTask::validate_slicing(IndexSpace input_space,
+                                    const std::vector<IndexSpace> &slice_spaces)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = runtime->get_node(input_space);
+      node->validate_slicing(slice_spaces, this, mapper);
+    } 
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_index_partition_disjoint(IndexPartition p)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *node = runtime->get_node(p);
+      return node->is_disjoint(true/*app query*/);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_index_partition_complete(IndexPartition p)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *node = runtime->get_node(p);
+      return node->is_complete(true/*app query*/);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_index_partition(IndexSpace parent, Color color)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *parent_node = runtime->get_node(parent);
+      return parent_node->has_color(color);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::destroy_field_space(FieldSpace handle,
+                                               std::set<RtEvent> &applied, 
+                                               const CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      const AddressSpaceID owner_space = 
+        FieldSpaceNode::get_owner_space(handle);
+      if (mapping != NULL)
+      {
+        if (mapping->contains(owner_space))
+        {
+          // If we're the owner space node then we do the removal
+          if (owner_space == address_space)
+          {
+            FieldSpaceNode *node = get_node(handle);
+            if (node->remove_base_gc_ref(APPLICATION_REF))
+              delete node;
+          }
+        }
+        else
+        {
+          const AddressSpaceID nearest = mapping->find_nearest(owner_space);
+          if (nearest == address_space)
+            send_field_space_destruction(handle, owner_space, applied);
+        }
+      }
+      else
+      {
+        if (owner_space == address_space)
+        {
+          FieldSpaceNode *node = get_node(handle);
+          if (node->remove_base_gc_ref(APPLICATION_REF))
+            delete node;
+        }
+        else
+          send_field_space_destruction(handle, owner_space, applied);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    RtEvent Runtime::allocate_field(FieldSpace handle, 
+                                             size_t field_size, FieldID fid, 
+                                             CustomSerdezID serdez_id,
+                                             Provenance *provenance,
+                                             bool sharded_non_owner)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      RtEvent ready = node->allocate_field(fid, field_size, serdez_id,
+                                           provenance, sharded_non_owner);
+      return ready;
+    }
+
+    //--------------------------------------------------------------------------
+    FieldSpaceNode* Runtime::allocate_field(FieldSpace handle,
+          ApEvent size_ready, FieldID fid, CustomSerdezID serdez_id,
+          Provenance *provenance, RtEvent &precondition, bool sharded_non_owner)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      precondition = node->allocate_field(fid, size_ready, serdez_id,
+                                          provenance, sharded_non_owner);
+      return node;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::free_field(FieldSpace handle, FieldID fid,
+                                      std::set<RtEvent> &applied,
+                                      bool sharded_non_owner)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      node->free_field(fid, address_space, applied, sharded_non_owner);
+    }
+
+    //--------------------------------------------------------------------------
+    RtEvent Runtime::allocate_fields(FieldSpace handle, 
+                                             const std::vector<size_t> &sizes,
+                                             const std::vector<FieldID> &fields,
+                                             CustomSerdezID serdez_id,
+                                             Provenance *provenance,
+                                             bool sharded_non_owner)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(sizes.size() == fields.size());
+#endif
+      // We know that none of these field allocations are local
+      FieldSpaceNode *node = get_node(handle);
+      RtEvent ready = node->allocate_fields(sizes, fields, serdez_id,
+                                            provenance, sharded_non_owner);
+      return ready;
+    }
+
+    //--------------------------------------------------------------------------
+    FieldSpaceNode* Runtime::allocate_fields(FieldSpace handle, 
+                                           ApEvent sizes_ready,
+                                           const std::vector<FieldID> &fields,
+                                           CustomSerdezID serdez_id,
+                                           Provenance *provenance,
+                                           RtEvent &precondition,
+                                           bool sharded_non_owner)
+    //--------------------------------------------------------------------------
+    {
+      // We know that none of these field allocations are local
+      FieldSpaceNode *node = get_node(handle);
+      precondition = node->allocate_fields(sizes_ready, fields, serdez_id,
+                                           provenance, sharded_non_owner);
+      return node;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::free_fields(FieldSpace handle,
+                                       const std::vector<FieldID> &to_free,
+                                       std::set<RtEvent> &applied,
+                                       bool sharded_non_owner)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      node->free_fields(to_free, address_space, applied, 
+                        sharded_non_owner);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::free_field_indexes(FieldSpace handle,
+                                        const std::vector<FieldID> &to_free,
+                                        RtEvent freed_event, 
+                                        bool sharded_non_owner)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      node->free_field_indexes(to_free, freed_event, sharded_non_owner);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::allocate_local_fields(FieldSpace handle,
+                                      const std::vector<FieldID> &fields,
+                                      const std::vector<size_t> &sizes,
+                                      CustomSerdezID serdez_id, 
+                                      const std::set<unsigned> &current_indexes,
+                                            std::vector<unsigned> &new_indexes,
+                                            Provenance *provenance)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      return node->allocate_local_fields(fields, sizes, serdez_id,
+                         current_indexes, new_indexes, provenance);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::free_local_fields(FieldSpace handle,
+                                           const std::vector<FieldID> &to_free,
+                                           const std::vector<unsigned> &indexes,
+                                           const CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      node->free_local_fields(to_free, indexes, mapping);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::update_local_fields(FieldSpace handle,
+                                  const std::vector<FieldID> &fields,
+                                  const std::vector<size_t> &sizes,
+                                  const std::vector<CustomSerdezID> &serdez_ids,
+                                  const std::vector<unsigned> &indexes,
+                                  Provenance *provenance)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      node->update_local_fields(fields, sizes, serdez_ids, indexes, provenance);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_local_fields(FieldSpace handle,
+                                          const std::vector<FieldID> &to_remove)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      node->remove_local_fields(to_remove);
+    }
+
+    //--------------------------------------------------------------------------
+    size_t Runtime::get_field_size(FieldSpace handle, FieldID fid)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      if (!node->has_field(fid))
+        REPORT_LEGION_ERROR(ERROR_FIELD_SPACE_HAS_NO_FIELD,
+          "FieldSpace %llu has no field %d", handle.get_id(), fid)
+      return node->get_field_size(fid);
+    }
+
+    //--------------------------------------------------------------------------
+    CustomSerdezID Runtime::get_field_serdez(FieldSpace handle,
+                                                      FieldID fid)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      if (!node->has_field(fid))
+        REPORT_LEGION_ERROR(ERROR_FIELD_SPACE_HAS_NO_FIELD,
+          "FieldSpace %llu has no field %d", handle.get_id(), fid)
+      return node->get_field_serdez(fid);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::get_field_space_fields(FieldSpace handle,
+                                                  std::vector<FieldID> &fields)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *node = get_node(handle);
+      node->get_all_fields(fields);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::destroy_logical_region(LogicalRegion handle,
+                                               std::set<RtEvent> &applied,
+                                               const CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      const AddressSpaceID owner_space = 
+        RegionNode::get_owner_space(handle.get_tree_id());
+      if (mapping != NULL)
+      {
+        if (mapping->contains(owner_space))
+        {
+          // If we're the owner space node then we do the removal
+          if (owner_space == address_space)
+          {
+            RegionNode *node = get_node(handle);
+            if (node->remove_base_gc_ref(APPLICATION_REF))
+              delete node;
+          }
+        }
+        else
+        {
+          const AddressSpaceID nearest = mapping->find_nearest(owner_space);
+          if (nearest == address_space)
+            send_logical_region_destruction(handle, 
+                                      owner_space, applied);
+        }
+      }
+      else
+      {
+        if (owner_space == address_space)
+        {
+          RegionNode *node = get_node(handle);
+          if (node->remove_base_gc_ref(APPLICATION_REF))
+            delete node;
+        }
+        else
+          send_logical_region_destruction(handle, owner_space,applied);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    LogicalPartition Runtime::get_logical_partition(
+                                    LogicalRegion parent, IndexPartition handle)
+    //--------------------------------------------------------------------------
+    {
+      // No lock needed for this one
+      return LogicalPartition(parent.tree_did, handle, parent.field_space);
+    }
+
+    //--------------------------------------------------------------------------
+    LogicalPartition Runtime::get_logical_partition_by_color(
+                                                  LogicalRegion parent, Color c)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode *parent_node = get_node(parent);
+      IndexPartNode *index_node = parent_node->row_source->get_child(c);
+      LogicalPartition result(parent.tree_did, index_node->handle, 
+                              parent.field_space);
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_logical_partition_by_color(LogicalRegion parent,
+                                                          Color color)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode *parent_node = get_node(parent);
+      return parent_node->has_color(color);
+    }
+
+    //--------------------------------------------------------------------------
+    LogicalPartition Runtime::get_logical_partition_by_tree(
+                      IndexPartition handle, FieldSpace space, RegionTreeID tid)
+    //--------------------------------------------------------------------------
+    {
+      // No lock needed for this one
+      return LogicalPartition(LEGION_DISTRIBUTED_HELP_ENCODE(tid, 
+            REGION_TREE_NODE_DC), handle, space);
+    }
+
+    //--------------------------------------------------------------------------
+    LogicalRegion Runtime::get_logical_subregion(
+                                    LogicalPartition parent, IndexSpace handle)
+    //--------------------------------------------------------------------------
+    {
+      // No lock needed for this one
+      return LogicalRegion(parent.tree_did, handle, parent.field_space);
+    }
+    
+    //--------------------------------------------------------------------------
+    LogicalRegion Runtime::get_logical_subregion_by_color(
+             LogicalPartition parent, const void *realm_color, TypeTag type_tag)
+    //--------------------------------------------------------------------------
+    {
+      PartitionNode *parent_node = get_node(parent);
+      IndexSpaceNode *color_space = parent_node->row_source->color_space;
+      LegionColor color = color_space->linearize_color(realm_color, type_tag);
+      if (!color_space->contains_point(realm_color, type_tag))
+        REPORT_LEGION_ERROR(ERROR_INVALID_INDEX_SPACE_COLOR,
+                            "Invalid color space color for child %lld of "
+                            "logical partition (%llu,%llu,%llu)", color,
+                            parent.index_partition.get_id(), parent.field_space.get_id(),
+                            parent.get_tree_id())
+      IndexSpaceNode *index_node = parent_node->row_source->get_child(color);
+      LogicalRegion result(parent.tree_did, index_node->handle,
+                           parent.field_space);
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_logical_subregion_by_color(
+             LogicalPartition parent, const void *realm_color, TypeTag type_tag)
+    //--------------------------------------------------------------------------
+    {
+      PartitionNode *parent_node = get_node(parent);
+      IndexSpaceNode *color_space = parent_node->row_source->color_space;
+      return color_space->contains_point(realm_color, type_tag);
+    }
+
+    //--------------------------------------------------------------------------
+    LogicalRegion Runtime::get_logical_subregion_by_tree(
+                          IndexSpace handle, FieldSpace space, RegionTreeID tid)
+    //--------------------------------------------------------------------------
+    {
+      // No lock needed for this one
+      return LogicalRegion(LEGION_DISTRIBUTED_HELP_ENCODE(tid, 
+            REGION_TREE_NODE_DC), handle, space);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::get_logical_region_color(LogicalRegion handle,
+                                            void *realm_color, TypeTag type_tag)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle.get_index_space());
+      if (node->parent == NULL)
+      {
+        // We know the answer here
+        if (type_tag != NT_TemplateHelper::encode_tag<1,coord_t>())
+          REPORT_LEGION_ERROR(ERROR_DYNAMIC_TYPE_MISMATCH,
+            "Dynamic type mismatch in 'get_logical_region_color'")
+        Realm::Point<1,coord_t> *color = 
+          (Realm::Point<1,coord_t>*)realm_color;
+        *color = Realm::Point<1,coord_t>(0);
+        return;
+      }
+      // Otherwise we can get the color for the partition color space
+      IndexSpaceNode *color_space = node->parent->color_space;
+      color_space->delinearize_color(node->color, realm_color, type_tag);
+    }
+
+    //--------------------------------------------------------------------------
+    DomainPoint Runtime::get_logical_region_color_point(LogicalRegion handle)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *node = get_node(handle.get_index_space());
+      return node->get_domain_point_color();
+    }
+
+    //--------------------------------------------------------------------------
+    Color Runtime::get_logical_partition_color(LogicalPartition handle)
+    //--------------------------------------------------------------------------
+    {
+      PartitionNode *node = get_node(handle);
+      return node->row_source->color;
+    }
+
+    //--------------------------------------------------------------------------
+    LogicalRegion Runtime::get_parent_logical_region(
+                                                        LogicalPartition handle)
+    //--------------------------------------------------------------------------
+    {
+      PartitionNode *node = get_node(handle);
+      return node->parent->handle;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_parent_logical_partition(LogicalRegion handle)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode *node = get_node(handle);
+      return (node->parent != NULL);
+    }
+
+    //--------------------------------------------------------------------------
+    LogicalPartition Runtime::get_parent_logical_partition(
+                                                           LogicalRegion handle)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode *node = get_node(handle);
+      if (node->parent == NULL)
+        REPORT_LEGION_ERROR(ERROR_PARENT_LOGICAL_PARTITION_REQUESTED,
+          "Parent logical partition requested for "
+                            "logical region (%llu,%llu,%llu) with no parent. "
+                            "Use has_parent_logical_partition to check "
+                            "before requesting a parent.", 
+                            handle.index_space.get_id(),
+                            handle.field_space.get_id(),
+                            handle.get_tree_id())
+      return node->parent->handle;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::invalidate_region_tree_context(ContextID ctx,
+                      const RegionRequirement &req, bool filter_specific_fields)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(req.handle_type == LEGION_SINGULAR_PROJECTION);
+#endif
+      RegionNode *region_node = get_node(req.region);
+      if (filter_specific_fields)
+      {
+        FieldMask user_mask =
+          region_node->column_source->get_field_mask(req.privilege_fields);
+        DeletionInvalidator invalidator(ctx, user_mask);
+        region_node->visit_node(&invalidator);
+      }
+      else
+      {
+        CurrentInvalidator invalidator(ctx);
+        region_node->visit_node(&invalidator);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::check_region_tree_context(ContextID ctx)
+    //--------------------------------------------------------------------------
+    {
+      CurrentInitializer init(ctx);
+      AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+      // Need to hold references to prevent deletion race
+      for (std::map<RegionTreeID,RegionNode*>::const_iterator it = 
+            tree_nodes.begin(); it != tree_nodes.end(); it++)
+        it->second->visit_node(&init);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceNode* Runtime::create_node(IndexSpace sp,
+                                                  const Domain &domain,
+                                                  bool take_ownership,
+                                                  IndexPartNode *parent,
+                                                  LegionColor color,
+                                                  RtEvent initialized,
+                                                  Provenance *provenance,
+                                                  ApEvent is_ready,
+                                                  IndexSpaceExprID expr_id,
+                                                  CollectiveMapping *mapping,
+                                                  const bool add_root_reference,
+                                                  unsigned depth,
+                                                  const bool tree_valid)
+    //--------------------------------------------------------------------------
+    { 
+      IndexSpaceCreator creator(sp, parent, color, expr_id,
+                  initialized, depth, provenance, mapping, tree_valid);
+      NT_TemplateHelper::demux<IndexSpaceCreator>(sp.get_type_tag(), &creator);
+      IndexSpaceNode *result = creator.result;  
+#ifdef DEBUG_LEGION
+      assert(result != NULL);
+#endif
+      // Check to see if someone else has already made it
+      {
+        // Hold the lookup lock while modifying the lookup table
+        AutoLock l_lock(lookup_lock);
+        std::map<IndexSpace,IndexSpaceNode*>::const_iterator it =
+          index_nodes.find(sp);
+        if (it != index_nodes.end())
+        {
+          // Need to remove resource reference if not owner
+          delete result;
+          result = it->second;
+          // If the parent is NULL then we don't need to perform a duplicate set
+          if (!domain.exists() || (parent == NULL))
+            return result;
+        }
+        else
+        {
+          index_nodes[sp] = result;
+          index_space_requests.erase(sp);
+          if (add_root_reference)
+            result->add_base_valid_ref(APPLICATION_REF);
+          // If we didn't give it a value add a reference to be removed once
+          // the index space node has been set
+          if (!domain.exists())
+          {
+            // Hold the reference on the parent partition to keep both it
+            // and the child index space alive if there is a a parent
+            if (result->parent != NULL)
+              result->parent->add_base_gc_ref(REGION_TREE_REF);
+            else
+              result->add_base_gc_ref(REGION_TREE_REF);
+          }
+          else
+            result->set_domain(domain, is_ready, take_ownership,
+                false/*broadcast*/, true/*initializing*/);
+          if (parent != NULL)
+          {
+#ifdef DEBUG_LEGION
+            assert(!add_root_reference);
+#endif
+            // Only do this after we've added all the references
+            parent->add_child(result);
+          }
+          result->register_with_runtime();
+          return result;
+        }
+      }
+#ifdef DEBUG_LEGION
+      assert(domain.exists());
+#endif
+      if (result->set_domain(domain, is_ready, take_ownership))
+        assert(false); // should never hit this
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceNode* Runtime::create_node(IndexSpace sp,
+                                                  IndexPartNode &parent,
+                                                  LegionColor color,
+                                                  RtEvent initialized,
+                                                  Provenance *provenance,
+                                                  IndexSpaceExprID expr_id,
+                                                  CollectiveMapping *mapping,
+                                                  unsigned depth)
+    //--------------------------------------------------------------------------
+    { 
+      IndexSpaceCreator creator(sp, &parent, color, expr_id,
+                                initialized, depth, provenance, mapping,
+                                true/*tree valid*/);
+      NT_TemplateHelper::demux<IndexSpaceCreator>(sp.get_type_tag(), &creator);
+      IndexSpaceNode *result = creator.result;  
+#ifdef DEBUG_LEGION
+      assert(result != NULL);
+#endif
+      // Check to see if someone else has already made it
+      {
+        // Hold the lookup lock while modifying the lookup table
+        AutoLock l_lock(lookup_lock);
+        std::map<IndexSpace,IndexSpaceNode*>::const_iterator it =
+          index_nodes.find(sp);
+        if (it != index_nodes.end())
+        {
+          delete result;
+          return it->second;
+        }
+        index_nodes[sp] = result;
+        index_space_requests.erase(sp);
+        // Add a reference for when we set this index space node
+        // Hold the reference on the parent partition to keep both it
+        // and the child index space alive 
+        parent.add_base_gc_ref(REGION_TREE_REF);
+        // Only record this with the parent after all the references are added
+        parent.add_child(result);
+        result->register_with_runtime();
+      } 
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexPartNode* Runtime::create_node(IndexPartition p, 
+                                                 IndexSpaceNode *parent,
+                                                 IndexSpaceNode *color_space,
+                                                 LegionColor color,
+                                                 bool disjoint, int complete,
+                                                 Provenance *provenance,
+                                                 RtEvent initialized,
+                                                 CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartCreator creator(p, parent, color_space, color, disjoint,
+                             complete, initialized, mapping, provenance);
+      NT_TemplateHelper::demux<IndexPartCreator>(p.get_type_tag(), &creator);
+      IndexPartNode *result = creator.result;
+#ifdef DEBUG_LEGION
+      assert(parent != NULL);
+      assert(result != NULL);
+#endif
+      // Check to see if someone else has already made it
+      {
+        // Hold the lookup lock while modifying the lookup table
+        AutoLock l_lock(lookup_lock);
+        std::map<IndexPartition,IndexPartNode*>::const_iterator it =
+          index_parts.find(p);
+        if (it != index_parts.end())
+        {
+          delete result;
+          return it->second;
+        }
+        index_parts[p] = result;
+        index_part_requests.erase(p);
+        // If we're the owner add a valid reference that will be removed
+        // when we are deleted, 
+        if (result->is_owner())
+          result->add_base_valid_ref(APPLICATION_REF);
+        parent->add_child(result);
+        // Add it to the partition of our parent if it exists, otherwise
+        // our parent index space is a root so we add the reference there
+        if (parent->parent != NULL)
+          parent->parent->add_nested_valid_ref(result->did);
+        else
+          parent->add_nested_valid_ref(result->did);
+        if (color_space->parent != NULL)
+          color_space->parent->add_nested_valid_ref(result->did);
+        else
+          color_space->add_nested_valid_ref(result->did);
+        // We know if we're disjoint or not but if we're not complete we might 
+        // still be getting notifications to compute the complete
+        if (complete < 0)
+          result->initialize_disjoint_complete_notifications();
+        else if ((implicit_profiler != NULL) && result->is_owner())
+          implicit_profiler->register_index_partition(parent->handle.get_id(),
+              p.get_id(), disjoint, result->color);
+        result->register_with_runtime();
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexPartNode* Runtime::create_node(IndexPartition p, 
+                                                 IndexSpaceNode *parent,
+                                                 IndexSpaceNode *color_space,
+                                                 LegionColor color,
+                                                 int complete, 
+                                                 Provenance *provenance,
+                                                 RtEvent initialized,
+                                                 CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartCreator creator(p, parent, color_space, color, 
+                               complete, initialized, mapping, provenance);
+      NT_TemplateHelper::demux<IndexPartCreator>(p.get_type_tag(), &creator);
+      IndexPartNode *result = creator.result;
+#ifdef DEBUG_LEGION
+      assert(parent != NULL);
+      assert(result != NULL);
+#endif
+      // Check to see if someone else has already made it
+      {
+        // Hold the lookup lock while modifying the lookup table
+        AutoLock l_lock(lookup_lock);
+        std::map<IndexPartition,IndexPartNode*>::const_iterator it =
+          index_parts.find(p);
+        if (it != index_parts.end())
+        {
+          // Need to remove resource reference if not owner
+          delete result;
+          return it->second;
+        }
+        index_parts[p] = result;
+        index_part_requests.erase(p);
+        // If we're the owner add a valid reference that will be removed
+        // when we are deleted, 
+        if (result->is_owner())
+          result->add_base_valid_ref(APPLICATION_REF);
+        parent->add_child(result);
+        // Add it to the partition of our parent if it exists, otherwise
+        // our parent index space is a root so we add the reference there
+        if (parent->parent != NULL)
+          parent->parent->add_nested_valid_ref(result->did);
+        else
+          parent->add_nested_valid_ref(result->did);
+        if (color_space->parent != NULL)
+          color_space->parent->add_nested_valid_ref(result->did);
+        else
+          color_space->add_nested_valid_ref(result->did);
+        // We don't know if we're disjonit or yet not so we need to do
+        // the disjoint and complete analysis
+        result->initialize_disjoint_complete_notifications();
+        result->register_with_runtime();
+      }
+      return result;
+    }
+ 
+    //--------------------------------------------------------------------------
+    FieldSpaceNode* Runtime::create_node(FieldSpace space,
+                                                  RtEvent initialized,
+                                                  Provenance *provenance,
+                                                  CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *result = new FieldSpaceNode(space,
+          initialized, mapping, provenance);
+#ifdef DEBUG_LEGION
+      assert(result != NULL);
+#endif
+      // Hold the lookup lock while modifying the lookup table
+      {
+        AutoLock l_lock(lookup_lock);
+        std::map<FieldSpace,FieldSpaceNode*>::const_iterator it =
+          field_nodes.find(space);
+        if (it != field_nodes.end())
+        {
+          delete result;
+          return it->second;
+        }
+        field_nodes[space] = result;
+        field_space_requests.erase(space);
+        // If we're the owner add a valid reference that will be removed
+        // when we are deleted, otherwise we're remote so we add a gc 
+        // reference that will be removed by the owner when we can be
+        // safely collected
+        if (result->is_owner())
+          result->add_base_gc_ref(APPLICATION_REF);
+        result->register_with_runtime();
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    FieldSpaceNode* Runtime::create_node(FieldSpace space,
+                                                  RtEvent initialized,
+                                                  Provenance *provenance,
+                                                  CollectiveMapping *mapping,
+                                                  Deserializer &derez)
+    //--------------------------------------------------------------------------
+    {
+      FieldSpaceNode *result = new FieldSpaceNode(space,
+          initialized, mapping, provenance, derez);
+#ifdef DEBUG_LEGION
+      assert(result != NULL);
+#endif
+      // Hold the lookup lock while modifying the lookup table
+      {
+        AutoLock l_lock(lookup_lock);
+        std::map<FieldSpace,FieldSpaceNode*>::const_iterator it =
+          field_nodes.find(space);
+        if (it != field_nodes.end())
+        {
+          delete result;
+          return it->second;
+        }
+        field_nodes[space] = result;
+        field_space_requests.erase(space);
+        // If we're the owner add a valid reference that will be removed
+        // when we are deleted, otherwise we're remote so we add a gc 
+        // reference that will be removed by the owner when we can be
+        // safely collected
+        if (result->is_owner())
+          result->add_base_gc_ref(APPLICATION_REF);
+        result->register_with_runtime();
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    RegionNode* Runtime::create_node(LogicalRegion r, 
+                                              PartitionNode *parent,
+                                              RtEvent initialized,
+                                              DistributedID did,
+                                              Provenance *provenance,
+                                              CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      if (parent != NULL)
+      {
+        assert(r.field_space == parent->handle.field_space);
+        assert(r.tree_did == parent->handle.tree_did);
+      }
+#endif
+      // Special case for root nodes without dids, we better find them
+      if ((parent == NULL) && (did == 0))
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+        // Check to see if it already exists
+        std::map<LogicalRegion,RegionNode*>::const_iterator finder =
+          region_nodes.find(r);
+#ifdef DEBUG_LEGION
+        assert(finder != region_nodes.end());
+#endif
+        return finder->second;
+      }
+      RtEvent row_ready, col_ready;
+      IndexSpaceNode *row_src = get_node(r.index_space, &row_ready);
+      FieldSpaceNode *col_src = get_node(r.field_space, &col_ready);
+      if (row_src == NULL)
+      {
+        row_ready.wait();
+        row_src = get_node(r.index_space);
+        row_ready = RtEvent::NO_RT_EVENT;
+      }
+      if (col_src == NULL)
+      {
+        col_ready.wait();
+        col_src = get_node(r.field_space);
+        col_ready = RtEvent::NO_RT_EVENT;
+      }
+      
+      if (row_ready.exists() || col_ready.exists())
+        initialized = Runtime::merge_events(initialized, row_ready, col_ready); 
+      RegionNode *result = new RegionNode(r, parent, row_src, col_src, did,
+        initialized, (parent == NULL) ? initialized : parent->tree_initialized,
+        mapping, provenance);
+#ifdef DEBUG_LEGION
+      assert(result != NULL);
+#endif
+      // Special case here in case multiple clients attempt to
+      // make the node at the same time
+      {
+        // Hold the lookup lock when modifying the lookup table
+        AutoLock l_lock(lookup_lock);
+        // Check to see if it already exists
+        std::map<LogicalRegion,RegionNode*>::const_iterator it =
+          region_nodes.find(r);
+        if (it != region_nodes.end())
+        {
+          // It already exists, delete our copy and return
+          // the one that has already been made
+          delete result;
+          return it->second;
+        }
+        // Now we can add it to the map
+        region_nodes[r] = result;
+        // If this is a top level region add it to the collection
+        // of top level tree IDs
+        if (parent == NULL)
+        {
+#ifdef DEBUG_LEGION
+          assert(tree_nodes.find(r.get_tree_id()) == tree_nodes.end());
+#endif
+          tree_nodes[r.get_tree_id()] = result;
+          region_tree_requests.erase(r.get_tree_id());
+          // If we're the root we get a valid reference on the owner
+          // node otherwise we get a gc ref from the owner node
+          if (result->is_owner())
+            result->add_base_gc_ref(APPLICATION_REF);
+        }
+        result->record_registered();
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    PartitionNode* Runtime::create_node(LogicalPartition p,
+                                                 RegionNode *parent)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(parent != NULL);
+      assert(p.field_space == parent->handle.field_space);
+      assert(p.tree_did == parent->handle.tree_did);
+#endif
+      RtEvent row_ready, col_ready;
+      IndexPartNode *row_src = get_node(p.index_partition, &row_ready);
+      FieldSpaceNode *col_src = get_node(p.field_space, &col_ready);
+      if (row_src == NULL)
+      {
+        row_ready.wait();
+        row_src = get_node(p.index_partition);
+        row_ready = RtEvent::NO_RT_EVENT;
+      }
+      if (col_src == NULL)
+      {
+        col_ready.wait();
+        col_src = get_node(p.field_space);
+        col_ready = RtEvent::NO_RT_EVENT;
+      }
+      RtEvent initialized = parent->tree_initialized;
+      if (row_ready.exists() || col_ready.exists())
+        initialized = Runtime::merge_events(initialized, row_ready, col_ready);
+      PartitionNode *result = new PartitionNode(p, parent, row_src, col_src, 
+                                  initialized, parent->tree_initialized);
+#ifdef DEBUG_LEGION
+      assert(result != NULL);
+#endif
+      // Special case here in case multiple clients attempt
+      // to make the node at the same time
+      {
+        // Hole the lookup lock when modifying the lookup table
+        AutoLock l_lock(lookup_lock);
+        std::map<LogicalPartition,PartitionNode*>::const_iterator it =
+          part_nodes.find(p);
+        if (it != part_nodes.end())
+        {
+          // It already exists, delete our copy and
+          // return the one that has already been made
+          delete result;
+          return it->second;
+        }
+        // Now we can put the node in the map
+        part_nodes[p] = result;
+        // Add gc ref that will be removed when either the root region node
+        // or the index partition node has been destroyed
+        result->add_base_gc_ref(REGION_TREE_REF);
+        result->record_registered();
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceNode* Runtime::get_node(IndexSpace space, 
+                                               RtEvent *defer /*=NULL*/,
+                                               const bool can_fail /*=false*/,
+                                               const bool first /*=true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (!space.exists())
+        REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_FOR_INDEXSPACE,
+          "Invalid request for IndexSpace NO_SPACE.")
+      RtEvent wait_on;
+      IndexSpaceNode *result = NULL;
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/); 
+        std::map<IndexSpace,IndexSpaceNode*>::const_iterator finder = 
+          index_nodes.find(space);
+        if (finder != index_nodes.end())
+        {
+          if (!finder->second->initialized.exists())
+            return finder->second;
+          if ((defer != NULL) && !finder->second->initialized.has_triggered())
+          {
+            *defer = finder->second->initialized;
+            return finder->second;
+          }
+          wait_on = finder->second->initialized;
+          result = finder->second;
+        }
+      }
+      if (result != NULL)
+      {
+        if (!wait_on.has_triggered())
+          wait_on.wait();
+        AutoLock l_lock(lookup_lock);
+        result->initialized = RtEvent::NO_RT_EVENT;
+        return result;
+      }
+      // Couldn't find it, so send a request to the owner node
+      AddressSpace owner = IndexSpaceNode::get_owner_space(space);
+      if (owner == address_space)
+      {
+        // See if it is in the set of pending spaces in which case we
+        // can wait for it to be recorded
+        RtEvent pending_wait;
+        if (first)
+        {
+          AutoLock l_lock(lookup_lock);
+          std::map<DistributedID,RtUserEvent>::iterator finder = 
+            pending_index_spaces.find(space.get_id());
+          if (finder != pending_index_spaces.end())
+          {
+            if (!finder->second.exists())
+              finder->second = Runtime::create_rt_user_event();
+            pending_wait = finder->second;
+          }
+        }
+        if (pending_wait.exists())
+        {
+          if (defer != NULL)
+          {
+            *defer = pending_wait;
+            return NULL;
+          }
+          else
+          {
+            pending_wait.wait();
+            return get_node(space, defer, false/*can fail*/, false/*first*/);
+          }
+        }
+        else if (can_fail)
+          return NULL;
+        else
+          REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
+            "Unable to find entry for index space %llu.", space.get_id())
+      }
+      // Retake the lock and get something to wait on
+      {
+        AutoLock l_lock(lookup_lock);
+        // Check to make sure we didn't loose the race
+        std::map<IndexSpace,IndexSpaceNode*>::const_iterator finder = 
+          index_nodes.find(space);
+        if (finder != index_nodes.end())
+          return finder->second;
+        // Still doesn't exists, see if we sent a request already
+        std::map<IndexSpace,RtEvent>::const_iterator wait_finder = 
+          index_space_requests.find(space);
+        if (wait_finder == index_space_requests.end())
+        {
+          RtUserEvent done = Runtime::create_rt_user_event();
+          index_space_requests[space] = done;
+          Serializer rez;
+          rez.serialize(space);
+          rez.serialize(done);
+          rez.serialize(address_space);
+          send_index_space_request(owner, rez);     
+          wait_on = done;
+        }
+        else
+          wait_on = wait_finder->second;
+      }
+      if (defer == NULL)
+      {
+        // Wait on the event
+        wait_on.wait();
+        {
+          AutoLock l_lock(lookup_lock);
+          std::map<IndexSpace,IndexSpaceNode*>::iterator finder = 
+              index_nodes.find(space);
+          if (finder != index_nodes.end())
+          {
+            if (finder->second->initialized.exists())
+            {
+              if (finder->second->initialized.has_triggered())
+              {
+                finder->second->initialized = RtEvent::NO_RT_EVENT;
+                return finder->second;
+              }
+              else
+                wait_on = finder->second->initialized;
+            }
+            else
+              return finder->second;
+          }
+          else if (can_fail)
+            return NULL;
+          else
+            wait_on = RtEvent::NO_RT_EVENT;
+        }
+        if (!wait_on.exists())
+          REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
+            "Unable to find entry for index space %llu."
+                          "This is definitely a runtime bug.", space.get_id())
+        wait_on.wait();
+        return get_node(space, NULL, can_fail, false/*first*/);
+      }
+      else
+      {
+        *defer = wait_on;
+        return NULL;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    IndexPartNode* Runtime::get_node(IndexPartition part,
+                                              RtEvent *defer/* = NULL*/,
+                                              const bool can_fail /* = false*/,
+                                              const bool first/* = true*/,
+                                              const bool local_only/* = false*/)
+    //--------------------------------------------------------------------------
+    {
+      if (!part.exists())
+        REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_INDEXPARTITION,
+          "Invalid request for IndexPartition NO_PART.")
+      RtEvent wait_on;
+      IndexPartNode *result = NULL;
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+        std::map<IndexPartition,IndexPartNode*>::const_iterator finder =
+          index_parts.find(part);
+        if (finder != index_parts.end())
+        {
+          if (!finder->second->initialized.exists())
+            return finder->second;
+          if ((defer != NULL) && !finder->second->initialized.has_triggered())
+          {
+            *defer = finder->second->initialized;
+            return finder->second;
+          }
+          wait_on = finder->second->initialized;
+          result = finder->second;
+        }
+      }
+      if (result != NULL)
+      {
+        if (!wait_on.has_triggered())
+          wait_on.wait();
+        AutoLock l_lock(lookup_lock);
+        result->initialized = RtEvent::NO_RT_EVENT;
+        return result;
+      }
+      // Couldn't find it, so send a request to the owner node
+      AddressSpace owner = IndexPartNode::get_owner_space(part);
+      // If we only want to do the test locally then return the result too
+      if ((owner == address_space) || local_only)
+      {
+        // See if it is in the set of pending partitions in which case we
+        // can wait for it to be recorded
+        RtEvent pending_wait;
+        if (first)
+        {
+          AutoLock l_lock(lookup_lock);
+          std::map<DistributedID,RtUserEvent>::iterator finder = 
+            pending_partitions.find(part.get_id());
+          if (finder != pending_partitions.end())
+          {
+            if (!finder->second.exists())
+              finder->second = Runtime::create_rt_user_event();
+            pending_wait = finder->second;
+          }
+        }
+        if (pending_wait.exists())
+        {
+          if (defer != NULL)
+          {
+            *defer = pending_wait;
+            return NULL;
+          }
+          else
+          {
+            pending_wait.wait();
+            return get_node(part, defer, false/*can fail*/, false/*first*/);
+          }
+        }
+        else if (can_fail)
+          return NULL;
+        else
+          REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
+            "Unable to find entry for index partition %llu.",part.get_id())
+      }
+      {
+        // Retake the lock in exclusive mode and make
+        // sure we didn't loose the race
+        AutoLock l_lock(lookup_lock);
+        std::map<IndexPartition,IndexPartNode*>::const_iterator finder =
+          index_parts.find(part);
+        if (finder != index_parts.end())
+          return finder->second;
+        // See if we've already sent the request or not
+        std::map<IndexPartition,RtEvent>::const_iterator wait_finder = 
+          index_part_requests.find(part);
+        if (wait_finder == index_part_requests.end())
+        {
+          RtUserEvent done = Runtime::create_rt_user_event();
+          index_part_requests[part] = done;
+          Serializer rez;
+          rez.serialize(part);
+          rez.serialize(done);
+          rez.serialize(address_space);
+          send_index_partition_request(owner, rez);    
+          wait_on = done;
+        }
+        else
+          wait_on = wait_finder->second;
+      }
+      if (defer == NULL)
+      {
+        // Wait for the event
+        wait_on.wait();
+        {
+          AutoLock l_lock(lookup_lock);
+          std::map<IndexPartition,IndexPartNode*>::iterator finder = 
+            index_parts.find(part);
+          if (finder != index_parts.end())
+          {
+            if (finder->second->initialized.exists())
+            {
+              if (finder->second->initialized.has_triggered())
+              {
+                finder->second->initialized = RtEvent::NO_RT_EVENT;
+                return finder->second;
+              }
+              else
+                wait_on = finder->second->initialized;
+            }
+            else
+              return finder->second;
+          }
+          else if (can_fail)
+            return NULL;
+          else
+            wait_on = RtEvent::NO_RT_EVENT;
+        }
+        if (!wait_on.exists())
+          REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
+            "Unable to find entry for index partition %llu. "
+                          "This is definitely a runtime bug.", part.get_id())
+        wait_on.wait();
+        return get_node(part, NULL, can_fail, false/*first*/);
+      }
+      else
+      {
+        *defer = wait_on;
+        return NULL;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    FieldSpaceNode* Runtime::get_node(FieldSpace space,
+                                 RtEvent *defer /*=NULL*/, bool first /*=true*/) 
+    //--------------------------------------------------------------------------
+    {
+      if (!space.exists())
+        REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_FIELDSPACE,
+          "Invalid request for FieldSpace NO_SPACE.")
+      RtEvent wait_on;
+      FieldSpaceNode *result = NULL;
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+        std::map<FieldSpace,FieldSpaceNode*>::const_iterator finder = 
+          field_nodes.find(space);
+        if (finder != field_nodes.end())
+        {
+          if (!finder->second->initialized.exists())
+            return finder->second;
+          if ((defer != NULL) && !finder->second->initialized.has_triggered())
+          {
+            *defer = finder->second->initialized;
+            return finder->second;
+          }
+          wait_on = finder->second->initialized;
+          result = finder->second;
+        }
+      }
+      if (result != NULL)
+      {
+        if (!wait_on.has_triggered())
+          wait_on.wait();
+        AutoLock l_lock(lookup_lock);
+        result->initialized = RtEvent::NO_RT_EVENT;
+        return result;
+      }
+      // Couldn't find it, so send a request to the owner node
+      AddressSpaceID owner = FieldSpaceNode::get_owner_space(space); 
+      if (owner == address_space)
+      {
+        // See if it is in the set of pending spaces in which case we
+        // can wait for it to be recorded
+        RtEvent pending_wait;
+        if (first)
+        {
+          AutoLock l_lock(lookup_lock);
+          std::map<DistributedID,RtUserEvent>::iterator finder =
+            pending_field_spaces.find(space.get_id());
+          if (finder != pending_field_spaces.end())
+          {
+            if (!finder->second.exists())
+              finder->second = Runtime::create_rt_user_event();
+            pending_wait = finder->second;
+          }
+        }
+        if (pending_wait.exists())
+        {
+          if (defer != NULL)
+          {
+            *defer = pending_wait;
+            return NULL;
+          }
+          else
+          {
+            pending_wait.wait();
+            return get_node(space, defer, false/*first*/);
+          }
+        }
+        else
+          REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
+            "Unable to find entry for field space %llu.", space.get_id())
+      }
+      {
+        // Retake the lock in exclusive mode and 
+        // check to make sure we didn't loose the race
+        AutoLock l_lock(lookup_lock);
+        std::map<FieldSpace,FieldSpaceNode*>::const_iterator finder = 
+          field_nodes.find(space);
+        if (finder != field_nodes.end())
+          return finder->second;
+        // Now see if we've already sent a request
+        std::map<FieldSpace,RtEvent>::const_iterator wait_finder = 
+          field_space_requests.find(space);
+        if (wait_finder == field_space_requests.end())
+        {
+          RtUserEvent done = Runtime::create_rt_user_event();
+          field_space_requests[space] = done;
+          Serializer rez;
+          rez.serialize(space);
+          rez.serialize(done);
+          rez.serialize(address_space);
+          send_field_space_request(owner, rez);    
+          wait_on = done;
+        }
+        else
+          wait_on = wait_finder->second;
+      }
+      if (defer == NULL)
+      {
+        // Wait for the event to be ready
+        wait_on.wait();
+        {
+          AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+          std::map<FieldSpace,FieldSpaceNode*>::const_iterator finder = 
+            field_nodes.find(space);
+          if (finder != field_nodes.end())
+          {
+            if (finder->second->initialized.exists())
+            {
+              if (finder->second->initialized.has_triggered())
+              {
+                finder->second->initialized = RtEvent::NO_RT_EVENT;
+                return finder->second;
+              }
+              else
+                wait_on = finder->second->initialized;
+            }
+            else
+              return finder->second;
+          }
+          else
+            wait_on = RtEvent::NO_RT_EVENT;
+        }
+        if (!wait_on.exists())
+          REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
+            "Unable to find entry for field space %llu. "
+                          "This is definitely a runtime bug.", space.get_id())
+        wait_on.wait();
+        return get_node(space, NULL, false/*first*/);
+      }
+      else
+      {
+        *defer = wait_on;
+        return NULL;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    RegionNode* Runtime::get_node(LogicalRegion handle,
+                              bool need_check /* = true*/, bool first /*=true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (!handle.exists())
+        REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_LOGICALREGION,
+          "Invalid request for LogicalRegion NO_REGION.")
+      // Check to see if the node already exists
+      RtEvent wait_on;
+      RegionNode *result = NULL;
+      bool has_top_level_region = false;
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+        std::map<LogicalRegion,RegionNode*>::const_iterator finder = 
+          region_nodes.find(handle);
+        if (finder != region_nodes.end())
+        {
+          if (!finder->second->initialized.exists())
+            return finder->second;
+          wait_on = finder->second->initialized;
+          result = finder->second;
+        }
+        // Check to see if we have the top level region
+        else if (need_check)
+          has_top_level_region = 
+            (tree_nodes.find(handle.get_tree_id()) != tree_nodes.end());
+        else
+          has_top_level_region = true;
+      }
+      if (result != NULL)
+      {
+        if (!wait_on.has_triggered())
+          wait_on.wait();
+        AutoLock l_lock(lookup_lock);
+        result->initialized = RtEvent::NO_RT_EVENT;
+        return result;
+      }
+      // If we don't have the top-level region, we need to request it before
+      // we go crawling up the tree so we know where to stop
+      if (!has_top_level_region)
+      {
+        AddressSpaceID owner = 
+          RegionTreeNode::get_owner_space(handle.get_tree_id());
+        if (owner == address_space)
+        {
+          // See if it is in the set of pending spaces in which case we
+          // can wait for it to be recorded
+          RtEvent pending_wait;
+          if (first)
+          {
+            AutoLock l_lock(lookup_lock);
+            std::map<RegionTreeID,RtUserEvent>::iterator finder = 
+              pending_region_trees.find(handle.get_tree_id());
+            if (finder != pending_region_trees.end())
+            {
+              if (!finder->second.exists())
+                finder->second = Runtime::create_rt_user_event();
+              pending_wait = finder->second;
+            }
+          }
+          if (pending_wait.exists())
+          {
+            pending_wait.wait();
+            return get_node(handle, need_check, false/*first*/); 
+          }
+          else
+            REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
+              "Unable to find entry for logical region tree %lld.",
+                             handle.get_tree_id());
+        }
+        {
+          // Retake the lock and make sure we didn't loose the race
+          AutoLock l_lock(lookup_lock);
+          if (tree_nodes.find(handle.get_tree_id()) == tree_nodes.end())
+          {
+            // Still don't have it, see if we need to request it
+            std::map<RegionTreeID,RtEvent>::const_iterator finder = 
+              region_tree_requests.find(handle.get_tree_id());
+            if (finder == region_tree_requests.end())
+            {
+              RtUserEvent done = Runtime::create_rt_user_event();
+              region_tree_requests[handle.get_tree_id()] = done;
+              Serializer rez;
+              rez.serialize(handle.get_tree_id());
+              rez.serialize(done);
+              rez.serialize(address_space);
+              send_top_level_region_request(owner, rez);
+              wait_on = done;
+            }
+            else
+              wait_on = finder->second;
+          }
+          else
+          {
+            // We lost the race and it may be here now
+            std::map<LogicalRegion,RegionNode*>::const_iterator it = 
+              region_nodes.find(handle);
+            if (it != region_nodes.end())
+              return it->second;
+          }
+        }
+        // If we did find something to wait on, do that now
+        if (wait_on.exists())
+        {
+          wait_on.wait();
+          RegionNode *result = NULL;
+          {
+            // Retake the lock and see again if the handle we
+            // were looking for was the top-level node or not
+            AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+            std::map<LogicalRegion,RegionNode*>::const_iterator it = 
+              region_nodes.find(handle);
+            if (it != region_nodes.end())
+            {
+              result = it->second;
+              wait_on = result->initialized;
+            }
+          }
+          if (result != NULL)
+          {
+            if (wait_on.exists())
+            {
+              if (!wait_on.has_triggered())
+                wait_on.wait();
+              AutoLock l_lock(lookup_lock);
+              result->initialized = RtEvent::NO_RT_EVENT;
+            }
+            return result;
+          }
+        }
+      }
+      // Otherwise it hasn't been made yet, so make it
+      IndexSpaceNode *index_node = get_node(handle.index_space);
+      if (index_node->parent != NULL)
+      {
+#ifdef DEBUG_LEGION
+        assert(index_node->parent != NULL);
+#endif
+        LogicalPartition parent_handle(handle.tree_did, 
+                              index_node->parent->handle, handle.field_space);
+        // Note this request can recursively build more nodes, but we
+        // are guaranteed that the top level node exists
+        PartitionNode *parent = get_node(parent_handle, false/*need check*/);
+        // Now make our node and then return it
+        result = create_node(handle, parent, RtEvent::NO_RT_EVENT, 0/*did*/);
+      }
+      else
+      {
+#ifdef DEBUG_LEGION
+        // This better be a root node, if it's not then something requested
+        // that we construct a logical reigon node after the parent partition
+        // was destroyed which is very bad
+        assert(index_node->depth == 0);
+#endif
+        // Even though this is a root node, we'll discover it's already made
+        result = create_node(handle, NULL, RtEvent::NO_RT_EVENT, 0/*did*/);
+      }
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+        if (!result->initialized.exists())
+          return result;
+        wait_on = result->initialized;
+      }
+      if (!wait_on.has_triggered())
+        wait_on.wait();
+      AutoLock l_lock(lookup_lock);
+      result->initialized = RtEvent::NO_RT_EVENT;
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    PartitionNode* Runtime::get_node(LogicalPartition handle,
+                                              bool need_check /* = true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (!handle.exists())
+        REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_LOGICALPARTITION,
+          "Invalid request for LogicalPartition NO_PART.")
+      RtEvent wait_on;
+      PartitionNode *result = NULL;
+      // Check to see if the node already exists
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+        std::map<LogicalPartition,PartitionNode*>::const_iterator it =
+          part_nodes.find(handle);
+        if (it != part_nodes.end())
+        {
+          if (it->second->initialized.exists())
+          {
+            wait_on = it->second->initialized;
+            result = it->second;
+          }
+          else
+            return it->second;
+        }
+      }
+      if (result != NULL)
+      {
+        if (!wait_on.has_triggered())
+          wait_on.wait();
+        AutoLock l_lock(lookup_lock);
+        result->initialized = RtEvent::NO_RT_EVENT;
+        return result;
+      }
+      // Otherwise it hasn't been made yet so make it
+      IndexPartNode *index_node = get_node(handle.index_partition);
+#ifdef DEBUG_LEGION
+      assert(index_node->parent != NULL);
+#endif
+      LogicalRegion parent_handle(handle.tree_did, index_node->parent->handle,
+                                  handle.field_space);
+      // Note this request can recursively build more nodes, but we
+      // are guaranteed that the top level node exists
+      RegionNode *parent = get_node(parent_handle, need_check);
+      // Now create our node and return it
+      result = create_node(handle, parent);
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+        if (!result->initialized.exists())
+          return result;
+        wait_on = result->initialized;
+      }
+      if (!wait_on.has_triggered())
+        wait_on.wait();
+      AutoLock l_lock(lookup_lock);
+      result->initialized = RtEvent::NO_RT_EVENT;
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    RegionNode* Runtime::get_tree(RegionTreeID tid, bool can_fail,
+                                  bool first/*=true*/)
+    //--------------------------------------------------------------------------
+    {
+      if (tid == 0)
+      {
+        if (can_fail)
+          return NULL;
+        REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_TREE_ID,
+          "Invalid request for tree ID 0 which is never a tree ID")
+      }
+      RtEvent wait_on;
+      RegionNode *result = NULL;
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+        std::map<RegionTreeID,RegionNode*>::const_iterator finder = 
+          tree_nodes.find(tid);
+        if (finder != tree_nodes.end())
+        {
+          if (!finder->second->initialized.exists())
+            return finder->second;
+          wait_on = finder->second->initialized;
+          result = finder->second;
+        }
+      }
+      if (result != NULL)
+      {
+        wait_on.wait();
+        AutoLock l_lock(lookup_lock);
+        result->initialized = RtEvent::NO_RT_EVENT;
+        return result;
+      }
+      // Couldn't find it, so send a request to the owner node
+      AddressSpaceID owner = RegionTreeNode::get_owner_space(tid);
+      if (owner == runtime->address_space)
+      {
+        // See if it is in the set of pending spaces in which case we
+        // can wait for it to be recorded
+        RtEvent pending_wait;
+        if (first)
+        {
+          AutoLock l_lock(lookup_lock);
+          std::map<RegionTreeID,RtUserEvent>::iterator finder = 
+            pending_region_trees.find(tid);
+          if (finder != pending_region_trees.end())
+          {
+            if (!finder->second.exists())
+              finder->second = Runtime::create_rt_user_event();
+            pending_wait = finder->second;
+          }
+        }
+        if (pending_wait.exists())
+        {
+          pending_wait.wait();
+          return get_tree(tid, can_fail, false/*first*/); 
+        }
+        else if (can_fail)
+          return NULL;
+        else
+          REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
+            "Unable to find entry for region tree ID %lld", tid)
+      }
+      {
+        // Retake the lock in exclusive mode and check to
+        // make sure that we didn't lose the race
+        AutoLock l_lock(lookup_lock);
+        std::map<RegionTreeID,RegionNode*>::const_iterator finder = 
+          tree_nodes.find(tid);
+        if (finder != tree_nodes.end())
+          return finder->second;
+        // Now see if we've already send a request
+        std::map<RegionTreeID,RtEvent>::const_iterator req_finder =
+          region_tree_requests.find(tid);
+        if (req_finder == region_tree_requests.end())
+        {
+          RtUserEvent done = Runtime::create_rt_user_event();
+          region_tree_requests[tid] = done;
+          Serializer rez;
+          rez.serialize(tid);
+          rez.serialize(done);
+          rez.serialize(runtime->address_space);
+          runtime->send_top_level_region_request(owner, rez);
+          wait_on = done;
+        }
+        else
+          wait_on = req_finder->second;
+      }
+      wait_on.wait();
+      AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
+      std::map<RegionTreeID,RegionNode*>::const_iterator finder = 
+          tree_nodes.find(tid);
+      if (finder == tree_nodes.end())
+      {
+        if (can_fail)
+          return NULL;
+        REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_TOPLEVEL_TREE,
+          "Unable to find top-level tree entry for "
+                         "region tree %lld.  This is either a runtime "
+                         "bug or requires Legion fences if names are "
+                         "being returned out of the context in which"
+                         "they are being created.", tid)
+      }
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    RtEvent Runtime::find_or_request_node(IndexSpace space,
+                                                   AddressSpaceID target)
+    //--------------------------------------------------------------------------
+    {
+      {
+        AutoLock l_lock(lookup_lock,1,false/*exclusive*/); 
+        std::map<IndexSpace,IndexSpaceNode*>::const_iterator finder = 
+          index_nodes.find(space);
+        if (finder != index_nodes.end())
+          return RtEvent::NO_RT_EVENT;
+      }
+      // Couldn't find it, so send a request to the owner node
+      AddressSpace owner = IndexSpaceNode::get_owner_space(space);
+      if (owner == address_space)
+        REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
+          "Unable to find entry for index space %llu.", space.get_id())
+      AutoLock l_lock(lookup_lock);
+      // Check to make sure we didn't loose the race
+      std::map<IndexSpace,IndexSpaceNode*>::const_iterator finder = 
+        index_nodes.find(space);
+      if (finder != index_nodes.end())
+        return RtEvent::NO_RT_EVENT;
+      // Still doesn't exists, see if we sent a request already
+      std::map<IndexSpace,RtEvent>::const_iterator wait_finder = 
+        index_space_requests.find(space);
+      if (wait_finder == index_space_requests.end())
+      {
+        RtUserEvent done = Runtime::create_rt_user_event();
+        index_space_requests[space] = done;
+        Serializer rez;
+        rez.serialize(space);
+        rez.serialize(done);
+        rez.serialize(address_space);
+        send_index_space_request(target, rez);
+        return done;
+      }
+      else
+        return wait_finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_field(FieldSpace space, FieldID fid)
+    //--------------------------------------------------------------------------
+    {
+      return get_node(space)->has_field(fid);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_node(IndexSpace space)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock l_lock(lookup_lock);
+#ifdef DEBUG_LEGION
+      std::map<IndexSpace,IndexSpaceNode*>::iterator finder = 
+        index_nodes.find(space);
+      assert(finder != index_nodes.end());
+      index_nodes.erase(finder);
+#else
+      index_nodes.erase(space);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_node(IndexPartition part)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock l_lock(lookup_lock);
+#ifdef DEBUG_LEGION
+      assert(index_part_requests.find(part) == index_part_requests.end());
+      std::map<IndexPartition,IndexPartNode*>::iterator finder = 
+        index_parts.find(part);
+      assert(finder != index_parts.end());
+      index_parts.erase(finder);
+#else
+      index_parts.erase(part);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_node(FieldSpace space)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock l_lock(lookup_lock);
+#ifdef DEBUG_LEGION
+      std::map<FieldSpace,FieldSpaceNode*>::iterator finder = 
+        field_nodes.find(space);
+      assert(finder != field_nodes.end());
+      field_nodes.erase(finder);
+#else
+      field_nodes.erase(space);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_node(LogicalRegion handle, bool top)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock l_lock(lookup_lock);
+#ifdef DEBUG_LEGION
+      if (top)
+      {
+        std::map<RegionTreeID,RegionNode*>::iterator finder = 
+          tree_nodes.find(handle.get_tree_id());
+        assert(finder != tree_nodes.end());
+        tree_nodes.erase(finder);
+      }
+#else
+      if (top)
+        tree_nodes.erase(handle.get_tree_id());
+#endif
+      std::map<LogicalRegion,RegionNode*>::iterator finder = 
+        region_nodes.find(handle);
+#ifdef DEBUG_LEGION
+      assert(finder != region_nodes.end());
+#endif
+      region_nodes.erase(finder);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_node(LogicalPartition handle)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock l_lock(lookup_lock);
+      std::map<LogicalPartition,PartitionNode*>::iterator finder = 
+        part_nodes.find(handle);
+#ifdef DEBUG_LEGION
+      assert(finder != part_nodes.end());
+#endif
+      part_nodes.erase(finder);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::record_pending_index_space(DistributedID space)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      // We should be the owner for this space
+      assert((space % total_address_spaces) == address_space);
+#endif
+      AutoLock l_lock(lookup_lock);
+#ifdef DEBUG_LEGION
+      assert(pending_index_spaces.find(space) == pending_index_spaces.end());
+#endif
+      pending_index_spaces[space] = RtUserEvent::NO_RT_USER_EVENT;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::record_pending_partition(DistributedID pid)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      // We should be the owner for this space
+      assert((pid % total_address_spaces) == address_space);
+#endif
+      AutoLock l_lock(lookup_lock);
+#ifdef DEBUG_LEGION
+      assert(pending_partitions.find(pid) == pending_partitions.end());
+#endif
+      pending_partitions[pid] = RtUserEvent::NO_RT_USER_EVENT;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::record_pending_field_space(DistributedID space)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      // We should be the owner for this space
+      assert((space % total_address_spaces) == address_space);
+#endif
+      AutoLock l_lock(lookup_lock);
+#ifdef DEBUG_LEGION
+      assert(pending_field_spaces.find(space) == pending_field_spaces.end());
+#endif
+      pending_field_spaces[space] = RtUserEvent::NO_RT_USER_EVENT;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::record_pending_region_tree(RegionTreeID tid)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      // We should be the owner for this space
+      assert((tid % total_address_spaces) == address_space);
+#endif
+      AutoLock l_lock(lookup_lock);
+#ifdef DEBUG_LEGION
+      assert(pending_region_trees.find(tid) == pending_region_trees.end());
+#endif
+      pending_region_trees[tid] = RtUserEvent::NO_RT_USER_EVENT;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::revoke_pending_index_space(DistributedID space)
+    //--------------------------------------------------------------------------
+    {
+      RtUserEvent to_trigger;
+      {
+        AutoLock l_lock(lookup_lock);
+        std::map<DistributedID,RtUserEvent>::iterator finder = 
+          pending_index_spaces.find(space);
+#ifdef DEBUG_LEGION
+        assert(finder != pending_index_spaces.end());
+#endif
+        to_trigger = finder->second;
+        pending_index_spaces.erase(finder);
+      }
+      if (to_trigger.exists())
+        Runtime::trigger_event(to_trigger);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::revoke_pending_partition(DistributedID pid)
+    //--------------------------------------------------------------------------
+    {
+      RtUserEvent to_trigger;
+      {
+        AutoLock l_lock(lookup_lock);
+        std::map<DistributedID,RtUserEvent>::iterator finder = 
+          pending_partitions.find(pid);
+#ifdef DEBUG_LEGION
+        assert(finder != pending_partitions.end());
+#endif
+        to_trigger = finder->second;
+        pending_partitions.erase(finder);
+      }
+      if (to_trigger.exists())
+        Runtime::trigger_event(to_trigger);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::revoke_pending_field_space(DistributedID space)
+    //--------------------------------------------------------------------------
+    {
+      RtUserEvent to_trigger;
+      {
+        AutoLock l_lock(lookup_lock);
+        std::map<DistributedID,RtUserEvent>::iterator finder = 
+          pending_field_spaces.find(space);
+#ifdef DEBUG_LEGION
+        assert(finder != pending_field_spaces.end());
+#endif
+        to_trigger = finder->second;
+        pending_field_spaces.erase(finder);
+      }
+      if (to_trigger.exists())
+        Runtime::trigger_event(to_trigger);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::revoke_pending_region_tree(RegionTreeID tid)
+    //--------------------------------------------------------------------------
+    {
+      RtUserEvent to_trigger;
+      {
+        AutoLock l_lock(lookup_lock);
+        std::map<RegionTreeID,RtUserEvent>::iterator finder = 
+          pending_region_trees.find(tid);
+#ifdef DEBUG_LEGION
+        assert(finder != pending_region_trees.end());
+#endif
+        to_trigger = finder->second;
+        pending_region_trees.erase(finder);
+      }
+      if (to_trigger.exists())
+        Runtime::trigger_event(to_trigger);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_top_level_index_space(IndexSpace handle)
+    //--------------------------------------------------------------------------
+    {
+      return (get_node(handle)->parent == NULL);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_top_level_region(LogicalRegion handle)
+    //--------------------------------------------------------------------------
+    {
+      return (get_node(handle)->parent == NULL);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_subregion(LogicalRegion child, 
+                                        LogicalRegion parent)
+    //--------------------------------------------------------------------------
+    {
+      if (child == parent)
+        return true;
+      if (child.get_tree_id() != parent.get_tree_id())
+        return false;
+      return has_index_path(parent.get_index_space(), child.get_index_space());
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_subregion(LogicalRegion child,
+                                        LogicalPartition parent)
+    //--------------------------------------------------------------------------
+    {
+      if (child.get_tree_id() != parent.get_tree_id())
+        return false;
+      RegionNode *child_node = get_node(child);
+      PartitionNode *parent_node = get_node(parent);
+      while (child_node->parent != NULL)
+      {
+        if (child_node->parent == parent_node)
+          return true;
+        child_node = child_node->parent->parent;
+      }
+      return false;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_disjoint(IndexPartition handle)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *node = get_node(handle);
+      return node->is_disjoint(true/*app query*/);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_disjoint(LogicalPartition handle)
+    //--------------------------------------------------------------------------
+    {
+      return is_disjoint(handle.get_index_partition());
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::are_disjoint(IndexSpace one, IndexSpace two)
+    //--------------------------------------------------------------------------
+    {
+      if (one == two)
+        return false;
+      if (one.get_tree_id() != two.get_tree_id())
+        return true;
+      // See if they intersect with each other
+      IndexSpaceNode *sp_one = get_node(one);
+      IndexSpaceNode *sp_two = get_node(two);
+      return !sp_one->intersects_with(sp_two);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::are_disjoint(IndexSpace one, IndexPartition two)
+    //--------------------------------------------------------------------------
+    {
+      if (one.get_tree_id() != two.get_tree_id())
+        return true;
+      IndexSpaceNode *space_node = get_node(one);
+      IndexPartNode *part_node = get_node(two);
+      return !space_node->intersects_with(part_node);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::are_disjoint(IndexPartition one, IndexPartition two)
+    //--------------------------------------------------------------------------
+    {
+      if (one == two)
+        return false;
+      if (one.get_tree_id() != two.get_tree_id())
+        return true;
+      IndexPartNode *part_one = get_node(one);
+      IndexPartNode *part_two = get_node(two);
+      return !part_one->intersects_with(part_two);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::are_disjoint_tree_only(IndexTreeNode *one,
+                            IndexTreeNode *two, IndexTreeNode *&common_ancestor)
+    //--------------------------------------------------------------------------
+    {
+      if (one == two)
+      {
+        common_ancestor = one;
+        return false;
+      }
+      // Some older code still relies on us being able to prove that two index
+      // spaces are non-interfering with each other without using the tree so
+      // we still check that even if we can't prove it with just the tree
+      IndexSpaceNode *original_one = NULL, *original_two = NULL;
+      if (one->is_index_space_node())
+        original_one = one->as_index_space_node();
+      if (two->is_index_space_node())
+        original_two = two->as_index_space_node();
+      // Bring them to the same depth
+      while (one->depth < two->depth)
+        two = two->get_parent();
+      while (two->depth < one->depth)
+        one = one->get_parent();
+#ifdef DEBUG_LEGION
+      assert(one->depth == two->depth);
+#endif
+      // Test again
+      if (one == two)
+      {
+        common_ancestor = one;
+        return false;
+      }
+      // Same depth, not the same node
+      IndexTreeNode *parent_one = one->get_parent();
+      IndexTreeNode *parent_two = two->get_parent();
+      while (parent_one != parent_two)
+      {
+        one = parent_one;
+        parent_one = one->get_parent();
+        two = parent_two;
+        parent_two = two->get_parent();
+      }
+#ifdef DEBUG_LEGION
+      assert(parent_one == parent_two);
+      assert(one != two); // can't be the same child
+#endif
+      // Now we have the common ancestor, see if the two children are disjoint
+      if (parent_one->is_index_space_node())
+      {
+        if (parent_one->as_index_space_node()->are_disjoint(one->color, 
+                                                            two->color))
+          return true;
+      }
+      else
+      {
+        if (parent_one->as_index_part_node()->are_disjoint(one->color, 
+                                                           two->color))
+          return true;
+      }
+      // Test if two index spaces are interfering without using the tree
+      if ((original_one != NULL) && (original_two != NULL))
+      {
+        IndexSpaceExpression *intersection =
+          intersect_index_spaces(original_one, original_two);
+        if (intersection->is_empty())
+          return true;
+      }
+      common_ancestor = parent_one;
+      return false;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::check_types(TypeTag t1, TypeTag t2, bool &diff_dims)
+    //--------------------------------------------------------------------------
+    {
+      if (t1 == t2)
+        return true;
+      const int d1 = NT_TemplateHelper::get_dim(t1); 
+      const int d2 = NT_TemplateHelper::get_dim(t2);
+      diff_dims = (d1 != d2);
+      return false;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_dominated(IndexSpace src, IndexSpace dst)
+    //--------------------------------------------------------------------------
+    {
+      // Check to see if dst is dominated by source
+#ifdef DEBUG_LEGION
+      assert(src.get_type_tag() == dst.get_type_tag());
+#endif
+      IndexSpaceNode *src_node = get_node(src);
+      IndexSpaceNode *dst_node = get_node(dst);
+      return src_node->dominates(dst_node);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_dominated_tree_only(IndexSpace test,
+                                                  IndexPartition dominator)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(test.get_tree_id() == dominator.get_tree_id());
+#endif
+      IndexSpaceNode *node = get_node(test);
+      IndexPartNode *const dom = get_node(dominator);
+      while (node->depth > (dom->depth + 1))
+      {
+#ifdef DEBUG_LEGION
+        assert(node->parent != NULL);
+#endif
+        node = node->parent->parent;
+      }
+      if (node->parent == dom)
+        return true;
+      else
+        return false;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_dominated_tree_only(IndexPartition test,
+                                                  IndexSpace dominator)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(test.get_tree_id() == dominator.get_tree_id());
+#endif
+      IndexPartNode *node = get_node(test);
+      IndexSpaceNode *const dom = get_node(dominator);
+      while (node->depth > (dom->depth + 1))
+      {
+#ifdef DEBUG_LEGION
+        assert(node->parent != NULL);
+#endif
+        node = node->parent->parent;
+      }
+      if (node->parent == dom)
+        return true;
+      else
+        return false;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_dominated_tree_only(IndexPartition test,
+                                                  IndexPartition dominator)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(test.get_tree_id() == dominator.get_tree_id());
+#endif
+      IndexPartNode *node = get_node(test);
+      IndexPartNode *const dom = get_node(dominator);
+      while (node->depth > dom->depth)
+      {
+#ifdef DEBUG_LEGION
+        assert(node->parent != NULL);
+#endif
+        node = node->parent->parent;
+      }
+      if (node == dom)
+        return true;
+      else
+        return false;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_index_path(IndexSpace parent, IndexSpace child)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceNode *child_node = get_node(child); 
+      if (parent == child) 
+        return true; // Early out
+      IndexSpaceNode *parent_node = get_node(parent);
+      while (parent_node != child_node)
+      {
+        if (parent_node->depth >= child_node->depth)
+          return false;
+        if (child_node->parent == NULL)
+          return false;
+        child_node = child_node->parent->parent;
+      }
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::has_partition_path(IndexSpace parent, IndexPartition child)
+    //--------------------------------------------------------------------------
+    {
+      IndexPartNode *child_node = get_node(child);
+      if (child_node->parent == NULL)
+        return false;
+      return has_index_path(parent, child_node->parent->handle);
+    }
+
+    //--------------------------------------------------------------------------
+    unsigned Runtime::get_projection_depth(LogicalRegion result,
+                                                    LogicalRegion upper)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode *start = get_node(result);
+      RegionNode *finish = get_node(upper);
+      unsigned depth = 0;
+      while (start != finish)
+      {
+        assert(start->get_depth() > finish->get_depth());
+        start = start->parent->parent;
+        depth++;
+      }
+      return depth;
+    }
+
+    //--------------------------------------------------------------------------
+    unsigned Runtime::get_projection_depth(LogicalRegion result,
+                                                    LogicalPartition upper)
+    //--------------------------------------------------------------------------
+    {
+      RegionNode *start = get_node(result);
+      assert(start->parent != NULL);
+      PartitionNode *finish = get_node(upper);
+      unsigned depth = 0;
+      while (start->parent != finish)
+      {
+        assert(start->parent->get_depth() > finish->get_depth());
+        start = start->parent->parent;
+        depth++;
+        assert(start->parent != NULL);
+      }
+      return depth;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* Runtime::union_index_spaces(
+                           IndexSpaceExpression *lhs, IndexSpaceExpression *rhs)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(lhs->type_tag == rhs->type_tag);
+      assert(lhs->is_valid());
+      assert(rhs->is_valid());
+#endif
+      if (lhs == rhs)
+      {
+        lhs->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(lhs);
+        return lhs;
+      }
+      if (lhs->is_empty())
+      {
+        rhs->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(rhs);
+        return rhs;
+      }
+      if (rhs->is_empty())
+      {
+        lhs->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(lhs);
+        return lhs;
+      }
+      IndexSpaceExpression *result = lhs->inline_union(rhs);
+      if (result == NULL)
+      {
+        IndexSpaceExpression *lhs_canon = lhs->get_canonical_expression();
+        IndexSpaceExpression *rhs_canon = rhs->get_canonical_expression();
+        if (lhs_canon == rhs_canon)
+          return lhs;
+        std::vector<IndexSpaceExpression*> exprs(2);
+        if (compare_expressions(lhs_canon, rhs_canon))
+        {
+          exprs[0] = lhs_canon;
+          exprs[1] = rhs_canon;
+        }
+        else
+        {
+          exprs[0] = rhs_canon;
+          exprs[1] = lhs_canon;
+        }
+        result = union_index_spaces(exprs);
+      }
+      else
+      {
+        result->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(result);
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* Runtime::union_index_spaces(
+                                   const std::set<IndexSpaceExpression*> &exprs)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(!exprs.empty());
+      for (std::set<IndexSpaceExpression*>::const_iterator it =
+            exprs.begin(); it != exprs.end(); it++)
+        assert((*it)->is_valid());
+#endif
+      if (exprs.size() == 1)
+      {
+        IndexSpaceExpression *result = *(exprs.begin());
+        result->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(result);
+        return result;
+      }
+      IndexSpaceExpression *result = (*exprs.begin())->inline_union(exprs);
+      if (result != NULL)
+      {
+        result->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(result);
+        return result;
+      }
+      std::vector<IndexSpaceExpression*> expressions;
+      expressions.reserve(exprs.size());
+      for (std::set<IndexSpaceExpression*>::const_iterator it = 
+            exprs.begin(); it != exprs.end(); it++)
+      {
+        // Remove any empty expressions on the way in
+        if (!(*it)->is_empty())
+          expressions.push_back((*it)->get_canonical_expression());
+      }
+      if (expressions.empty())
+      {
+        IndexSpaceExpression *result = *(exprs.begin());
+        result->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(result);
+        return result;
+      }
+      if (expressions.size() == 1)
+      {
+        IndexSpaceExpression *result = expressions.back();
+        result->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(result);
+        return result;
+      }
+      // sort them in order by their IDs
+      std::sort(expressions.begin(), expressions.end(), compare_expressions);
+      // remove duplicates
+      std::vector<IndexSpaceExpression*>::iterator last =
+        std::unique(expressions.begin(), expressions.end());
+      if (last != expressions.end())
+      {
+        expressions.erase(last, expressions.end());
+#ifdef DEBUG_LEGION
+        assert(!expressions.empty());
+#endif
+        if (expressions.size() == 1)
+        {
+          IndexSpaceExpression *result = expressions.back();
+          result->add_base_expression_reference(LIVE_EXPR_REF);
+          ImplicitReferenceTracker::record_live_expression(result);
+          return expressions.back();
+        }
+      }
+      bool first_pass = true;
+      // this helps make sure we don't overflow our stack
+      while (expressions.size() > MAX_EXPRESSION_FANOUT)
+      {
+        std::vector<IndexSpaceExpression*> next_expressions;
+        while (!expressions.empty())
+        {
+          if (expressions.size() > 1)
+          {
+            std::vector<IndexSpaceExpression*> temp_expressions;
+            temp_expressions.reserve(MAX_EXPRESSION_FANOUT);
+            // Pop up to 32 expressions off the back
+            for (unsigned idx = 0; idx < MAX_EXPRESSION_FANOUT; idx++)
+            {
+              temp_expressions.push_back(expressions.back());
+              expressions.pop_back();
+              if (expressions.empty())
+                break;
+            }
+            IndexSpaceExpression *expr = union_index_spaces(temp_expressions);
+            expr->add_base_expression_reference(REGION_TREE_REF);
+            next_expressions.push_back(expr);
+          }
+          else
+          {
+            IndexSpaceExpression *expr = expressions.back();
+            expressions.pop_back();
+            expr->add_base_expression_reference(REGION_TREE_REF);
+            next_expressions.push_back(expr);
+          }
+        }
+        if (!first_pass)
+        {
+          // Remove the expression references on the previous set
+          for (std::vector<IndexSpaceExpression*>::const_iterator it =
+                expressions.begin(); it != expressions.end(); it++)
+            if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
+              delete (*it);
+        }
+        else
+          first_pass = false;
+        expressions.swap(next_expressions);
+        // canonicalize and uniquify them all again
+        std::set<IndexSpaceExpression*,CompareExpressions> unique_expressions;
+        for (unsigned idx = 0; idx < expressions.size(); idx++)
+        {
+          IndexSpaceExpression *expr = expressions[idx];
+          IndexSpaceExpression *unique = expr->get_canonical_expression();
+          if (unique_expressions.insert(unique).second)
+            unique->add_base_expression_reference(REGION_TREE_REF);
+        }
+        // Remove the expression references
+        for (std::vector<IndexSpaceExpression*>::const_iterator it =
+              expressions.begin(); it != expressions.end(); it++)
+          if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
+            delete (*it);
+        if (unique_expressions.size() == 1)
+        {
+          IndexSpaceExpression *result = *(unique_expressions.begin());
+          if (exprs.find(result) == exprs.end())
+          {
+            result->add_base_expression_reference(LIVE_EXPR_REF);
+            ImplicitReferenceTracker::record_live_expression(result);
+          }
+          // Remove the extra expression reference we added
+          if (result->remove_base_expression_reference(REGION_TREE_REF))
+            assert(false); // should never hit this
+          return result; 
+        }
+        expressions.resize(unique_expressions.size());
+        unsigned index = 0;
+        for (std::set<IndexSpaceExpression*,CompareExpressions>::const_iterator
+              it = unique_expressions.begin(); 
+              it != unique_expressions.end(); it++)
+          expressions[index++] = *it;
+      }
+      result = union_index_spaces(expressions);
+      result->add_base_expression_reference(LIVE_EXPR_REF);
+      ImplicitReferenceTracker::record_live_expression(result);
+      if (!first_pass)
+      {
+        // Remove the extra references on the expression vector we added
+        for (std::vector<IndexSpaceExpression*>::const_iterator it =
+              expressions.begin(); it != expressions.end(); it++)
+          if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
+            delete (*it);
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* Runtime::union_index_spaces(
+                          const std::vector<IndexSpaceExpression*> &expressions,
+                          OperationCreator *creator /*=NULL*/)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(expressions.size() >= 2);
+      assert(expressions.size() <= MAX_EXPRESSION_FANOUT);
+#endif
+      IndexSpaceExpression *first = expressions[0];
+      const IndexSpaceExprID key = first->expr_id;
+      // See if we can find it in read-only mode
+      {
+        AutoLock l_lock(lookup_is_op_lock,1,false/*exclusive*/);
+        std::map<IndexSpaceExprID,ExpressionTrieNode*>::const_iterator 
+          finder = union_ops.find(key);
+        if (finder != union_ops.end())
+        {
+          IndexSpaceExpression *result = NULL;
+          ExpressionTrieNode *next = NULL;
+          if (finder->second->find_operation(expressions, result, next) &&
+              result->try_add_live_reference())
+            return result;
+          if (creator == NULL)
+          {
+            UnionOpCreator union_creator(first->type_tag, expressions);
+            return next->find_or_create_operation(expressions, union_creator);
+          }
+          else
+            return next->find_or_create_operation(expressions, *creator);
+        }
+      }
+      ExpressionTrieNode *node = NULL;
+      if (creator == NULL)
+      {
+        UnionOpCreator union_creator(first->type_tag, expressions);
+        // Didn't find it, retake the lock, see if we lost the race
+        // and if no make the actual trie node
+        AutoLock l_lock(lookup_is_op_lock);
+        std::map<IndexSpaceExprID,ExpressionTrieNode*>::const_iterator 
+          finder = union_ops.find(key);
+        if (finder == union_ops.end())
+        {
+          // Didn't lose the race, so make the node
+          node = new ExpressionTrieNode(0/*depth*/, first->expr_id);
+          union_ops[key] = node;
+        }
+        else
+          node = finder->second;
+#ifdef DEBUG_LEGION
+        assert(node != NULL);
+#endif
+        return node->find_or_create_operation(expressions, union_creator);
+      }
+      else
+      {
+        // Didn't find it, retake the lock, see if we lost the race
+        // and if no make the actual trie node
+        AutoLock l_lock(lookup_is_op_lock);
+        std::map<IndexSpaceExprID,ExpressionTrieNode*>::const_iterator 
+          finder = union_ops.find(key);
+        if (finder == union_ops.end())
+        {
+          // Didn't lose the race, so make the node
+          node = new ExpressionTrieNode(0/*depth*/, first->expr_id);
+          union_ops[key] = node;
+        }
+        else
+          node = finder->second;
+#ifdef DEBUG_LEGION
+        assert(node != NULL);
+#endif
+        return node->find_or_create_operation(expressions, *creator);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* Runtime::intersect_index_spaces(
+                           IndexSpaceExpression *lhs, IndexSpaceExpression *rhs)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(lhs->type_tag == rhs->type_tag);
+      assert(lhs->is_valid());
+      assert(rhs->is_valid());
+#endif
+      if (lhs == rhs)
+      {
+        lhs->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(lhs);
+        return lhs;
+      }
+      if (lhs->is_empty())
+      {
+        lhs->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(lhs);
+        return lhs;
+      }
+      if (rhs->is_empty())
+      {
+        rhs->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(rhs);
+        return rhs;
+      }
+      IndexSpaceExpression *result = lhs->inline_intersection(rhs);
+      if (result == NULL)
+      {
+        IndexSpaceExpression *lhs_canon = lhs->get_canonical_expression();
+        IndexSpaceExpression *rhs_canon = rhs->get_canonical_expression();
+        if (lhs_canon == rhs_canon)
+          return lhs;
+        std::vector<IndexSpaceExpression*> exprs(2);
+        if (compare_expressions(lhs_canon, rhs_canon))
+        {
+          exprs[0] = lhs_canon;
+          exprs[1] = rhs_canon;
+        }
+        else
+        {
+          exprs[0] = rhs_canon;
+          exprs[1] = lhs_canon;
+        }
+        result = intersect_index_spaces(exprs);
+      }
+      else
+      {
+        result->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(result);
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* Runtime::intersect_index_spaces(
+                                   const std::set<IndexSpaceExpression*> &exprs)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(!exprs.empty());
+      for (std::set<IndexSpaceExpression*>::const_iterator it =
+            exprs.begin(); it != exprs.end(); it++)
+        assert((*it)->is_valid());
+#endif
+      if (exprs.size() == 1)
+      {
+        IndexSpaceExpression *result = *(exprs.begin());
+        result->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(result);
+        return result;
+      }
+      IndexSpaceExpression *result = 
+        (*exprs.begin())->inline_intersection(exprs);
+      if (result != NULL)
+      {
+        result->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(result);
+        return result;
+      }
+      std::vector<IndexSpaceExpression*> expressions(exprs.begin(),exprs.end());
+      // Do a quick pass to see if any of them are empty in which case we
+      // know that the result of the whole intersection is empty
+      for (unsigned idx = 0; idx < expressions.size(); idx++)
+      {
+        IndexSpaceExpression *&expr = expressions[idx];
+        if (expr->is_empty())
+        {
+          expr->add_base_expression_reference(LIVE_EXPR_REF);
+          ImplicitReferenceTracker::record_live_expression(expr);
+          return expr;
+        }
+        expr = expr->get_canonical_expression();
+      }
+      // sort them in order by their IDs
+      std::sort(expressions.begin(), expressions.end(), compare_expressions);
+      // remove duplicates
+      std::vector<IndexSpaceExpression*>::iterator last =
+        std::unique(expressions.begin(), expressions.end());
+      if (last != expressions.end())
+      {
+        expressions.erase(last, expressions.end());
+#ifdef DEBUG_LEGION
+        assert(!expressions.empty());
+#endif
+        if (expressions.size() == 1)
+        {
+          IndexSpaceExpression *result = expressions.back();
+          result->add_base_expression_reference(LIVE_EXPR_REF);
+          ImplicitReferenceTracker::record_live_expression(result);
+          return result;
+        }
+      }
+      bool first_pass = true;
+      // this helps make sure we don't overflow our stack
+      while (expressions.size() > MAX_EXPRESSION_FANOUT)
+      {
+        std::vector<IndexSpaceExpression*> next_expressions;
+        while (!expressions.empty())
+        {
+          if (expressions.size() > 1)
+          {
+            std::vector<IndexSpaceExpression*> temp_expressions;
+            temp_expressions.reserve(MAX_EXPRESSION_FANOUT);
+            // Pop up to 32 expressions off the back
+            for (unsigned idx = 0; idx < MAX_EXPRESSION_FANOUT; idx++)
+            {
+              temp_expressions.push_back(expressions.back());
+              expressions.pop_back();
+              if (expressions.empty())
+                break;
+            }
+            IndexSpaceExpression *expr =
+              intersect_index_spaces(temp_expressions);
+            expr->add_base_expression_reference(REGION_TREE_REF);
+            next_expressions.push_back(expr);
+          }
+          else
+          {
+            IndexSpaceExpression *expr = expressions.back();
+            expressions.pop_back();
+            expr->add_base_expression_reference(REGION_TREE_REF);
+            next_expressions.push_back(expr);
+          }
+        }
+        if (!first_pass)
+        {
+          // Remove the expression references on the previous set
+          for (std::vector<IndexSpaceExpression*>::const_iterator it =
+                expressions.begin(); it != expressions.end(); it++)
+            if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
+              delete (*it);
+        }
+        else
+          first_pass = false;
+        expressions.swap(next_expressions);
+        // canonicalize and uniquify them all again
+        std::set<IndexSpaceExpression*,CompareExpressions> unique_expressions;
+        for (unsigned idx = 0; idx < expressions.size(); idx++)
+        {
+          IndexSpaceExpression *expr = expressions[idx];
+          IndexSpaceExpression *unique = expr->get_canonical_expression();
+          if (unique->is_empty())
+          {
+            // Add a reference to the unique expression
+            unique->add_base_expression_reference(LIVE_EXPR_REF);
+            ImplicitReferenceTracker::record_live_expression(unique);
+            // Remove references on all the things we no longer need
+            for (std::set<IndexSpaceExpression*,CompareExpressions>::
+                  const_iterator it = unique_expressions.begin(); it !=
+                  unique_expressions.end(); it++)
+              if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
+                delete (*it);
+            for (std::vector<IndexSpaceExpression*>::const_iterator it =
+                  expressions.begin(); it != expressions.end(); it++)
+              if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
+                delete (*it);
+            return unique;
+          }
+          if (unique_expressions.insert(unique).second)
+            unique->add_base_expression_reference(REGION_TREE_REF);
+        }
+        // Remove the expression references
+        for (std::vector<IndexSpaceExpression*>::const_iterator it =
+              expressions.begin(); it != expressions.end(); it++)
+          if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
+            delete (*it);
+        if (unique_expressions.size() == 1)
+        {
+          IndexSpaceExpression *result = *(unique_expressions.begin());
+          result->add_base_expression_reference(LIVE_EXPR_REF);
+          ImplicitReferenceTracker::record_live_expression(result);
+          // Remove the extra expression reference we added
+          if (result->remove_base_expression_reference(REGION_TREE_REF))
+            assert(false); // should never hit this
+          return result; 
+        }
+        expressions.resize(unique_expressions.size());
+        unsigned index = 0;
+        for (std::set<IndexSpaceExpression*,CompareExpressions>::const_iterator
+              it = unique_expressions.begin(); 
+              it != unique_expressions.end(); it++)
+          expressions[index++] = *it;
+      }
+      result = intersect_index_spaces(expressions);
+      result->add_base_expression_reference(LIVE_EXPR_REF);
+      ImplicitReferenceTracker::record_live_expression(result);
+      if (!first_pass)
+      {
+        // Remove the extra references on the expression vector we added
+        for (std::vector<IndexSpaceExpression*>::const_iterator it =
+              expressions.begin(); it != expressions.end(); it++)
+          if ((*it)->remove_base_expression_reference(REGION_TREE_REF))
+            delete (*it);
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* Runtime::intersect_index_spaces(
+                          const std::vector<IndexSpaceExpression*> &expressions,
+                          OperationCreator *creator /*=NULL*/)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(expressions.size() >= 2);
+      assert(expressions.size() <= MAX_EXPRESSION_FANOUT);
+#endif
+      IndexSpaceExpression *first = expressions[0];
+      const IndexSpaceExprID key = first->expr_id;
+      // See if we can find it in read-only mode
+      {
+        AutoLock l_lock(lookup_is_op_lock,1,false/*exclusive*/);
+        std::map<IndexSpaceExprID,ExpressionTrieNode*>::const_iterator 
+          finder = intersection_ops.find(key);
+        if (finder != intersection_ops.end())
+        {
+          IndexSpaceExpression *result = NULL;
+          ExpressionTrieNode *next = NULL;
+          if (finder->second->find_operation(expressions, result, next) &&
+              result->try_add_live_reference())
+            return result;
+          if (creator == NULL)
+          {
+            IntersectionOpCreator inter_creator(first->type_tag, 
+                                                expressions);
+            return next->find_or_create_operation(expressions, inter_creator);
+          }
+          else
+            return next->find_or_create_operation(expressions, *creator);
+        }
+      }
+      ExpressionTrieNode *node = NULL;
+      if (creator == NULL)
+      {
+        IntersectionOpCreator inter_creator(first->type_tag, expressions);
+        // Didn't find it, retake the lock, see if we lost the race
+        // and if not make the actual trie node
+        AutoLock l_lock(lookup_is_op_lock);
+        // See if we lost the race
+        std::map<IndexSpaceExprID,ExpressionTrieNode*>::const_iterator 
+          finder = intersection_ops.find(key);
+        if (finder == intersection_ops.end())
+        {
+          // Didn't lose the race so make the node
+          node = new ExpressionTrieNode(0/*depth*/, first->expr_id);
+          intersection_ops[key] = node;
+        }
+        else
+          node = finder->second;
+#ifdef DEBUG_LEGION
+        assert(node != NULL); 
+#endif
+        return node->find_or_create_operation(expressions, inter_creator);
+      }
+      else
+      {
+        // Didn't find it, retake the lock, see if we lost the race
+        // and if not make the actual trie node
+        AutoLock l_lock(lookup_is_op_lock);
+        // See if we lost the race
+        std::map<IndexSpaceExprID,ExpressionTrieNode*>::const_iterator 
+          finder = intersection_ops.find(key);
+        if (finder == intersection_ops.end())
+        {
+          // Didn't lose the race so make the node
+          node = new ExpressionTrieNode(0/*depth*/, first->expr_id);
+          intersection_ops[key] = node;
+        }
+        else
+          node = finder->second;
+#ifdef DEBUG_LEGION
+        assert(node != NULL); 
+#endif
+        return node->find_or_create_operation(expressions, *creator);
+      }
+    }
+    
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* Runtime::subtract_index_spaces(
+                           IndexSpaceExpression *lhs, IndexSpaceExpression *rhs,
+                           OperationCreator *creator/*=NULL*/)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(lhs->type_tag == rhs->type_tag);
+      assert(lhs->is_valid());
+      assert(rhs->is_valid());
+#endif
+      // Handle a few easy cases
+      if (creator == NULL)
+      {
+        if (lhs->is_empty())
+        {
+          lhs->add_base_expression_reference(LIVE_EXPR_REF);
+          ImplicitReferenceTracker::record_live_expression(lhs);
+          return lhs;
+        }
+        if (rhs->is_empty())
+        {
+          rhs->add_base_expression_reference(LIVE_EXPR_REF);
+          ImplicitReferenceTracker::record_live_expression(rhs);
+          return lhs;
+        }
+      }
+      IndexSpaceExpression *result = lhs->inline_subtraction(rhs);
+      if (result != NULL)
+      {
+        result->add_base_expression_reference(LIVE_EXPR_REF);
+        ImplicitReferenceTracker::record_live_expression(result);
+        return result;
+      }
+      std::vector<IndexSpaceExpression*> expressions(2);
+      expressions[0] = lhs->get_canonical_expression();
+      expressions[1] = rhs->get_canonical_expression();
+      const IndexSpaceExprID key = expressions[0]->expr_id;
+      // See if we can find it in read-only mode
+      {
+        AutoLock l_lock(lookup_is_op_lock,1,false/*exclusive*/);
+        std::map<IndexSpaceExprID,ExpressionTrieNode*>::const_iterator 
+          finder = difference_ops.find(key);
+        if (finder != difference_ops.end())
+        {
+          IndexSpaceExpression *expr = NULL;
+          ExpressionTrieNode *next = NULL;
+          if (finder->second->find_operation(expressions, expr, next) &&
+              expr->try_add_live_reference())
+            result = expr;
+          if (result == NULL)
+          {
+            if (creator == NULL)
+            {
+              DifferenceOpCreator diff_creator(lhs->type_tag, 
+                                    expressions[0], expressions[1]);
+              result = next->find_or_create_operation(expressions,diff_creator);
+            }
+            else
+              result = next->find_or_create_operation(expressions, *creator);
+          }
+        }
+      }
+      if (result == NULL)
+      {
+        ExpressionTrieNode *node = NULL;
+        if (creator == NULL)
+        {
+          DifferenceOpCreator diff_creator(lhs->type_tag,
+                                expressions[0], expressions[1]);
+          // Didn't find it, retake the lock, see if we lost the race
+          // and if not make the actual trie node
+          AutoLock l_lock(lookup_is_op_lock);
+          // See if we lost the race
+          std::map<IndexSpaceExprID,ExpressionTrieNode*>::const_iterator 
+            finder = difference_ops.find(key);
+          if (finder == difference_ops.end())
+          {
+            // Didn't lose the race so make the node
+            node = new ExpressionTrieNode(0/*depth*/, expressions[0]->expr_id);
+            difference_ops[key] = node;
+          }
+          else
+            node = finder->second;
+#ifdef DEBUG_LEGION
+          assert(node != NULL);
+#endif
+          result = node->find_or_create_operation(expressions, diff_creator);
+        }
+        else
+        {
+          // Didn't find it, retake the lock, see if we lost the race
+          // and if not make the actual trie node
+          AutoLock l_lock(lookup_is_op_lock);
+          // See if we lost the race
+          std::map<IndexSpaceExprID,ExpressionTrieNode*>::const_iterator 
+            finder = difference_ops.find(key);
+          if (finder == difference_ops.end())
+          {
+            // Didn't lose the race so make the node
+            node = new ExpressionTrieNode(0/*depth*/, expressions[0]->expr_id);
+            difference_ops[key] = node;
+          }
+          else
+            node = finder->second;
+#ifdef DEBUG_LEGION
+          assert(node != NULL);
+#endif
+          result = node->find_or_create_operation(expressions, *creator);
+        }
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* Runtime::find_canonical_expression(
+                                                     IndexSpaceExpression *expr)
+    //--------------------------------------------------------------------------
+    {
+      // we'll hash expressions based on the number of dimensions and points
+      // to try to get an early separation for them for testing congruence
+      if (expr->is_empty())
+        return expr;
+      const uint64_t hash_key = expr->get_canonical_hash();
+      AutoLock c_lock(congruence_lock);
+      return expr->find_congruent_expression(canonical_expressions[hash_key]);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_canonical_expression(IndexSpaceExpression *expr)
+    //--------------------------------------------------------------------------
+    {
+      // Nothing to do for empty expressions
+      if (expr->is_empty())
+        return;
+      const uint64_t hash_key = expr->get_canonical_hash();
+      AutoLock c_lock(congruence_lock);
+      std::unordered_map<uint64_t,CanonicalSet>::iterator finder =
+        canonical_expressions.find(hash_key);
+#ifdef DEBUG_LEGION
+      assert(finder != canonical_expressions.end());
+#ifndef NDEBUG
+      const bool found = 
+#endif
+#endif
+      finder->second.erase(expr);
+#ifdef DEBUG_LEGION
+      assert(found);
+#endif
+      if (finder->second.empty())
+        canonical_expressions.erase(finder);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_union_operation(IndexSpaceOperation *op,
+                                const std::vector<IndexSpaceExpression*> &exprs)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(op->op_kind == IndexSpaceOperation::UNION_OP_KIND);
+#endif
+      const IndexSpaceExprID key = exprs[0]->expr_id;
+      AutoLock l_lock(lookup_is_op_lock);
+      std::map<IndexSpaceExprID,ExpressionTrieNode*>::iterator 
+        finder = union_ops.find(key);
+#ifdef DEBUG_LEGION
+      assert(finder != union_ops.end());
+#endif
+      if (finder->second->remove_operation(exprs))
+      {
+        delete finder->second;
+        union_ops.erase(finder);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_intersection_operation(
+       IndexSpaceOperation *op, const std::vector<IndexSpaceExpression*> &exprs)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(op->op_kind == IndexSpaceOperation::INTERSECT_OP_KIND);
+#endif
+      const IndexSpaceExprID key(exprs[0]->expr_id);
+      AutoLock l_lock(lookup_is_op_lock);
+      std::map<IndexSpaceExprID,ExpressionTrieNode*>::iterator 
+        finder = intersection_ops.find(key);
+#ifdef DEBUG_LEGION
+      assert(finder != intersection_ops.end());
+#endif
+      if (finder->second->remove_operation(exprs))
+      {
+        delete finder->second;
+        intersection_ops.erase(finder);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::remove_subtraction_operation(IndexSpaceOperation *op,
+                           IndexSpaceExpression *lhs, IndexSpaceExpression *rhs)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(op->op_kind == IndexSpaceOperation::DIFFERENCE_OP_KIND);
+#endif
+      const IndexSpaceExprID key = lhs->expr_id;
+      std::vector<IndexSpaceExpression*> exprs(2);
+      exprs[0] = lhs;
+      exprs[1] = rhs;
+      AutoLock l_lock(lookup_is_op_lock);
+      std::map<IndexSpaceExprID,ExpressionTrieNode*>::iterator 
+        finder = difference_ops.find(key);
+#ifdef DEBUG_LEGION
+      assert(finder != difference_ops.end());
+#endif
+      if (finder->second->remove_operation(exprs))
+      {
+        delete finder->second;
+        difference_ops.erase(finder);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExpression* Runtime::find_or_create_remote_expression(
+            IndexSpaceExprID remote_expr_id, Deserializer &derez, bool &created)
+    //--------------------------------------------------------------------------
+    {
+      // See if we can find it with the read-only lock first
+      {
+        AutoLock l_lock(lookup_is_op_lock, 1, false/*exclusive*/);
+        std::map<IndexSpaceExprID,IndexSpaceExpression*>::const_iterator 
+          finder = remote_expressions.find(remote_expr_id);
+        if (finder != remote_expressions.end())
+        {
+          created = false;
+          finder->second->skip_unpack_expression(derez);
+          return finder->second;
+        }
+      }
+      // Take the lock in exclusive mode and see if we lost the race
+      AutoLock l_lock(lookup_is_op_lock);
+      std::map<IndexSpaceExprID,IndexSpaceExpression*>::const_iterator 
+        finder = remote_expressions.find(remote_expr_id);
+      if (finder != remote_expressions.end())
+      {
+        created = false;
+        finder->second->skip_unpack_expression(derez);
+        return finder->second;
+      }
+      // If we didn't lose the lock then we can make the instance
+      created = true;
+      TypeTag type_tag;
+      derez.deserialize(type_tag);
+      RemoteExpressionCreator creator(remote_expr_id, type_tag, derez);
+      NT_TemplateHelper::demux<RemoteExpressionCreator>(type_tag, &creator);
+#ifdef DEBUG_LEGION
+      assert(creator.operation != NULL);
+#endif
+      remote_expressions[remote_expr_id] = creator.operation;
+      return creator.operation;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::unregister_remote_expression(IndexSpaceExprID remote_expr_id)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock l_lock(lookup_is_op_lock);
+      std::map<IndexSpaceExprID,IndexSpaceExpression*>::iterator 
+        finder = remote_expressions.find(remote_expr_id);
+      if (finder != remote_expressions.end())
+        remote_expressions.erase(finder);
+    }
+
+    //--------------------------------------------------------------------------
+    ContextID Runtime::allocate_region_tree_context(void)
+    //--------------------------------------------------------------------------
+    {
+      // Try getting something off the list of available contexts
+      AutoLock ctx_lock(context_lock);
+      if (available_contexts.empty())
+      {
+        // Double the number of available contexts
+        available_contexts.resize(total_contexts);
+        total_contexts *= 2;
+        for (unsigned idx = 0; idx < available_contexts.size(); idx++)
+          available_contexts[idx] = total_contexts - (idx+1);
+        // Tell all the processor managers about the additional contexts
+        for (std::map<Processor,ProcessorManager*>::const_iterator it = 
+              proc_managers.begin(); it != proc_managers.end(); it++)
+          it->second->update_max_context_count(total_contexts);
+      }
+      ContextID result = available_contexts.back();
+      available_contexts.pop_back();
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::free_region_tree_context(ContextID context)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      check_region_tree_context(context);
+#endif
+      AutoLock ctx_lock(context_lock);
+      available_contexts.push_back(context);
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_local(Processor proc) const
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(proc.exists());
+#endif
+      return (proc.address_space() == address_space);
+    }
+
+    //--------------------------------------------------------------------------
+    ProcessorManager* Runtime::find_processor_manager(Processor proc) const
+    //--------------------------------------------------------------------------
+    {
+      std::map<Processor,ProcessorManager*>::const_iterator finder =
+        proc_managers.find(proc);
+#ifdef DEBUG_LEGION
+      assert(finder != proc_managers.end());
+#endif
+      return finder->second;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::is_visible_memory(Processor proc, Memory memory)
+    //--------------------------------------------------------------------------
+    {
+      // If we cached it locally for our processors, then just go
+      // ahead and get the result
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(proc);
+      if (finder != proc_managers.end())
+        return finder->second->is_visible_memory(memory);
+      // Otherwise look up the result
+      Machine::MemoryQuery visible_memories(machine);
+      // Have to handle the case where this is a processor group
+      if (proc.kind() == Processor::PROC_GROUP)
+      {
+        std::vector<Processor> group_members;
+        proc.get_group_members(group_members);
+        for (std::vector<Processor>::const_iterator it =
+              group_members.begin(); it != group_members.end(); it++)
+          visible_memories.has_affinity_to(*it);
+      }
+      else
+        visible_memories.has_affinity_to(proc);
+      for (Machine::MemoryQuery::iterator it =
+            visible_memories.begin(); it != visible_memories.end(); it++)
+        if ((*it) == memory)
+          return true;
+      return false;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::find_visible_memories(Processor proc, 
+                                        std::set<Memory> &visible)
+    //--------------------------------------------------------------------------
+    {
+      // If we cached it locally for our processors, then just go
+      // ahead and get the result
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(proc);
+      if (finder != proc_managers.end())
+      {
+        finder->second->find_visible_memories(visible);
+        return;
+      }
+      // Otherwise look up the result
+      Machine::MemoryQuery visible_memories(machine);
+      // Have to handle the case where this is a processor group
+      if (proc.kind() == Processor::PROC_GROUP)
+      {
+        std::vector<Processor> group_members;
+        proc.get_group_members(group_members);
+        for (std::vector<Processor>::const_iterator it = 
+              group_members.begin(); it != group_members.end(); it++)
+          visible_memories.has_affinity_to(*it);
+      }
+      else
+        visible_memories.has_affinity_to(proc);
+      for (Machine::MemoryQuery::iterator it = visible_memories.begin();
+            it != visible_memories.end(); it++)
+        visible.insert(*it);
+    }
+
+    //--------------------------------------------------------------------------
+    Memory Runtime::find_local_memory(Processor proc, Memory::Kind mem_kind)
+    //--------------------------------------------------------------------------
+    {
+      if ((mem_kind == Memory::SYSTEM_MEM) &&
+          (proc.address_space() == address_space))
+        return runtime_system_memory;
+      // Check to see if this is a local processor in which case
+      // we should be able to do this much faster
+      std::map<Processor,ProcessorManager*>::const_iterator finder = 
+        proc_managers.find(proc);
+      if (finder != proc_managers.end())
+        return finder->second->find_best_visible_memory(mem_kind);
+      // Otherwise look up the result
+      Machine::MemoryQuery visible_memories(machine);
+      // Must be of the right kind
+      visible_memories.only_kind(mem_kind);
+      // Must not be empty
+      visible_memories.has_capacity(1/*at least one byte*/);
+      // Have to handle the case where this is a processor group
+      if (proc.kind() == Processor::PROC_GROUP)
+      {
+        std::vector<Processor> group_members;
+        proc.get_group_members(group_members);
+        for (std::vector<Processor>::const_iterator it = 
+              group_members.begin(); it != group_members.end(); it++)
+          visible_memories.best_affinity_to(*it);
+      }
+      else
+        visible_memories.best_affinity_to(proc);
+      if (visible_memories.count() == 0)
+      {
+        const char *mem_names[] = {
+#define MEM_NAMES(name, desc) desc,
+          REALM_MEMORY_KINDS(MEM_NAMES) 
+#undef MEM_NAMES
+        };
+        const char *proc_names[] = {
+#define PROC_NAMES(name, desc) desc,
+          REALM_PROCESSOR_KINDS(PROC_NAMES)
+#undef PROC_NAMES
+        };
+        REPORT_LEGION_ERROR(ERROR_CONFUSED_USER,
+            "%s Processor " IDFMT " has no %s memory",
+            proc_names[proc.kind()], proc.id, mem_names[mem_kind])
+      }
+      return visible_memories.first();
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedID Runtime::get_unique_index_space_id(void)
+    //--------------------------------------------------------------------------
+    {
+      const DistributedID did = get_available_distributed_id();
+      return LEGION_DISTRIBUTED_HELP_ENCODE(did, INDEX_SPACE_NODE_DC);
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedID Runtime::get_unique_index_partition_id(void)
+    //--------------------------------------------------------------------------
+    {
+      const DistributedID did = get_available_distributed_id();
+      return LEGION_DISTRIBUTED_HELP_ENCODE(did, INDEX_PART_NODE_DC);
+    }
+
+    //--------------------------------------------------------------------------
+    DistributedID Runtime::get_unique_field_space_id(void)
+    //--------------------------------------------------------------------------
+    {
+      const DistributedID did = get_available_distributed_id();
+      return LEGION_DISTRIBUTED_HELP_ENCODE(did, FIELD_SPACE_DC);
+    }
+
+    //--------------------------------------------------------------------------
+    IndexTreeID Runtime::get_unique_index_tree_id(void)
+    //--------------------------------------------------------------------------
+    {
+      IndexTreeID result = unique_index_tree_id.fetch_add(runtime_stride);
+#ifdef DEBUG_LEGION
+      // check for overflow
+      // If we have overflow on the number of region trees
+      // created then we are really in a bad place.
+      assert(result <= unique_index_tree_id);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    RegionTreeID Runtime::get_unique_region_tree_id(void)
+    //--------------------------------------------------------------------------
+    {
+      RegionTreeID did = get_available_distributed_id();
+      return LEGION_DISTRIBUTED_HELP_ENCODE(did, REGION_TREE_NODE_DC);
+    }
+
+    //--------------------------------------------------------------------------
+    UniqueID Runtime::get_unique_operation_id(void)
+    //--------------------------------------------------------------------------
+    {
+      UniqueID result = unique_operation_id.fetch_add(runtime_stride);
+#ifdef DEBUG_LEGION
+      // check for overflow
+      assert(result <= unique_operation_id);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    FieldID Runtime::get_unique_field_id(void)
+    //--------------------------------------------------------------------------
+    {
+      FieldID result = unique_field_id.fetch_add(runtime_stride);
+#ifdef DEBUG_LEGION
+      // check for overflow
+      assert(result <= unique_field_id);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    CodeDescriptorID Runtime::get_unique_code_descriptor_id(void)
+    //--------------------------------------------------------------------------
+    {
+      CodeDescriptorID result = 
+        unique_code_descriptor_id.fetch_add(runtime_stride);
+#ifdef DEBUG_LEGION
+      // check for overflow
+      assert(result <= unique_code_descriptor_id);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    LayoutConstraintID Runtime::get_unique_constraint_id(void)
+    //--------------------------------------------------------------------------
+    {
+      LayoutConstraintID result =
+        unique_constraint_id.fetch_add(runtime_stride);
+#ifdef DEBUG_LEGION
+      // check for overflow
+      assert(result <= unique_constraint_id);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpaceExprID Runtime::get_unique_index_space_expr_id(void)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpaceExprID result = unique_is_expr_id.fetch_add(runtime_stride);
+#ifdef DEBUG_LEGION
+      // check for overflow
+      assert(result <= unique_is_expr_id);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    uint64_t Runtime::get_unique_top_level_task_id(void)
+    //--------------------------------------------------------------------------
+    {
+      uint64_t result = unique_top_level_task_id.fetch_add(runtime_stride);
+#ifdef DEBUG_LEGION
+      assert(result < unique_top_level_task_id);
+#endif
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    uint64_t Runtime::get_unique_implicit_top_level_task_id(void)
+    //--------------------------------------------------------------------------
+    {
+      // These count the same across all the nodes and don't need to be 
+      // atomic since it's up to the caller to guard againt concurrency here
+      uint64_t result = unique_implicit_top_level_task_id++;
+#ifdef DEBUG_LEGION
+      assert(result < unique_implicit_top_level_task_id);
+#endif
+      return result;
+    }
+
+#ifdef LEGION_SPY
+    //--------------------------------------------------------------------------
+    unsigned Runtime::get_unique_indirections_id(void)
+    //--------------------------------------------------------------------------
+    {
+      unsigned result = unique_indirections_id.fetch_add(runtime_stride);
+#ifdef DEBUG_LEGION
+      // check for overflow
+      assert(result <= unique_indirections_id);
+#endif
+      return result;
+    }
+#endif
+
+    //--------------------------------------------------------------------------
+    Provenance* Runtime::find_or_create_provenance(const char *prov,size_t size)
+    //--------------------------------------------------------------------------
+    {
+      if ((prov == NULL) || (size == 0))
+        return NULL;
+      // Check to see if we can find it in read-only mode first
+      {
+        AutoLock prov_lock(provenance_lock,1,false/*exclusive*/);
+        std::map<size_t,std::vector<Provenance*> >::const_iterator finder =
+          provenances.find(size);
+        if (finder != provenances.end())
+        {
+          for (std::vector<Provenance*>::const_iterator it =
+                finder->second.begin(); it != finder->second.end(); it++)
+          {
+            if ((*it)->full.compare(0, size, prov) != 0)
+              continue;
+            (*it)->add_reference();
+            return (*it);
+          }
+        }
+      }
+      // Retake the lock in exclusive mode
+      AutoLock prov_lock(provenance_lock);
+      // Check to make sure we didn't lose the race
+      std::map<size_t,std::vector<Provenance*> >::iterator finder =
+        provenances.find(size);
+      if (finder != provenances.end())
+      {
+        for (std::vector<Provenance*>::const_iterator it =
+              finder->second.begin(); it != finder->second.end(); it++)
+        {
+          if ((*it)->full.compare(0, size, prov) != 0)
+            continue;
+          (*it)->add_reference();
+          return (*it);
+        }
+      }
+      else
+        finder = provenances.emplace(
+            std::make_pair(size, std::vector<Provenance*>())).first;
+      // Generate a new provenance object
+      Provenance *result = new Provenance(unique_provenance_id, prov, size);
+      result->add_reference(2); // one for ourself and one for the caller
+      finder->second.push_back(result);
+      // If we have a profiler, then record this provenance
+      if (profiler != NULL)
+        profiler->record_provenance(unique_provenance_id, prov, size);
+      unique_provenance_id += runtime_stride;
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndexSpace Runtime::help_create_index_space_handle(TypeTag type_tag)
+    //--------------------------------------------------------------------------
+    {
+      IndexSpace handle(get_unique_index_space_id(),
+                        get_unique_index_tree_id(), type_tag);
+      return handle;
+    }
+
+    //--------------------------------------------------------------------------
+    unsigned Runtime::generate_random_integer(void)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock r_lock(random_lock);
+      unsigned result = nrand48(random_state);
+      return result;
+    }
+
+#ifdef LEGION_TRACE_ALLOCATION 
+    //--------------------------------------------------------------------------
+    void Runtime::trace_allocation(const std::type_info &info, size_t size, int elems)
+    //--------------------------------------------------------------------------
+    {
+      if (prepared_for_shutdown)
+        return;
+      const std::size_t hash = info.hash_code();
+      AutoLock a_lock(allocation_lock);
+      std::unordered_map<std::size_t,AllocationTracker>::iterator finder = 
+        allocation_manager.find(hash);
+      if (finder == allocation_manager.end())
+        finder = allocation_manager.emplace(std::make_pair(hash,AllocationTracker(info.name()))).first;
+      size_t alloc_size = size * elems;
+      finder->second.total_allocations += elems;
+      finder->second.total_bytes += alloc_size;
+      finder->second.diff_allocations += elems;
+      finder->second.diff_bytes += alloc_size;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::trace_free(const std::type_info &info, size_t size, int elems)
+    //--------------------------------------------------------------------------
+    {
+      if (prepared_for_shutdown)
+        return;
+      const std::size_t hash = info.hash_code();
+      AutoLock a_lock(allocation_lock);
+      std::unordered_map<std::size_t,AllocationTracker>::iterator finder = 
+        allocation_manager.find(hash);
+      size_t free_size = size * elems;
+      finder->second.total_allocations -= elems;
+      finder->second.total_bytes -= free_size;
+      finder->second.diff_allocations -= elems;
+      finder->second.diff_bytes -= free_size;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::dump_allocation_info(void)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock a_lock(allocation_lock);
+      for (std::unordered_map<std::size_t,AllocationTracker>::iterator it = 
+            allocation_manager.begin(); it != allocation_manager.end(); it++)
+      {
+        // Skip anything that is empty
+        if (it->second.total_allocations == 0)
+          continue;
+        // Skip anything that hasn't changed
+        if (it->second.diff_allocations == 0)
+          continue;
+        log_allocation.info("%s on %d: "
+            "total=%d total_bytes=%ld diff=%d diff_bytes=%lld",
+            it->second.name, address_space,
+            it->second.total_allocations, it->second.total_bytes,
+            it->second.diff_allocations, (long long int)it->second.diff_bytes);
+        it->second.diff_allocations = 0;
+        it->second.diff_bytes = 0;
+      }
+      struct rusage usage;
+      getrusage(RUSAGE_SELF, &usage);
+      log_allocation.info("RSS: %ld", usage.ru_maxrss);
+      log_allocation.info(" ");
+    }
+#endif // TRACE_ALLOCATION
+
+    //--------------------------------------------------------------------------
+    LayoutConstraintID Runtime::register_layout(
+                                const LayoutConstraintRegistrar &registrar,
+                                LayoutConstraintID layout_id, DistributedID did,
+                                CollectiveMapping *collective_mapping)
+    //--------------------------------------------------------------------------
+    {
+      if (layout_id == LEGION_AUTO_GENERATE_ID)
+        layout_id = get_unique_constraint_id();
+      // Now make our entry and then return the result
+      LayoutConstraints *constraints = 
+        new LayoutConstraints(layout_id, registrar,
+            false/*internal*/, did, collective_mapping);
+      if (!register_layout(constraints))
+        // If someone else already registered this ID then we delete our object
+        delete constraints;
+      return layout_id;
+    }
+
+    //--------------------------------------------------------------------------
+    LayoutConstraints* Runtime::register_layout(FieldSpace handle,
+                                 const LayoutConstraintSet &cons, bool internal)
+    //--------------------------------------------------------------------------
+    {
+      LayoutConstraints *constraints = new LayoutConstraints(
+          get_unique_constraint_id(), cons, handle, internal);
+      register_layout(constraints);
+      return constraints;
+    }
+
+    //--------------------------------------------------------------------------
+    bool Runtime::register_layout(LayoutConstraints *new_constraints)
+    //--------------------------------------------------------------------------
+    {
+      new_constraints->add_base_resource_ref(RUNTIME_REF);
+      // If we're not internal and we're the owner then we also
+      // add an application reference to prevent early collection
+      if (!new_constraints->internal && new_constraints->is_owner())
+        new_constraints->add_base_gc_ref(APPLICATION_REF);
+      AutoLock l_lock(layout_constraints_lock);
+      std::map<LayoutConstraintID,LayoutConstraints*>::const_iterator finder =
+        layout_constraints_table.find(new_constraints->layout_id);
+      if (finder != layout_constraints_table.end())
+        return false;
+      layout_constraints_table[new_constraints->layout_id] = new_constraints;
+      // Remove any pending requests
+      pending_constraint_requests.erase(new_constraints->layout_id);
+      // Now we can do the registration with the runtime
+      new_constraints->register_with_runtime();
+      return true;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::release_layout(LayoutConstraintID layout_id)
+    //--------------------------------------------------------------------------
+    {
+      LayoutConstraints *constraints = find_layout_constraints(layout_id);
+#ifdef DEBUG_LEGION
+      assert(!constraints->internal);
+#endif
+      // Check to see if this is the owner
+      if (constraints->is_owner())
+      {
+        if (constraints->remove_base_gc_ref(APPLICATION_REF))
+          delete constraints;
+      }
+      else
+      {
+        // Send a message to the owner asking it to do the release
+        Serializer rez;
+        {
+          RezCheck z(rez);
+          rez.serialize(layout_id);
+        }
+        send_constraint_release(constraints->owner_space, rez);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::unregister_layout(LayoutConstraintID layout_id)
+    //--------------------------------------------------------------------------
+    {
+      LayoutConstraints *constraints = NULL;
+      {
+        AutoLock l_lock(layout_constraints_lock);
+        std::map<LayoutConstraintID,LayoutConstraints*>::iterator finder = 
+          layout_constraints_table.find(layout_id);
+        if (finder != layout_constraints_table.end())
+        {
+          constraints = finder->second;
+          layout_constraints_table.erase(finder);
+        }
+      }
+      if ((constraints != NULL) && 
+          constraints->remove_base_resource_ref(RUNTIME_REF))
+        delete (constraints);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ LayoutConstraintID Runtime::preregister_layout(
+                                     const LayoutConstraintRegistrar &registrar,
+                                     LayoutConstraintID layout_id)
+    //--------------------------------------------------------------------------
+    { 
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'preregister_layout' after "
+                      "the runtime has started!");
+      std::map<LayoutConstraintID,LayoutConstraintRegistrar> 
+        &pending_constraints = get_pending_constraint_table();
+      // See if we have to generate an ID
+      if (layout_id == LEGION_AUTO_GENERATE_ID)
+      {
+        // Find the first available layout ID
+        if (!pending_constraints.empty())
+        {
+          std::map<LayoutConstraintID,
+            LayoutConstraintRegistrar>::const_reverse_iterator finder = 
+              pending_constraints.crbegin();
+          if (finder->first <= LEGION_MAX_APPLICATION_LAYOUT_ID)
+            layout_id = LEGION_MAX_APPLICATION_LAYOUT_ID + 1;
+          else
+            layout_id = finder->first + 1;
+        }
+        else
+          layout_id = LEGION_MAX_APPLICATION_LAYOUT_ID + 1;
+      }
+      else
+      {
+        if (layout_id == 0)
+          REPORT_LEGION_ERROR(ERROR_RESERVED_CONSTRAINT_ID, 
+                        "Illegal use of reserved constraint ID 0")
+        else if (LEGION_MAX_APPLICATION_LAYOUT_ID < layout_id)
+          REPORT_LEGION_ERROR(ERROR_RESERVED_CONSTRAINT_ID,
+              "Illegal application-provided layout constraint ID %ld "
+              "which exceeds the LEGION_MAX_APPLICATION_LAYOUT_ID of %d "
+              "configured in legion_config.h.", layout_id,
+              LEGION_MAX_APPLICATION_LAYOUT_ID)
+        // Check to make sure it is not already used
+        std::map<LayoutConstraintID,LayoutConstraintRegistrar>::const_iterator
+          finder = pending_constraints.find(layout_id);
+        if (finder != pending_constraints.end())
+          REPORT_LEGION_ERROR(ERROR_DUPLICATE_CONSTRAINT_ID, 
+                        "Duplicate use of constraint ID %ld", layout_id);
+      }
+      pending_constraints[layout_id] = registrar;
+      return layout_id;
+    }
+
+    //--------------------------------------------------------------------------
+    FieldSpace Runtime::get_layout_constraint_field_space(
+                                                   LayoutConstraintID layout_id)
+    //--------------------------------------------------------------------------
+    {
+      LayoutConstraints *constraints = find_layout_constraints(layout_id);
+      return constraints->get_field_space();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::get_layout_constraints(LayoutConstraintID layout_id,
+                                        LayoutConstraintSet &layout_constraints)
+    //--------------------------------------------------------------------------
+    {
+      LayoutConstraints *constraints = find_layout_constraints(layout_id);
+      layout_constraints = *constraints;
+    }
+
+    //--------------------------------------------------------------------------
+    const char* Runtime::get_layout_constraints_name(
+                                                   LayoutConstraintID layout_id)
+    //--------------------------------------------------------------------------
+    {
+      LayoutConstraints *constraints = find_layout_constraints(layout_id);
+      return constraints->get_name();
+    }
+
+    //--------------------------------------------------------------------------
+    LayoutConstraints* Runtime::find_layout_constraints(
+                      LayoutConstraintID layout_id, bool can_fail /*= false*/, 
+                      RtEvent *wait_for /*=NULL*/)
+    //--------------------------------------------------------------------------
+    {
+      // See if we can find it first
+      RtEvent wait_on;
+      {
+        AutoLock l_lock(layout_constraints_lock);
+        std::map<LayoutConstraintID,LayoutConstraints*>::const_iterator
+          finder = layout_constraints_table.find(layout_id);
+        if (finder != layout_constraints_table.end())
+        {
+          return finder->second;
+        }
+        else
+        {
+          // See if a request has already been issued
+          std::map<LayoutConstraintID,RtEvent>::const_iterator
+            wait_on_finder = pending_constraint_requests.find(layout_id);
+          if (can_fail || 
+              (wait_on_finder == pending_constraint_requests.end()))
+          {
+            // Ask for the constraints
+            AddressSpaceID target = 
+              LayoutConstraints::get_owner_space(layout_id); 
+            if (target == address_space)
+            {
+              if (can_fail)
+                return NULL;
+              REPORT_LEGION_ERROR(ERROR_INVALID_CONSTRAINT_ID,
+                  "Unable to find layout constraint %ld", layout_id);
+            }
+            RtUserEvent to_trigger = Runtime::create_rt_user_event();
+            Serializer rez;
+            {
+              RezCheck z(rez);
+              rez.serialize(layout_id);
+              rez.serialize(to_trigger);
+              rez.serialize(can_fail);
+            }
+            // Send the message
+            send_constraint_request(target, rez);
+            // Only save the event to wait on if this can't fail
+            if (!can_fail)
+              pending_constraint_requests[layout_id] = to_trigger;
+            wait_on = to_trigger;
+          }
+          else
+            wait_on = wait_on_finder->second;
+        }
+      }
+      // If we want the wait event, just return
+      if (wait_for != NULL)
+      {
+        *wait_for = wait_on;
+        return NULL;
+      }
+      // If we didn't find it send a remote request for the constraints
+      wait_on.wait();
+      // When we wake up, the result should be there
+      AutoLock l_lock(layout_constraints_lock);
+      std::map<LayoutConstraintID,LayoutConstraints*>::const_iterator
+          finder = layout_constraints_table.find(layout_id);
+      if (finder == layout_constraints_table.end())
+      {
+        if (can_fail)
+          return NULL;
+#ifdef DEBUG_LEGION
+        assert(finder != layout_constraints_table.end());
+#endif
+      }
+      return finder->second;
+    }
+
+    /*static*/ TaskID Runtime::legion_main_id = 0;
+    /*static*/ MapperID Runtime::legion_main_mapper_id = 0;
+    /*static*/ bool Runtime::legion_main_set = false;
+    /*static*/ bool Runtime::runtime_initialized = false;
+    /*static*/ bool Runtime::runtime_cmdline_parsed = false;
+    /*static*/ bool Runtime::runtime_started = false;
+    /*static*/ bool Runtime::runtime_backgrounded = false;
+    /*static*/ std::atomic<Realm::Event::id_t> Runtime::startup_event = {0};
+    /*static*/ Realm::Barrier::timestamp_t Runtime::startup_timestamp = 0;
+    /*static*/ std::atomic<bool> Runtime::background_wait = {0};
+    /*static*/ int Runtime::return_code = 0;
+    /*static*/ int Runtime::mpi_rank = -1;
+
+    //--------------------------------------------------------------------------
+    /*static*/ int Runtime::start(int argc, char **argv, bool background,
+                                  bool supply_default_mapper, bool filter)
+    //--------------------------------------------------------------------------
+    {
+      // Some static asserts that need to hold true for the runtime to work
+      static_assert(LEGION_MAX_RETURN_SIZE > 0, 
+          "Need a positive and non-zero value for LEGION_MAX_RETURN_SIZE");
+      static_assert((1 << LEGION_FIELD_LOG2) == LEGION_MAX_FIELDS,
+          "LEGION_MAX_FIELDS must be a pwoer of 2");
+      static_assert(LEGION_MAX_NUM_NODES > 0,
+          "Need a positive and non-zero value for LEGION_MAX_NUM_NODES");
+      static_assert(LEGION_MAX_NUM_PROCS > 0,
+          "Need a positive and non-zero value for LEGION_MAX_NUM_PROCS");
+      static_assert(LEGION_DEFAULT_MAX_TASK_WINDOW > 0,
+          "Need a positive and non-zero value for "
+          "LEGION_DEFAULT_MAX_TASK_WINDOW");
+      static_assert(LEGION_DEFAULT_MIN_TASKS_TO_SCHEDULE > 0,
+          "Need a positive and non-zero value for "
+          "LEGION_DEFAULT_MIN_TASKS_TO_SCHEDULE");
+      static_assert(LEGION_DEFAULT_MAX_MESSAGE_SIZE > 0,
+          "Need a positive and non-zero value for "
+          "LEGION_DEFAULT_MAX_MESSAGE_SIZE"); 
+#ifdef LEGION_SPY
+      static_assert(
+          Realm::Logger::REALM_LOGGING_MIN_LEVEL <= Realm::Logger::LEVEL_INFO,
+        "Legion Spy requires a COMPILE_TIME_MIN_LEVEL of at most LEVEL_INFO.");
+#endif
+#ifdef LEGION_GC
+      static_assert(
+          Realm::Logger::REALM_LOGGING_MIN_LEVEL <= Realm::Logger::LEVEL_INFO,
+          "Legion GC requires a COMPILE_TIME_MIN_LEVEL of at most LEVEL_INFO.");
+#endif
+#ifdef DEBUG_SHUTDOWN_HANG
+      static_assert(
+          Realm::Logger::REALM_LOGGING_MIN_LEVEL <= Realm::Logger::LEVEL_INFO,
+          "DEBUG_SHUTDOWN_HANG requires a COMPILE_TIME_MIN_LEVEL "
+          "of at most LEVEL_INFO.");
+#endif
+      // Register builtin reduction operators
+      register_builtin_reduction_operators();
+      // Need to pass argc and argv to low-level runtime before we can record 
+      // their values as they might be changed by GASNet or MPI or whatever.
+      // Note that the logger isn't initialized until after this call returns 
+      // which means any logging that occurs before this has undefined behavior.
+      const LegionConfiguration &config = 
+        initialize(&argc, &argv, !runtime_cmdline_parsed, filter);
+      RealmRuntime realm = RealmRuntime::get_runtime();
+      // Finish configuring the machine so we can start querying the machine
+      // model and setting up our data structures before we start Realm
+      realm.finish_configure();
+
+      // Perform any waits that the user requested before starting
+      if (config.delay_start > 0)
+          sleep(config.delay_start);
+      // Check for any slow configurations
+      if (!config.slow_config_ok)
+        perform_slow_config_checks(config);
+      // Configure legion spy if necessary
+      if (config.legion_spy_enabled)
+        LegionSpy::log_legion_spy_config();
+      // Construct our runtime objects 
+      std::set<Processor> local_procs;
+      const Processor first_proc = configure_runtime(argc, argv,
+          config, realm, local_procs, background, supply_default_mapper);
+#ifdef DEBUG_LEGION
+      // Startup kind should be a CPU or a Utility processor
+      assert((first_proc.kind() == Processor::LOC_PROC) ||
+          (first_proc.kind() == Processor::UTIL_PROC));
+      // First processor should be on node zero
+      assert(first_proc.address_space() == 0);
+      assert(!local_procs.empty());
+#endif 
+      // Configure MPI Interoperability
+      const std::vector<LegionHandshake> &pending_handshakes =
+        get_pending_handshake_table();
+      if ((mpi_rank >= 0) || (!pending_handshakes.empty()))
+        configure_interoperability();
+      // We have to set these prior to starting Realm as once we start
+      // Realm it might fork child processes so they all need to see
+      // the same values for these static variables
+      runtime_started = true;
+      runtime_backgrounded = background;
+
+      // Now that we have everything setup we can tell Realm to
+      // start the processors. It is at this point which fork
+      // can be called to spawn subprocesses.
+      realm.start();
+
+      Realm::Barrier startup_barrier = Realm::Barrier::NO_BARRIER;
+      if (runtime->total_address_spaces > 1)
+      {
+        // First we do a collective spawn to make sure that Realm is
+        // started and all of our meta-tasks have been registered
+        // across all of the nodes
+        // Very important, do NOT pass in any event preconditions to
+        // this task and do not use the postcondition as it comes from
+        // node zero and we don't want all the nodes to subscribe to
+        // node zero unnecessarily.
+        realm.collective_spawn(first_proc, LG_STARTUP_TASK_ID, NULL, 0);
+        // Now get the start-up barrier that will be set by the
+        // start-up task as it broadcasts through the nodes
+        startup_barrier = find_or_wait_for_startup_barrier();
+      }
+      // We also need to run a nop task on every processor to make sure
+      // that Realm has finished initializing that processor. This is
+      // especially important for things like Python processors which 
+      // might still be loading modules and we want to ensure that they
+      // are completely done doing that before we try to do anything
+      std::vector<RtEvent> nop_events;
+      nop_events.reserve(local_procs.size());
+      for (std::set<Processor>::const_iterator it =
+            local_procs.begin(); it != local_procs.end(); it++)
+        nop_events.push_back(RtEvent(it->spawn(
+                  Processor::TASK_ID_PROCESSOR_NOP, NULL, 0)));
+      // Now we can initialize the Legion runtime(s) on this node
+      TopLevelContext *top_context = runtime->initialize_runtime(first_proc);
+      if (startup_barrier.exists())
+      {
+        // Make sure all the nodes are done
+        startup_barrier.arrive(1/*count*/, Runtime::merge_events(nop_events));
+        // Wait for all the nodes to be done with the initialization
+        startup_barrier.wait();
+      }
+      else
+      {
+        const RtEvent initialized = Runtime::merge_events(nop_events);
+        initialized.wait();
+      }
+
+      // Launch the top-level task if we have a main set
+      if (runtime->address_space == 0)
+      {
+        if (legion_main_set)
+        {
+#ifdef DEBUG_LEGION
+          assert(top_context != NULL);
+#endif
+          TaskLauncher launcher(Runtime::legion_main_id,
+              UntypedBuffer(&runtime->input_args, sizeof(InputArgs)),
+                            Predicate::TRUE_PRED, legion_main_mapper_id);
+          runtime->launch_top_level_task(launcher, top_context);
+        }
+        // Cleanup the start-up barrier
+        if (startup_barrier.exists())
+          startup_barrier.destroy_barrier();
+      }
+      // If we are supposed to background this thread, then we wait
+      // for the runtime to shutdown, otherwise we can now return
+      if (background)
+        return 0;
+      // Decrement the total outstanding top-level tasks to reflect that
+      // this node is ready to shutdown when everything is done
+      runtime->decrement_outstanding_top_level_tasks();
+      // Wait for Realm shutdown to be complete
+      return realm.wait_for_shutdown();
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ const Runtime::LegionConfiguration& Runtime::initialize(
+                               int *argc, char ***argv, bool parse, bool filter)
+    //--------------------------------------------------------------------------
+    {
+      static LegionConfiguration config;
+      RealmRuntime realm = RealmRuntime::get_runtime();
+      if (!runtime_initialized)
+      {
+#ifndef NDEBUG
+        bool ok = 
+#endif
+          realm.network_init(argc, argv);
+        assert(ok);
+#ifndef NDEBUG
+        ok =
+#endif
+          realm.create_configs(*argc, *argv);
+        assert(ok);
+        runtime_initialized = true;
+      }
+      if (runtime_cmdline_parsed || !parse)
+        return config;
+      // Next we configure the realm runtime after which we can access the
+      // machine model and make events and reservations and do reigstrations
+      std::vector<std::string> cmdline;
+      // Check to see if there are any Legion default args from the environment
+      const char *e = getenv("LEGION_DEFAULT_ARGS");
+      if (e)
+      {
+        // This code is borrowed from Realm for parsing default arguments
+        // Prepend any default args so they can still be overridden 
+        // by actual flags on the command line
+        while (*e) 
+        {
+          if (isspace(*e)) 
+          { 
+            e++;
+            continue; 
+          }
+          const char *starts = NULL;
+          if (*e == '\'') 
+          {
+            // single quoted string
+            e++;
+            assert(*e);
+            starts = e;
+            // read until next single quote
+            while (*e && (*e != '\''))
+              e++;
+            cmdline.emplace_back(std::string(starts, size_t(e++ - starts))); 
+            assert(!*e || isspace(*e));
+            continue;
+          }
+          if (*e == '\"')
+          {
+            // double quoted string
+            e++;
+            assert(*e);
+            starts = e;
+            // read until next double quote
+            while (*e && (*e != '\"'))
+              e++;
+            cmdline.emplace_back(std::string(starts, size_t(e++ - starts)));
+            assert(!*e || isspace(*e));
+            continue;
+          }
+          // no quotes - just take until next whitespace
+          starts = e;
+          while (*e && !isspace(*e))
+            e++;
+          cmdline.emplace_back(std::string(starts, size_t(e - starts)));
+        }
+      }
+      size_t num_args = *argc;
+      cmdline.reserve(cmdline.size() + ((num_args > 0) ? num_args-1 : 0));
+      for (unsigned i = 1; i < num_args; i++)
+        cmdline.emplace_back((*argv)[i]);
+      realm.parse_command_line(cmdline, filter);
+      Realm::CommandLineParser cp; 
+      cp.add_option_bool("-lg:warn_backtrace",
+                         config.warnings_backtrace, !filter)
+        .add_option_bool("-lg:warn", config.runtime_warnings, !filter)
+        .add_option_bool("-lg:werror", config.warnings_are_errors, !filter)
+        .add_option_bool("-lg:leaks", config.report_leaks, !filter)
+        .add_option_bool("-lg:registration",config.record_registration,!filter)
+        .add_option_bool("-lg:nosteal",config.stealing_disabled,!filter)
+        .add_option_bool("-lg:resilient",config.resilient_mode,!filter)
+        .add_option_bool("-lg:unsafe_launch",config.unsafe_launch,!filter)
+        .add_option_bool("-lg:unsafe_mapper",config.unsafe_mapper,!filter)
+        .add_option_bool("-lg:safe_mapper",config.safe_mapper,!filter)
+        .add_option_bool("-lg:safe_model", config.safe_model, !filter)
+        .add_option_bool("-lg:safe_tracing", config.safe_tracing, !filter)
+        .add_option_int("-lg:safe_ctrlrepl",
+                         config.safe_control_replication, !filter)
+        .add_option_bool("-lg:inorder",config.program_order_execution,!filter)
+        .add_option_bool("-lg:dump_physical_traces",
+                         config.dump_physical_traces, !filter)
+        .add_option_bool("-lg:no_tracing",config.no_tracing, !filter)
+        .add_option_bool("-lg:no_physical_tracing",
+                         config.no_physical_tracing, !filter)
+        .add_option_bool("-lg:no_auto_tracing",
+                         config.no_auto_tracing, !filter)
+        .add_option_bool("-lg:no_trace_optimization",
+                         config.no_trace_optimization, !filter)
+        .add_option_bool("-lg:no_fence_elision",
+                         config.no_fence_elision, !filter)
+        .add_option_bool("-lg:no_transitive_reduction",
+                         config.no_transitive_reduction, !filter)
+        .add_option_bool("-lg:inline_transitive_reduction",
+                         config.inline_transitive_reduction, !filter)
+        .add_option_bool("-lg:replay_on_cpus",
+                         config.replay_on_cpus, !filter)
+        .add_option_bool("-lg:disjointness",
+                         config.verify_partitions, !filter)
+        .add_option_bool("-lg:partcheck",
+                         config.verify_partitions, !filter)
+        .add_option_int("-lg:window", config.initial_task_window_size, !filter)
+        .add_option_int("-lg:hysteresis", 
+                        config.initial_task_window_hysteresis, !filter)
+        .add_option_int("-lg:sched", 
+                        config.initial_tasks_to_schedule, !filter)
+        .add_option_int("-lg:vector", 
+                        config.initial_meta_task_vector_width, !filter)
+        .add_option_bool("-lg:dump_free_ranges",
+                         config.dump_free_ranges, !filter)
+        .add_option_int("-lg:message",config.max_message_size, !filter)
+        .add_option_int("-lg:epoch", config.gc_epoch_size, !filter)
+        .add_option_int("-lg:local", config.max_local_fields, !filter)
+        .add_option_int("-lg:parallel_replay", 
+                        config.max_replay_parallelism, !filter)
+        .add_option_bool("-lg:no_dyn",config.disable_independence_tests,!filter)
+        .add_option_bool("-lg:enable_pointwise_analysis",
+            config.enable_pointwise_analysis, !filter)
+        .add_option_bool("-lg:spy",config.legion_spy_enabled, !filter)
+        .add_option_bool("-lg:test",config.enable_test_mapper, !filter)
+        .add_option_int("-lg:delay", config.delay_start, !filter)
+        .add_option_string("-lg:replay", config.replay_file, !filter)
+        .add_option_string("-lg:ldb", config.ldb_file, !filter)
+#ifdef DEBUG_LEGION
+        .add_option_bool("-lg:verbose",config.verbose_logging, !filter)
+#endif
+        .add_option_int("-lg:prof", config.num_profiling_nodes, !filter)
+        .add_option_string("-lg:serializer", config.serializer_type, !filter)
+        .add_option_string("-lg:prof_logfile", config.prof_logfile, !filter)
+        .add_option_int("-lg:prof_footprint", 
+                        config.prof_footprint_threshold, !filter)
+        .add_option_int("-lg:prof_latency",config.prof_target_latency, !filter)
+        .add_option_int("-lg:prof_call_threshold",
+                        config.prof_call_threshold, !filter)
+        .add_option_bool("-lg:prof_self", config.prof_self_profile, !filter)
+        .add_option_bool("-lg:prof_no_critical_paths",
+                        config.prof_no_critical_paths, !filter)
+        .add_option_bool("-lg:prof_all_critical_arrivals",
+                        config.prof_all_critical_arrivals, !filter)
+        .add_option_bool("-lg:debug_ok",config.slow_config_ok, !filter)
+        // These are all the deprecated versions of these flag
+        .add_option_bool("-hl:registration",config.record_registration, !filter)
+        .add_option_bool("-hl:nosteal",config.stealing_disabled, !filter)
+        .add_option_bool("-hl:resilient",config.resilient_mode, !filter)
+        .add_option_bool("-hl:unsafe_launch",config.unsafe_launch, !filter)
+        .add_option_bool("-hl:unsafe_mapper",config.unsafe_mapper, !filter)
+        .add_option_bool("-hl:safe_mapper",config.safe_mapper, !filter)
+        .add_option_bool("-hl:inorder",config.program_order_execution, !filter)
+        .add_option_bool("-hl:disjointness",config.verify_partitions, !filter)
+        .add_option_int("-hl:window", config.initial_task_window_size, !filter)
+        .add_option_int("-hl:hysteresis", 
+                        config.initial_task_window_hysteresis, !filter)
+        .add_option_int("-hl:sched", config.initial_tasks_to_schedule, !filter)
+        .add_option_int("-hl:message",config.max_message_size, !filter)
+        .add_option_int("-hl:epoch", config.gc_epoch_size, !filter)
+        .add_option_bool("-hl:no_dyn",config.disable_independence_tests,!filter)
+        .add_option_bool("-hl:spy",config.legion_spy_enabled, !filter)
+        .add_option_bool("-hl:test",config.enable_test_mapper, !filter)
+        .add_option_int("-hl:delay", config.delay_start, !filter)
+        .add_option_string("-hl:replay", config.replay_file, !filter)
+        .add_option_string("-hl:ldb", config.ldb_file, !filter)
+#ifdef DEBUG_LEGION
+        .add_option_bool("-hl:verbose",config.verbose_logging,!filter)
+#endif
+        .add_option_int("-hl:prof", config.num_profiling_nodes, !filter)
+        .add_option_string("-hl:serializer", config.serializer_type, !filter)
+        .add_option_string("-hl:prof_logfile", config.prof_logfile, !filter)
+        .parse_command_line(cmdline);
+      // If we asked to filter the arguments, now we need to go back in
+      // and update the arguments so that they reflect the pruned data
+      if (filter)
+      {
+        if (!cmdline.empty())
+        {
+          unsigned arg_index = 1;
+          for (unsigned idx = 0; idx < cmdline.size(); idx++)
+          {
+            const char *str = cmdline[idx].c_str();
+            // Find the location of this string in the original
+            // arguments to so that we can get its original pointer 
+            assert(arg_index < num_args);
+            while (strcmp(str, (*argv)[arg_index]) != 0)
+            {
+              arg_index++;
+              assert(arg_index < num_args);
+            }
+            // Now that we've got it's original pointer we can move
+            // it to the new location in the outputs
+            if (arg_index == (idx+1))
+              arg_index++; // already in the right place 
+            else
+              (*argv)[idx+1] = (*argv)[arg_index++];
+          }
+          *argc = (1 + cmdline.size());
+        }
+        else
+          *argc = 1;
+      }
+      if (config.initial_task_window_hysteresis > 100)
+        REPORT_LEGION_ERROR(ERROR_LEGION_CONFIGURATION,
+            "Illegal task window hysteresis value of %d which is not a value "
+            "between 0 and 100.", config.initial_task_window_hysteresis)
+      if (config.max_local_fields > LEGION_MAX_FIELDS)
+        REPORT_LEGION_ERROR(ERROR_LEGION_CONFIGURATION,
+            "Illegal max local fields value %d which is larger than the "
+            "value of LEGION_MAX_FIELDS (%d).", config.max_local_fields,
+            LEGION_MAX_FIELDS)
+      const Realm::Logger::LoggingLevel compile_time_min_level =
+            Realm::Logger::REALM_LOGGING_MIN_LEVEL;
+      if (config.legion_spy_enabled && 
+          (Realm::Logger::LEVEL_INFO < compile_time_min_level))
+        REPORT_LEGION_ERROR(ERROR_LEGION_CONFIGURATION,
+            "Legion Spy logging requires a COMPILE_TIME_MIN_LEVEL "
+            "of at most LEVEL_INFO, but current setting is %s",
+            (compile_time_min_level == Realm::Logger::LEVEL_PRINT) ? 
+              "LEVEL_PRINT" : 
+            (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
+              "LEVEL_WARNING" : 
+            (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
+              "LEVEL_ERROR" :
+            (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
+              "LEVEL_FATAL" : "LEVEL_NONE")
+      if ((config.num_profiling_nodes > 0) &&
+          (strcmp(config.serializer_type.c_str(), "ascii") == 0) &&
+          (Realm::Logger::LEVEL_INFO < compile_time_min_level))
+        REPORT_LEGION_ERROR(ERROR_LEGION_CONFIGURATION,
+            "Legion Prof 'ascii' logging requires a COMPILE_TIME_MIN_LEVEL "
+            "of at most LEVEL_INFO, but current setting is %s",
+            (compile_time_min_level == Realm::Logger::LEVEL_PRINT) ? 
+              "LEVEL_PRINT" : 
+            (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
+              "LEVEL_WARNING" : 
+            (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
+              "LEVEL_ERROR" :
+            (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
+              "LEVEL_FATAL" : "LEVEL_NONE")
+      if (config.record_registration &&
+          (Realm::Logger::LEVEL_PRINT < compile_time_min_level))
+        REPORT_LEGION_ERROR(ERROR_LEGION_CONFIGURATION,
+            "Legion registration logging requires a COMPILE_TIME_MIN_LEVEL "
+            "of at most LEVEL_PRINT, but current setting is %s",
+            (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
+              "LEVEL_WARNING" : 
+            (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
+              "LEVEL_ERROR" :
+            (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
+              "LEVEL_FATAL" : "LEVEL_NONE")
+      if (config.dump_physical_traces &&
+          (Realm::Logger::LEVEL_INFO < compile_time_min_level))
+        REPORT_LEGION_ERROR(ERROR_LEGION_CONFIGURATION,
+            "Legion physical trace logging requires a COMPILE_TIME_MIN_LEVEL "
+            "of at most LEVEL_INFO, but current setting is %s",
+            (compile_time_min_level == Realm::Logger::LEVEL_PRINT) ? 
+              "LEVEL_PRINT" : 
+            (compile_time_min_level == Realm::Logger::LEVEL_WARNING) ?
+              "LEVEL_WARNING" : 
+            (compile_time_min_level == Realm::Logger::LEVEL_ERROR) ?
+              "LEVEL_ERROR" :
+            (compile_time_min_level == Realm::Logger::LEVEL_FATAL) ?
+              "LEVEL_FATAL" : "LEVEL_NONE")
+      runtime_cmdline_parsed = true;
+      return config;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ unsigned Runtime::initialize_outstanding_top_level_tasks(
+        AddressSpaceID local_space, size_t total_spaces, unsigned radix)
+    //--------------------------------------------------------------------------
+    {
+      // We always have at least one top-level task in the count as a guard
+      // that will be removed once we know that we aren't launching anymore
+      // new top-level tasks on this node
+      unsigned result = 1;
+      // Now count how many notifications we expect to see and add that to
+      // our count to act as an additional guard. This will allow us to do
+      // a tree reduction down from each node towards node 0 which will
+      // start the shutdown quiescence test
+      AddressSpaceID offset = local_space * radix;
+      for (unsigned idx = 1; idx <= radix; idx++)
+      {
+        AddressSpaceID target = offset + idx;
+        if (target < total_spaces)
+          result++;
+      }
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    Future Runtime::launch_top_level_task(const TaskLauncher &launcher,
+                                          TopLevelContext *top_context)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(!local_procs.empty());
+#endif 
+      // Find a target processor, we'll prefer a CPU processor for
+      // backwards compatibility, but will take anything we get
+      Processor target = Processor::NO_PROC;
+      for (std::set<Processor>::const_iterator it = 
+            local_procs.begin(); it != local_procs.end(); it++)
+      {
+        if (it->kind() == Processor::LOC_PROC)
+        {
+          target = *it;
+          break;
+        }
+        else if (!target.exists())
+          target = *it;
+      }
+#ifdef DEBUG_LEGION
+      assert(target.exists());
+#endif
+      if (top_context == NULL)
+        top_context = new TopLevelContext(target,
+            get_unique_top_level_task_id(), 0/*implicit*/);
+      // Save the current context if there is one and restore it later
+      TaskContext *previous_implicit = implicit_context;
+      // Save the context in the implicit context
+      implicit_context = top_context;
+      if ((profiler != NULL) && (implicit_profiler == NULL))
+        implicit_profiler = profiler->find_or_create_profiling_instance();
+      // Add a reference to the top level context
+      top_context->add_base_gc_ref(RUNTIME_REF);
+      // Get an individual task to be the top-level task
+      IndividualTask *top_task = get_operation<IndividualTask>();
+      AutoProvenance provenance(launcher.provenance);
+      // Mark that this task is the top-level task
+      Future result = top_task->initialize_task(top_context, launcher,
+          provenance, true/*top level task*/);
+      // Set this to be the current processor
+      top_task->set_current_proc(target);
+      top_task->select_task_options(false/*prioritize*/);
+      increment_outstanding_top_level_tasks();
+      // Launch a task to deactivate the top-level context
+      // when the top-level task is done
+      TopFinishArgs args(top_context);
+      RtEvent pre = top_task->get_commit_event();
+      issue_runtime_meta_task(args, LG_LATENCY_WORK_PRIORITY, pre);
+      add_to_ready_queue(target, top_task);
+      // Now we can restore the previous implicit context
+      implicit_context = previous_implicit;
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    IndividualTask* Runtime::create_implicit_top_level(TaskID top_task_id,
+                              MapperID top_mapper_id, Processor proxy,
+                              const char *task_name, CollectiveMapping *mapping)
+    //--------------------------------------------------------------------------
+    {
+      // Get an individual task to be the top-level task
+      IndividualTask *top_task = get_operation<IndividualTask>();
+      // Get a remote task to serve as the top of the top-level task
+      TopLevelContext *top_context = new TopLevelContext(proxy,
+          0/*id*/, get_unique_implicit_top_level_task_id(), 0/*did*/, mapping);
+      // Add a reference to the top level context
+      top_context->add_base_gc_ref(RUNTIME_REF);
+      TaskLauncher launcher(top_task_id, UntypedBuffer(),
+                            Predicate::TRUE_PRED, top_mapper_id);
+      // Mark that this task is the top-level task
+      top_task->initialize_task(top_context, launcher, NULL/*provenance*/,
+          true/*top level task*/);
+      increment_outstanding_top_level_tasks();
+      // Launch a task to deactivate the top-level context
+      // when the top-level task is done
+      TopFinishArgs args(top_context);
+      RtEvent pre = top_task->get_commit_event();
+      issue_runtime_meta_task(args, LG_LATENCY_WORK_PRIORITY, pre);
+      return top_task;
+    }
+
+    //--------------------------------------------------------------------------
+    ImplicitShardManager* Runtime::find_implicit_shard_manager(
+                  TaskID top_task_id, MapperID mapper_id, Processor::Kind kind,
+                  unsigned shards_per_address_space)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock s_lock(shard_lock);
+      std::map<TaskID,ImplicitShardManager*>::iterator finder = 
+        implicit_shard_managers.find(top_task_id);
+      if (finder != implicit_shard_managers.end())
+        return finder->second;
+      ImplicitShardManager *result = new ImplicitShardManager(
+          top_task_id, mapper_id, kind, shards_per_address_space);
+      implicit_shard_managers[top_task_id] = result;
+      result->add_reference(shards_per_address_space);
+      return result;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::unregister_implicit_shard_manager(TaskID top_task_id)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock s_lock(shard_lock);
+      std::map<TaskID,ImplicitShardManager*>::iterator finder = 
+        implicit_shard_managers.find(top_task_id);
+#ifdef DEBUG_LEGION
+      assert(finder != implicit_shard_managers.end());
+#endif
+      implicit_shard_managers.erase(finder);
+    }
+
+    //--------------------------------------------------------------------------
+    Context Runtime::begin_implicit_task(TaskID top_task_id,
+                                         MapperID top_mapper_id,
+                                         Processor::Kind proc_kind,
+                                         const char *task_name,
+                                         bool control_replicable,
+                                         unsigned shards_per_address_space,
+                                         int shard_id, const DomainPoint &point)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_started)
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_IMPLICIT_TOP_LEVEL_TASK,
+            "Implicit top-level tasks are not allowed to be started before "
+            "the Legion runtime is started.")
+      // Check that we're not inside a task
+      if (implicit_context != NULL)
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_IMPLICIT_TOP_LEVEL_TASK,
+            "Implicit top-level tasks are not allowed to be started inside "
+            "of Legion tasks. Only external computations are permitted "
+            "to create new implicit top-level tasks.")
+      // Save the top-level task name if necessary
+      // Record a fake variant if we're profiling
+      if (task_name != NULL)
+      {
+        attach_semantic_information(top_task_id,
+            LEGION_NAME_SEMANTIC_TAG, task_name,
+            strlen(task_name) + 1, true/*mutable*/, false/*send to owner*/);
+        if (profiler != NULL)
+          profiler->register_task_variant(top_task_id, 0/*variant ID*/,
+                                          task_name);
+      }
+      else if (profiler != NULL)
+      {
+        char implicit_name[64];
+        snprintf(implicit_name, 64, "implicit_variant_%d", top_task_id);
+        profiler->register_task_variant(top_task_id, 0/*variant ID*/,
+                                        implicit_name);
+      }
+      // Find a proxy processor for us to use for this task 
+      // We might already even be on a Realm processor
+      Processor proxy = Processor::get_executing_processor();
+      if (!proxy.exists())
+      {
+#ifdef DEBUG_LEGION
+        assert(!local_procs.empty());
+#endif
+        for (std::set<Processor>::const_iterator it =
+              local_procs.begin(); it != local_procs.end(); it++)
+        {
+          if (it->kind() == proc_kind)
+          {
+            proxy = *it;
+            break;
+          }
+        }
+      }
+#ifdef DEBUG_LEGION
+      // TODO: remove this once realm supports drafting this thread
+      // as a new kind of processor to use
+      assert(proxy.exists());
+#endif
+      SingleTask *local_task = NULL;
+      // Now that the runtime is started we can make our context
+      if (control_replicable && (total_address_spaces > 1))
+      {
+        // Either find or make an implicit shard manager for hooking up
+        ImplicitShardManager *implicit_shard_manager = 
+          find_implicit_shard_manager(top_task_id, top_mapper_id, proc_kind, 
+                                      shards_per_address_space);
+        local_task = 
+          implicit_shard_manager->create_shard(shard_id,point,proxy,task_name);
+        if (implicit_shard_manager->remove_reference())
+          delete implicit_shard_manager;
+      }
+      else
+      {
+        local_task = create_implicit_top_level(top_task_id, top_mapper_id,
+                                               proxy, task_name);
+        // Increment the pending count here
+        local_task->get_context()->increment_pending();
+      }
+#ifdef DEBUG_LEGION
+      increment_total_outstanding_tasks(top_task_id, false);
+#else
+      increment_total_outstanding_tasks();
+#endif
+      InnerContext *execution_context = local_task->create_implicit_context();
+      execution_context->begin_task(proxy);
+      return execution_context;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::unbind_implicit_task_from_external_thread(TaskContext *ctx)
+    //--------------------------------------------------------------------------
+    {
+      if (!ctx->implicit_task)
+        REPORT_LEGION_ERROR(ERROR_CONFUSED_USER,
+            "Illegal call to unbind a context for task %s (UID %lld) that "
+            "is not an implicit top-level task",
+            ctx->get_task_name(), ctx->get_unique_id())
+      ctx->begin_wait(LgEvent::NO_LG_EVENT, true/*from application*/);
+      implicit_context = NULL;
+      implicit_profiler = NULL;
+      implicit_fevent = LgEvent::NO_LG_EVENT;
+      implicit_provenance = 0;
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::bind_implicit_task_to_external_thread(TaskContext *ctx)
+    //--------------------------------------------------------------------------
+    {
+      if (!ctx->implicit_task)
+        REPORT_LEGION_ERROR(ERROR_CONFUSED_USER,
+            "Illegal call to bind a context for task %s (UID %lld) that "
+            "is not an implicit top-level task",
+            ctx->get_task_name(), ctx->get_unique_id())
+      ctx->end_wait(LgEvent::NO_LG_EVENT, true/*from application*/);
+      if ((profiler != NULL) && (implicit_profiler == NULL))
+        implicit_profiler = profiler->find_or_create_profiling_instance();
+      implicit_context = ctx;
+      implicit_provenance = ctx->owner_task->get_unique_op_id();
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::finish_implicit_task(TaskContext *ctx, ApEvent effects)
+    //--------------------------------------------------------------------------
+    {
+      if (!ctx->implicit_task)
+        REPORT_LEGION_ERROR(ERROR_CONFUSED_USER,
+            "Illegal call to finish an implicit task for task %s (UID %lld) "
+            "that is not an implicit top-level task",
+            ctx->get_task_name(), ctx->get_unique_id())
+      // this is just a normal finish operation
+      ctx->end_task(NULL, 0, false/*owned*/, PhysicalInstance::NO_INST, 
+          NULL/*callback functor*/, NULL/*resource*/,  NULL/*freefunc*/,
+          NULL/*metadataptr*/, 0/*metadatasize*/, effects);
+      implicit_context = NULL;
+      implicit_profiler = NULL;
+      implicit_fevent = LgEvent::NO_LG_EVENT;
+      implicit_provenance = 0;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::perform_slow_config_checks(
+                                              const LegionConfiguration &config)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      if (config.num_profiling_nodes > 0)
+      {
+        // Give a massive warning about profiling with debug enabled
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"!!! YOU ARE PROFILING IN DEBUG MODE           !!!\n");
+        fprintf(stderr,"!!! SERIOUS PERFORMANCE DEGRADATION WILL OCCUR!!!\n");
+        fprintf(stderr,"!!! COMPILE WITH DEBUG=0 FOR PROFILING        !!!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"\n");
+        fprintf(stderr,"SLEEPING FOR 5 SECONDS SO YOU READ THIS WARNING...\n");
+        fflush(stderr);
+        sleep(5);
+      }
+#endif
+#ifdef LEGION_SPY
+      if (config.num_profiling_nodes > 0)
+      {
+        // Give a massive warning about profiling with Legion Spy enabled
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"!!! YOU ARE PROFILING WITH LegionSpy ENABLED  !!!\n");
+        fprintf(stderr,"!!! SERIOUS PERFORMANCE DEGRADATION WILL OCCUR!!!\n");
+        fprintf(stderr,"!!! COMPILE WITHOUT -DLEGION_SPY FOR PROFILING!!!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"\n");
+        fprintf(stderr,"SLEEPING FOR 5 SECONDS SO YOU READ THIS WARNING...\n");
+        fflush(stderr);
+        sleep(5);
+      }
+#else
+      if (config.legion_spy_enabled && (config.num_profiling_nodes > 0))
+      {
+        // Give a massive warning about profiling with Legion Spy enabled
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"!!! YOU ARE PROFILING WITH LegionSpy ENABLED  !!!\n");
+        fprintf(stderr,"!!! SERIOUS PERFORMANCE DEGRADATION WILL OCCUR!!!\n");
+        fprintf(stderr,"!!! RUN WITHOUT -lg:spy flag FOR PROFILING    !!!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"\n");
+        fprintf(stderr,"SLEEPING FOR 5 SECONDS SO YOU READ THIS WARNING...\n");
+        fflush(stderr);
+        sleep(5);
+      }
+#endif
+#ifdef LEGION_BOUNDS_CHECKS
+      if (config.num_profiling_nodes > 0)
+      {
+        // Give a massive warning about profiling with bounds checks enabled
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"!!! YOU ARE PROFILING WITH LEGION_BOUNDS_CHECKS!!!\n");
+        fprintf(stderr,"!!! SERIOUS PERFORMANCE DEGRADATION WILL OCCUR !!!\n");
+        fprintf(stderr,"!!! PLEASE COMPILE WITHOUT LEGION_BOUNDS_CHECKS!!!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"\n");
+        fprintf(stderr,"SLEEPING FOR 5 SECONDS SO YOU READ THIS WARNING...\n");
+        fflush(stderr);
+        sleep(5);
+      }
+#endif
+#ifdef LEGION_PRIVILEGE_CHECKS
+      if (config.num_profiling_nodes > 0)
+      {
+        // Give a massive warning about profiling with privilege checks enabled
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"!!!YOU ARE PROFILING WITH LEGION_PRIVILEGE_CHECKS!!\n");
+        fprintf(stderr,"!!!SERIOUS PERFORMANCE DEGRADATION WILL OCCUR!!!\n");
+        fprintf(stderr,"!!!PLEASE COMPILE WITHOUT LEGION_PRIVILEGE_CHECKS!!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"\n");
+        fprintf(stderr,"SLEEPING FOR 5 SECONDS SO YOU READ THIS WARNING...\n");
+        fflush(stderr);
+        sleep(5);
+      }
+#endif
+      if (config.verify_partitions && (config.num_profiling_nodes > 0))
+      {
+        // Give a massive warning about profiling with partition checks enabled
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"!!! YOU ARE PROFILING WITH PARTITION CHECKS ON!!!\n");
+        fprintf(stderr,"!!! SERIOUS PERFORMANCE DEGRADATION WILL OCCUR!!!\n");
+        fprintf(stderr,"!!! DO NOT USE -lg:partcheck WITH PROFILING   !!!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        for (int i = 0; i < 4; i++)
+          fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        for (int i = 0; i < 2; i++)
+          fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr,"\n");
+        fprintf(stderr,"SLEEPING FOR 5 SECONDS SO YOU READ THIS WARNING...\n");
+        fflush(stderr);
+        sleep(5);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::configure_interoperability(void)
+    //--------------------------------------------------------------------------
+    {
+      const std::vector<LegionHandshake> &pending_handshakes = 
+        get_pending_handshake_table();
+      if (!pending_handshakes.empty())
+      {
+        for (std::vector<LegionHandshake>::const_iterator it = 
+              pending_handshakes.begin(); it != pending_handshakes.end(); it++)
+          it->impl->initialize();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ Processor Runtime::configure_runtime(int argc, char **argv,
+                         const LegionConfiguration &config, RealmRuntime &realm,
+                         std::set<Processor> &local_procs,
+                         bool background, bool supply_default_mapper)
+    //--------------------------------------------------------------------------
+    {
+      Processor first_proc = Processor::NO_PROC;
+      // Do some error checking in case we are running with separate instances
+      Machine machine = Machine::get_machine();
+      // Compute the data structures necessary for constructing a runtime 
+      std::set<Processor> local_util_procs;
+      Processor::Kind startup_kind = Processor::NO_KIND;
+      // First we find all our local processors
+      {
+        Machine::ProcessorQuery local_proc_query(machine);
+        local_proc_query.local_address_space();
+        // Check for exceeding the local number of processors
+        if (local_proc_query.count() > LEGION_MAX_NUM_PROCS)
+          REPORT_LEGION_ERROR(ERROR_MAXIMUM_PROCS_EXCEEDED, 
+                        "Maximum number of local processors %zd exceeds "
+                        "compile-time maximum of %d.  Change the value "
+                        "LEGION_MAX_NUM_PROCS in legion_config.h and recompile."
+                        , local_proc_query.count(), LEGION_MAX_NUM_PROCS)
+        for (Machine::ProcessorQuery::iterator it = 
+              local_proc_query.begin(); it != local_proc_query.end(); it++)
+        {
+          if (it->kind() == Processor::UTIL_PROC)
+          {
+            local_util_procs.insert(*it);
+            // Startup can also be a utility processor if nothing else
+            if (startup_kind == Processor::NO_KIND)
+              startup_kind = Processor::UTIL_PROC;
+          }
+          else
+          {
+            local_procs.insert(*it);
+            // Prefer CPUs for the startup kind
+            if (it->kind() == Processor::LOC_PROC)
+              startup_kind = Processor::LOC_PROC;
+          }
+        }
+        if (local_procs.empty())
+          REPORT_LEGION_ERROR(ERROR_NO_STARTUP_RESOURCES, 
+                        "Machine model contains no local processors!")
+      }
+      // Check to make sure we have something to do startup
+      if (startup_kind == Processor::NO_KIND)
+        REPORT_LEGION_ERROR(ERROR_NO_STARTUP_RESOURCES, "Machine model contains"
+            " no CPU processors and no utility processors! At least one "
+            "CPU or one utility processor is required for Legion.")
+      // Find the local system memory for our runtime
+      Memory system_memory;
+      {
+        Machine::MemoryQuery local_sysmems(machine);
+        local_sysmems.local_address_space();
+        local_sysmems.only_kind(Memory::SYSTEM_MEM);
+        if (local_sysmems.count() == 0)
+          REPORT_LEGION_ERROR(ERROR_NO_STARTUP_RESOURCES, "Machine model "
+              "contains no local system memories! At least one system memory "
+              "must exist in each process for Legion.")
+        system_memory = local_sysmems.first();
+      }
+      // Now build the data structures for all processors 
+      std::set<AddressSpaceID> address_spaces;
+      std::map<Processor,AddressSpaceID> proc_spaces;
+      Machine::ProcessorQuery all_procs(machine);
+      for (Machine::ProcessorQuery::iterator it = 
+            all_procs.begin(); it != all_procs.end(); it++)
+      {
+        AddressSpaceID sid = it->address_space();
+        address_spaces.insert(sid);
+        proc_spaces[*it] = sid;
+        if (!first_proc.exists() && (sid == 0) && 
+            (it->kind() == startup_kind))
+          first_proc = *it;
+      }
+      // Make one runtime instance and record it with all the processors
+      const AddressSpace local_space = local_procs.begin()->address_space();
+      // Make a separate copy of the input arguments for the runtime
+      InputArgs input_args;
+      input_args.argc = argc;
+      if (argc > 0)
+      {
+        input_args.argv = (char**)malloc(argc*sizeof(char*));
+        for (int i = 0; i < argc; i++)
+        {
+          if (argv[i] != NULL)
+            input_args.argv[i] = strdup(argv[i]);
+          else
+            input_args.argv[i] = NULL;
+        }
+      }
+      else
+        input_args.argv = NULL;
+      // Construct the runtime singleton
+      new Runtime(machine, config, background, input_args, local_space,
+          system_memory, local_procs, local_util_procs, address_spaces,
+          proc_spaces, supply_default_mapper);
+      Realm::ProfilingRequestSet no_requests;
+      // Keep track of all the registration events
+      std::vector<RtEvent> registered_events;
+      // Make the code descriptors for our tasks
+      CodeDescriptor startup_task(Runtime::startup_runtime_task);
+      CodeDescriptor shutdown_task(Runtime::shutdown_runtime_task);
+      CodeDescriptor lg_task(Runtime::legion_runtime_task);
+      CodeDescriptor rt_profiling_task(Runtime::profiling_runtime_task);
+      CodeDescriptor endpoint_task(Runtime::endpoint_runtime_task); 
+      CodeDescriptor app_proc_task(Runtime::application_processor_runtime_task);
+      for (std::set<Processor>::const_iterator it =
+            local_procs.begin(); it != local_procs.end(); it++)
+      {
+        // These tasks get registered on startup_kind processors
+        if (it->kind() == startup_kind)
+          registered_events.push_back(RtEvent(
+            it->register_task(LG_STARTUP_TASK_ID, startup_task, no_requests)));
+        // Only register runtime task on application processors if we don't
+        // have any utility processors
+        if (local_util_procs.empty())
+        {
+          registered_events.push_back(RtEvent(
+                it->register_task(LG_SHUTDOWN_TASK_ID, shutdown_task,
+                  no_requests)));
+#ifdef LEGION_SEPARATE_META_TASKS
+          for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
+          {
+            if (idx == LG_MESSAGE_ID)
+            {
+              for (unsigned msg = 0; msg < LAST_SEND_KIND; msg++)
+                registered_events.push_back(RtEvent(
+                    it->egister_task(LG_TASK_ID+idx+msg, lg_task,
+                        no_requests)));
+            }
+            else
+              registered_events.push_back(RtEvent(
+                    it->register_task(LG_TASK_ID+idx, lg_task, no_requests)));
+          }
+#else
+          registered_events.push_back(RtEvent(
+                it->register_task(LG_TASK_ID, lg_task, no_requests)));
+#endif
+          registered_events.push_back(RtEvent(
+                it->register_task(LG_ENDPOINT_TASK_ID, endpoint_task,
+                  no_requests)));
+        }
+        // Application processor tasks get registered on all
+        // processors which are not utility processors
+#ifdef LEGION_SEPARATE_META_TASKS
+        for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
+          registered_events.push_back(RtEvent(
+              it->register_task(LG_APP_PROC_TASK_ID+idx, app_proc_task,
+                    no_requests)));
+#else
+        registered_events.push_back(RtEvent(
+              it->register_task(LG_APP_PROC_TASK_ID, app_proc_task,
+                no_requests)));
+#endif
+        // Register profiling return meta-task on all processor kinds
+        registered_events.push_back(RtEvent(
+            it->register_task(LG_LEGION_PROFILING_ID, rt_profiling_task,
+              no_requests)));
+      }
+      for (std::set<Processor>::const_iterator it =
+            local_util_procs.begin(); it != local_util_procs.end(); it++)
+      {
+        // These tasks get registered on startup_kind processors
+        if (it->kind() == startup_kind)
+          registered_events.push_back(RtEvent(
+            it->register_task(LG_STARTUP_TASK_ID, startup_task, no_requests)));
+        registered_events.push_back(RtEvent(
+              it->register_task(LG_SHUTDOWN_TASK_ID, shutdown_task,
+                no_requests)));
+#ifdef LEGION_SEPARATE_META_TASKS
+        for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
+        {
+          if (idx == LG_MESSAGE_ID)
+          {
+            for (unsigned msg = 0; msg < LAST_SEND_KIND; msg++)
+              registered_events.push_back(RtEvent(
+                  it->register_task(LG_TASK_ID+idx+msg, lg_task, no_requests)));
+          }
+          else
+            registered_events.push_back(RtEvent(
+                  it->register_task(LG_TASK_ID+idx, lg_task, no_requests)));
+        }
+#else
+        registered_events.push_back(RtEvent(
+              it->register_task(LG_TASK_ID, lg_task, no_requests)));
+#endif
+        registered_events.push_back(RtEvent(
+              it->register_task(LG_ENDPOINT_TASK_ID, endpoint_task,
+                no_requests)));
+        // Register profiling return meta-task on all processor kinds
+        registered_events.push_back(RtEvent(
+            it->register_task(LG_LEGION_PROFILING_ID, rt_profiling_task,
+              no_requests)));
+      }
+      // Lastly do any other registrations we might have
+      ReductionOpTable& red_table = get_reduction_table(true/*safe*/);
+      red_table[BarrierArrivalReduction::REDOP] =
+        Realm::ReductionOpUntyped::create_reduction_op<
+                            BarrierArrivalReduction>();
+#ifdef DEBUG_LEGION_COLLECTIVES
+      red_table[CollectiveCheckReduction::REDOP] =
+        Realm::ReductionOpUntyped::create_reduction_op<
+                                CollectiveCheckReduction>();
+      red_table[CloseCheckReduction::REDOP]=
+        Realm::ReductionOpUntyped::create_reduction_op<
+                                CloseCheckReduction>();
+#endif
+      for(ReductionOpTable::const_iterator it = red_table.begin();
+          it != red_table.end();
+          it++)
+        realm.register_reduction(it->first, it->second);
+
+      const SerdezOpTable &serdez_table = get_serdez_table(true/*safe*/);
+      for (SerdezOpTable::const_iterator it = serdez_table.begin();
+            it != serdez_table.end(); it++)
+        realm.register_custom_serdez(it->first, it->second);
+      
+      if (config.record_registration)
+      {
+        log_run.print("Legion startup task has Realm ID %d",
+                      LG_STARTUP_TASK_ID);
+        log_run.print("Legion runtime shutdown task has Realm ID %d", 
+                      LG_SHUTDOWN_TASK_ID);
+        log_run.print("Legion runtime meta-task has Realm ID %d", 
+                      LG_TASK_ID);
+        log_run.print("Legion runtime profiling task Realm ID %d",
+                      LG_LEGION_PROFILING_ID);
+        log_run.print("Legion endpoint task has Realm ID %d",
+                      LG_ENDPOINT_TASK_ID);
+#ifdef LEGION_SEPARATE_META_TASKS
+        LG_TASK_DESCRIPTIONS(descs);
+        for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
+        {
+          if (idx == LG_MESSAGE_ID)
+          {
+            LG_MESSAGE_DESCRIPTIONS(msg_descs);
+            for (unsigned msg = 0; msg < LAST_SEND_KIND; msg++)
+              log_run.print("Legion message %s meta-task has Realm ID %d",
+                  msg_descs[msg], LG_TASK_ID+idx+msg);
+          }
+          else
+          {
+            log_run.print("Legion runtime %s meta-task has Realm ID %d",
+                descs[idx], LG_TASK_ID+idx);
+            log_run.print("Legion application %s meta-task has Realm ID %d",
+                descs[idx], LG_APP_PROC_TASK_ID+idx);
+          }
+        }
+#endif
+      }
+      // Make sure that we are done registering before we return
+      RtEvent ready = Runtime::merge_events(registered_events);
+      if (ready.exists())
+        ready.wait();
+      return first_proc;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ int Runtime::wait_for_shutdown(void)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_backgrounded)
+        REPORT_LEGION_ERROR(ERROR_ILLEGAL_WAIT_FOR_SHUTDOWN, 
+                      "Illegal call to wait_for_shutdown when runtime was "
+                      "not launched in background mode!");
+      // If this is the first time we've called this on this node then 
+      // we need to remove our reference to allow shutdown to proceed
+      if (!background_wait.exchange(true))
+        runtime->decrement_outstanding_top_level_tasks();
+      return RealmRuntime::get_runtime().wait_for_shutdown();
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::set_return_code(int code)
+    //--------------------------------------------------------------------------
+    {
+      return_code = code;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::set_top_level_task_id(TaskID top_id)
+    //--------------------------------------------------------------------------
+    {
+      legion_main_id = top_id;
+      legion_main_set = true;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::set_top_level_task_mapper_id(MapperID mapper_id)
+    //--------------------------------------------------------------------------
+    {
+      legion_main_mapper_id = mapper_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::configure_MPI_interoperability(int rank)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'configure_MPI_interoperability' after "
+                      "the runtime has been started!");
+#ifdef DEBUG_LEGION
+      assert(rank >= 0);
+#endif
+      // Check to see if it was already set
+      if (mpi_rank >= 0)
+      {
+        if (rank != mpi_rank)
+          REPORT_LEGION_ERROR(ERROR_DUPLICATE_MPI_CONFIG, 
+              "multiple calls to "
+              "configure_MPI_interoperability with different ranks "
+              "%d and %d on the same Legion runtime!", mpi_rank, rank)
+        else
+          REPORT_LEGION_WARNING(LEGION_WARNING_DUPLICATE_MPI_CONFIG,
+                                "duplicate calls to configure_"
+                                "MPI_interoperability on rank %d!", rank);
+      }
+      mpi_rank = rank;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::register_handshake(LegionHandshake &handshake)
+    //--------------------------------------------------------------------------
+    {
+      // See if the runtime is started or not
+      if (runtime_started)
+      {
+        // If it's started, we can just do the initialization now
+        handshake.impl->initialize();
+      }
+      else
+      {
+        std::vector<LegionHandshake> &pending_handshakes = 
+          get_pending_handshake_table();
+        pending_handshakes.push_back(handshake);
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ const ReductionOp* Runtime::get_reduction_op(
+                                                        ReductionOpID redop_id,
+                                                        bool has_lock/*=false*/)
+    //--------------------------------------------------------------------------
+    {
+      if (redop_id == 0)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID, 
+                      "ReductionOpID zero is reserved.")
+      if (!runtime_started || has_lock)
+      {
+        ReductionOpTable &red_table = 
+          Runtime::get_reduction_table(true/*safe*/);
+#ifdef DEBUG_LEGION
+        if (red_table.find(redop_id) == red_table.end())
+          REPORT_LEGION_ERROR(ERROR_INVALID_REDOP_ID, 
+                        "Invalid ReductionOpID %d",redop_id)
+#endif
+        return red_table[redop_id];
+      }
+      else
+        return runtime->get_reduction(redop_id);
+    }
+
+    //--------------------------------------------------------------------------
+    const ReductionOp* Runtime::get_reduction(ReductionOpID redop_id)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock r_lock(redop_lock);
+      return get_reduction_op(redop_id, true/*has lock*/); 
+    }
+
+    //--------------------------------------------------------------------------
+    FillView* Runtime::find_or_create_reduction_fill_view(ReductionOpID redop)
+    //--------------------------------------------------------------------------
+    {
+      {
+        AutoLock r_lock(redop_lock,1,false/*exclusive*/);
+        std::map<ReductionOpID,FillView*>::const_iterator finder =
+          redop_fill_views.find(redop);
+        if (finder != redop_fill_views.end())
+          return finder->second;
+      }
+      AutoLock r_lock(redop_lock);
+      // Check to see if we lost the race
+      std::map<ReductionOpID,FillView*>::const_iterator finder =
+        redop_fill_views.find(redop);
+      if (finder != redop_fill_views.end())
+        return finder->second;
+      const ReductionOp *reduction_op =
+        get_reduction_op(redop, true/*has lock*/);
+#ifdef DEBUG_LEGION
+      assert(reduction_op->identity != NULL);
+#endif
+      FillView *fill_view = new FillView(get_available_distributed_id(),
+#ifdef LEGION_SPY
+                                         0/*no creator*/,
+#endif
+                                         reduction_op->identity,
+                                         reduction_op->sizeof_rhs,
+                                         true/*register now*/);
+      fill_view->add_base_valid_ref(RUNTIME_REF);
+      redop_fill_views[redop] = fill_view;
+      return fill_view;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ const SerdezOp* Runtime::get_serdez_op(CustomSerdezID serdez_id,
+                                                      bool has_lock/*=false*/)
+    //--------------------------------------------------------------------------
+    {
+      if (serdez_id == 0)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_SERDEZ_ID, 
+                      "CustomSerdezID zero is reserved.")
+      if (!runtime_started || has_lock)
+      {
+        SerdezOpTable &serdez_table = Runtime::get_serdez_table(true/*safe*/);
+#ifdef DEBUG_LEGION
+        if (serdez_table.find(serdez_id) == serdez_table.end())
+          REPORT_LEGION_ERROR(ERROR_INVALID_SERDEZ_ID, 
+                        "Invalid CustomSerdezOpID %d", serdez_id)
+#endif
+        return serdez_table[serdez_id];
+      }
+      else
+        return runtime->get_serdez(serdez_id);
+    }
+
+    //--------------------------------------------------------------------------
+    const SerdezOp* Runtime::get_serdez(CustomSerdezID serdez_id)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock s_lock(serdez_lock);
+      return get_serdez_op(serdez_id, true/*has lock*/);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ const SerdezRedopFns* Runtime::get_serdez_redop_fns(
+                                                       ReductionOpID redop_id,
+                                                       bool has_lock/*= false*/)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_started || has_lock)
+      {
+        SerdezRedopTable &serdez_table = get_serdez_redop_table(true/*safe*/); 
+        SerdezRedopTable::const_iterator finder = serdez_table.find(redop_id);
+        if (finder != serdez_table.end())
+          return &(finder->second);
+        return NULL;
+      }
+      else
+        return runtime->get_serdez_redop(redop_id);
+    }
+
+    //--------------------------------------------------------------------------
+    const SerdezRedopFns* Runtime::get_serdez_redop(ReductionOpID redop_id)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock r_lock(redop_lock);
+      return get_serdez_redop_fns(redop_id, true/*has lock*/);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::add_registration_callback(
+                                             RegistrationCallbackFnptr callback,
+                                             bool deduplicate, size_t dedup_tag)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_started)
+      {
+        std::vector<RegistrationCallback> &registration_callbacks = 
+          get_pending_registration_callbacks();
+        registration_callbacks.resize(registration_callbacks.size() + 1);
+        RegistrationCallback &reg = registration_callbacks.back();
+        reg.callback.withoutargs = callback;
+        reg.deduplicate = deduplicate;
+        reg.dedup_tag = dedup_tag;
+        reg.has_args = false;
+      }
+      else
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'add_registration_callback' after "
+                      "the runtime has been started! Please use "
+                      "'perform_registration_callback' for registration "
+                      "calls to be done after the runtime has started.")
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::add_registration_callback(
+                                  RegistrationWithArgsCallbackFnptr callback,
+                                  const UntypedBuffer &buffer, 
+                                  bool deduplicate, size_t dedup_tag)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_started)
+      {
+        std::vector<RegistrationCallback> &registration_callbacks = 
+          get_pending_registration_callbacks();
+        registration_callbacks.resize(registration_callbacks.size() + 1);
+        RegistrationCallback &reg = registration_callbacks.back();
+        reg.callback.withargs = callback;
+        reg.deduplicate = deduplicate;
+        reg.dedup_tag = dedup_tag;
+        reg.has_args = true;
+        const size_t size = buffer.get_size();
+        if (size > 0)
+        {
+          void *copy = malloc(size);
+          memcpy(copy, buffer.get_ptr(), size);
+          reg.buffer = UntypedBuffer(copy, size);
+        }
+      }
+      else
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'add_registration_callback' after "
+                      "the runtime has been started! Please use "
+                      "'perform_registration_callback' for registration "
+                      "calls to be done after the runtime has started.")
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::perform_dynamic_registration_callback(
+                                RegistrationCallbackFnptr callback, bool global,
+                                bool deduplicate, size_t dedup_tag)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime_started)
+      {
+        const RtEvent done_event = runtime->perform_registration_callback(
+            (void*)callback, NULL/*buffer*/, 0/*size*/, false/*withargs*/,
+            global, false/*preregistered*/, deduplicate, dedup_tag);
+        if (done_event.exists() && !done_event.has_triggered())
+        {
+          // Block waiting for these to finish currently since we need
+          // to guarantee that all the resources are registered before
+          // we proceed any further
+          if (Processor::get_executing_processor().exists())
+            done_event.wait();
+          else
+            done_event.external_wait();
+        }
+      }
+      else // can safely ignore global as this call must be done everywhere
+        add_registration_callback(callback, deduplicate, dedup_tag);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::perform_dynamic_registration_callback(
+                                     RegistrationWithArgsCallbackFnptr callback,
+                                     const UntypedBuffer &buffer, bool global,
+                                     bool deduplicate, size_t dedup_tag)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime_started)
+      {
+        const RtEvent done_event = runtime->perform_registration_callback(
+            (void*)callback, buffer.get_ptr(), buffer.get_size(), 
+            true/*withargs*/, global, false/*preregistered*/,
+            deduplicate, dedup_tag);
+        if (done_event.exists() && !done_event.has_triggered())
+        {
+          // Block waiting for these to finish currently since we need
+          // to guarantee that all the resources are registered before
+          // we proceed any further
+          if (Processor::get_executing_processor().exists())
+            done_event.wait();
+          else
+            done_event.external_wait();
+        }
+      }
+      else // can safely ignore global as this call must be done everywhere
+        add_registration_callback(callback, buffer, deduplicate, dedup_tag);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ReductionOpTable& Runtime::get_reduction_table(bool safe)
+    //--------------------------------------------------------------------------
+    {
+      static ReductionOpTable table;
+      if (!safe && runtime_started)
+        assert(false);
+      return table;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ SerdezOpTable& Runtime::get_serdez_table(bool safe)
+    //--------------------------------------------------------------------------
+    {
+      static SerdezOpTable table;
+      if (!safe && runtime_started)
+        assert(false);
+      return table;
+    }
+    
+    //--------------------------------------------------------------------------
+    /*static*/ SerdezRedopTable& Runtime::get_serdez_redop_table(bool safe)
+    //--------------------------------------------------------------------------
+    {
+      static SerdezRedopTable table;
+      if (!safe && runtime_started)
+        assert(false);
+      return table;
+    }
+
+#if defined(LEGION_USE_CUDA) || defined(LEGION_USE_HIP)
+    // Define a free function for Runtime::register_reduction_op because
+    //  legion_redop.cu cannot include runtime.h
+    //--------------------------------------------------------------------------
+    void runtime_register_reduction_op(ReductionOpID redop_id,
+                                       ReductionOp *redop,
+                                       SerdezInitFnptr init_fnptr,
+                                       SerdezFoldFnptr fold_fnptr,
+                                       bool permit_duplicates,
+                                       bool has_lock = false)
+    //--------------------------------------------------------------------------
+    {
+      Runtime::register_reduction_op(redop_id, redop, init_fnptr, fold_fnptr,
+                                     permit_duplicates, has_lock);
+    }
+#endif
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::register_reduction_op(ReductionOpID redop_id,
+                                                   ReductionOp *redop,
+                                                   SerdezInitFnptr init_fnptr,
+                                                   SerdezFoldFnptr fold_fnptr,
+                                                   bool permit_duplicates,
+                                                   bool has_lock/*= false*/)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_started || has_lock)
+      {
+        if (redop_id == 0)
+          REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID, 
+                              "ERROR: ReductionOpID zero is reserved.")
+        // TODO: figure out a way to make this safe with dynamic registration
+#if 0
+        if (redop_id >= LEGION_MAX_APPLICATION_REDOP_ID)
+          REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID,
+                         "ERROR: ReductionOpID %d is greater than or equal "
+                         "to the LEGION_MAX_APPLICATION_REDOP_ID of %d "
+                         "set in legion_config.h.", redop_id, 
+                         LEGION_MAX_APPLICATION_REDOP_ID)
+#endif
+        if (redop->identity == NULL)
+          REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID,
+              "ERROR: Legion does not support reduction operators "
+              "without identity values. All reduction operators must "
+              "have an identity value to support fold operations.")
+        ReductionOpTable &red_table = 
+          Runtime::get_reduction_table(true/*safe*/);
+        // Check to make sure we're not overwriting a prior reduction op 
+        if (!permit_duplicates &&
+            (red_table.find(redop_id) != red_table.end()))
+          REPORT_LEGION_ERROR(ERROR_DUPLICATE_REDOP_ID, "ERROR: ReductionOpID "
+                    "%d has already been used in the reduction table",redop_id)
+        red_table[redop_id] = redop;
+        if ((init_fnptr != NULL) || (fold_fnptr != NULL))
+        {
+#ifdef DEBUG_LEGION
+          assert((init_fnptr != NULL) && (fold_fnptr != NULL));
+#endif
+          SerdezRedopTable &serdez_red_table = 
+            Runtime::get_serdez_redop_table(true/*safe*/);
+          SerdezRedopFns &fns = serdez_red_table[redop_id];
+          fns.init_fn = init_fnptr;
+          fns.fold_fn = fold_fnptr;
+        }
+      }
+      else
+        runtime->register_reduction(redop_id, redop, init_fnptr,
+              fold_fnptr, permit_duplicates, false/*preregistered*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_reduction(ReductionOpID redop_id,
+                                     ReductionOp *redop,
+                                     SerdezInitFnptr init_fnptr,
+                                     SerdezFoldFnptr fold_fnptr,
+                                     bool permit_duplicates,
+                                     bool preregistered)
+    //--------------------------------------------------------------------------
+    {
+      if (!preregistered && !inside_registration_callback)
+        REPORT_LEGION_WARNING(LEGION_WARNING_NON_CALLBACK_REGISTRATION,
+            "Reduction operator %d was dynamically registered outside of a "
+            "registration callback invocation. In the near future this will "
+            "become an error in order to support task subprocesses. Please "
+            "use 'perform_registration_callback' to generate a callback where "
+            "it will be safe to perform dynamic registrations.", redop_id)
+      // Dynamic registration so do it with realm too
+      RealmRuntime realm = RealmRuntime::get_runtime();
+      realm.register_reduction(redop_id, redop);
+      AutoLock r_lock(redop_lock);
+      Runtime::register_reduction_op(redop_id, redop, init_fnptr,
+                fold_fnptr, permit_duplicates, true/*has locks*/);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::register_serdez(CustomSerdezID serdez_id, SerdezOp *serdez_op, 
+                                  bool permit_duplicates, bool preregistered)
+    //--------------------------------------------------------------------------
+    {
+      if (!preregistered && !inside_registration_callback)
+        REPORT_LEGION_WARNING(LEGION_WARNING_NON_CALLBACK_REGISTRATION,
+            "Custom serdez operator %d was dynamically registered outside of a "
+            "registration callback invocation. In the near future this will "
+            "become an error in order to support task subprocesses. Please "
+            "use 'perform_registration_callback' to generate a callback where "
+            "it will be safe to perform dynamic registrations.", serdez_id)
+      // Dynamic registration so do it with realm too
+      RealmRuntime realm = RealmRuntime::get_runtime();
+      realm.register_custom_serdez(serdez_id, serdez_op);
+      AutoLock s_lock(serdez_lock);
+      Runtime::register_serdez_op(serdez_id, serdez_op, 
+                                  permit_duplicates, true/*has lock*/);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::register_serdez_op(CustomSerdezID serdez_id,
+                                                SerdezOp *serdez_op,
+                                                bool permit_duplicates,
+                                                bool has_lock/*= false*/)
+    //--------------------------------------------------------------------------
+    {
+      if (!runtime_started || has_lock)
+      {
+        if (serdez_id == 0)
+          REPORT_LEGION_ERROR(ERROR_RESERVED_SERDEZ_ID,
+                              "ERROR: Custom Serdez ID zero is reserved.\n")
+        // TODO: figure out a way to make this safe with dynamic registration
+#if 0
+        if (serdez_id >= LEGION_MAX_APPLICATION_SERDEZ_ID)
+          REPORT_LEGION_ERROR(ERROR_RESERVED_SERDEZ_ID,
+                         "ERROR: ReductionOpID %d is greater than or equal "
+                         "to the LEGION_MAX_APPLICATION_SERDEZ_ID of %d set "
+                         "in legion_config.h.", serdez_id, 
+                         LEGION_MAX_APPLICATION_SERDEZ_ID)
+#endif
+        SerdezOpTable &serdez_table = Runtime::get_serdez_table(true/*safe*/);
+        // Check to make sure we're not overwriting a prior serdez op
+        if (!permit_duplicates &&
+            (serdez_table.find(serdez_id) != serdez_table.end()))
+          REPORT_LEGION_ERROR(ERROR_DUPLICATE_SERDEZ_ID,
+                         "ERROR: CustomSerdezID %d has already been used "
+                         "in the serdez operation table", serdez_id)
+        serdez_table[serdez_id] = serdez_op;
+      }
+      else
+        runtime->register_serdez(serdez_id, serdez_op, 
+                                     permit_duplicates, false/*preregistered*/);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ std::deque<PendingVariantRegistration*>& 
+                                       Runtime::get_pending_variant_table(void)
+    //--------------------------------------------------------------------------
+    {
+      static std::deque<PendingVariantRegistration*> pending_variant_table;
+      return pending_variant_table;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ std::map<LayoutConstraintID,LayoutConstraintRegistrar>&
+                                    Runtime::get_pending_constraint_table(void)
+    //--------------------------------------------------------------------------
+    {
+      static std::map<LayoutConstraintID,LayoutConstraintRegistrar>
+                                                    pending_constraint_table;
+      return pending_constraint_table;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ std::map<ProjectionID,ProjectionFunctor*>&
+                                     Runtime::get_pending_projection_table(void)
+    //--------------------------------------------------------------------------
+    {
+      static std::map<ProjectionID,ProjectionFunctor*> pending_projection_table;
+      return pending_projection_table;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ std::map<ShardingID,ShardingFunctor*>&
+                                       Runtime::get_pending_sharding_table(void)
+    //--------------------------------------------------------------------------
+    {
+      static std::map<ShardingID,ShardingFunctor*> pending_sharding_table;
+      return pending_sharding_table;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ std::map<ConcurrentID,ConcurrentColoringFunctor*>&
+                                     Runtime::get_pending_concurrent_table(void)
+    //--------------------------------------------------------------------------
+    {
+      static std::map<ConcurrentID,
+        ConcurrentColoringFunctor*> pending_concurrent_table;
+      return pending_concurrent_table;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ std::vector<LegionHandshake>& 
+                                      Runtime::get_pending_handshake_table(void)
+    //--------------------------------------------------------------------------
+    {
+      static std::vector<LegionHandshake> pending_handshakes_table;
+      return pending_handshakes_table;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ std::vector<Runtime::RegistrationCallback>&
+                               Runtime::get_pending_registration_callbacks(void)
+    //--------------------------------------------------------------------------
+    {
+      static std::vector<RegistrationCallback> pending_callbacks;
+      return pending_callbacks;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ TaskID& Runtime::get_current_static_task_id(void)
+    //--------------------------------------------------------------------------
+    {
+      static TaskID current_task_id = LEGION_MAX_APPLICATION_TASK_ID;
+      return current_task_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ TaskID Runtime::generate_static_task_id(void)
+    //--------------------------------------------------------------------------
+    {
+      TaskID &next_task = get_current_static_task_id(); 
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'generate_static_task_id' after "
+                      "the runtime has been started!")
+      return next_task++;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ReductionOpID& Runtime::get_current_static_reduction_id(void)
+    //--------------------------------------------------------------------------
+    {
+      // Make sure to reserve space for the built-in reduction operators
+      static ReductionOpID current_redop_id = 
+        LEGION_MAX_APPLICATION_REDOP_ID + LEGION_REDOP_LAST;
+      return current_redop_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ ReductionOpID Runtime::generate_static_reduction_id(void)
+    //--------------------------------------------------------------------------
+    {
+      ReductionOpID &next_redop = get_current_static_reduction_id();
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'generate_static_reduction_id' after "
+                      "the runtime has been started!")
+      return next_redop++;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ CustomSerdezID& Runtime::get_current_static_serdez_id(void)
+    //--------------------------------------------------------------------------
+    {
+      static CustomSerdezID current_serdez_id =LEGION_MAX_APPLICATION_SERDEZ_ID;
+      return current_serdez_id;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ CustomSerdezID Runtime::generate_static_serdez_id(void)
+    //--------------------------------------------------------------------------
+    {
+      CustomSerdezID &next_serdez = get_current_static_serdez_id();
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'generate_static_serdez_id' after "
+                      "the runtime has been started!")
+      return next_serdez++;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ VariantID Runtime::preregister_variant(
+                          const TaskVariantRegistrar &registrar,
+                          const void *user_data, size_t user_data_size,
+                          const CodeDescriptor &code_desc, 
+                          size_t return_size, bool has_return_size, 
+                          const char *task_name, VariantID vid, bool check_id)
+    //--------------------------------------------------------------------------
+    {
+      // Report an error if the runtime has already started
+      if (runtime_started)
+        REPORT_LEGION_ERROR(ERROR_STATIC_CALL_POST_RUNTIME_START, 
+                      "Illegal call to 'preregister_task_variant' after "
+                      "the runtime has been started!")
+      if (check_id && (registrar.task_id >= get_current_static_task_id()))
+        REPORT_LEGION_ERROR(ERROR_MAX_APPLICATION_TASK_ID_EXCEEDED, 
+                      "Error preregistering task with ID %d. Exceeds the "
+                      "statically set bounds on application task IDs of %d. "
+                      "See %s in legion_config.h.", 
+                      registrar.task_id, LEGION_MAX_APPLICATION_TASK_ID, 
+                      LEGION_MACRO_TO_STRING(LEGION_MAX_APPLICATION_TASK_ID))
+      std::deque<PendingVariantRegistration*> &pending_table = 
+        get_pending_variant_table();
+      // See if we need to pick a variant
+      if (vid == LEGION_AUTO_GENERATE_ID)
+        vid = pending_table.size() + 1;
+      else if (vid == 0)
+        REPORT_LEGION_ERROR(ERROR_RESERVED_VARIANT_ID,
+                      "Error preregistering variant for task ID %d with "
+                      "variant ID 0. Variant ID 0 is reserved for task "
+                      "generators.", registrar.task_id)
+      // Offset by the runtime tasks
+      pending_table.push_back(new PendingVariantRegistration(vid, return_size,
+                              has_return_size, registrar, user_data,
+                              user_data_size, code_desc, task_name));
+      return vid;
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::report_fatal_message(int id,
+                                          const char *file_name, const int line,
+                                                  const char *message)
+    //--------------------------------------------------------------------------
+    {
+      log_run.fatal("LEGION FATAL: %s (from file %s:%d)",
+                    message, file_name, line);
+      abort();
+    }
+    
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::report_error_message(int id,
+                                          const char *file_name, const int line,
+                                                  const char *message)
+    //--------------------------------------------------------------------------
+    {
+      log_run.error("LEGION ERROR: %s (from file %s:%d)",
+                    message, file_name, line);
+      abort();
+    }
+    
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::report_warning_message(
+                                         int id,
+                                         const char *file_name, const int line,
+                                         const char *message)
+    //--------------------------------------------------------------------------
+    {
+      log_run.warning("LEGION WARNING: %s (from file %s:%d)",
+                      message, file_name, line);
+      if ((runtime != NULL) && runtime->warnings_backtrace)
+      {
+        Realm::Backtrace bt;
+        bt.capture_backtrace();
+        log_run.warning() << bt;
+      }
+#ifndef LEGION_WARNINGS_FATAL
+      if (runtime->warnings_are_errors)
+#endif
+        abort();
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::shutdown_runtime_task(const void *args, 
+               size_t arglen, const void *userdata, size_t userlen, Processor p)
+    //--------------------------------------------------------------------------
+    {
+      // We don't profile this task
+      implicit_profiler = NULL;
+      implicit_fevent = LgEvent::NO_LG_EVENT;
+      // Finalize the runtime and then delete it
+      std::vector<RtEvent> shutdown_events;
+      runtime->finalize_runtime(shutdown_events);
+      delete runtime;
+      // If we have any shutdown events we need to wait for them to have
+      // finished before we return and end up marking ourselves finished
+      if (!shutdown_events.empty())
+      {
+        const RtEvent wait_on = Runtime::merge_events(shutdown_events);
+        wait_on.wait();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::legion_runtime_task(
+                                  const void *args, size_t arglen, 
+				  const void *userdata, size_t userlen,
+				  Processor p)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+#if (!defined(LEGION_MALLOC_INSTANCES) && !defined(LEGION_USE_CUDA)) || \
+      (!defined(LEGION_MALLOC_INSTANCES) && !defined(LEGION_USE_HIP))
+      // Meta-tasks can run on application processors only when there
+      // are no utility processors for us to use
+      if (!runtime->local_utils.empty())
+        assert(implicit_context == NULL); // this better hold
+#endif
+      assert(implicit_reference_tracker == NULL);
+#endif
+      // We immediately bump the priority of all meta-tasks once they start
+      // up to the highest level to ensure that they drain once they begin
+      Processor::set_current_task_priority(LG_RUNNING_PRIORITY);
+      const char *data = (const char*)args;
+      implicit_provenance = *((const UniqueID*)data);
+      data += sizeof(implicit_provenance);
+      arglen -= sizeof(implicit_provenance);
+#ifdef DEBUG_LEGION_CALLERS
+      implicit_task_caller = *((const LgTaskID*)data);
+      data += sizeof(implicit_task_caller);
+      arglen -= sizeof(implicit_task_caller);
+#endif
+      LgTaskID tid = *((const LgTaskID*)data);
+#ifdef DEBUG_LEGION_CALLERS
+      implicit_task_kind = tid;
+#endif
+      data += sizeof(tid);
+      arglen -= sizeof(tid);
+      if (runtime->profiler != NULL)
+      {
+        implicit_fevent = LgEvent(Processor::get_current_finish_event());
+        // If this is a message task, then we need to initialize the
+        // implicit_fevent before doing anything that can block
+        if (tid == LG_MESSAGE_ID)
+          runtime->profiler->increment_outstanding_message_request();
+        if (implicit_profiler == NULL)
+          implicit_profiler = 
+            runtime->profiler->find_or_create_profiling_instance();
+      }
+      switch (tid)
+      {
+        case LG_SCHEDULER_ID:
+          {
+            const ProcessorManager::SchedulerArgs *sched_args = 
+              (const ProcessorManager::SchedulerArgs*)args;
+            runtime->process_schedule_request(sched_args->proc);
+            break;
+          }
+        case LG_MESSAGE_ID:
+          {
+            runtime->process_message_task(data, arglen);
+            break;
+          }
+        case LG_TRIGGER_READY_ID:
+          {
+            InnerContext::handle_ready_queue(args);
+            break;
+          }
+        case LG_TRIGGER_COMMIT_ID:
+          {
+            InnerContext::handle_trigger_commit_queue(args);
+            break;
+          }
+        case LG_DEFERRED_EXECUTION_ID:
+          {
+            InnerContext::handle_deferred_execution_queue(args);
+            break;
+          }
+        case LG_TRIGGER_EXECUTION_ID:
+          {
+            InnerContext::handle_trigger_execution_queue(args);
+            break;
+          }
+        case LG_DEFERRED_COMPLETION_ID:
+          {
+            InnerContext::handle_deferred_completion_queue(args);
+            break;
+          } 
+        case LG_DEFERRED_COMMIT_ID:
+          {
+            InnerContext::handle_deferred_commit_queue(args);
+            break;
+          }
+        case LG_PRE_PIPELINE_ID:
+          {
+            InnerContext::handle_prepipeline_stage(args);
+            break;
+          }
+        case LG_TRIGGER_DEPENDENCE_ID:
+          {
+            InnerContext::handle_dependence_stage(args);
+            break;
+          }
+        case LG_DEFERRED_MAPPED_ID:
+          {
+            InnerContext::handle_deferred_mapped_queue(args);
+            break;
+          }
+        case LG_TRIGGER_OP_ID:
+          {
+            // Key off of args here instead of data
+            const Operation::TriggerOpArgs *trigger_args = 
+                            (const Operation::TriggerOpArgs*)args;
+            trigger_args->op->trigger_mapping();
+            break;
+          }
+        case LG_TRIGGER_TASK_ID:
+          {
+            // Key off of args here instead of data
+            const TaskOp::TriggerTaskArgs *trigger_args = 
+                          (const TaskOp::TriggerTaskArgs*)args;
+            trigger_args->op->trigger_mapping(); 
+            break;
+          }
+        case LG_DEFER_MAPPER_SCHEDULER_TASK_ID:
+          {
+            ProcessorManager::handle_defer_mapper(args);
+            break;
+          }
+        case LG_CONTRIBUTE_COLLECTIVE_ID:
+          {
+            FutureImpl::handle_contribute_to_collective(args);
+            break;
+          }
+        case LG_FUTURE_BROADCAST_TASK_ID:
+          {
+            FutureImpl::handle_broadcast(args);
+            break;
+          }
+        case LG_TOP_FINISH_TASK_ID:
+          {
+            TopFinishArgs *fargs = (TopFinishArgs*)args; 
+            if (fargs->ctx->remove_base_gc_ref(RUNTIME_REF))
+              delete fargs->ctx;
+            // Finally tell the runtime that we have one less top level task
+            runtime->decrement_outstanding_top_level_tasks();
+            break;
+          }
+        case LG_MAPPER_TASK_ID:
+          {
+            MapperTaskArgs *margs = (MapperTaskArgs*)args;
+            runtime->process_mapper_task_result(margs);
+            // Now indicate that we are done with the future
+            if (margs->future->remove_base_gc_ref(META_TASK_REF))
+              delete margs->future;
+            // We can also deactivate the enclosing context 
+            if (margs->ctx->remove_nested_gc_ref(RUNTIME_REF))
+              delete margs->ctx;
+            // Finally tell the runtime we have one less top level task
+            runtime->decrement_outstanding_top_level_tasks();
+            break;
+          }
+        case LG_DISJOINTNESS_TASK_ID:
+          {
+            IndexPartNode::handle_disjointness_computation(args);
+            break;
+          }
+        case LG_DEFER_TIMING_MEASUREMENT_TASK_ID:
+          {
+            TimingOp::handle_deferred_measurement(args);
+            break;
+          }
+        case LG_TASK_IMPL_SEMANTIC_INFO_REQ_TASK_ID:
+          {
+            TaskImpl::SemanticRequestArgs *req_args = 
+              (TaskImpl::SemanticRequestArgs*)args;
+            req_args->proxy_this->process_semantic_request(
+                          req_args->tag, req_args->source, 
+                          false, false, RtUserEvent::NO_RT_USER_EVENT);
+            break;
+          }
+        case LG_INDEX_SPACE_SEMANTIC_INFO_REQ_TASK_ID:
+          {
+            IndexSpaceNode::SemanticRequestArgs *req_args = 
+              (IndexSpaceNode::SemanticRequestArgs*)args;
+            req_args->proxy_this->process_semantic_request(
+                          req_args->tag, req_args->source, 
+                          false, false, RtUserEvent::NO_RT_USER_EVENT);
+            break;
+          }
+        case LG_INDEX_PART_SEMANTIC_INFO_REQ_TASK_ID:
+          {
+            IndexPartNode::SemanticRequestArgs *req_args = 
+              (IndexPartNode::SemanticRequestArgs*)args;
+            req_args->proxy_this->process_semantic_request(
+                          req_args->tag, req_args->source, 
+                          false, false, RtUserEvent::NO_RT_USER_EVENT);
+            break;
+          }
+        case LG_FIELD_SPACE_SEMANTIC_INFO_REQ_TASK_ID:
+          {
+            FieldSpaceNode::SemanticRequestArgs *req_args = 
+              (FieldSpaceNode::SemanticRequestArgs*)args;
+            req_args->proxy_this->process_semantic_request(
+                          req_args->tag, req_args->source, 
+                          false, false, RtUserEvent::NO_RT_USER_EVENT);
+            break;
+          }
+        case LG_FIELD_SEMANTIC_INFO_REQ_TASK_ID:
+          {
+            FieldSpaceNode::SemanticFieldRequestArgs *req_args = 
+              (FieldSpaceNode::SemanticFieldRequestArgs*)args;
+            req_args->proxy_this->process_semantic_field_request(
+                  req_args->fid, req_args->tag, req_args->source, 
+                  false, false, RtUserEvent::NO_RT_USER_EVENT);
+            break;
+          }
+        case LG_DEFER_FIELD_INFOS_TASK_ID:
+          {
+            FieldSpaceNode::handle_defer_infos_request(args);
+            break;
+          }
+        case LG_REGION_SEMANTIC_INFO_REQ_TASK_ID:
+          {
+            RegionNode::SemanticRequestArgs *req_args = 
+              (RegionNode::SemanticRequestArgs*)args;
+            req_args->proxy_this->process_semantic_request(
+                          req_args->tag, req_args->source, 
+                          false, false, RtUserEvent::NO_RT_USER_EVENT);
+            break;
+          }
+        case LG_PARTITION_SEMANTIC_INFO_REQ_TASK_ID:
+          {
+            PartitionNode::SemanticRequestArgs *req_args = 
+              (PartitionNode::SemanticRequestArgs*)args;
+            req_args->proxy_this->process_semantic_request(
+                          req_args->tag, req_args->source, 
+                          false, false, RtUserEvent::NO_RT_USER_EVENT);
+            break;
+          }
+        case LG_INDEX_SPACE_DEFER_CHILD_TASK_ID:
+          {
+            IndexSpaceNode::defer_node_child_request(args);
+            break;
+          }
+        case LG_INDEX_PART_DEFER_CHILD_TASK_ID:
+          {
+            IndexPartNode::defer_node_child_request(args);
+            break;
+          }
+        case LG_INDEX_PART_DEFER_SHARD_RECTS_TASK_ID:
+          {
+            IndexPartNode::defer_find_local_shard_rects(args);
+            break;
+          }
+        case LG_DEFERRED_ENQUEUE_TASK_ID:
+          {
+            InnerContext::handle_enqueue_task_queue(args);
+            break;
+          }
+        case LG_DEFER_MAPPER_MESSAGE_TASK_ID:
+          {
+            MapperManager::handle_deferred_message(args);
+            break;
+          }
+        case LG_DEFER_MAPPER_COLLECTION_TASK_ID:
+          {
+            MapperManager::handle_deferred_collection(args);
+            break;
+          }
+        case LG_REMOTE_VIEW_CREATION_TASK_ID:
+          {
+            PhysicalManager::handle_top_view_creation(args);
+            break;
+          }
+        case LG_DEFER_PERFORM_MAPPING_TASK_ID:
+          {
+            const TaskOp::DeferMappingArgs *margs = 
+              (const TaskOp::DeferMappingArgs*)args;
+            if (margs->proxy_this->is_origin_mapped())
+            {
+              if (margs->proxy_this->perform_mapping(margs->must_op, margs) &&
+                  margs->proxy_this->distribute_task())
+                margs->proxy_this->launch_task();
+            }
+            else
+            {
+              if (margs->proxy_this->perform_mapping(margs->must_op, margs))
+                margs->proxy_this->launch_task();
+            }
+            break;
+          }
+        case LG_FINALIZE_OUTPUT_TREE_TASK_ID:
+          {
+            const TaskOp::FinalizeOutputEqKDTreeArgs *fargs =
+              (const TaskOp::FinalizeOutputEqKDTreeArgs*)args;
+            fargs->proxy_this->finalize_output_region_trees();
+            break;
+          }
+        case LG_MISPREDICATION_TASK_ID:
+          {
+            const SingleTask::MispredicationTaskArgs *targs = 
+              (const SingleTask::MispredicationTaskArgs*)args;
+            targs->task->handle_mispredication();
+            break;
+          }
+        case LG_DEFER_TRIGGER_CHILDREN_COMMIT_TASK_ID:
+          {
+            TaskOp::handle_deferred_children_commit(args);
+            break;
+          }
+        case LG_ORDER_CONCURRENT_LAUNCH_TASK_ID:
+          {
+            SingleTask::order_concurrent_task_launch(args);
+            break;
+          }
+        case LG_DEFER_MATERIALIZED_VIEW_TASK_ID:
+          {
+            MaterializedView::handle_defer_materialized_view(args);
+            break;
+          }
+        case LG_DEFER_REDUCTION_VIEW_TASK_ID:
+          {
+            ReductionView::handle_defer_reduction_view(args);
+            break;
+          }
+        case LG_DEFER_PHI_VIEW_REGISTRATION_TASK_ID:
+          {
+            PhiView::handle_deferred_view_registration(args);
+            break;
+          }
+        case LG_TIGHTEN_INDEX_SPACE_TASK_ID:
+          {
+            IndexSpaceExpression::handle_tighten_index_space(args);
+            break;
+          }
+        case LG_REPLAY_SLICE_TASK_ID:
+          {
+            PhysicalTemplate::handle_replay_slice(args);
+            break;
+          }
+        case LG_TRANSITIVE_REDUCTION_TASK_ID:
+          {
+            PhysicalTemplate::handle_transitive_reduction(args);
+            break;
+          }
+        case LG_DELETE_TEMPLATE_TASK_ID:
+          {
+            PhysicalTemplate::handle_delete_template(args);
+            break;
+          }
+        case LG_DEFER_MAKE_OWNER_TASK_ID:
+          {
+            EquivalenceSet::handle_make_owner(args);
+            break;
+          }
+        case LG_DEFER_APPLY_STATE_TASK_ID:
+          {
+            EquivalenceSet::handle_apply_state(args);
+            break;
+          }
+        case LG_COPY_FILL_AGGREGATION_TASK_ID:
+          {
+            CopyFillAggregator::handle_aggregation(args);
+            break;
+          }
+        case LG_COPY_FILL_DELETION_TASK_ID:
+          {
+            CopyFillGuard::handle_deletion(args);
+            break;
+          }
+        case LG_FINALIZE_EQ_SETS_TASK_ID:
+          {
+            EqSetTracker::handle_finalize_eq_sets(args);
+            break;
+          }
+        case LG_FINALIZE_OUTPUT_EQ_SET_TASK_ID:
+          {
+            VersionManager::handle_finalize_output_eq_set(args);
+            break;
+          }
+        case LG_DEFERRED_COPY_ACROSS_TASK_ID:
+          {
+            CopyOp::handle_deferred_across(args);
+            break;
+          }
+        case LG_DEFER_REMOTE_OP_DELETION_TASK_ID:
+          {
+            RemoteOp::handle_deferred_deletion(args);
+            break;
+          }
+        case LG_DEFER_PERFORM_TRAVERSAL_TASK_ID:
+          {
+            PhysicalAnalysis::handle_deferred_traversal(args);
+            break;
+          }
+        case LG_DEFER_PERFORM_ANALYSIS_TASK_ID:
+          {
+            PhysicalAnalysis::handle_deferred_analysis(args);
+            break;
+          }
+        case LG_DEFER_PERFORM_REMOTE_TASK_ID:
+          {
+            PhysicalAnalysis::handle_deferred_remote(args);
+            break;
+          }
+        case LG_DEFER_PERFORM_UPDATE_TASK_ID:
+          {
+            PhysicalAnalysis::handle_deferred_update(args);
+            break;
+          }
+        case LG_DEFER_PERFORM_REGISTRATION_TASK_ID:
+          {
+            PhysicalAnalysis::handle_deferred_registration(args);
+            break;
+          }
+        case LG_DEFER_PERFORM_OUTPUT_TASK_ID:
+          {
+            PhysicalAnalysis::handle_deferred_output(args);
+            break;
+          }
+        case LG_DEFER_PHYSICAL_MANAGER_TASK_ID:
+          {
+            PhysicalManager::handle_defer_manager(args);
+            break;
+          }
+        case LG_DEFER_DELETE_PHYSICAL_MANAGER_TASK_ID:
+          {
+            PhysicalManager::handle_defer_perform_deletion(args);
+            break;
+          }
+        case LG_DEFER_VERIFY_PARTITION_TASK_ID:
+          {
+            InnerContext::handle_partition_verification(args);
+            break;
+          }
+        case LG_DEFER_RELEASE_ACQUIRED_TASK_ID:
+          {
+            Operation::handle_deferred_release(args);
+            break;
+          }
+        case LG_DEFER_COPY_ACROSS_TASK_ID:
+          {
+            CopyAcrossExecutor::handle_deferred_copy_across(args);
+            break;
+          }
+#ifdef LEGION_MALLOC_INSTANCES
+        // LG_MALLOC_INSTANCE_TASK_ID should always run app processor
+        case LG_FREE_INSTANCE_TASK_ID:
+          {
+            MemoryManager::handle_free_instance(args);
+            break;
+          }
+#endif
+        case LG_DEFER_TRACE_UPDATE_TASK_ID:
+          {
+            ShardedPhysicalTemplate::handle_deferred_trace_update(args);
+            break;
+          }
+        case LG_DEFER_CONSENSUS_MATCH_TASK_ID:
+          {
+            ConsensusMatchBase::handle_consensus_match(args);
+            break;
+          }
+        case LG_DEFER_COLLECTIVE_TASK_ID:
+          {
+            ShardCollective::handle_deferred_collective(args);
+            break;
+          }
+        case LG_DEFER_ISSUE_FILL_TASK_ID:
+          {
+            FillView::handle_defer_issue_fill(args);
+            break;
+          }
+        case LG_DEFER_MUST_EPOCH_RETURN_TASK_ID:
+          {
+            ReplMustEpochOp::handle_defer_return_resources(args);
+            break;
+          }
+        case LG_DEFER_DELETE_FUTURE_INSTANCE_TASK_ID:
+          {
+            FutureInstance::handle_defer_deletion(args);
+            break;
+          }
+        case LG_FREE_EXTERNAL_TASK_ID:
+          {
+            FutureInstance::handle_free_external(args);
+            break;
+          }
+        case LG_DEFER_DELETION_COMMIT_TASK_ID:
+          {
+            ReplDeletionOp::handle_defer_commit(args);
+            break;
+          }
+        case LG_YIELD_TASK_ID:
+          break; // nothing to do here
+        case LG_AUTO_TRACE_PROCESS_REPEATS_TASK_ID:
+          {
+            TraceRecognizer::find_repeats(args);
+            break;
+          }
+        case LG_RETRY_SHUTDOWN_TASK_ID:
+          {
+            const ShutdownManager::RetryShutdownArgs *shutdown_args = 
+              (const ShutdownManager::RetryShutdownArgs*)args;
+            runtime->initiate_runtime_shutdown(runtime->address_space,
+                                               shutdown_args->phase);
+            break;
+          }
+        default:
+          assert(false); // should never get here
+      }
+      if (implicit_reference_tracker != NULL)
+      {
+        delete implicit_reference_tracker;
+        implicit_reference_tracker = NULL;
+      }
+#ifdef DEBUG_LEGION
+      if (tid < LG_BEGIN_SHUTDOWN_TASK_IDS)
+        runtime->decrement_total_outstanding_tasks(tid, true/*meta*/);
+#else
+      if (tid < LG_BEGIN_SHUTDOWN_TASK_IDS)
+        runtime->decrement_total_outstanding_tasks();
+#endif
+#ifdef DEBUG_SHUTDOWN_HANG
+      runtime->outstanding_counts[tid].fetch_sub(1);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::profiling_runtime_task(
+                                   const void *args, size_t arglen, 
+				   const void *userdata, size_t userlen,
+				   Processor p)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime->profiler != NULL) 
+      {
+        implicit_fevent = LgEvent(Processor::get_current_finish_event());
+        if (implicit_profiler == NULL)
+          implicit_profiler = 
+            runtime->profiler->find_or_create_profiling_instance();
+      }
+      Realm::ProfilingResponse response(args, arglen);
+      const ProfilingResponseBase *base = 
+        static_cast<const ProfilingResponseBase*>(response.user_data());
+      LgEvent fevent;
+      bool failed_alloc = false;
+      if (base->handler == NULL)
+      {
+        // This is the remote message case
+#ifdef DEBUG_LEGION
+        assert(runtime->profiler != NULL);
+#endif
+        const long long t_start = Realm::Clock::current_time_in_nanoseconds();
+        // Check to see if should report this profiling
+        if (runtime->profiler->handle_profiling_response(response, args,
+              arglen, fevent, failed_alloc))
+        {
+          if (failed_alloc)
+            runtime->profiler->handle_failed_instance_allocation();
+          const long long t_stop = Realm::Clock::current_time_in_nanoseconds();
+          const LgEvent finish_event(Processor::get_current_finish_event());
+          implicit_profiler->process_proc_desc(p);
+          implicit_profiler->record_proftask(p, base->op_id, t_start, t_stop,
+              fevent, finish_event, base->completion || failed_alloc);
+        }
+      }
+      else if (runtime->profiler != NULL)
+      {
+        const long long t_start = Realm::Clock::current_time_in_nanoseconds();
+        // Check to see if should report this profiling
+        if (base->handler->handle_profiling_response(response, args, arglen, 
+                                                     fevent, failed_alloc))
+        {
+          if (failed_alloc)
+            runtime->profiler->handle_failed_instance_allocation();
+          const long long t_stop = Realm::Clock::current_time_in_nanoseconds();
+          const LgEvent finish_event(Processor::get_current_finish_event());
+          implicit_profiler->process_proc_desc(p);
+          implicit_profiler->record_proftask(p, base->op_id, t_start, t_stop,
+              fevent, finish_event, base->completion || failed_alloc);
+        }
+      }
+      else
+        base->handler->handle_profiling_response(response, args, arglen,
+            fevent, failed_alloc);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::broadcast_startup_barrier(RtBarrier startup_barrier)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(startup_barrier.exists());
+#endif
+      // Make sure the representation of the barriers haven't changed
+      static_assert(sizeof(startup_barrier) == 
+          (sizeof(startup_event) + sizeof(startup_timestamp)),
+          "Realm Barrier representation changed");
+      // Tree broadcast it out to any downstream nodes
+      AddressSpaceID offset = address_space * legion_collective_radix;
+      for (int idx = 1; idx <= legion_collective_radix; idx++)
+      {
+        AddressSpaceID target = offset + idx;
+        if (target < total_address_spaces)
+        {
+          Serializer rez;
+          rez.serialize(startup_barrier);
+          send_startup_barrier(target, rez);
+        }
+      }
+      // Write the timestamp first
+      startup_timestamp = startup_barrier.timestamp;
+      // Then set the ID locally
+      RtUserEvent to_trigger;
+      to_trigger.id = startup_event.exchange(startup_barrier.id);
+      if (to_trigger.exists())
+        Runtime::trigger_event(to_trigger);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::startup_runtime_task(
+                                   const void *args, size_t arglen, 
+				   const void *userdata, size_t userlen,
+				   Processor p)
+    //--------------------------------------------------------------------------
+    {
+      // We don't profile this task
+      implicit_profiler = NULL;
+      implicit_fevent = LgEvent::NO_LG_EVENT;
+      // Create the startup barrier and send it out
+      // Note we don't profile this for critical paths
+      RtBarrier startup_barrier(
+        Realm::Barrier::create_barrier(runtime->total_address_spaces));
+      runtime->broadcast_startup_barrier(startup_barrier);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::endpoint_runtime_task(
+                                   const void *args, size_t arglen, 
+				   const void *userdata, size_t userlen,
+				   Processor p)
+    //--------------------------------------------------------------------------
+    {
+      Deserializer derez(args, arglen);
+      // We don't profile this task
+      implicit_profiler = NULL;
+      implicit_fevent = LgEvent::NO_LG_EVENT;
+      runtime->handle_endpoint_creation(derez);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void Runtime::application_processor_runtime_task(
+                                   const void *args, size_t arglen, 
+				   const void *userdata, size_t userlen,
+				   Processor p)
+    //--------------------------------------------------------------------------
+    {
+#ifdef DEBUG_LEGION
+      assert(implicit_reference_tracker == NULL);
+#endif
+      if (runtime->profiler != NULL)
+      {
+        implicit_fevent = LgEvent(Processor::get_current_finish_event());
+        if (implicit_profiler == NULL)
+          implicit_profiler =
+            runtime->profiler->find_or_create_profiling_instance();
+      }
+      // We immediately bump the priority of all meta-tasks once they start
+      // up to the highest level to ensure that they drain once they begin
+      Processor::set_current_task_priority(LG_RUNNING_PRIORITY);
+      const char *data = (const char*)args;
+      implicit_provenance = *((const UniqueID*)data);
+      data += sizeof(implicit_provenance);
+      arglen -= sizeof(implicit_provenance);
+#ifdef DEBUG_LEGION_CALLERS
+      implicit_task_caller = *((const LgTaskID*)data);
+      data += sizeof(implicit_task_caller);
+      arglen -= sizeof(implicit_task_caller);
+#endif
+      LgTaskID tid = *((const LgTaskID*)data);
+      data += sizeof(tid);
+      arglen -= sizeof(tid);
+#ifdef DEBUG_LEGION_CALLERS
+      implicit_task_kind = tid;
+#endif
+      switch (tid)
+      {
+        case LG_FUTURE_CALLBACK_TASK_ID:
+          {
+            FutureImpl::handle_callback(args);
+            break;
+          }
+        case LG_CALLBACK_RELEASE_TASK_ID:
+          {
+            FutureImpl::handle_release(args);
+            break;
+          } 
+        case LG_REPLAY_SLICE_TASK_ID:
+          {
+            PhysicalTemplate::handle_replay_slice(args);
+            break;
+          }
+        case LG_FREE_EXTERNAL_TASK_ID:
+          {
+            FutureInstance::handle_free_external(args);
+            break;
+          }
+#ifdef LEGION_MALLOC_INSTANCES
+        case LG_MALLOC_INSTANCE_TASK_ID:
+          {
+            MemoryManager::handle_malloc_instance(args);
+            break;
+          }
+        case LG_FREE_INSTANCE_TASK_ID:
+          {
+            MemoryManager::handle_free_instance(args);
+            break;
+          }
+#endif
+        default:
+          assert(false); // should never get here
+      }
+      if (implicit_reference_tracker != NULL)
+      {
+        delete implicit_reference_tracker;
+        implicit_reference_tracker = NULL;
+      }
+#ifdef DEBUG_LEGION
+      runtime->decrement_total_outstanding_tasks(tid, true/*meta*/);
+#else
+      runtime->decrement_total_outstanding_tasks();
+#endif
+#ifdef DEBUG_SHUTDOWN_HANG
+      runtime->outstanding_counts[tid].fetch_sub(1);
+#endif
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ RtBarrier Runtime::find_or_wait_for_startup_barrier(void)
+    //--------------------------------------------------------------------------
+    {
+      RtBarrier result;
+      result.id = startup_event.load();
+      if (result.exists())
+      {
+        result.timestamp = startup_timestamp;
+        return result;
+      }
+      // Barrier isn't ready yet so make an event to wait on and try to
+      // swap it into the startup event
+      const RtUserEvent ready = Runtime::create_rt_user_event();
+      if (startup_event.compare_exchange_strong(result.id, ready.id))
+      {
+        ready.wait();
+        result.id = startup_event.load();
+      }
+      else // Was already set
+        Runtime::trigger_event(ready);
+      // Get the timestamp
+      result.timestamp = startup_timestamp;
+      return result;
+    }
+
+#ifdef LEGION_TRACE_ALLOCATION
+    //--------------------------------------------------------------------------
+    /*static*/ void LegionAllocation::trace_allocation(
+                             const std::type_info &info, size_t size, int elems)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime != NULL)
+        runtime->trace_allocation(info, size, elems);
+    }
+
+    //--------------------------------------------------------------------------
+    /*static*/ void LegionAllocation::trace_free(const std::type_info &info, 
+                                                 size_t size, int elems)
+    //--------------------------------------------------------------------------
+    {
+      if (runtime != NULL)
+        runtime->trace_free(info, size, elems);
+    }
+#endif
+
+  } // namespace Internal
+} // namespace Legion
