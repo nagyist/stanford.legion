@@ -23,8 +23,10 @@
 #include "realm/id.h"
 #include "realm/dynamic_templates.h"
 
+#ifndef LEGION_DEPRECATED
 // This is from before Legion required c++17
 #define LEGION_DEPRECATED(x) [[deprecated(x)]]
+#endif
 
 // Macros for disabling and re-enabling deprecated warnings
 #if defined(__PGIC__)
