@@ -13,8 +13,6 @@
  * limitations under the License.
  */
 
-#include <cmath>
-
 #include "legion/operations/refinement.h"
 #include "legion/contexts/replicate.h"
 #include "legion/nodes/region.h"

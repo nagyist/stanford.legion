@@ -25,6 +25,7 @@
 #include <vector>
 #include <limits>
 #include <cstring>
+#include <cassert>
 #include <stddef.h>
 #include <functional>
 #include <stdlib.h>
