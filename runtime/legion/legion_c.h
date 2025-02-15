@@ -20,8 +20,10 @@
 
 #ifndef LEGION_ENABLE_C_BINDINGS
 #define LEGION_ENABLE_C_BINDINGS
-#endif
 #include "legion.h"
 #undef LEGION_ENABLE_C_BINDINGS
+#else
+#include "legion.h"
+#endif
 
 #endif // __LEGION_DEPRECATED_LEGION_C_H__
