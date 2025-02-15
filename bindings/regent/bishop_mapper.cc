@@ -14,7 +14,7 @@
  */
 
 #include "bishop_mapper.h"
-#include "legion/legion_c_util.h"
+#include "legion/bindings/c_bindings_util.h"
 
 #define LEGION_ENABLE_C_BINDINGS
 #include "legion.h"

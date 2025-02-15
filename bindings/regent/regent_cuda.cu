@@ -22,8 +22,7 @@
 
 #define LEGION_ENABLE_C_BINDINGS
 #include "legion.h"
-#include "legion/legion_c_util.h"
-#include "legion/legion_redop.h"
+#include "legion/bindings/c_bindings_util.h"
 #include "realm/redop.h"
 
 #include "regent.h"

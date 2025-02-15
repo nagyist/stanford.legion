@@ -16,7 +16,7 @@
 #ifndef __REGENT_UTIL_H__
 #define __REGENT_UTIL_H__
 
-#include "legion_c_util.h"
+#include "legion/bindings/c_bindings_util.h"
 
 #include "regent_tasks.h"
 
