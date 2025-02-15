@@ -69,6 +69,7 @@
 #include "legion/interface/output_region.h"
 #include "legion/interface/physical_region.h"
 #include "legion/interface/predicate.h"
+#include "legion/interface/redop.h"
 #include "legion/interface/registrars.h"
 #include "legion/interface/requirements.h"
 #include "legion/interface/runtime.h"
