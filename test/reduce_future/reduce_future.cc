@@ -14,8 +14,8 @@
  */
 
 #include "helpers.h"
-#include <legion/legion_c.h>
-#include <legion/legion_mapping.h>
+#define LEGION_ENABLE_C_BINDINGS
+#include <legion.h>
 #include <mappers/default_mapper.h>
 
 enum IDs
