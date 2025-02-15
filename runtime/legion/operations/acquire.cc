@@ -16,7 +16,7 @@
 #include "legion/operations/acquire.h"
 #include "legion/analysis/acquire.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/physical_region_impl.h"
+#include "legion/api/physical_region_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/managers/shard.h"
 #include "legion/tracing/recognizer.h"

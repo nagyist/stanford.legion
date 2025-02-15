@@ -14,8 +14,8 @@
  */
 
 #include "legion/tools/serializer.h"
-#include "legion/core/exception.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/exception.h"
+#include "legion/kernel/runtime.h"
 
 namespace Legion {
   namespace Internal {

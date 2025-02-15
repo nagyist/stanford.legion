@@ -16,10 +16,10 @@
 #ifndef __LEGION_MUST_EPOCH_H__
 #define __LEGION_MUST_EPOCH_H__
 
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/operations/operation.h"
-#include "legion/interface/mapping.h"
-#include "legion/interface/redop.h"
+#include "legion/api/mapping.h"
+#include "legion/api/redop.h"
 #include "legion/utilities/collectives.h"
 #include "legion/utilities/resources.h"
 

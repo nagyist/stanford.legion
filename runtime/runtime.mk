@@ -1138,6 +1138,25 @@ LEGION_SRC 	+= $(LG_RT_DIR)/legion/analysis/acquire.cc \
 		    $(LG_RT_DIR)/legion/analysis/update.cc \
 		    $(LG_RT_DIR)/legion/analysis/valid.cc \
 		    $(LG_RT_DIR)/legion/analysis/versioning.cc \
+		    $(LG_RT_DIR)/legion/api/accessors.cc \
+		    $(LG_RT_DIR)/legion/api/argument_map.cc \
+		    $(LG_RT_DIR)/legion/api/constraints.cc \
+		    $(LG_RT_DIR)/legion/api/data.cc \
+		    $(LG_RT_DIR)/legion/api/functors.cc \
+		    $(LG_RT_DIR)/legion/api/future.cc \
+		    $(LG_RT_DIR)/legion/api/future_map.cc \
+		    $(LG_RT_DIR)/legion/api/interop.cc \
+		    $(LG_RT_DIR)/legion/api/launchers.cc \
+		    $(LG_RT_DIR)/legion/api/mapping.cc \
+		    $(LG_RT_DIR)/legion/api/output_region.cc \
+		    $(LG_RT_DIR)/legion/api/physical_region.cc \
+		    $(LG_RT_DIR)/legion/api/predicate.cc \
+		    $(LG_RT_DIR)/legion/api/redop.cc \
+		    $(LG_RT_DIR)/legion/api/registrars.cc \
+		    $(LG_RT_DIR)/legion/api/requirements.cc \
+		    $(LG_RT_DIR)/legion/api/runtime.cc \
+		    $(LG_RT_DIR)/legion/api/sync.cc \
+		    $(LG_RT_DIR)/legion/api/values.cc \
 		    $(LG_RT_DIR)/legion/bindings/c_bindings.cc \
 		    $(LG_RT_DIR)/legion/contexts/context.cc \
 		    $(LG_RT_DIR)/legion/contexts/inner.cc \
@@ -1145,33 +1164,14 @@ LEGION_SRC 	+= $(LG_RT_DIR)/legion/analysis/acquire.cc \
 		    $(LG_RT_DIR)/legion/contexts/remote.cc \
 		    $(LG_RT_DIR)/legion/contexts/replicate.cc \
 		    $(LG_RT_DIR)/legion/contexts/toplevel.cc \
-		    $(LG_RT_DIR)/legion/core/exception.cc \
-		    $(LG_RT_DIR)/legion/core/garbage_collection.cc \
-		    $(LG_RT_DIR)/legion/core/runtime.cc \
 		    $(LG_RT_DIR)/legion/instances/builder.cc \
 		    $(LG_RT_DIR)/legion/instances/instance.cc \
 		    $(LG_RT_DIR)/legion/instances/layout.cc \
 		    $(LG_RT_DIR)/legion/instances/physical.cc \
 		    $(LG_RT_DIR)/legion/instances/virtual.cc \
-		    $(LG_RT_DIR)/legion/interface/accessors.cc \
-		    $(LG_RT_DIR)/legion/interface/argument_map.cc \
-		    $(LG_RT_DIR)/legion/interface/constraints.cc \
-		    $(LG_RT_DIR)/legion/interface/data.cc \
-		    $(LG_RT_DIR)/legion/interface/functors.cc \
-		    $(LG_RT_DIR)/legion/interface/future.cc \
-		    $(LG_RT_DIR)/legion/interface/future_map.cc \
-		    $(LG_RT_DIR)/legion/interface/interop.cc \
-		    $(LG_RT_DIR)/legion/interface/launchers.cc \
-		    $(LG_RT_DIR)/legion/interface/mapping.cc \
-		    $(LG_RT_DIR)/legion/interface/output_region.cc \
-		    $(LG_RT_DIR)/legion/interface/physical_region.cc \
-		    $(LG_RT_DIR)/legion/interface/predicate.cc \
-		    $(LG_RT_DIR)/legion/interface/redop.cc \
-		    $(LG_RT_DIR)/legion/interface/registrars.cc \
-		    $(LG_RT_DIR)/legion/interface/requirements.cc \
-		    $(LG_RT_DIR)/legion/interface/runtime.cc \
-		    $(LG_RT_DIR)/legion/interface/sync.cc \
-		    $(LG_RT_DIR)/legion/interface/values.cc \
+		    $(LG_RT_DIR)/legion/kernel/exception.cc \
+		    $(LG_RT_DIR)/legion/kernel/garbage_collection.cc \
+		    $(LG_RT_DIR)/legion/kernel/runtime.cc \
 		    $(LG_RT_DIR)/legion/managers/mapper.cc \
 		    $(LG_RT_DIR)/legion/managers/memory.cc \
 		    $(LG_RT_DIR)/legion/managers/message.cc \
@@ -1257,8 +1257,8 @@ LEGION_SRC 	+= $(LG_RT_DIR)/legion/analysis/acquire.cc \
 		    $(LG_RT_DIR)/legion/views/reduction.cc \
 		    $(LG_RT_DIR)/legion/views/replicate.cc
 
-LEGION_CUDA_SRC  += $(LG_RT_DIR)/legion/interface/redop.cu
-LEGION_HIP_SRC   += $(LG_RT_DIR)/legion/interface/redop.cu
+LEGION_CUDA_SRC  += $(LG_RT_DIR)/legion/api/redop.cu
+LEGION_HIP_SRC   += $(LG_RT_DIR)/legion/api/redop.cu
 # LEGION_INST_SRC will be compiled {MAX_DIM}^2 times in parallel
 LEGION_INST_SRC  += $(LG_RT_DIR)/legion/nodes/nodes_tmpl.cc
 
@@ -1288,50 +1288,50 @@ INSTALL_HEADERS += legion.h \
 		   legion/legion_domain.h \
 		   legion/legion_mapping.h \
 		   legion/legion_redop.h \
+		   legion/api/config.h \
+		   legion/api/accessors.h \
+		   legion/api/accessors.inl \
+		   legion/api/argument_map.h \
+		   legion/api/argument_map.inl \
+		   legion/api/buffers.h \
+		   legion/api/buffers.inl \
+		   legion/api/constraints.h \
+		   legion/api/data.h \
+		   legion/api/data.inl \
+		   legion/api/functors.h \
+		   legion/api/future.h \
+		   legion/api/future.inl \
+		   legion/api/future_map.h \
+		   legion/api/future_map.inl \
+		   legion/api/geometry.h \
+		   legion/api/geometry.inl \
+		   legion/api/interop.h \
+		   legion/api/launchers.h \
+		   legion/api/launchers.inl \
+		   legion/api/mapping.h \
+		   legion/api/mapping.inl \
+		   legion/api/output_region.h \
+		   legion/api/output_region.inl \
+		   legion/api/physical_region.h \
+		   legion/api/physical_region.inl \
+		   legion/api/predicate.h \
+		   legion/api/predicate.inl \
+		   legion/api/redop.h \
+		   legion/api/redop.inl \
+		   legion/api/registrars.h \
+		   legion/api/registrars.inl \
+		   legion/api/requirements.h \
+		   legion/api/requirements.inl \
+		   legion/api/runtime.h \
+		   legion/api/runtime.inl \
+		   legion/api/sync.h \
+		   legion/api/sync.inl \
+		   legion/api/transforms.h \
+		   legion/api/transforms.inl \
+		   legion/api/types.h \
+		   legion/api/values.h \
+		   legion/api/values.inl \
 		   legion/bindings/c_bindings.h \
-		   legion/interface/config.h \
-		   legion/interface/accessors.h \
-		   legion/interface/accessors.inl \
-		   legion/interface/argument_map.h \
-		   legion/interface/argument_map.inl \
-		   legion/interface/buffers.h \
-		   legion/interface/buffers.inl \
-		   legion/interface/constraints.h \
-		   legion/interface/data.h \
-		   legion/interface/data.inl \
-		   legion/interface/functors.h \
-		   legion/interface/future.h \
-		   legion/interface/future.inl \
-		   legion/interface/future_map.h \
-		   legion/interface/future_map.inl \
-		   legion/interface/geometry.h \
-		   legion/interface/geometry.inl \
-		   legion/interface/interop.h \
-		   legion/interface/launchers.h \
-		   legion/interface/launchers.inl \
-		   legion/interface/mapping.h \
-		   legion/interface/mapping.inl \
-		   legion/interface/output_region.h \
-		   legion/interface/output_region.inl \
-		   legion/interface/physical_region.h \
-		   legion/interface/physical_region.inl \
-		   legion/interface/predicate.h \
-		   legion/interface/predicate.inl \
-		   legion/interface/redop.h \
-		   legion/interface/redop.inl \
-		   legion/interface/registrars.h \
-		   legion/interface/registrars.inl \
-		   legion/interface/requirements.h \
-		   legion/interface/requirements.inl \
-		   legion/interface/runtime.h \
-		   legion/interface/runtime.inl \
-		   legion/interface/sync.h \
-		   legion/interface/sync.inl \
-		   legion/interface/transforms.h \
-		   legion/interface/transforms.inl \
-		   legion/interface/types.h \
-		   legion/interface/values.h \
-		   legion/interface/values.inl \
 		   mappers/debug_mapper.h \
 		   mappers/default_mapper.h \
 		   mappers/default_mapper.inl \

@@ -17,10 +17,10 @@
 
 #include "legion/managers/memory.h"
 #include "legion/contexts/context.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/builder.h"
 #include "legion/instances/physical.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/nodes/region.h"
 #include "legion/tasks/single.h"
 

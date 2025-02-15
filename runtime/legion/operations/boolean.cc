@@ -15,8 +15,8 @@
 
 #include "legion/operations/boolean.h"
 #include "legion/contexts/inner.h"
-#include "legion/interface/future_impl.h"
-#include "legion/interface/predicate_impl.h"
+#include "legion/api/future_impl.h"
+#include "legion/api/predicate_impl.h"
 
 namespace Legion {
   namespace Internal {

@@ -15,9 +15,9 @@
 
 #include "legion/tasks/task.h"
 #include "legion/contexts/inner.h"
-#include "legion/interface/functors_impl.h"
-#include "legion/interface/future_impl.h"
-#include "legion/interface/physical_region_impl.h"
+#include "legion/api/functors_impl.h"
+#include "legion/api/future_impl.h"
+#include "legion/api/physical_region_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/nodes/field.h"
 #include "legion/tasks/individual.h"

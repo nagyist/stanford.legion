@@ -15,7 +15,7 @@
 
 #include "legion/operations/partition.h"
 #include "legion/contexts/inner.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/index.h"
 

@@ -16,8 +16,8 @@
 #ifndef __LEGION_MEMOIZABLE_H__
 #define __LEGION_MEMOIZABLE_H__
 
-#include "legion/interface/sync_impl.h"
-#include "legion/core/runtime.h"
+#include "legion/api/sync_impl.h"
+#include "legion/kernel/runtime.h"
 #include "legion/operations/operation.h"
 #include "legion/tools/spy.h"
 #include "legion/tracing/template.h"

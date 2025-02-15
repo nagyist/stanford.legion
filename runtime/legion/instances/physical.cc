@@ -15,7 +15,7 @@
 
 #include "legion/instances/physical.h"
 #include "legion/contexts/inner.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/nodes/across.h"
 #include "legion/nodes/expression.h"
 #include "legion/nodes/region.h"

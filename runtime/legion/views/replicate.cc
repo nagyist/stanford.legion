@@ -14,7 +14,7 @@
  */
 
 #include "legion/views/replicate.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 
 namespace Legion {
   namespace Internal {

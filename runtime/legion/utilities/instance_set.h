@@ -16,8 +16,8 @@
 #ifndef __LEGION_INSTANCE_SET_H__
 #define __LEGION_INSTANCE_SET_H__
 
-#include "legion/core/garbage_collection.h"
-#include "legion/interface/types.h"
+#include "legion/kernel/garbage_collection.h"
+#include "legion/api/types.h"
 #include "legion/utilities/bitmask.h"
 
 namespace Legion {

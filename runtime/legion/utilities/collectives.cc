@@ -15,7 +15,7 @@
 
 #include "legion/utilities/collectives.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/region.h"
 #include "legion/operations/attach.h"

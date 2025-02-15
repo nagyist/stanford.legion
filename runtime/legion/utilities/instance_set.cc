@@ -14,9 +14,9 @@
  */
 
 #include "legion/utilities/instance_set.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
-#include "legion/interface/mapping.h"
+#include "legion/api/mapping.h"
 #include "legion/nodes/field.h"
 
 namespace Legion {

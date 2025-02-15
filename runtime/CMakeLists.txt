@@ -836,6 +836,48 @@ list(APPEND LEGION_SRC
   legion/analysis/update.h                legion/analysis/update.cc
   legion/analysis/valid.h                 legion/analysis/valid.cc
   legion/analysis/versioning.h            legion/analysis/versioning.cc
+  legion/api/accessors.h                  legion/api/accessors.cc
+  legion/api/accessors.inl
+  legion/api/argument_map.h               legion/api/argument_map.cc
+  legion/api/argument_map.inl             legion/api/argument_map_impl.h
+  legion/api/buffers.h                    legion/api/buffers.inl
+  legion/api/config.h
+  legion/api/constraints.h                legion/api/constraints.cc
+  legion/api/data.h                       legion/api/data.cc
+  legion/api/data.inl                     legion/api/data_impl.h
+  legion/api/functors.h                   legion/api/functors.cc
+  legion/api/functors_impl.h
+  legion/api/future.h                     legion/api/future.cc
+  legion/api/future.inl                   legion/api/future_impl.h
+  legion/api/future_map.h                 legion/api/future_map.cc
+  legion/api/future_map.inl               legion/api/future_map_impl.h
+  legion/api/geometry.h                   legion/api/geometry.inl
+  legion/api/interop.h                    legion/api/interop.cc
+  legion/api/interop_impl.h
+  legion/api/launchers.h                  legion/api/launchers.cc
+  legion/api/launchers.inl
+  legion/api/mapping.h                    legion/api/mapping.cc
+  legion/api/mapping.inl
+  legion/api/output_region.h              legion/api/output_region.cc
+  legion/api/output_region.inl            legion/api/output_region_impl.h
+  legion/api/physical_region.h            legion/api/physical_region.cc
+  legion/api/physical_region.inl          legion/api/physical_region_impl.h
+  legion/api/predicate.h                  legion/api/predicate.cc
+  legion/api/predicate.inl                legion/api/predicate_impl.h
+  legion/api/redop.h                      legion/api/redop.cc
+  legion/api/redop.inl
+  legion/api/registrars.h                 legion/api/registrars.cc
+  legion/api/registrars.inl
+  legion/api/requirements.h               legion/api/requirements.cc
+  legion/api/requirements.inl
+  legion/api/runtime.h                    legion/api/runtime.cc
+  legion/api/runtime.inl
+  legion/api/sync.h                       legion/api/sync.cc
+  legion/api/sync.inl                     legion/api/sync_impl.h
+  legion/api/transforms.h                 legion/api/transforms.inl
+  legion/api/types.h
+  legion/api/values.h                     legion/api/values.cc
+  legion/api/values.inl
   legion/bindings/c_bindings.h            legion/bindings/c_bindings.cc
   legion/bindings/c_bindings_util.h
   legion/contexts/context.h               legion/contexts/context.cc
@@ -845,61 +887,19 @@ list(APPEND LEGION_SRC
   legion/contexts/remote.h                legion/contexts/remote.cc
   legion/contexts/replicate.h             legion/contexts/replicate.cc
   legion/contexts/toplevel.h              legion/contexts/toplevel.cc
-  legion/core/allocation.h
-  legion/core/exception.h                 legion/core/exception.cc
-  legion/core/garbage_collection.h        legion/core/garbage_collection.cc
-  legion/core/metatask.h
-  legion/core/runtime.h                   legion/core/runtime.cc
-  legion/core/runtime.inl
   legion/instances/builder.h              legion/instances/builder.cc
   legion/instances/instance.h             legion/instances/instance.cc
   legion/instances/instance.inl
   legion/instances/layout.h               legion/instances/layout.cc
   legion/instances/physical.h             legion/instances/physical.cc
   legion/instances/physical.inl
-  legion/instances/virtual.h              legion/instances/virtual.cc
-  legion/interface/accessors.h            legion/interface/accessors.cc
-  legion/interface/accessors.inl
-  legion/interface/argument_map.h         legion/interface/argument_map.cc
-  legion/interface/argument_map.inl       legion/interface/argument_map_impl.h
-  legion/interface/buffers.h              legion/interface/buffers.inl
-  legion/interface/config.h
-  legion/interface/constraints.h          legion/interface/constraints.cc
-  legion/interface/data.h                 legion/interface/data.cc
-  legion/interface/data.inl               legion/interface/data_impl.h
-  legion/interface/functors.h             legion/interface/functors.cc
-  legion/interface/functors_impl.h
-  legion/interface/future.h               legion/interface/future.cc
-  legion/interface/future.inl             legion/interface/future_impl.h
-  legion/interface/future_map.h           legion/interface/future_map.cc
-  legion/interface/future_map.inl         legion/interface/future_map_impl.h
-  legion/interface/geometry.h             legion/interface/geometry.inl
-  legion/interface/interop.h              legion/interface/interop.cc
-  legion/interface/interop_impl.h
-  legion/interface/launchers.h            legion/interface/launchers.cc
-  legion/interface/launchers.inl
-  legion/interface/mapping.h              legion/interface/mapping.cc
-  legion/interface/mapping.inl
-  legion/interface/output_region.h        legion/interface/output_region.cc
-  legion/interface/output_region.inl      legion/interface/output_region_impl.h
-  legion/interface/physical_region.h      legion/interface/physical_region.cc
-  legion/interface/physical_region.inl    legion/interface/physical_region_impl.h
-  legion/interface/predicate.h            legion/interface/predicate.cc
-  legion/interface/predicate.inl          legion/interface/predicate_impl.h
-  legion/interface/redop.h                legion/interface/redop.cc
-  legion/interface/redop.inl
-  legion/interface/registrars.h           legion/interface/registrars.cc
-  legion/interface/registrars.inl
-  legion/interface/requirements.h         legion/interface/requirements.cc
-  legion/interface/requirements.inl
-  legion/interface/runtime.h              legion/interface/runtime.cc
-  legion/interface/runtime.inl
-  legion/interface/sync.h                 legion/interface/sync.cc
-  legion/interface/sync.inl               legion/interface/sync_impl.h
-  legion/interface/transforms.h           legion/interface/transforms.inl
-  legion/interface/types.h
-  legion/interface/values.h               legion/interface/values.cc
-  legion/interface/values.inl
+  legion/instances/virtual.h              legion/instances/virtual.cc 
+  legion/kernel/allocation.h
+  legion/kernel/exception.h               legion/kernel/exception.cc
+  legion/kernel/garbage_collection.h      legion/kernel/garbage_collection.cc
+  legion/kernel/metatask.h
+  legion/kernel/runtime.h                 legion/kernel/runtime.cc
+  legion/kernel/runtime.inl
   legion/managers/mapper.h                legion/managers/mapper.cc
   legion/managers/memory.h                legion/managers/memory.cc
   legion/managers/message.h               legion/managers/message.cc
@@ -1021,13 +1021,13 @@ endif()
 
 if(Legion_USE_CUDA)
   list(APPEND LEGION_SRC
-    legion/interface/redop.cu
+    legion/api/redop.cu
   )
 endif()
 
 if(Legion_USE_HIP)
   list(APPEND LEGION_HIP_SRC
-    legion/interface/redop.cu
+    legion/api/redop.cu
   )
 endif()
 

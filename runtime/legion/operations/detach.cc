@@ -17,8 +17,8 @@
 #include "legion/analysis/filter.h"
 #include "legion/analysis/update.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/future_impl.h"
-#include "legion/interface/physical_region_impl.h"
+#include "legion/api/future_impl.h"
+#include "legion/api/physical_region_impl.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/region.h"
 

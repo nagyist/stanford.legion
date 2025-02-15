@@ -16,7 +16,7 @@
 #include "legion/operations/pointwise.h"
 #include "legion/analysis/logical.h"
 #include "legion/analysis/projection.h"
-#include "legion/interface/functors_impl.h"
+#include "legion/api/functors_impl.h"
 #include "legion/nodes/index.h"
 #include "legion/operations/collective.h"
 #include "legion/operations/copy.h"

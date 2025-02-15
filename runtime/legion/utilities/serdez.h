@@ -16,7 +16,7 @@
 #ifndef __LEGION_SERDEZ_H__
 #define __LEGION_SERDEZ_H__
 
-#include "legion/interface/geometry.h"
+#include "legion/api/geometry.h"
 #include "legion/utilities/bitmask.h"
 
 namespace Legion {

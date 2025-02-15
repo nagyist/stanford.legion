@@ -17,7 +17,7 @@
 #define __LEGION_INSTANCE_H__
 
 #include "legion/instances/layout.h"
-#include "legion/core/garbage_collection.h"
+#include "legion/kernel/garbage_collection.h"
 #include "legion/utilities/collectives.h"
 
 namespace Legion {

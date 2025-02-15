@@ -16,9 +16,9 @@
 #ifndef __LEGION_PHYSICAL_ANALYSIS_H__
 #define __LEGION_PHYSICAL_ANALYSIS_H__
 
-#include "legion/core/metatask.h"
-#include "legion/core/garbage_collection.h"
-#include "legion/interface/types.h"
+#include "legion/kernel/metatask.h"
+#include "legion/kernel/garbage_collection.h"
+#include "legion/api/types.h"
 #include "legion/utilities/fieldmask_set.h"
 #include "legion/utilities/privileges.h"
 

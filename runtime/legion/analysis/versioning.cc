@@ -15,7 +15,7 @@
 
 #include "legion/analysis/versioning.h"
 #include "legion/contexts/inner.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/nodes/region.h"
 #include "legion/operations/operation.h"
 #include "legion/utilities/serdez.h"

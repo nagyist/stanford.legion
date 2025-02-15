@@ -16,9 +16,9 @@
 #ifndef __LEGION_COLLECTIVES_H__
 #define __LEGION_COLLECTIVES_H__
 
-#include "legion/core/garbage_collection.h"
-#include "legion/core/metatask.h"
-#include "legion/interface/data.h"
+#include "legion/kernel/garbage_collection.h"
+#include "legion/kernel/metatask.h"
+#include "legion/api/data.h"
 #include "legion/managers/message.h"
 #include "legion/utilities/serdez.h"
 

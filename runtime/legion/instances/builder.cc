@@ -14,7 +14,7 @@
  */
 
 #include "legion/instances/builder.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
 #include "legion/managers/memory.h"
 #include "legion/nodes/expression.h"

@@ -16,7 +16,7 @@
 #include "legion/operations/fence.h"
 #include "legion/analysis/versioning.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/tracing/recognizer.h"
 
 namespace Legion {

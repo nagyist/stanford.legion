@@ -17,7 +17,7 @@
 #define __LEGION_PENDING_PARTITION_H__
 
 #include "legion/operations/operation.h"
-#include "legion/interface/future_map_impl.h"
+#include "legion/api/future_map_impl.h"
 
 namespace Legion {
   namespace Internal {

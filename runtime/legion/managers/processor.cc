@@ -15,7 +15,7 @@
 
 #include "legion/managers/processor.h"
 #include "legion/contexts/inner.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/managers/mapper.h"
 
 namespace Legion {

@@ -16,7 +16,7 @@
 #include "legion/operations/fill.h"
 #include "legion/analysis/overwrite.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/region.h"

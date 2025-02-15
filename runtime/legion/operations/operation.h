@@ -16,8 +16,8 @@
 #ifndef __LEGION_OPERATION_H__
 #define __LEGION_OPERATION_H__
 
-#include "legion/core/garbage_collection.h"
-#include "legion/interface/launchers.h"
+#include "legion/kernel/garbage_collection.h"
+#include "legion/api/launchers.h"
 #include "legion/tools/profiler.h"
 #include "legion/utilities/fieldmask_set.h"
 #include "legion/utilities/hasher.h"

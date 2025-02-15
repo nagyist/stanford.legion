@@ -26,7 +26,7 @@
 #include <array>
 #include <type_traits>
 
-#include "legion/core/allocation.h"
+#include "legion/kernel/allocation.h"
 
 #ifndef __MACH__
 // SJT: this comes first because some systems require __STDC_FORMAT_MACROS

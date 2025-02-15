@@ -15,7 +15,7 @@
 
 #include "legion/analysis/valid.h"
 #include "legion/analysis/equivalence_set.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/nodes/expression.h"
 #include "legion/operations/remote.h"
 

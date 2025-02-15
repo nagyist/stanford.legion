@@ -16,7 +16,7 @@
 #ifndef __LEGION_PRIVILEGES_H__
 #define __LEGION_PRIVILEGES_H__
 
-#include "legion/interface/requirements.h"
+#include "legion/api/requirements.h"
 
 // Useful macros
 #define IS_NO_ACCESS(req) \

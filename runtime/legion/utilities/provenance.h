@@ -18,8 +18,8 @@
 
 #include <string_view>
 
-#include "legion/core/garbage_collection.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/garbage_collection.h"
+#include "legion/kernel/runtime.h"
 
 namespace Legion {
   namespace Internal {

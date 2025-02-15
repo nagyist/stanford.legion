@@ -17,7 +17,7 @@
 #include "legion/analysis/overwrite.h"
 #include "legion/analysis/versioning.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/data_impl.h"
+#include "legion/api/data_impl.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/index.h"
 #include "legion/utilities/privileges.h"

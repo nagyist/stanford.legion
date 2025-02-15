@@ -16,9 +16,9 @@
 #ifndef __LEGION_FIELD_SPACE_H__
 #define __LEGION_FIELD_SPACE_H__
 
-#include "legion/interface/data.h"
+#include "legion/api/data.h"
 #include "legion/contexts/context.h"
-#include "legion/core/metatask.h"
+#include "legion/kernel/metatask.h"
 #include "legion/utilities/buffers.h"
 
 namespace Legion {

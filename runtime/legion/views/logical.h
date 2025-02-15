@@ -16,7 +16,7 @@
 #ifndef __LEGION_LOGICAL_VIEW_H__
 #define __LEGION_LOGICAL_VIEW_H__
 
-#include "legion/core/garbage_collection.h"
+#include "legion/kernel/garbage_collection.h"
 
 namespace Legion {
   namespace Internal {

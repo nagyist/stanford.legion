@@ -15,8 +15,8 @@
 
 #include "legion/analysis/projection.h"
 #include "legion/contexts/replicate.h"
-#include "legion/core/runtime.h"
-#include "legion/interface/functors_impl.h"
+#include "legion/kernel/runtime.h"
+#include "legion/api/functors_impl.h"
 #include "legion/nodes/region.h"
 #include "legion/utilities/privileges.h"
 

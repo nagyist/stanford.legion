@@ -14,7 +14,7 @@
  */
 
 #include "legion/views/phi.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/utilities/serdez.h"
 
 namespace Legion {

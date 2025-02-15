@@ -16,7 +16,7 @@
 #ifndef __LEGION_PROFILER_H__
 #define __LEGION_PROFILER_H__
 
-#include "legion/core/garbage_collection.h"
+#include "legion/kernel/garbage_collection.h"
 #include "legion/managers/message.h"
 #include "legion/tools/types.h"
 #ifdef LEGION_USE_CUDA

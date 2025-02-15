@@ -16,7 +16,7 @@
 #ifndef __LEGION_SHUTDOWN_MANAGER_H__
 #define __LEGION_SHUTDOWN_MANAGER_H__
 
-#include "legion/core/metatask.h"
+#include "legion/kernel/metatask.h"
 
 namespace Legion {
   namespace Internal {

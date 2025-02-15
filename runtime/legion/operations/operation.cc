@@ -19,7 +19,7 @@
 #include "legion/analysis/update.h"
 #include "legion/analysis/valid.h"
 #include "legion/contexts/inner.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/virtual.h"
 #include "legion/managers/mapper.h"
 #include "legion/nodes/region.h"

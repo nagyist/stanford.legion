@@ -16,7 +16,7 @@
 #ifndef __LEGION_HASHER_H__
 #define __LEGION_HASHER_H__
 
-#include "legion/interface/geometry.h"
+#include "legion/api/geometry.h"
 
 namespace Legion {
   namespace Internal {

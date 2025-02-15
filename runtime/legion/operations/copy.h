@@ -17,7 +17,7 @@
 #define __LEGION_COPY_H__
 
 #include "legion/analysis/versioning.h"
-#include "legion/interface/functors_impl.h"
+#include "legion/api/functors_impl.h"
 #include "legion/operations/pointwise.h"
 #include "legion/operations/predicate.h"
 #include "legion/operations/remote.h"

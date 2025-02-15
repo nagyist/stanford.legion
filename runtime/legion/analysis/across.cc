@@ -15,7 +15,7 @@
 
 #include "legion/analysis/across.h"
 #include "legion/analysis/aggregator.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
 #include "legion/nodes/region.h"
 #include "legion/nodes/across.h"

@@ -16,7 +16,7 @@
 #include "legion/operations/attach.h"
 #include "legion/analysis/overwrite.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/physical_region_impl.h"
+#include "legion/api/physical_region_impl.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/region.h"
 #include "legion/tools/spy.h"

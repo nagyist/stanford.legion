@@ -15,7 +15,7 @@
 
 #include "legion/analysis/filter.h"
 #include "legion/analysis/equivalence_set.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/nodes/region.h"
 #include "legion/operations/remote.h"
 #include "legion/views/instance.h"

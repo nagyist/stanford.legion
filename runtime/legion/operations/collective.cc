@@ -15,7 +15,7 @@
 
 #include "legion/operations/collective.h"
 #include "legion/contexts/replicate.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/expression.h"

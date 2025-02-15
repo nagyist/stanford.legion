@@ -17,7 +17,7 @@
 #define __LEGION_DEPENDENT_PARTITION_H__
 
 #include "legion/analysis/versioning.h"
-#include "legion/interface/functors_impl.h"
+#include "legion/api/functors_impl.h"
 #include "legion/operations/collective.h"
 #include "legion/operations/remote.h"
 #include "legion/nodes/index.h"

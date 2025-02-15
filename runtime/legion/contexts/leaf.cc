@@ -15,8 +15,8 @@
 
 #include "legion/contexts/leaf.h"
 #include "legion/contexts/inner.h"
-#include "legion/interface/future_impl.h"
-#include "legion/interface/physical_region_impl.h"
+#include "legion/api/future_impl.h"
+#include "legion/api/physical_region_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/tasks/index.h"
 #include "legion/tasks/individual.h"

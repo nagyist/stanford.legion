@@ -17,8 +17,8 @@
 #define __LEGION_TASK_H__
 
 #include "legion/analysis/versioning.h"
-#include "legion/interface/mapping.h"
-#include "legion/interface/requirements.h"
+#include "legion/api/mapping.h"
+#include "legion/api/requirements.h"
 #include "legion/operations/predicate.h"
 #include "legion/utilities/buffers.h"
 

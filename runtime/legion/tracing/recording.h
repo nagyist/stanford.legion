@@ -16,9 +16,9 @@
 #ifndef __LEGION_TRACE_RECORDING_H__
 #define __LEGION_TRACE_RECORDING_H__
 
-#include "legion/core/garbage_collection.h"
-#include "legion/interface/mapping.h"
-#include "legion/interface/types.h"
+#include "legion/kernel/garbage_collection.h"
+#include "legion/api/mapping.h"
+#include "legion/api/types.h"
 #include "legion/tools/types.h"
 #include "legion/utilities/coordinates.h"
 

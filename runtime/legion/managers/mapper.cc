@@ -15,10 +15,10 @@
 
 #include "legion/managers/mapper.h"
 #include "legion/analysis/versioning.h"
-#include "legion/core/exception.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/exception.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
-#include "legion/interface/redop.h"
+#include "legion/api/redop.h"
 #include "legion/operations/acquire.h"
 #include "legion/operations/allreduce.h"
 #include "legion/operations/close.h"

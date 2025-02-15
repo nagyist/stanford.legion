@@ -16,9 +16,9 @@
 #ifndef __LEGION_INDEX_SPACE_H__
 #define __LEGION_INDEX_SPACE_H__
 
-#include "legion/interface/physical_region_impl.h"
-#include "legion/core/garbage_collection.h"
-#include "legion/core/runtime.h"
+#include "legion/api/physical_region_impl.h"
+#include "legion/kernel/garbage_collection.h"
+#include "legion/kernel/runtime.h"
 #include "legion/nodes/expression.h"
 #include "legion/utilities/buffers.h"
 

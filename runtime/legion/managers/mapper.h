@@ -17,7 +17,7 @@
 #define __LEGION_MAPPER_MANAGER_H__
 
 #include "legion/instances/instance.h"
-#include "legion/interface/mapping.h"
+#include "legion/api/mapping.h"
 #include "legion/tools/types.h"
 
 namespace Legion {

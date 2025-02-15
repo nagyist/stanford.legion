@@ -16,17 +16,17 @@
 #ifndef __LEGION_CONTEXT_H__
 #define __LEGION_CONTEXT_H__
 
-#include "legion/core/exception.h"
-#include "legion/core/garbage_collection.h"
-#include "legion/core/metatask.h"
-#include "legion/core/runtime.h"
-#include "legion/interface/argument_map.h"
-#include "legion/interface/constraints.h"
-#include "legion/interface/functors.h"
-#include "legion/interface/future_map_impl.h"
-#include "legion/interface/launchers.h"
-#include "legion/interface/mapping.h"
-#include "legion/interface/output_region_impl.h"
+#include "legion/kernel/exception.h"
+#include "legion/kernel/garbage_collection.h"
+#include "legion/kernel/metatask.h"
+#include "legion/kernel/runtime.h"
+#include "legion/api/argument_map.h"
+#include "legion/api/constraints.h"
+#include "legion/api/functors.h"
+#include "legion/api/future_map_impl.h"
+#include "legion/api/launchers.h"
+#include "legion/api/mapping.h"
+#include "legion/api/output_region_impl.h"
 #include "legion/tools/profiler.h"
 #include "legion/utilities/resources.h"
 

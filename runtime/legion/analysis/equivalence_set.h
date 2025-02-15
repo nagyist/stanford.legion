@@ -16,7 +16,7 @@
 #ifndef __LEGION_EQUIVALENCE_SET_H__
 #define __LEGION_EQUIVALENCE_SET_H__
 
-#include "legion/core/garbage_collection.h"
+#include "legion/kernel/garbage_collection.h"
 #include "legion/utilities/instance_set.h"
 #include "legion/views/collective.h"
 

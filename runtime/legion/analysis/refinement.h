@@ -16,7 +16,7 @@
 #ifndef __LEGION_REFINEMENT_H__
 #define __LEGION_REFINEMENT_H__
 
-#include "legion/interface/types.h"
+#include "legion/api/types.h"
 #include "legion/utilities/bitmask.h"
 
 namespace Legion {

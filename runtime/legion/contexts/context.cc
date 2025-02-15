@@ -16,7 +16,7 @@
 #include <thread> // yield
 
 #include "legion/contexts/inner.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/managers/memory.h"
 #include "legion/nodes/region.h"

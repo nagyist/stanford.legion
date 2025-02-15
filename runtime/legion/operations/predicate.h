@@ -16,7 +16,7 @@
 #ifndef __LEGION_PREDICATE_OPERATION_H__
 #define __LEGION_PREDICATE_OPERATION_H__
 
-#include "legion/interface/predicate_impl.h"
+#include "legion/api/predicate_impl.h"
 #include "legion/operations/memoizable.h"
 
 namespace Legion {

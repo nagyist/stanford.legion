@@ -17,7 +17,7 @@
 
 #include "legion/analysis/refinement.h"
 #include "legion/analysis/projection.h"
-#include "legion/interface/functors_impl.h"
+#include "legion/api/functors_impl.h"
 #include "legion/nodes/region.h"
 
 namespace Legion {

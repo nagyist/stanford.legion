@@ -16,7 +16,7 @@
 #ifndef __LEGION_LOGICAL_ANALYSIS_H__
 #define __LEGION_LOGICAL_ANALYSIS_H__
 
-#include "legion/core/garbage_collection.h"
+#include "legion/kernel/garbage_collection.h"
 #include "legion/utilities/dynamic_table.h"
 #include "legion/utilities/fieldmask_set.h"
 #include "legion/utilities/privileges.h"

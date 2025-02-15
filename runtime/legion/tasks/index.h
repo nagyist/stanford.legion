@@ -17,7 +17,7 @@
 #define __LEGION_INDEX_TASK_H__
 
 #include "legion/tasks/multi.h"
-#include "legion/interface/redop.h"
+#include "legion/api/redop.h"
 #include "legion/utilities/collectives.h"
 
 namespace Legion {

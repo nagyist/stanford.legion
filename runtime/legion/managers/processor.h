@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#include "legion/core/metatask.h"
-#include "legion/interface/types.h"
+#include "legion/kernel/metatask.h"
+#include "legion/api/types.h"
 
 #ifndef __LEGION_PROCESSOR_MANAGER_H__
 #define __LEGION_PROCESSOR_MANAGER_H__

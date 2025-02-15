@@ -14,8 +14,8 @@
  */
 
 #include "legion/managers/shutdown.h"
-#include "legion/core/runtime.h"
-#include "legion/interface/future_impl.h"
+#include "legion/kernel/runtime.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/memory.h"
 
 namespace Legion {

@@ -16,7 +16,7 @@
 #include "legion/analysis/logical.h"
 #include "legion/analysis/projection.h"
 #include "legion/contexts/inner.h"
-#include "legion/interface/functors_impl.h"
+#include "legion/api/functors_impl.h"
 #include "legion/nodes/region.h"
 #include "legion/operations/close.h"
 #include "legion/operations/refinement.h"

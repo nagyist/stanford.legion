@@ -16,7 +16,7 @@
 #include "legion/operations/release.h"
 #include "legion/analysis/release.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/physical_region_impl.h"
+#include "legion/api/physical_region_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/managers/shard.h"
 #include "legion/operations/mapping.h"

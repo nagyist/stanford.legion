@@ -28,7 +28,7 @@
 //
 // ******************** IMPORTANT **************************
 
-#include "legion/interface/config.h"
+#include "legion/api/config.h"
 
 #include <stdbool.h>
 #ifndef LEGION_USE_PYTHON_CFFI

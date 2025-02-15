@@ -17,7 +17,7 @@
 #define __LEGION_POINT_TASK_H__
 
 #include "legion/tasks/single.h"
-#include "legion/interface/functors_impl.h"
+#include "legion/api/functors_impl.h"
 
 namespace Legion {
   namespace Internal {

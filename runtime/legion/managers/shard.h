@@ -17,7 +17,7 @@
 #define __LEGION_SHARD_MANAGER_H__
 
 #include "legion/contexts/replicate.h"
-#include "legion/core/garbage_collection.h"
+#include "legion/kernel/garbage_collection.h"
 #include "legion/operations/collective.h"
 #include "legion/tasks/shard.h"
 

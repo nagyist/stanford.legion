@@ -24,9 +24,9 @@
 #endif
 
 #include "legion/analysis/equivalence_set.h"
-#include "legion/core/runtime.h"
-#include "legion/interface/functors_impl.h"
-#include "legion/interface/future_impl.h"
+#include "legion/kernel/runtime.h"
+#include "legion/api/functors_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/utilities/fieldmask_set.h"
 #include "legion/managers/mapper.h"
 #include "legion/nodes/kdtree.h"

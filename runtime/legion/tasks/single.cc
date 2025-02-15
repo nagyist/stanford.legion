@@ -16,7 +16,7 @@
 #include "legion/tasks/single.h"
 #include "legion/contexts/leaf.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/managers/shard.h"
 #include "legion/operations/mustepoch.h"

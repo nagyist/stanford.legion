@@ -16,7 +16,7 @@
 #include <unistd.h> // usleep
 
 #include "legion/managers/message.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/managers/shard.h"
 #include "legion/utilities/serdez.h"
 

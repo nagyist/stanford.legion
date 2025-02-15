@@ -17,7 +17,7 @@
 #define __LEGION_INLINE_MAPPING_H__
 
 #include "legion/analysis/versioning.h"
-#include "legion/interface/mapping.h"
+#include "legion/api/mapping.h"
 #include "legion/operations/collective.h"
 #include "legion/operations/remote.h"
 #include "legion/utilities/collectives.h"

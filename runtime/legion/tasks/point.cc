@@ -15,7 +15,7 @@
 
 #include "legion/tasks/point.h"
 #include "legion/contexts/inner.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/nodes/index.h"
 #include "legion/operations/mustepoch.h"

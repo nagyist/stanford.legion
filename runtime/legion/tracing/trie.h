@@ -16,7 +16,7 @@
 #ifndef __LEGION_TRIE_H__
 #define __LEGION_TRIE_H__
 
-#include "legion/core/allocation.h"
+#include "legion/kernel/allocation.h"
 
 namespace Legion {
   namespace Internal {

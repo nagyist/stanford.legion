@@ -14,7 +14,7 @@
  */
 
 #include "legion/views/instance.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/utilities/privileges.h"
 #include "legion/utilities/serdez.h"
 

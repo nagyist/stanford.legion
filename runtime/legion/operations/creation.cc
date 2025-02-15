@@ -15,7 +15,7 @@
 
 #include "legion/operations/creation.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/nodes/field.h"
 #include "legion/nodes/index.h"
 #include "legion/tools/spy.h"

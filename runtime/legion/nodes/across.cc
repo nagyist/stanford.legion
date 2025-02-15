@@ -14,7 +14,7 @@
  */
 
 #include "legion/nodes/across.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
 #include "legion/nodes/index.h"
 #include "legion/nodes/field.h"

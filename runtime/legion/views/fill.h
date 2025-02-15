@@ -16,7 +16,7 @@
 #ifndef __LEGION_FILL_VIEW_H__
 #define __LEGION_FILL_VIEW_H__
 
-#include "legion/core/metatask.h"
+#include "legion/kernel/metatask.h"
 #include "legion/tracing/recording.h"
 #include "legion/views/deferred.h"
 

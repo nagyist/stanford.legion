@@ -16,7 +16,7 @@
 #ifndef __LEGION_INSTANCE_BUILDER_H__
 #define __LEGION_INSTANCE_BUILDER_H__
 
-#include "legion/interface/constraints.h"
+#include "legion/api/constraints.h"
 #include "legion/tools/profiler.h"
 
 namespace Legion {

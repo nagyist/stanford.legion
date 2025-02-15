@@ -17,7 +17,7 @@
 #define __LEGION_CLOSE_H__
 
 #include "legion/analysis/versioning.h"
-#include "legion/interface/mapping.h"
+#include "legion/api/mapping.h"
 #include "legion/operations/internal.h"
 #include "legion/operations/remote.h"
 #include "legion/utilities/instance_set.h"

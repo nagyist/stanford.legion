@@ -16,7 +16,7 @@
 #include "legion/analysis/update.h"
 #include "legion/analysis/aggregator.h"
 #include "legion/analysis/equivalence_set.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
 #include "legion/nodes/region.h"
 #include "legion/operations/remote.h"

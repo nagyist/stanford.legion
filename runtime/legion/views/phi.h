@@ -17,7 +17,7 @@
 #define __LEGION_PHI_VIEW_H__
 
 #include "legion/views/deferred.h"
-#include "legion/core/metatask.h"
+#include "legion/kernel/metatask.h"
 #include "legion/utilities/fieldmask_set.h"
 
 namespace Legion {

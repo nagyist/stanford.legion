@@ -16,7 +16,7 @@
 #ifndef __LEGION_COPY_FILL_AGGREGATOR_H__
 #define __LEGION_COPY_FILL_AGGREGATOR_H__
 
-#include "legion/core/metatask.h"
+#include "legion/kernel/metatask.h"
 #include "legion/tracing/recording.h"
 #include "legion/utilities/fieldmask_set.h"
 #include "legion/utilities/serdez.h"

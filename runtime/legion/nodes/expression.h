@@ -18,8 +18,8 @@
 
 #include <numeric>
 
-#include "legion/core/metatask.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/metatask.h"
+#include "legion/kernel/runtime.h"
 #include "legion/operations/operation.h"
 #include "legion/tools/spy.h"
 #include "legion/utilities/serdez.h"

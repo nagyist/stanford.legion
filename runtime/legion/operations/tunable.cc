@@ -15,7 +15,7 @@
 
 #include "legion/operations/tunable.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/utilities/collectives.h"
 

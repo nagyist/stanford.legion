@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#include "legion/core/metatask.h"
-#include "legion/interface/geometry.h"
-#include "legion/interface/requirements.h"
+#include "legion/kernel/metatask.h"
+#include "legion/api/geometry.h"
+#include "legion/api/requirements.h"
 #include "legion/tools/profiler.h"
 #include "legion/utilities/bitmask.h"
 

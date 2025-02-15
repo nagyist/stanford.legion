@@ -15,7 +15,7 @@
 
 #include "legion/tasks/slice.h"
 #include "legion/contexts/inner.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/processor.h"
 #include "legion/operations/mustepoch.h"
 #include "legion/tasks/index.h"

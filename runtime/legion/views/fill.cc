@@ -15,7 +15,7 @@
 
 #include "legion/views/fill.h"
 #include "legion/analysis/aggregator.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/instances/physical.h"
 #include "legion/nodes/expression.h"
 #include "legion/nodes/region.h"

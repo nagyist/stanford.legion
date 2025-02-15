@@ -16,9 +16,9 @@
 #ifndef __LEGION_LAYOUT_H__
 #define __LEGION_LAYOUT_H__
 
-#include "legion/interface/constraints.h"
-#include "legion/interface/data.h"
-#include "legion/core/garbage_collection.h"
+#include "legion/api/constraints.h"
+#include "legion/api/data.h"
+#include "legion/kernel/garbage_collection.h"
 
 namespace Legion {
   namespace Internal {

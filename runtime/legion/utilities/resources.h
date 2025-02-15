@@ -16,7 +16,7 @@
 #ifndef __LEGION_RESOURCE_TRACKER_H__
 #define __LEGION_RESOURCE_TRACKER_H__
 
-#include "legion/interface/data.h"
+#include "legion/api/data.h"
 
 namespace Legion {
   namespace Internal {

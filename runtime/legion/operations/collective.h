@@ -16,7 +16,7 @@
 #ifndef __LEGION_COLLECTIVE_OPERATION_H__
 #define __LEGION_COLLECTIVE_OPERATION_H__
 
-#include "legion/core/garbage_collection.h"
+#include "legion/kernel/garbage_collection.h"
 #include "legion/operations/operation.h"
 #include "legion/utilities/collectives.h"
 

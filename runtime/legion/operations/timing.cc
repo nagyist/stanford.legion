@@ -15,7 +15,7 @@
 
 #include "legion/operations/timing.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 
 namespace Legion {
   namespace Internal {

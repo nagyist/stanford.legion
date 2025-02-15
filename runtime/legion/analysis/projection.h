@@ -16,8 +16,8 @@
 #ifndef __LEGION_PROJECTION_H__
 #define __LEGION_PROJECTION_H__
 
-#include "legion/core/garbage_collection.h"
-#include "legion/interface/requirements.h"
+#include "legion/kernel/garbage_collection.h"
+#include "legion/api/requirements.h"
 #include "legion/utilities/collectives.h"
 
 namespace Legion {

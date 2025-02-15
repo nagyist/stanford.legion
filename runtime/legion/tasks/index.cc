@@ -15,9 +15,9 @@
 
 #include "legion/tasks/index.h"
 #include "legion/contexts/replicate.h"
-#include "legion/interface/argument_map_impl.h"
-#include "legion/interface/functors_impl.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/argument_map_impl.h"
+#include "legion/api/functors_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/managers/mapper.h"
 #include "legion/managers/shard.h"
 #include "legion/nodes/index.h"

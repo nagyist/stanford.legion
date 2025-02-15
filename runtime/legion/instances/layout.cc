@@ -14,8 +14,8 @@
  */
 
 #include "legion/instances/layout.h"
-#include "legion/core/runtime.h"
-#include "legion/interface/registrars.h"
+#include "legion/kernel/runtime.h"
+#include "legion/api/registrars.h"
 #include "legion/nodes/field.h"
 #include "legion/tools/spy.h"
 #include "legion/utilities/bitmask.h"

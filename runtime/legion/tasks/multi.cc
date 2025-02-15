@@ -15,7 +15,7 @@
 
 #include "legion/tasks/multi.h"
 #include "legion/contexts/inner.h"
-#include "legion/interface/future_impl.h"
+#include "legion/api/future_impl.h"
 #include "legion/nodes/index.h"
 #include "legion/managers/mapper.h"
 #include "legion/tasks/index.h"

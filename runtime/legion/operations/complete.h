@@ -16,7 +16,7 @@
 #ifndef __LEGION_COMPLETE_OPERATION_H__
 #define __LEGION_COMPLETE_OPERATION_H__
 
-#include "legion/interface/redop.h"
+#include "legion/api/redop.h"
 #include "legion/operations/trace.h"
 #include "legion/tracing/physical.h"
 #include "legion/utilities/collectives.h"

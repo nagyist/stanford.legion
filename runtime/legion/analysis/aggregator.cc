@@ -16,7 +16,7 @@
 #include "legion/analysis/aggregator.h"
 #include "legion/analysis/equivalence_set.h"
 #include "legion/analysis/physical.h"
-#include "legion/core/runtime.h"
+#include "legion/kernel/runtime.h"
 #include "legion/nodes/across.h"
 #include "legion/nodes/expression.h"
 #include "legion/views/fill.h"

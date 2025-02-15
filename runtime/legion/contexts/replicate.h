@@ -17,7 +17,7 @@
 #define __LEGION_REPLICATE_CONTEXT_H__
 
 #include "legion/contexts/inner.h"
-#include "legion/interface/redop.h"
+#include "legion/api/redop.h"
 #include "legion/tasks/shard.h"
 
 namespace Legion {
