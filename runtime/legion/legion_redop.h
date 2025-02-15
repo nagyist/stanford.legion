@@ -16,7 +16,7 @@
 #ifndef __LEGION_DEPRECATED_REDOP_H__
 #define __LEGION_DEPRECATED_REDOP_H__
 
-#warn "Including legion_redop.h is not required. Including legion.h should be sufficient. This header file will be removed in a future release."
+#warning "Including legion_redop.h is not required. Including legion.h should be sufficient. This header file will be removed in a future release."
 
 #include "legion.h"
 
