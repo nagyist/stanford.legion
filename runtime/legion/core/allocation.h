@@ -26,9 +26,9 @@
 #include <limits>
 #include <cstring>
 #include <cassert>
-#include <stddef.h>
+#include <cstddef>
+#include <cstdlib>
 #include <functional>
-#include <stdlib.h>
 #include <utility>
 #include <unordered_set>
 #include <unordered_map>
