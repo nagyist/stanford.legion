@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+#include <cmath>
+
 #include "legion/tracing/cache.h"
 
 namespace Legion {
@@ -492,7 +494,7 @@ namespace Legion {
         return;
       // Compute the new visit count by decaying the old visit count
       // and then adding one.
-      decaying_visits = (pow(R, diff_in_traces) * decaying_visits) + 1;
+      decaying_visits = (std::pow(R, diff_in_traces) * decaying_visits) + 1;
       // If we visited this trace exactly len(trace) operations after
       // the previous visit, then we're able to replay this trace back-to-back,
       // which is nice to know for scoring. Check previous_visit != 0 to ensure
@@ -502,7 +504,7 @@ namespace Legion {
         uint64_t previous_idemp_visit = last_idempotent_visit_opidx;
         uint64_t idemp_diff = (opidx - previous_idemp_visit) / length;
         decaying_idempotent_visits =
-          (pow(R, idemp_diff) * decaying_idempotent_visits) + 1;
+          (std::pow(R, idemp_diff) * decaying_idempotent_visits) + 1;
         last_idempotent_visit_opidx = opidx;
       }
       last_visited_opidx = opidx;
@@ -524,7 +526,7 @@ namespace Legion {
       // Increase the visit count by 1 when computing the score so that
       // traces that haven't been visited before don't have a 0 score.
       // The initial score is num_visits * length.
-      double score = ((pow(R, diff_in_traces) * decaying_visits) + 1) * length;
+      double score = ((std::pow(R, diff_in_traces) * decaying_visits) + 1) * length;
       // Next, we cap the score so that the first trace that gets replayed
       // doesn't get replayed forever.
       score = std::min(score, SCORE_CAP_MULT * ((double)this->length));
