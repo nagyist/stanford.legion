@@ -22,7 +22,7 @@ namespace Legion {
 
     // Some helper methods for accessors and deferred buffers
     namespace Internal {
-    template<int N, typename T> __CUDA_HD__
+    template<int N, typename T> __LEGION_CUDA_HD__
     static inline bool is_dense_layout(const Rect<N,T> &bounds,
                               const size_t strides[N], size_t field_size)
     {
@@ -80,7 +80,7 @@ namespace Legion {
     }
 
     // Same method as above but for realm points from affine accessors
-    template<int N, typename T> __CUDA_HD__
+    template<int N, typename T> __LEGION_CUDA_HD__
     static inline bool is_dense_layout(const Rect<N,T> &bounds,
                 const Realm::Point<N,size_t> &strides, size_t field_size)
     {
@@ -337,7 +337,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T, bool CB> __CUDA_HD__
+    template<typename FT, int N, typename T, bool CB> __LEGION_CUDA_HD__
     inline FT DeferredBuffer<FT,N,T,CB>::read(const Point<N,T> &p) const
     //--------------------------------------------------------------------------
     {
@@ -346,7 +346,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T, bool CB> __CUDA_HD__
+    template<typename FT, int N, typename T, bool CB> __LEGION_CUDA_HD__
     inline void DeferredBuffer<FT,N,T,CB>::write(const Point<N,T> &p,
                                                     FT value) const
     //--------------------------------------------------------------------------
@@ -356,7 +356,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T, bool CB > __CUDA_HD__
+    template<typename FT, int N, typename T, bool CB > __LEGION_CUDA_HD__
     inline FT* DeferredBuffer<FT,N,T,CB>::ptr(const Point<N,T> &p) const
     //--------------------------------------------------------------------------
     {
@@ -365,7 +365,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T, bool CB> __CUDA_HD__
+    template<typename FT, int N, typename T, bool CB> __LEGION_CUDA_HD__
     inline FT* DeferredBuffer<FT,N,T,CB>::ptr(const Rect<N,T> &r) const
     //--------------------------------------------------------------------------
     {
@@ -380,7 +380,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T,bool CB> __CUDA_HD__
+    template<typename FT, int N, typename T,bool CB> __LEGION_CUDA_HD__
     inline FT* DeferredBuffer<FT,N,T,CB>::ptr(
                                     const Rect<N,T> &r, size_t strides[N]) const
     //--------------------------------------------------------------------------
@@ -392,7 +392,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T, bool CB> __CUDA_HD__
+    template<typename FT, int N, typename T, bool CB> __LEGION_CUDA_HD__
     inline FT& DeferredBuffer<FT,N,T,CB>::operator[](const Point<N,T> &p) const
     //--------------------------------------------------------------------------
     {
@@ -410,7 +410,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T, bool CB> __CUDA_HD__
+    template<typename FT, int N, typename T, bool CB> __LEGION_CUDA_HD__
     inline Realm::RegionInstance DeferredBuffer<FT,N,T,CB>::get_instance(
                                                                      void) const
     //--------------------------------------------------------------------------
@@ -419,7 +419,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename FT, int N, typename T, bool CB> __CUDA_HD__
+    template<typename FT, int N, typename T, bool CB> __LEGION_CUDA_HD__
     inline Rect<N,T> DeferredBuffer<FT,N,T,CB>::get_bounds(void) const
     //--------------------------------------------------------------------------
     {

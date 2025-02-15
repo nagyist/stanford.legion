@@ -100,23 +100,23 @@ namespace Legion {
                            DomainT<DIM,COORD_T> bounds,
                            const T *initial_value);
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline T read(const Point<DIM,COORD_T> &p) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<DIM,COORD_T> &p, T value) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline T* ptr(const Point<DIM,COORD_T> &p) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline T* ptr(const Rect<DIM,COORD_T> &r) const; // must be dense
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline T* ptr(const Rect<DIM,COORD_T> &r, size_t strides[DIM]) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline T& operator[](const Point<DIM,COORD_T> &p) const;
   public:
     inline void destroy(Realm::Event precondition = Realm::Event::NO_EVENT);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline Realm::RegionInstance get_instance(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline Rect<DIM,COORD_T> get_bounds(void) const;
   public:
     typedef T value_type;

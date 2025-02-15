@@ -21,7 +21,7 @@
 namespace Legion {
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint::DomainPoint(void)
+  __LEGION_CUDA_HD__ inline DomainPoint::DomainPoint(void)
     : dim(0)
   //----------------------------------------------------------------------------
   {
@@ -30,7 +30,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint::DomainPoint(coord_t index)
+  __LEGION_CUDA_HD__ inline DomainPoint::DomainPoint(coord_t index)
     : dim(1)
   //----------------------------------------------------------------------------
   {
@@ -40,7 +40,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint::DomainPoint(const DomainPoint &rhs)
+  __LEGION_CUDA_HD__ inline DomainPoint::DomainPoint(const DomainPoint &rhs)
     : dim(rhs.dim)
   //----------------------------------------------------------------------------
   {
@@ -49,7 +49,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename T> __CUDA_HD__
+  template<int DIM, typename T> __LEGION_CUDA_HD__
   inline DomainPoint::DomainPoint(const Point<DIM,T> &rhs)
     : dim(DIM)
   //----------------------------------------------------------------------------
@@ -63,7 +63,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<typename T> __CUDA_HD__
+  template<typename T> __LEGION_CUDA_HD__
   /*static*/ inline coord_t DomainPoint::check_for_overflow(const T &value)
   //----------------------------------------------------------------------------
   {
@@ -80,7 +80,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename T> __CUDA_HD__
+  template<int DIM, typename T> __LEGION_CUDA_HD__
   inline DomainPoint::operator Point<DIM,T>(void) const
   //----------------------------------------------------------------------------
   {
@@ -93,7 +93,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint& DomainPoint::operator=(const DomainPoint &rhs)
+  __LEGION_CUDA_HD__ inline DomainPoint& DomainPoint::operator=(const DomainPoint &rhs)
   //----------------------------------------------------------------------------
   {
     dim = rhs.dim;
@@ -103,7 +103,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename T> __CUDA_HD__
+  template<int DIM, typename T> __LEGION_CUDA_HD__
   inline DomainPoint& DomainPoint::operator=(const Point<DIM,T> &rhs)
   //----------------------------------------------------------------------------
   {
@@ -117,7 +117,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool DomainPoint::operator==(const DomainPoint &rhs) const
+  __LEGION_CUDA_HD__ inline bool DomainPoint::operator==(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
     if(dim != rhs.dim) return false;
@@ -127,14 +127,14 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool DomainPoint::operator!=(const DomainPoint &rhs) const
+  __LEGION_CUDA_HD__ inline bool DomainPoint::operator!=(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
     return !((*this) == rhs);
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool DomainPoint::operator<(const DomainPoint &rhs) const
+  __LEGION_CUDA_HD__ inline bool DomainPoint::operator<(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
     if (dim < rhs.dim) return true;
@@ -147,7 +147,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint DomainPoint::operator+(coord_t scalar) const
+  __LEGION_CUDA_HD__ inline DomainPoint DomainPoint::operator+(coord_t scalar) const
   //----------------------------------------------------------------------------
   {
     DomainPoint result;
@@ -158,7 +158,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ 
+  __LEGION_CUDA_HD__ 
   inline DomainPoint DomainPoint::operator+(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
@@ -171,7 +171,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint& DomainPoint::operator+=(coord_t scalar)
+  __LEGION_CUDA_HD__ inline DomainPoint& DomainPoint::operator+=(coord_t scalar)
   //----------------------------------------------------------------------------
   {
     for (int i = 0; i < dim; i++)
@@ -180,7 +180,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__
+  __LEGION_CUDA_HD__
   inline DomainPoint& DomainPoint::operator+=(const DomainPoint &rhs) 
   //----------------------------------------------------------------------------
   {
@@ -191,7 +191,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint DomainPoint::operator-(coord_t scalar) const
+  __LEGION_CUDA_HD__ inline DomainPoint DomainPoint::operator-(coord_t scalar) const
   //----------------------------------------------------------------------------
   {
     DomainPoint result;
@@ -202,7 +202,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ 
+  __LEGION_CUDA_HD__ 
   inline DomainPoint DomainPoint::operator-(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
@@ -215,7 +215,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint& DomainPoint::operator-=(coord_t scalar)
+  __LEGION_CUDA_HD__ inline DomainPoint& DomainPoint::operator-=(coord_t scalar)
   //----------------------------------------------------------------------------
   {
     for (int i = 0; i < dim; i++)
@@ -224,7 +224,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__
+  __LEGION_CUDA_HD__
   inline DomainPoint& DomainPoint::operator-=(const DomainPoint &rhs) 
   //----------------------------------------------------------------------------
   {
@@ -235,7 +235,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint DomainPoint::operator*(coord_t scalar) const
+  __LEGION_CUDA_HD__ inline DomainPoint DomainPoint::operator*(coord_t scalar) const
   //----------------------------------------------------------------------------
   {
     DomainPoint result;
@@ -246,7 +246,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ 
+  __LEGION_CUDA_HD__ 
   inline DomainPoint DomainPoint::operator*(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
@@ -259,7 +259,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint& DomainPoint::operator*=(coord_t scalar)
+  __LEGION_CUDA_HD__ inline DomainPoint& DomainPoint::operator*=(coord_t scalar)
   //----------------------------------------------------------------------------
   {
     for (int i = 0; i < dim; i++)
@@ -268,7 +268,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__
+  __LEGION_CUDA_HD__
   inline DomainPoint& DomainPoint::operator*=(const DomainPoint &rhs) 
   //----------------------------------------------------------------------------
   {
@@ -279,7 +279,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint DomainPoint::operator/(coord_t scalar) const
+  __LEGION_CUDA_HD__ inline DomainPoint DomainPoint::operator/(coord_t scalar) const
   //----------------------------------------------------------------------------
   {
     DomainPoint result;
@@ -290,7 +290,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ 
+  __LEGION_CUDA_HD__ 
   inline DomainPoint DomainPoint::operator/(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
@@ -303,7 +303,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint& DomainPoint::operator/=(coord_t scalar)
+  __LEGION_CUDA_HD__ inline DomainPoint& DomainPoint::operator/=(coord_t scalar)
   //----------------------------------------------------------------------------
   {
     for (int i = 0; i < dim; i++)
@@ -312,7 +312,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__
+  __LEGION_CUDA_HD__
   inline DomainPoint& DomainPoint::operator/=(const DomainPoint &rhs) 
   //----------------------------------------------------------------------------
   {
@@ -323,7 +323,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint DomainPoint::operator%(coord_t scalar) const
+  __LEGION_CUDA_HD__ inline DomainPoint DomainPoint::operator%(coord_t scalar) const
   //----------------------------------------------------------------------------
   {
     DomainPoint result;
@@ -334,7 +334,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ 
+  __LEGION_CUDA_HD__ 
   inline DomainPoint DomainPoint::operator%(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
@@ -347,7 +347,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint& DomainPoint::operator%=(coord_t scalar)
+  __LEGION_CUDA_HD__ inline DomainPoint& DomainPoint::operator%=(coord_t scalar)
   //----------------------------------------------------------------------------
   {
     for (int i = 0; i < dim; i++)
@@ -356,7 +356,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__
+  __LEGION_CUDA_HD__
   inline DomainPoint& DomainPoint::operator%=(const DomainPoint &rhs) 
   //----------------------------------------------------------------------------
   {
@@ -367,7 +367,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline coord_t& DomainPoint::operator[](unsigned index)
+  __LEGION_CUDA_HD__ inline coord_t& DomainPoint::operator[](unsigned index)
   //----------------------------------------------------------------------------
   {
     assert(index < MAX_POINT_DIM);
@@ -375,7 +375,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline const coord_t& DomainPoint::operator[](unsigned index)const
+  __LEGION_CUDA_HD__ inline const coord_t& DomainPoint::operator[](unsigned index)const
   //----------------------------------------------------------------------------
   {
     assert(index < MAX_POINT_DIM);
@@ -383,7 +383,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Color DomainPoint::get_color(void) const
+  __LEGION_CUDA_HD__ inline Color DomainPoint::get_color(void) const
   //----------------------------------------------------------------------------
   {
     assert(dim == 1);
@@ -391,7 +391,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline coord_t DomainPoint::get_index(void) const
+  __LEGION_CUDA_HD__ inline coord_t DomainPoint::get_index(void) const
   //----------------------------------------------------------------------------
   {
     assert(dim == 1);
@@ -399,21 +399,21 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline int DomainPoint::get_dim(void) const
+  __LEGION_CUDA_HD__ inline int DomainPoint::get_dim(void) const
   //----------------------------------------------------------------------------
   {
     return dim;
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool DomainPoint::is_null(void) const
+  __LEGION_CUDA_HD__ inline bool DomainPoint::is_null(void) const
   //----------------------------------------------------------------------------
   {
     return (dim == -1);
   }
 
   //----------------------------------------------------------------------------
-  /*static*/ __CUDA_HD__ inline DomainPoint DomainPoint::nil(void)
+  /*static*/ __LEGION_CUDA_HD__ inline DomainPoint DomainPoint::nil(void)
   //----------------------------------------------------------------------------
   {
     DomainPoint p;
@@ -443,7 +443,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain::Domain(void)
+  __LEGION_CUDA_HD__ inline Domain::Domain(void)
     : is_id(0), is_type(0), dim(0)
   //----------------------------------------------------------------------------
   {
@@ -452,7 +452,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain::Domain(const Domain &other)
+  __LEGION_CUDA_HD__ inline Domain::Domain(const Domain &other)
     : is_id(other.is_id), is_type(is_id > 0 ? other.is_type : 0), dim(other.dim)
   //----------------------------------------------------------------------------
   {
@@ -461,7 +461,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain::Domain(Domain &&other) noexcept
+  __LEGION_CUDA_HD__ inline Domain::Domain(Domain &&other) noexcept
     : is_id(other.is_id), is_type(is_id > 0 ? other.is_type : 0), dim(other.dim)
   //----------------------------------------------------------------------------
   {
@@ -472,7 +472,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain::Domain(const DomainPoint &lo,const DomainPoint &hi)
+  __LEGION_CUDA_HD__ inline Domain::Domain(const DomainPoint &lo,const DomainPoint &hi)
     : is_id(0), is_type(0), dim(lo.dim)
   //----------------------------------------------------------------------------
   {
@@ -487,7 +487,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename T> __CUDA_HD__
+  template<int DIM, typename T> __LEGION_CUDA_HD__
   inline Domain::Domain(const Rect<DIM,T> &other)
     : is_id(0), is_type(0), dim(DIM)
   //----------------------------------------------------------------------------
@@ -503,7 +503,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<typename T> __CUDA_HD__
+  template<typename T> __LEGION_CUDA_HD__
   /*static*/ inline coord_t Domain::check_for_overflow(const T &value)
   //----------------------------------------------------------------------------
   {
@@ -524,7 +524,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename T> __CUDA_HD__
+  template<int DIM, typename T> __LEGION_CUDA_HD__
   inline Domain::Domain(const DomainT<DIM,T> &other)
     : is_id(other.sparsity.id),
       is_type((is_id > 0) ? 
@@ -543,7 +543,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain& Domain::operator=(const Domain &other)
+  __LEGION_CUDA_HD__ inline Domain& Domain::operator=(const Domain &other)
   //----------------------------------------------------------------------------
   {
     is_id = other.is_id;
@@ -556,7 +556,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain& Domain::operator=(Domain &&other) noexcept
+  __LEGION_CUDA_HD__ inline Domain& Domain::operator=(Domain &&other) noexcept
   //----------------------------------------------------------------------------
   {
     is_id = other.is_id;
@@ -571,7 +571,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename T> __CUDA_HD__
+  template<int DIM, typename T> __LEGION_CUDA_HD__
   inline Domain& Domain::operator=(const Rect<DIM,T> &other)
   //----------------------------------------------------------------------------
   {
@@ -587,7 +587,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename T> __CUDA_HD__
+  template<int DIM, typename T> __LEGION_CUDA_HD__
   inline Domain& Domain::operator=(const DomainT<DIM,T> &other)
   //----------------------------------------------------------------------------
   {
@@ -606,7 +606,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool Domain::operator==(const Domain &rhs) const
+  __LEGION_CUDA_HD__ inline bool Domain::operator==(const Domain &rhs) const
   //----------------------------------------------------------------------------
   {
     if(is_id != rhs.is_id) return false;
@@ -620,14 +620,14 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool Domain::operator!=(const Domain &rhs) const
+  __LEGION_CUDA_HD__ inline bool Domain::operator!=(const Domain &rhs) const
   //----------------------------------------------------------------------------
   {
     return !(*this == rhs);
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool Domain::operator<(const Domain &rhs) const
+  __LEGION_CUDA_HD__ inline bool Domain::operator<(const Domain &rhs) const
   //----------------------------------------------------------------------------
   {
     if(is_id < rhs.is_id) return true;
@@ -643,7 +643,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain Domain::operator+(const DomainPoint &rhs) const
+  __LEGION_CUDA_HD__ inline Domain Domain::operator+(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
     assert(dense());
@@ -653,7 +653,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain& Domain::operator+=(const DomainPoint &rhs)
+  __LEGION_CUDA_HD__ inline Domain& Domain::operator+=(const DomainPoint &rhs)
   //----------------------------------------------------------------------------
   {
     assert(dense());
@@ -667,7 +667,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain Domain::operator-(const DomainPoint &rhs) const
+  __LEGION_CUDA_HD__ inline Domain Domain::operator-(const DomainPoint &rhs) const
   //----------------------------------------------------------------------------
   {
     assert(dense());
@@ -677,7 +677,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline Domain& Domain::operator-=(const DomainPoint &rhs)
+  __LEGION_CUDA_HD__ inline Domain& Domain::operator-=(const DomainPoint &rhs)
   //----------------------------------------------------------------------------
   {
     assert(dense());
@@ -691,21 +691,21 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool Domain::exists(void) const
+  __LEGION_CUDA_HD__ inline bool Domain::exists(void) const
   //----------------------------------------------------------------------------
   {
     return (dim > 0);
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool Domain::dense(void) const
+  __LEGION_CUDA_HD__ inline bool Domain::dense(void) const
   //----------------------------------------------------------------------------
   {
     return (is_id == 0);
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename T> __CUDA_HD__
+  template<int DIM, typename T> __LEGION_CUDA_HD__
   inline Rect<DIM,T> Domain::bounds(void) const
   //----------------------------------------------------------------------------
   {
@@ -720,7 +720,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename T> __CUDA_HD__
+  template<int DIM, typename T> __LEGION_CUDA_HD__
   inline Domain::operator Rect<DIM,T>(void) const
   //----------------------------------------------------------------------------
   {
@@ -785,7 +785,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool Domain::is_valid(void) const
+  __LEGION_CUDA_HD__ inline bool Domain::is_valid(void) const
   //----------------------------------------------------------------------------
   {
     return exists();
@@ -825,7 +825,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline bool Domain::contains_bounds_only(
+  __LEGION_CUDA_HD__ inline bool Domain::contains_bounds_only(
                                                  const DomainPoint &point) const
   //----------------------------------------------------------------------------
   {
@@ -839,7 +839,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline int Domain::get_dim(void) const
+  __LEGION_CUDA_HD__ inline int Domain::get_dim(void) const
   //----------------------------------------------------------------------------
   {
     return dim;
@@ -899,7 +899,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint Domain::lo(void) const
+  __LEGION_CUDA_HD__ inline DomainPoint Domain::lo(void) const
   //----------------------------------------------------------------------------
   {
     DomainPoint result;
@@ -910,7 +910,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __CUDA_HD__ inline DomainPoint Domain::hi(void) const
+  __LEGION_CUDA_HD__ inline DomainPoint Domain::hi(void) const
   //----------------------------------------------------------------------------
   {
     DomainPoint result;
@@ -1148,14 +1148,14 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline PointInRectIterator<DIM,COORD_T>::PointInRectIterator(void)
   //----------------------------------------------------------------------------
   {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline PointInRectIterator<DIM,COORD_T>::PointInRectIterator(
              const Rect<DIM,COORD_T> &r, bool column_major_order)
     : itr(Realm::PointInRectIterator<DIM,COORD_T>(r, column_major_order))
@@ -1165,7 +1165,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline bool PointInRectIterator<DIM,COORD_T>::valid(void) const
   //----------------------------------------------------------------------------
   {
@@ -1173,7 +1173,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline bool PointInRectIterator<DIM,COORD_T>::step(void)
   //----------------------------------------------------------------------------
   {
@@ -1183,7 +1183,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline bool PointInRectIterator<DIM,COORD_T>::operator()(void) const
   //----------------------------------------------------------------------------
   {
@@ -1191,7 +1191,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline Point<DIM,COORD_T> 
                          PointInRectIterator<DIM,COORD_T>::operator*(void) const
   //----------------------------------------------------------------------------
@@ -1200,7 +1200,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline COORD_T 
               PointInRectIterator<DIM,COORD_T>::operator[](unsigned index) const
   //----------------------------------------------------------------------------
@@ -1209,7 +1209,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline const Point<DIM,COORD_T>* 
                         PointInRectIterator<DIM,COORD_T>::operator->(void) const
   //----------------------------------------------------------------------------
@@ -1218,7 +1218,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline PointInRectIterator<DIM,COORD_T>&
                               PointInRectIterator<DIM,COORD_T>::operator++(void)
   //----------------------------------------------------------------------------
@@ -1228,7 +1228,7 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int DIM, typename COORD_T> __CUDA_HD__
+  template<int DIM, typename COORD_T> __LEGION_CUDA_HD__
   inline PointInRectIterator<DIM,COORD_T>
                     PointInRectIterator<DIM,COORD_T>::operator++(int/*postfix*/)
   //----------------------------------------------------------------------------

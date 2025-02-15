@@ -92,17 +92,17 @@ namespace Legion {
     DeferredValue(T initial_value, Memory target_memory,
                   size_t alignment = std::alignment_of<T>());
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline T read(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(T value) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline T* ptr(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline T& ref(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline operator T(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline DeferredValue<T>& operator=(T value);
   public:
     typedef T value_type;
@@ -128,9 +128,9 @@ namespace Legion {
     DeferredReduction(
         size_t alignment = std::alignment_of<typename REDOP::RHS>());
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void reduce(typename REDOP::RHS val) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void operator<<=(typename REDOP::RHS val) const;
   public:
     typedef typename REDOP::RHS value_type;

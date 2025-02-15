@@ -674,7 +674,7 @@ namespace Legion {
     typedef Realm::DynamicTemplates::ListProduct2<Realm::DIMCOUNTS, 
                                                   Realm::DIMTYPES> SUPER;
     public:
-      template<int N, typename T> __CUDA_HD__
+      template<int N, typename T> __LEGION_CUDA_HD__
       static inline constexpr TypeTag encode_tag(void) {
 #if __cplusplus >= 201402L
         constexpr TypeTag type =

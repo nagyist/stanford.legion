@@ -26,9 +26,9 @@
 
 // Define a prefix for annotating functions for CUDA compilation
 #if defined (__CUDACC__) || defined (__HIPCC__)
-#define __CUDA_HD__ __host__ __device__
+#define __LEGION_CUDA_HD__ __host__ __device__
 #else
-#define __CUDA_HD__
+#define __LEGION_CUDA_HD__
 #endif
 
 /**

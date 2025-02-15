@@ -29,81 +29,81 @@ namespace Legion {
   public:
     static constexpr int MAX_POINT_DIM = LEGION_MAX_DIM;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint(void);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint(coord_t index);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint(const DomainPoint &rhs);
-    template<int DIM, typename T> __CUDA_HD__
+    template<int DIM, typename T> __LEGION_CUDA_HD__
     DomainPoint(const Point<DIM,T> &rhs);
 
-    template<int DIM, typename T> __CUDA_HD__
+    template<int DIM, typename T> __LEGION_CUDA_HD__
     operator Point<DIM,T>(void) const;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator=(const DomainPoint &rhs);
-    template<int DIM, typename T> __CUDA_HD__
+    template<int DIM, typename T> __LEGION_CUDA_HD__
     DomainPoint& operator=(const Point<DIM,T> &rhs);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool operator==(const DomainPoint &rhs) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool operator!=(const DomainPoint &rhs) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool operator<(const DomainPoint &rhs) const;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator+(coord_t scalar) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator+(const DomainPoint &rhs) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator+=(coord_t scalar);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator+=(const DomainPoint &rhs);
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator-(coord_t scalar) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator-(const DomainPoint &rhs) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator-=(coord_t scalar);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator-=(const DomainPoint &rhs);
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator*(coord_t scalar) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator*(const DomainPoint &rhs) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator*=(coord_t scalar);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator*=(const DomainPoint &rhs);
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator/(coord_t scalar) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator/(const DomainPoint &rhs) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator/=(coord_t scalar);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator/=(const DomainPoint &rhs);
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator%(coord_t scalar) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint operator%(const DomainPoint &rhs) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator%=(coord_t scalar);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint& operator%=(const DomainPoint &rhs);
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     coord_t& operator[](unsigned index);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     const coord_t& operator[](unsigned index) const;
 
     struct STLComparator {
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       bool operator()(const DomainPoint& a, const DomainPoint& b) const
       {
         if(a.dim < b.dim) return true;
@@ -116,23 +116,23 @@ namespace Legion {
       }
     };
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Color get_color(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     coord_t get_index(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     int get_dim(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline bool exists(void) const { return (get_dim() > 0); }
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool is_null(void) const;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     static DomainPoint nil(void);
 
   protected:
-    template<typename T> __CUDA_HD__
+    template<typename T> __LEGION_CUDA_HD__
     static inline coord_t check_for_overflow(const T &value);
   public:
     int dim;
@@ -151,58 +151,58 @@ namespace Legion {
     // Keep this in sync with legion_domain_max_rect_dim_t
     // in legion_config.h
     static constexpr int MAX_RECT_DIM = LEGION_MAX_DIM;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain(void);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain(const Domain& other);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain(Domain &&other) noexcept;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain(const DomainPoint &lo, const DomainPoint &hi);
 
-    template<int DIM, typename T> __CUDA_HD__
+    template<int DIM, typename T> __LEGION_CUDA_HD__
     Domain(const Rect<DIM,T> &other);
 
-    template<int DIM, typename T> __CUDA_HD__
+    template<int DIM, typename T> __LEGION_CUDA_HD__
     Domain(const DomainT<DIM,T> &other);
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain& operator=(const Domain& other);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain& operator=(Domain &&other) noexcept;
-    template<int DIM, typename T> __CUDA_HD__
+    template<int DIM, typename T> __LEGION_CUDA_HD__
     Domain& operator=(const Rect<DIM,T> &other);
-    template<int DIM, typename T> __CUDA_HD__
+    template<int DIM, typename T> __LEGION_CUDA_HD__
     Domain& operator=(const DomainT<DIM,T> &other);
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool operator==(const Domain &rhs) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool operator!=(const Domain &rhs) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool operator<(const Domain &rhs) const;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain operator+(const DomainPoint &point) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain& operator+=(const DomainPoint &point);
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain operator-(const DomainPoint &point) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     Domain& operator-=(const DomainPoint &point);
 
     static const Domain NO_DOMAIN;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool exists(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool dense(void) const;
 
-    template<int DIM, typename T> __CUDA_HD__
+    template<int DIM, typename T> __LEGION_CUDA_HD__
     Rect<DIM,T> bounds(void) const;
 
-    template<int DIM, typename T> __CUDA_HD__
+    template<int DIM, typename T> __LEGION_CUDA_HD__
     operator Rect<DIM,T>(void) const;
 
     template<int DIM, typename T>
@@ -214,16 +214,16 @@ namespace Legion {
     // No longer supported
     //Realm::IndexSpace get_index_space(void) const;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool is_valid(void) const;
 
     bool contains(const DomainPoint &point) const;
 
     // This will only check the bounds and not the sparsity map
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     bool contains_bounds_only(const DomainPoint &point) const;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     int get_dim(void) const;
 
     bool empty(void) const;
@@ -233,10 +233,10 @@ namespace Legion {
 
     size_t get_volume(void) const;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint lo(void) const;
 
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     DomainPoint hi(void) const;
 
     // Intersects this Domain with another Domain and returns the result.
@@ -295,7 +295,7 @@ namespace Legion {
     // Helper functor classes for demux-ing templates when we have
     // non-trivial sparsity maps with unusual types
     // User's should never need to look at these hence they are private
-    template<typename T> __CUDA_HD__
+    template<typename T> __LEGION_CUDA_HD__
     static inline coord_t check_for_overflow(const T &value);
     struct ContainsFunctor {
     public: 
@@ -447,28 +447,28 @@ namespace Legion {
     static_assert(DIM > 0, "DIM must be positive");
     static_assert(std::is_integral<COORD_T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     PointInRectIterator(void);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     PointInRectIterator(const Rect<DIM,COORD_T> &r,
                         bool column_major_order = true);
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline bool valid(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline bool step(void);
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline bool operator()(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline Point<DIM,COORD_T> operator*(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline COORD_T operator[](unsigned index) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const Point<DIM,COORD_T>* operator->(void) const;
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline PointInRectIterator<DIM,COORD_T>& operator++(void);
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline PointInRectIterator<DIM,COORD_T> operator++(int/*postfix*/);
   protected:
     Realm::PointInRectIterator<DIM,COORD_T> itr;

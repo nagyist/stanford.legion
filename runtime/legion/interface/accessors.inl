@@ -27,16 +27,16 @@ namespace Legion {
     template<typename A, typename FT, int N, typename T>
     class ReductionHelper {
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       ReductionHelper(const A &acc, const Point<N> &p)
         : accessor(acc), point(p) { }
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline void reduce(FT val) const
       {
         accessor.reduce(point, val);
       }
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline void operator<<=(FT val) const
       {
         accessor.reduce(point, val);
@@ -214,7 +214,7 @@ namespace Legion {
               int M, PrivilegeMode P>
     class AffineSyntaxHelper {
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       AffineSyntaxHelper(const A &acc, const Point<M-1,T> &p)
         : accessor(acc)
       {
@@ -222,7 +222,7 @@ namespace Legion {
           point[i] = p[i];
       }
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline AffineSyntaxHelper<A,FT,N,T,M+1,P> operator[](T val)
       {
         point[M-1] = val;
@@ -237,7 +237,7 @@ namespace Legion {
     template<typename A, typename FT, int N, typename T, PrivilegeMode P>
     class AffineSyntaxHelper<A,FT,N,T,N,P> {
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       AffineSyntaxHelper(const A &acc, const Point<N-1,T> &p)
         : accessor(acc)
       {
@@ -245,7 +245,7 @@ namespace Legion {
           point[i] = p[i];
       }
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline FT& operator[](T val)
       {
         point[N-1] = val;
@@ -260,7 +260,7 @@ namespace Legion {
     template<typename A, typename FT, int N, typename T>
     class AffineSyntaxHelper<A,FT,N,T,N,LEGION_READ_ONLY> {
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       AffineSyntaxHelper(const A &acc, const Point<N-1,T> &p)
         : accessor(acc)
       {
@@ -268,7 +268,7 @@ namespace Legion {
           point[i] = p[i];
       }
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline const FT& operator[](T val)
       {
         point[N-1] = val;
@@ -283,7 +283,7 @@ namespace Legion {
     template<typename A, typename FT, int N, typename T>
     class AffineSyntaxHelper<A,FT,N,T,N,LEGION_REDUCE> {
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       AffineSyntaxHelper(const A &acc, const Point<N-1,T> &p)
         : accessor(acc)
       {
@@ -291,7 +291,7 @@ namespace Legion {
           point[i] = p[i];
       }
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline const ReductionHelper<A,FT,N,T> operator[](T val)
       {
         point[N-1] = val;
@@ -307,7 +307,7 @@ namespace Legion {
     template<typename FT>
     class AffineRefHelper {
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       AffineRefHelper(FT &r,FieldID fid,const DomainPoint &pt,PrivilegeMode p)
         : ref(r),
 #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
@@ -316,7 +316,7 @@ namespace Legion {
           privilege(p) { }
     public:
       // read
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline operator const FT&(void) const
         {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -328,7 +328,7 @@ namespace Legion {
           return ref;
         }
       // writes
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline AffineRefHelper<FT>& operator=(const FT &newval)
         { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -340,7 +340,7 @@ namespace Legion {
           ref = newval;
           return *this; 
         }
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline AffineRefHelper<FT>& operator=(const AffineRefHelper<FT> &rhs)
         {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -365,7 +365,7 @@ namespace Legion {
     template<typename A, typename FT, int N, typename T>
     class AffineSyntaxHelper<A,FT,N,T,N,LEGION_NO_ACCESS> {
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       AffineSyntaxHelper(const A &acc, const Point<N-1,T> &p)
         : accessor(acc)
       {
@@ -373,7 +373,7 @@ namespace Legion {
           point[i] = p[i];
       }
     public:
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline AffineRefHelper<FT> operator[](T val)
       {
         point[N-1] = val;
@@ -1430,7 +1430,7 @@ namespace Legion {
             "Accessor DIM larger than LEGION_MAX_DIM");
       }
     public: 
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline bool contains(const Point<N,T> &point) const
       {
         // Check the domain first
@@ -1460,7 +1460,7 @@ namespace Legion {
         }
         return true;
       }
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline bool contains_all(const Rect<N,T> &rect) const
       {
         if (rect.empty())
@@ -1518,7 +1518,7 @@ namespace Legion {
         }
         return result;
       }
-      __CUDA_HD__
+      __LEGION_CUDA_HD__
       inline void check_gpu_warning(void) const
       {
         // We've turned this off for now since most users seems to 
@@ -1531,7 +1531,7 @@ namespace Legion {
 #endif
 #endif
       }
-      template<int M> __CUDA_HD__
+      template<int M> __LEGION_CUDA_HD__
       inline DomainT<M,T> convert_range(void) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1542,7 +1542,7 @@ namespace Legion {
 #endif
         return result;
       }
-      template<int M> __CUDA_HD__
+      template<int M> __LEGION_CUDA_HD__
       static inline bool test_point(const DomainT<M,T> &domain, 
                                     const Point<M,T> &point)
       {
@@ -2373,7 +2373,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, N, true)
@@ -2448,17 +2448,17 @@ namespace Legion {
                                       0/*field id*/, source_bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const 
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Point<N,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<N,T>& r, 
                          size_t field_size = sizeof(FT)) const
       {
@@ -2470,7 +2470,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<N,T>& r, size_t strides[N],
                          size_t field_size = sizeof(FT)) const
       {
@@ -2478,12 +2478,12 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         FieldAccessor<LEGION_READ_ONLY,FT,N,T,
           Realm::AffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_READ_ONLY>
@@ -2600,7 +2600,7 @@ namespace Legion {
       bounds = AffineBounds::Tester<N,T>(is, source_bounds, affine);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const 
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2612,7 +2612,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2624,7 +2624,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<N,T>& r, 
                          size_t field_size = sizeof(FT)) const
       {
@@ -2640,7 +2640,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<N,T>& r, size_t strides[N],
                          size_t field_size = sizeof(FT)) const
       {
@@ -2655,7 +2655,7 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT& operator[](const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2667,7 +2667,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         FieldAccessor<LEGION_READ_ONLY,FT,N,T,
            Realm::AffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_READ_ONLY>
@@ -2697,7 +2697,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, 1, true)
@@ -2767,17 +2767,17 @@ namespace Legion {
                                       0/*field id*/, source_bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const 
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Point<1,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<1,T>& r, 
                          size_t field_size = sizeof(FT)) const
       {
@@ -2789,14 +2789,14 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<1,T>& r, size_t strides[1],
                          size_t field_size = sizeof(FT)) const
       {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
@@ -2900,7 +2900,7 @@ namespace Legion {
       bounds = AffineBounds::Tester<1,T>(is, source_bounds, affine);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const 
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2912,7 +2912,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2924,7 +2924,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<1,T>& r,
                          size_t field_size = sizeof(FT)) const
       {
@@ -2940,7 +2940,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<1,T>& r, size_t strides[1],
                          size_t field_size = sizeof(FT)) const
       {
@@ -2954,7 +2954,7 @@ namespace Legion {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT& operator[](const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2986,7 +2986,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, N, true)
@@ -2996,22 +2996,22 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3022,7 +3022,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -3030,12 +3030,12 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         FieldAccessor<LEGION_READ_WRITE,FT,N,T,
            Realm::AffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_READ_WRITE>
@@ -3046,7 +3046,7 @@ namespace Legion {
             Realm::AffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_READ_WRITE>(
             *this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -3081,7 +3081,7 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3093,7 +3093,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3105,7 +3105,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3117,7 +3117,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3132,7 +3132,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -3147,7 +3147,7 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3159,7 +3159,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         FieldAccessor<LEGION_READ_WRITE,FT,N,T,
             Realm::AffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_READ_WRITE>
@@ -3170,7 +3170,7 @@ namespace Legion {
              Realm::AffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_READ_WRITE>(
             *this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__ 
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__ 
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -3202,7 +3202,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, 1, true)
@@ -3212,22 +3212,22 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3238,19 +3238,19 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -3283,7 +3283,7 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3295,7 +3295,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3307,7 +3307,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3319,7 +3319,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3334,7 +3334,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -3348,7 +3348,7 @@ namespace Legion {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3360,7 +3360,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -3393,7 +3393,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
@@ -3403,22 +3403,22 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3429,7 +3429,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -3437,12 +3437,12 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
       FieldAccessor<LEGION_WRITE_DISCARD,FT,N,T,
            Realm::AffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_WRITE_DISCARD>
@@ -3482,7 +3482,7 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3494,7 +3494,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3506,7 +3506,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3518,7 +3518,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3533,7 +3533,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const 
       {
@@ -3548,7 +3548,7 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3560,7 +3560,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
       FieldAccessor<LEGION_WRITE_DISCARD,FT,N,T,
            Realm::AffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_WRITE_DISCARD>
@@ -3590,7 +3590,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, true)
@@ -3600,22 +3600,22 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3626,14 +3626,14 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
@@ -3665,7 +3665,7 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3677,7 +3677,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3689,7 +3689,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3701,7 +3701,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3716,7 +3716,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -3730,7 +3730,7 @@ namespace Legion {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3762,7 +3762,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
@@ -3772,17 +3772,17 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3793,7 +3793,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -3801,12 +3801,12 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
       FieldAccessor<LEGION_WRITE_DISCARD,FT,N,T,
            Realm::AffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_WRITE_DISCARD>
@@ -3846,7 +3846,7 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3858,7 +3858,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3870,7 +3870,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3885,7 +3885,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const 
       {
@@ -3900,7 +3900,7 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3912,7 +3912,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
       FieldAccessor<LEGION_WRITE_DISCARD,FT,N,T,
            Realm::AffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_WRITE_DISCARD>
@@ -3942,7 +3942,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, true)
@@ -3952,17 +3952,17 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3973,14 +3973,14 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
@@ -4012,7 +4012,7 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_CONSTRUCTORS_WITH_BOUNDS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4024,7 +4024,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4036,7 +4036,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4051,7 +4051,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -4065,7 +4065,7 @@ namespace Legion {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4912,7 +4912,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     ReductionAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(N, true)
@@ -4922,18 +4922,18 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS(N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
         REDOP::template fold<EXCLUSIVE>(accessor[p], val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Point<N,T>& p) const
       {
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<N,T>& r,
             size_t field_size = sizeof(typename REDOP::RHS)) const
       {
@@ -4945,7 +4945,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<N,T>& r, 
             size_t strides[N], size_t field_size = sizeof(typename REDOP::RHS)) const
       {
@@ -4953,7 +4953,7 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::ReductionHelper<ReductionAccessor<REDOP,EXCLUSIVE,N,
            T,Realm::AffineAccessor<typename REDOP::RHS,N,T>,CB>,
            typename REDOP::RHS,N,T>
@@ -4963,7 +4963,7 @@ namespace Legion {
           N,T,Realm::AffineAccessor<typename REDOP::RHS,N,T>,CB>,
           typename REDOP::RHS,N,T>(*this, p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<ReductionAccessor<REDOP,EXCLUSIVE,
        N,T,Realm::AffineAccessor<typename REDOP::RHS,N,T>,CB>,
        typename REDOP::RHS,N,T,2,LEGION_REDUCE>
@@ -5002,7 +5002,7 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS_WITH_BOUNDS(N, false)
 #endif
   public:
-    __CUDA_HD__ 
+    __LEGION_CUDA_HD__ 
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -5015,7 +5015,7 @@ namespace Legion {
 #endif
         REDOP::template fold<EXCLUSIVE>(accessor[p], val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5027,7 +5027,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<N,T>& r,
             size_t field_size = sizeof(typename REDOP::RHS)) const
       {
@@ -5043,7 +5043,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<N,T>& r,
             size_t strides[N],
             size_t field_size = sizeof(typename REDOP::RHS)) const
@@ -5059,7 +5059,7 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::ReductionHelper<ReductionAccessor<REDOP,EXCLUSIVE,N,
            T,Realm::AffineAccessor<typename REDOP::RHS,N,T>,true>,
            typename REDOP::RHS,N,T>
@@ -5069,7 +5069,7 @@ namespace Legion {
           N,T,Realm::AffineAccessor<typename REDOP::RHS,N,T>,true>,
           typename REDOP::RHS,N,T>(*this, p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<ReductionAccessor<REDOP,EXCLUSIVE,
            N,T, Realm::AffineAccessor<typename REDOP::RHS,N,T>,true>,
            typename REDOP::RHS,N,T,2,LEGION_REDUCE>
@@ -5099,7 +5099,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     ReductionAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(1, true)
@@ -5109,18 +5109,18 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
         REDOP::template fold<EXCLUSIVE>(accessor[p], val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Point<1,T>& p) const
       {
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<1,T>& r,
             size_t field_size = sizeof(typename REDOP::RHS)) const
       {
@@ -5132,7 +5132,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<1,T>& r, 
             size_t strides[1],
             size_t field_size = sizeof(typename REDOP::RHS)) const
@@ -5140,7 +5140,7 @@ namespace Legion {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::ReductionHelper<ReductionAccessor<REDOP,EXCLUSIVE,1,
            T,Realm::AffineAccessor<typename REDOP::RHS,1,T>,CB>,
            typename REDOP::RHS,1,T>
@@ -5177,7 +5177,7 @@ namespace Legion {
     DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS_WITH_BOUNDS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -5190,7 +5190,7 @@ namespace Legion {
 #endif
         REDOP::template fold<EXCLUSIVE>(accessor[p], val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5202,7 +5202,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<1,T>& r,
             size_t field_size = sizeof(typename REDOP::RHS)) const
       {
@@ -5217,7 +5217,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<1,T>& r,
             size_t strides[1],
             size_t field_size = sizeof(typename REDOP::RHS)) const
@@ -5231,7 +5231,7 @@ namespace Legion {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::ReductionHelper<ReductionAccessor<REDOP,EXCLUSIVE,1,
            T,Realm::AffineAccessor<typename REDOP::RHS,1,T>,true>,
            typename REDOP::RHS,1,T>
@@ -5523,7 +5523,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, N, true)
@@ -5531,17 +5531,17 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const 
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Point<N,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<N,T>& r, 
                          size_t field_size = sizeof(FT)) const
       {
@@ -5558,7 +5558,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<N,T>& r, size_t strides[N],
                          size_t field_size = sizeof(FT)) const
       {
@@ -5573,12 +5573,12 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         FieldAccessor<LEGION_READ_ONLY,FT,N,T,
           Realm::MultiAffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_READ_ONLY>
@@ -5616,7 +5616,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const 
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5628,7 +5628,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5640,7 +5640,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<N,T>& r, 
                          size_t field_size = sizeof(FT)) const
       {
@@ -5661,7 +5661,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<N,T>& r, size_t strides[N],
                          size_t field_size = sizeof(FT)) const
       {
@@ -5680,7 +5680,7 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT& operator[](const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5692,7 +5692,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         FieldAccessor<LEGION_READ_ONLY,FT,N,T,
            Realm::MultiAffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_READ_ONLY>
@@ -5722,7 +5722,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, 1, true)
@@ -5730,17 +5730,17 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_ONLY, 1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const 
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Point<1,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<1,T>& r, 
                          size_t field_size = sizeof(FT)) const
       {
@@ -5757,7 +5757,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<1,T>& r, size_t strides[1],
                          size_t field_size = sizeof(FT)) const
       {
@@ -5771,7 +5771,7 @@ namespace Legion {
         strides[0] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
@@ -5801,7 +5801,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_ONLY, 1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const 
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5813,7 +5813,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5825,7 +5825,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<1,T>& r,
                          size_t field_size = sizeof(FT)) const
       {
@@ -5846,7 +5846,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT* ptr(const Rect<1,T>& r, size_t strides[1],
                          size_t field_size = sizeof(FT)) const
       {
@@ -5864,7 +5864,7 @@ namespace Legion {
         strides[0] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline const FT& operator[](const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5896,7 +5896,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, N, true)
@@ -5904,22 +5904,22 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[N];
@@ -5935,7 +5935,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -5950,12 +5950,12 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         FieldAccessor<LEGION_READ_WRITE,FT,N,T,
            Realm::MultiAffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_READ_WRITE>
@@ -5966,7 +5966,7 @@ namespace Legion {
            Realm::MultiAffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_READ_WRITE>(
             *this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -5999,7 +5999,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6011,7 +6011,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6023,7 +6023,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6035,7 +6035,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[N];
@@ -6055,7 +6055,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -6074,7 +6074,7 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6086,7 +6086,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         FieldAccessor<LEGION_READ_WRITE,FT,N,T,
           Realm::MultiAffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_READ_WRITE>
@@ -6097,7 +6097,7 @@ namespace Legion {
          Realm::MultiAffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_READ_WRITE>(
             *this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__ 
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__ 
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -6129,7 +6129,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, 1, true)
@@ -6137,22 +6137,22 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_READ_WRITE, 1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[1];
@@ -6168,7 +6168,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -6182,12 +6182,12 @@ namespace Legion {
         strides[0] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -6218,7 +6218,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_READ_WRITE, 1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6230,7 +6230,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6242,7 +6242,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6254,7 +6254,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[1];
@@ -6274,7 +6274,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -6292,7 +6292,7 @@ namespace Legion {
         strides[0] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6304,7 +6304,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -6337,7 +6337,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
@@ -6345,22 +6345,22 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[N];
@@ -6376,7 +6376,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -6391,12 +6391,12 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
       FieldAccessor<LEGION_WRITE_DISCARD,FT,N,T,
          Realm::MultiAffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_WRITE_DISCARD>
@@ -6434,7 +6434,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6446,7 +6446,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6458,7 +6458,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6470,7 +6470,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[N];
@@ -6490,7 +6490,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const 
       {
@@ -6509,7 +6509,7 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6521,7 +6521,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
       FieldAccessor<LEGION_WRITE_DISCARD,FT,N,T,
        Realm::MultiAffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_WRITE_DISCARD>
@@ -6551,7 +6551,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, true)
@@ -6559,22 +6559,22 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[1];
@@ -6590,7 +6590,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -6604,7 +6604,7 @@ namespace Legion {
         strides[0] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
@@ -6634,7 +6634,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6646,7 +6646,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6658,7 +6658,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6670,7 +6670,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[1];
@@ -6690,7 +6690,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -6708,7 +6708,7 @@ namespace Legion {
         strides[0] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6740,7 +6740,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, true)
@@ -6748,17 +6748,17 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[N];
@@ -6774,7 +6774,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -6789,12 +6789,12 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
       FieldAccessor<LEGION_WRITE_DISCARD,FT,N,T,
          Realm::MultiAffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_WRITE_DISCARD>
@@ -6832,7 +6832,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6844,7 +6844,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6856,7 +6856,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[N];
@@ -6876,7 +6876,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const 
       {
@@ -6895,7 +6895,7 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6907,7 +6907,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
       FieldAccessor<LEGION_WRITE_DISCARD,FT,N,T,
        Realm::MultiAffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_WRITE_DISCARD>
@@ -6937,7 +6937,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     FieldAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, true)
@@ -6945,17 +6945,17 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(LEGION_WRITE_DISCARD, 1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[1];
@@ -6971,7 +6971,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -6985,7 +6985,7 @@ namespace Legion {
         strides[0] /= field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
@@ -7015,7 +7015,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(LEGION_WRITE_DISCARD, 1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7027,7 +7027,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7039,7 +7039,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[1];
@@ -7059,7 +7059,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -7077,7 +7077,7 @@ namespace Legion {
         strides[0] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7380,7 +7380,7 @@ namespace Legion {
     static_assert(N <= LEGION_MAX_DIM, "DIM must be <= LEGION_MAX_DIM");
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     ReductionAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(N, true)
@@ -7388,18 +7388,18 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(N, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
         REDOP::template fold<EXCLUSIVE>(accessor[p], val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Point<N,T>& p) const
       {
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<N,T>& r,
             size_t field_size = sizeof(typename REDOP::RHS)) const
       {
@@ -7416,7 +7416,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<N,T>& r, 
             size_t strides[N],
             size_t field_size = sizeof(typename REDOP::RHS)) const
@@ -7432,7 +7432,7 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::ReductionHelper<ReductionAccessor<REDOP,EXCLUSIVE,N,
            T,Realm::MultiAffineAccessor<typename REDOP::RHS,N,T>,CB>,
            typename REDOP::RHS,N,T>
@@ -7442,7 +7442,7 @@ namespace Legion {
           N,T,Realm::MultiAffineAccessor<typename REDOP::RHS,N,T>,CB>,
           typename REDOP::RHS,N,T>(*this, p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<ReductionAccessor<REDOP,EXCLUSIVE,
        N,T,Realm::MultiAffineAccessor<typename REDOP::RHS,N,T>,CB>,
        typename REDOP::RHS,N,T,2,LEGION_REDUCE>
@@ -7479,7 +7479,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(N, false)
 #endif
   public:
-    __CUDA_HD__ 
+    __LEGION_CUDA_HD__ 
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -7492,7 +7492,7 @@ namespace Legion {
 #endif
         REDOP::template fold<EXCLUSIVE>(accessor[p], val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7504,7 +7504,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<N,T>& r,
             size_t field_size = sizeof(typename REDOP::RHS)) const
       {
@@ -7525,7 +7525,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<N,T>& r,
             size_t strides[N],
             size_t field_size = sizeof(typename REDOP::RHS)) const
@@ -7545,7 +7545,7 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::ReductionHelper<ReductionAccessor<REDOP,EXCLUSIVE,N,
            T,Realm::MultiAffineAccessor<typename REDOP::RHS,N,T>,true>,
            typename REDOP::RHS,N,T>
@@ -7555,7 +7555,7 @@ namespace Legion {
           N,T,Realm::MultiAffineAccessor<typename REDOP::RHS,N,T>,true>,
           typename REDOP::RHS,N,T>(*this, p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<ReductionAccessor<REDOP,EXCLUSIVE,
            N,T, Realm::MultiAffineAccessor<typename REDOP::RHS,N,T>,true>,
            typename REDOP::RHS,N,T,2,LEGION_REDUCE>
@@ -7585,7 +7585,7 @@ namespace Legion {
   private:
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     ReductionAccessor(void) { }
 #ifdef DEBUG_LEGION
     PHYSICAL_REGION_CONSTRUCTORS(1, true)
@@ -7593,18 +7593,18 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
         REDOP::template fold<EXCLUSIVE>(accessor[p], val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Point<1,T>& p) const
       {
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<1,T>& r,
             size_t field_size = sizeof(typename REDOP::RHS)) const
       {
@@ -7621,7 +7621,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<1,T>& r, 
             size_t strides[1],
             size_t field_size = sizeof(typename REDOP::RHS)) const
@@ -7636,7 +7636,7 @@ namespace Legion {
         strides[0] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::ReductionHelper<ReductionAccessor<REDOP,EXCLUSIVE,1,
            T,Realm::MultiAffineAccessor<typename REDOP::RHS,1,T>,CB>,
            typename REDOP::RHS,1,T>
@@ -7671,7 +7671,7 @@ namespace Legion {
     PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(1, false)
 #endif
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -7684,7 +7684,7 @@ namespace Legion {
 #endif
         REDOP::template fold<EXCLUSIVE>(accessor[p], val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7696,7 +7696,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<1,T>& r,
             size_t field_size = sizeof(typename REDOP::RHS)) const
       {
@@ -7716,7 +7716,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline typename REDOP::RHS* ptr(const Rect<1,T>& r,
             size_t strides[1],
             size_t field_size = sizeof(typename REDOP::RHS)) const
@@ -7734,7 +7734,7 @@ namespace Legion {
         strides[0] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::ReductionHelper<ReductionAccessor<REDOP,EXCLUSIVE,1,
            T,Realm::MultiAffineAccessor<typename REDOP::RHS,1,T>,true>,
            typename REDOP::RHS,1,T>
@@ -8067,27 +8067,27 @@ namespace Legion {
           Realm::AffineAccessor<FT,N,T>(instance, fid, bounds, offset);
       }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -8095,12 +8095,12 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         PaddingAccessor<FT,N,T,
            Realm::AffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_READ_WRITE>
@@ -8111,7 +8111,7 @@ namespace Legion {
             Realm::AffineAccessor<FT,N,T>,CB>,FT,N,T,2,LEGION_READ_WRITE>(
             *this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -8162,7 +8162,7 @@ namespace Legion {
           Realm::AffineAccessor<FT,N,T>(instance, fid, outer, offset);
       }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8173,7 +8173,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8184,7 +8184,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8195,7 +8195,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
         const Rect<N,T> contained = outer.intersection(r);
@@ -8219,7 +8219,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -8246,7 +8246,7 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8257,7 +8257,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<
         PaddingAccessor<FT,N,T,
            Realm::AffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_READ_WRITE>
@@ -8268,7 +8268,7 @@ namespace Legion {
             Realm::AffineAccessor<FT,N,T>,true>,FT,N,T,2,LEGION_READ_WRITE>(
             *this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -8324,39 +8324,39 @@ namespace Legion {
           Realm::AffineAccessor<FT,1,T>(instance, fid, bounds, offset);
       }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -8405,7 +8405,7 @@ namespace Legion {
           Realm::AffineAccessor<FT,1,T>(instance, fid, outer, offset);
       }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8416,7 +8416,7 @@ namespace Legion {
 #endif
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8427,7 +8427,7 @@ namespace Legion {
 #endif
         accessor.write(p, val); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8438,7 +8438,7 @@ namespace Legion {
 #endif
         return accessor.ptr(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t field_size = sizeof(FT)) const
       {
         const Rect<1,T> contained = outer.intersection(r);
@@ -8462,7 +8462,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T>& r, size_t strides[1],
                    size_t field_size = sizeof(FT)) const
       {
@@ -8488,7 +8488,7 @@ namespace Legion {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8499,7 +8499,7 @@ namespace Legion {
 #endif
         return accessor[p]; 
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -9798,7 +9798,7 @@ namespace Legion {
           transform.offset, fid, bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       {
         bool found = false;
@@ -9829,7 +9829,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       {
         bool found = false;
@@ -9860,7 +9860,7 @@ namespace Legion {
 #endif
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineRefHelper<FT>
               operator[](const Point<N,T>& p) const
       { 
@@ -9882,7 +9882,7 @@ namespace Legion {
         return ArraySyntax::AffineRefHelper<FT>(accessor[p], field,
                           DomainPoint(p), region_privileges[index]);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<MultiRegionAccessor<FT,N,T,
          Realm::AffineAccessor<FT,N,T>,CB,true,MR>,FT,N,T,2,LEGION_NO_ACCESS>
         operator[](T index) const
@@ -9891,7 +9891,7 @@ namespace Legion {
         Realm::AffineAccessor<FT,N,T>,CB,true,MR>,FT,N,T,2,LEGION_NO_ACCESS>(
             *this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -10310,7 +10310,7 @@ namespace Legion {
           transform.offset, fid, bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       {
         bool found = false;
@@ -10341,7 +10341,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       {
         bool found = false;
@@ -10372,7 +10372,7 @@ namespace Legion {
 #endif
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineRefHelper<FT>
               operator[](const Point<1,T>& p) const
       { 
@@ -10394,7 +10394,7 @@ namespace Legion {
         return ArraySyntax::AffineRefHelper<FT>(accessor[p], field,
                           DomainPoint(p), region_privileges[index]);
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -10816,7 +10816,7 @@ namespace Legion {
           transform.offset, fid, bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       {
         bool found = false;
@@ -10836,7 +10836,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       {
         bool found = false;
@@ -10856,7 +10856,7 @@ namespace Legion {
 #endif
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         int index = -1;
@@ -10876,7 +10876,7 @@ namespace Legion {
 #endif
         return accessor[p];
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<MultiRegionAccessor<FT,N,T,
            Realm::AffineAccessor<FT,N,T>,true,false,MR>,
            FT,N,T,2,LEGION_READ_WRITE>
@@ -10886,7 +10886,7 @@ namespace Legion {
             Realm::AffineAccessor<FT,N,T>,true,false,MR>,
             FT,N,T,2,LEGION_READ_WRITE>(*this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -11295,7 +11295,7 @@ namespace Legion {
           transform.offset, fid, bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       {
         bool found = false;
@@ -11315,7 +11315,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       {
         bool found = false;
@@ -11335,7 +11335,7 @@ namespace Legion {
 #endif
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         int index = -1;
@@ -11355,7 +11355,7 @@ namespace Legion {
 #endif
         return accessor[p];
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -11720,22 +11720,22 @@ namespace Legion {
           transform.offset, fid, bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       {
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       {
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<MultiRegionAccessor<FT,N,T,
      Realm::AffineAccessor<FT,N,T>,false,false,MR>,FT,N,T,2,LEGION_READ_WRITE>
         operator[](T index) const
@@ -11744,7 +11744,7 @@ namespace Legion {
           Realm::AffineAccessor<FT,N,T>,false,false,MR>,
           FT,N,T,2,LEGION_READ_WRITE>(*this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -12088,22 +12088,22 @@ namespace Legion {
           transform.offset, fid, bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       {
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       {
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -12320,7 +12320,7 @@ namespace Legion {
         Realm::MultiAffineAccessor<FT,N,T>(instance, fid, bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       {
         bool found = false;
@@ -12351,7 +12351,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       {
         bool found = false;
@@ -12382,7 +12382,7 @@ namespace Legion {
 #endif
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineRefHelper<FT>
               operator[](const Point<N,T>& p) const
       { 
@@ -12404,7 +12404,7 @@ namespace Legion {
         return ArraySyntax::AffineRefHelper<FT>(accessor[p], field,
                           DomainPoint(p), region_privileges[index]);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<MultiRegionAccessor<FT,N,T,
      Realm::MultiAffineAccessor<FT,N,T>,CB,true,MR>,FT,N,T,2,LEGION_NO_ACCESS>
         operator[](T index) const
@@ -12413,7 +12413,7 @@ namespace Legion {
         Realm::MultiAffineAccessor<FT,N,T>,CB,true,MR>,FT,N,T,2,
           LEGION_NO_ACCESS>(*this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -12650,7 +12650,7 @@ namespace Legion {
       accessor = Realm::MultiAffineAccessor<FT,1,T>(instance, fid, bounds);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       {
         bool found = false;
@@ -12681,7 +12681,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       {
         bool found = false;
@@ -12712,7 +12712,7 @@ namespace Legion {
 #endif
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineRefHelper<FT>
               operator[](const Point<1,T>& p) const
       { 
@@ -12734,7 +12734,7 @@ namespace Legion {
         return ArraySyntax::AffineRefHelper<FT>(accessor[p], field,
                           DomainPoint(p), region_privileges[index]);
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -12976,7 +12976,7 @@ namespace Legion {
         Realm::MultiAffineAccessor<FT,N,T>(instance, fid, bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       {
         bool found = false;
@@ -12996,7 +12996,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       {
         bool found = false;
@@ -13016,7 +13016,7 @@ namespace Legion {
 #endif
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         int index = -1;
@@ -13036,7 +13036,7 @@ namespace Legion {
 #endif
         return accessor[p];
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<MultiRegionAccessor<FT,N,T,
            Realm::MultiAffineAccessor<FT,N,T>,true,false,MR>,
            FT,N,T,2,LEGION_READ_WRITE>
@@ -13046,7 +13046,7 @@ namespace Legion {
             Realm::MultiAffineAccessor<FT,N,T>,true,false,MR>,
             FT,N,T,2,LEGION_READ_WRITE>(*this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -13271,7 +13271,7 @@ namespace Legion {
       accessor = Realm::MultiAffineAccessor<FT,1,T>(instance, fid, bounds);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       {
         bool found = false;
@@ -13291,7 +13291,7 @@ namespace Legion {
 #endif
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       {
         bool found = false;
@@ -13311,7 +13311,7 @@ namespace Legion {
 #endif
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         int index = -1;
@@ -13331,7 +13331,7 @@ namespace Legion {
 #endif
         return accessor[p];
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -13540,22 +13540,22 @@ namespace Legion {
         Realm::MultiAffineAccessor<FT,N,T>(instance, fid, bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T>& p) const
       {
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T>& p, FT val) const
       {
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T>& p) const
       { 
         return accessor[p]; 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline ArraySyntax::AffineSyntaxHelper<MultiRegionAccessor<FT,N,T,
       Realm::MultiAffineAccessor<FT,N,T>,false,false,MR>,FT,N,T,2,
         LEGION_READ_WRITE> operator[](T index) const
@@ -13564,7 +13564,7 @@ namespace Legion {
           Realm::MultiAffineAccessor<FT,N,T>,false,false,MR>,
           FT,N,T,2,LEGION_READ_WRITE>(*this, Point<1,T>(index));
     }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<N,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -13748,22 +13748,22 @@ namespace Legion {
       accessor = Realm::MultiAffineAccessor<FT,1,T>(instance, fid, bounds);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T>& p) const
       {
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T>& p, FT val) const
       {
         return accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T>& p) const
       { 
         return accessor[p]; 
       }
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void reduce(const Point<1,T>& p, 
                        typename REDOP::RHS val) const
       { 
@@ -13976,22 +13976,22 @@ namespace Legion {
           transform.offset, fid, source_bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T> &p) const
       {
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T> &p, FT val) const
       {
         accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T> &p) const
       {
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -14002,7 +14002,7 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -14010,12 +14010,12 @@ namespace Legion {
           strides[i] = accessor.strides[i] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T> &p) const
       {
         return accessor[p];
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](T index) const
       {
         return ArraySyntax::AffineSyntaxHelper<UnsafeFieldAccessor<FT,N,T,
@@ -14117,22 +14117,22 @@ namespace Legion {
           transform.offset, fid, source_bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T> &p) const
       {
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T> &p, FT val) const
       {
         accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T> &p) const
       {
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T> &r, size_t field_size = sizeof(FT)) const
       {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -14143,14 +14143,14 @@ namespace Legion {
 #endif
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<1,T> &r, size_t strides[1], 
                    size_t field_size = sizeof(FT)) const
       {
         strides[0] = accessor.strides[0] / field_size;
         return accessor.ptr(r.lo);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T> &p) const
       {
         return accessor[p];
@@ -14211,22 +14211,22 @@ namespace Legion {
                                             source_bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<N,T> &p) const
       {
         return accessor.read(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<N,T> &p, FT val) const
       {
         accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<N,T> &p) const
       {
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t field_size = sizeof(FT)) const
       {
         size_t strides[N];
@@ -14242,7 +14242,7 @@ namespace Legion {
 #endif
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Rect<N,T>& r, size_t strides[N],
                    size_t field_size = sizeof(FT)) const
       {
@@ -14257,12 +14257,12 @@ namespace Legion {
           strides[i] /= field_size;
         return result;
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<N,T> &p) const
       {
         return accessor[p];
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](T index) const
       {
         return ArraySyntax::AffineSyntaxHelper<UnsafeFieldAccessor<FT,N,T,
@@ -14325,22 +14325,22 @@ namespace Legion {
                                             source_bounds, offset);
     }
   public:
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT read(const Point<1,T> &p) const
       {
         return accessor.read(p); 
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline void write(const Point<1,T> &p, FT val) const
       {
         accessor.write(p, val);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT* ptr(const Point<1,T> &p) const
       {
         return accessor.ptr(p);
       }
-    __CUDA_HD__
+    __LEGION_CUDA_HD__
     inline FT& operator[](const Point<1,T> &p) const
       {
         return accessor[p];

@@ -55,7 +55,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T> __CUDA_HD__
+    template<typename T> __LEGION_CUDA_HD__
     inline T DeferredValue<T>::read(void) const
     //--------------------------------------------------------------------------
     {
@@ -63,7 +63,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T> __CUDA_HD__
+    template<typename T> __LEGION_CUDA_HD__
     inline void DeferredValue<T>::write(T value) const
     //--------------------------------------------------------------------------
     {
@@ -71,7 +71,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T> __CUDA_HD__
+    template<typename T> __LEGION_CUDA_HD__
     inline T* DeferredValue<T>::ptr(void) const
     //--------------------------------------------------------------------------
     {
@@ -79,7 +79,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T> __CUDA_HD__
+    template<typename T> __LEGION_CUDA_HD__
     inline T& DeferredValue<T>::ref(void) const
     //--------------------------------------------------------------------------
     {
@@ -87,7 +87,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T> __CUDA_HD__
+    template<typename T> __LEGION_CUDA_HD__
     inline DeferredValue<T>::operator T(void) const
     //--------------------------------------------------------------------------
     {
@@ -95,7 +95,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename T> __CUDA_HD__
+    template<typename T> __LEGION_CUDA_HD__
     inline DeferredValue<T>& DeferredValue<T>::operator=(T value)
     //--------------------------------------------------------------------------
     {
@@ -112,7 +112,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void DeferredReduction<REDOP,EXCLUSIVE>::reduce(
                                                 typename REDOP::RHS value) const
     //--------------------------------------------------------------------------
@@ -122,7 +122,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    template<typename REDOP, bool EXCLUSIVE> __CUDA_HD__
+    template<typename REDOP, bool EXCLUSIVE> __LEGION_CUDA_HD__
     inline void DeferredReduction<REDOP,EXCLUSIVE>::operator<<=(
                                                 typename REDOP::RHS value) const
     //--------------------------------------------------------------------------

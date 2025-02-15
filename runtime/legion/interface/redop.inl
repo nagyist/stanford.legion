@@ -499,13 +499,13 @@ namespace Legion {
 #endif // LEGION_REDOP_COMPLEX
 #endif // __CUDACC__ or __HIPCC__
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<bool>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs = lhs || rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<bool>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -543,13 +543,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<bool>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 = rhs1 || rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<bool>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -587,13 +587,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -615,13 +615,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -643,13 +643,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -699,13 +699,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -755,13 +755,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -771,13 +771,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -787,13 +787,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -813,13 +813,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<int64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -839,13 +839,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -867,13 +867,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -895,13 +895,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline 
+  template<> __LEGION_CUDA_HD__ inline 
   void SumReduction<uint16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -947,13 +947,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -999,13 +999,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1015,13 +1015,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1031,13 +1031,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1047,13 +1047,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<uint64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1064,13 +1064,13 @@ namespace Legion {
   }
 
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<__half>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs = lhs + rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<__half>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1131,13 +1131,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<__half>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 = rhs1 + rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<__half>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1199,13 +1199,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<float>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<float>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1231,13 +1231,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<float>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<float>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1263,13 +1263,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<double>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<double>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1308,13 +1308,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<double>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<double>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1355,13 +1355,13 @@ namespace Legion {
 
 #ifdef LEGION_REDOP_COMPLEX
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<__half> >::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<__half> >::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1395,13 +1395,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<__half> >::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<__half> >::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1436,13 +1436,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<float> >::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<float> >::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1476,13 +1476,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<float> >::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<float> >::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1516,13 +1516,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<double> >::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs += rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<double> >::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1573,13 +1573,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<double> >::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 += rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void SumReduction<complex<double> >::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1631,13 +1631,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_COMPLEX
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1659,13 +1659,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1687,13 +1687,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1743,13 +1743,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1799,13 +1799,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1815,13 +1815,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1831,13 +1831,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1857,13 +1857,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<int64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1883,13 +1883,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1911,13 +1911,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1939,13 +1939,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline 
+  template<> __LEGION_CUDA_HD__ inline 
   void DiffReduction<uint16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -1991,13 +1991,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2043,13 +2043,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2059,13 +2059,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2075,13 +2075,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2098,13 +2098,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<uint64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2122,13 +2122,13 @@ namespace Legion {
   }
 
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<__half>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs = lhs - rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<__half>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2198,13 +2198,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<__half>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 = rhs1 - rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<__half>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2275,13 +2275,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<float>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<float>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2316,13 +2316,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<float>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<float>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2357,13 +2357,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<double>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<double>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2398,13 +2398,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<double>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<double>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2441,13 +2441,13 @@ namespace Legion {
 
 #ifdef LEGION_REDOP_COMPLEX
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<complex<__half> >::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<complex<__half> >::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2481,13 +2481,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<complex<__half> >::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<complex<__half> >::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2522,13 +2522,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<complex<float> >::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs -= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<complex<float> >::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2562,13 +2562,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<complex<float> >::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 -= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DiffReduction<complex<float> >::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2603,13 +2603,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_COMPLEX
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<bool>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs = lhs && rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<bool>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2647,13 +2647,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<bool>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 = rhs1 && rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<bool>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2691,13 +2691,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2734,13 +2734,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2777,13 +2777,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2848,13 +2848,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2919,13 +2919,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2956,13 +2956,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -2993,13 +2993,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3034,13 +3034,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<int64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3075,13 +3075,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3118,13 +3118,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3161,13 +3161,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline 
+  template<> __LEGION_CUDA_HD__ inline 
   void ProdReduction<uint16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3228,13 +3228,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3295,13 +3295,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3332,13 +3332,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3369,13 +3369,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3406,13 +3406,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<uint64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3444,13 +3444,13 @@ namespace Legion {
   }
 
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<__half>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs = lhs * rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<__half>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3520,13 +3520,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<__half>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 = rhs1 * rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<__half>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3597,13 +3597,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<float>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<float>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3638,13 +3638,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<float>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<float>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3679,13 +3679,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<double>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<double>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3720,13 +3720,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<double>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<double>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3763,13 +3763,13 @@ namespace Legion {
 
 #ifdef LEGION_REDOP_COMPLEX
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<complex<__half> >::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<complex<__half> >::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3803,13 +3803,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<complex<__half> >::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<complex<__half> >::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3844,13 +3844,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<complex<float> >::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs *= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<complex<float> >::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3884,13 +3884,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<complex<float> >::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 *= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void ProdReduction<complex<float> >::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3925,13 +3925,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_COMPLEX
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -3968,13 +3968,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4011,13 +4011,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4082,13 +4082,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4153,13 +4153,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4190,13 +4190,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4227,13 +4227,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4268,13 +4268,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<int64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4309,13 +4309,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4352,13 +4352,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4395,13 +4395,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline 
+  template<> __LEGION_CUDA_HD__ inline 
   void DivReduction<uint16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4462,13 +4462,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4529,13 +4529,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4566,13 +4566,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4603,13 +4603,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4640,13 +4640,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<uint64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4678,13 +4678,13 @@ namespace Legion {
   }
 
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<__half>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs = lhs / rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<__half>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4754,13 +4754,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<__half>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 = rhs1 / rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<__half>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4831,13 +4831,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<float>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<float>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4872,13 +4872,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<float>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<float>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4913,13 +4913,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<double>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<double>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4954,13 +4954,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<double>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<double>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -4997,13 +4997,13 @@ namespace Legion {
 
 #ifdef LEGION_REDOP_COMPLEX
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<complex<__half> >::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<complex<__half> >::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5037,13 +5037,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<complex<__half> >::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<complex<__half> >::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5078,13 +5078,13 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<complex<float> >::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs /= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<complex<float> >::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5118,13 +5118,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<complex<float> >::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 /= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void DivReduction<complex<float> >::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5159,14 +5159,14 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_COMPLEX
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<bool>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (!lhs && rhs)
       lhs = true;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<bool>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5204,14 +5204,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<bool>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (!rhs1 && rhs2)
       rhs1 = true;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<bool>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5249,14 +5249,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5293,14 +5293,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5337,14 +5337,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5409,14 +5409,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5481,14 +5481,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5513,14 +5513,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5545,14 +5545,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5587,14 +5587,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<int64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5629,14 +5629,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5673,14 +5673,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5717,14 +5717,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline 
+  template<> __LEGION_CUDA_HD__ inline 
   void MaxReduction<uint16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5785,14 +5785,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5853,14 +5853,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5885,14 +5885,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5917,14 +5917,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -5960,14 +5960,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<uint64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6004,14 +6004,14 @@ namespace Legion {
   }
 
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<__half>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<__half>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6081,14 +6081,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<__half>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<__half>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6159,14 +6159,14 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<float>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<float>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6201,14 +6201,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<float>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<float>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6243,14 +6243,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<double>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs > lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<double>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6285,14 +6285,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<double>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 > rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MaxReduction<double>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6327,14 +6327,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<bool>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (lhs && !rhs)
       lhs = false;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<bool>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6372,14 +6372,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<bool>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs1 && !rhs2)
       rhs1 = false;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<bool>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6417,14 +6417,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6461,14 +6461,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6505,14 +6505,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6577,14 +6577,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6649,14 +6649,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6681,14 +6681,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6713,14 +6713,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6755,14 +6755,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<int64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6797,14 +6797,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6841,14 +6841,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6885,14 +6885,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline 
+  template<> __LEGION_CUDA_HD__ inline 
   void MinReduction<uint16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -6953,14 +6953,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7021,14 +7021,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7053,14 +7053,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7085,14 +7085,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7128,14 +7128,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<uint64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7172,14 +7172,14 @@ namespace Legion {
   }
 
 #ifdef LEGION_REDOP_HALF
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<__half>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<__half>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7249,7 +7249,7 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<__half>::fold<true>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7261,7 +7261,7 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<__half>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7332,14 +7332,14 @@ namespace Legion {
   }
 #endif // LEGION_REDOP_HALF
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<float>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<float>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7374,14 +7374,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<float>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<float>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7416,14 +7416,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<double>::apply<true>(LHS &lhs, RHS rhs)
   {
     if (rhs < lhs)
       lhs = rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<double>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7458,14 +7458,14 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<double>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     if (rhs2 < rhs1)
       rhs1 = rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void MinReduction<double>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7500,13 +7500,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs |= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7543,13 +7543,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 |= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7586,13 +7586,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs |= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7657,13 +7657,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 |= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7728,13 +7728,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs |= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7759,13 +7759,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 |= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7790,13 +7790,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs |= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7831,13 +7831,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 |= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<int64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7872,13 +7872,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs |= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7915,13 +7915,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 |= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -7958,13 +7958,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs |= rhs;
   }
 
-  template<> __CUDA_HD__ inline 
+  template<> __LEGION_CUDA_HD__ inline 
   void OrReduction<uint16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8025,13 +8025,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 |= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8092,13 +8092,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs |= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8123,13 +8123,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 |= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8154,13 +8154,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs |= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8196,13 +8196,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 |= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void OrReduction<uint64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8238,13 +8238,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs &= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8281,13 +8281,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 &= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8324,13 +8324,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs &= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8395,13 +8395,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 &= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8466,13 +8466,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs &= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8497,13 +8497,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 &= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8528,13 +8528,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs &= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8569,13 +8569,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 &= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<int64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8610,13 +8610,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs &= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8653,13 +8653,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 &= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8696,13 +8696,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs &= rhs;
   }
 
-  template<> __CUDA_HD__ inline 
+  template<> __LEGION_CUDA_HD__ inline 
   void AndReduction<uint16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8763,13 +8763,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 &= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8830,13 +8830,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs &= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8861,13 +8861,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 &= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8892,13 +8892,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs &= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8934,13 +8934,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 &= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void AndReduction<uint64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -8976,13 +8976,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<bool>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs = lhs ^ rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<bool>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9020,13 +9020,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<bool>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 = rhs1 ^ rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<bool>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9064,13 +9064,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs ^= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9107,13 +9107,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 ^= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9150,13 +9150,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs ^= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9221,13 +9221,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 ^= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9292,13 +9292,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs ^= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9323,13 +9323,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 ^= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9354,13 +9354,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs ^= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9395,13 +9395,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 ^= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<int64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9436,13 +9436,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint8_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs ^= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint8_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9479,13 +9479,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint8_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 ^= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint8_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9522,13 +9522,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint16_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs ^= rhs;
   }
 
-  template<> __CUDA_HD__ inline 
+  template<> __LEGION_CUDA_HD__ inline 
   void XorReduction<uint16_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9589,13 +9589,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint16_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 ^= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint16_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9656,13 +9656,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint32_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs ^= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint32_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9687,13 +9687,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint32_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 ^= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint32_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9718,13 +9718,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint64_t>::apply<true>(LHS &lhs, RHS rhs)
   {
     lhs ^= rhs;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint64_t>::apply<false>(LHS &lhs, RHS rhs)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -9760,13 +9760,13 @@ namespace Legion {
 #endif
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint64_t>::fold<true>(RHS &rhs1, RHS rhs2)
   {
     rhs1 ^= rhs2;
   }
 
-  template<> __CUDA_HD__ inline
+  template<> __LEGION_CUDA_HD__ inline
   void XorReduction<uint64_t>::fold<false>(RHS &rhs1, RHS rhs2)
   {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
