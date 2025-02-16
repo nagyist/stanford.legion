@@ -17,6 +17,7 @@
 #define __LEGION_TYPES_H__
 
 #include <limits>
+#include <optional>
 
 #include "legion/api/config.h"
 #include "realm.h"
