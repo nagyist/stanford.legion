@@ -919,7 +919,7 @@ list(APPEND LEGION_SRC
   legion/nodes/region.h                   legion/nodes/region.cc
   legion/operations/acquire.h             legion/operations/acquire.cc
   legion/operations/allreduce.h           legion/operations/allreduce.cc
-  legion/operations/attach.h              legion/operations/attach.h
+  legion/operations/attach.h              legion/operations/attach.cc
   legion/operations/begin.h               legion/operations/begin.cc
   legion/operations/boolean.h             legion/operations/boolean.cc
   legion/operations/close.h               legion/operations/close.cc
