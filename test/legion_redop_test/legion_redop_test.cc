@@ -27,7 +27,7 @@ typedef std::default_random_engine RNG;
 #error This test requires C++11 or better.
 #endif
 
-#include "legion/legion_redop.h"
+#include "legion.h"
 
 using namespace Legion;
 
