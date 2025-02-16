@@ -58,11 +58,11 @@ namespace Legion {
       virtual TraceLocalID get_trace_local_id(void) const
         { return TraceLocalID(trace_local_id, DomainPoint()); }
       virtual ApEvent compute_sync_precondition(const TraceInfo &info) const
-        { assert(false); return ApEvent::NO_AP_EVENT; }
+        { std::abort(); }
       virtual void complete_replay(ApEvent complete)
-        { assert(false); }
+        { std::abort(); }
       virtual ApEvent replay_mapping(void)
-        { assert(false); return ApEvent::NO_AP_EVENT; }
+        { std::abort(); }
       virtual MemoizableOp* get_memoizable(void) { return this; }
     protected:
       void set_memoizable_state(void);

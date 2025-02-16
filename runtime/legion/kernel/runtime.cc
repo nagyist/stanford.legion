@@ -251,15 +251,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PendingVariantRegistration::PendingVariantRegistration(
-                                          const PendingVariantRegistration &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     PendingVariantRegistration::~PendingVariantRegistration(void)
     //--------------------------------------------------------------------------
     {
@@ -269,16 +260,6 @@ namespace Legion {
         free(user_data);
       if (logical_task_name != nullptr)
         free(logical_task_name);
-    }
-
-    //--------------------------------------------------------------------------
-    PendingVariantRegistration& PendingVariantRegistration::operator=(
-                                          const PendingVariantRegistration &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -886,7 +867,7 @@ namespace Legion {
                 break;
               }
             default:
-              assert(false); // unknown processor kind
+              std::abort(); // unknown processor kind
           }
           proc_kinds.insert(kind);
         }
@@ -979,7 +960,7 @@ namespace Legion {
                 break;
               }
             default:
-              assert(false); // unknown memory kind
+              std::abort(); // unknown memory kind
           }
         }
         LegionSpy::log_memory(it->id, it->capacity(), it->kind());
@@ -1053,7 +1034,7 @@ namespace Legion {
         if (legion_ldb_enabled)
         {
           // This path is not quite ready yet
-          assert(false);
+          std::abort();
           for (std::map<Processor,ProcessorManager*>::const_iterator it = 
                 proc_managers.begin(); it != proc_managers.end(); it++)
           {
@@ -1452,7 +1433,7 @@ namespace Legion {
       result.result_size = args->future->get_untyped_size();
       mapper->invoke_handle_task_result(result);
 #else
-      assert(false); // update this
+      std::abort(); // update this
 #endif
     }
 
@@ -2088,7 +2069,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       return manager;
     }
@@ -2912,7 +2893,7 @@ namespace Legion {
         projection_functions.erase(finder);
         return;
       }
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -6827,7 +6808,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     }
 
@@ -9963,7 +9944,7 @@ namespace Legion {
         dc = find_or_request_distributed_collectable<
           PhiView, SEND_VIEW_REQUEST>(did, ready);
       else
-        assert(false);
+        std::abort();
       // Have to static cast since the memory might not have been initialized
       return static_cast<LogicalView*>(dc);
     }
@@ -9978,7 +9959,7 @@ namespace Legion {
         dc = find_or_request_distributed_collectable<
           PhysicalManager, SEND_MANAGER_REQUEST>(did, ready);
       else
-        assert(false);
+        std::abort();
       // Have to static cast since the memory might not have been initialized
       return static_cast<PhysicalManager*>(dc);
     }
@@ -10759,7 +10740,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return Domain::NO_DOMAIN;
     }
@@ -11453,7 +11434,7 @@ namespace Legion {
       assert(domain.exists());
 #endif
       if (result->set_domain(domain, is_ready, take_ownership))
-        assert(false); // should never hit this
+        std::abort(); // should never hit this
       return result;
     }
 
@@ -13373,7 +13354,7 @@ namespace Legion {
           }
           // Remove the extra expression reference we added
           if (result->remove_base_expression_reference(REGION_TREE_REF))
-            assert(false); // should never hit this
+            std::abort(); // should never hit this
           return result; 
         }
         expressions.resize(unique_expressions.size());
@@ -13670,7 +13651,7 @@ namespace Legion {
           ImplicitReferenceTracker::record_live_expression(result);
           // Remove the extra expression reference we added
           if (result->remove_base_expression_reference(REGION_TREE_REF))
-            assert(false); // should never hit this
+            std::abort(); // should never hit this
           return result; 
         }
         expressions.resize(unique_expressions.size());
@@ -16230,7 +16211,7 @@ namespace Legion {
     {
       static ReductionOpTable table;
       if (!safe && runtime_started)
-        assert(false);
+        std::abort();
       return table;
     }
 
@@ -16240,7 +16221,7 @@ namespace Legion {
     {
       static SerdezOpTable table;
       if (!safe && runtime_started)
-        assert(false);
+        std::abort();
       return table;
     }
     
@@ -16250,7 +16231,7 @@ namespace Legion {
     {
       static SerdezRedopTable table;
       if (!safe && runtime_started)
-        assert(false);
+        std::abort();
       return table;
     }
 
@@ -17139,7 +17120,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false); // should never get here
+          std::abort(); // should never get here
       }
       if (implicit_reference_tracker != nullptr)
       {
@@ -17351,7 +17332,7 @@ namespace Legion {
           }
 #endif
         default:
-          assert(false); // should never get here
+          std::abort(); // should never get here
       }
       if (implicit_reference_tracker != nullptr)
       {

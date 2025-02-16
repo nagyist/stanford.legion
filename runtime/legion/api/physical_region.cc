@@ -729,8 +729,7 @@ namespace Legion {
             return manager->create_piece_iterator(nullptr);
         }
       }
-      assert(false);
-      return nullptr;
+      std::abort();
     }
     
     //--------------------------------------------------------------------------
@@ -932,7 +931,7 @@ namespace Legion {
                 LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
                 default:
-                  assert(false);
+                  std::abort();
               }
             }
             else
@@ -943,8 +942,7 @@ namespace Legion {
       }
       // should never get here at worst there should have been an
       // error raised earlier in this function
-      assert(false);
-      return PhysicalInstance::NO_INST;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1039,8 +1037,7 @@ namespace Legion {
       }
       // should never get here at worst there should have been an
       // error raised earlier in this function
-      assert(false);
-      return PhysicalInstance::NO_INST;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1149,7 +1146,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     }
 
@@ -1201,7 +1198,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     } 
 
@@ -1258,7 +1255,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     }
 
@@ -1308,7 +1305,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     }
 

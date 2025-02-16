@@ -547,7 +547,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false);
+            std::abort();
         }
       }
       // If we had any fields that still need to be opened, create
@@ -658,7 +658,7 @@ namespace Legion {
               {
                 children.erase(finder);
                 if (next_child->remove_base_gc_ref(FIELD_STATE_REF))
-                  assert(false); // should never delete the next child
+                  std::abort(); // should never delete the next child
               }
               children.tighten_valid_mask();
             }
@@ -980,7 +980,7 @@ namespace Legion {
                   break;
                 }
               default:
-                assert(false); // should never get here
+                std::abort(); // should never get here
             }
           }
         }
@@ -1839,24 +1839,6 @@ namespace Legion {
       : Collectable(2/*expecting two reference calls*/), partition(part)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PartitionTracker::PartitionTracker(const PartitionTracker &rhs)
-      : Collectable(), partition(nullptr)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
-    PartitionTracker& PartitionTracker::operator=(const PartitionTracker &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------

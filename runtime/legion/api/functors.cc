@@ -537,17 +537,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ProjectionFunction::ProjectionFunction(const ProjectionFunction &rhs)
-      : depth(rhs.depth), is_exclusive(rhs.is_exclusive), 
-        is_functional(rhs.is_functional), is_invertible(rhs.is_invertible), 
-        projection_id(rhs.projection_id), functor(rhs.functor)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     ProjectionFunction::~ProjectionFunction(void)
     //--------------------------------------------------------------------------
     {
@@ -1656,7 +1645,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return 0;
     }

@@ -1029,7 +1029,7 @@ namespace Legion {
           if (--finder->second.second == 0)
           {
             if (finder->second.first->remove_base_gc_ref(RUNTIME_REF))
-              assert(false); // should never be deleted
+              std::abort(); // should never be deleted
             created_futures.erase(finder);
           }
           return result;
@@ -1102,7 +1102,7 @@ namespace Legion {
           if (--finder->second.second == 0)
           {
             if (finder->second.first->remove_nested_gc_ref(did))
-              assert(false); // should never be deleted
+              std::abort(); // should never be deleted
             created_future_maps.erase(finder);
           }
           return result;
@@ -1156,7 +1156,7 @@ namespace Legion {
           if (--finder->second.second == 0)
           {
             if (finder->second.first->remove_nested_gc_ref(did))
-              assert(false); // should never be deleted
+              std::abort(); // should never be deleted
             created_future_maps.erase(finder);
           }
           return result;
@@ -1607,7 +1607,7 @@ namespace Legion {
         }
       }
       // Should never get here
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1648,7 +1648,7 @@ namespace Legion {
         }
       }
       // Should never get here
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1691,7 +1691,7 @@ namespace Legion {
         }
       }
       // Should never get here
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1802,7 +1802,7 @@ namespace Legion {
         }
       }
       // Should never get here
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1845,7 +1845,7 @@ namespace Legion {
         }
       }
       // Should never get here
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1923,7 +1923,7 @@ namespace Legion {
           return;
         }
       }
-      assert(false); // should never get here
+      std::abort(); // should never get here
     }
 
     //--------------------------------------------------------------------------
@@ -2004,7 +2004,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false);
+            std::abort();
         }
       }
     }
@@ -2066,7 +2066,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false);
+            std::abort();
         }
       }
       if (!remote_handled.empty())
@@ -2247,8 +2247,7 @@ namespace Legion {
             return RtEvent::NO_RT_EVENT;
         }
         // Should never get here, we shold always find it
-        assert(false);
-        return RtEvent::NO_RT_EVENT;
+        std::abort();
       }
     }
 
@@ -2456,7 +2455,7 @@ namespace Legion {
         }
       }
       // Should never get here
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -2500,7 +2499,7 @@ namespace Legion {
         }
       }
       // Should never get here
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -2520,8 +2519,7 @@ namespace Legion {
       for (ShardID shard = 0; shard < mapping.size(); shard++)
         if (mapping[shard] == target_owner)
           return shard;
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -2593,7 +2591,7 @@ namespace Legion {
         }
       }
       // Should never get here
-      assert(false);  
+      std::abort();
     }
 
     //--------------------------------------------------------------------------

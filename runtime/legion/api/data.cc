@@ -468,16 +468,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FieldAllocatorImpl::FieldAllocatorImpl(const FieldAllocatorImpl &rhs)
-      : field_space(rhs.field_space), node(rhs.node), context(rhs.context), 
-        ready_event(rhs.ready_event)
-    //--------------------------------------------------------------------------
-    {
-      // Should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     FieldAllocatorImpl::~FieldAllocatorImpl(void)
     //--------------------------------------------------------------------------
     {
@@ -488,16 +478,6 @@ namespace Legion {
         delete node;
     }
 
-    //--------------------------------------------------------------------------
-    FieldAllocatorImpl& FieldAllocatorImpl::operator=(
-                                                  const FieldAllocatorImpl &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // Should never be called
-      assert(false);
-      return *this;
-    }
-    
     //--------------------------------------------------------------------------
     FieldID FieldAllocatorImpl::allocate_field(size_t field_size,
                                                FieldID desired_fieldid,

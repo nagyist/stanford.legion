@@ -748,10 +748,10 @@ namespace Legion {
     public:
       VirtualChannel(VirtualChannelKind kind,AddressSpaceID local_address_space,
                size_t max_message_size, bool profile);
-      VirtualChannel(const VirtualChannel &rhs);
+      VirtualChannel(const VirtualChannel &rhs) = delete;
       ~VirtualChannel(void);
     public:
-      VirtualChannel& operator=(const VirtualChannel &rhs);
+      VirtualChannel& operator=(const VirtualChannel &rhs) = delete;
     public:
       void package_message(Serializer &rez, MessageKind k, bool flush,
                            RtEvent flush_precondition,

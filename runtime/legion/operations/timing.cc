@@ -121,7 +121,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false); // should never get here
+          std::abort(); // should never get here
       }
     }
 
@@ -276,7 +276,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false); // should never get here
+            std::abort(); // should never get here
         }
       }
     }

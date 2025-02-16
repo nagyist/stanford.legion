@@ -1020,8 +1020,7 @@ namespace Legion {
       }
       // Should never get here because we should have called
       // request_runtime_instance first
-      assert(false);
-      return RtEvent::NO_RT_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1969,7 +1968,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // TODO: update this for resilience
-      assert(false);
+      std::abort();
       bool was_sampled = sampled.load();
       sampled.store(false);
       return was_sampled;

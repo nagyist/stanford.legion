@@ -29,10 +29,10 @@ namespace Legion {
     class RemoteTask : public ExternalTask {
     public:
       RemoteTask(RemoteContext *owner);
-      RemoteTask(const RemoteTask &rhs);
+      RemoteTask(const RemoteTask &rhs) = delete;
       virtual ~RemoteTask(void);
     public:
-      RemoteTask& operator=(const RemoteTask &rhs);
+      RemoteTask& operator=(const RemoteTask &rhs) = delete;
     public:
       virtual int get_depth(void) const;
       virtual UniqueID get_unique_id(void) const;

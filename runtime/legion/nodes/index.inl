@@ -833,7 +833,7 @@ namespace Legion {
               spaces, result_space, requests, precondition));
       }
       if (set_realm_index_space(result_space, result))
-        assert(false); // should never hit this
+        std::abort(); // should never hit this
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
       return result;
@@ -899,7 +899,7 @@ namespace Legion {
               spaces, result_space, requests, precondition));
       }
       if (set_realm_index_space(result_space, result))
-        assert(false); // should never hit this
+        std::abort(); // should never hit this
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
       return result;
@@ -963,7 +963,7 @@ namespace Legion {
       ApEvent result(Realm::IndexSpace<DIM,T>::compute_difference(
             lhs_space, rhs_space, result_space, diff_requests, diff_pre));
       if (set_realm_index_space(result_space, result))
-        assert(false); // should never hit this
+        std::abort(); // should never hit this
       // Destroy the tempory rhs space once the computation is done
       rhs_space.destroy(result);
       if (to_trigger.exists())
@@ -1796,7 +1796,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return ApEvent::NO_AP_EVENT;
     }
@@ -3050,8 +3050,7 @@ namespace Legion {
       }
       return layout;
 #else
-      assert(false); // should never get here
-      return nullptr;
+      std::abort(); // should never get here
 #endif
     }
 

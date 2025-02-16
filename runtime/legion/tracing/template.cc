@@ -1365,7 +1365,7 @@ namespace Legion {
           default:
             {
               // unreachable
-              assert(false);
+              std::abort();
             }
         }
       }
@@ -1932,10 +1932,7 @@ namespace Legion {
                 break;
               }
             default:
-              {
-                assert(false);
-                break;
-              }
+              std::abort();
           }
         }
 #ifdef DEBUG_LEGION
@@ -2623,10 +2620,8 @@ namespace Legion {
               break;
             }
           default:
-            {
-              // unreachable
-              assert(false);
-            }
+            // unreachable
+            std::abort();
         }
       }
       initialize_eliminate_dead_code_frontiers(gen, used);
@@ -3107,7 +3102,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // need support for predicated execution with tracing
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3116,7 +3111,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should only be called on sharded physical templates
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3575,7 +3570,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Only called on sharded physical template
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3583,7 +3578,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Only called on sharded physical template
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3592,7 +3587,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Only called on sharded physical template
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3600,8 +3595,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Only called on sharded physical template
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3609,8 +3603,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Only called on sharded physical template
-      assert(false);
-      return IndexSpace::NO_SPACE;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3618,8 +3611,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Only called on sharded physical template
-      assert(false);
-      return nullptr;
+      std::abort();
     } 
 
     //--------------------------------------------------------------------------

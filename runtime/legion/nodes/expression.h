@@ -779,10 +779,10 @@ namespace Legion {
     public:
       ExpressionTrieNode(unsigned depth, IndexSpaceExprID expr_id, 
                          IndexSpaceExpression *op = nullptr);
-      ExpressionTrieNode(const ExpressionTrieNode &rhs);
+      ExpressionTrieNode(const ExpressionTrieNode &rhs) = delete;
       ~ExpressionTrieNode(void);
     public:
-      ExpressionTrieNode& operator=(const ExpressionTrieNode &rhs);
+      ExpressionTrieNode& operator=(const ExpressionTrieNode &rhs) = delete;
     public:
       bool find_operation(
           const std::vector<IndexSpaceExpression*> &expressions,

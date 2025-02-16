@@ -73,7 +73,7 @@ namespace Legion {
         for (size_t i = 0; i < SIZE; i++)
           elems[i].store(nullptr);
       }
-      LeafTableNode(const LeafTableNode &rhs) { assert(false); }
+      LeafTableNode(const LeafTableNode &rhs) = delete;
       virtual ~LeafTableNode(void)
       {
         for (size_t i = 0; i < SIZE; i++)
@@ -84,8 +84,7 @@ namespace Legion {
         }
       }
     public:
-      LeafTableNode& operator=(const LeafTableNode &rhs)
-        { assert(false); return *this; }
+      LeafTableNode& operator=(const LeafTableNode &rhs) = delete;
     public:
       std::atomic<ET*> elems[SIZE];
     };

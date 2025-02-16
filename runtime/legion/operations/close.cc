@@ -137,8 +137,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should only be called by inherited classes
-      assert(false);
-      return *(new FieldMask());
+      std::abort();
     }
 
     //--------------------------------------------------------------------------

@@ -34,10 +34,10 @@ namespace Legion {
     public:
       FieldAllocatorImpl(FieldSpaceNode *node, 
                          TaskContext *context, RtEvent ready);
-      FieldAllocatorImpl(const FieldAllocatorImpl &rhs);
+      FieldAllocatorImpl(const FieldAllocatorImpl &rhs) = delete;
       ~FieldAllocatorImpl(void);
     public:
-      FieldAllocatorImpl& operator=(const FieldAllocatorImpl &rhs);
+      FieldAllocatorImpl& operator=(const FieldAllocatorImpl &rhs) = delete;
     public:
       inline FieldSpace get_field_space(void) const { return field_space; }
     public:

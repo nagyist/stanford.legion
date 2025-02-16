@@ -83,10 +83,10 @@ namespace Legion {
     class ProjectionFunction { 
     public:
       ProjectionFunction(ProjectionID pid, ProjectionFunctor *functor);
-      ProjectionFunction(const ProjectionFunction &rhs);
+      ProjectionFunction(const ProjectionFunction &rhs) = delete;
       ~ProjectionFunction(void);
     public:
-      ProjectionFunction& operator=(const ProjectionFunction &rhs);
+      ProjectionFunction& operator=(const ProjectionFunction &rhs) = delete;
     public:
       void prepare_for_shutdown(void);
     public:

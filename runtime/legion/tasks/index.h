@@ -54,7 +54,7 @@ namespace Legion {
             LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
             default:
-              assert(false);
+              std::abort();
           }
         }
       private:

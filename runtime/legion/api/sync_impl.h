@@ -52,10 +52,10 @@ namespace Legion {
     public:
       GrantImpl(void);
       GrantImpl(const std::vector<ReservationRequest> &requests);
-      GrantImpl(const GrantImpl &rhs);
+      GrantImpl(const GrantImpl &rhs) = delete;
       ~GrantImpl(void);
     public:
-      GrantImpl& operator=(const GrantImpl &rhs);
+      GrantImpl& operator=(const GrantImpl &rhs) = delete;
     public:
       void register_operation(ApEvent completion_event);
       ApEvent acquire_grant(void);

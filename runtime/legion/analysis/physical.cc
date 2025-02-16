@@ -291,8 +291,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // only called by derived classes
-      assert(false);
-      return RtEvent::NO_RT_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -302,8 +301,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // only called by derived classes
-      assert(false);
-      return RtEvent::NO_RT_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -315,8 +313,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // only called by derived classes
-      assert(false);
-      return RtEvent::NO_RT_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -326,8 +323,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // only called by derived classes
-      assert(false);
-      return ApEvent::NO_AP_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------

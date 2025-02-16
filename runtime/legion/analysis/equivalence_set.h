@@ -450,7 +450,7 @@ namespace Legion {
         { return (local_space == logical_owner_space); }
     public:
       // From distributed collectable
-      virtual void notify_invalid(void) { assert(false); }
+      virtual void notify_invalid(void) { std::abort(); }
       virtual void notify_local(void);
     public:
       // Analysis methods

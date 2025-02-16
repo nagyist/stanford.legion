@@ -667,7 +667,7 @@ namespace Legion {
         case SEND_SHUTDOWN_RESPONSE:
           return THROUGHPUT_VIRTUAL_CHANNEL;
         case LAST_SEND_KIND:
-          assert(false);
+          std::abort();
       }
       return DEFAULT_VIRTUAL_CHANNEL;
     }

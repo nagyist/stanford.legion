@@ -1235,10 +1235,10 @@ namespace Legion {
     class PartitionTracker : public Collectable {
     public:
       PartitionTracker(PartitionNode *part);
-      PartitionTracker(const PartitionTracker &rhs);
+      PartitionTracker(const PartitionTracker &rhs) = delete;
       ~PartitionTracker(void) { }
     public:
-      PartitionTracker& operator=(const PartitionTracker &rhs);
+      PartitionTracker& operator=(const PartitionTracker &rhs) = delete;
     public:
       bool can_prune(void);
       bool remove_partition_reference(void);

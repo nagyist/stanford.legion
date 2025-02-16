@@ -936,7 +936,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       if (done.exists())
       {
@@ -992,7 +992,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false); // should never get here
+          std::abort(); // should never get here
       }
 #ifdef DEBUG_LEGION
       assert(dargs->done.exists());

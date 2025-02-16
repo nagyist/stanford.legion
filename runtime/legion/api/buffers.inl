@@ -462,7 +462,7 @@ namespace Legion {
             if (!bounds.dense())                                            \
             {                                                               \
               fprintf(stderr, "DeferredBuffer only allows a dense domain\n");\
-              assert(false);                                                \
+              std::abort();                                                 \
             }                                                               \
             int dim_order[DIM];                                             \
             if (fortran_order_dims)                                         \
@@ -528,7 +528,7 @@ namespace Legion {
       if (!space.dense())
       {
         fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
+        std::abort();
       }
       const Memory memory =
         UntypedDeferredValue::find_memory_by_kind(memkind, false);
@@ -615,7 +615,7 @@ namespace Legion {
             if (!bounds.dense())                                            \
             {                                                               \
               fprintf(stderr, "DeferredBuffer only allows a dense domain\n");\
-              assert(false);                                                \
+              std::abort();                                                 \
             }                                                               \
             int dim_order[DIM];                                             \
             if (fortran_order_dims)                                         \
@@ -681,7 +681,7 @@ namespace Legion {
       if (!space.dense())
       {
         fprintf(stderr, "DeferredBuffer only allows a dense domain\n");
-        assert(false);
+        std::abort();
       }
       const std::vector<size_t> field_sizes(1, field_size);
       Realm::InstanceLayoutConstraints constraints(field_sizes, 0/*blocking*/);

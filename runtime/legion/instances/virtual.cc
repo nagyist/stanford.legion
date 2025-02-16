@@ -54,7 +54,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called
-      assert(false);
+      std::abort();
     }
 
   } // namespace Internal

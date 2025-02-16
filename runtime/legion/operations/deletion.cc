@@ -260,7 +260,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
 #ifdef DEBUG_LEGION
       assert(deletion_requirements.size() == parent_req_indexes.size());
@@ -461,7 +461,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       // Remove any references that we added to the equivalence sets
       for (unsigned idx = 0; idx < version_infos.size(); idx++)
@@ -779,7 +779,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false);
+            std::abort();
         }
       }
       // If this is a field deletion then everyone does the same thing
@@ -916,7 +916,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false); // should never get here
+          std::abort(); // should never get here
       }
     }
 

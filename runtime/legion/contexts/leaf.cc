@@ -58,16 +58,14 @@ namespace Legion {
     ContextID LeafContext::get_logical_tree_context(void) const
     //--------------------------------------------------------------------------
     {
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
     ContextID LeafContext::get_physical_tree_context(void) const
     //--------------------------------------------------------------------------
     {
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -909,7 +907,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should never be called
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -919,7 +917,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should never be called
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1423,7 +1421,7 @@ namespace Legion {
       else if (p == Predicate::FALSE_PRED)
         return Predicate::TRUE_PRED;
       else // should never get here, all predicates should be eagerly evaluated
-        assert(false);  
+        std::abort();
       return Predicate::TRUE_PRED;
     }
     
@@ -1452,7 +1450,7 @@ namespace Legion {
             continue;
           else // should never get here, 
             // all predicates should be eagerly evaluated
-            assert(false);
+            std::abort();
         }
         return Predicate::TRUE_PRED;
       }
@@ -1469,7 +1467,7 @@ namespace Legion {
             continue;
           else // should never get here, 
             // all predicates should be eagerly evaluated
-            assert(false);
+            std::abort();
         }
         return Predicate::FALSE_PRED;
       }
@@ -1497,7 +1495,7 @@ namespace Legion {
         return result;
       }
       else // should never get here, all predicates should be eagerly evaluated
-        assert(false);
+        std::abort();
       return Future();
     }
 
@@ -1547,8 +1545,7 @@ namespace Legion {
     InnerContext* LeafContext::find_top_context(InnerContext *previous)
     //--------------------------------------------------------------------------
     {
-      assert(false);
-      return nullptr;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -2199,15 +2196,14 @@ namespace Legion {
     TaskPriority LeafContext::get_current_priority(void) const
     //--------------------------------------------------------------------------
     {
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
     void LeafContext::set_current_priority(TaskPriority priority)
     //--------------------------------------------------------------------------
     {
-      assert(false);
+      std::abort();
     }
 
   } // namespace Internal

@@ -1642,7 +1642,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return IndexSpace::NO_SPACE;
     }
@@ -1681,7 +1681,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return IndexSpace::NO_SPACE;
     }
@@ -2915,7 +2915,7 @@ namespace Legion {
           LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
           default:
-            assert(false);
+            std::abort();
         }
         for (Domain::DomainPointIterator itr(color_space); itr; itr++)
         {
@@ -2932,7 +2932,7 @@ namespace Legion {
             LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
             default:
-              assert(false);
+              std::abort();
           }
           IndexPartition part = 
             runtime->get_index_partition(subspace, partition_color);
@@ -3841,7 +3841,7 @@ namespace Legion {
                   bad[0], bad[1], bad[2], bad[3], bad[4], bad[5], bad[6],
                   bad[7], bad[8])
             default:
-              assert(false);
+              std::abort();
           }
         }
       }
@@ -10663,7 +10663,7 @@ namespace Legion {
                 break;
               }
             default: // Unimplemented operation kind
-              assert(false);
+              std::abort();
           }
         }
         // Set the initial counts to one for all our unordered ops

@@ -376,7 +376,7 @@ namespace Legion {
       // Check to see if it still exists for now, maybe in the future
       // we could do a full check to see if it still exists on its owner node
       if (strong_test)
-        assert(false); // implement this
+        std::abort(); // implement this
       return true;
     }
 
@@ -2205,7 +2205,7 @@ namespace Legion {
           LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
           default:
-            assert(false);
+            std::abort();
         }
       }
       AutoMapperCall call(ctx, Internal::MAPPER_CREATE_INDEX_SPACE_CALL);
@@ -2243,7 +2243,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return IndexSpace::NO_SPACE;
     }
@@ -2271,7 +2271,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return IndexSpace::NO_SPACE;
     }
@@ -2467,7 +2467,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return result;
     }
@@ -2503,7 +2503,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return result;
     }
@@ -2759,7 +2759,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return result;
     }

@@ -33,18 +33,14 @@ namespace Legion {
           , context_bytes(0)
 #endif
       { }
-      Serializer(const Serializer &rhs)
-      {
-        // should never be called
-        assert(false);
-      }
+      Serializer(const Serializer &rhs) = delete;
     public:
       ~Serializer(void)
       {
         free(buffer);
       }
     public:
-      inline Serializer& operator=(const Serializer &rhs);
+      Serializer& operator=(const Serializer &rhs) = delete;
     public:
       template<typename T>
       inline void serialize(const T &element);
@@ -119,12 +115,7 @@ namespace Legion {
           , context_bytes(ctx_bytes)
 #endif
       { }
-      Deserializer(const Deserializer &rhs)
-        : total_bytes(0)
-      {
-        // should never be called
-        assert(false);
-      }
+      Deserializer(const Deserializer &rhs) = delete;
     public:
       ~Deserializer(void)
       {
@@ -134,7 +125,7 @@ namespace Legion {
 #endif
       }
     public:
-      inline Deserializer& operator=(const Deserializer &rhs);
+      Deserializer& operator=(const Deserializer &rhs) = delete;
     public:
       template<typename T>
       inline void deserialize(T &element);
@@ -201,11 +192,10 @@ namespace Legion {
     class RezCheck {
     public:
       RezCheck(Serializer &r) : rez(r) { rez.begin_context(); }
-      RezCheck(RezCheck &rhs) : rez(rhs.rez) { assert(false); }
+      RezCheck(RezCheck &rhs) = delete;
       ~RezCheck(void) { rez.end_context(); }
     public:
-      inline RezCheck& operator=(const RezCheck &rhs)
-        { assert(false); return *this; }
+      RezCheck& operator=(const RezCheck &rhs) = delete;
     private:
       Serializer &rez;
     };
@@ -216,11 +206,10 @@ namespace Legion {
     class DerezCheck {
     public:
       DerezCheck(Deserializer &r) : derez(r) { derez.begin_context(); }
-      DerezCheck(DerezCheck &rhs) : derez(rhs.derez) { assert(false); }
+      DerezCheck(DerezCheck &rhs) = delete;
       ~DerezCheck(void) { derez.end_context(); }
     public:
-      inline DerezCheck& operator=(const DerezCheck &rhs)
-        { assert(false); return *this; }
+      DerezCheck& operator=(const DerezCheck &rhs) = delete;
     private:
       Deserializer &derez;
     };

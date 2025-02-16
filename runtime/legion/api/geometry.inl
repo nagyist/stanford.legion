@@ -771,15 +771,13 @@ namespace Legion {
   //----------------------------------------------------------------------------
   {
     switch (p.dim) {
-      case 0:
-        assert(false);
 #define DIMFUNC(DIM) \
       case DIM: \
         return Domain(p, p);
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        assert(false);
+        std::abort();
     }
     return Domain::NO_DOMAIN;
   }
@@ -818,7 +816,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
     }
     return result;
@@ -885,7 +883,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return 0;
     }
@@ -952,7 +950,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
     }
     return Domain::NO_DOMAIN;
@@ -977,7 +975,7 @@ namespace Legion {
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       default:
-        assert(false);
+        std::abort();
     }
     return Domain::NO_DOMAIN;
   }

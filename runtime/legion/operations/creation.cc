@@ -254,7 +254,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     }
 
@@ -312,7 +312,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       if (!complete_preconditions.empty())
         complete_execution(Runtime::merge_events(complete_preconditions));

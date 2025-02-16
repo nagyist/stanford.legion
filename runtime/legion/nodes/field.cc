@@ -1104,7 +1104,7 @@ namespace Legion {
               break;
             } 
           default:
-            assert(false);
+            std::abort();
         }
       }
       else
@@ -3105,8 +3105,7 @@ namespace Legion {
         (*it)->add_reference();
         return (*it);
       }
-      assert(false);
-      return nullptr;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------

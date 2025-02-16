@@ -1385,8 +1385,7 @@ namespace Legion {
               target, analysis_mapping, local_collective_arrivals,
               registered, applied_events, trace_info, source, symbolic);
       // Should never get here
-      assert(false);
-      return ApEvent::NO_AP_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -2245,8 +2244,7 @@ namespace Legion {
         if (local_views[idx]->get_manager() == target)
           return idx;
       // We should always find it
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------

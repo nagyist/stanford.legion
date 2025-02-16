@@ -264,7 +264,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false); // illegal specialized case
+          std::abort(); // illegal specialized case
       }
       // manager takes ownership of the piece list
       piece_list = nullptr;
@@ -457,7 +457,7 @@ namespace Legion {
               }
             }
             else // Should either be AOS or SOA for now
-              assert(false);
+              std::abort();
           }
           else
           {
@@ -560,11 +560,8 @@ namespace Legion {
             break;
           }
         case LEGION_VIRTUAL_SPECIALIZE:
-          {
-            REPORT_LEGION_ERROR(ERROR_ILLEGAL_REQUEST_VIRTUAL_INSTANCE,
-                          "Illegal request to create a virtual instance");
-            assert(false);
-          }
+          REPORT_LEGION_ERROR(ERROR_ILLEGAL_REQUEST_VIRTUAL_INSTANCE,
+                        "Illegal request to create a virtual instance");
         default:
           REPORT_LEGION_ERROR(ERROR_ILLEGAL_REQUEST_VIRTUAL_INSTANCE,
                         "Illegal request to create instance of type %d", 

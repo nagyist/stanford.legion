@@ -318,10 +318,10 @@ namespace Legion {
     class PathTraverser {
     public:
       PathTraverser(RegionTreePath &path);
-      PathTraverser(const PathTraverser &rhs);
+      PathTraverser(const PathTraverser &rhs) = delete;
       virtual ~PathTraverser(void);
     public:
-      PathTraverser& operator=(const PathTraverser &rhs);
+      PathTraverser& operator=(const PathTraverser &rhs) = delete;
     public:
       // Return true if the traversal was successful
       // or false if one of the nodes exit stopped early
@@ -364,10 +364,10 @@ namespace Legion {
     class CurrentInitializer : public NodeTraverser {
     public:
       CurrentInitializer(ContextID ctx);
-      CurrentInitializer(const CurrentInitializer &rhs);
+      CurrentInitializer(const CurrentInitializer &rhs) = delete;
       ~CurrentInitializer(void);
     public:
-      CurrentInitializer& operator=(const CurrentInitializer &rhs);
+      CurrentInitializer& operator=(const CurrentInitializer &rhs) = delete;
     public:
       virtual bool visit_only_valid(void) const;
       virtual bool visit_region(RegionNode *node);

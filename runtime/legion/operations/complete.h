@@ -36,7 +36,7 @@ namespace Legion {
       virtual void end_replayable_exchange(ReplayableStatus &status) { }
       virtual void begin_idempotent_exchange(IdempotencyStatus idempotent) { }
       virtual void end_idempotent_exchange(IdempotencyStatus &idempotent) { }
-      virtual void sync_compute_frontiers(RtEvent event) { assert(false); }
+      virtual void sync_compute_frontiers(RtEvent event) { std::abort(); }
       virtual void deduplicate_condition_sets(
           std::map<EquivalenceSet*,unsigned> &condition_sets) { }
     };

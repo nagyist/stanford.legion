@@ -79,7 +79,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       return out;
     }
@@ -109,7 +109,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       return out;
     }

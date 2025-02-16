@@ -64,7 +64,7 @@ namespace Legion {
         case LEGION_ANTI_DEPENDENCE:
           break;
         default:
-          assert(false); // should never get here
+          std::abort(); // should never get here
       }
       if (!next_covers)
       {

@@ -80,11 +80,11 @@ namespace Legion {
                                  const void *user_data, size_t user_data_size,
                                  const CodeDescriptor &realm_desc, 
                                  const char *task_name);
-      PendingVariantRegistration(const PendingVariantRegistration &rhs);
+      PendingVariantRegistration(const PendingVariantRegistration &rhs) = delete;
       ~PendingVariantRegistration(void);
     public:
       PendingVariantRegistration& operator=(
-                                      const PendingVariantRegistration &rhs);
+                                      const PendingVariantRegistration &rhs) = delete;
     public:
       void perform_registration(void);
     private:

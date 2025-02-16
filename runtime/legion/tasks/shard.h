@@ -49,8 +49,7 @@ namespace Legion {
       virtual size_t get_total_shards(void) const;
       virtual DomainPoint get_shard_point(void) const;
       virtual Domain get_shard_domain(void) const;
-      virtual SingleTask* get_origin_task(void) const 
-        { assert(false); return nullptr; }
+      virtual SingleTask* get_origin_task(void) const { std::abort(); }
       virtual bool is_shard_task(void) const { return true; }
       virtual bool is_top_level_task(void) const; 
       // Set this to true so we always eagerly evaluate future functors

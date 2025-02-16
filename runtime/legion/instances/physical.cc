@@ -869,7 +869,7 @@ namespace Legion {
       }
       manager->unpack_global_ref();
 #else
-      assert(false); // should never get this in release mode
+      std::abort(); // should never get this in release mode
 #endif
     }
 
@@ -888,7 +888,7 @@ namespace Legion {
       target->store(false);
       Runtime::trigger_event(done);
 #else
-      assert(false); // should never get this in release mode
+      std::abort(); // should never get this in release mode
 #endif
     }
 
@@ -963,7 +963,7 @@ namespace Legion {
           case COLLECTED_GC_STATE:
             return false;
           default:
-            assert(false);
+            std::abort();
         }
         if (success)
         {
@@ -1447,7 +1447,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false);
+            std::abort();
         }
         update_remote_instances(target);
       }
@@ -1700,7 +1700,7 @@ namespace Legion {
               return true;
             }
           default:
-            assert(false); // should not be in any other state
+            std::abort(); // should not be in any other state
         }
         return false;
       }
@@ -1838,7 +1838,7 @@ namespace Legion {
                     break;
                   }
                 default:
-                  assert(false);
+                  std::abort();
               }
               // Update the references
 #ifdef LEGION_GC
@@ -1914,7 +1914,7 @@ namespace Legion {
         updated = done;
       }
       if (remove_never_reference && remove_base_valid_ref(NEVER_GC_REF))
-        assert(false); // should never end up deleting ourselves
+        std::abort(); // should never end up deleting ourselves
       Runtime::trigger_event(done_event, updated);
       return done_event;
     }

@@ -702,53 +702,41 @@ namespace Legion {
     public:
       virtual ~TaskMut() {}
       virtual UniqueID get_unique_id(void) const {
-        assert(false);
-        return 0;
+        std::abort();
       }
       virtual uint64_t get_context_index(void) const {
-        assert(false);
-        return 0;
+        std::abort();
       }
       virtual int get_depth(void) const {
-        assert(false);
-        return 0;
+        std::abort();
       }
       virtual const Task* get_parent_task(void) const {
-        assert(false);
-        return nullptr;
+        std::abort();
       }
       virtual const std::string_view& get_provenance_string(
           bool human=true) const {
-        assert(false);
-        return (*new std::string_view());
+        std::abort();
       }
       virtual bool has_parent_task(void) const {
-        assert(false);
-        return false;
+        std::abort();
       }
       virtual const char* get_task_name(void) const {
-        assert(false);
-        return nullptr;
+        std::abort();
       }
       virtual Domain get_slice_domain(void) const {
-        assert(false);
-        return Domain::NO_DOMAIN;
+        std::abort();
       }
       virtual ShardID get_shard_id(void) const {
-        assert(false);
-        return 0;
+        std::abort();
       }
       virtual size_t get_total_shards(void) const {
-        assert(false);
-        return 1;
+        std::abort();
       };
       virtual DomainPoint get_shard_point(void) const {
-        assert(false);
-        return DomainPoint();
+        std::abort();
       };
       virtual Domain get_shard_domain(void) const {
-        assert(false);
-        return Domain();
+        std::abort();
       }
     };
 };

@@ -246,7 +246,7 @@ namespace Legion {
             // with that when we get there. Right now we don't allow prefixes
             // and instead split longer traces into smaller ones with prefix
             // and postfix parts split into separate traces.
-            assert(false);
+            std::abort();
           }
           // Else There are active pointers behind our earliest completed
           // pointer, so there's no point at even looking at the completed

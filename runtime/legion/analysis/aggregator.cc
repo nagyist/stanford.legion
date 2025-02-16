@@ -38,31 +38,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
     }
-
-    //--------------------------------------------------------------------------
-    CopyFillGuard::CopyFillGuard(const CopyFillGuard &rhs)
-      : guard_postcondition(rhs.guard_postcondition), 
-        effects_applied(rhs.effects_applied)
-    //--------------------------------------------------------------------------
-    {
-      // Should never be called
-      assert(false);
-    }
 #else
     //--------------------------------------------------------------------------
     CopyFillGuard::CopyFillGuard(RtUserEvent applied)
       : effects_applied(applied), releasing_guards(false),read_only_guard(false)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    CopyFillGuard::CopyFillGuard(const CopyFillGuard &rhs)
-      : effects_applied(rhs.effects_applied)
-    //--------------------------------------------------------------------------
-    {
-      // Should never be called
-      assert(false);
     }
 #endif
 
@@ -75,15 +56,6 @@ namespace Legion {
       assert(guarded_sets.empty());
       assert(remote_release_events.empty());
 #endif
-    }
-
-    //--------------------------------------------------------------------------
-    CopyFillGuard& CopyFillGuard::operator=(const CopyFillGuard &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // Should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -135,7 +107,7 @@ namespace Legion {
       derez.deserialize(read_only_guard);
 #ifdef DEBUG_LEGION
       if (!result->record_guard_set(set, read_only_guard))
-        assert(false);
+        std::abort();
 #else
       result->record_guard_set(set, read_only_guard);
 #endif

@@ -1484,7 +1484,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called
-      assert(false);
+      std::abort();
     }
     
     //--------------------------------------------------------------------------
@@ -1817,7 +1817,7 @@ namespace Legion {
             color_map.begin(); it != color_map.end(); it++)
         // Remove the nested valid reference on this index space node
         if (it->second->remove_nested_valid_ref(did))
-          assert(false); // still holding resource ref so should never be hit
+          std::abort(); // still holding resource ref so should never be hit
       if (!partition_trackers.empty())
       {
         for (std::list<PartitionTracker*>::const_iterator it = 
@@ -3621,7 +3621,7 @@ namespace Legion {
       }
       // Compute our local shard rectangles
       if (find_local_shard_rects())
-        assert(false); // should never delete ourselves
+        std::abort(); // should never delete ourselves
       return shard_rects_ready;
     }
 

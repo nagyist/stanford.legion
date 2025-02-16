@@ -132,7 +132,7 @@ namespace Legion {
           // Try to invalidate it and remove the tree reference if we did
           if ((*it)->invalidate_operation() &&
               (*it)->remove_base_gc_ref(REGION_TREE_REF))
-            assert(false); // should never delete since we have a resource ref
+            std::abort(); // should never delete since we have a resource ref
           // Remove any references that we have on the parents
           if ((*it)->remove_nested_resource_ref(did))
             delete (*it);
@@ -432,28 +432,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ExpressionTrieNode::ExpressionTrieNode(const ExpressionTrieNode &rhs)
-      : depth(rhs.depth), expr(rhs.expr)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     ExpressionTrieNode::~ExpressionTrieNode(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    ExpressionTrieNode& ExpressionTrieNode::operator=(
-                                                  const ExpressionTrieNode &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -599,7 +580,7 @@ namespace Legion {
           return local_operation;
         local_operation = creator.consume();
         if (!local_operation->try_add_live_reference())
-          assert(false); // should never hit this
+          std::abort(); // should never hit this
         return local_operation;
       }
       else if (expressions.size() == (depth+2))
@@ -640,7 +621,7 @@ namespace Legion {
             IndexSpaceExpression *result = creator.consume();
             operations[target_expr] = result;
             if (!result->try_add_live_reference())
-              assert(false); // should never hit this
+              std::abort(); // should never hit this
             return result;
           }
           else

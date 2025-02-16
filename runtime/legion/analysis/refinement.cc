@@ -263,7 +263,7 @@ namespace Legion {
           // Don't allow anything to happen here
           break;
         default:
-          assert(false); // should never hit this
+          std::abort(); // should never hit this
       }
       // Allow alternative refinements of our current child
       allow_refinement = (child == refined_child);
@@ -457,7 +457,7 @@ namespace Legion {
           // Don't allow anything to happen here
           break;
         default:
-          assert(false); // should never hit this
+          std::abort(); // should never hit this
       }
       return false;
     }
@@ -682,7 +682,7 @@ namespace Legion {
     void PartitionRefinementTracker::initialize_no_refine(void)
     //--------------------------------------------------------------------------
     {
-      assert(false); // this should never be called
+      std::abort(); // this should never be called
     }
 
     //--------------------------------------------------------------------------
@@ -821,7 +821,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       return false;
     }
@@ -1013,7 +1013,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       return false;
     }
@@ -1022,8 +1022,7 @@ namespace Legion {
     bool PartitionRefinementTracker::update_arrival(const RegionUsage &usage)
     //--------------------------------------------------------------------------
     {
-      assert(false); // should never arrive on a partition without a projection 
-      return false;
+      std::abort(); // should never arrive on a partition without a projection 
     }
 
     //--------------------------------------------------------------------------

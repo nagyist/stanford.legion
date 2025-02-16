@@ -573,7 +573,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false); // no other tasks should be sent anywhere
+          std::abort(); // no other tasks should be sent anywhere
       }
     }
 
@@ -622,7 +622,7 @@ namespace Legion {
         case POINT_TASK_KIND:
         case INDEX_TASK_KIND:
         default:
-          assert(false); // no other tasks should be sent anywhere
+          std::abort(); // no other tasks should be sent anywhere
       }
     }
 
@@ -1592,8 +1592,7 @@ namespace Legion {
         pending_variants.insert(result);
         return result;
       }
-      assert(false);
-      return result;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------

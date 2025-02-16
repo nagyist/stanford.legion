@@ -811,7 +811,7 @@ namespace Legion {
         RefinementTracker *new_tracker = owner->create_refinement_tracker();
         bool allow_refinement = false;
         if (new_tracker->update_child(child, usage, allow_refinement))
-          assert(false); // should never get here
+          std::abort(); // should never get here
         if (!allow_refinement)
           refinement_mask -= need_tracker;
         refinement_trackers.insert(new_tracker, need_tracker);
@@ -878,7 +878,7 @@ namespace Legion {
         RefinementTracker *new_tracker = owner->create_refinement_tracker();
         bool allow_refinement = false;
         if (new_tracker->update_projection(summary, usage, allow_refinement))
-          assert(false); // should never get here
+          std::abort(); // should never get here
         if (!allow_refinement)
           refinement_mask -= need_tracker;
         refinement_trackers.insert(new_tracker, need_tracker);
@@ -939,7 +939,7 @@ namespace Legion {
       {
         RefinementTracker *new_tracker = owner->create_refinement_tracker();
         if (new_tracker->update_arrival(usage))
-          assert(false); // should never get here
+          std::abort(); // should never get here
         refinement_trackers.insert(new_tracker, refinement_mask);
       }
     }
@@ -1414,27 +1414,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PathTraverser::PathTraverser(const PathTraverser &rhs)
-      : path(rhs.path)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     PathTraverser::~PathTraverser(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    PathTraverser& PathTraverser::operator=(const PathTraverser &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------
@@ -1474,28 +1456,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    CurrentInitializer::CurrentInitializer(const CurrentInitializer &rhs)
-      : ctx(0)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     CurrentInitializer::~CurrentInitializer(void)
     //--------------------------------------------------------------------------
     {
-    }
-
-    //--------------------------------------------------------------------------
-    CurrentInitializer& CurrentInitializer::operator=(
-                                                  const CurrentInitializer &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------

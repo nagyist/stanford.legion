@@ -47,10 +47,10 @@ namespace Legion {
                         const std::vector<CustomSerdezID> &serdez);
       // Used only by the virtual manager
       LayoutDescription(const FieldMask &mask, LayoutConstraints *constraints);
-      LayoutDescription(const LayoutDescription &rhs);
+      LayoutDescription(const LayoutDescription &rhs) = delete;
       ~LayoutDescription(void);
     public:
-      LayoutDescription& operator=(const LayoutDescription &rhs);
+      LayoutDescription& operator=(const LayoutDescription &rhs) = delete;
     public:
       void log_instance_layout(LgEvent inst_event) const;
     public:

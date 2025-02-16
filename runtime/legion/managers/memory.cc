@@ -1462,8 +1462,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called
-      assert(false);
-      return RtEvent::NO_RT_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3313,7 +3312,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     }
 
@@ -3997,7 +3996,7 @@ namespace Legion {
                 break;
               }
             default:
-              assert(false);
+              std::abort();
           }
         }
         else if (unbounded_transition_event.exists() && 
@@ -4616,7 +4615,7 @@ namespace Legion {
                   break;
                 }
               default:
-                assert(false);
+                std::abort();
             }
           }
           else if (!pending_allocation_attempts.empty() ||
@@ -5007,7 +5006,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false);
+            std::abort();
         }
         outstanding_task_local_allocations++;
       }

@@ -48,10 +48,10 @@ namespace Legion {
 #else
       CopyFillGuard(RtUserEvent applied);
 #endif
-      CopyFillGuard(const CopyFillGuard &rhs);
+      CopyFillGuard(const CopyFillGuard &rhs) = delete;
       virtual ~CopyFillGuard(void);
     public:
-      CopyFillGuard& operator=(const CopyFillGuard &rhs);
+      CopyFillGuard& operator=(const CopyFillGuard &rhs) = delete;
     public:
       void pack_guard(Serializer &rez);
       static CopyFillGuard* unpack_guard(Deserializer &derez,

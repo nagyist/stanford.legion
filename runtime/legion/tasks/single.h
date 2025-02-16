@@ -156,16 +156,15 @@ namespace Legion {
       virtual void handle_future_size(size_t return_type_size,
                                       std::set<RtEvent> &applied_events) = 0;
       virtual uint64_t order_collectively_mapped_unbounded_pools(
-          uint64_t lamport_clock, bool need_result)
-        { assert(false); return lamport_clock; }
+          uint64_t lamport_clock, bool need_result) { std::abort(); }
       virtual ApEvent order_concurrent_launch(ApEvent start, VariantImpl *impl)
-        { assert(false); return start; }
+        { std::abort(); }
       virtual void record_output_extent(unsigned idx,
           const DomainPoint &color, const DomainPoint &extents) 
-        { assert(false); }
+        { std::abort(); }
       virtual void record_output_registered(RtEvent registered,
                                             std::set<RtEvent> &applied_events)
-        { assert(false); }
+        { std::abort(); }
       virtual void trigger_replay(void);
       // For tasks that are sharded off by control replication
       virtual void shard_off(RtEvent mapped_precondition);

@@ -127,7 +127,7 @@ namespace Legion {
       virtual Operation* get_origin_operation(void) { return this; }
       virtual unsigned get_output_offset() const;
       virtual const RegionRequirement &get_requirement(unsigned idx) const
-        { assert(false); return *(new RegionRequirement()); }
+        { std::abort(); }
       virtual void analyze_region_requirements(
         IndexSpaceNode *launch_space = nullptr,
         ShardingFunction *func = nullptr,

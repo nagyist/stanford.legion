@@ -181,7 +181,7 @@ namespace Legion {
         }
       }
       // Should not run out of space
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -194,8 +194,7 @@ namespace Legion {
         if (instances[idx] == inst)
           return names[idx];
       // Should always find it before this
-      assert(false);
-      return names[0];
+      std::abort();
     }
 
     // Explicit instantiations for 1 and 2
@@ -244,29 +243,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LegionProfInstance::LegionProfInstance(const LegionProfInstance &rhs)
-      : owner(rhs.owner)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     LegionProfInstance::~LegionProfInstance(void)
     //--------------------------------------------------------------------------
     {
     }
-
-    //--------------------------------------------------------------------------
-    LegionProfInstance& LegionProfInstance::operator=(
-                                                  const LegionProfInstance &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    } 
 
     //--------------------------------------------------------------------------
     void LegionProfInstance::register_operation(Operation *op)
@@ -3180,7 +3160,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       // Have to do self-profiling here before the decrement to avoid races
       // with the shutdown code

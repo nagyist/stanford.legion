@@ -502,7 +502,7 @@ namespace Legion {
             LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
             default:
-              assert(false);
+              std::abort();
           }
           IndexSpace point_space = ctx->find_index_launch_space(
               point_domain, provenance, true/*take ownership of domain*/);

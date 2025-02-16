@@ -199,8 +199,7 @@ namespace Legion {
           //              relaxed instances to non-relaxed instance
         }
         // We should never make it here
-        assert(false);
-        return LEGION_NO_DEPENDENCE;
+        std::abort();
       }
     }
 

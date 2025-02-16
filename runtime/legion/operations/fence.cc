@@ -123,7 +123,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false); // should never get here
+          std::abort(); // should never get here
       }
       if (!map_applied_conditions.empty())
         complete_mapping(Runtime::merge_events(map_applied_conditions));
@@ -175,8 +175,7 @@ namespace Legion {
     const VersionInfo& FenceOp::get_version_info(unsigned idx) const
     //--------------------------------------------------------------------------
     {
-      assert(false);
-      return *new VersionInfo();
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -184,7 +183,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called on derived classes
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -285,7 +284,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false); // should never get here
+          std::abort(); // should never get here
       }
       // Do our arrival
       if (!map_applied_conditions.empty())

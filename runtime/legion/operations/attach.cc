@@ -142,7 +142,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false); // should never get here
+            std::abort(); // should never get here
         }
         LEGION_REENABLE_DEPRECATED_WARNINGS
       }
@@ -1060,7 +1060,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false); // should never get here
+            std::abort(); // should never get here
         }
         LEGION_REENABLE_DEPRECATED_WARNINGS
       }

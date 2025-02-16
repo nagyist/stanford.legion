@@ -103,7 +103,7 @@ namespace Legion {
                  const ShardMapping *mapping, ShardID source_shard)
     //--------------------------------------------------------------------------
     {
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -114,8 +114,7 @@ namespace Legion {
                        IndexSpaceExpression *expr, const FieldMask &mask)
     //--------------------------------------------------------------------------
     {
-      assert(false);
-      return RtEvent::NO_RT_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -124,8 +123,7 @@ namespace Legion {
                        EquivalenceSet *expr, const FieldMask &mask)
     //--------------------------------------------------------------------------
     {
-      assert(false);
-      return RtEvent::NO_RT_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------

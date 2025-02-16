@@ -238,7 +238,7 @@ namespace Legion {
               return false;
             }
           default:
-            assert(false);
+            std::abort();
         }
         current_owner = downgrade_owner;
       }
@@ -780,7 +780,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       return false;
     }
@@ -1619,7 +1619,7 @@ namespace Legion {
               return false;
             }
           default:
-            assert(false);
+            std::abort();
         }
         current_owner = downgrade_owner;
       }

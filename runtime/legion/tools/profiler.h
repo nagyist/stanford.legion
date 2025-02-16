@@ -564,10 +564,10 @@ namespace Legion {
       };
     public:
       LegionProfInstance(LegionProfiler *owner);
-      LegionProfInstance(const LegionProfInstance &rhs);
+      LegionProfInstance(const LegionProfInstance &rhs) = delete;
       ~LegionProfInstance(void);
     public:
-      LegionProfInstance& operator=(const LegionProfInstance &rhs);
+      LegionProfInstance& operator=(const LegionProfInstance &rhs) = delete;
     public: 
       void register_operation(Operation *op);
       void register_multi_task(Operation *op, TaskID kind);

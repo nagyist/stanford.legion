@@ -175,7 +175,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Not supported at the moment
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -195,7 +195,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Not supported at the moment
-      assert(false);
+      std::abort();
     }
 #endif // DEBUG_LEGION_COLLECTIVES
     

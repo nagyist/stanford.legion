@@ -54,7 +54,7 @@ namespace Legion {
       virtual const char* get_logging_name(void) const = 0;
       virtual OpKind get_operation_kind(void) const = 0;
       virtual Operation* get_origin_operation(void) 
-        { assert(false); return nullptr; } // should never be called on remote ops
+        { std::abort(); } // should never be called on remote ops
       virtual std::map<PhysicalManager*,unsigned>*
                                        get_acquired_instances_ref(void);
       virtual int add_copy_profiling_request(const PhysicalTraceInfo &info,

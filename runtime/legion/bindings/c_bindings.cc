@@ -1290,7 +1290,7 @@ legion_index_partition_create_multi_domain_point_coloring(
     LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
     default:
-      assert(false);
+      std::abort();
   }
   // Make an index space for the color space
   IndexSpace index_color_space = runtime->create_index_space(ctx, color_space);
@@ -6074,7 +6074,7 @@ legion_attach_launcher_attach_hdf5(legion_attach_launcher_t handle_,
         (mode == LEGION_FILE_READ_ONLY));
 #else
   // Legion must be built with HDF5 support for this to work
-  assert(false);
+  std::abort();
 #endif
 }
 
@@ -6298,7 +6298,7 @@ legion_index_attach_launcher_attach_hdf5(legion_index_attach_launcher_t handle_,
         (mode == LEGION_FILE_READ_ONLY)));
 #else
   // Legion must be built with HDF5 support for this to work
-  assert(false);
+  std::abort();
 #endif
 }
 
@@ -6906,7 +6906,7 @@ legion_physical_region_get_field_accessor_array_1d_with_transform(
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
     default:
-      assert(false);
+      std::abort();
   }
 
   return CObjectWrapper::wrap(accessor);
@@ -6938,7 +6938,7 @@ legion_physical_region_get_field_accessor_array_2d_with_transform(
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
     default:
-      assert(false);
+      std::abort();
   }
 
   return CObjectWrapper::wrap(accessor);
@@ -6970,7 +6970,7 @@ legion_physical_region_get_field_accessor_array_3d_with_transform(
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
     default:
-      assert(false);
+      std::abort();
   }
 
   return CObjectWrapper::wrap(accessor);
@@ -7002,7 +7002,7 @@ legion_physical_region_get_field_accessor_array_4d_with_transform(
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
     default:
-      assert(false);
+      std::abort();
   }
 
   return CObjectWrapper::wrap(accessor);
@@ -7034,7 +7034,7 @@ legion_physical_region_get_field_accessor_array_5d_with_transform(
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
     default:
-      assert(false);
+      std::abort();
   }
 
   return CObjectWrapper::wrap(accessor);
@@ -7066,7 +7066,7 @@ legion_physical_region_get_field_accessor_array_6d_with_transform(
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
     default:
-      assert(false);
+      std::abort();
   }
 
   return CObjectWrapper::wrap(accessor);
@@ -7098,7 +7098,7 @@ legion_physical_region_get_field_accessor_array_7d_with_transform(
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
     default:
-      assert(false);
+      std::abort();
   }
 
   return CObjectWrapper::wrap(accessor);
@@ -7130,7 +7130,7 @@ legion_physical_region_get_field_accessor_array_8d_with_transform(
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
     default:
-      assert(false);
+      std::abort();
   }
 
   return CObjectWrapper::wrap(accessor);
@@ -7162,7 +7162,7 @@ legion_physical_region_get_field_accessor_array_9d_with_transform(
     LEGION_FOREACH_N(AFFINE)
 #undef AFFINE
     default:
-      assert(false);
+      std::abort();
   }
 
   return CObjectWrapper::wrap(accessor);

@@ -497,8 +497,7 @@ namespace Legion {
       if ((right != nullptr) && right->bounds.contains(point))
         return right->find(point);
       // Should always find it currently
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -2800,7 +2799,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // This should never be called on a sparse tree node
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -2847,7 +2846,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // TODO
-      assert(false);
+      std::abort();
     }
     
     //--------------------------------------------------------------------------
@@ -2888,8 +2887,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called on sparse nodes since they don't track
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3160,7 +3158,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // This should never be called on a sharded tree node
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -3419,8 +3417,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called on sharded nodes since they don't track
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------

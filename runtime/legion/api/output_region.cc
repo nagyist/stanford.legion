@@ -426,7 +426,7 @@ namespace Legion {
             Domain domain(lo, extents - 1);
             if (region->row_source->set_domain(domain, ApEvent::NO_AP_EVENT,
                   true/*take ownership*/, true/*broadcast*/))
-              assert(false); // should never end up deleting this
+              std::abort(); // should never end up deleting this
           }
           else
           {
@@ -451,7 +451,7 @@ namespace Legion {
               }
               if (region->row_source->set_domain(domain, ApEvent::NO_AP_EVENT,
                     true/*take ownership*/, true/*broadcast*/))
-                assert(false); // should never end up deleting this
+                std::abort(); // should never end up deleting this
             }
             context->owner_task->record_output_extent(index, color, extents);
           }

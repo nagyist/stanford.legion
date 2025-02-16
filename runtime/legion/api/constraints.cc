@@ -96,7 +96,7 @@ namespace Legion {
           return false;
         }
       default:
-        assert(false); // unknown
+        std::abort(); // unknown
     }
     return false;
   }
@@ -177,7 +177,7 @@ namespace Legion {
           return false;
         }
       default:
-        assert(false); // unknown
+        std::abort(); // unknown
     }
     return false;
   }
@@ -636,7 +636,7 @@ namespace Legion {
                        "Only reduction specialized constraints are "
                        "permitted to have non-zero reduction operators.",
                        redop);
-        assert(false);
+        std::abort();
       }
     }
   }
@@ -2334,7 +2334,7 @@ namespace Legion {
       case LEGION_OFFSET_CONSTRAINT:
         return &offset_constraints[index];
       default:
-        assert(false);
+        std::abort();
     }
     return nullptr;
   }

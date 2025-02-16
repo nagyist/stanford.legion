@@ -1390,7 +1390,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false);
+            std::abort();
         }
       }
       if (wait_on.exists())
@@ -1572,7 +1572,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     }
 

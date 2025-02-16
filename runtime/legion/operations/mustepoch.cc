@@ -856,7 +856,7 @@ namespace Legion {
             LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
             default:
-              assert(false);
+              std::abort();
           }
           return parent_ctx->find_index_launch_space(launch_domain,
               provenance, true/*take ownership*/);
@@ -895,7 +895,7 @@ namespace Legion {
             LEGION_FOREACH_N(DIMFUNC) 
 #undef DIMFUNC
             default:
-              assert(false);
+              std::abort();
           }
           return parent_ctx->find_index_launch_space(launch_domain,
               provenance, true/*take ownership*/);
@@ -1332,8 +1332,7 @@ namespace Legion {
       index -= indiv_tasks.size();
       if ((size_t)index < index_tasks.size())
         return index_tasks[index];
-      assert(false);
-      return nullptr;
+      std::abort();
     }
 
     /////////////////////////////////////////////////////////////
@@ -2374,7 +2373,7 @@ namespace Legion {
                       "for must epoch launch in %s (UID %lld)", 
                       mapper->get_mapper_name(), parent_ctx->get_task_name(),
                       parent_ctx->get_unique_id());
-        assert(false); 
+        std::abort();
       }
       ReplFutureMapImpl *impl = 
           dynamic_cast<ReplFutureMapImpl*>(result_map.impl);

@@ -492,7 +492,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called by inherited types
-      assert(false); 
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -751,15 +751,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should only be called if overridden
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
     unsigned Operation::find_parent_index(unsigned idx)
     //--------------------------------------------------------------------------
     {
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -813,7 +812,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called for inherited types
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -836,8 +835,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called in derived types
-      assert(false);
-      return false;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -850,8 +848,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called in derived types
-      assert(false);
-      return RtEvent::NO_RT_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -861,8 +858,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called in derived types
-      assert(false);
-      return RtEvent::NO_RT_EVENT;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -901,8 +897,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should only be called for inherited types
-      assert(false);
-      return nullptr;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -911,7 +906,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called for inherited types
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -922,7 +917,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!grants.empty())
-        assert(false); // Figure out how to deduplicate grant acquires
+        std::abort(); // Figure out how to deduplicate grant acquires
       if (wait_barriers.empty())
         return ApEvent::NO_AP_EVENT;
       if (wait_barriers.size() == 1)
@@ -940,8 +935,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called for inherited types
-      assert(false);
-      return 0;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -951,8 +945,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called for inherited types
-      assert(false);
-      return false;
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -960,7 +953,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should only be called for inherited types
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1368,7 +1361,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // TODO: actually handle quashing of operations
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1853,7 +1846,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should only be called on derived classes
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------

@@ -705,7 +705,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // This method should never be called
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -2302,7 +2302,7 @@ namespace Legion {
             to_add.insert(input_aggregator, update_mask);
 #ifdef DEBUG_LEGION
             if (!input_aggregator->record_guard_set(this, true/*read only*/))
-              assert(false);
+              std::abort();
 #else
             input_aggregator->record_guard_set(this, true/*read only*/);
 #endif
@@ -2345,7 +2345,7 @@ namespace Legion {
                 input_aggregator->get_update_fields());
 #ifdef DEBUG_LEGION
             if (!input_aggregator->record_guard_set(this, true/*read only*/))
-              assert(false);
+              std::abort();
 #else
             input_aggregator->record_guard_set(this, true/*read only*/);
 #endif
@@ -2414,7 +2414,7 @@ namespace Legion {
                 input_aggregator->get_update_fields());
 #ifdef DEBUG_LEGION
             if (!input_aggregator->record_guard_set(this, true/*read only*/))
-              assert(false);
+              std::abort();
 #else
             input_aggregator->record_guard_set(this, true/*read only*/);
 #endif
@@ -5167,7 +5167,7 @@ namespace Legion {
                                            fill_exprs.get_valid_mask());
 #ifdef DEBUG_LEGION
               if (!fill_aggregator->record_guard_set(this,false/*read only*/))
-                assert(false);
+                std::abort();
 #else
               fill_aggregator->record_guard_set(this, false/*read only*/);
 #endif
@@ -5379,7 +5379,7 @@ namespace Legion {
                     finder->second.begin(); it != finder->second.end(); it++)
                 if (!applied_exprs->insert(it->second, expr_mask) &&
                     it->second->remove_nested_expression_reference(did))
-                  assert(false); // should never hit this
+                  std::abort(); // should never hit this
             }
             else
             {
@@ -5432,7 +5432,7 @@ namespace Legion {
               remainder->add_nested_expression_reference(did);
               it->second = remainder;
               if (set_expr->remove_nested_expression_reference(did))
-                assert(false); // should never hit this
+                std::abort(); // should never hit this
               it++;
             }
             else
@@ -5672,7 +5672,7 @@ namespace Legion {
                 analysis.record_instance(it->first, it->second);
                 if (!release_finder->second.insert(it->first, it->second) &&
                     it->first->remove_nested_valid_ref(did))
-                  assert(false); // should never delete this
+                  std::abort(); // should never delete this
               }
               eit->second.clear();
             }
@@ -6578,7 +6578,7 @@ namespace Legion {
                       rit->second.begin(); it != rit->second.end(); it++)
                   if (!finder->second.insert(it->first, it->second) &&
                       it->first->remove_nested_valid_ref(did))
-                    assert(false); // should never hit this
+                    std::abort(); // should never hit this
               }
               else
                 to_add[diff].swap(rit->second);
@@ -6642,7 +6642,7 @@ namespace Legion {
               // remove duplicate references
               if (!finder->second.insert(it->first, it->second) &&
                   it->first->remove_nested_valid_ref(did))
-                assert(false); // should never hit this
+                std::abort(); // should never hit this
           }
         }
         for (std::vector<IndexSpaceExpression*>::const_iterator it =  
@@ -6849,7 +6849,7 @@ namespace Legion {
                       rit->second.begin(); it != rit->second.end(); it++)
                   if (!finder->second.insert(it->first, it->second) &&
                       it->first->remove_nested_valid_ref(did))
-                    assert(false); // should never hit this
+                    std::abort(); // should never hit this
               }
               else
                 to_add[diff].swap(rit->second);
@@ -6913,7 +6913,7 @@ namespace Legion {
               // remove duplicate references
               if (!finder->second.insert(it->first, it->second) &&
                   it->first->remove_nested_valid_ref(did))
-                assert(false); // should never hit this
+                std::abort(); // should never hit this
           }
         }
         for (std::vector<IndexSpaceExpression*>::const_iterator it =  
@@ -11214,7 +11214,7 @@ namespace Legion {
           // since we should already be holding a reference
           if (!created_equivalence_sets->insert(it->first, it->second) &&
               it->first->remove_base_gc_ref(ref_kind))
-            assert(false); // should never actaully delete the object
+            std::abort(); // should never actaully delete the object
         }
       }
     }
@@ -11801,7 +11801,7 @@ namespace Legion {
                   created_equivalence_sets->end(); it++)
               if (!equivalence_sets.insert(it->first, it->second) &&
                   it->first->remove_base_gc_ref(ref_kind))
-                assert(false); // should never delete the object
+                std::abort(); // should never delete the object
             delete created_equivalence_sets;
             created_equivalence_sets = nullptr;
           }
@@ -11823,7 +11823,7 @@ namespace Legion {
                 // the set already exists in the equivalence_sets
                 if (!equivalence_sets.insert(it->first, it->second) &&
                     it->first->remove_base_gc_ref(ref_kind))
-                  assert(false); // should never delete the object
+                  std::abort(); // should never delete the object
                 to_delete.push_back(it->first);
               }
               else
@@ -12428,7 +12428,7 @@ namespace Legion {
           }
           if ((references_to_remove > 0) && 
               remove_subscription_reference(references_to_remove))
-            assert(false); // should never end up deleting ourselves
+            std::abort(); // should never end up deleting ourselves
         }
       }
     }

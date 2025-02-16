@@ -93,18 +93,6 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    VirtualChannel::VirtualChannel(const VirtualChannel &rhs)
-      : sending_buffer(nullptr), sending_buffer_size(0), 
-        ordered_channel(false), profile_outgoing_messages(false),
-        request_priority(rhs.request_priority),
-        response_priority(rhs.response_priority)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     VirtualChannel::~VirtualChannel(void)
     //--------------------------------------------------------------------------
     {
@@ -562,7 +550,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false); // should never get here
+          std::abort(); // should never get here
       }
     }
 
@@ -2179,7 +2167,7 @@ namespace Legion {
               break;
             }
           default:
-            assert(false); // should never get here
+            std::abort(); // should never get here
         }
         // Update the args and arglen
         args += message_size;

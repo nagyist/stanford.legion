@@ -387,7 +387,7 @@ namespace Legion {
       assert(is_owner());
 #endif
       // TODO: send messages to all the remote copies of this
-      assert(false);
+      std::abort();
       bool result = false;
       AutoLock fm_lock(future_map_lock);
       for (std::map<DomainPoint,FutureImpl*>::const_iterator it = 

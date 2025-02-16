@@ -521,8 +521,7 @@ namespace Legion {
       if (finder != profiling_shadow_instances.end())
         return finder->second;
       // Should always have found it before this
-      assert(false);
-      return src_indirect_instance_event;
+      std::abort();
     }
 
   } // namespace Internal

@@ -73,32 +73,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LayoutDescription::LayoutDescription(const LayoutDescription &rhs)
-      : allocated_fields(rhs.allocated_fields), constraints(rhs.constraints), 
-        owner(rhs.owner), total_dims(rhs.total_dims)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-    }
-
-    //--------------------------------------------------------------------------
     LayoutDescription::~LayoutDescription(void)
     //--------------------------------------------------------------------------
     {
       comp_cache.clear();
       if (constraints->remove_base_gc_ref(LAYOUT_DESC_REF))
         delete (constraints);
-    }
-
-    //--------------------------------------------------------------------------
-    LayoutDescription& LayoutDescription::operator=(
-                                                   const LayoutDescription &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------

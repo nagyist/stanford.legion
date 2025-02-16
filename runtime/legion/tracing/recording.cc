@@ -401,7 +401,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Should be no cases where this is called remotely
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -589,7 +589,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should never get a call to record a remote indirection
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -605,7 +605,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should never get a call to record a remote across
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -618,7 +618,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We should never get a call to record a remote indirection
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -891,7 +891,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called on a remote node
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -1500,7 +1500,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     }
 
@@ -1562,7 +1562,7 @@ namespace Legion {
             break;
           }
         default:
-          assert(false);
+          std::abort();
       }
     }
 

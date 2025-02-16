@@ -21,15 +21,6 @@
 namespace Legion {
 
     //--------------------------------------------------------------------------
-    inline Serializer& Serializer::operator=(const Serializer &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
-    }
-
-    //--------------------------------------------------------------------------
     template<typename T>
     inline void Serializer::serialize(const T &element)
     //--------------------------------------------------------------------------
@@ -279,15 +270,6 @@ namespace Legion {
       assert(next != nullptr);
 #endif
       buffer = next;
-    }
-
-    //--------------------------------------------------------------------------
-    inline Deserializer& Deserializer::operator=(const Deserializer &rhs)
-    //--------------------------------------------------------------------------
-    {
-      // should never be called
-      assert(false);
-      return *this;
     }
 
     //--------------------------------------------------------------------------

@@ -2455,7 +2455,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return IndexSpace::NO_SPACE;
     }
@@ -2483,7 +2483,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       return IndexSpace::NO_SPACE;
     }
@@ -2537,7 +2537,7 @@ namespace Legion {
         LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
         default:
-          assert(false);
+          std::abort();
       }
       index_launch_spaces[domain] = result;
       return result;
@@ -3274,7 +3274,7 @@ namespace Legion {
           LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
           default:
-            assert(false);
+            std::abort();
         }
         for (Domain::DomainPointIterator itr(color_space); itr; itr++)
         {
@@ -3291,7 +3291,7 @@ namespace Legion {
             LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
             default:
-              assert(false);
+              std::abort();
           }
           IndexPartition part = 
             runtime->get_index_partition(subspace, partition_color);
@@ -4003,7 +4003,7 @@ namespace Legion {
                   bad[0], bad[1], bad[2], bad[3], bad[4], bad[5], bad[6],
                   bad[7], bad[8])
             default:
-              assert(false);
+              std::abort();
           }
         }
       }
@@ -7775,7 +7775,7 @@ namespace Legion {
         bool poisoned = false;
         // TODO: do something with poisoned completion events and resilience
         if (!it->effects.has_triggered_faultaware(poisoned) || poisoned)
-          assert(false);
+          std::abort();
         implicit_provenance = it->op->get_unique_op_id();
         it->op->complete_operation(it->effects, false/*first*/);
       }
@@ -9500,7 +9500,7 @@ namespace Legion {
         // Each equivalence set here comes with a reference that we
         // need to remove after we've registered it
         if (eq_set->remove_base_gc_ref(CONTEXT_REF))
-          assert(false); // should never hit this
+          std::abort(); // should never hit this
       }
     }
 

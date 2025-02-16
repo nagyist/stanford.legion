@@ -97,8 +97,7 @@ namespace Legion {
         InternalSet(const InternalSet &rhs) : vector(rhs.vector) { }
         ~InternalSet(void) { }
       public:
-        InternalSet& operator=(const InternalSet &rhs)
-          { assert(false); return *this; }
+        InternalSet& operator=(const InternalSet &rhs) = delete;
       public:
         inline bool empty(void) const { return vector.empty(); }
       public:

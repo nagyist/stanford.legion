@@ -110,8 +110,7 @@ namespace Legion {
           for (unsigned idx = 0; idx < local_shards.size(); idx++)
             if (local_shards[idx] == task)
               return idx;
-          assert(false);
-          return 0;
+          std::abort();
         }
       inline ContextID get_first_shard_tree_context(void) const
         { return local_shards.front()->

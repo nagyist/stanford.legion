@@ -155,7 +155,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -163,7 +163,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -283,7 +283,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called without map applied events
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -292,7 +292,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called without map applied events
-      assert(false);
+      std::abort();
     }
 
     //--------------------------------------------------------------------------
@@ -385,7 +385,7 @@ namespace Legion {
 	    break;
           }
         default:
-          assert(false);
+          std::abort();
       }
       // Do the rest of the unpack
       result->unpack_remote_base(derez);

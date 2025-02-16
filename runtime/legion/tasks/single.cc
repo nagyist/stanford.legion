@@ -2289,7 +2289,7 @@ namespace Legion {
         log_mapping_decision(idx, regions[idx], result, true/*postmapping*/);
         // TODO: Implement physical tracing for postmapped regions
         if (is_recording())
-          assert(false);
+          std::abort();
         // Register this with a no-event so that the instance can
         // be used as soon as it is valid from the copy to it
         // We also use read-only privileges to ensure that it doesn't
@@ -2959,7 +2959,7 @@ namespace Legion {
           else if ((*it) == Mapping::PMID_RUNTIME_OVERHEAD)
             execution_context->initialize_overhead_profiler();
           else
-            assert(false); // should never get here
+            std::abort(); // should never get here
         }
         if (!realm_measurements.empty())
         {
