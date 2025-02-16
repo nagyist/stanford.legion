@@ -58,8 +58,8 @@ class StreamingMapper: public DefaultMapper {
       points_executed = 0;
       point_types = 3; // type_of_task
 
-      int argc = Legion::HighLevelRuntime::get_input_args().argc;
-      char **argv = Legion::HighLevelRuntime::get_input_args().argv;
+      int argc = Legion::Runtime::get_input_args().argc;
+      char **argv = Legion::Runtime::get_input_args().argv;
       // Parse some command line parameters.
       for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-lg:enable_pointwise_analysis") == 0) {

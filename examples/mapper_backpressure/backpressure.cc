@@ -55,8 +55,8 @@ enum TaskIDs {
 class BackPressureMapper : public Mapping::DefaultMapper {
 public:
   BackPressureMapper(MapperRuntime* rt, Machine machine, Processor local) : DefaultMapper(rt, machine, local) {
-    int argc = Legion::HighLevelRuntime::get_input_args().argc;
-    char **argv = Legion::HighLevelRuntime::get_input_args().argv;
+    int argc = Legion::Runtime::get_input_args().argc;
+    char **argv = Legion::Runtime::get_input_args().argv;
     // Parse some command line parameters.
     for (int i = 1; i < argc; i++) {
       if (strcmp(argv[i], "-backpressure") == 0) {
