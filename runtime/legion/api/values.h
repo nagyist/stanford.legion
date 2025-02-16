@@ -25,7 +25,7 @@ namespace Legion {
    * \class UntypedDeferredValue
    * This is a type-erased deferred value with the type of the field.
    */
-  class UntypedDeferredValue : public Unserializable {
+  class UntypedDeferredValue {
   public:
     UntypedDeferredValue(void);
     UntypedDeferredValue(size_t field_size, Memory target_memory,
