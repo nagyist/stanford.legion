@@ -1600,7 +1600,7 @@ void Profiler::serialize(const ThreadProfiler::FillInfo &fill_info) const {
 
 void Profiler::serialize(const ThreadProfiler::CopyInfo &copy_info) const {
   int ID = COPY_INFO_ID;
-  lp_fwrite(f, (char *)&ID, sizeof(ID));
+  pr_fwrite(f, (char *)&ID, sizeof(ID));
   unsigned long long op_id = copy_info.creator.id;
   pr_fwrite(f, (char *)&(op_id), sizeof(op_id));
   pr_fwrite(f, (char *)&(copy_info.size), sizeof(copy_info.size));
@@ -1706,24 +1706,24 @@ void Profiler::serialize(const ThreadProfiler::GPUTaskInfo &task_info) const {
 void Profiler::serialize(
     const ThreadProfiler::InstTimelineInfo &inst_timeline_info) const {
   int ID = INST_TIMELINE_INFO_ID;
-  lp_fwrite(f, (char *)&ID, sizeof(ID));
-  lp_fwrite(f, (char *)&(inst_timeline_info.inst_uid.id),
+  pr_fwrite(f, (char *)&ID, sizeof(ID));
+  pr_fwrite(f, (char *)&(inst_timeline_info.inst_uid.id),
             sizeof(inst_timeline_info.inst_uid.id));
-  lp_fwrite(f, (char *)&(inst_timeline_info.inst_id),
+  pr_fwrite(f, (char *)&(inst_timeline_info.inst_id),
             sizeof(inst_timeline_info.inst_id));
-  lp_fwrite(f, (char *)&(inst_timeline_info.mem_id),
+  pr_fwrite(f, (char *)&(inst_timeline_info.mem_id),
             sizeof(inst_timeline_info.mem_id));
-  lp_fwrite(f, (char *)&(inst_timeline_info.size),
+  pr_fwrite(f, (char *)&(inst_timeline_info.size),
             sizeof(inst_timeline_info.size));
   unsigned long long op_id = inst_timeline_info.creator.id;
-  lp_fwrite(f, (char *)&op_id, sizeof(op_id));
-  lp_fwrite(f, (char *)&(inst_timeline_info.create),
+  pr_fwrite(f, (char *)&op_id, sizeof(op_id));
+  pr_fwrite(f, (char *)&(inst_timeline_info.create),
             sizeof(inst_timeline_info.create));
-  lp_fwrite(f, (char *)&(inst_timeline_info.ready),
+  pr_fwrite(f, (char *)&(inst_timeline_info.ready),
             sizeof(inst_timeline_info.ready));
-  lp_fwrite(f, (char *)&(inst_timeline_info.destroy),
+  pr_fwrite(f, (char *)&(inst_timeline_info.destroy),
             sizeof(inst_timeline_info.destroy));
-  lp_fwrite(f, (char *)&(inst_timeline_info.creator),
+  pr_fwrite(f, (char *)&(inst_timeline_info.creator),
             sizeof(inst_timeline_info.creator));
 }
 
