@@ -1429,7 +1429,7 @@ void Profiler::log_configuration(Machine &machine, Processor local) const {
   pr_fwrite(f, (char *)&(total_address_spaces), sizeof(total_address_spaces));
   constexpr unsigned version =
 #include "legion/tools/profiler_version.h"
-  ;
+      ;
   pr_fwrite(f, (char *)&(version), sizeof(version));
   Machine::ProcessInfo process_info;
   machine.get_process_info(local, &process_info);
