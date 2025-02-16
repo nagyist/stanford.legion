@@ -45,7 +45,7 @@ void VariantMapper::default_policy_rank_processor_kinds(MapperContext ctx,
   ranking[2] = Processor::IO_PROC;
   ranking[3] = Processor::LOC_PROC;
 }
-static void create_mappers(Machine machine, HighLevelRuntime *runtime, const std::set<Processor> &local_procs)
+static void create_mappers(Machine machine, Runtime *runtime, const std::set<Processor> &local_procs)
 {
   for (std::set<Processor>::const_iterator it = local_procs.begin();
         it != local_procs.end(); it++)
@@ -58,5 +58,5 @@ static void create_mappers(Machine machine, HighLevelRuntime *runtime, const std
 
 void register_mappers()
 {
-  HighLevelRuntime::add_registration_callback(create_mappers);
+  Runtime::add_registration_callback(create_mappers);
 }

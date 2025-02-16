@@ -77,7 +77,7 @@ LogicalRegion MiniAeroMapper::default_policy_select_instance_region(
   return req.region;
 }
 
-static void create_mappers(Machine machine, HighLevelRuntime *runtime,
+static void create_mappers(Machine machine, Runtime *runtime,
                            const std::set<Processor> &local_procs)
 {
   for (std::set<Processor>::const_iterator it = local_procs.begin();
@@ -91,5 +91,5 @@ static void create_mappers(Machine machine, HighLevelRuntime *runtime,
 
 void register_mappers()
 {
-  HighLevelRuntime::add_registration_callback(create_mappers);
+  Runtime::add_registration_callback(create_mappers);
 }
