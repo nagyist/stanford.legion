@@ -14,8 +14,6 @@
  */
 
 #include "prealm.h"
-// Need this so we know which version of legion prof we're working with
-#include "legion/legion_profiling_serializer.h"
 #include <zlib.h>
 // pr_fopen expects filename to be a std::string
 #define pr_fopen(filename, mode) gzopen(filename.c_str(), mode)
@@ -1429,7 +1427,9 @@ void Profiler::log_configuration(Machine &machine, Processor local) const {
   unsigned node_id = local.address_space();
   pr_fwrite(f, (char *)&(node_id), sizeof(node_id));
   pr_fwrite(f, (char *)&(total_address_spaces), sizeof(total_address_spaces));
-  unsigned version = LEGION_PROF_VERSION;
+  constexpr unsigned version =
+#include "legion/tools/profiler_version.h"
+  ;
   pr_fwrite(f, (char *)&(version), sizeof(version));
   Machine::ProcessInfo process_info;
   machine.get_process_info(local, &process_info);
