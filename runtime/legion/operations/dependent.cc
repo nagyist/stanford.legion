@@ -1998,7 +1998,8 @@ namespace Legion {
         mapper = runtime->find_mapper(
             parent_ctx->get_executing_processor(), map_id);
       Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
-      Mapper::SelectShardingFunctorOutput output;
+      Mapper::SelectShardingFunctorOutput output =
+        { std::numeric_limits<ShardingID>::max(), true };
       mapper->invoke_partition_select_sharding_functor(this, *input, output);
       if (output.chosen_functor == UINT_MAX)
         REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
