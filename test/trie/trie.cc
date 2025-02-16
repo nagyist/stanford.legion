@@ -19,7 +19,7 @@
 #include <set>
 #include <vector>
 
-#include <legion/trie.h>
+#include <legion/tracing/trie.h>
 
 using namespace Legion;
 using namespace Legion::Internal;
