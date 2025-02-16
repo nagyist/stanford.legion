@@ -44,7 +44,7 @@ namespace Legion {
         : DynamicTableNodeBase<IT>(_level, _first_index, _last_index) 
       { 
         for (size_t i = 0; i < SIZE; i++)
-          elems[i].store(NULL);
+          elems[i].store(nullptr);
       }
       DynamicTableNode(const DynamicTableNode &rhs) = delete;
       virtual ~DynamicTableNode(void)
@@ -52,7 +52,7 @@ namespace Legion {
         for (size_t i = 0; i < SIZE; i++)
         {
           ET *elem = elems[i].load();
-          if (elem != NULL)
+          if (elem != nullptr)
             delete elem;
         }
       }
@@ -71,7 +71,7 @@ namespace Legion {
         : DynamicTableNodeBase<IT>(_level, _first_index, _last_index) 
       { 
         for (size_t i = 0; i < SIZE; i++)
-          elems[i].store(NULL);
+          elems[i].store(nullptr);
       }
       LeafTableNode(const LeafTableNode &rhs) { assert(false); }
       virtual ~LeafTableNode(void)
@@ -79,7 +79,7 @@ namespace Legion {
         for (size_t i = 0; i < SIZE; i++)
         {
           ET *elem = elems[i].load();
-          if (elem != NULL)
+          if (elem != nullptr)
             delete elem;
         }
       }

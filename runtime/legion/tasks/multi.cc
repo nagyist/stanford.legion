@@ -46,20 +46,20 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PointwiseAnalyzable<CollectiveViewCreator<TaskOp> >::activate();
-      launch_space = NULL;
+      launch_space = nullptr;
       future_map_coordinate = 0;
-      future_handles = NULL;
+      future_handles = nullptr;
       internal_space = IndexSpace::NO_SPACE;
       sliced = false;
       redop = 0;
       deterministic_redop = false;
-      reduction_op = NULL;
-      serdez_redop_fns = NULL;
-      serdez_redop_state = NULL;
+      reduction_op = nullptr;
+      serdez_redop_fns = nullptr;
+      serdez_redop_state = nullptr;
       serdez_redop_state_size = 0;
-      reduction_metadata = NULL;
+      reduction_metadata = nullptr;
       reduction_metasize = 0;
-      reduction_instance = NULL;
+      reduction_instance = nullptr;
       concurrent_functor = 0;
       concurrent_points = 0;
       collective_lamport_clock = 0;
@@ -72,22 +72,22 @@ namespace Legion {
     void MultiTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->register_multi_task(this, task_id);
       PointwiseAnalyzable<CollectiveViewCreator<TaskOp> >::deactivate(freeop);
       if (remove_launch_space_reference(launch_space))
         delete launch_space;
-      if ((future_handles != NULL) && future_handles->remove_reference())
+      if ((future_handles != nullptr) && future_handles->remove_reference())
         delete future_handles;
       redop_initial_value = Future();
       // Remove our reference to the future map
       future_map = FutureMap();
-      if (reduction_instance != NULL)
+      if (reduction_instance != nullptr)
         delete reduction_instance.load();
       reduction_fold_effects.clear();
-      if (serdez_redop_state != NULL)
+      if (serdez_redop_state != nullptr)
         free(serdez_redop_state);
-      if (reduction_metadata != NULL)
+      if (reduction_metadata != nullptr)
         free(reduction_metadata);
       if (!temporary_futures.empty())
       {
@@ -134,7 +134,7 @@ namespace Legion {
         input.sharding_is = launch_space->handle;
       runtime->find_domain(internal_space, input.domain);
       output.verify_correctness = false;
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_slice_task(this, input, output);
       if (output.slices.empty())
@@ -242,7 +242,7 @@ namespace Legion {
         const bool done = (it == slices.end());
         // Dumb case for must epoch operations, we need these to 
         // be mapped immediately, mapper be damned
-        if (must_epoch != NULL)
+        if (must_epoch != nullptr)
         {
           TriggerTaskArgs trigger_args(slice);
           RtEvent done = runtime->issue_runtime_meta_task(trigger_args, 
@@ -283,8 +283,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(this->launch_space == NULL);
-      assert(this->future_handles == NULL);
+      assert(this->launch_space == nullptr);
+      assert(this->future_handles == nullptr);
 #endif
       this->clone_task_op_from(rhs, p, stealable, false/*duplicate*/);
       this->index_domain = rhs->index_domain;
@@ -292,7 +292,7 @@ namespace Legion {
       add_launch_space_reference(this->launch_space);
       this->future_map_coordinate = rhs->future_map_coordinate;
       this->future_handles = rhs->future_handles;
-      if (this->future_handles != NULL)
+      if (this->future_handles != nullptr)
         this->future_handles->add_reference();
       this->internal_space = is;
       this->future_map = rhs->future_map;
@@ -379,13 +379,13 @@ namespace Legion {
       else
       {
         // Not remote
-        if (must_epoch == NULL)
+        if (must_epoch == nullptr)
           premap_task();
         if (is_origin_mapped())
         {
           if (is_sliced())
           {
-            if (must_epoch == NULL)
+            if (must_epoch == nullptr)
               perform_mapping();
             else
               register_must_epoch();
@@ -433,7 +433,7 @@ namespace Legion {
       rez.serialize(redop);
       if (redop > 0)
         rez.serialize<bool>(deterministic_redop);
-      else if (future_handles != NULL)
+      else if (future_handles != nullptr)
       {
         // Only pack the IDs for our local points
         IndexSpaceNode *node = runtime->get_node(internal_space);
@@ -521,7 +521,7 @@ namespace Legion {
       IndexSpace launch_handle;
       derez.deserialize(launch_handle);
 #ifdef DEBUG_LEGION
-      assert(launch_space == NULL);
+      assert(launch_space == nullptr);
 #endif
       launch_space = runtime->get_node(launch_handle);
       add_launch_space_reference(launch_space);
@@ -541,7 +541,7 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        assert(future_handles == NULL);
+        assert(future_handles == nullptr);
 #endif
         size_t num_handles;
         derez.deserialize(num_handles);
@@ -611,14 +611,14 @@ namespace Legion {
     {
       // Apply the reduction operation
 #ifdef DEBUG_LEGION
-      assert(reduction_op != NULL);
+      assert(reduction_op != nullptr);
 #endif
       // Perform the reduction, see if we have to do serdez reductions
-      if (serdez_redop_fns != NULL)
+      if (serdez_redop_fns != nullptr)
       {
         // If this instance is not meta-visible we need to copy
         // it to a local buffer here
-        FutureInstance *bounce_instance = NULL;
+        FutureInstance *bounce_instance = nullptr;
         if (!instance->is_meta_visible)
         {
 #ifdef __GNUC__
@@ -653,25 +653,25 @@ namespace Legion {
         {
           AutoLock o_lock(op_lock);
           // See if we're the first one to get here
-          if (serdez_redop_state == NULL)
+          if (serdez_redop_state == nullptr)
             (*(serdez_redop_fns->init_fn))(reduction_op, serdez_redop_state,
                                            serdez_redop_state_size);
           (*(serdez_redop_fns->fold_fn))(reduction_op, serdez_redop_state,
                              serdez_redop_state_size, instance->get_data());
         }
-        if (bounce_instance != NULL)
+        if (bounce_instance != nullptr)
           delete bounce_instance;
         return true;
       }
       else
       {
 #ifdef DEBUG_LEGION
-        assert(reduction_instance != NULL); 
+        assert(reduction_instance != nullptr); 
 #endif
         if (effects.exists())
         {
           if (reduction_instance_precondition.exists())
-            effects = Runtime::merge_events(NULL, effects, 
+            effects = Runtime::merge_events(nullptr, effects, 
                 reduction_instance_precondition);
         }
         else
@@ -706,7 +706,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       MapperManager *bad_mapper = mapper;
-      if (bad_mapper == NULL)
+      if (bad_mapper == nullptr)
         bad_mapper = runtime->find_mapper(current_proc, map_id);
       // TODO: update this error message to name the bad points
       REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,

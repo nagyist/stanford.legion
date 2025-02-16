@@ -87,10 +87,10 @@ namespace Legion {
           // without our knowledge, but we need to preserve the correctness
           // of reference counting on PhysicalTraceRecorders, so just add
           // an extra reference here that we will remove when we're handled.
-          { if (rec != NULL) rec->add_recorder_reference(); }
+          { if (rec != nullptr) rec->add_recorder_reference(); }
       public:
         inline void remove_recorder_reference(void) const
-          { if ((rec != NULL) && rec->remove_recorder_reference()) delete rec; }
+          { if ((rec != nullptr) && rec->remove_recorder_reference()) delete rec; }
       public:
         CopyOp *const copy;
         const unsigned index;

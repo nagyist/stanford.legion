@@ -313,7 +313,7 @@ namespace Legion {
       RtUserEvent complete_pending_pause_mapper_call(void);
       RtUserEvent complete_pending_finish_mapper_call(void);
     protected:
-      // The one executing call if any otherwise NULL
+      // The one executing call if any otherwise nullptr
       MappingCallInfo *executing_call; 
       // Calls yet to start running
       std::deque<MappingCallInfo*> pending_calls; 
@@ -442,7 +442,7 @@ namespace Legion {
       void release_acquired_instance(InstanceManager *manager);
       bool perform_acquires(
           const std::vector<MappingInstance> &instances,
-          std::vector<unsigned> *to_erase = NULL, 
+          std::vector<unsigned> *to_erase = nullptr, 
           bool filter_acquired_instances = false);
       void start_profiling_range(void);
       void stop_profiling_range(const char *provenance);

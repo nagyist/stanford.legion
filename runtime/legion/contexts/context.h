@@ -54,7 +54,7 @@ namespace Legion {
                   const std::vector<OutputRequirement> &output_reqs,
                   DistributedID did, bool perform_registration,
                   bool inline_task, bool implicit_ctx = false,
-                  CollectiveMapping *mapping = NULL);
+                  CollectiveMapping *mapping = nullptr);
       virtual ~TaskContext(void);
     public:
       // This is used enough that we want it inlined
@@ -122,7 +122,7 @@ namespace Legion {
       virtual bool perform_semantic_attach(const char *func, unsigned kind,
           const void *arg, size_t arglen, SemanticTag tag, const void *buffer,
           size_t size, bool is_mutable, bool &global, 
-          const void *arg2 = NULL, size_t arg2len = 0);
+          const void *arg2 = nullptr, size_t arg2len = 0);
       virtual void post_semantic_attach(void);
     public:
       virtual RtEvent find_pointwise_dependence(uint64_t context_index,
@@ -500,7 +500,7 @@ namespace Legion {
                                   Provenance *provenance) = 0;
       virtual Future detach_resource(PhysicalRegion region, 
                                      const bool flush,const bool unordered,
-                                     Provenance *provenance = NULL) = 0;
+                                     Provenance *provenance = nullptr) = 0;
       virtual Future detach_resources(ExternalResources resources,
                                     const bool flush, const bool unordered,
                                     Provenance *provenance) = 0;
@@ -536,7 +536,7 @@ namespace Legion {
       virtual void wait_on_future_map(FutureMapImpl *map, RtEvent ready) = 0;
     public:
       // Override by RemoteTask and TopLevelTask
-      virtual InnerContext* find_top_context(InnerContext *previous = NULL) = 0;
+      virtual InnerContext* find_top_context(InnerContext *previous = nullptr) = 0;
     public:
       virtual void initialize_region_tree_contexts(
           const std::vector<RegionRequirement> &clone_requirements,
@@ -545,12 +545,12 @@ namespace Legion {
       virtual void invalidate_logical_context(void) = 0;
       virtual void invalidate_region_tree_contexts(const bool is_top_level_task,
                                       std::set<RtEvent> &applied,
-                                      const ShardMapping *mapping = NULL,
+                                      const ShardMapping *mapping = nullptr,
                                       ShardID source_shard = 0) = 0;
     public:
       virtual FutureInstance* create_task_local_future(Memory memory, 
           size_t size, bool silence_warnings = false, 
-          const char *warning_string = NULL) = 0;
+          const char *warning_string = nullptr) = 0;
       virtual PhysicalInstance create_task_local_instance(Memory memory,
                                       Realm::InstanceLayoutGeneric *layout) = 0;
       virtual void destroy_task_local_instance(PhysicalInstance instance,
@@ -569,7 +569,7 @@ namespace Legion {
       virtual RtEvent escape_task_local_instance(PhysicalInstance instance,
           RtEvent effects, size_t num_results, PhysicalInstance *results, 
           LgEvent *unique_events,
-          const Realm::InstanceLayoutGeneric **layouts = NULL);
+          const Realm::InstanceLayoutGeneric **layouts = nullptr);
       virtual void release_task_local_instances(ApEvent effects,
                                                 RtEvent safe_effects);
       FutureInstance* copy_to_future_inst(const void *value, size_t size);

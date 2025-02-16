@@ -394,7 +394,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       DomainT<DIM,T> is;                                                    \
@@ -414,7 +414,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       DomainT<DIM,T> is;                                                    \
@@ -434,7 +434,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       static_assert(std::is_same<PhysicalRegion,                            \
@@ -469,7 +469,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       static_assert(std::is_same<PhysicalRegion,                            \
@@ -505,7 +505,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -526,7 +526,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid), bounds(source_bounds)                                   \
     {                                                                       \
@@ -548,7 +548,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -593,7 +593,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid), bounds(source_bounds)                                   \
     {                                                                       \
@@ -1570,7 +1570,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       DomainT<DIM,T> is;                                                    \
@@ -1591,7 +1591,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       DomainT<DIM,T> is;                                                    \
@@ -1613,7 +1613,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       DomainT<M,T> is;                                                      \
@@ -1635,7 +1635,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       DomainT<M,T> is;                                                      \
@@ -1655,7 +1655,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       static_assert(std::is_same<PhysicalRegion,                            \
@@ -1696,7 +1696,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       static_assert(std::is_same<PhysicalRegion,                            \
@@ -1732,7 +1732,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       static_assert(std::is_same<PhysicalRegion,                            \
@@ -1769,7 +1769,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       static_assert(std::is_same<PhysicalRegion,                            \
@@ -1804,7 +1804,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -1827,7 +1827,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -1851,7 +1851,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -1875,7 +1875,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -1897,7 +1897,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -1950,7 +1950,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -1998,7 +1998,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -2047,7 +2047,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -2099,7 +2099,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       assert(!check_field_size || (actual_field_size == value.field_size())); \
@@ -2129,7 +2129,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       assert(!check_field_size || (actual_field_size == value.field_size())); \
@@ -2150,7 +2150,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       const Realm::RegionInstance instance = buffer.instance;               \
@@ -2168,7 +2168,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       const Realm::RegionInstance instance = buffer.instance;               \
@@ -2187,7 +2187,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       const Realm::RegionInstance instance = buffer.instance;               \
@@ -2206,7 +2206,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       const Realm::RegionInstance instance = buffer.instance;               \
@@ -2224,7 +2224,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       assert(!check_field_size || (actual_field_size == value.field_size())); \
@@ -2260,7 +2260,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       assert(!check_field_size || (actual_field_size == value.field_size())); \
@@ -2287,7 +2287,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       const Realm::RegionInstance instance = buffer.instance;               \
@@ -2306,7 +2306,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       const Realm::RegionInstance instance = buffer.instance;               \
@@ -2326,7 +2326,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       const Realm::RegionInstance instance = buffer.instance;               \
@@ -2346,7 +2346,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       const Realm::RegionInstance instance = buffer.instance;               \
@@ -2392,7 +2392,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t offset = 0)
     {
       const Realm::RegionInstance instance = 
@@ -2429,7 +2429,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t offset = 0)
     {
       const Realm::RegionInstance instance = 
@@ -2532,7 +2532,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t offset = 0)
     {
       const Realm::RegionInstance instance = 
@@ -2575,7 +2575,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t offset = 0)
     {
       const Realm::RegionInstance instance = 
@@ -2716,7 +2716,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t offset = 0)
     {
       const Realm::RegionInstance instance = 
@@ -2749,7 +2749,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t offset = 0)
     {
       const Realm::RegionInstance instance = 
@@ -2837,7 +2837,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t offset = 0)
     {
       const Realm::RegionInstance instance = 
@@ -2876,7 +2876,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t offset = 0)
     {
       const Realm::RegionInstance instance = 
@@ -4096,7 +4096,7 @@ namespace Legion {
 #define PHYSICAL_REGION_CONSTRUCTORS(DIM, FIELD_CHECK)                        \
     ReductionAccessor(const PhysicalRegion &region, FieldID fid,            \
                       ReductionOpID redop, bool silence_warnings = false,   \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4118,7 +4118,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4141,7 +4141,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const AffineTransform<M,DIM,T> transform,             \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4165,7 +4165,7 @@ namespace Legion {
                       const AffineTransform<M,DIM,T> transform,             \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4186,7 +4186,7 @@ namespace Legion {
     template<typename InputIterator>                                        \
     ReductionAccessor(InputIterator start, InputIterator stop, FieldID fid, \
                       ReductionOpID redop, bool silence_warnings = false,   \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4228,7 +4228,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4265,7 +4265,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const AffineTransform<M,DIM,T> transform,             \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4303,7 +4303,7 @@ namespace Legion {
                       const AffineTransform<M,DIM,T> transform,             \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4338,7 +4338,7 @@ namespace Legion {
 #define PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(DIM, FIELD_CHECK)            \
     ReductionAccessor(const PhysicalRegion &region, FieldID fid,            \
                       ReductionOpID redop, bool silence_warnings = false,   \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4362,7 +4362,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4387,7 +4387,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const AffineTransform<M,DIM,T> transform,             \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4413,7 +4413,7 @@ namespace Legion {
                       const AffineTransform<M,DIM,T> transform,             \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4436,7 +4436,7 @@ namespace Legion {
     template<typename InputIterator>                                        \
     ReductionAccessor(InputIterator start, InputIterator stop, FieldID fid, \
                       ReductionOpID redop, bool silence_warnings = false,   \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4490,7 +4490,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4539,7 +4539,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const AffineTransform<M,DIM,T> transform,             \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4589,7 +4589,7 @@ namespace Legion {
                       const AffineTransform<M,DIM,T> transform,             \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4636,7 +4636,7 @@ namespace Legion {
 #define DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS(DIM, FIELD_CHECK)        \
     ReductionAccessor(const UntypedDeferredValue &value,                    \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4666,7 +4666,7 @@ namespace Legion {
     ReductionAccessor(const UntypedDeferredValue &value,                    \
                       const Rect<DIM,T> &source_bounds,                     \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4687,7 +4687,7 @@ namespace Legion {
     }                                                                       \
     ReductionAccessor(const UntypedDeferredBuffer<T> &buffer,               \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4705,7 +4705,7 @@ namespace Legion {
     ReductionAccessor(const UntypedDeferredBuffer<T> &buffer,               \
                       const Rect<DIM,T> &source_bounds,                     \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4724,7 +4724,7 @@ namespace Legion {
     ReductionAccessor(const UntypedDeferredBuffer<T> &buffer,               \
                       const AffineTransform<M,DIM,T> &transform,            \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4743,7 +4743,7 @@ namespace Legion {
                       const AffineTransform<M,DIM,T> &transform,            \
                       const Rect<DIM,T> &source_bounds,                     \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4763,7 +4763,7 @@ namespace Legion {
 #define DEFERRED_VALUE_BUFFER_REDUCTION_CONSTRUCTORS_WITH_BOUNDS(DIM,FIELD_CHECK) \
     ReductionAccessor(const UntypedDeferredValue &value,                    \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4799,7 +4799,7 @@ namespace Legion {
     ReductionAccessor(const UntypedDeferredValue &value,                    \
                       const Rect<DIM,T> &source_bounds,                     \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4826,7 +4826,7 @@ namespace Legion {
     }                                                                       \
     ReductionAccessor(const UntypedDeferredBuffer<T> &buffer,               \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4845,7 +4845,7 @@ namespace Legion {
     ReductionAccessor(const UntypedDeferredBuffer<T> &buffer,               \
                       const Rect<DIM,T> &source_bounds,                     \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4865,7 +4865,7 @@ namespace Legion {
     ReductionAccessor(const UntypedDeferredBuffer<T> &buffer,               \
                       const AffineTransform<M,DIM,T> &transform,            \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -4885,7 +4885,7 @@ namespace Legion {
                       const AffineTransform<M,DIM,T> &transform,            \
                       const Rect<DIM,T> &source_bounds,                     \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -5264,7 +5264,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       DomainT<DIM,T> is;                                                    \
@@ -5285,7 +5285,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       DomainT<DIM,T> is;                                                    \
@@ -5306,7 +5306,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       static_assert(std::is_same<PhysicalRegion,                            \
@@ -5342,7 +5342,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
     {                                                                       \
       static_assert(std::is_same<PhysicalRegion,                            \
@@ -5377,7 +5377,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -5400,7 +5400,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -5423,7 +5423,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -5471,7 +5471,7 @@ namespace Legion {
                   size_t actual_field_size = sizeof(FT),                    \
                   bool check_field_size = FIELD_CHECK,                      \
                   bool silence_warnings = false,                            \
-                  const char *warning_string = NULL,                        \
+                  const char *warning_string = nullptr,                        \
                   size_t offset = 0)                                        \
       : field(fid)                                                          \
     {                                                                       \
@@ -5548,10 +5548,10 @@ namespace Legion {
         size_t strides[N];
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -5564,9 +5564,9 @@ namespace Legion {
       {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -5648,13 +5648,13 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_ONLY);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -5668,12 +5668,12 @@ namespace Legion {
         FT *result = accessor.prt(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_ONLY);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -5747,10 +5747,10 @@ namespace Legion {
         size_t strides[1];
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -5763,9 +5763,9 @@ namespace Legion {
       {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -5833,13 +5833,13 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_ONLY);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -5853,12 +5853,12 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_ONLY);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -5925,10 +5925,10 @@ namespace Legion {
         size_t strides[N];
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -5941,9 +5941,9 @@ namespace Legion {
       {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -6042,13 +6042,13 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6062,12 +6062,12 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -6158,10 +6158,10 @@ namespace Legion {
         size_t strides[1];
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6174,9 +6174,9 @@ namespace Legion {
       {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -6261,13 +6261,13 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6281,12 +6281,12 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -6366,10 +6366,10 @@ namespace Legion {
         size_t strides[N];
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6382,9 +6382,9 @@ namespace Legion {
       {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -6477,13 +6477,13 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6497,12 +6497,12 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -6580,10 +6580,10 @@ namespace Legion {
         size_t strides[1];
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6596,9 +6596,9 @@ namespace Legion {
       {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -6677,13 +6677,13 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6697,12 +6697,12 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -6764,10 +6764,10 @@ namespace Legion {
         size_t strides[N];
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6780,9 +6780,9 @@ namespace Legion {
       {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -6863,13 +6863,13 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6883,12 +6883,12 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -6961,10 +6961,10 @@ namespace Legion {
         size_t strides[1];
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -6977,9 +6977,9 @@ namespace Legion {
       {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -7046,13 +7046,13 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -7066,12 +7066,12 @@ namespace Legion {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_READ_WRITE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -7106,7 +7106,7 @@ namespace Legion {
 #define PHYSICAL_REGION_CONSTRUCTORS(DIM, FIELD_CHECK)                        \
     ReductionAccessor(const PhysicalRegion &region, FieldID fid,            \
                       ReductionOpID redop, bool silence_warnings = false,   \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -7129,7 +7129,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -7151,7 +7151,7 @@ namespace Legion {
     template<typename InputIterator>                                        \
     ReductionAccessor(InputIterator start, InputIterator stop, FieldID fid, \
                       ReductionOpID redop, bool silence_warnings = false,   \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -7190,7 +7190,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -7227,7 +7227,7 @@ namespace Legion {
 #define PHYSICAL_REGION_CONSTRUCTORS_WITH_BOUNDS(DIM, FIELD_CHECK)            \
     ReductionAccessor(const PhysicalRegion &region, FieldID fid,            \
                       ReductionOpID redop, bool silence_warnings = false,   \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = false)                        \
@@ -7252,7 +7252,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -7276,7 +7276,7 @@ namespace Legion {
     template<typename InputIterator>                                        \
     ReductionAccessor(InputIterator start, InputIterator stop, FieldID fid, \
                       ReductionOpID redop, bool silence_warnings = false,   \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = false)                        \
@@ -7326,7 +7326,7 @@ namespace Legion {
                       ReductionOpID redop,                                  \
                       const Rect<DIM,T> source_bounds,                      \
                       bool silence_warnings = false,                        \
-                      const char *warning_string = NULL,                    \
+                      const char *warning_string = nullptr,                    \
                       size_t offset = 0,                                    \
                       size_t actual_field_size=sizeof(typename REDOP::RHS), \
                       bool check_field_size = FIELD_CHECK)                  \
@@ -7406,10 +7406,10 @@ namespace Legion {
         size_t strides[N];
         typename REDOP::RHS *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -7423,9 +7423,9 @@ namespace Legion {
       {
         typename REDOP::RHS *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -7512,13 +7512,13 @@ namespace Legion {
         typename REDOP::RHS *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_REDUCE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -7533,12 +7533,12 @@ namespace Legion {
         typename REDOP::RHS *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, 
                                             LEGION_REDUCE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -7611,10 +7611,10 @@ namespace Legion {
         size_t strides[1];
         typename REDOP::RHS *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -7628,9 +7628,9 @@ namespace Legion {
       {
         typename REDOP::RHS *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -7704,12 +7704,12 @@ namespace Legion {
         typename REDOP::RHS *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, LEGION_REDUCE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -7724,11 +7724,11 @@ namespace Legion {
         typename REDOP::RHS *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         assert(bounds.contains_all(r));
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         if (!bounds.contains_all(r)) 
           PhysicalRegion::fail_bounds_check(Domain(r), field, LEGION_REDUCE);
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         strides[0] /= field_size;
@@ -7781,13 +7781,13 @@ namespace Legion {
                     bool check_field_size = false,
 #endif
                     bool silence_warnings = false,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     size_t offset = 0)
       {
         Domain outer_bounds;
         const Realm::RegionInstance instance =
           region.get_padding_info(fid, actual_field_size,
-              NULL/*inner*/, outer_bounds, warning_string,
+              nullptr/*inner*/, outer_bounds, warning_string,
               silence_warnings, true/*generic*/, check_field_size);
         const Rect<N,T> bounds = outer_bounds;
         if (!Realm::GenericAccessor<FT,N,T>::is_compatible(instance, fid, 
@@ -7849,7 +7849,7 @@ namespace Legion {
                     bool check_field_size = false,
 #endif
                     bool silence_warnings = false,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     size_t offset = 0) : field(fid)
       {
         Domain inner_bounds, outer_bounds;
@@ -7924,13 +7924,13 @@ namespace Legion {
                     bool check_field_size = false,
 #endif
                     bool silence_warnings = false,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     size_t offset = 0)
       {
         Domain outer_bounds;
         const Realm::RegionInstance instance =
           region.get_padding_info(fid, actual_field_size,
-              NULL/*inner*/, outer_bounds, warning_string,
+              nullptr/*inner*/, outer_bounds, warning_string,
               silence_warnings, true/*generic*/, check_field_size);
         const Rect<1,T> bounds = outer_bounds;
         if (!Realm::GenericAccessor<FT,1,T>::is_compatible(instance, fid, 
@@ -7980,7 +7980,7 @@ namespace Legion {
                     bool check_field_size = false,
 #endif
                     bool silence_warnings = false,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     size_t offset = 0) : field(fid)
       {
         Domain inner_bounds, outer_bounds;
@@ -8051,13 +8051,13 @@ namespace Legion {
                     bool check_field_size = false,
 #endif
                     bool silence_warnings = false,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     size_t offset = 0)
       {
         Domain outer_bounds;
         const Realm::RegionInstance instance =
           region.get_padding_info(fid, actual_field_size,
-              NULL/*inner*/, outer_bounds, warning_string,
+              nullptr/*inner*/, outer_bounds, warning_string,
               silence_warnings, false/*generic*/, check_field_size);
         const Rect<N,T> bounds = outer_bounds;
         if (!Realm::AffineAccessor<FT,N,T>::is_compatible(instance, fid, 
@@ -8145,7 +8145,7 @@ namespace Legion {
                     bool check_field_size = false,
 #endif
                     bool silence_warnings = false,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     size_t offset = 0) : field(fid)
       {
         Domain inner_bounds, outer_bounds;
@@ -8308,13 +8308,13 @@ namespace Legion {
                     bool check_field_size = false,
 #endif
                     bool silence_warnings = false,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     size_t offset = 0)
       {
         Domain outer_bounds;
         const Realm::RegionInstance instance =
           region.get_padding_info(fid, actual_field_size,
-              NULL/*inner*/, outer_bounds, warning_string,
+              nullptr/*inner*/, outer_bounds, warning_string,
               silence_warnings, false/*generic*/, check_field_size);
         const Rect<1,T> bounds = outer_bounds;
         if (!Realm::AffineAccessor<FT,1,T>::is_compatible(instance, fid, 
@@ -8388,7 +8388,7 @@ namespace Legion {
                     bool check_field_size = false,
 #endif
                     bool silence_warnings = false,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     size_t offset = 0) : field(fid)
       {
         Domain inner_bounds, outer_bounds;
@@ -8545,7 +8545,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -8588,7 +8588,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -8632,7 +8632,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -8672,7 +8672,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -8799,7 +8799,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -8842,7 +8842,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -8886,7 +8886,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -8926,7 +8926,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -9048,7 +9048,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -9089,7 +9089,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -9129,7 +9129,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -9166,7 +9166,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -9246,7 +9246,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -9287,7 +9287,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -9327,7 +9327,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -9364,7 +9364,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -9439,7 +9439,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -9486,7 +9486,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -9533,7 +9533,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -9584,7 +9584,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -9632,7 +9632,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -9673,7 +9673,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -9715,7 +9715,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -9762,7 +9762,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -9953,7 +9953,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -9999,7 +9999,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -10045,7 +10045,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -10096,7 +10096,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -10144,7 +10144,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -10185,7 +10185,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -10227,7 +10227,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -10274,7 +10274,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -10459,7 +10459,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -10505,7 +10505,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -10551,7 +10551,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -10602,7 +10602,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -10650,7 +10650,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -10691,7 +10691,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -10733,7 +10733,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -10780,7 +10780,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -10938,7 +10938,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -10984,7 +10984,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -11030,7 +11030,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -11081,7 +11081,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -11129,7 +11129,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -11170,7 +11170,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -11212,7 +11212,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -11259,7 +11259,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -11409,7 +11409,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -11449,7 +11449,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -11489,7 +11489,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -11534,7 +11534,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -11575,7 +11575,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -11611,7 +11611,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -11648,7 +11648,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -11690,7 +11690,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -11777,7 +11777,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -11817,7 +11817,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -11857,7 +11857,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -11902,7 +11902,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -11943,7 +11943,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -11979,7 +11979,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -12016,7 +12016,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -12058,7 +12058,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -12143,7 +12143,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -12192,7 +12192,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -12240,7 +12240,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -12284,7 +12284,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -12477,7 +12477,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -12525,7 +12525,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -12572,7 +12572,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -12615,7 +12615,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -12799,7 +12799,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -12848,7 +12848,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -12896,7 +12896,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -12940,7 +12940,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -13098,7 +13098,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -13146,7 +13146,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid)
     {
@@ -13193,7 +13193,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -13236,7 +13236,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
       : field(fid), total_regions(regions.size())
     {
@@ -13385,7 +13385,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -13428,7 +13428,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -13470,7 +13470,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -13509,7 +13509,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -13597,7 +13597,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -13639,7 +13639,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (start == stop)
@@ -13680,7 +13680,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -13718,7 +13718,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       if (regions.empty())
@@ -13799,7 +13799,7 @@ namespace Legion {
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
 
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<N,T> is;
@@ -13851,7 +13851,7 @@ namespace Legion {
     UnsafeFieldAccessor(void) { }
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<1,T> is;
@@ -13900,7 +13900,7 @@ namespace Legion {
     UnsafeFieldAccessor(void) { }
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<N,T> is;
@@ -13919,7 +13919,7 @@ namespace Legion {
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         const Rect<N,T> source_bounds,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<N,T> is;
@@ -13939,7 +13939,7 @@ namespace Legion {
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         const AffineTransform<M,N,T> transform,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<M,T> is;
@@ -13960,7 +13960,7 @@ namespace Legion {
                         const AffineTransform<M,N,T> transform,
                         const Rect<N,T> source_bounds,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<M,T> is;
@@ -14041,7 +14041,7 @@ namespace Legion {
     UnsafeFieldAccessor(void) { }
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<1,T> is;
@@ -14060,7 +14060,7 @@ namespace Legion {
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         const Rect<1,T> source_bounds,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<1,T> is;
@@ -14080,7 +14080,7 @@ namespace Legion {
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         const AffineTransform<M,1,T> transform,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<M,T> is;
@@ -14101,7 +14101,7 @@ namespace Legion {
                         const AffineTransform<M,1,T> transform,
                         const Rect<1,T> source_bounds,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<M,T> is;
@@ -14174,7 +14174,7 @@ namespace Legion {
     UnsafeFieldAccessor(void) { }
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<N,T> is;
@@ -14194,7 +14194,7 @@ namespace Legion {
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         const Rect<N,T> source_bounds,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<N,T> is;
@@ -14232,10 +14232,10 @@ namespace Legion {
         size_t strides[N];
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
         assert(Internal::is_dense_layout(r, strides, field_size));
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
         if (!Internal::is_dense_layout(r, strides, field_size))
           PhysicalRegion::fail_nondense_rect();
@@ -14248,9 +14248,9 @@ namespace Legion {
       {
         FT *result = accessor.ptr(r, strides);
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
-        if (result == NULL)
+        if (result == nullptr)
           PhysicalRegion::fail_rect_piece();
 #endif
         for (int i = 0; i < N; i++)
@@ -14288,7 +14288,7 @@ namespace Legion {
     UnsafeFieldAccessor(void) { }
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<1,T> is;
@@ -14308,7 +14308,7 @@ namespace Legion {
     UnsafeFieldAccessor(const PhysicalRegion &region, FieldID fid,
                         const Rect<1,T> source_bounds,
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t offset = 0)
     {
       DomainT<1,T> is;

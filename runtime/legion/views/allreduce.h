@@ -138,7 +138,7 @@ namespace Legion {
                                 std::set<RtEvent> &applied_events,
                                 std::vector<ApEvent> &instance_events,
                     std::vector<std::vector<CopySrcDstField> > &local_fields,
-                                std::vector<ApEvent> *reduced = NULL);
+                                std::vector<ApEvent> *reduced = nullptr);
       void initialize_allreduce_without_reductions(
                                 ApEvent precondition, PredEvent predicate_guard,
                                 Operation *op, unsigned index,
@@ -167,7 +167,7 @@ namespace Legion {
                                 const PhysicalTraceInfo &trace_info,
                                 std::set<RtEvent> &recorded_events,
                                 const std::vector<ApEvent> &instance_events,
-                                std::vector<ApEvent> *broadcast = NULL,
+                                std::vector<ApEvent> *broadcast = nullptr,
                                 const unsigned final_index = 0);
       void finalize_allreduce_without_broadcasts(PredEvent predicate_guard,
                                 Operation *op, unsigned index,
@@ -221,10 +221,10 @@ namespace Legion {
                         const CollectiveKind collective_kind,
                         std::vector<ApEvent> &reduced_events,
                         std::set<RtEvent> &applied_events,
-                        std::set<RtEvent> *recorded_events = NULL,
+                        std::set<RtEvent> *recorded_events = nullptr,
                         const bool prepare_allreduce = false,
                         std::vector<std::vector<
-                              CopySrcDstField> > *src_fields = NULL);
+                              CopySrcDstField> > *src_fields = nullptr);
     public:
       static void handle_send_allreduce_view(Deserializer &derez);
       static void handle_distribute_reduction(

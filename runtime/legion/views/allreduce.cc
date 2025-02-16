@@ -77,7 +77,7 @@ namespace Legion {
         rez.serialize<size_t>(instances.size());
         rez.serialize(&instances.front(), 
             instances.size() * sizeof(DistributedID));
-        if (collective_mapping != NULL)
+        if (collective_mapping != nullptr)
           collective_mapping->pack(rez);
         else
           rez.serialize<size_t>(0);
@@ -102,7 +102,7 @@ namespace Legion {
       derez.deserialize(&instances.front(), num_insts * sizeof(DistributedID));
       size_t num_spaces;
       derez.deserialize(num_spaces);
-      CollectiveMapping *mapping = NULL;
+      CollectiveMapping *mapping = nullptr;
       if (num_spaces > 0)
       {
         mapping = new CollectiveMapping(derez, num_spaces);
@@ -117,7 +117,7 @@ namespace Legion {
           no_views, instances, false/*register now*/, mapping, redop);
       // Register only after construction
       view->register_with_runtime();
-      if ((mapping != NULL) && mapping->remove_reference())
+      if ((mapping != nullptr) && mapping->remove_reference())
         delete mapping;
     }
 
@@ -143,10 +143,10 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(redop > 0);
-      assert(op != NULL);
+      assert(op != nullptr);
       assert(result.exists());
       assert(!local_views.empty());
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
       assert(collective_mapping->contains(local_space));
 #endif
       unsigned target_index = 0;
@@ -319,10 +319,10 @@ namespace Legion {
       assert(!local_views.empty());
       assert(!prepare_allreduce || 
           (reduced_events.size() == local_views.size()));
-      assert(prepare_allreduce == (source_fields != NULL));
+      assert(prepare_allreduce == (source_fields != nullptr));
       assert(!prepare_allreduce ||
           (source_fields->size() == local_views.size()));
-      assert(prepare_allreduce == (recorded_events == NULL));
+      assert(prepare_allreduce == (recorded_events == nullptr));
 #endif
       if (local_views.size() == 1)
         return;
@@ -347,10 +347,10 @@ namespace Legion {
         }
         ApEvent *local_events = &reduced_events[reduced_events_offset];
         local_events[dst_index] = precondition;
-        initialized[dst_index] = (source_fields != NULL);
+        initialized[dst_index] = (source_fields != nullptr);
         std::vector<std::vector<CopySrcDstField> > fields(local_views.size());
         std::vector<std::vector<CopySrcDstField> > &local_fields =
-          (source_fields != NULL) ? *source_fields : fields;
+          (source_fields != nullptr) ? *source_fields : fields;
         std::map<unsigned,std::vector<Reservation> > local_reservations;
         std::map<unsigned,std::vector<ApEvent> > reduction_preconditions;
         local_reservations[dst_index] = dst_reservations;
@@ -647,9 +647,9 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(redop > 0);
-      assert(op != NULL);
+      assert(op != nullptr);
       assert(!local_views.empty());
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
       assert(collective_mapping->contains(local_space));
 #endif
       // Distribute out to the other nodes first
@@ -852,8 +852,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(redop > 0);
-      assert(op != NULL);
-      assert(collective_mapping != NULL);
+      assert(op != nullptr);
+      assert(collective_mapping != nullptr);
       assert(collective_mapping->contains(local_space));
 #endif
       // We're guaranteed to get one call to this function for each space
@@ -1527,7 +1527,7 @@ namespace Legion {
             copy_mask, reduce_pre, predicate_guard, local_fields.front(),
             reservations.front(), dst_inst, trace_info,
             COLLECTIVE_BUTTERFLY_ALLREDUCE, instance_events, applied_events,
-            NULL/*recorded events*/, true/*allreduce*/, &local_fields);
+            nullptr/*recorded events*/, true/*allreduce*/, &local_fields);
         // We also need to populate the reservations here since the 
         // reduce_local method will not do that for us
         for (unsigned idx = 1; idx < local_views.size(); idx++)
@@ -1551,7 +1551,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ApEvent reduce_post;
-      if (reduced != NULL)
+      if (reduced != nullptr)
       {
         for (unsigned idx = 1; idx < instance_events.size(); idx++)
           if (instance_events[idx].exists())
@@ -1659,7 +1659,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ApEvent broadcast_post;
-      if (broadcast != NULL)
+      if (broadcast != nullptr)
       {
         for (unsigned idx = 0; idx < instance_events.size(); idx++)
           if ((idx != final_index) && instance_events[idx].exists())
@@ -1708,7 +1708,7 @@ namespace Legion {
             applied_events, instance_events, local_fields, final_index);
         complete_finalize_allreduce_with_broadcasts(op, index,
             copy_expression, copy_mask, trace_info, recorded_events,
-            instance_events, NULL/*broadcast events*/, final_index);
+            instance_events, nullptr/*broadcast events*/, final_index);
       }
     }
 
@@ -1949,8 +1949,8 @@ namespace Legion {
       }
       RtUserEvent applied;
       ApUserEvent to_trigger;
-      PhysicalTraceInfo *trace_info = NULL;
-      IndexSpaceExpression *copy_expression = NULL;
+      PhysicalTraceInfo *trace_info = nullptr;
+      IndexSpaceExpression *copy_expression = nullptr;
       {
         // Retake the lock and see if we're the last arrival
         AutoLock v_lock(view_lock);
@@ -1996,7 +1996,7 @@ namespace Legion {
       assert(applied_events.empty());
 #endif
       delete trace_info;
-      if ((copy_expression != NULL) &&
+      if ((copy_expression != nullptr) &&
           copy_expression->remove_nested_expression_reference(this->did))
         delete copy_expression;
     }

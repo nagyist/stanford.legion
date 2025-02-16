@@ -41,7 +41,7 @@ namespace Legion {
         // Don't support checking initialized for simultaneous because of
         // must epoch operations which need a total order on mapping points
         check_initialized(check && !IS_WRITE_DISCARD(usage) &&
-            !IS_SIMULT(usage)), record_valid(record), output_aggregator(NULL)
+            !IS_SIMULT(usage)), record_valid(record), output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -62,7 +62,7 @@ namespace Legion {
           std::move(source_vws), info, mapping, first_local, IS_WRITE(use)),
         usage(use), precondition(pre), term_event(term),
         check_initialized(check), record_valid(record),
-        output_aggregator(NULL), remote_user_registered(user_reg)
+        output_aggregator(nullptr), remote_user_registered(user_reg)
     //--------------------------------------------------------------------------
     {
     }
@@ -178,7 +178,7 @@ namespace Legion {
           // We only need to pack the collective mapping once when going
           // from the origin space to the next space
           CollectiveMapping *mapping = get_replicated_mapping();
-          if ((mapping != NULL) && (original_source == runtime->address_space))
+          if ((mapping != nullptr) && (original_source == runtime->address_space))
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
@@ -317,7 +317,7 @@ namespace Legion {
           !perform_precondition.has_triggered())
         return defer_output(perform_precondition, trace_info,
             false/*track*/, applied_events);
-      if (output_aggregator != NULL)
+      if (output_aggregator != nullptr)
       {
         output_aggregator->issue_updates(trace_info, term_event,
                                          true/*restricted output*/);
@@ -340,7 +340,7 @@ namespace Legion {
       size_t num_eq_sets;
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
-      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, NULL);
+      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
       LegionVector<FieldMask> eq_masks(num_eq_sets);
       FieldMask user_mask;
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
@@ -406,8 +406,8 @@ namespace Legion {
       size_t collective_mapping_size;
       derez.deserialize(collective_mapping_size);
       CollectiveMapping *collective_mapping = ((collective_mapping_size) > 0) ?
-        new CollectiveMapping(derez, collective_mapping_size) : NULL;
-      if (collective_mapping != NULL)
+        new CollectiveMapping(derez, collective_mapping_size) : nullptr;
+      if (collective_mapping != nullptr)
         derez.deserialize<bool>(first_local);
       ApEvent precondition;
       derez.deserialize(precondition);

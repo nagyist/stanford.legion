@@ -3459,7 +3459,7 @@ legion_future_map_reduce(legion_runtime_t runtime_,
     deterministic,
     map_id,
     tag,
-    NULL,
+    nullptr,
     initial_value);
 }
 
@@ -6066,7 +6066,7 @@ legion_attach_launcher_attach_hdf5(legion_attach_launcher_t handle_,
   handle->initialize_constraints(true/*column major*/, true/*soa*/, fields); 
   handle->field_files = *field_map;
 
-  if (handle->external_resource != NULL)
+  if (handle->external_resource != nullptr)
     delete const_cast<Realm::ExternalInstanceResource*>(handle->external_resource);
 #ifdef LEGION_USE_HDF5
   handle->external_resource =
@@ -6111,7 +6111,7 @@ legion_attach_launcher_destroy(legion_attach_launcher_t handle_)
   AttachLauncher *handle = CObjectWrapper::unwrap(handle_);
 
   // Destroy the external resource if there is one
-  if (handle->external_resource != NULL)
+  if (handle->external_resource != nullptr)
     delete const_cast<Realm::ExternalInstanceResource*>(handle->external_resource);
 
   delete handle;
@@ -6142,7 +6142,7 @@ legion_attach_launcher_add_cpu_soa_field(legion_attach_launcher_t launcher_,
   launcher->initialize_constraints(column_major, true/*soa*/, fields);
   launcher->privilege_fields.insert(fid);
 
-  if (launcher->external_resource != NULL)
+  if (launcher->external_resource != nullptr)
     delete const_cast<Realm::ExternalInstanceResource*>(launcher->external_resource);
   launcher->external_resource =
     new Realm::ExternalMemoryResource(base_ptr, 0/*no idea how big it is*/);
@@ -6651,7 +6651,7 @@ legion_shard_id_t
 legion_runtime_local_shard_without_context(void)
 {
   Context ctx = Runtime::get_context();
-  if (ctx == NULL)
+  if (ctx == nullptr)
     return 0; // no shard if we're not inside a task
   Runtime *runtime = Runtime::get_runtime();
   const Task *task = runtime->get_local_task(ctx);
@@ -6891,7 +6891,7 @@ legion_physical_region_get_field_accessor_array_1d_with_transform(
   PhysicalRegion *handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<char,1,coord_t,Realm::AffineAccessor<char,1,coord_t> >
-    *accessor = NULL;
+    *accessor = nullptr;
   assert(domtrans.transform.n == 1);
   switch (domtrans.transform.m)
   {
@@ -6923,7 +6923,7 @@ legion_physical_region_get_field_accessor_array_2d_with_transform(
   PhysicalRegion *handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<char,2,coord_t,Realm::AffineAccessor<char,2,coord_t> >
-    *accessor = NULL;
+    *accessor = nullptr;
   assert(domtrans.transform.n == 2);
   switch (domtrans.transform.m)
   {
@@ -6955,7 +6955,7 @@ legion_physical_region_get_field_accessor_array_3d_with_transform(
   PhysicalRegion *handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<char,3,coord_t,Realm::AffineAccessor<char,3,coord_t> >
-    *accessor = NULL;
+    *accessor = nullptr;
   assert(domtrans.transform.n == 3);
   switch (domtrans.transform.m)
   {
@@ -6987,7 +6987,7 @@ legion_physical_region_get_field_accessor_array_4d_with_transform(
   PhysicalRegion *handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<char,4,coord_t,Realm::AffineAccessor<char,4,coord_t> >
-    *accessor = NULL;
+    *accessor = nullptr;
   assert(domtrans.transform.n == 4);
   switch (domtrans.transform.m)
   {
@@ -7019,7 +7019,7 @@ legion_physical_region_get_field_accessor_array_5d_with_transform(
   PhysicalRegion *handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<char,5,coord_t,Realm::AffineAccessor<char,5,coord_t> >
-    *accessor = NULL;
+    *accessor = nullptr;
   assert(domtrans.transform.n == 5);
   switch (domtrans.transform.m)
   {
@@ -7051,7 +7051,7 @@ legion_physical_region_get_field_accessor_array_6d_with_transform(
   PhysicalRegion *handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<char,6,coord_t,Realm::AffineAccessor<char,6,coord_t> >
-    *accessor = NULL;
+    *accessor = nullptr;
   assert(domtrans.transform.n == 6);
   switch (domtrans.transform.m)
   {
@@ -7083,7 +7083,7 @@ legion_physical_region_get_field_accessor_array_7d_with_transform(
   PhysicalRegion *handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<char,7,coord_t,Realm::AffineAccessor<char,7,coord_t> >
-    *accessor = NULL;
+    *accessor = nullptr;
   assert(domtrans.transform.n == 7);
   switch (domtrans.transform.m)
   {
@@ -7115,7 +7115,7 @@ legion_physical_region_get_field_accessor_array_8d_with_transform(
   PhysicalRegion *handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<char,8,coord_t,Realm::AffineAccessor<char,8,coord_t> >
-    *accessor = NULL;
+    *accessor = nullptr;
   assert(domtrans.transform.n == 8);
   switch (domtrans.transform.m)
   {
@@ -7147,7 +7147,7 @@ legion_physical_region_get_field_accessor_array_9d_with_transform(
   PhysicalRegion *handle = CObjectWrapper::unwrap(handle_);
   DomainAffineTransform domtrans = CObjectWrapper::unwrap(transform_);
   UnsafeFieldAccessor<char,9,coord_t,Realm::AffineAccessor<char,9,coord_t> >
-    *accessor = NULL;
+    *accessor = nullptr;
   assert(domtrans.transform.n == 9);
   switch (domtrans.transform.m)
   {
@@ -7292,7 +7292,7 @@ legion_mappable_as_task(legion_mappable_t mappable_)
 {
   Mappable *mappable = CObjectWrapper::unwrap(mappable_);
   Task* task = const_cast<Task*>(mappable->as_task());
-  assert(task != NULL);
+  assert(task != nullptr);
 
   return CObjectWrapper::wrap(task);
 }
@@ -7302,7 +7302,7 @@ legion_mappable_as_copy(legion_mappable_t mappable_)
 {
   Mappable *mappable = CObjectWrapper::unwrap(mappable_);
   Copy* copy = const_cast<Copy*>(mappable->as_copy());
-  assert(copy != NULL);
+  assert(copy != nullptr);
 
   return CObjectWrapper::wrap(copy);
 }
@@ -7312,7 +7312,7 @@ legion_mappable_as_fill(legion_mappable_t mappable_)
 {
   Mappable *mappable = CObjectWrapper::unwrap(mappable_);
   Fill* fill = const_cast<Fill*>(mappable->as_fill());
-  assert(fill != NULL);
+  assert(fill != nullptr);
 
   return CObjectWrapper::wrap(fill);
 }
@@ -7322,7 +7322,7 @@ legion_mappable_as_inline_mapping(legion_mappable_t mappable_)
 {
   Mappable *mappable = CObjectWrapper::unwrap(mappable_);
   InlineMapping* mapping = const_cast<InlineMapping*>(mappable->as_inline());
-  assert(mapping != NULL);
+  assert(mapping != nullptr);
 
   return CObjectWrapper::wrap(mapping);
 }
@@ -8231,8 +8231,8 @@ legion_runtime_preregister_projection_functor(
   FunctorWrapper *functor =
     new FunctorWrapper(exclusive, true, depth,
                        region_functor, partition_functor,
-                       NULL, NULL,
-                       NULL, NULL);
+                       nullptr, nullptr,
+                       nullptr, nullptr);
   Runtime::preregister_projection_functor(id, functor);
 }
 
@@ -8246,9 +8246,9 @@ legion_runtime_preregister_projection_functor_args(
 {
   FunctorWrapper *functor =
     new FunctorWrapper(exclusive, true, depth,
-                       NULL, NULL,
+                       nullptr, nullptr,
                        region_functor, partition_functor,
-                       NULL, NULL);
+                       nullptr, nullptr);
   Runtime::preregister_projection_functor(id, functor);
 }
 
@@ -8262,8 +8262,8 @@ legion_runtime_preregister_projection_functor_mappable(
 {
   FunctorWrapper *functor =
     new FunctorWrapper(exclusive, false, depth,
-                       NULL, NULL,
-                       NULL, NULL,
+                       nullptr, nullptr,
+                       nullptr, nullptr,
                        region_functor, partition_functor);
   Runtime::preregister_projection_functor(id, functor);
 }
@@ -8282,8 +8282,8 @@ legion_runtime_register_projection_functor(
   FunctorWrapper *functor =
     new FunctorWrapper(runtime, exclusive, true, depth,
                        region_functor, partition_functor,
-                       NULL, NULL,
-                       NULL, NULL);
+                       nullptr, nullptr,
+                       nullptr, nullptr);
   runtime->register_projection_functor(id, functor);
 }
 
@@ -8300,9 +8300,9 @@ legion_runtime_register_projection_functor_args(
 
   FunctorWrapper *functor =
     new FunctorWrapper(runtime, exclusive, true, depth,
-                       NULL, NULL,
+                       nullptr, nullptr,
                        region_functor, partition_functor,
-                       NULL, NULL);
+                       nullptr, nullptr);
   runtime->register_projection_functor(id, functor);
 }
 
@@ -8319,8 +8319,8 @@ legion_runtime_register_projection_functor_mappable(
 
   FunctorWrapper *functor =
     new FunctorWrapper(runtime, exclusive, false, depth,
-                       NULL, NULL,
-                       NULL, NULL,
+                       nullptr, nullptr,
+                       nullptr, nullptr,
                        region_functor, partition_functor);
   runtime->register_projection_functor(id, functor);
 }
@@ -8449,8 +8449,8 @@ legion_task_id_t
 legion_runtime_register_task_variant_fnptr(
   legion_runtime_t runtime_,
   legion_task_id_t id /* = AUTO_GENERATE_ID */,
-  const char *task_name /* = NULL*/,
-  const char *variant_name /* = NULL*/,
+  const char *task_name /* = nullptr*/,
+  const char *variant_name /* = nullptr*/,
   bool global,
   legion_execution_constraint_set_t execution_constraints_,
   legion_task_layout_constraint_set_t layout_constraints_,
@@ -8493,8 +8493,8 @@ legion_task_id_t
 legion_runtime_preregister_task_variant_fnptr(
   legion_task_id_t id /* = AUTO_GENERATE_ID */,
   legion_variant_id_t variant_id /* = AUTO_GENERATE_ID */,
-  const char *task_name /* = NULL*/,
-  const char *variant_name /* = NULL*/,
+  const char *task_name /* = nullptr*/,
+  const char *variant_name /* = nullptr*/,
   legion_execution_constraint_set_t execution_constraints_,
   legion_task_layout_constraint_set_t layout_constraints_,
   legion_task_config_options_t options,
@@ -8534,7 +8534,7 @@ legion_task_id_t
 legion_runtime_register_task_variant_llvmir(
   legion_runtime_t runtime_,
   legion_task_id_t id /* = AUTO_GENERATE_ID */,
-  const char *task_name /* = NULL*/,
+  const char *task_name /* = nullptr*/,
   bool global,
   legion_execution_constraint_set_t execution_constraints_,
   legion_task_layout_constraint_set_t layout_constraints_,
@@ -8578,7 +8578,7 @@ legion_task_id_t
 legion_runtime_preregister_task_variant_llvmir(
   legion_task_id_t id /* = AUTO_GENERATE_ID */,
   legion_variant_id_t variant_id /* = AUTO_GENERATE_ID */,
-  const char *task_name /* = NULL*/,
+  const char *task_name /* = nullptr*/,
   legion_execution_constraint_set_t execution_constraints_,
   legion_task_layout_constraint_set_t layout_constraints_,
   legion_task_config_options_t options,
@@ -8619,7 +8619,7 @@ legion_task_id_t
 legion_runtime_register_task_variant_python_source(
   legion_runtime_t runtime_,
   legion_task_id_t id /* = AUTO_GENERATE_ID */,
-  const char *task_name /* = NULL*/,
+  const char *task_name /* = nullptr*/,
   bool global,
   legion_execution_constraint_set_t execution_constraints_,
   legion_task_layout_constraint_set_t layout_constraints_,
@@ -8640,7 +8640,7 @@ legion_task_id_t
 legion_runtime_register_task_variant_python_source_qualname(
   legion_runtime_t runtime_,
   legion_task_id_t id /* = AUTO_GENERATE_ID */,
-  const char *task_name /* = NULL*/,
+  const char *task_name /* = nullptr*/,
   bool global,
   legion_execution_constraint_set_t execution_constraints_,
   legion_task_layout_constraint_set_t layout_constraints_,

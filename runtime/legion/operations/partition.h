@@ -289,7 +289,7 @@ namespace Legion {
                                     IndexPartition source, LegionColor color,
                                     Provenance *provenance,
                                     ShardID local_shard = 0,
-                                    const ShardMapping *shard_mapping = NULL);
+                                    const ShardMapping *shard_mapping = nullptr);
       void initialize_index_space_union(InnerContext *ctx, IndexSpace target, 
                                         const std::vector<IndexSpace> &handles,
                                         Provenance *provenance);
@@ -339,7 +339,7 @@ namespace Legion {
                                               IndexPartition source,
                                               LegionColor part_color,
                                               ShardID shard = 0,
-                                              const ShardMapping *mapping=NULL);
+                                              const ShardMapping *mapping=nullptr);
     public:
       ApEvent compute_pending_space(IndexSpace result,
                                     const std::vector<IndexSpace> &handles,

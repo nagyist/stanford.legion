@@ -79,7 +79,7 @@ namespace Legion {
       InvalidInstAnalysis& operator=(const InvalidInstAnalysis &rhs) = delete;
     public:
       inline bool has_invalid(void) const
-      { return ((recorded_instances != NULL) && !recorded_instances->empty()); }
+      { return ((recorded_instances != nullptr) && !recorded_instances->empty()); }
     public:
       virtual bool perform_analysis(EquivalenceSet *set,
                                     IndexSpaceExpression *expr,
@@ -121,7 +121,7 @@ namespace Legion {
       AntivalidInstAnalysis& operator=(const AntivalidInstAnalysis &r) = delete;
     public:
       inline bool has_antivalid(void) const
-      { return ((recorded_instances != NULL) && !recorded_instances->empty()); }
+      { return ((recorded_instances != nullptr) && !recorded_instances->empty()); }
     public:
       virtual bool perform_analysis(EquivalenceSet *set,
                                     IndexSpaceExpression *expr,

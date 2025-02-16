@@ -31,8 +31,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RegionRefinementTracker::RegionRefinementTracker(RegionNode *node)
-      : region(node), refinement_state(UNREFINED_STATE), refined_child(NULL),
-        refined_projection(NULL), total_traversals(0), return_timeout(0)
+      : region(node), refinement_state(UNREFINED_STATE), refined_child(nullptr),
+        refined_projection(nullptr), total_traversals(0), return_timeout(0)
     //--------------------------------------------------------------------------
     {
       region->add_base_resource_ref(REFINEMENT_REF);
@@ -42,10 +42,10 @@ namespace Legion {
     RegionRefinementTracker::~RegionRefinementTracker(void)
     //--------------------------------------------------------------------------
     {
-      if ((refined_child != NULL) && 
+      if ((refined_child != nullptr) && 
           refined_child->remove_base_resource_ref(REFINEMENT_REF))
         delete refined_child;
-      if ((refined_projection != NULL) && 
+      if ((refined_projection != nullptr) && 
             refined_projection->remove_reference())
         delete refined_projection;
       for (std::unordered_map<PartitionNode*,
@@ -70,12 +70,12 @@ namespace Legion {
     {
       RegionRefinementTracker *tracker = new RegionRefinementTracker(region);
       tracker->refinement_state = refinement_state;
-      if (refined_child != NULL)
+      if (refined_child != nullptr)
       {
         tracker->refined_child = refined_child;
         refined_child->add_base_resource_ref(REFINEMENT_REF);
       }
-      if (refined_projection != NULL)
+      if (refined_projection != nullptr)
       {
         tracker->refined_projection = refined_projection;
         refined_projection->add_reference();
@@ -106,7 +106,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(refined_child == NULL);
+      assert(refined_child == nullptr);
       assert(refinement_state == UNREFINED_STATE);
 #endif
       refinement_state = NO_REFINEMENT_STATE;
@@ -127,8 +127,8 @@ namespace Legion {
         case UNREFINED_STATE:
           {
 #ifdef DEBUG_LEGION
-            assert(refined_child == NULL);
-            assert(refined_projection == NULL);
+            assert(refined_child == nullptr);
+            assert(refined_projection == nullptr);
 #endif
             // If we don't have any refinements, we'll always allow them
             if (child->row_source->is_complete())
@@ -288,8 +288,8 @@ namespace Legion {
         case UNREFINED_STATE:
           {
 #ifdef DEBUG_LEGION
-            assert(refined_child == NULL);
-            assert(refined_projection == NULL);
+            assert(refined_child == nullptr);
+            assert(refined_projection == nullptr);
 #endif
             // If we don't have any refinements, we'll always allow them
             allow_refinement = true;
@@ -475,7 +475,7 @@ namespace Legion {
                                              const FieldMask &invalidation_mask)
     //--------------------------------------------------------------------------
     {
-      if (refined_child != NULL)
+      if (refined_child != nullptr)
         refined_child->invalidate_logical_refinement(ctx, invalidation_mask);
     }
 
@@ -485,7 +485,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((refined_child != NULL) || (refined_projection != NULL));
+      assert((refined_child != nullptr) || (refined_projection != nullptr));
 #endif
       bool is_dominant = true;
       // Has to have the most returns
@@ -529,7 +529,7 @@ namespace Legion {
         // obvious that we should switch and not just ping-pong so we need to
         // have a score that is at least sqrt(total_candidates) more than the
         // current refinement's score
-        if (refined_child != NULL)
+        if (refined_child != nullptr)
         {
           std::unordered_map<PartitionNode*,
             std::pair<double,uint64_t> >::const_iterator finder =
@@ -545,7 +545,7 @@ namespace Legion {
         else
         {
 #ifdef DEBUG_LEGION
-          assert(refined_projection != NULL);
+          assert(refined_projection != nullptr);
 #endif
           std::unordered_map<ProjectionRegion*,
             std::pair<double,uint64_t> >::const_iterator
@@ -615,7 +615,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PartitionRefinementTracker::PartitionRefinementTracker(PartitionNode *node)
-      : partition(node), refined_projection(NULL),
+      : partition(node), refined_projection(nullptr),
         refinement_state(UNREFINED_STATE), children_score(-1.0),
         children_last(0), total_traversals(0), return_timeout(0)
     //--------------------------------------------------------------------------
@@ -627,7 +627,7 @@ namespace Legion {
     PartitionRefinementTracker::~PartitionRefinementTracker(void)
     //--------------------------------------------------------------------------
     {
-      if ((refined_projection != NULL) && 
+      if ((refined_projection != nullptr) && 
           refined_projection->remove_reference())
         delete refined_projection;
       for (std::vector<RegionNode*>::const_iterator it =
@@ -650,7 +650,7 @@ namespace Legion {
     {
       PartitionRefinementTracker *tracker = 
         new PartitionRefinementTracker(partition);
-      if (refined_projection != NULL)
+      if (refined_projection != nullptr)
       {
         tracker->refined_projection = refined_projection;
         refined_projection->add_reference();
@@ -701,7 +701,7 @@ namespace Legion {
           {
 #ifdef DEBUG_LEGION
             assert(children.empty());
-            assert(refined_projection == NULL);
+            assert(refined_projection == nullptr);
 #endif
             allow_refinement = true;
             child->add_base_resource_ref(REFINEMENT_REF);
@@ -727,7 +727,7 @@ namespace Legion {
             }
             // Only track non-write children if we're complete because of
             // children and not because of a complete projection refinement
-            if (refined_projection == NULL)
+            if (refined_projection == nullptr)
             {
               allow_refinement = true;
               if (!std::binary_search(children.begin(), children.end(), child))
@@ -759,11 +759,11 @@ namespace Legion {
               {
                 refinement_state = COMPLETE_NONWRITE_REFINED_STATE;
                 // Remove any refined projections that we've done
-                if (refined_projection != NULL)
+                if (refined_projection != nullptr)
                 {
                   if (refined_projection->remove_reference())
                     delete refined_projection;
-                  refined_projection = NULL;
+                  refined_projection = nullptr;
                 }
               }
             }
@@ -782,13 +782,13 @@ namespace Legion {
                 children.push_back(child);
                 std::sort(children.begin(), children.end());
                 // See if we dominate the projection at this point
-                if ((refined_projection != NULL) && 
+                if ((refined_projection != nullptr) && 
                     (((uint64_t)partition->row_source->total_children) <=
                      (children.size() * CHANGE_REFINEMENT_PARTITION_FRACTION)))
                 {
                   if (refined_projection->remove_reference())
                     delete refined_projection;
-                  refined_projection = NULL;
+                  refined_projection = nullptr;
                 }
               }
             }
@@ -809,11 +809,11 @@ namespace Legion {
                 {
                   refinement_state = COMPLETE_WRITE_REFINED_STATE;
                   // Remove any refined projections that we've done
-                  if (refined_projection != NULL)
+                  if (refined_projection != nullptr)
                   {
                     if (refined_projection->remove_reference())
                       delete refined_projection;
-                    refined_projection = NULL;
+                    refined_projection = nullptr;
                   }
                 }
               }
@@ -842,7 +842,7 @@ namespace Legion {
           {
 #ifdef DEBUG_LEGION
             assert(children.empty());
-            assert(refined_projection == NULL);
+            assert(refined_projection == nullptr);
 #endif
             allow_refinement = true;
             refined_projection = summary->get_tree()->as_partition_projection();
@@ -1071,7 +1071,7 @@ namespace Legion {
         return false;
       if (!is_current)
       {
-        if (refined_projection != NULL)
+        if (refined_projection != nullptr)
         {
           // If we're not the current refinement, then we want to make sure its
           // obvious that we should switch and not just ping-pong so we need to

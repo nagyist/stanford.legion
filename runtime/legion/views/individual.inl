@@ -81,7 +81,7 @@ namespace Legion {
         // expression to dominate anything. It's hard to guarantee
         // correctness without this. Think very carefully if you
         // plan to change this!
-        if (dominates != NULL)
+        if (dominates != nullptr)
           *dominates = false;
       }
       return true;

@@ -48,7 +48,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(index_space_node == NULL);
+      assert(index_space_node == nullptr);
       assert(futures.empty());
 #endif
       initialize_operation(ctx, provenance);
@@ -69,7 +69,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(field_space_node == NULL);
+      assert(field_space_node == nullptr);
       assert(fields.empty());
       assert(futures.empty());
 #endif
@@ -92,7 +92,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(field_space_node == NULL);
+      assert(field_space_node == nullptr);
       assert(fields.empty());
       assert(futures.empty());
       assert(fids.size() == field_sizes.size());
@@ -133,9 +133,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Operation::activate();
-      index_space_node = NULL;
-      field_space_node = NULL;
-      mapping = NULL;
+      index_space_node = nullptr;
+      field_space_node = nullptr;
+      mapping = nullptr;
       owner = true;
     }
 
@@ -172,7 +172,7 @@ namespace Legion {
             futures.begin(); it != futures.end(); it++)
       {
 #ifdef DEBUG_LEGION
-        assert(it->impl != NULL);
+        assert(it->impl != nullptr);
 #endif
         // Register this operation as dependent on task that
         // generated the future
@@ -305,7 +305,7 @@ namespace Legion {
                             complete_preconditions, runtime->address_space);
                 if (runtime->legion_spy_enabled)
                   LegionSpy::log_field_creation(field_space_node->handle.get_id(),
-                      fields[idx], *field_size, (get_provenance() == NULL) ?
+                      fields[idx], *field_size, (get_provenance() == nullptr) ?
                       std::string_view() : get_provenance()->human);
               }
             }

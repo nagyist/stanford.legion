@@ -49,8 +49,8 @@ namespace Legion {
     Operation::Operation(void)
       : gen(0), unique_op_id(0), context_index(0), 
         outstanding_mapping_references(0), hardened_notifications(0),
-        hardened(false), track_parent(false), tracing(false), trace(NULL),
-        trace_local_id(0), parent_ctx(NULL), must_epoch(NULL), provenance(NULL)
+        hardened(false), track_parent(false), tracing(false), trace(nullptr),
+        trace_local_id(0), parent_ctx(nullptr), must_epoch(nullptr), provenance(nullptr)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -92,18 +92,18 @@ namespace Legion {
       committed = false;
       hardened = false;
       track_parent = false;
-      parent_ctx = NULL;
+      parent_ctx = nullptr;
       prepipelined_event = RtUserEvent::NO_RT_USER_EVENT;
       mapped_event = RtUserEvent::NO_RT_USER_EVENT;
       execution_fence_event = ApEvent::NO_AP_EVENT;
       completion_event.pending = ApUserEvent::NO_AP_USER_EVENT;
       completion_set = false;
       commit_event = RtUserEvent::NO_RT_USER_EVENT;
-      trace = NULL;
+      trace = nullptr;
       tracing = false;
       trace_local_id = (unsigned)-1;
-      must_epoch = NULL;
-      provenance = NULL;
+      must_epoch = nullptr;
+      provenance = nullptr;
     }
     
     //--------------------------------------------------------------------------
@@ -122,7 +122,7 @@ namespace Legion {
       outgoing.clear();
       verification_notifications.clear();
       completion_effects.clear();
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -140,7 +140,7 @@ namespace Legion {
     {
       // We can skip doing the analysis for logical regions if we
       // are replaying a logical trace
-      if ((trace != NULL) && !trace->is_recording())
+      if ((trace != nullptr) && !trace->is_recording())
         return;
 
       LogicalAnalysis logical_analysis(this, get_output_offset());
@@ -171,7 +171,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // should never be called on this class
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -179,7 +179,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(parent_ctx != NULL);
+      assert(parent_ctx != nullptr);
 #endif
       return (parent_ctx->get_depth()+1);
     }
@@ -190,8 +190,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(trace == NULL);
-      assert(t != NULL);
+      assert(trace == nullptr);
+      assert(t != nullptr);
 #endif
       trace = t; 
       tracing = trace->initialize_op_tracing(this, dependences);
@@ -201,7 +201,7 @@ namespace Legion {
     uint64_t Operation::get_context_index(void) const
     //--------------------------------------------------------------------------
     {
-      return (must_epoch == NULL) ? context_index :
+      return (must_epoch == nullptr) ? context_index :
         must_epoch->get_context_index();
     }
 
@@ -210,7 +210,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(must_epoch == NULL);
+      assert(must_epoch == nullptr);
 #endif
       track_parent = true;
       context_index = index;
@@ -224,8 +224,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(must_epoch == NULL);
-      assert(epoch != NULL);
+      assert(must_epoch == nullptr);
+      assert(epoch != nullptr);
 #endif
       must_epoch = epoch;
       if (do_registration)
@@ -256,14 +256,14 @@ namespace Legion {
     {
       if (perform.exists() && !perform.has_triggered())
       {
-        std::vector<std::pair<PhysicalManager*,unsigned> > *to_release = NULL;
+        std::vector<std::pair<PhysicalManager*,unsigned> > *to_release = nullptr;
         for (std::map<PhysicalManager*,unsigned>::iterator it = 
               acquired_instances.begin(); it != acquired_instances.end(); )
         {
           size_t instance_size = it->first->get_instance_size();
           if (instance_size > 0)
           {
-            if (to_release == NULL)
+            if (to_release == nullptr)
               to_release = 
                 new std::vector<std::pair<PhysicalManager*,unsigned> >();
             to_release->emplace_back(std::make_pair(it->first, it->second));
@@ -273,7 +273,7 @@ namespace Legion {
           else
             it++;
         }
-        if (to_release != NULL)
+        if (to_release != nullptr)
         {
           DeferReleaseAcquiredArgs args(this, to_release);
           return runtime->issue_runtime_meta_task(args, 
@@ -318,7 +318,7 @@ namespace Legion {
                                          bool postmapping /*=false*/) const
     //--------------------------------------------------------------------------
     {
-      if (!runtime->legion_spy_enabled && (runtime->profiler == NULL))
+      if (!runtime->legion_spy_enabled && (runtime->profiler == nullptr))
         return;
       FieldSpaceNode *node = (req.handle_type != LEGION_PARTITION_PROJECTION) ?
         runtime->get_node(req.region.get_field_space()) : 
@@ -346,7 +346,7 @@ namespace Legion {
                                               inst_event);
           }
         }
-        if ((implicit_profiler != NULL) && !manager->is_virtual_manager())
+        if ((implicit_profiler != nullptr) && !manager->is_virtual_manager())
           implicit_profiler->register_physical_instance_use(inst_event,
                                       unique_op_id, index, valid_fields);
       }
@@ -383,21 +383,21 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void Operation::initialize_operation(InnerContext *ctx,
-                                         Provenance *prov/*= NULL*/)
+                                         Provenance *prov/*= nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(ctx != NULL);
+      assert(ctx != nullptr);
 #endif
       parent_ctx = ctx;
       provenance = prov;
-      if (provenance != NULL)
+      if (provenance != nullptr)
       {
         provenance->add_reference();
         if (runtime->legion_spy_enabled)
           LegionSpy::log_operation_provenance(unique_op_id, prov->human);
       }
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->register_operation(this);
     }
 
@@ -406,10 +406,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(provenance == NULL);
+      assert(provenance == nullptr);
 #endif
       provenance = prov;
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -902,7 +902,7 @@ namespace Legion {
     {
       // should only be called for inherited types
       assert(false);
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1093,7 +1093,7 @@ namespace Legion {
       // Lock held from caller
       ApEvent effects_done;
       if (!completion_effects.empty())
-        effects_done = Runtime::merge_events(NULL, completion_effects);
+        effects_done = Runtime::merge_events(nullptr, completion_effects);
 #ifdef LEGION_SPY
       // Operations with regions and tasks do their own logging
       const OpKind op_kind = get_operation_kind();
@@ -1106,7 +1106,7 @@ namespace Legion {
         assert(!completion_set);
 #endif
         if (!completion_event.pending.exists())
-          completion_event.pending = Runtime::create_ap_user_event(NULL);
+          completion_event.pending = Runtime::create_ap_user_event(nullptr);
         LegionSpy::log_operation_events(unique_op_id, effects_done,
                                         completion_event.pending);
       }
@@ -1211,7 +1211,7 @@ namespace Legion {
       if (!completion_set)
       {
         if (!completion_event.pending.exists())
-          completion_event.pending = Runtime::create_ap_user_event(NULL);
+          completion_event.pending = Runtime::create_ap_user_event(nullptr);
         return completion_event.pending;
       }
       else
@@ -1382,7 +1382,7 @@ namespace Legion {
       remaining_mapping_dependences.store(1);
       // Register ourselves with our trace if there is one
       // This will also add any necessary dependences
-      if ((trace != NULL) && !is_tracing_fence())
+      if ((trace != nullptr) && !is_tracing_fence())
         trace_local_id = trace->register_operation(this, gen);
       if (tracing)
       {
@@ -1408,12 +1408,12 @@ namespace Legion {
                                         GenerationID target_gen)
     //--------------------------------------------------------------------------
     {
-      if (must_epoch != NULL)
+      if (must_epoch != nullptr)
         must_epoch->verify_dependence(this, gen, target, target_gen);
       if (tracing)
       {
 #ifdef DEBUG_LEGION
-        assert(trace != NULL);
+        assert(trace != nullptr);
 #endif
         // If we're tracing check to see if the target is even in the
         // trace, if it's not then there's no need to record the dependence
@@ -1451,14 +1451,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool do_registration = true;
-      if (must_epoch != NULL)
+      if (must_epoch != nullptr)
         do_registration = 
           must_epoch->record_dependence(this, gen, target, target_gen, 
                                         idx, target_idx, dtype);
       if (tracing)
       {
 #ifdef DEBUG_LEGION
-        assert(trace != NULL);
+        assert(trace != nullptr);
 #endif
         // If we're tracing check to see if the target is even in the
         // trace, if it's not then there's no need to record the dependence
@@ -1561,7 +1561,7 @@ namespace Legion {
 #endif
       if (remaining == 1)
       {
-        if (must_epoch == NULL)
+        if (must_epoch == nullptr)
           parent_ctx->add_to_ready_queue(this);
         else
           must_epoch->satisfy_mapping_dependence();
@@ -1861,14 +1861,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(parent_ctx != NULL);
+      assert(parent_ctx != nullptr);
 #endif
       rez.serialize(get_operation_kind());
       rez.serialize(this);
       rez.serialize(runtime->address_space);
       rez.serialize(unique_op_id);
       parent_ctx->pack_inner_context(rez);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -1886,7 +1886,7 @@ namespace Legion {
     /*static*/ bool Operation::remove_launch_space_reference(IndexSpaceNode *node)
     //--------------------------------------------------------------------------
     {
-      return (node != NULL) && node->remove_base_valid_ref(CONTEXT_REF);
+      return (node != nullptr) && node->remove_base_valid_ref(CONTEXT_REF);
     }
 
     //--------------------------------------------------------------------------
@@ -1974,7 +1974,7 @@ namespace Legion {
       if (trace_info.skip_analysis)
         return;
       // Then compute the logical user
-      ProjectionSummary *shard_proj = NULL;
+      ProjectionSummary *shard_proj = nullptr;
       if (proj_info.is_projecting())
       {
         if (runtime->enable_pointwise_analysis)
@@ -2005,7 +2005,7 @@ namespace Legion {
       }
 
       LogicalUser *user = new LogicalUser(this, idx, RegionUsage(req),
-          shard_proj, (get_must_epoch_op() == NULL) ? UINT_MAX :
+          shard_proj, (get_must_epoch_op() == nullptr) ? UINT_MAX :
           get_must_epoch_op()->find_operation_index(
             this, get_generation()));
       user->add_reference();
@@ -2020,7 +2020,7 @@ namespace Legion {
         // implement correctly in that case
         // We also don't try to update refinements if we're doing a reset
         // operation since that is an internal kind of operation
-        if ((get_must_epoch_op() == NULL) &&
+        if ((get_must_epoch_op() == nullptr) &&
             (get_operation_kind() != RESET_OP_KIND))
           refinement_mask = user_mask;
         FieldMaskSet<RefinementOp,TASK_LOCAL_LIFETIME,true> refinements;
@@ -2145,7 +2145,7 @@ namespace Legion {
         region_node->column_source->get_field_mask(req.privilege_fields);
       // Perform the registration
 #ifdef DEBUG_LEGION
-      assert(analysis == NULL);
+      assert(analysis == nullptr);
       // Should be recording or must be read-only
       assert(record_valid || IS_READ_ONLY(req));
 #endif
@@ -2182,8 +2182,8 @@ namespace Legion {
                            std::set<RtEvent> &map_applied_events, bool symbolic)
     //--------------------------------------------------------------------------
     {
-      // If we are a NO_ACCESS or there are no fields then analysis will be NULL
-      if (analysis == NULL)
+      // If we are a NO_ACCESS or there are no fields then analysis will be nullptr
+      if (analysis == nullptr)
         return ApEvent::NO_AP_EVENT;
       ApEvent instances_ready;
       const RtEvent registered = analysis->perform_registration(precondition,
@@ -2230,7 +2230,7 @@ namespace Legion {
       }
       assert(check_mask.pop_count() == req.privilege_fields.size());
 #endif
-      UpdateAnalysis *analysis = NULL;
+      UpdateAnalysis *analysis = nullptr;
       const RtEvent registration_precondition = physical_perform_updates(req,
          version_info, index, precondition, term_event, targets, src,
          trace_info, map_applied_events, analysis,
@@ -2254,7 +2254,7 @@ namespace Legion {
             sources.begin(); it != sources.end(); it++)
       {
         InstanceManager *man = it->impl;
-        if (man == NULL)
+        if (man == nullptr)
           continue;
         if (man->is_virtual_manager())
           continue;
@@ -2262,7 +2262,7 @@ namespace Legion {
         // Check to see if the region trees are the same
         if (req_tid != manager->tree_id)
           continue;
-        if ((acquired != NULL) && (acquired->find(manager) == acquired->end()))
+        if ((acquired != nullptr) && (acquired->find(manager) == acquired->end()))
           unacquired.push_back(manager);
         result.push_back(manager);
       }
@@ -2314,7 +2314,7 @@ namespace Legion {
             it != chosen.end(); it++)
       {
         InstanceManager *man = it->impl;
-        if (man == NULL)
+        if (man == nullptr)
           continue;
         if (man->is_virtual_manager())
         {
@@ -2378,7 +2378,7 @@ namespace Legion {
       if (!unacquired.empty())
       {
 #ifdef DEBUG_LEGION
-        assert(acquired != NULL);
+        assert(acquired != nullptr);
 #endif
         perform_missing_acquires(*acquired, unacquired); 
       }
@@ -2412,7 +2412,7 @@ namespace Legion {
             it != chosen.end(); it++)
       {
         InstanceManager *man = it->impl;
-        if (man == NULL)
+        if (man == nullptr)
           continue;
         if (man->is_virtual_manager())
         {
@@ -2438,7 +2438,7 @@ namespace Legion {
       if (!unacquired.empty())
       {
 #ifdef DEBUG_LEGION
-        assert(acquired != NULL);
+        assert(acquired != nullptr);
 #endif
         perform_missing_acquires(*acquired, unacquired);
       }
@@ -2550,16 +2550,16 @@ namespace Legion {
       if (mappable.mapper_data_size > 0)
       {
         // If we already have mapper data, then we are going to replace it
-        if (mappable.mapper_data != NULL)
+        if (mappable.mapper_data != nullptr)
           free(mappable.mapper_data);
         mappable.mapper_data = malloc(mappable.mapper_data_size);
         derez.deserialize(mappable.mapper_data, mappable.mapper_data_size);
       }
-      else if (mappable.mapper_data != NULL)
+      else if (mappable.mapper_data != nullptr)
       {
         // If we freed it remotely then we can free it here too
         free(mappable.mapper_data);
-        mappable.mapper_data = NULL;
+        mappable.mapper_data = nullptr;
       }
     }
 

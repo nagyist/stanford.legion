@@ -27,9 +27,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == NULL);
+      assert(implicit_reference_tracker == nullptr);
 #endif
-      if (overhead_profiler != NULL)
+      if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
         const long long diff = current - 
@@ -38,7 +38,7 @@ namespace Legion {
         overhead_profiler->previous_profiling_time = current;
         overhead_profiler->inside_runtime_call = true;
       }
-      return ((runtime->profiler != NULL) || (overhead_profiler != NULL));
+      return ((runtime->profiler != nullptr) || (overhead_profiler != nullptr));
     }
 
     //--------------------------------------------------------------------------
@@ -47,12 +47,12 @@ namespace Legion {
         unsigned long long stop)
     //--------------------------------------------------------------------------
     {
-      if (implicit_reference_tracker != NULL)
+      if (implicit_reference_tracker != nullptr)
       {
         delete implicit_reference_tracker;
-        implicit_reference_tracker = NULL;
+        implicit_reference_tracker = nullptr;
       }
-      if (overhead_profiler != NULL)
+      if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
         const long long diff = current - 
@@ -61,7 +61,7 @@ namespace Legion {
         overhead_profiler->previous_profiling_time = current;
         overhead_profiler->inside_runtime_call = false;
       }
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->record_runtime_call(kind, start, stop); 
     }
 
@@ -69,7 +69,7 @@ namespace Legion {
     inline void TaskContext::begin_wait(LgEvent event, bool from_application)
     //--------------------------------------------------------------------------
     {
-      if (overhead_profiler != NULL)
+      if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
         const long long diff = current - 
@@ -80,7 +80,7 @@ namespace Legion {
           overhead_profiler->application_time += diff;
         overhead_profiler->previous_profiling_time = current;
       }
-      if (implicit_task_profiler != NULL)
+      if (implicit_task_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
         implicit_task_profiler->waits.emplace_back(
@@ -92,7 +92,7 @@ namespace Legion {
     inline void TaskContext::end_wait(LgEvent event, bool from_application)
     //--------------------------------------------------------------------------
     {
-      if (overhead_profiler != NULL)
+      if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
         const long long diff = current - 
@@ -100,7 +100,7 @@ namespace Legion {
         overhead_profiler->wait_time += diff;
         overhead_profiler->previous_profiling_time = current;
       }
-      if (implicit_task_profiler != NULL)
+      if (implicit_task_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
 #ifdef DEBUG_LEGION

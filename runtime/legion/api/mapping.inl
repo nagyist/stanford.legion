@@ -30,7 +30,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       CodeDescriptor desc(LegionTaskWrapper::legion_task_wrapper<T,TASK_PTR>);
-      return register_task_variant(ctx, registrar, desc, NULL/*UDT*/,
+      return register_task_variant(ctx, registrar, desc, nullptr/*UDT*/,
                                    0/*sizeof(UDT)*/, true/*has return type*/);
     }
 
@@ -57,7 +57,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       CodeDescriptor desc(LegionTaskWrapper::legion_task_wrapper<TASK_PTR>);
-      return register_task_variant(ctx, registrar, desc, NULL/*UDT*/, 
+      return register_task_variant(ctx, registrar, desc, nullptr/*UDT*/, 
                                    0/*sizeof(UDT)*/, false/*has return type*/);
     }
 
@@ -218,7 +218,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     inline ProfilingResponse::ProfilingResponse(void)
     //--------------------------------------------------------------------------
-      : realm_resp(NULL), overhead(NULL) 
+      : realm_resp(nullptr), overhead(nullptr) 
     {
     }
 
@@ -246,7 +246,7 @@ namespace Legion {
                              ProfilingMeasurements::RuntimeOverhead>(void) const
     //--------------------------------------------------------------------------
     {
-      return (overhead != NULL);
+      return (overhead != nullptr);
     }
 
     //--------------------------------------------------------------------------

@@ -372,7 +372,7 @@ namespace Legion {
       // Similar logic as flush_buffer, but issue a begin and end trace
       // around the flushed operations.
       context->begin_trace(tid, false/*logical*/, false/*static*/,
-          NULL/*managed*/, false/*deprecated*/, NULL/*provenance*/);
+          nullptr/*managed*/, false/*deprecated*/, nullptr/*provenance*/);
       uint64_t difference = opidx - this->operation_start_idx;
       operation_start_idx += difference;
       unsigned traced_ops = 0;
@@ -381,10 +381,10 @@ namespace Legion {
         if (!is_operation_ignorable_in_traces(operations.front()))
           traced_ops++;
         context->add_to_dependence_queue(operations.front(),
-            NULL/*dependences*/, false/*unordered*/, false/*outermost*/);
+            nullptr/*dependences*/, false/*unordered*/, false/*outermost*/);
         operations.pop();
       }
-      context->end_trace(tid, false/*deprecated*/, NULL/*provenance*/);
+      context->end_trace(tid, false/*deprecated*/, nullptr/*provenance*/);
       log_auto_trace.info() << "Replaying trace " << tid
                             << " of length "
                             << traced_ops
@@ -399,7 +399,7 @@ namespace Legion {
       while (!operations.empty()) 
       {
         context->add_to_dependence_queue(operations.front(),
-            NULL/*dependences*/, false/*unordered*/, false/*outermost*/);
+            nullptr/*dependences*/, false/*unordered*/, false/*outermost*/);
         operations.pop();
       }
     }
@@ -416,7 +416,7 @@ namespace Legion {
       for (uint64_t idx = 0; idx < difference; idx++)
       {
         context->add_to_dependence_queue(operations.front(),
-            NULL/*dependences*/, false/*unordered*/, false/*outermost*/);
+            nullptr/*dependences*/, false/*unordered*/, false/*outermost*/);
         operations.pop();
       }
     }
@@ -429,7 +429,7 @@ namespace Legion {
       // node.end here, as this node could be the prefix of another
       // trace in the trie.
       node = node->find_child(token);
-      if (node == NULL)
+      if (node == nullptr)
         return false;
       // If we've hit the end of a string, 
       // mark it as visited and update the score.
@@ -443,7 +443,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       node = node->find_child(token);
-      if (node == NULL)
+      if (node == nullptr)
         return false;
       depth++;
       return true;

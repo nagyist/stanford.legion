@@ -142,7 +142,7 @@ namespace Legion {
     protected:
       struct InstanceUser {
       public:
-        InstanceUser(void) : expr(NULL) { }
+        InstanceUser(void) : expr(nullptr) { }
         InstanceUser(const UniqueInst &i, const RegionUsage &r,
                      IndexSpaceExpression *e, const FieldMask &m)
           : instance(i), usage(r), expr(e), mask(m) { }

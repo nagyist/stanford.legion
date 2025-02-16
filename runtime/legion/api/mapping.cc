@@ -36,7 +36,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Mappable::Mappable(void)
-      : map_id(0),tag(0),parent_task(NULL),mapper_data(NULL),mapper_data_size(0)
+      : map_id(0),tag(0),parent_task(nullptr),mapper_data(nullptr),mapper_data_size(0)
     //--------------------------------------------------------------------------
     {
     }
@@ -47,8 +47,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Task::Task(void)
-      : Mappable(), task_id(0), args(NULL), arglen(0), is_index_space(false),
-        must_epoch_task(false), local_args(NULL), local_arglen(0),
+      : Mappable(), task_id(0), args(nullptr), arglen(0), is_index_space(false),
+        must_epoch_task(false), local_args(nullptr), local_arglen(0),
         steal_count(0),stealable(false),speculated(false),local_function(false)
     //--------------------------------------------------------------------------
     {
@@ -193,7 +193,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalInstance::PhysicalInstance(void)
-      : impl(NULL)
+      : impl(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -206,7 +206,7 @@ namespace Legion {
       // By holding gc references, we prevent the data
       // structure from being collected, it doesn't change if 
       // the actual instance itself can be collected or not
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_base_gc_ref(Internal::MAPPER_REF);
     }
 
@@ -215,7 +215,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -223,7 +223,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_base_gc_ref(Internal::MAPPER_REF);
     }
 
@@ -231,7 +231,7 @@ namespace Legion {
     PhysicalInstance::~PhysicalInstance(void)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && 
+      if ((impl != nullptr) && 
           impl->remove_base_gc_ref(Internal::MAPPER_REF))
         delete (impl);
     }
@@ -240,11 +240,11 @@ namespace Legion {
     PhysicalInstance& PhysicalInstance::operator=(PhysicalInstance &&rhs)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && 
+      if ((impl != nullptr) && 
           impl->remove_base_gc_ref(Internal::MAPPER_REF))
         delete (impl);
       impl = rhs.impl;
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
       return *this;
     }
 
@@ -252,11 +252,11 @@ namespace Legion {
     PhysicalInstance& PhysicalInstance::operator=(const PhysicalInstance &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && 
+      if ((impl != nullptr) && 
           impl->remove_base_gc_ref(Internal::MAPPER_REF))
         delete (impl);
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_base_gc_ref(Internal::MAPPER_REF);
       return *this;
     }
@@ -286,7 +286,7 @@ namespace Legion {
     std::size_t PhysicalInstance::hash(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         return std::hash<unsigned long long>{}(impl->did);
       else
         return std::hash<unsigned long long>{}(0);
@@ -296,7 +296,7 @@ namespace Legion {
     Memory PhysicalInstance::get_location(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return Memory::NO_MEMORY;
       Internal::PhysicalManager *manager = impl->as_physical_manager();
       return manager->get_memory();
@@ -306,7 +306,7 @@ namespace Legion {
     unsigned long PhysicalInstance::get_instance_id(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return 0;
       Internal::PhysicalManager *manager = impl->as_physical_manager();
       return manager->get_instance().id;
@@ -316,7 +316,7 @@ namespace Legion {
     size_t PhysicalInstance::get_instance_size(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return 0;
       return impl->as_physical_manager()->get_instance_size();
     }
@@ -325,7 +325,7 @@ namespace Legion {
     Domain PhysicalInstance::get_instance_domain(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return Domain::NO_DOMAIN;
       Domain domain = impl->instance_domain->get_tight_domain();
       return domain;
@@ -335,7 +335,7 @@ namespace Legion {
     FieldSpace PhysicalInstance::get_field_space(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return FieldSpace::NO_SPACE;
       return impl->field_space_node->handle;
     }
@@ -344,7 +344,7 @@ namespace Legion {
     RegionTreeID PhysicalInstance::get_tree_id(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return 0;
       return impl->tree_id;
     }
@@ -353,7 +353,7 @@ namespace Legion {
     LayoutConstraintID PhysicalInstance::get_layout_id(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return 0;
       return impl->layout->constraints->layout_id;
     }
@@ -362,7 +362,7 @@ namespace Legion {
     PointerConstraint PhysicalInstance::get_pointer_constraint(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return PointerConstraint();
       return impl->get_pointer_constraint();
     }
@@ -371,7 +371,7 @@ namespace Legion {
     bool PhysicalInstance::exists(bool strong_test /*= false*/) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return false;
       // Check to see if it still exists for now, maybe in the future
       // we could do a full check to see if it still exists on its owner node
@@ -384,7 +384,7 @@ namespace Legion {
     bool PhysicalInstance::is_normal_instance(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return false;
       return !impl->is_reduction_manager();
     }
@@ -393,7 +393,7 @@ namespace Legion {
     bool PhysicalInstance::is_virtual_instance(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return false;
       return impl->is_virtual_manager();
     }
@@ -402,7 +402,7 @@ namespace Legion {
     bool PhysicalInstance::is_reduction_instance(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return false;
       return impl->is_reduction_manager();
     }
@@ -411,7 +411,7 @@ namespace Legion {
     bool PhysicalInstance::is_external_instance(void) const
     //--------------------------------------------------------------------------
     {
-      if ((impl == NULL) || !impl->is_physical_manager())
+      if ((impl == nullptr) || !impl->is_physical_manager())
         return false;
       return impl->is_external_instance();
     }
@@ -427,7 +427,7 @@ namespace Legion {
     void PhysicalInstance::get_fields(std::set<FieldID> &fields) const
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->get_fields(fields);
     }
 
@@ -435,7 +435,7 @@ namespace Legion {
     bool PhysicalInstance::has_field(FieldID fid) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return false;
       return impl->has_field(fid);
     }
@@ -444,7 +444,7 @@ namespace Legion {
     void PhysicalInstance::has_fields(std::map<FieldID,bool> &fields) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
       {
         for (std::map<FieldID,bool>::iterator it = fields.begin();
               it != fields.end(); it++)
@@ -458,7 +458,7 @@ namespace Legion {
     void PhysicalInstance::remove_space_fields(std::set<FieldID> &fields) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return;
       impl->remove_space_fields(fields);
     }
@@ -468,9 +468,9 @@ namespace Legion {
                                const LayoutConstraint **failed_constraint) const 
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return false;
-      if (Internal::implicit_mapper_call != NULL)
+      if (Internal::implicit_mapper_call != nullptr)
       {
         AutoMapperCall call(Internal::implicit_mapper_call, 
             Internal::MAPPER_CONSTRAINTS_ENTAIL_CALL);
@@ -497,7 +497,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     CollectiveView::CollectiveView(void)
-      : impl(NULL)
+      : impl(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -508,7 +508,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->add_base_gc_ref(Internal::MAPPER_REF);
     }
@@ -518,7 +518,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -526,7 +526,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_base_gc_ref(Internal::MAPPER_REF);
     }
 
@@ -534,7 +534,7 @@ namespace Legion {
     CollectiveView::~CollectiveView(void)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) &&
+      if ((impl != nullptr) &&
           impl->remove_base_gc_ref(Internal::MAPPER_REF))
         delete impl;
     }
@@ -543,11 +543,11 @@ namespace Legion {
     CollectiveView& CollectiveView::operator=(CollectiveView &&rhs)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) &&
+      if ((impl != nullptr) &&
           impl->remove_base_gc_ref(Internal::MAPPER_REF))
         delete impl;
       impl = rhs.impl;
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
       return *this;
     }
 
@@ -555,11 +555,11 @@ namespace Legion {
     CollectiveView& CollectiveView::operator=(const CollectiveView &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) &&
+      if ((impl != nullptr) &&
           impl->remove_base_gc_ref(Internal::MAPPER_REF))
         delete impl;
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_base_gc_ref(Internal::MAPPER_REF);
       return *this;
     }
@@ -590,10 +590,10 @@ namespace Legion {
                                      std::vector<PhysicalInstance> &insts) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return;
       std::vector<Internal::PhysicalManager*> managers;
-      if (Internal::implicit_mapper_call != NULL)
+      if (Internal::implicit_mapper_call != nullptr)
       {
         AutoMapperCall call(Internal::implicit_mapper_call,
             Internal::MAPPER_FIND_COLLECTIVE_INSTANCES_IN_MEMORY);
@@ -611,10 +611,10 @@ namespace Legion {
                      std::vector<PhysicalInstance> &insts, bool bandwidth) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return;
       std::vector<Internal::PhysicalManager*> managers;
-      if (Internal::implicit_mapper_call != NULL)
+      if (Internal::implicit_mapper_call != nullptr)
       {
         AutoMapperCall call(Internal::implicit_mapper_call,
             Internal::MAPPER_FIND_COLLECTIVE_INSTANCES_NEAREST_MEMORY);
@@ -632,7 +632,7 @@ namespace Legion {
 					const CollectiveView &v)
     //--------------------------------------------------------------------------
     {
-      if (v.impl == NULL)
+      if (v.impl == nullptr)
         return os << "Empty Collective View";
       else
         return os << "Collective View " << std::hex << v.impl->did << std::dec;
@@ -667,7 +667,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(realm_resp == NULL);
+      assert(realm_resp == nullptr);
 #endif
       realm_resp = &resp;
     }
@@ -678,7 +678,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(overhead == NULL);
+      assert(overhead == nullptr);
 #endif
       overhead = over; 
     }
@@ -818,7 +818,7 @@ namespace Legion {
     {
       Mappable *map = const_cast<Mappable*>(&mappable);
       // Free the old buffer if there is one
-      if (map->mapper_data != NULL)
+      if (map->mapper_data != nullptr)
         free(map->mapper_data);
       map->mapper_data_size = data_size;
       if (data_size > 0)
@@ -827,7 +827,7 @@ namespace Legion {
         memcpy(map->mapper_data, mapper_data, data_size);
       }
       else
-        map->mapper_data = NULL;
+        map->mapper_data = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -923,7 +923,7 @@ namespace Legion {
       AutoMapperCall call(ctx, Internal::MAPPER_FIND_EXECUTION_CONSTRAINTS_CALL);
       Internal::VariantImpl *impl = 
         runtime->find_variant_impl(task_id, vid, true/*can fail*/);
-      if (impl == NULL)
+      if (impl == nullptr)
         REPORT_LEGION_ERROR(ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
                       "Invalid mapper request: mapper %s requested execution "
                       "constraints for variant %d in mapper call %s, but "
@@ -940,7 +940,7 @@ namespace Legion {
       AutoMapperCall call(ctx, Internal::MAPPER_FIND_TASK_LAYOUT_CONSTRAINTS_CALL);
       Internal::VariantImpl *impl = 
         runtime->find_variant_impl(task_id, vid, true/*can fail*/);
-      if (impl == NULL)
+      if (impl == nullptr)
         REPORT_LEGION_ERROR(ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
                       "Invalid mapper request: mapper %s requested task layout "
                       "constraints for variant %d in mapper call %s, but "
@@ -957,7 +957,7 @@ namespace Legion {
       AutoMapperCall call(ctx, Internal::MAPPER_FIND_LAYOUT_CONSTRAINTS_CALL);
       Internal::LayoutConstraints *constraints = 
         runtime->find_layout_constraints(layout_id, true/*can fail*/);
-      if (constraints == NULL)
+      if (constraints == nullptr)
         REPORT_LEGION_ERROR(ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
                       "Invalid mapper request: mapper %s requested layout "
                       "constraints for layout ID %ld in mapper call %s, but "
@@ -999,12 +999,12 @@ namespace Legion {
         runtime->find_layout_constraints(set1, true/*can fail*/);
       Internal::LayoutConstraints *c2 = 
         runtime->find_layout_constraints(set2, true/*can fail*/);
-      if ((c1 == NULL) || (c2 == NULL))
+      if ((c1 == nullptr) || (c2 == nullptr))
         REPORT_LEGION_ERROR(ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
                       "Invalid mapper request: mapper %s passed layout ID %ld "
                       "to conflict test in mapper call %s, but that layout ID "
                       "is invalid.", ctx->get_mapper_name(), 
-                      (c1 == NULL) ? set1 : set2, ctx->get_mapper_call_name())
+                      (c1 == nullptr) ? set1 : set2, ctx->get_mapper_call_name())
       const bool result = 
         c1->conflicts(c2, 0/*dont care about dimensions*/, conflict_constraint);
       return result;
@@ -1021,12 +1021,12 @@ namespace Legion {
         runtime->find_layout_constraints(source, true/*can fail*/);
       Internal::LayoutConstraints *c2 = 
         runtime->find_layout_constraints(target, true/*can fail*/);
-      if ((c1 == NULL) || (c2 == NULL))
+      if ((c1 == nullptr) || (c2 == nullptr))
         REPORT_LEGION_ERROR(ERROR_INVALID_ARGUMENTS_TO_MAPPER_RUNTIME,
                       "Invalid mapper request: mapper %s passed layout ID %ld "
                       "to entailment test in mapper call %s, but that layout "
                       "ID is invalid.", ctx->get_mapper_name(), 
-                      (c1 == NULL) ? source : target, 
+                      (c1 == nullptr) ? source : target, 
                       ctx->get_mapper_call_name())
       const bool result = 
         c1->entails(c2, 0/*don't care about dimensions*/, failed_constraint);
@@ -1128,7 +1128,7 @@ namespace Legion {
         Internal::VariantImpl *impl = runtime->find_variant_impl(
             task.task_id, *var_it, true/*can_fail*/);
         // Not a valid variant
-        if (impl == NULL)
+        if (impl == nullptr)
         {
           var_it = variants.erase(var_it);
           continue;
@@ -1155,7 +1155,7 @@ namespace Legion {
           for (unsigned idx = 0; idx < instances.size(); idx++)
           {
             Internal::InstanceManager *manager = instances[idx].impl;
-            if (manager->conflicts(constraints,  NULL))
+            if (manager->conflicts(constraints,  nullptr))
             {
               conflicts = true;
               break;
@@ -1217,7 +1217,7 @@ namespace Legion {
                 instances.begin(); it != instances.end(); /*nothing*/)
           {
             Internal::InstanceManager *manager = it->impl;
-            if (manager->conflicts(constraints, NULL))
+            if (manager->conflicts(constraints, nullptr))
               it = instances.erase(it);
             else if (!constraints->specialized_constraint.is_virtual() &&
                       (constraints->specialized_constraint.is_exact() ||
@@ -1278,7 +1278,7 @@ namespace Legion {
               instances.begin(); it != instances.end(); /*nothing*/)
         {
           Internal::InstanceManager *manager = it->impl;
-          if (manager->conflicts(constraints, NULL))
+          if (manager->conflicts(constraints, nullptr))
             it = instances.erase(it);
           else if (!constraints->specialized_constraint.is_virtual() &&
                     (constraints->specialized_constraint.is_exact() ||
@@ -1355,7 +1355,7 @@ namespace Legion {
       if (regions.empty())
         return false;
       check_region_consistency(ctx, "create_physical_instance", regions);
-      if (ctx->operation == NULL)
+      if (ctx->operation == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
             "Ignoring request to create_physical_instance in unsupported "
@@ -1365,7 +1365,7 @@ namespace Legion {
         return false;
       }
 #ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != NULL);
+      assert(ctx->acquired_instances != nullptr);
 #endif
       // Important: do this before pausing the mapper call
       const bool safe_for_unbounded_pools =
@@ -1377,8 +1377,8 @@ namespace Legion {
       bool success = runtime->create_physical_instance(target_memory, 
         constraints, regions, coordinates, result, ctx->manager->processor, 
         acquire, priority, tight_region_bounds, unsat, footprint, 
-        (ctx->operation == NULL) ? 0 : ctx->operation->get_unique_op_id(),
-        safe_for_unbounded_pools ? NULL : &unbounded_pool_wait);
+        (ctx->operation == nullptr) ? 0 : ctx->operation->get_unique_op_id(),
+        safe_for_unbounded_pools ? nullptr : &unbounded_pool_wait);
       if (!safe_for_unbounded_pools && unbounded_pool_wait.exists())
         ctx->report_unsafe_allocation_in_unbounded_pool(target_memory,
             Internal::MAPPER_CREATE_PHYSICAL_INSTANCE_CALL);
@@ -1403,7 +1403,7 @@ namespace Legion {
       if (regions.empty())
         return false;
       check_region_consistency(ctx, "create_physical_instance", regions);
-      if (ctx->operation == NULL)
+      if (ctx->operation == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
             "Ignoring request to create_physical_instance in unsupported "
@@ -1413,7 +1413,7 @@ namespace Legion {
         return false;
       }
 #ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != NULL);
+      assert(ctx->acquired_instances != nullptr);
 #endif
       // Important: do this before pausing the mapper call
       const bool safe_for_unbounded_pools =
@@ -1427,8 +1427,8 @@ namespace Legion {
       bool success = runtime->create_physical_instance(target_memory, cons,
           regions, coordinates, result, ctx->manager->processor, acquire,
           priority, tight_region_bounds, unsat, footprint,
-          (ctx->operation == NULL) ? 0 : ctx->operation->get_unique_op_id(),
-          safe_for_unbounded_pools ? NULL : &unbounded_pool_wait);
+          (ctx->operation == nullptr) ? 0 : ctx->operation->get_unique_op_id(),
+          safe_for_unbounded_pools ? nullptr : &unbounded_pool_wait);
       if (!safe_for_unbounded_pools && unbounded_pool_wait.exists())
         ctx->report_unsafe_allocation_in_unbounded_pool(target_memory,
             Internal::MAPPER_CREATE_PHYSICAL_INSTANCE_CALL);
@@ -1454,7 +1454,7 @@ namespace Legion {
         return false;
       check_region_consistency(ctx, "find_or_create_physical_instance",
                                regions);
-      if (ctx->operation == NULL)
+      if (ctx->operation == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
             "Ignoring request to find_or_create_physical_instance in "
@@ -1467,7 +1467,7 @@ namespace Legion {
             regions, result, acquire, tight_region_bounds);
       }
 #ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != NULL);
+      assert(ctx->acquired_instances != nullptr);
 #endif
       // Important: do this before pausing the mapper call
       const bool safe_for_unbounded_pools =
@@ -1481,8 +1481,8 @@ namespace Legion {
           constraints, regions, coordinates, result, created, 
           ctx->manager->processor, acquire, priority, tight_region_bounds, 
           unsat, footprint,
-          (ctx->operation == NULL) ? 0 : ctx->operation->get_unique_op_id(),
-          safe_for_unbounded_pools ? NULL : &unbounded_pool_wait);
+          (ctx->operation == nullptr) ? 0 : ctx->operation->get_unique_op_id(),
+          safe_for_unbounded_pools ? nullptr : &unbounded_pool_wait);
       if (!safe_for_unbounded_pools && unbounded_pool_wait.exists())
         ctx->report_unsafe_allocation_in_unbounded_pool(target_memory,
             Internal::MAPPER_FIND_OR_CREATE_PHYSICAL_INSTANCE_CALL);
@@ -1508,7 +1508,7 @@ namespace Legion {
         return false;
       check_region_consistency(ctx, "find_or_create_physical_instance",
                                regions);
-      if (ctx->operation == NULL)
+      if (ctx->operation == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
             "Ignoring request to find_or_create_physical_instance in "
@@ -1521,7 +1521,7 @@ namespace Legion {
             regions, result, acquire, tight_region_bounds);
       }
 #ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != NULL);
+      assert(ctx->acquired_instances != nullptr);
 #endif
       // Important: do this before pausing the mapper call
       const bool safe_for_unbounded_pools =
@@ -1536,8 +1536,8 @@ namespace Legion {
       bool success = runtime->find_or_create_physical_instance(target_memory,
           cons, regions, coordinates, result, created, ctx->manager->processor,
           acquire, priority, tight_region_bounds, unsat, footprint,
-          (ctx->operation == NULL) ? 0 : ctx->operation->get_unique_op_id(),
-          safe_for_unbounded_pools ? NULL : &unbounded_pool_wait);
+          (ctx->operation == nullptr) ? 0 : ctx->operation->get_unique_op_id(),
+          safe_for_unbounded_pools ? nullptr : &unbounded_pool_wait);
       if (!safe_for_unbounded_pools && unbounded_pool_wait.exists())
         ctx->report_unsafe_allocation_in_unbounded_pool(target_memory,
             Internal::MAPPER_FIND_OR_CREATE_PHYSICAL_INSTANCE_CALL);
@@ -1558,7 +1558,7 @@ namespace Legion {
       if (!target_memory.exists())
         return false;
       check_region_consistency(ctx, "find_physical_instance", regions);
-      if (acquire && (ctx->acquired_instances == NULL))
+      if (acquire && (ctx->acquired_instances == nullptr))
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
                         "Ignoring acquire request to find_physical_instance "
@@ -1587,7 +1587,7 @@ namespace Legion {
       if (!target_memory.exists())
         return false;
       check_region_consistency(ctx, "find_physical_instance", regions);
-      if (acquire && (ctx->acquired_instances == NULL))
+      if (acquire && (ctx->acquired_instances == nullptr))
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
                         "Ignoring acquire request to find_physical_instance "
@@ -1618,7 +1618,7 @@ namespace Legion {
       if (!target_memory.exists())
         return;
       check_region_consistency(ctx, "find_physical_instances", regions);
-      if (acquire && (ctx->acquired_instances == NULL))
+      if (acquire && (ctx->acquired_instances == nullptr))
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
                         "Ignoring acquire request to find_physical_instances "
@@ -1650,7 +1650,7 @@ namespace Legion {
       if (!target_memory.exists())
         return;
       check_region_consistency(ctx, "find_physical_instances", regions);
-      if (acquire && (ctx->acquired_instances == NULL))
+      if (acquire && (ctx->acquired_instances == nullptr))
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
                         "Ignoring acquire request to find_physical_instances "
@@ -1678,7 +1678,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Internal::InstanceManager *man = instance.impl;
-      if ((man == NULL) || man->is_virtual_manager())
+      if ((man == nullptr) || man->is_virtual_manager())
         return;
       AutoMapperCall call(ctx, Internal::MAPPER_SET_GC_PRIORITY_CALL);
       Internal::PhysicalManager *manager = man->as_physical_manager();
@@ -1702,7 +1702,7 @@ namespace Legion {
                                          const PhysicalInstance &instance) const
     //--------------------------------------------------------------------------
     {
-      if (ctx->acquired_instances == NULL)
+      if (ctx->acquired_instances == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
                         "Ignoring acquire request in unsupported mapper call "
@@ -1734,7 +1734,7 @@ namespace Legion {
                             const std::vector<PhysicalInstance> &instances) const
     //--------------------------------------------------------------------------
     {
-      if (ctx->acquired_instances == NULL)
+      if (ctx->acquired_instances == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
                         "Ignoring acquire request in unsupported mapper call "
@@ -1755,7 +1755,7 @@ namespace Legion {
                                     const bool filter_acquired_instances) const
     //--------------------------------------------------------------------------
     {
-      if (ctx->acquired_instances == NULL)
+      if (ctx->acquired_instances == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
                         "Ignoring acquire request in unsupported mapper call "
@@ -1801,7 +1801,7 @@ namespace Legion {
               const std::vector<std::vector<PhysicalInstance> > &instances) const
     //--------------------------------------------------------------------------
     {
-      if (ctx->acquired_instances == NULL)
+      if (ctx->acquired_instances == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
                         "Ignoring acquire request in unsupported mapper call "
@@ -1827,7 +1827,7 @@ namespace Legion {
                           const bool filter_acquired_instances) const
     //--------------------------------------------------------------------------
     {
-      if (ctx->acquired_instances == NULL)
+      if (ctx->acquired_instances == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
                         "Ignoring acquire request in unsupported mapper call "
@@ -1860,7 +1860,7 @@ namespace Legion {
                                          const PhysicalInstance &instance) const
     //--------------------------------------------------------------------------
     {
-      if (ctx->acquired_instances == NULL)
+      if (ctx->acquired_instances == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_RELEASE_REQUEST,
                         "Ignoring release request in unsupported mapper call "
@@ -1877,7 +1877,7 @@ namespace Legion {
                            const std::vector<PhysicalInstance> &instances) const
     //--------------------------------------------------------------------------
     {
-      if (ctx->acquired_instances == NULL)
+      if (ctx->acquired_instances == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_RELEASE_REQUEST,
                         "Ignoring release request in unsupported mapper call "
@@ -1895,7 +1895,7 @@ namespace Legion {
              const std::vector<std::vector<PhysicalInstance> > &instances) const
     //--------------------------------------------------------------------------
     {
-      if (ctx->acquired_instances == NULL)
+      if (ctx->acquired_instances == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_RELEASE_REQUEST,
                         "Ignoring release request in unsupported mapper call "
@@ -1917,7 +1917,7 @@ namespace Legion {
                                   const PhysicalInstance &instance) const
     //--------------------------------------------------------------------------
     {
-      if ((instance.impl == NULL) || instance.impl->is_virtual_manager())
+      if ((instance.impl == nullptr) || instance.impl->is_virtual_manager())
         return false;
       AutoMapperCall call(ctx, Internal::MAPPER_SUBSCRIBE_INSTANCE_CALL);
       Internal::PhysicalManager *manager = instance.impl->as_physical_manager();
@@ -1931,7 +1931,7 @@ namespace Legion {
                                     const PhysicalInstance &instance) const
     //--------------------------------------------------------------------------
     {
-      if ((instance.impl == NULL) || instance.impl->is_virtual_manager())
+      if ((instance.impl == nullptr) || instance.impl->is_virtual_manager())
         return;
       AutoMapperCall call(ctx, Internal::MAPPER_UNSUBSCRIBE_INSTANCE_CALL);
       Internal::PhysicalManager *manager = instance.impl->as_physical_manager();
@@ -1943,7 +1943,7 @@ namespace Legion {
                                          const PhysicalInstance &instance) const
     //--------------------------------------------------------------------------
     {
-      if ((instance.impl == NULL) || instance.impl->is_virtual_manager() ||
+      if ((instance.impl == nullptr) || instance.impl->is_virtual_manager() ||
           instance.impl->is_external_instance())
         return false;
       AutoMapperCall call(ctx, Internal::MAPPER_COLLECT_INSTANCE_CALL);
@@ -1978,7 +1978,7 @@ namespace Legion {
       {
         collected[idx] = false;
         Internal::InstanceManager *inst = instances[idx].impl;
-        if ((inst == NULL) || inst->is_virtual_manager() || 
+        if ((inst == nullptr) || inst->is_virtual_manager() || 
             inst->is_external_instance())
           continue;
         Internal::RtEvent instance_collected;
@@ -2011,13 +2011,13 @@ namespace Legion {
         GCPriority priority, bool tight_region_bounds)
     //--------------------------------------------------------------------------
     {
-      if ((instance.impl == NULL) || instance.impl->is_virtual_manager() ||
+      if ((instance.impl == nullptr) || instance.impl->is_virtual_manager() ||
           instance.impl->is_external_instance())
         return false;
       if (regions.empty())
         return false;
       check_region_consistency(ctx, "redistrict_instance", regions);
-      if (ctx->operation == NULL)
+      if (ctx->operation == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
             "Ignoring request to redistrict_instance in unsupported mapper "
@@ -2027,7 +2027,7 @@ namespace Legion {
         return false;
       }
 #ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != NULL);
+      assert(ctx->acquired_instances != nullptr);
 #endif
       AutoMapperCall call(ctx, Internal::MAPPER_REDISTRICT_INSTANCE_CALL);
       Internal::MemoryManager *manager = 
@@ -2047,13 +2047,13 @@ namespace Legion {
         GCPriority priority, bool tight_region_bounds)
     //--------------------------------------------------------------------------
     {
-      if ((instance.impl == NULL) || instance.impl->is_virtual_manager() ||
+      if ((instance.impl == nullptr) || instance.impl->is_virtual_manager() ||
           instance.impl->is_external_instance())
         return false;
       if (regions.empty())
         return false;
       check_region_consistency(ctx, "redistrict_instance", regions);
-      if (ctx->operation == NULL)
+      if (ctx->operation == nullptr)
       {
         REPORT_LEGION_WARNING(LEGION_WARNING_IGNORING_ACQUIRE_REQUEST,
             "Ignoring request to redistrict_instance in unsupported mapper "
@@ -2063,7 +2063,7 @@ namespace Legion {
         return false;
       }
 #ifdef DEBUG_LEGION
-      assert(ctx->acquired_instances != NULL);
+      assert(ctx->acquired_instances != nullptr);
 #endif
       AutoMapperCall call(ctx, Internal::MAPPER_REDISTRICT_INSTANCE_CALL);
       Internal::LayoutConstraints *cons = 
@@ -2083,7 +2083,7 @@ namespace Legion {
                                        const Future &future,Memory memory) const
     //--------------------------------------------------------------------------
     {
-      if ((future.impl == NULL) || !memory.exists())
+      if ((future.impl == nullptr) || !memory.exists())
         return false;
       if (ctx->kind != Internal::MAP_TASK_CALL)
       {
@@ -2098,17 +2098,17 @@ namespace Legion {
         ctx->manager->is_safe_for_unbounded_pools();
       AutoMapperCall call(ctx, Internal::MAPPER_ACQUIRE_FUTURE_CALL);
 #ifdef DEBUG_LEGION
-      assert(ctx->operation != NULL);
+      assert(ctx->operation != nullptr);
       Internal::SingleTask *task =
         dynamic_cast<Internal::SingleTask*>(ctx->operation);
-      assert(task != NULL);
+      assert(task != nullptr);
 #else
       Internal::SingleTask *task =
         static_cast<Internal::SingleTask*>(ctx->operation);
 #endif
       Internal::RtEvent unbounded_pool_wait;
       const bool result = future.impl->request_application_instance(
-          memory, task, safe_for_unbounded_pools ? NULL :
+          memory, task, safe_for_unbounded_pools ? nullptr :
           &unbounded_pool_wait, true/*can fail*/);
       if (!safe_for_unbounded_pools && unbounded_pool_wait.exists())
         ctx->report_unsafe_allocation_in_unbounded_pool(memory,
@@ -2138,17 +2138,17 @@ namespace Legion {
         ctx->manager->is_safe_for_unbounded_pools();
       AutoMapperCall call(ctx, Internal::MAPPER_ACQUIRE_POOL_CALL);
 #ifdef DEBUG_LEGION
-      assert(ctx->operation != NULL);
+      assert(ctx->operation != nullptr);
       Internal::SingleTask *task =
         dynamic_cast<Internal::SingleTask*>(ctx->operation);
-      assert(task != NULL);
+      assert(task != nullptr);
 #else
       Internal::SingleTask *task =
         static_cast<Internal::SingleTask*>(ctx->operation);
 #endif
       Internal::RtEvent unbounded_pool_wait;
       const bool result = task->acquire_leaf_memory_pool(memory, bounds,
-          safe_for_unbounded_pools ? NULL : &unbounded_pool_wait);
+          safe_for_unbounded_pools ? nullptr : &unbounded_pool_wait);
       if (!safe_for_unbounded_pools && unbounded_pool_wait.exists())
         ctx->report_unsafe_allocation_in_unbounded_pool(memory,
             Internal::MAPPER_ACQUIRE_POOL_CALL);
@@ -2172,10 +2172,10 @@ namespace Legion {
       }
       AutoMapperCall call(ctx, Internal::MAPPER_RELEASE_POOL_CALL);
 #ifdef DEBUG_LEGION
-      assert(ctx->operation != NULL);
+      assert(ctx->operation != nullptr);
       Internal::SingleTask *task =
         dynamic_cast<Internal::SingleTask*>(ctx->operation);
-      assert(task != NULL);
+      assert(task != nullptr);
 #else
       Internal::SingleTask *task =
         static_cast<Internal::SingleTask*>(ctx->operation);
@@ -2209,13 +2209,13 @@ namespace Legion {
         }
       }
       AutoMapperCall call(ctx, Internal::MAPPER_CREATE_INDEX_SPACE_CALL);
-      Internal::Provenance *provenance = NULL;
-      if (prov != NULL)
+      Internal::Provenance *provenance = nullptr;
+      if (prov != nullptr)
         provenance = runtime->find_or_create_provenance(prov, strlen(prov));
       const IndexSpace result(runtime->get_unique_index_space_id(),
                     runtime->get_unique_index_tree_id(), type_tag);
       runtime->create_index_space(result, domain, take_ownership, provenance);
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       return result; 
     }
@@ -2303,7 +2303,7 @@ namespace Legion {
       runtime->create_union_space(result, prov, sources);
       if (runtime->legion_spy_enabled)
         Internal::LegionSpy::log_top_index_space(result.get_id(),
-            runtime->address_space, (provenance == NULL) ? std::string_view() : 
+            runtime->address_space, (provenance == nullptr) ? std::string_view() : 
             std::string_view(provenance));
       return result;
     }
@@ -2335,7 +2335,7 @@ namespace Legion {
       runtime->create_intersection_space(result, prov, sources);
       if (runtime->legion_spy_enabled)
         Internal::LegionSpy::log_top_index_space(result.get_id(),
-            runtime->address_space, (provenance == NULL) ? std::string_view() :
+            runtime->address_space, (provenance == nullptr) ? std::string_view() :
             std::string_view(provenance));
       return result;
     }
@@ -2358,7 +2358,7 @@ namespace Legion {
       runtime->create_difference_space(result, prov, left, right);
       if (runtime->legion_spy_enabled)
         Internal::LegionSpy::log_top_index_space(result.get_id(),
-            runtime->address_space, (provenance == NULL) ? std::string_view() :
+            runtime->address_space, (provenance == nullptr) ? std::string_view() :
             std::string_view(provenance));
       return result;
     }
@@ -3081,7 +3081,7 @@ namespace Legion {
       assert(Internal::local_lock_list == previous);
 #endif
 #ifdef DEBUG_REENTRANT_LOCKS
-      if (previous != NULL)
+      if (previous != nullptr)
         previous->check_for_reentrant_locks(&local_lock);
 #endif
       AutoMapperCall call(ctx, Internal::MAPPER_AUTO_LOCK_CALL);

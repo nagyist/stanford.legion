@@ -31,9 +31,9 @@ namespace Legion {
     public:
       virtual ~RefinementTracker(void) { };
     public:
-      virtual RegionRefinementTracker* as_region_tracker(void) { return NULL; }
+      virtual RegionRefinementTracker* as_region_tracker(void) { return nullptr; }
       virtual PartitionRefinementTracker* as_partition_tracker(void)
-        { return NULL; }
+        { return nullptr; }
       virtual RefinementTracker* clone(void) const = 0;
       virtual void initialize_no_refine(void) = 0;
       virtual bool update_child(RegionTreeNode *child, 

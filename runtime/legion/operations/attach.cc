@@ -87,7 +87,7 @@ namespace Legion {
           << "to HDF5 files";
 #endif
       }
-      if (launcher.external_resource != NULL)
+      if (launcher.external_resource != nullptr)
       {
         external_resource = launcher.external_resource->clone();
       }
@@ -172,7 +172,7 @@ namespace Legion {
     {
       Operation::activate();
       termination_event = ApEvent::NO_AP_EVENT;
-      external_resource = NULL;
+      external_resource = nullptr;
       restricted = true;
     }
 
@@ -187,7 +187,7 @@ namespace Legion {
       external_instances.clear();
       hdf5_field_files.clear();
       layout_constraint_set = LayoutConstraintSet();
-      if (external_resource != NULL)
+      if (external_resource != nullptr)
         delete external_resource;
       if (freeop)
         runtime->free_operation(this);
@@ -271,7 +271,7 @@ namespace Legion {
                                                    requirement,
                                                    version_info,
                                                    preconditions,
-                                                   NULL/*output region*/,
+                                                   nullptr/*output region*/,
                                                    is_point_attach());
       // Register the instance with the memory manager and make sure it is
       // done before we perform our mapping
@@ -356,12 +356,12 @@ namespace Legion {
       PhysicalInstance result = PhysicalInstance::NO_INST;
       LgEvent unique_event;
       Realm::ProfilingRequestSet requests;
-      if ((runtime->profiler != NULL) || runtime->legion_spy_enabled)
+      if ((runtime->profiler != nullptr) || runtime->legion_spy_enabled)
       {
         const Realm::UserEvent unique = Realm::UserEvent::create_user_event();
         unique.trigger();
         unique_event = LgEvent(unique);
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_inst_request(requests, this, unique_event);
       }
       // If we're doing an HDF5 instance creation we have to make a special
@@ -378,7 +378,7 @@ namespace Legion {
       ready_event = ApEvent(PhysicalInstance::create_external_instance(
             result, external_resource->suggested_memory(), ilg, 
             *external_resource, requests));
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
       {
         implicit_profiler->register_physical_instance_region(unique_event,
                                                            requirement.region);
@@ -494,7 +494,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PointwiseAnalyzable<CollectiveViewCreator<Operation> >::activate();
-      launch_space = NULL;
+      launch_space = nullptr;
       points_completed.store(0);
       points_committed = 0;
       commit_request = false;
@@ -582,7 +582,7 @@ namespace Legion {
       {
         LegionSpy::log_attach_operation(parent_ctx->get_unique_id(),
                                         unique_op_id, false/*restricted*/);
-        if (launch_space != NULL)
+        if (launch_space != nullptr)
           log_launch_space(launch_space->handle);
       }
       resources = ExternalResources(result);
@@ -649,7 +649,7 @@ namespace Legion {
         {
           std::map<LogicalRegion,std::vector<DomainPoint> > dependences;
           pit->find_dependences(requirement, regions, dependences);
-          if (pit->sharding != NULL)
+          if (pit->sharding != nullptr)
           {
             const Domain launch_domain =
               pit->sharding_domain->get_tight_domain();
@@ -931,7 +931,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AttachOp::activate();
-      owner = NULL;
+      owner = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1229,7 +1229,7 @@ namespace Legion {
       perform_collective_wait();
 #ifdef DEBUG_LEGIOn
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(context);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(context);
 #endif
@@ -1243,7 +1243,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexAttachUpperBound::IndexAttachUpperBound(ReplicateContext *ctx,
                                CollectiveIndexLocation loc)
-      : AllGatherCollective<false>(loc, ctx), node(NULL)
+      : AllGatherCollective<false>(loc, ctx), node(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -1259,7 +1259,7 @@ namespace Legion {
                                                       Serializer &rez,int stage)
     //--------------------------------------------------------------------------
     {
-      if (node != NULL)
+      if (node != nullptr)
       {
         if (node->is_region())
         {
@@ -1286,7 +1286,7 @@ namespace Legion {
     {
       bool is_region;
       derez.deserialize(is_region);
-      RegionTreeNode *next = NULL;
+      RegionTreeNode *next = nullptr;
       if (is_region)
       {
         LogicalRegion handle;
@@ -1301,7 +1301,7 @@ namespace Legion {
         derez.deserialize(handle);
         next = runtime->get_node(handle);
       }
-      if (node == NULL)
+      if (node == nullptr)
       {
         node = next;
         return;
@@ -1339,7 +1339,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(node == NULL);
+      assert(node == nullptr);
 #endif
       node = n;
       perform_collective_sync();
@@ -1459,8 +1459,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(did_broadcast == NULL);
-      assert(single_broadcast == NULL);
+      assert(did_broadcast == nullptr);
+      assert(single_broadcast == nullptr);
 #endif
       resource_barrier = ctx->get_next_attach_resource_barrier();
       collective_instances = collective_inst;
@@ -1522,8 +1522,8 @@ namespace Legion {
       is_first_local_shard = false;
       contains_individual = false;
       resource_barrier = RtBarrier::NO_RT_BARRIER;
-      did_broadcast = NULL;
-      single_broadcast = NULL;
+      did_broadcast = nullptr;
+      single_broadcast = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1532,9 +1532,9 @@ namespace Legion {
     {
       ReplCollectiveViewCreator<
         CollectiveViewCreator<AttachOp> >::deactivate(false/*free*/);
-      if (did_broadcast != NULL)
+      if (did_broadcast != nullptr)
         delete did_broadcast;
-      if (single_broadcast != NULL)
+      if (single_broadcast != nullptr)
         delete single_broadcast;
       if (freeop)
         runtime->free_operation(this);
@@ -1547,7 +1547,7 @@ namespace Legion {
       analyze_region_requirements();
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
       assert(!collective_map_barrier.exists());
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
@@ -1576,7 +1576,7 @@ namespace Legion {
                                                    requirement,
                                                    version_info,
                                                    preconditions,
-                                                   NULL/*output region*/,
+                                                   nullptr/*output region*/,
                                                    true/*rendezvous*/);
       if (!collective_map_barrier.has_triggered())
         preconditions.insert(collective_map_barrier);
@@ -1640,7 +1640,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx = 
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1670,7 +1670,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1679,7 +1679,7 @@ namespace Legion {
       // will be one of the ones performing an instance creation
       const bool making_instance = (collective_instances &&
          (is_first_local_shard || !deduplicate_across_shards)) ||
-        ((single_broadcast != NULL) && single_broadcast->is_origin());
+        ((single_broadcast != nullptr) && single_broadcast->is_origin());
       ApEvent ready_event;
       LgEvent unique_event;
       size_t footprint = 0;
@@ -1687,13 +1687,13 @@ namespace Legion {
       if (making_instance)
       {
         Realm::ProfilingRequestSet requests;
-        if (((runtime->profiler != NULL) || runtime->legion_spy_enabled) &&
+        if (((runtime->profiler != nullptr) || runtime->legion_spy_enabled) &&
             making_instance)
         {
           const Realm::UserEvent unique = Realm::UserEvent::create_user_event();
           unique.trigger();
           unique_event = LgEvent(unique);
-          if (runtime->profiler != NULL)
+          if (runtime->profiler != nullptr)
             runtime->profiler->add_inst_request(requests, this, unique_event);
         }
         // If we're doing an HDF5 instance creation we have to make a special
@@ -1710,9 +1710,9 @@ namespace Legion {
         ready_event = ApEvent(PhysicalInstance::create_external_instance(
               instance, external_resource->suggested_memory(), ilg, 
               *external_resource, requests));
-        if (single_broadcast != NULL)
+        if (single_broadcast != nullptr)
           single_broadcast->broadcast({instance, ready_event, unique_event});
-        if (implicit_profiler != NULL)
+        if (implicit_profiler != nullptr)
         {
           implicit_profiler->register_physical_instance_region(unique_event,
                                                       requirement.region);
@@ -1723,7 +1723,7 @@ namespace Legion {
         }
       }
       // Do the arrival on the attach barrier for any collective instances
-      else if ((single_broadcast != NULL) && !single_broadcast->is_origin())
+      else if ((single_broadcast != nullptr) && !single_broadcast->is_origin())
       {
         // If we're making a single instance get the name
         const InstanceEvents result = single_broadcast->get_value();
@@ -1878,11 +1878,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ReplCollectiveViewCreator<IndexAttachOp>::activate();
-      collective = NULL;
-      participants = NULL;
-      sharding_function = NULL;
+      collective = nullptr;
+      participants = nullptr;
+      sharding_function = nullptr;
       interfering_check_id = 0;
-      interfering_exchange = NULL;
+      interfering_exchange = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1890,11 +1890,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ReplCollectiveViewCreator<IndexAttachOp>::deactivate(false/*free*/);
-      if (collective != NULL)
+      if (collective != nullptr)
         delete collective;
-      if (participants != NULL)
+      if (participants != nullptr)
         delete participants;
-      if (interfering_exchange != NULL)
+      if (interfering_exchange != nullptr)
         delete interfering_exchange;
       if (freeop)
         runtime->free_operation(this);
@@ -1905,7 +1905,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(collective == NULL);
+      assert(collective == nullptr);
 #endif
       collective = new IndexAttachExchange(ctx, COLLECTIVE_LOC_25);
       std::vector<IndexSpace> spaces(points.size());
@@ -1923,9 +1923,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function == NULL);
+      assert(sharding_function == nullptr);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1938,7 +1938,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
 #endif
       std::vector<IndexSpace> spaces;
       unsigned local_start = 0;
@@ -1997,13 +1997,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // See if this is the first time through or not
-      if (interfering_exchange == NULL)
+      if (interfering_exchange == nullptr)
       {
         // First time through, make the exchange and kick it off
 #ifdef DEBUG_LEGION
         assert(interfering_check_id > 0);
         ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -2024,7 +2024,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -2040,7 +2040,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(participants != NULL);
+      assert(participants != nullptr);
 #endif
       return participants->find_shard_participants(shards);  
     } 

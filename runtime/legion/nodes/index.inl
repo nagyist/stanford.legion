@@ -54,7 +54,7 @@ namespace Legion {
 #endif
       const size_t num_pieces = piece_list_size / sizeof(Rect<DIM,T>);
       const Rect<DIM,T> *rects = static_cast<const Rect<DIM,T>*>(piece_list);
-      if (privilege_node != NULL)
+      if (privilege_node != nullptr)
       {
         DomainT<DIM,T> privilege_space = 
           privilege_node->get_tight_index_space();
@@ -107,12 +107,12 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       IndexSpaceNodeT<DIM,T> *privilege_node = 
         dynamic_cast<IndexSpaceNodeT<DIM,T>*>(priv_node);
-      assert((privilege_node != NULL) || (priv_node == NULL));
+      assert((privilege_node != nullptr) || (priv_node == nullptr));
 #else
       IndexSpaceNodeT<DIM,T> *privilege_node = 
         static_cast<IndexSpaceNodeT<DIM,T>*>(priv_node);
 #endif
-      if (piece_list == NULL)
+      if (piece_list == nullptr)
       {
         DomainT<DIM,T> realm_space = get_tight_index_space();
 #ifdef DEBUG_LEGION
@@ -141,7 +141,7 @@ namespace Legion {
       : IndexSpaceNode(handle, parent, color, expr_id, init,
           dep, prov, mapping, tree_valid), 
         realm_index_space(Realm::IndexSpace<DIM,T>::make_empty()),
-        linearization(NULL)
+        linearization(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -167,7 +167,7 @@ namespace Legion {
         {
           if (!index_space_valid.has_triggered_faultignorant())
             preconditions.push_back(index_space_valid);
-          index_space_valid = Runtime::merge_events(NULL, preconditions);
+          index_space_valid = Runtime::merge_events(nullptr, preconditions);
           // Protect it if necessary to make sure the deletion happens
           // even if one of the users was poisoned
           if (index_space_valid.exists())
@@ -177,7 +177,7 @@ namespace Legion {
         realm_index_space.destroy(index_space_valid);
       }
       ColorSpaceLinearizationT<DIM,T> *linear = linearization.load();
-      if (linear != NULL)
+      if (linear != nullptr)
         delete linear;
     }
 
@@ -257,7 +257,7 @@ namespace Legion {
       if (!index_space_tight.load())
       {
         if (!to_trigger.exists())
-          to_trigger = Runtime::create_ap_user_event(NULL);
+          to_trigger = Runtime::create_ap_user_event(nullptr);
         while (!index_space_users.empty() &&
             index_space_users.front().has_triggered_faultignorant())
           index_space_users.pop_front();
@@ -329,7 +329,7 @@ namespace Legion {
       // for everything in the collective map since we know that they're all
       // going to end up having a copy of the realm index space
       if (!value.dense() && broadcast && (source == local_space) &&
-          (collective_mapping != NULL))
+          (collective_mapping != nullptr))
       {
         Realm::SparsityMap<DIM,T> copy = value.sparsity;
         const RtEvent ready(copy.add_reference(collective_mapping->size() - 
@@ -360,7 +360,7 @@ namespace Legion {
         }
         if (broadcast)
         {
-          if ((collective_mapping != NULL) && 
+          if ((collective_mapping != nullptr) && 
               collective_mapping->contains(local_space))
           {
             std::vector<AddressSpaceID> children;
@@ -372,7 +372,7 @@ namespace Legion {
               Serializer rez;
               {
                 RezCheck z(rez);
-                if (parent != NULL)
+                if (parent != nullptr)
                 {
                   rez.serialize(parent->handle);
                   rez.serialize(color);
@@ -398,7 +398,7 @@ namespace Legion {
             Serializer rez;
             {
               RezCheck z(rez);
-              if (parent != NULL)
+              if (parent != nullptr)
               {
                 rez.serialize(parent->handle);
                 rez.serialize(color);
@@ -410,7 +410,7 @@ namespace Legion {
               }
               pack_index_space(rez, true/*pack reference*/);
             }
-            if (collective_mapping != NULL)
+            if (collective_mapping != nullptr)
               runtime->send_index_space_set(
                   collective_mapping->find_nearest(local_space), rez);
             else
@@ -424,7 +424,7 @@ namespace Legion {
           Serializer rez;
           {
             RezCheck z(rez);
-            if (parent != NULL)
+            if (parent != nullptr)
             {
               rez.serialize(parent->handle);
               rez.serialize(color);
@@ -442,16 +442,16 @@ namespace Legion {
       }
       // Now we can tighten it
       tighten_index_space();
-      if (is_owner() || ((collective_mapping != NULL) && 
+      if (is_owner() || ((collective_mapping != nullptr) && 
             collective_mapping->contains(local_space)))
       {
-        if (parent != NULL)
+        if (parent != nullptr)
           parent->set_child(this);
       }
       // Remove the reference we were holding until this was set
       if (initializing)
         return false;
-      else if (parent == NULL)
+      else if (parent == nullptr)
         return remove_base_gc_ref(REGION_TREE_REF);
       if (parent->remove_base_gc_ref(REGION_TREE_REF))
         delete parent;
@@ -494,7 +494,7 @@ namespace Legion {
         if (added.exists())
         {
           if (ready.exists())
-            ready = Runtime::merge_events(NULL, ready, added);
+            ready = Runtime::merge_events(nullptr, ready, added);
           else
             ready = added;
         }
@@ -611,7 +611,7 @@ namespace Legion {
         {
           if (!index_space_valid.has_triggered_faultignorant())
             preconditions.push_back(index_space_valid);
-          index_space_valid = Runtime::merge_events(NULL, preconditions);
+          index_space_valid = Runtime::merge_events(nullptr, preconditions);
           // Protect it if necessary to make sure the deletion happens
           // even if one of the users was poisoned
           if (index_space_valid.exists())
@@ -620,7 +620,7 @@ namespace Legion {
         }
         old_space.destroy(index_space_valid);
       }
-      if (runtime->legion_spy_enabled || (runtime->profiler != NULL))
+      if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
       {
         // Log subspaces being set on the owner
         const AddressSpaceID owner_space = get_owner_space();
@@ -628,7 +628,7 @@ namespace Legion {
         {
           if (runtime->legion_spy_enabled)
             this->log_index_space_points(tight_space);
-          if (runtime->profiler != NULL)
+          if (runtime->profiler != nullptr)
             this->log_profiler_index_space_points(tight_space);
         }
       }
@@ -661,7 +661,7 @@ namespace Legion {
       const ApEvent ready = get_loose_index_space(local_space, to_trigger);
       IndexSpaceNode *result = runtime->create_node(new_handle, 
                               Domain(local_space), false/*take ownership*/,
-                              NULL/*parent*/, 0/*color*/, initialized,
+                              nullptr/*parent*/, 0/*color*/, initialized,
                               provenance, ready, new_expr_id,
                               collective_mapping, true/*add root reference*/);
       if (to_trigger.exists())
@@ -687,12 +687,12 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       IndexSpaceNodeT<DIM,T> *privilege_node = 
         dynamic_cast<IndexSpaceNodeT<DIM,T>*>(priv_node);
-      assert((privilege_node != NULL) || (priv_node == NULL));
+      assert((privilege_node != nullptr) || (priv_node == nullptr));
 #else
       IndexSpaceNodeT<DIM,T> *privilege_node = 
         static_cast<IndexSpaceNodeT<DIM,T>*>(priv_node);
 #endif
-      if (piece_list == NULL)
+      if (piece_list == nullptr)
       {
         DomainT<DIM,T> realm_space = get_tight_index_space();
 #ifdef DEBUG_LEGION
@@ -811,13 +811,13 @@ namespace Legion {
       if (op->has_execution_fence_event())
         preconditions.insert(op->get_execution_fence_event());
       // Kick this off to Realm
-      ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       ApEvent result;
       Realm::IndexSpace<DIM,T> result_space;
       if (is_union)
       {
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests,
               op, DEP_PART_UNION_REDUCTION, precondition);
         result = ApEvent(Realm::IndexSpace<DIM,T>::compute_union(
@@ -826,7 +826,7 @@ namespace Legion {
       else
       {
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests,
               op, DEP_PART_INTERSECTION_REDUCTION, precondition);
         result = ApEvent(Realm::IndexSpace<DIM,T>::compute_intersection(
@@ -877,13 +877,13 @@ namespace Legion {
       if (op->has_execution_fence_event())
         preconditions.insert(op->get_execution_fence_event());
       // Kick this off to Realm
-      ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       ApEvent result;
       Realm::IndexSpace<DIM,T> result_space;
       if (is_union)
       {
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests,
               op, DEP_PART_UNION_REDUCTION, precondition);
         result = ApEvent(Realm::IndexSpace<DIM,T>::compute_union(
@@ -892,7 +892,7 @@ namespace Legion {
       else
       {
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests,
               op, DEP_PART_INTERSECTION_REDUCTION, precondition);
         result = ApEvent(Realm::IndexSpace<DIM,T>::compute_intersection(
@@ -942,10 +942,10 @@ namespace Legion {
       } 
       if (op->has_execution_fence_event())
         preconditions.insert(op->get_execution_fence_event());
-      ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet union_requests;
       Realm::ProfilingRequestSet diff_requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(union_requests,
             op, DEP_PART_UNION_REDUCTION, precondition);
       // Compute the union of the handles for the right-hand side
@@ -956,8 +956,8 @@ namespace Legion {
         static_cast<IndexSpaceNodeT<DIM,T>*>(runtime->get_node(init));
       Realm::IndexSpace<DIM,T> lhs_space, result_space;
       ApEvent lhs_ready = lhs_node->get_loose_index_space(lhs_space,to_trigger);
-      ApEvent diff_pre = Runtime::merge_events(NULL, lhs_ready, rhs_ready);
-      if (runtime->profiler != NULL)
+      ApEvent diff_pre = Runtime::merge_events(nullptr, lhs_ready, rhs_ready);
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(diff_requests,
             op, DEP_PART_DIFFERENCE, diff_pre);
       ApEvent result(Realm::IndexSpace<DIM,T>::compute_difference(
@@ -1119,7 +1119,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ColorSpaceLinearizationT<DIM,T> *linear = linearization.load();
-      if (linear == NULL)
+      if (linear == nullptr)
         linear = compute_linearization_metadata();
       return linear->get_max_linearized_color();
     }
@@ -1166,12 +1166,12 @@ namespace Legion {
       DomainT<DIM,T> space = get_tight_index_space();
       ColorSpaceLinearizationT<DIM,T> *result = 
         new ColorSpaceLinearizationT<DIM,T>(space);
-      ColorSpaceLinearizationT<DIM,T> *expected = NULL;
+      ColorSpaceLinearizationT<DIM,T> *expected = nullptr;
       if (!linearization.compare_exchange_strong(expected, result))
       {
         delete result;
 #ifdef DEBUG_LEGION
-        assert(expected != NULL);
+        assert(expected != nullptr);
 #endif
         result = expected;
       }
@@ -1194,7 +1194,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ColorSpaceLinearizationT<DIM,T> *linear = linearization.load();
-      if (linear == NULL)
+      if (linear == nullptr)
         linear = compute_linearization_metadata();
       Point<DIM,T> point;
       if (type_tag != handle.get_type_tag())
@@ -1216,7 +1216,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ColorSpaceLinearizationT<DIM,T> *linear = linearization.load();
-      if (linear == NULL)
+      if (linear == nullptr)
         linear = compute_linearization_metadata();
       return linear->linearize(point);
     }
@@ -1228,7 +1228,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ColorSpaceLinearizationT<DIM,T> *linear = linearization.load();
-      if (linear == NULL)
+      if (linear == nullptr)
         linear = compute_linearization_metadata();
       linear->delinearize(color, point);
     }
@@ -1240,7 +1240,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ColorSpaceLinearizationT<DIM,T> *linear = linearization.load();
-      if (linear == NULL)
+      if (linear == nullptr)
         linear = compute_linearization_metadata();
       Point<DIM,T> point;
       linear->delinearize(color, point);
@@ -1257,7 +1257,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ColorSpaceLinearizationT<DIM,T> *linear = linearization.load();
-      if (linear == NULL)
+      if (linear == nullptr)
         linear = compute_linearization_metadata();
       return linear->compute_color_offset(color);
     }
@@ -1269,7 +1269,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ColorSpaceLinearizationT<DIM,T> *linear = linearization.load();
-      if (linear == NULL)
+      if (linear == nullptr)
         linear = compute_linearization_metadata();
       const bool result = linear->contains_color(color);
       if (!result && report_error)
@@ -1310,7 +1310,7 @@ namespace Legion {
     DomainPoint IndexSpaceNodeT<DIM,T>::get_domain_point_color(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent == NULL)
+      if (parent == nullptr)
         return DomainPoint(color);
       return parent->color_space->delinearize_color_to_point(color); 
     }
@@ -1385,7 +1385,7 @@ namespace Legion {
       assert(partition->parent == this);
 #endif
       const size_t count = partition->total_children;
-      if (partition->is_owner() && (partition->collective_mapping == NULL))
+      if (partition->is_owner() && (partition->collective_mapping == nullptr))
       {
         // Common case is not control replication
         std::vector<DomainT<DIM,T> > subspaces;
@@ -1393,10 +1393,10 @@ namespace Legion {
         DomainT<DIM,T> local_space;
         ApEvent ready = get_loose_index_space(local_space, to_trigger);
         if (op->has_execution_fence_event())
-          ready = Runtime::merge_events(NULL, ready, 
+          ready = Runtime::merge_events(nullptr, ready, 
                     op->get_execution_fence_event());
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests,
                                                    op, DEP_PART_EQUAL, ready);
         ApEvent result(local_space.create_equal_subspaces(count, 
@@ -1404,7 +1404,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
         if (!result.exists() || (result == ready))
         {
-          ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+          ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
           Runtime::trigger_event_untraced(new_result);
           result = new_result;
         }
@@ -1447,7 +1447,7 @@ namespace Legion {
           else
             color_offset++;
           Realm::ProfilingRequestSet requests;
-          if (runtime->profiler != NULL)
+          if (runtime->profiler != nullptr)
             runtime->profiler->add_partition_request(requests,
                 op, DEP_PART_EQUAL, local_ready);
           DomainT<DIM,T> subspace;
@@ -1461,7 +1461,7 @@ namespace Legion {
         }
         ApEvent result;
         if (!done_events.empty())
-          result = Runtime::merge_events(NULL, done_events);
+          result = Runtime::merge_events(nullptr, done_events);
         if (to_trigger.exists())
           Runtime::trigger_event_untraced(to_trigger, result);
         return result;
@@ -1505,9 +1505,9 @@ namespace Legion {
       std::vector<Realm::IndexSpace<DIM,T> > subspaces;
       if (op->has_execution_fence_event())
         preconditions.push_back(op->get_execution_fence_event());
-      const ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      const ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             op, DEP_PART_UNIONS, precondition);
       ApEvent result(Realm::IndexSpace<DIM,T>::compute_unions(
@@ -1515,7 +1515,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -1577,9 +1577,9 @@ namespace Legion {
       std::vector<DomainT<DIM,T> > subspaces;
       if (op->has_execution_fence_event())
         preconditions.push_back(op->get_execution_fence_event());
-      const ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      const ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             op, DEP_PART_INTERSECTIONS, precondition);
       ApEvent result(Realm::IndexSpace<DIM,T>::compute_intersections(
@@ -1587,7 +1587,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -1648,7 +1648,7 @@ namespace Legion {
         // If we've been told that we dominate then there is no
         // need to event do the intersection tests at all
         subspaces.swap(rhs_spaces);
-        result = Runtime::merge_events(NULL, preconditions);
+        result = Runtime::merge_events(nullptr, preconditions);
       }
       else
       {
@@ -1658,9 +1658,9 @@ namespace Legion {
           preconditions.push_back(left_ready);
         if (op->has_execution_fence_event())
           preconditions.push_back(op->get_execution_fence_event());
-        precondition = Runtime::merge_events(NULL, preconditions);
+        precondition = Runtime::merge_events(nullptr, preconditions);
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests,
               op, DEP_PART_INTERSECTIONS, precondition);
         result = ApEvent(Realm::IndexSpace<DIM,T>::compute_intersections(
@@ -1669,7 +1669,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -1732,9 +1732,9 @@ namespace Legion {
       std::vector<Realm::IndexSpace<DIM,T> > subspaces;
       if (op->has_execution_fence_event())
         preconditions.push_back(op->get_execution_fence_event());
-      const ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      const ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             op, DEP_PART_DIFFERENCES, precondition);
       ApEvent result(Realm::IndexSpace<DIM,T>::compute_differences(
@@ -1742,7 +1742,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -1838,7 +1838,7 @@ namespace Legion {
           if (parent_ready.exists())
           {
             if (ready.exists())
-              ready = Runtime::merge_events(NULL, ready, parent_ready);
+              ready = Runtime::merge_events(nullptr, ready, parent_ready);
             else
               ready = parent_ready;
           }
@@ -1934,7 +1934,7 @@ namespace Legion {
         if (op->has_execution_fence_event())
         {
           if (parent_ready.exists())
-            parent_ready = Runtime::merge_events(NULL, parent_ready,
+            parent_ready = Runtime::merge_events(nullptr, parent_ready,
                                     op->get_execution_fence_event());
           else
             parent_ready = op->get_execution_fence_event();
@@ -1973,7 +1973,7 @@ namespace Legion {
           if (perform_intersections)
           {
             Realm::ProfilingRequestSet requests;
-            if (runtime->profiler != NULL)
+            if (runtime->profiler != nullptr)
               runtime->profiler->add_partition_request(requests,
                   op, DEP_PART_INTERSECTIONS, parent_ready);
             Realm::IndexSpace<DIM,T> result;
@@ -1999,7 +1999,7 @@ namespace Legion {
       }
       ApEvent result;
       if (!result_events.empty())
-        result = Runtime::merge_events(NULL, result_events);
+        result = Runtime::merge_events(nullptr, result_events);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
       return result;
@@ -2077,10 +2077,10 @@ namespace Legion {
       DomainT<DIM,T> local_space;
       ApEvent ready = get_loose_index_space(local_space, to_trigger);
       if (op->has_execution_fence_event())
-        ready = Runtime::merge_events(NULL, ready, 
+        ready = Runtime::merge_events(nullptr, ready, 
                   op->get_execution_fence_event());
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             op, DEP_PART_WEIGHTS, ready);
       std::vector<Realm::IndexSpace<DIM,T> > subspaces;
@@ -2092,7 +2092,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == ready))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -2140,7 +2140,7 @@ namespace Legion {
     {
       const AddressSpaceID source_space = runtime->address_space;
       // If we already have results then we can just fill them in 
-      if ((results != NULL) && !results->empty())
+      if ((results != nullptr) && !results->empty())
       {
         DeppartResult key;
         for (ColorSpaceIterator itr(partition, true/*local only*/); itr; itr++)
@@ -2165,7 +2165,7 @@ namespace Legion {
       IndexSpaceNodeT<COLOR_DIM,COLOR_T> *color_space = 
        static_cast<IndexSpaceNodeT<COLOR_DIM,COLOR_T>*>(partition->color_space);
       std::vector<Point<COLOR_DIM,COLOR_T> > colors;
-      if (results == NULL)
+      if (results == nullptr)
       {
         for (ColorSpaceIterator itr(partition, true/*local only*/); itr; itr++)
         {
@@ -2211,10 +2211,10 @@ namespace Legion {
         preconditions.push_back(instances_ready);
       if (op->has_execution_fence_event())
         preconditions.push_back(op->get_execution_fence_event());
-      ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       // Get the profiling requests
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             op, DEP_PART_BY_FIELD, precondition);
       std::vector<Realm::IndexSpace<DIM,T> > subspaces;
@@ -2226,7 +2226,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -2237,7 +2237,7 @@ namespace Legion {
       LegionSpy::log_deppart_events(op->get_unique_op_id(), expr_id,
                                     precondition, result, DEP_PART_BY_FIELD);
 #endif
-      unsigned index = (results == NULL) ? 0 : colors.size();
+      unsigned index = (results == nullptr) ? 0 : colors.size();
       // Set our local children results here
       for (ColorSpaceIterator itr(partition, true/*local only*/); itr; itr++)
       {
@@ -2250,10 +2250,10 @@ namespace Legion {
         IndexSpaceNodeT<DIM,T> *child =
             static_cast<IndexSpaceNodeT<DIM,T>*>(partition->get_child(*itr));
         if (child->set_realm_index_space(subspaces[index++], result,
-              false/*initialization*/, (results == NULL), source_space))
+              false/*initialization*/, (results == nullptr), source_space))
           delete child;
       }
-      if (results != NULL)
+      if (results != nullptr)
       {
         // Save the results to be broadcast if necessary
         for (unsigned idx = 0; idx < subspaces.size(); idx++)
@@ -2325,7 +2325,7 @@ namespace Legion {
             preconditions.push_back(instances_ready);
           if (op->has_execution_fence_event())
             preconditions.push_back(op->get_execution_fence_event());
-          precondition = Runtime::merge_events(NULL, preconditions);
+          precondition = Runtime::merge_events(nullptr, preconditions);
           // sort the instances so we can search for what we need
           std::sort(instances.begin(), instances.end());
           first_child = false;
@@ -2352,7 +2352,7 @@ namespace Legion {
 #endif
         // Get the profiling requests
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests,
               op, DEP_PART_BY_IMAGE, precondition);
         Realm::IndexSpace<DIM1,T1> subspace;
@@ -2361,7 +2361,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
         if (!result.exists() || (result == precondition))
         {
-          ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+          ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
           Runtime::trigger_event_untraced(new_result);
           result = new_result;
         }
@@ -2379,7 +2379,7 @@ namespace Legion {
       }
       ApEvent result;
       if (!results.empty())
-        result = Runtime::merge_events(NULL, results);
+        result = Runtime::merge_events(nullptr, results);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
       return result;
@@ -2449,7 +2449,7 @@ namespace Legion {
             preconditions.push_back(instances_ready);
           if (op->has_execution_fence_event())
             preconditions.push_back(op->get_execution_fence_event());
-          precondition = Runtime::merge_events(NULL, preconditions);
+          precondition = Runtime::merge_events(nullptr, preconditions);
           // sort the instances so we can search for what we need
           std::sort(instances.begin(), instances.end());
           first_child = false;
@@ -2476,7 +2476,7 @@ namespace Legion {
 #endif
         // Get the profiling requests
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests,
               op, DEP_PART_BY_IMAGE_RANGE, precondition);
         Realm::IndexSpace<DIM1,T1> subspace;
@@ -2485,7 +2485,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
         if (!result.exists() || (result == precondition))
         {
-          ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+          ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
           Runtime::trigger_event_untraced(new_result);
           result = new_result;
         }
@@ -2503,7 +2503,7 @@ namespace Legion {
       }
       ApEvent result;
       if (!results.empty())
-        result = Runtime::merge_events(NULL, results);
+        result = Runtime::merge_events(nullptr, results);
       if (to_trigger.exists())
         Runtime::trigger_event_untraced(to_trigger, result);
       return result;
@@ -2550,7 +2550,7 @@ namespace Legion {
     {
       const AddressSpaceID source_space = runtime->address_space;
       // If we already have results then we can just fill them in 
-      if ((results != NULL) && !results->empty())
+      if ((results != nullptr) && !results->empty())
       {
         DeppartResult key;
         for (ColorSpaceIterator itr(partition, true/*local only*/); itr; itr++)
@@ -2576,10 +2576,10 @@ namespace Legion {
       ApUserEvent to_trigger;
       std::vector<ApEvent> preconditions;
       std::vector<Realm::IndexSpace<DIM2,T2> > targets; 
-      if (results == NULL)
+      if (results == nullptr)
       {
 #ifdef DEBUG_LEGION
-        assert(remote_targets == NULL);
+        assert(remote_targets == nullptr);
 #endif
         for (ColorSpaceIterator itr(partition, true/*local only*/); itr; itr++)
         {
@@ -2601,7 +2601,7 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        assert(remote_targets != NULL);
+        assert(remote_targets != nullptr);
 #endif
         unsigned index = 0;
         targets.resize(partition->total_children);
@@ -2658,10 +2658,10 @@ namespace Legion {
       if (op->has_execution_fence_event())
         preconditions.push_back(op->get_execution_fence_event());
       std::vector<Realm::IndexSpace<DIM1,T1> > subspaces;
-      ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       // Get the profiling requests
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             op, DEP_PART_BY_PREIMAGE, precondition);
       ApEvent result(local_space.create_subspaces_by_preimage(
@@ -2669,7 +2669,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -2681,7 +2681,7 @@ namespace Legion {
                                     precondition, result, DEP_PART_BY_PREIMAGE);
 #endif
       // Update any local children with their results
-      unsigned index = (results == NULL) ? 0 : subspaces.size();
+      unsigned index = (results == nullptr) ? 0 : subspaces.size();
       // Set our local children results here
       for (ColorSpaceIterator itr(partition, true/*local only*/); itr; itr++)
       {
@@ -2694,10 +2694,10 @@ namespace Legion {
         IndexSpaceNodeT<DIM1,T1> *child =
             static_cast<IndexSpaceNodeT<DIM1,T1>*>(partition->get_child(*itr));
         if (child->set_realm_index_space(subspaces[index++], result,
-              false/*initialization*/, (results == NULL), source_space))
+              false/*initialization*/, (results == nullptr), source_space))
           delete child;
       }
-      if (results != NULL)
+      if (results != nullptr)
       {
         // Save the results to be broadcast if necessary
         for (unsigned idx = 0; idx < subspaces.size(); idx++)
@@ -2748,7 +2748,7 @@ namespace Legion {
     {
       const AddressSpaceID source_space = runtime->address_space;
       // If we already have results then we can just fill them in 
-      if ((results != NULL) && !results->empty())
+      if ((results != nullptr) && !results->empty())
       {
         DeppartResult key;
         for (ColorSpaceIterator itr(partition, true/*local only*/); itr; itr++)
@@ -2775,10 +2775,10 @@ namespace Legion {
       ApUserEvent to_trigger;
       std::vector<ApEvent> preconditions;
       std::vector<DomainT<DIM2,T2> > targets; 
-      if (results == NULL)
+      if (results == nullptr)
       {
 #ifdef DEBUG_LEGION
-        assert(remote_targets == NULL);
+        assert(remote_targets == nullptr);
 #endif
         for (ColorSpaceIterator itr(partition, true/*local only*/); itr; itr++)
         {
@@ -2800,7 +2800,7 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        assert(remote_targets != NULL);
+        assert(remote_targets != nullptr);
 #endif
         unsigned index = 0;
         targets.resize(partition->total_children);
@@ -2857,10 +2857,10 @@ namespace Legion {
       if (op->has_execution_fence_event())
         preconditions.push_back(op->get_execution_fence_event());
       std::vector<Realm::IndexSpace<DIM1,T1> > subspaces;
-      ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       // Get the profiling requests
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             op, DEP_PART_BY_PREIMAGE_RANGE, precondition);
       ApEvent result(local_space.create_subspaces_by_preimage(
@@ -2868,7 +2868,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -2880,7 +2880,7 @@ namespace Legion {
                     precondition, result, DEP_PART_BY_PREIMAGE_RANGE);
 #endif
       // Update any local children with their results
-      unsigned index = (results == NULL) ? 0 : subspaces.size();
+      unsigned index = (results == nullptr) ? 0 : subspaces.size();
       // Set our local children results here
       for (ColorSpaceIterator itr(partition, true/*local only*/); itr; itr++)
       {
@@ -2893,10 +2893,10 @@ namespace Legion {
         IndexSpaceNodeT<DIM1,T1> *child =
             static_cast<IndexSpaceNodeT<DIM1,T1>*>(partition->get_child(*itr));
         if (child->set_realm_index_space(subspaces[index++], result,
-              false/*initialization*/, (results == NULL), source_space))
+              false/*initialization*/, (results == nullptr), source_space))
           delete child;
       }
-      if (results != NULL)
+      if (results != nullptr)
       {
         // Save the results to be broadcast if necessary
         for (unsigned idx = 0; idx < subspaces.size(); idx++)
@@ -2966,10 +2966,10 @@ namespace Legion {
       if (op->has_execution_fence_event())
         preconditions.push_back(op->get_execution_fence_event());
       // Issue the operation
-      ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       // Get the profiling requests
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             op, DEP_PART_ASSOCIATION, precondition);
       ApEvent result(local_space.create_association(descriptors,
@@ -2977,7 +2977,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -3051,7 +3051,7 @@ namespace Legion {
       return layout;
 #else
       assert(false); // should never get here
-      return NULL;
+      return nullptr;
 #endif
     }
 
@@ -3673,7 +3673,7 @@ namespace Legion {
           // "pencil" in N-dimensions and therefore doesn't need a Morton curve
           morton_tiles.push_back(new MortonTile(domain.bounds,
                 interesting_count, interesting_dims, 0/*order*/));
-          kdtree = NULL;
+          kdtree = nullptr;
           return;
         }
         // Find the least power of 2 >= extent
@@ -3691,7 +3691,7 @@ namespace Legion {
           // It fits so we just need a single MortonTile
           morton_tiles.push_back(new MortonTile(domain.bounds,
                 interesting_count, interesting_dims, order));
-          kdtree = NULL;
+          kdtree = nullptr;
           return;
         }
       }
@@ -3836,7 +3836,7 @@ namespace Legion {
     ColorSpaceLinearizationT<DIM,T>::~ColorSpaceLinearizationT(void)
     //--------------------------------------------------------------------------
     {
-      if (kdtree != NULL)
+      if (kdtree != nullptr)
         delete kdtree;
       for (unsigned idx = 0; idx < morton_tiles.size(); idx++)
         delete morton_tiles[idx];
@@ -3869,7 +3869,7 @@ namespace Legion {
         // Find the Morton Tile that contains the point
         MortonTile *tile = kdtree->find(point);
 #ifdef DEBUG_LEGION
-        assert(tile != NULL);
+        assert(tile != nullptr);
 #endif
         return color_offsets[tile->index] + tile->linearize(point);
       }
@@ -4267,8 +4267,8 @@ namespace Legion {
                                         CollectiveMapping *map,
                                         Provenance *prov)
       : IndexPartNode(p, par, cs, c, disjoint, complete,
-                      init, map, prov), kd_root(NULL),
-        kd_remote(NULL), dense_shard_rects(NULL), sparse_shard_rects(NULL)
+                      init, map, prov), kd_root(nullptr),
+        kd_remote(nullptr), dense_shard_rects(nullptr), sparse_shard_rects(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -4282,8 +4282,8 @@ namespace Legion {
                                         RtEvent init, CollectiveMapping *map,
                                         Provenance *prov)
       : IndexPartNode(p, par, cs, c, comp,
-                      init, map, prov), kd_root(NULL),
-        kd_remote(NULL), dense_shard_rects(NULL), sparse_shard_rects(NULL)
+                      init, map, prov), kd_root(nullptr),
+        kd_remote(nullptr), dense_shard_rects(nullptr), sparse_shard_rects(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -4293,13 +4293,13 @@ namespace Legion {
     IndexPartNodeT<DIM,T>::~IndexPartNodeT(void)
     //--------------------------------------------------------------------------
     { 
-      if (kd_root != NULL)
+      if (kd_root != nullptr)
         delete kd_root;
-      if (kd_remote != NULL)
+      if (kd_remote != nullptr)
         delete kd_remote;
-      if (dense_shard_rects != NULL)
+      if (dense_shard_rects != nullptr)
         delete dense_shard_rects;
-      if (sparse_shard_rects != NULL)
+      if (sparse_shard_rects != nullptr)
         delete sparse_shard_rects;
     }
 
@@ -4309,12 +4309,12 @@ namespace Legion {
        IndexSpaceExpression *expr, std::vector<LegionColor> &colors, bool local)
     //--------------------------------------------------------------------------
     {
-      if (kd_root == NULL)
+      if (kd_root == nullptr)
       {
         if (total_children <= LEGION_MAX_BVH_FANOUT)
           return false;
         DomainT<DIM,T> parent_space = parent->get_tight_domain();
-        if (collective_mapping == NULL)
+        if (collective_mapping == nullptr)
         {
           // No shard mapping so we can build the full kd-tree here
           std::vector<std::pair<Rect<DIM,T>,LegionColor> > bounds;
@@ -4331,7 +4331,7 @@ namespace Legion {
           KDNode<DIM,T,LegionColor> *root = 
            new KDNode<DIM,T,LegionColor>(parent_space.bounds, bounds);
           AutoLock n_lock(node_lock);
-          if (kd_root == NULL)
+          if (kd_root == nullptr)
             kd_root = root;
           else // Someone else beat us to it
             delete root;
@@ -4345,12 +4345,12 @@ namespace Legion {
           RtEvent wait_on;
           {
             AutoLock n_lock(node_lock);
-            if (kd_remote_ready.exists() || (kd_remote != NULL))
+            if (kd_remote_ready.exists() || (kd_remote != nullptr))
               wait_on = kd_remote_ready;
             else
               kd_remote_ready = Runtime::create_rt_user_event();
           }
-          if (!wait_on.exists() && (kd_remote == NULL))
+          if (!wait_on.exists() && (kd_remote == nullptr))
           {
             const RtEvent rects_ready = request_shard_rects();
             if (rects_ready.exists() && !rects_ready.has_triggered())
@@ -4369,10 +4369,10 @@ namespace Legion {
               {
                 if (it->second != previous_color)
                 {
-                  CollectiveMapping *child_mapping = NULL;
+                  CollectiveMapping *child_mapping = nullptr;
                   sparse_shard_spaces.emplace_back(std::make_pair(it->first,
                     this->find_color_creator_space(it->second, child_mapping)));
-                  if (child_mapping != NULL)
+                  if (child_mapping != nullptr)
                     delete child_mapping;
                   previous_color = it->second;
                 }
@@ -4409,7 +4409,7 @@ namespace Legion {
       // If we have a remote kd tree then we need to query that to see if 
       // we have any remote colors to include
       std::set<LegionColor> color_set;
-      if ((kd_remote != NULL) && !local)
+      if ((kd_remote != nullptr) && !local)
       {
         std::set<AddressSpaceID> remote_spaces;
         for (RectInDomainIterator<DIM,T> itr(space); itr(); itr++)
@@ -4447,8 +4447,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(dense_shard_rects == NULL);
-      assert(sparse_shard_rects == NULL);
+      assert(dense_shard_rects == nullptr);
+      assert(sparse_shard_rects == nullptr);
 #endif
       dense_shard_rects = 
         new std::vector<std::pair<Rect<DIM,T>,LegionColor> >();
@@ -4492,8 +4492,8 @@ namespace Legion {
       // All the children are ready so we can get their spaces safely
       AutoLock n_lock(node_lock);
 #ifdef DEBUG_LEGION
-      assert(dense_shard_rects != NULL);
-      assert(sparse_shard_rects != NULL);
+      assert(dense_shard_rects != nullptr);
+      assert(sparse_shard_rects != nullptr);
 #endif
       unsigned logn_children = 0;
       for (typename std::vector<IndexSpaceNodeT<DIM,T>*>::const_iterator it =
@@ -4551,8 +4551,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(dense_shard_rects != NULL);
-      assert(sparse_shard_rects != NULL);
+      assert(dense_shard_rects != nullptr);
+      assert(sparse_shard_rects != nullptr);
 #endif
       rez.serialize<size_t>(dense_shard_rects->size());
       for (typename std::vector<std::pair<Rect<DIM,T>,LegionColor> >::
@@ -4583,8 +4583,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(dense_shard_rects != NULL);
-      assert(sparse_shard_rects != NULL);
+      assert(dense_shard_rects != nullptr);
+      assert(sparse_shard_rects != nullptr);
 #endif
       size_t num_dense;
       derez.deserialize(num_dense);

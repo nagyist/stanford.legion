@@ -626,7 +626,7 @@ namespace Legion {
     template<bool INORDER>
     AllGatherCollective<INORDER>::AllGatherCollective(
         CollectiveIndexLocation loc, ReplicateContext *ctx)
-      : ShardCollective(loc, ctx), participants(NULL), 
+      : ShardCollective(loc, ctx), participants(nullptr), 
         total_shards(manager->total_shards), local_index(local_shard),
         shard_collective_radix(ctx->get_shard_collective_radix()),
         shard_collective_log_radix(ctx->get_shard_collective_log_radix()),
@@ -635,7 +635,7 @@ namespace Legion {
             ctx->get_shard_collective_participating_shards()),
         shard_collective_last_radix(ctx->get_shard_collective_last_radix()),
         participating(local_index < shard_collective_participating_shards),
-        reorder_stages(NULL), pending_send_ready_stages(0)
+        reorder_stages(nullptr), pending_send_ready_stages(0)
 #ifdef DEBUG_LEGION
         , done_triggered(false)
 #endif
@@ -648,7 +648,7 @@ namespace Legion {
     template<bool INORDER>
     AllGatherCollective<INORDER>::AllGatherCollective(ReplicateContext *ctx,
                                                       CollectiveID id)
-      : ShardCollective(ctx, id), participants(NULL),
+      : ShardCollective(ctx, id), participants(nullptr),
         total_shards(manager->total_shards), local_index(local_shard),
         shard_collective_radix(ctx->get_shard_collective_radix()),
         shard_collective_log_radix(ctx->get_shard_collective_log_radix()),
@@ -657,7 +657,7 @@ namespace Legion {
             ctx->get_shard_collective_participating_shards()),
         shard_collective_last_radix(ctx->get_shard_collective_last_radix()),
         participating(local_index < shard_collective_participating_shards),
-        reorder_stages(NULL), pending_send_ready_stages(0)
+        reorder_stages(nullptr), pending_send_ready_stages(0)
 #ifdef DEBUG_LEGION
         , done_triggered(false)
 #endif
@@ -673,7 +673,7 @@ namespace Legion {
         const std::vector<ShardID> &parts)
       : ShardCollective(ctx, id), participants(&parts),
         total_shards(parts.size()),
-        reorder_stages(NULL), pending_send_ready_stages(0)
+        reorder_stages(nullptr), pending_send_ready_stages(0)
 #ifdef DEBUG_LEGION
         , done_triggered(false)
 #endif
@@ -727,7 +727,7 @@ namespace Legion {
     AllGatherCollective<INORDER>::~AllGatherCollective(void)
     //--------------------------------------------------------------------------
     {
-      if (reorder_stages != NULL)
+      if (reorder_stages != nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(reorder_stages->empty());
@@ -899,7 +899,7 @@ namespace Legion {
       if (participating)
       {
         // Send back to the shards that are not participating
-        ShardID target = (participants == NULL) ?
+        ShardID target = (participants == nullptr) ?
           (local_shard + shard_collective_participating_shards) :
           participants->at(local_index + shard_collective_participating_shards);
 #ifdef DEBUG_LEGION
@@ -912,7 +912,7 @@ namespace Legion {
       else
       {
         // Send to a node that is participating
-        ShardID target = (participants == NULL) ?
+        ShardID target = (participants == nullptr) ?
           local_shard % shard_collective_participating_shards :
           participants->at(local_index % shard_collective_participating_shards);
         Serializer rez;
@@ -967,7 +967,7 @@ namespace Legion {
               pending_send_ready_stages--;
               return false;
             }
-            else if (INORDER && (reorder_stages != NULL))
+            else if (INORDER && (reorder_stages != nullptr))
             {
               // Check to see if we have any unhandled messages for 
               // the previous stage that we need to handle before sending
@@ -994,7 +994,7 @@ namespace Legion {
         {
           for (int r = 1; r < shard_collective_last_radix; r++)
           {
-            const ShardID target = (participants == NULL) ?
+            const ShardID target = (participants == nullptr) ?
               local_shard ^ (r << (stage * shard_collective_log_radix)) :
               participants->at(
                   local_index ^ (r << (stage *shard_collective_log_radix)));
@@ -1007,7 +1007,7 @@ namespace Legion {
         {
           for (int r = 1; r < shard_collective_radix; r++)
           {
-            const ShardID target = (participants == NULL) ?
+            const ShardID target = (participants == nullptr) ?
               local_shard ^ (r << (stage * shard_collective_log_radix)) :
               participants->at(
                   local_index ^ (r << (stage * shard_collective_log_radix)));
@@ -1065,7 +1065,7 @@ namespace Legion {
           void *buffer = malloc(buffer_size);
           memcpy(buffer, derez.get_current_pointer(), buffer_size);
           derez.advance_pointer(buffer_size);
-          if (reorder_stages == NULL)
+          if (reorder_stages == nullptr)
             reorder_stages = 
               new std::map<int,std::vector<std::pair<void*,size_t> > >();
           (*reorder_stages)[stage].push_back(
@@ -1097,7 +1097,7 @@ namespace Legion {
     void AllGatherCollective<INORDER>::complete_exchange(void)
     //--------------------------------------------------------------------------
     {
-      if ((reorder_stages != NULL) && !reorder_stages->empty())
+      if ((reorder_stages != nullptr) && !reorder_stages->empty())
       {
 #ifdef DEBUG_LEGION
         assert(reorder_stages->size() == 1);
@@ -1236,7 +1236,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     BufferBroadcast::BufferBroadcast(ReplicateContext *ctx, CollectiveIndexLocation loc)
       : BroadcastCollective(loc, ctx, ctx->owner_shard->shard_id),
-        buffer(NULL), size(0), own(false)
+        buffer(nullptr), size(0), own(false)
     //--------------------------------------------------------------------------
     {
     }
@@ -1244,7 +1244,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     BufferBroadcast::BufferBroadcast(CollectiveID id, ReplicateContext *ctx)
       : BroadcastCollective(ctx, id, ctx->owner_shard->shard_id),
-        buffer(NULL), size(0), own(false)
+        buffer(nullptr), size(0), own(false)
     //--------------------------------------------------------------------------
     {
     }
@@ -1254,7 +1254,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(buffer == NULL);
+      assert(buffer == nullptr);
 #endif
       if (copy)
       {
@@ -1299,7 +1299,7 @@ namespace Legion {
       if (size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(buffer == NULL);
+        assert(buffer == nullptr);
 #endif
         buffer = malloc(size);  
         derez.deserialize(buffer, size);
@@ -1369,7 +1369,7 @@ namespace Legion {
           results[shard] = std::make_pair(buffer, size);
         }
         else
-          results[shard] = std::make_pair<void*,size_t>(NULL,0);
+          results[shard] = std::make_pair<void*,size_t>(nullptr,0);
       }
     }
 
@@ -1418,8 +1418,8 @@ namespace Legion {
                          CollectiveIndexLocation loc, ReplicateContext *ctx, 
                          ReductionOpID id, const ReductionOp *op)
       : AllGatherCollective(loc, ctx), op(o), redop(op), redop_id(id),
-        finished(Runtime::create_ap_user_event(NULL)), instance(NULL),
-        shadow_instance(NULL), current_stage(-1), pack_shadow(false)
+        finished(Runtime::create_ap_user_event(nullptr)), instance(nullptr),
+        shadow_instance(nullptr), current_stage(-1), pack_shadow(false)
     //--------------------------------------------------------------------------
     {
     }
@@ -1429,8 +1429,8 @@ namespace Legion {
         ReplicateContext *ctx, CollectiveID rid, ReductionOpID id,
         const ReductionOp* op)
       : AllGatherCollective(ctx, id), op(o), redop(op), redop_id(rid),
-        finished(Runtime::create_ap_user_event(NULL)), instance(NULL),
-        shadow_instance(NULL), current_stage(-1), pack_shadow(false)
+        finished(Runtime::create_ap_user_event(nullptr)), instance(nullptr),
+        shadow_instance(nullptr), current_stage(-1), pack_shadow(false)
     //--------------------------------------------------------------------------
     {
     }
@@ -1439,12 +1439,12 @@ namespace Legion {
     FutureAllReduceCollective::~FutureAllReduceCollective(void)
     //--------------------------------------------------------------------------
     {
-      if (shadow_instance != NULL)
+      if (shadow_instance != nullptr)
       {
         if (!shadow_reads.empty())
         {
           // Reads always dominate the most recent write
-          const ApEvent precondition = Runtime::merge_events(NULL,shadow_reads);
+          const ApEvent precondition = Runtime::merge_events(nullptr,shadow_reads);
           if (!shadow_instance->defer_deletion(precondition))
             delete shadow_instance;
         }
@@ -1488,12 +1488,12 @@ namespace Legion {
               {
                 // Have to copy this to the shadow instance because we can't
                 // do this in-place without support from Realm
-                if (shadow_instance != NULL)
+                if (shadow_instance != nullptr)
                 {
                   // Handle WAR dependences which dominate previous write
                   if (!shadow_reads.empty())
                   {
-                    shadow_ready = Runtime::merge_events(NULL, shadow_reads);
+                    shadow_ready = Runtime::merge_events(nullptr, shadow_reads);
                     shadow_reads.clear();
                   }
                 }
@@ -1504,7 +1504,7 @@ namespace Legion {
                 // so we know it's safe to write here
                 shadow_ready =
                   shadow_instance->copy_from(instance, op,
-                      Runtime::merge_events(NULL, shadow_ready,
+                      Runtime::merge_events(nullptr, shadow_ready,
                         new_instance_ready));
                 instance_ready = shadow_ready;
                 pack_shadow = true;
@@ -1540,19 +1540,19 @@ namespace Legion {
             assert(current_stage == -1);
 #endif
             // Have to make a copy in this case
-            if (shadow_instance != NULL)
+            if (shadow_instance != nullptr)
             {
               // Handle WAR dependences which dominate previous write
               if (!shadow_reads.empty())
               {
-                shadow_ready = Runtime::merge_events(NULL, shadow_reads);
+                shadow_ready = Runtime::merge_events(nullptr, shadow_reads);
                 shadow_reads.clear();
               }
             }
             else
               create_shadow_instance();
             shadow_ready = shadow_instance->copy_from(instance, op,
-                Runtime::merge_events(NULL, shadow_ready,
+                Runtime::merge_events(nullptr, shadow_ready,
                   instance_ready));
             instance_ready = shadow_ready;
             pack_shadow = true;
@@ -1567,7 +1567,7 @@ namespace Legion {
                                             false/*pack ownership*/))
         {
           rez.serialize(shadow_ready);
-          ApUserEvent reduction_done = Runtime::create_ap_user_event(NULL);
+          ApUserEvent reduction_done = Runtime::create_ap_user_event(nullptr);
           rez.serialize(reduction_done);
           shadow_reads.push_back(reduction_done);
         }
@@ -1578,7 +1578,7 @@ namespace Legion {
                                      false/*pack ownership*/))
         {
           rez.serialize(instance_ready);
-          ApUserEvent reduction_done = Runtime::create_ap_user_event(NULL);
+          ApUserEvent reduction_done = Runtime::create_ap_user_event(nullptr);
           rez.serialize(reduction_done);
           // This happens in the case where we have a stage=-1 copy of
           // the instance to a participating shard, so we can just make
@@ -1627,7 +1627,7 @@ namespace Legion {
 #endif
           PendingReduction &pending = last->second.begin()->second;
           instance_ready = instance->copy_from(pending.instance, op, 
-             Runtime::merge_events(NULL, instance_ready, pending.precondition));
+             Runtime::merge_events(nullptr, instance_ready, pending.precondition));
           if (pending.postcondition.exists())
             Runtime::trigger_event_untraced(pending.postcondition,
                 instance_ready);
@@ -1663,8 +1663,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shadow != NULL);
-      assert(shadow_instance == NULL);
+      assert(shadow != nullptr);
+      assert(shadow_instance == nullptr);
 #endif
       shadow_instance = shadow;
     }
@@ -1675,13 +1675,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(instance == NULL);
+      assert(instance == nullptr);
       // Should be meta-visible unless it is a large instance
       assert(inst->is_meta_visible || (inst->size > LEGION_MAX_RETURN_SIZE));
       // We should either have a shadow instance at this point or the nature
       // of the instance is that it is small enough and on system memory so
       // we will be able to do everything ourselves locally.
-      assert((shadow_instance != NULL) ||
+      assert((shadow_instance != nullptr) ||
           ((inst->is_meta_visible) && (inst->size <= LEGION_MAX_RETURN_SIZE)));
 #endif
       instance = inst;
@@ -1708,7 +1708,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shadow_instance == NULL);
+      assert(shadow_instance == nullptr);
       assert(instance->is_meta_visible);
       assert(instance->size <= LEGION_MAX_RETURN_SIZE);
 #endif
@@ -1747,7 +1747,7 @@ namespace Legion {
       {
         ApEvent post = instance->reduce_from(it->second.instance,
           op, redop_id, redop, false/*exclusive*/, 
-          Runtime::merge_events(NULL, instance_ready, it->second.precondition));
+          Runtime::merge_events(nullptr, instance_ready, it->second.precondition));
         if (it->second.postcondition.exists())
           Runtime::trigger_event_untraced(it->second.postcondition, post);
         delete it->second.instance;
@@ -1755,7 +1755,7 @@ namespace Legion {
           postconditions.push_back(post);
       }
       if (!postconditions.empty())
-        return Runtime::merge_events(NULL, postconditions);
+        return Runtime::merge_events(nullptr, postconditions);
       else
         return ApEvent::NO_AP_EVENT;
     }
@@ -1768,7 +1768,7 @@ namespace Legion {
     FutureBroadcastCollective::FutureBroadcastCollective(ReplicateContext *ctx,
                         CollectiveIndexLocation loc, ShardID orig, Operation *o)
       : BroadcastCollective(loc, ctx, orig), op(o),
-        finished(Runtime::create_ap_user_event(NULL)), instance(NULL)
+        finished(Runtime::create_ap_user_event(nullptr)), instance(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -1786,7 +1786,7 @@ namespace Legion {
       if (!instance->pack_instance(rez, write_event, false/*pack ownership*/))
       {
         rez.serialize(write_event); 
-        ApUserEvent remote_read_done = Runtime::create_ap_user_event(NULL);
+        ApUserEvent remote_read_done = Runtime::create_ap_user_event(nullptr);
         rez.serialize(remote_read_done);
         read_events.push_back(remote_read_done);
       }
@@ -1819,7 +1819,7 @@ namespace Legion {
       {
         if (write_event.exists())
           read_events.push_back(write_event);
-        write_event = Runtime::merge_events(NULL, read_events);
+        write_event = Runtime::merge_events(nullptr, read_events);
       }
       Runtime::trigger_event_untraced(finished, write_event);
       return postcondition;
@@ -1839,7 +1839,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(instance == NULL);
+      assert(instance == nullptr);
       // Should be meta-visible unless it is large
       assert(inst->is_meta_visible || (inst->size > LEGION_MAX_RETURN_SIZE));
 #endif
@@ -1873,7 +1873,7 @@ namespace Legion {
         FutureBroadcastCollective *broad, const ReductionOp *red,
         ReductionOpID redid)
       : GatherCollective(loc, ctx, orig), op(o), broadcast(broad), redop(red),
-        redop_id(redid), instance(NULL)
+        redop_id(redid), instance(nullptr)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1938,7 +1938,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(instance == NULL);
+      assert(instance == nullptr);
       // Should be meta-visible unless it is large
       assert(inst->is_meta_visible || (inst->size > LEGION_MAX_RETURN_SIZE));
 #endif
@@ -1967,7 +1967,7 @@ namespace Legion {
             it != pending_reductions.end(); it++)
         ready = instance->reduce_from(it->second.first, op, redop_id, redop,
             true/*exclusive*/, 
-            Runtime::merge_events(NULL, ready, it->second.second));
+            Runtime::merge_events(nullptr, ready, it->second.second));
     }
 
     /////////////////////////////////////////////////////////////

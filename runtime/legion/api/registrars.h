@@ -35,7 +35,7 @@ namespace Legion {
   public:
     LayoutConstraintRegistrar(void);
     LayoutConstraintRegistrar(FieldSpace handle, 
-                               const char *layout_name = NULL);
+                               const char *layout_name = nullptr);
   public:
     inline LayoutConstraintRegistrar&
       add_constraint(const SpecializedConstraint &constraint);
@@ -103,7 +103,7 @@ namespace Legion {
   public:
     TaskVariantRegistrar(void);
     TaskVariantRegistrar(TaskID task_id, bool global = true,
-                         const char *variant_name = NULL);
+                         const char *variant_name = nullptr);
     TaskVariantRegistrar(TaskID task_id, const char *variant_name,
                          bool global = true);
   public: // Add execution constraints

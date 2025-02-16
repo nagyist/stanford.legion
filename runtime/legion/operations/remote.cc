@@ -40,11 +40,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RemoteOp::RemoteOp(Operation *ptr, AddressSpaceID src)
-      : Operation(), remote_ptr(ptr), source(src), mapper(NULL),
+      : Operation(), remote_ptr(ptr), source(src), mapper(nullptr),
         profiling_reports(0)
     //--------------------------------------------------------------------------
     {
-      set_provenance(NULL);
+      set_provenance(nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -68,7 +68,7 @@ namespace Legion {
           Runtime::trigger_event(profiling_response);
       }
       Provenance *provenance = get_provenance();
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -86,7 +86,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(parent_ctx != NULL);
+      assert(parent_ctx != nullptr);
 #endif
       rez.serialize(get_operation_kind());
       rez.serialize(remote_ptr);
@@ -94,7 +94,7 @@ namespace Legion {
       rez.serialize(unique_op_id);
       parent_ctx->pack_inner_context(rez);
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -201,7 +201,7 @@ namespace Legion {
     {
       // We shouldn't actually be acquiring anything here so we just
       // need to make sure that we don't assert
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -229,7 +229,7 @@ namespace Legion {
       }
       // Need thetimeline for the operation to know how to profile this
       // profiling response
-      if (!has_timeline && (runtime->profiler != NULL))
+      if (!has_timeline && (runtime->profiler != nullptr))
         request.add_measurement(Realm::PMID_OP_TIMELINE);
       profiling_reports.fetch_add(count);
       return copy_fill_priority;
@@ -314,7 +314,7 @@ namespace Legion {
       derez.deserialize(remote_ptr);
       AddressSpaceID source;
       derez.deserialize(source);
-      RemoteOp *result = NULL;
+      RemoteOp *result = nullptr;
       switch (kind)
       {
         case TASK_OP_KIND:

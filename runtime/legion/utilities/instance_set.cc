@@ -28,7 +28,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     InstanceRef::InstanceRef(bool comp)
-      : manager(NULL), local(true)
+      : manager(nullptr), local(true)
     //--------------------------------------------------------------------------
     {
     }
@@ -92,7 +92,7 @@ namespace Legion {
     bool InstanceRef::is_virtual_ref(void) const
     //--------------------------------------------------------------------------
     {
-      if (manager == NULL)
+      if (manager == nullptr)
         return true;
       return manager->is_virtual_manager(); 
     }
@@ -102,7 +102,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(manager != NULL);
+      assert(manager != nullptr);
 #endif
       manager->add_base_resource_ref(source);
     }
@@ -112,7 +112,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(manager != NULL);
+      assert(manager != nullptr);
 #endif
       if (manager->remove_base_resource_ref(source))
         delete manager;
@@ -123,7 +123,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(manager != NULL);
+      assert(manager != nullptr);
 #endif
       return manager->as_physical_manager()->acquire_instance(source);
     }
@@ -133,7 +133,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(manager != NULL);
+      assert(manager != nullptr);
 #endif
       manager->as_physical_manager()->add_base_valid_ref(source);
     }
@@ -143,7 +143,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(manager != NULL);
+      assert(manager != nullptr);
 #endif
       if (manager->as_physical_manager()->remove_base_valid_ref(source))
         delete manager;
@@ -154,7 +154,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(manager != NULL);
+      assert(manager != nullptr);
 #endif
       if (!manager->is_physical_manager())
         return Memory::NO_MEMORY;
@@ -166,7 +166,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(manager != NULL);
+      assert(manager != nullptr);
       assert(manager->is_physical_manager());
 #endif
       return manager->as_physical_manager();
@@ -177,7 +177,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(manager != NULL);
+      assert(manager != nullptr);
 #endif
       unsigned index = manager->field_space_node->get_field_index(fid);
       return valid_fields.is_set(index);
@@ -188,7 +188,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize(valid_fields);
-      if (manager != NULL)
+      if (manager != nullptr)
         rez.serialize(manager->did);
       else
         rez.serialize<DistributedID>(0);
@@ -228,7 +228,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (init_size == 0)
-        refs.single = NULL;
+        refs.single = nullptr;
       else if (init_size == 1)
       {
         refs.single = new CollectableRef();
@@ -250,7 +250,7 @@ namespace Legion {
       if (single)
       {
         refs.single = rhs.refs.single;
-        if (refs.single == NULL)
+        if (refs.single == nullptr)
         {
           shared = false;
           return;
@@ -274,7 +274,7 @@ namespace Legion {
     {
       if (single)
       {
-        if ((refs.single != NULL) && refs.single->remove_reference())
+        if ((refs.single != nullptr) && refs.single->remove_reference())
           delete (refs.single);
       }
       else
@@ -291,7 +291,7 @@ namespace Legion {
       // See if we need to delete our current one
       if (single)
       {
-        if ((refs.single != NULL) && refs.single->remove_reference())
+        if ((refs.single != nullptr) && refs.single->remove_reference())
           delete (refs.single);
       }
       else
@@ -304,7 +304,7 @@ namespace Legion {
       if (single)
       {
         refs.single = rhs.refs.single;
-        if (refs.single != NULL)
+        if (refs.single != nullptr)
         {
           shared = true;
           rhs.shared = true;
@@ -332,7 +332,7 @@ namespace Legion {
 #endif
       if (single)
       {
-        if (refs.single != NULL)
+        if (refs.single != nullptr)
         {
           CollectableRef *next = 
             new CollectableRef(*refs.single);
@@ -363,8 +363,8 @@ namespace Legion {
       {
         if (refs.single == rhs.refs.single)
           return true;
-        if (((refs.single == NULL) && (rhs.refs.single != NULL)) ||
-            ((refs.single != NULL) && (rhs.refs.single == NULL)))
+        if (((refs.single == nullptr) && (rhs.refs.single != nullptr)) ||
+            ((refs.single != nullptr) && (rhs.refs.single == nullptr)))
           return false;
         return ((*refs.single) == (*rhs.refs.single));
       }
@@ -398,7 +398,7 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION
         assert(idx == 0);
-        assert(refs.single != NULL);
+        assert(refs.single != nullptr);
 #endif
         return *(refs.single);
       }
@@ -417,7 +417,7 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION
         assert(idx == 0);
-        assert(refs.single != NULL);
+        assert(refs.single != nullptr);
 #endif
         return *(refs.single);
       }
@@ -431,7 +431,7 @@ namespace Legion {
     bool InstanceSet::empty(void) const
     //--------------------------------------------------------------------------
     {
-      if (single && (refs.single == NULL))
+      if (single && (refs.single == nullptr))
         return true;
       else if (!single && refs.multi->empty())
         return true;
@@ -444,11 +444,11 @@ namespace Legion {
     {
       if (single)
       {
-        if (refs.single == NULL)
+        if (refs.single == nullptr)
           return 0;
         return 1;
       }
-      if (refs.multi == NULL)
+      if (refs.multi == nullptr)
         return 0;
       return refs.multi->vector.size();
     }
@@ -461,16 +461,16 @@ namespace Legion {
       {
         if (new_size == 0)
         {
-          if ((refs.single != NULL) && refs.single->remove_reference())
+          if ((refs.single != nullptr) && refs.single->remove_reference())
             delete (refs.single);
-          refs.single = NULL;
+          refs.single = nullptr;
           shared = false;
         }
         else if (new_size > 1)
         {
           // Switch to multi
           InternalSet *next = new InternalSet(new_size);
-          if (refs.single != NULL)
+          if (refs.single != nullptr)
           {
             next->vector[0] = *(refs.single);
             if (refs.single->remove_reference())
@@ -481,7 +481,7 @@ namespace Legion {
           single = false;
           shared = false;
         }
-        else if (refs.single == NULL)
+        else if (refs.single == nullptr)
         {
           // New size is 1 but we were empty before
           CollectableRef *next = new CollectableRef();
@@ -497,7 +497,7 @@ namespace Legion {
         {
           if (refs.multi->remove_reference())
             delete refs.multi;
-          refs.single = NULL;
+          refs.single = nullptr;
           single = true;
           shared = false;
         }
@@ -549,9 +549,9 @@ namespace Legion {
       // No need to copy since we are removing our references and not mutating
       if (single)
       {
-        if ((refs.single != NULL) && refs.single->remove_reference())
+        if ((refs.single != nullptr) && refs.single->remove_reference())
           delete (refs.single);
-        refs.single = NULL;
+        refs.single = nullptr;
       }
       else
       {
@@ -568,7 +568,7 @@ namespace Legion {
           else
           {
             // Go back to single
-            refs.multi = NULL;
+            refs.multi = nullptr;
             single = true;
           }
         }
@@ -609,7 +609,7 @@ namespace Legion {
       if (single)
       {
         // No need to check for shared, we're going to make new things anyway
-        if (refs.single != NULL)
+        if (refs.single != nullptr)
         {
           // Make the new multi version
           InternalSet *next = new InternalSet(2);
@@ -653,7 +653,7 @@ namespace Legion {
     {
       if (single)
       {
-        if (refs.single == NULL)
+        if (refs.single == nullptr)
         {
           rez.serialize<size_t>(0);
           return;
@@ -681,9 +681,9 @@ namespace Legion {
         // No matter what, we can just clear out any references we have
         if (single)
         {
-          if ((refs.single != NULL) && refs.single->remove_reference())
+          if ((refs.single != nullptr) && refs.single->remove_reference())
             delete (refs.single);
-          refs.single = NULL;
+          refs.single = nullptr;
         }
         else
         {
@@ -699,11 +699,11 @@ namespace Legion {
         {
           if (refs.multi->remove_reference())
             delete refs.multi;
-          refs.multi = NULL;
+          refs.multi = nullptr;
           single = true;
         }
         // Now we can unpack our reference, see if we need to make one
-        if (refs.single == NULL)
+        if (refs.single == nullptr)
         {
           refs.single = new CollectableRef();
           refs.single->add_reference();
@@ -719,7 +719,7 @@ namespace Legion {
         // otherwise resize our multi for the appropriate number of references
         if (single)
         {
-          if ((refs.single != NULL) && refs.single->remove_reference())
+          if ((refs.single != nullptr) && refs.single->remove_reference())
             delete (refs.single);
           refs.multi = new InternalSet(num_refs);
           refs.multi->add_reference();
@@ -746,7 +746,7 @@ namespace Legion {
     {
       if (single)
       {
-        if (refs.single != NULL)
+        if (refs.single != nullptr)
           refs.single->add_resource_reference(source);
       }
       else
@@ -762,7 +762,7 @@ namespace Legion {
     {
       if (single)
       {
-        if (refs.single != NULL)
+        if (refs.single != nullptr)
           refs.single->remove_resource_reference(source);
       }
       else
@@ -778,7 +778,7 @@ namespace Legion {
     {
       if (single)
       {
-        if (refs.single != NULL)
+        if (refs.single != nullptr)
           return refs.single->acquire_valid_reference(source);
       }
       else
@@ -796,7 +796,7 @@ namespace Legion {
     {
       if (single)
       {
-        if (refs.single != NULL)
+        if (refs.single != nullptr)
           refs.single->add_valid_reference(source);
       }
       else
@@ -812,7 +812,7 @@ namespace Legion {
     {
       if (single)
       {
-        if (refs.single != NULL)
+        if (refs.single != nullptr)
           refs.single->remove_valid_reference(source);
       }
       else

@@ -37,7 +37,7 @@ namespace Legion {
           recognizer(this, config), opidx(0) { }
     public:
       virtual bool add_to_dependence_queue(Operation *op,
-          const std::vector<StaticDependence>* dependences = NULL,
+          const std::vector<StaticDependence>* dependences = nullptr,
           bool unordered = false, bool outermost = true) override;
       // If the application performs a blocking operation, we need to know
       // about that, so override TaskContext::record_blocking_call().

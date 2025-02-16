@@ -31,7 +31,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Record a mapping dependence on our predicate
-      if (this->predicate != NULL)
+      if (this->predicate != nullptr)
         this->register_dependence(this->predicate->creator, 
                                   this->predicate->creator_gen);
       // Then we can do the base initialization
@@ -53,7 +53,7 @@ namespace Legion {
           REPORT_LEGION_FATAL(LEGION_FATAL_UNIMPLEMENTED_FEATURE,
                 "Recording of predicated operations is not yet supported")
 #ifdef DEBUG_LEGION
-        assert(this->predicate != NULL);
+        assert(this->predicate != nullptr);
 #endif
         bool value = this->predicate->get_predicate(
             this->context_index, this->true_guard, this->false_guard);

@@ -227,8 +227,8 @@ namespace Legion {
       struct UserRendezvous {
         UserRendezvous(void) 
           : remaining_local_arrivals(0), remaining_remote_arrivals(0),
-            trace_info(NULL), analysis_mapping(NULL), mask(NULL),
-            expr(NULL), op_id(0), symbolic(false), local_initialized(false) { }
+            trace_info(nullptr), analysis_mapping(nullptr), mask(nullptr),
+            expr(nullptr), op_id(0), symbolic(false), local_initialized(false) { }
         // event for when local instances can be used
         ApUserEvent ready_event; 
         // remote ready events to trigger
@@ -409,7 +409,7 @@ namespace Legion {
                                       const unsigned index,
                                       const bool user_covers,
                                       const bool copy_user,
-                                      bool *dominates = NULL) const;
+                                      bool *dominates = nullptr) const;
     public:
       size_t get_view_volume(void);
       void find_all_done_events(std::set<ApEvent> &all_done) const;

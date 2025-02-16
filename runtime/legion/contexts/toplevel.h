@@ -35,7 +35,7 @@ namespace Legion {
     public:
       TopLevelContext(Processor executing,
           coord_t normal_id, coord_t implicit_id,
-          DistributedID id = 0, CollectiveMapping *mapping = NULL);
+          DistributedID id = 0, CollectiveMapping *mapping = nullptr);
       TopLevelContext(const TopLevelContext &rhs) = delete;
       virtual ~TopLevelContext(void);
     public:
@@ -48,7 +48,7 @@ namespace Legion {
       virtual InnerContext* find_parent_context(void);
       virtual UniqueID get_unique_id(void) const { return root_uid; }
     public:
-      virtual InnerContext* find_top_context(InnerContext *previous = NULL);
+      virtual InnerContext* find_top_context(InnerContext *previous = nullptr);
     public:
       virtual void receive_created_region_contexts(
                           const std::vector<RegionNode*> &created_regions,

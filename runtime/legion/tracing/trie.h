@@ -47,7 +47,7 @@ namespace Legion {
         typename std::unordered_map<T, TrieNode<T,V>*>::const_iterator 
           finder = children.find(token);
         if (finder == children.end())
-          return NULL;
+          return nullptr;
         else
           return finder->second;
       }

@@ -61,7 +61,7 @@ namespace Legion {
                            CustomSerdezID serdez_id, bool local,
                            Provenance *provenance);
       void free_fields(const std::set<FieldID> &to_free, const bool unordered,
-                       Provenance *provenance = NULL);
+                       Provenance *provenance = nullptr);
     public:
       FieldSpace field_space;
       FieldSpaceNode *const node;

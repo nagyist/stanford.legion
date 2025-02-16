@@ -281,7 +281,7 @@ namespace Legion {
        (parent_ctx->get_depth() < 0) ? ULLONG_MAX : parent_ctx->get_unique_id();
       inst.kind = op->get_operation_kind();
       Provenance *prov = op->get_provenance();
-      if (prov != NULL)
+      if (prov != nullptr)
         inst.provenance = prov->pid;
       else
         inst.provenance = 0;
@@ -1428,8 +1428,8 @@ namespace Legion {
       if (!current.exists())
       {
         // Ignore mapper calls that happen from outside threads
-        if ((implicit_context == NULL) ||
-            (implicit_context->owner_task == NULL))
+        if ((implicit_context == nullptr) ||
+            (implicit_context->owner_task == nullptr))
           return;
         // Implicit top-level task case where we're not actually running
         // on a Realm processor so we need to get the proxy processor
@@ -1463,8 +1463,8 @@ namespace Legion {
       if (!current.exists())
       {
         // Ignore runtime calls that happen from outside threads
-        if ((implicit_context == NULL) ||
-            (implicit_context->owner_task == NULL))
+        if ((implicit_context == nullptr) ||
+            (implicit_context->owner_task == nullptr))
           return;
         // Implicit top-level task case where we're not actually running
         // on a Realm processor so we need to get the proxy processor
@@ -2267,7 +2267,7 @@ namespace Legion {
 #endif
       if (!strcmp(serializer_type, "binary")) 
       {
-        if (prof_logfile == NULL) 
+        if (prof_logfile == nullptr) 
           REPORT_LEGION_ERROR(ERROR_UNKNOWN_PROFILER_OPTION,
               "ERROR: Please specify -lg:prof_logfile "
               "<logfile_name> when running with -lg:serializer binary")
@@ -2293,7 +2293,7 @@ namespace Legion {
       } 
       else if (!strcmp(serializer_type, "ascii")) 
       {
-        if (prof_logfile != NULL) 
+        if (prof_logfile != nullptr) 
           REPORT_LEGION_WARNING(LEGION_WARNING_UNUSED_PROFILING_FILE_NAME,
                     "You should not specify -lg:prof_logfile "
                     "<logfile_name> when running with -lg:serializer ascii\n"
@@ -2403,7 +2403,7 @@ namespace Legion {
     LegionProfiler::ProfilingInfo::ProfilingInfo(LegionProfiler *p,
                                                  ProfilingKind k, Operation *op)
       : LegionProfInstance::ProfilingInfo(p, 
-          (op == NULL) ? 0 : op->get_unique_op_id()), kind(k)
+          (op == nullptr) ? 0 : op->get_unique_op_id()), kind(k)
     //--------------------------------------------------------------------------
     {
     }
@@ -2670,7 +2670,7 @@ namespace Legion {
     {
       // Don't increment here, we'll increment on the remote side since we
       // that is where we know the profiler is going to handle the results
-      ProfilingInfo info(NULL, LEGION_PROF_MESSAGE, implicit_provenance);
+      ProfilingInfo info(nullptr, LEGION_PROF_MESSAGE, implicit_provenance);
       info.id = LG_MESSAGE_ID + (int)k;
       info.critical = critical;
       // Record the spawn time which is different than the create_time in
@@ -3001,7 +3001,7 @@ namespace Legion {
                   Realm::ProfilingMeasurements::OperationTimeline>();
       // Also give this high priority to run as soon as possible when ready
       // so we can get its profiling response back as well
-      target_proc.spawn(Processor::TASK_ID_PROCESSOR_NOP, NULL, 0,
+      target_proc.spawn(Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0,
           requests, protected_precondition, LG_RESOURCE_PRIORITY);
     }
 
@@ -3024,7 +3024,7 @@ namespace Legion {
       // Launch a no-op task with low priority just to get a profiling
       // response back once the barrier has triggered. This will also
       // ensure we subscribe to the barrier and get its result
-      target_proc.spawn(Processor::TASK_ID_PROCESSOR_NOP, NULL, 0,
+      target_proc.spawn(Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0,
           requests, bar, LG_LOW_PRIORITY);
     }
 
@@ -3448,7 +3448,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We'll skip any warnings for now with no operation
-      if (op == NULL)
+      if (op == nullptr)
         return;
       // We'll only issue this warning once on each node for now
       if (!need_default_mapper_warning.exchange(false/*no longer needed*/))
@@ -3472,7 +3472,7 @@ namespace Legion {
       if (op->get_operation_kind() == TASK_OP_KIND)
       {
         TaskOp *task = static_cast<TaskOp*>(op);
-        if (context->get_owner_task() != NULL) 
+        if (context->get_owner_task() != nullptr) 
           fprintf(stderr,"First use of the default mapper in address space %d\n"
                          "occurred when task %s (UID %lld) in parent task %s "
                          "(UID %lld)\ninvoked the \"%s\" mapper call\n",
@@ -3507,7 +3507,7 @@ namespace Legion {
     LegionProfInstance* LegionProfiler::find_or_create_profiling_instance(void)
     //--------------------------------------------------------------------------
     {
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         return implicit_profiler;
       const Processor current = Processor::get_executing_processor();
       // If the processor already exists then we can use an existing instance

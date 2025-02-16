@@ -152,9 +152,9 @@ namespace Legion {
                            const LayoutConstraintSet &constraints,
                            const std::vector<FieldID> &field_ids,
                            const std::vector<size_t> &field_sizes,
-                           bool compact, void **piece_list = NULL,
-                           size_t *piece_list_size = NULL,
-                           size_t *num_pieces = NULL,
+                           bool compact, void **piece_list = nullptr,
+                           size_t *piece_list_size = nullptr,
+                           size_t *num_pieces = nullptr,
                            size_t base_alignment = 32) = 0;
       // Return the expression with a resource ref on the expression
       virtual IndexSpaceExpression* create_layout_expression(
@@ -273,9 +273,9 @@ namespace Legion {
                                const LayoutConstraintSet &constraints,
                                const std::vector<FieldID> &field_ids,
                                const std::vector<size_t> &field_sizes,
-                               bool compact, void **piece_list = NULL,
-                               size_t *piece_list_size = NULL,
-                               size_t *num_pieces = NULL,
+                               bool compact, void **piece_list = nullptr,
+                               size_t *piece_list_size = nullptr,
+                               size_t *num_pieces = nullptr,
                                size_t base_alignment = 32) const;
       template<int DIM, typename T>
       inline IndexSpaceExpression* create_layout_expression_internal(
@@ -319,49 +319,49 @@ namespace Legion {
      */
     class IndexSpaceExprRef {
     public:
-      IndexSpaceExprRef(void) : expr(NULL) { }
+      IndexSpaceExprRef(void) : expr(nullptr) { }
       IndexSpaceExprRef(IndexSpaceExpression *e)
         : expr(e)
       { 
-        if (expr != NULL)
+        if (expr != nullptr)
           expr->add_base_expression_reference(LIVE_EXPR_REF);
       }
       IndexSpaceExprRef(const IndexSpaceExprRef &rhs) = delete;
       IndexSpaceExprRef(IndexSpaceExprRef &&rhs)
         : expr(rhs.expr)
       {
-        rhs.expr = NULL;
+        rhs.expr = nullptr;
       }
       ~IndexSpaceExprRef(void)
       {
-        if ((expr != NULL) && 
+        if ((expr != nullptr) && 
             expr->remove_base_expression_reference(LIVE_EXPR_REF))
           delete expr;
       }
       IndexSpaceExprRef& operator=(const IndexSpaceExprRef &rhs) = delete;
       inline IndexSpaceExprRef& operator=(IndexSpaceExprRef &&rhs)
       {
-        if ((expr != NULL) && 
+        if ((expr != nullptr) && 
             expr->remove_base_expression_reference(LIVE_EXPR_REF))
           delete expr;
         expr = rhs.expr;
-        rhs.expr = NULL;
+        rhs.expr = nullptr;
         return *this;
       }
     public:
       inline bool operator==(const IndexSpaceExprRef &rhs) const
       {
-        if (expr == NULL)
-          return (rhs.expr == NULL);
-        if (rhs.expr == NULL)
+        if (expr == nullptr)
+          return (rhs.expr == nullptr);
+        if (rhs.expr == nullptr)
           return false;
         return (expr->expr_id == rhs.expr->expr_id);
       }
       inline bool operator<(const IndexSpaceExprRef &rhs) const
       {
-        if (expr == NULL)
-          return (rhs.expr != NULL);
-        if (rhs.expr == NULL)
+        if (expr == nullptr)
+          return (rhs.expr != nullptr);
+        if (rhs.expr == nullptr)
           return false;
         return (expr->expr_id < rhs.expr->expr_id);
       }
@@ -509,9 +509,9 @@ namespace Legion {
                            const LayoutConstraintSet &constraints,
                            const std::vector<FieldID> &field_ids,
                            const std::vector<size_t> &field_sizes,
-                           bool compact, void **piece_list = NULL, 
-                           size_t *piece_list_size = NULL,
-                           size_t *num_pieces = NULL,
+                           bool compact, void **piece_list = nullptr, 
+                           size_t *piece_list_size = nullptr,
+                           size_t *num_pieces = nullptr,
                            size_t base_alignment = 32);
       virtual IndexSpaceExpression* create_layout_expression(
                            const void *piece_list, size_t piece_list_size);
@@ -745,7 +745,7 @@ namespace Legion {
     class RemoteExpressionCreator {
     public:
       RemoteExpressionCreator(IndexSpaceExprID e, TypeTag t, Deserializer &d)
-        : expr_id(e), type_tag(t), derez(d), operation(NULL) { }
+        : expr_id(e), type_tag(t), derez(d), operation(nullptr) { }
     public:
       template<typename N, typename T>
       static inline void demux(RemoteExpressionCreator *creator)
@@ -755,7 +755,7 @@ namespace Legion {
         DistributedID did;
         creator->derez.deserialize(did);
 #ifdef DEBUG_LEGION
-        assert(creator->operation == NULL);
+        assert(creator->operation == nullptr);
 #endif
         creator->operation =
             new RemoteExpression<N::N,T>(creator->expr_id,
@@ -778,7 +778,7 @@ namespace Legion {
     class ExpressionTrieNode {
     public:
       ExpressionTrieNode(unsigned depth, IndexSpaceExprID expr_id, 
-                         IndexSpaceExpression *op = NULL);
+                         IndexSpaceExpression *op = nullptr);
       ExpressionTrieNode(const ExpressionTrieNode &rhs);
       ~ExpressionTrieNode(void);
     public:

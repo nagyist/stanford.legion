@@ -53,8 +53,8 @@ namespace Legion {
       virtual ~RegistrationAnalysis(void);
     public:
       RtEvent convert_views(LogicalRegion region, const InstanceSet &targets,
-          const std::vector<PhysicalManager*> *sources = NULL,
-          const RegionUsage *usage = NULL, bool collective_rendezvous = false,
+          const std::vector<PhysicalManager*> *sources = nullptr,
+          const RegionUsage *usage = nullptr, bool collective_rendezvous = false,
           unsigned analysis_index = 0);
     public:
       virtual RtEvent perform_registration(RtEvent precondition,

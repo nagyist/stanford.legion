@@ -33,7 +33,7 @@ namespace Legion {
     public:
       CollectiveHelperOp(DistributedID did,
                          bool register_with_runtime = true,
-                         CollectiveMapping *mapping = NULL)
+                         CollectiveMapping *mapping = nullptr)
         : DistributedCollectable(did, register_with_runtime, mapping) { }
     public:
       virtual InnerContext* get_context(void) = 0;

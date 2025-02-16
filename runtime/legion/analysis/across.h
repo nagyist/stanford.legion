@@ -66,7 +66,7 @@ namespace Legion {
       CopyAcrossAnalysis& operator=(const CopyAcrossAnalysis &rhs) = delete;
     public:
       bool has_across_updates(void) const 
-        { return (across_aggregator != NULL); }
+        { return (across_aggregator != nullptr); }
       void record_uninitialized(const FieldMask &uninit,
                                 std::set<RtEvent> &applied_events);
       CopyFillAggregator* get_across_aggregator(void);

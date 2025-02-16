@@ -39,7 +39,7 @@ namespace Legion {
 #endif
       SingleTask::activate();
       set_current_proc(proc); // do this before clone_single_from
-      if (source != NULL)
+      if (source != nullptr)
         clone_single_from(source);
       else
         parent_ctx = parent;
@@ -99,7 +99,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shard_manager == NULL);
+      assert(shard_manager == nullptr);
 #endif
     }
 
@@ -114,10 +114,10 @@ namespace Legion {
     void ShardTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      // Set our shard manager to NULL since we are not supposed to delete it
+      // Set our shard manager to nullptr since we are not supposed to delete it
       if (shard_manager->remove_base_resource_ref(SINGLE_TASK_REF))
         delete shard_manager;
-      shard_manager = NULL;
+      shard_manager = nullptr;
       SingleTask::deactivate(false/*free*/);
     }
 
@@ -270,7 +270,7 @@ namespace Legion {
       if (!is_leaf() && !regions.empty() && runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper != NULL);
+        assert(mapper != nullptr);
         assert(regions.size() == virtual_mapped.size());
 #endif
         // If this is not a leaf shard then check that all the shards agree
@@ -301,7 +301,7 @@ namespace Legion {
     {
       // Invalidate the logical context so child operations that still have
       // mapping references can begin committing
-      if (execution_context != NULL)
+      if (execution_context != nullptr)
         execution_context->invalidate_logical_context();
       // First do the normal clean-up operations
       // Remove profiling our guard and trigger the profiling event if necessary
@@ -390,12 +390,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(functor == NULL);
+      assert(functor == nullptr);
 #endif
-      if ((instance != NULL) && (instance->size > 0))
+      if ((instance != nullptr) && (instance->size > 0))
         check_future_return_bounds(instance);
       if (shard_manager->handle_future(effects, instance, metadata, metasize)
-          && (instance != NULL) && !instance->defer_deletion(effects))
+          && (instance != nullptr) && !instance->defer_deletion(effects))
         delete instance;
     }
 
@@ -494,7 +494,7 @@ namespace Legion {
         // If we have a control replication context then we do the special path.
         const Mapper::ContextConfigOutput &configuration =
           shard_manager->context_configuration;
-        ReplicateContext* repl_ctx = NULL;
+        ReplicateContext* repl_ctx = nullptr;
         if (configuration.auto_tracing_enabled)
         {
           log_auto_trace.info("Initializing auto tracing for %s (UID %lld)",
@@ -535,7 +535,7 @@ namespace Legion {
     {
       const Mapper::ContextConfigOutput &configuration =
         shard_manager->context_configuration;
-      ReplicateContext *repl_ctx = NULL;
+      ReplicateContext *repl_ctx = nullptr;
       if (configuration.auto_tracing_enabled)
       {
         log_auto_trace.info("Initializing auto tracing for %s (UID %lld)",
@@ -568,7 +568,7 @@ namespace Legion {
     {
       // Have to launch a task to do this in case they need to rendezvous
       defer_perform_mapping(RtEvent::NO_RT_EVENT,
-          NULL/*must epoch*/, 0/*invocation count*/);
+          nullptr/*must epoch*/, 0/*invocation count*/);
     }
 
     //--------------------------------------------------------------------------
@@ -577,7 +577,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(execution_context != NULL);
+      assert(execution_context != nullptr);
 #endif
       execution_context->return_resources(target, context_index, preconditions);
     }
@@ -588,7 +588,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(execution_context != NULL);
+      assert(execution_context != nullptr);
 #endif
       execution_context->report_leaks_and_duplicates(preconditions);
     }
@@ -699,10 +699,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(execution_context != NULL);
+      assert(execution_context != nullptr);
       ReplicateContext *repl_ctx = 
         dynamic_cast<ReplicateContext*>(execution_context);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
       return repl_ctx;
 #else
       return static_cast<ReplicateContext*>(execution_context);

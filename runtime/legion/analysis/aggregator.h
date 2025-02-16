@@ -100,7 +100,7 @@ namespace Legion {
                             const bool restricted, UniqueID uid, int s,
                             std::map<InstanceView*,std::vector<ApEvent> > *dsts)
           : LgTaskArgs<CopyFillAggregation>(uid), PhysicalTraceInfo(i),
-            dst_events((dsts == NULL) ? NULL : 
+            dst_events((dsts == nullptr) ? nullptr : 
                 new std::map<InstanceView*,std::vector<ApEvent> >()),
             aggregator(a), pre(p), stage(s), manage_dst_events(manage_dst),
             restricted_output(restricted)
@@ -108,11 +108,11 @@ namespace Legion {
           // without our knowledge, but we need to preserve the correctness
           // of reference counting on PhysicalTraceRecorders, so just add
           // an extra reference here that we will remove when we're handled.
-          { if (rec != NULL) rec->add_recorder_reference(); 
-            if (dsts != NULL) dst_events->swap(*dsts); }
+          { if (rec != nullptr) rec->add_recorder_reference(); 
+            if (dsts != nullptr) dst_events->swap(*dsts); }
       public:
         inline void remove_recorder_reference(void) const
-          { if ((rec != NULL) && rec->remove_recorder_reference()) delete rec; }
+          { if ((rec != nullptr) && rec->remove_recorder_reference()) delete rec; }
       public:
         std::map<InstanceView*,std::vector<ApEvent> > *const dst_events;
         CopyFillAggregator *const aggregator;
@@ -149,7 +149,7 @@ namespace Legion {
                    const FieldMask &mask,
                    IndexSpaceExpression *expr,
                    ReductionOpID red = 0,
-                   CopyAcrossHelper *helper = NULL)
+                   CopyAcrossHelper *helper = nullptr)
           : Update(expr, mask, helper), 
             source(src), src_man(man), redop(red) { }
         virtual ~CopyUpdate(void) { }
@@ -171,7 +171,7 @@ namespace Legion {
       public:
         FillUpdate(FillView *src, const FieldMask &mask,
                    IndexSpaceExpression *expr, PredEvent guard,
-                   CopyAcrossHelper *helper = NULL)
+                   CopyAcrossHelper *helper = nullptr)
           : Update(expr, mask, helper), source(src), fill_guard(guard) { }
         virtual ~FillUpdate(void) { }
       private:
@@ -214,7 +214,7 @@ namespace Legion {
                           const PhysicalTraceInfo &trace_info,
                           EquivalenceSet *tracing_eq,
                           ReductionOpID redop = 0,
-                          CopyAcrossHelper *across_helper = NULL); 
+                          CopyAcrossHelper *across_helper = nullptr); 
       void record_updates(InstanceView *dst_view, 
                           PhysicalManager *dst_man,
                           const FieldMaskSet<LogicalView> &src_views,
@@ -223,7 +223,7 @@ namespace Legion {
                           const PhysicalTraceInfo &trace_info,
                           EquivalenceSet *tracing_eq,
                           ReductionOpID redop = 0,
-                          CopyAcrossHelper *across_helper = NULL);
+                          CopyAcrossHelper *across_helper = nullptr);
       void record_partial_updates(InstanceView *dst_view,
                           PhysicalManager *dst_man,
                           const LegionMap<LogicalView*,
@@ -233,7 +233,7 @@ namespace Legion {
                           const PhysicalTraceInfo &trace_info,
                           EquivalenceSet *tracing_eq,
                           ReductionOpID redop = 0,
-                          CopyAcrossHelper *across_helper = NULL);
+                          CopyAcrossHelper *across_helper = nullptr);
       // Neither fills nor reductions should have a redop across as they
       // should have been applied an instance directly for across copies
       void record_fill(InstanceView *dst_view,
@@ -242,7 +242,7 @@ namespace Legion {
                        IndexSpaceExpression *expr,
                        const PredEvent fill_guard,
                        EquivalenceSet *tracing_eq,
-                       CopyAcrossHelper *across_helper = NULL);
+                       CopyAcrossHelper *across_helper = nullptr);
       void record_reductions(InstanceView *dst_view,
                              PhysicalManager *dst_man,
                              const std::list<std::pair<InstanceView*,
@@ -250,7 +250,7 @@ namespace Legion {
                              const unsigned src_fidx,
                              const unsigned dst_fidx,
                              EquivalenceSet *tracing_eq,
-                             CopyAcrossHelper *across_helper = NULL);
+                             CopyAcrossHelper *across_helper = nullptr);
       ApEvent issue_updates(const PhysicalTraceInfo &trace_info, 
                             ApEvent precondition,
                             const bool restricted_output = false,
@@ -260,7 +260,7 @@ namespace Legion {
                             // destination instance
                             const bool manage_dst_events = true,
                             std::map<InstanceView*,
-                                     std::vector<ApEvent> > *dst_events = NULL,
+                                     std::vector<ApEvent> > *dst_events = nullptr,
                             int stage = -1);
     protected:
       void record_view(LogicalView *new_view);

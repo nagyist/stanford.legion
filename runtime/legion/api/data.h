@@ -340,7 +340,7 @@ namespace Legion {
     FieldAllocator& operator=(FieldAllocator &&allocator) noexcept;
     inline bool operator<(const FieldAllocator &rhs) const;
     inline bool operator==(const FieldAllocator &rhs) const;
-    inline bool exists(void) const { return (impl != NULL); }
+    inline bool exists(void) const { return (impl != nullptr); }
   public:
     ///@{
     /**
@@ -366,12 +366,12 @@ namespace Legion {
                            FieldID desired_fieldid = LEGION_AUTO_GENERATE_ID,
                            CustomSerdezID serdez_id = 0,
                            bool local_field = false,
-                           const char *provenance = NULL);
+                           const char *provenance = nullptr);
     FieldID allocate_field(const Future &field_size,
                            FieldID desired_fieldid = LEGION_AUTO_GENERATE_ID,
                            CustomSerdezID serdez_id = 0,
                            bool local_field = false,
-                           const char *provenance = NULL);
+                           const char *provenance = nullptr);
     ///@}
     /**
      * Deallocate the specified field from the field space.
@@ -385,7 +385,7 @@ namespace Legion {
         "in a future Legion release. Please contact the Legion developer's "
         "list if field deletion is important for your application.") 
     void free_field(FieldID fid, const bool unordered = false,
-                    const char *provenance = NULL);
+                    const char *provenance = nullptr);
 
     /**
      * Same as allocate field, but this field will only
@@ -396,7 +396,7 @@ namespace Legion {
      */
     FieldID allocate_local_field(size_t field_size,
         FieldID desired_fieldid = LEGION_AUTO_GENERATE_ID,
-        CustomSerdezID serdez_id = 0, const char *provenance = NULL);
+        CustomSerdezID serdez_id = 0, const char *provenance = nullptr);
     ///@{
     /**
      * Allocate a collection of fields with the specified sizes.
@@ -419,12 +419,12 @@ namespace Legion {
                          std::vector<FieldID> &resulting_fields,
                          CustomSerdezID serdez_id = 0,
                          bool local_fields = false,
-                         const char *provenance = NULL);
+                         const char *provenance = nullptr);
     void allocate_fields(const std::vector<Future> &field_sizes,
                          std::vector<FieldID> &resulting_fields,
                          CustomSerdezID serdez_id = 0,
                          bool local_fields = false,
-                         const char *provenance = NULL);
+                         const char *provenance = nullptr);
     ///@}
     /**
      * Free a collection of field IDs
@@ -439,7 +439,7 @@ namespace Legion {
         "list if field deletion is important for your application.")
     void free_fields(const std::set<FieldID> &to_free, 
                      const bool unordered = false,
-                     const char *provenance = NULL);
+                     const char *provenance = nullptr);
     /**
      * Same as allocate_fields but the fields that are allocated
      * will only be available locally on the node on which 
@@ -450,7 +450,7 @@ namespace Legion {
     void allocate_local_fields(const std::vector<size_t> &field_sizes,
                                std::vector<FieldID> &resulting_fields,
                                CustomSerdezID serdez_id = 0,
-                               const char *provenance = NULL);
+                               const char *provenance = nullptr);
     /**
      * @return field space associated with this allocator
      */

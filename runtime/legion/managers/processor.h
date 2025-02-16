@@ -58,7 +58,7 @@ namespace Legion {
       struct MapperMessage {
       public:
         MapperMessage(void)
-          : target(Processor::NO_PROC), message(NULL), length(0), radix(0) { }
+          : target(Processor::NO_PROC), message(nullptr), length(0), radix(0) { }
         MapperMessage(Processor t, void *mes, size_t l)
           : target(t), message(mes), length(l), radix(-1) { }
         MapperMessage(void *mes, size_t l, int r)

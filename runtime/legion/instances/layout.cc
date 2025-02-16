@@ -66,7 +66,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     LayoutDescription::LayoutDescription(const FieldMask &mask,
                                          LayoutConstraints *con)
-      : allocated_fields(mask), constraints(con), owner(NULL), total_dims(0)
+      : allocated_fields(mask), constraints(con), owner(nullptr), total_dims(0)
     //--------------------------------------------------------------------------
     {
       constraints->add_base_gc_ref(LAYOUT_DESC_REF);
@@ -341,7 +341,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(constraints != NULL);
+      assert(constraints != nullptr);
 #endif
       FieldMask instance_mask;
       const std::vector<FieldID> &field_set = 
@@ -355,7 +355,7 @@ namespace Legion {
         field_space_node->create_layout_description(instance_mask, total_dims,
                   constraints, mask_index_map, field_set, field_sizes, serdez);
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       return result;
     }
@@ -371,7 +371,7 @@ namespace Legion {
           LEGION_DISTRIBUTED_HELP_ENCODE((did > 0) ? did : 
             runtime->get_available_distributed_id(), CONSTRAINT_SET_DC),
           false/*register*/),
-        layout_id(lay_id), handle(h), internal(inter), constraints_name(NULL)
+        layout_id(lay_id), handle(h), internal(inter), constraints_name(nullptr)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_GC
@@ -392,7 +392,7 @@ namespace Legion {
         layout_id(lay_id), handle(registrar.handle), internal(inter)
     //--------------------------------------------------------------------------
     {
-      if (registrar.layout_name == NULL)
+      if (registrar.layout_name == nullptr)
       {
         constraints_name = (char*)malloc(64*sizeof(char));
         snprintf(constraints_name,64,"layout constraints %ld", layout_id);
@@ -427,7 +427,7 @@ namespace Legion {
     LayoutConstraints::~LayoutConstraints(void)
     //--------------------------------------------------------------------------
     {
-      if (constraints_name != NULL)
+      if (constraints_name != nullptr)
         free(constraints_name);
     }
 
@@ -483,7 +483,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(constraints_name == NULL);
+      assert(constraints_name == nullptr);
 #endif
       size_t name_len;
       derez.deserialize(name_len);
@@ -510,9 +510,9 @@ namespace Legion {
             entailment_cache.find(key);
         if (finder != entailment_cache.end())
         {
-          if (finder->second != NULL)
+          if (finder->second != nullptr)
           {
-            if (failed_constraint != NULL)
+            if (failed_constraint != nullptr)
               *failed_constraint = finder->second;
             return false;
           }
@@ -528,9 +528,9 @@ namespace Legion {
             no_pointer_entailment_cache.find(key);
         if (finder != no_pointer_entailment_cache.end())
         {
-          if (finder->second != NULL)
+          if (finder->second != nullptr)
           {
-            if (failed_constraint != NULL)
+            if (failed_constraint != nullptr)
               *failed_constraint = finder->second;
             return false;
           }
@@ -539,13 +539,13 @@ namespace Legion {
         }
       }
       // Didn't find it, so do the test for real
-      const LayoutConstraint *result = NULL;
+      const LayoutConstraint *result = nullptr;
       const bool entailment =
         entails(*constraints, total_dims, &result, test_pointer);
 #ifdef DEBUG_LEGION
-      assert(entailment ^ (result != NULL)); // only one should be true
+      assert(entailment ^ (result != nullptr)); // only one should be true
 #endif
-      if (!entailment && (failed_constraint != NULL))
+      if (!entailment && (failed_constraint != nullptr))
         *failed_constraint = result;
       // Save the result in the cache
       AutoLock lay(layout_lock);
@@ -581,9 +581,9 @@ namespace Legion {
           conflict_cache.find(key);
         if (finder != conflict_cache.end())
         {
-          if (finder->second != NULL)
+          if (finder->second != nullptr)
           {
-            if (conflict_constraint != NULL)
+            if (conflict_constraint != nullptr)
               *conflict_constraint = finder->second;
             return true;
           }
@@ -592,15 +592,15 @@ namespace Legion {
         }
       }
       // Didn't find it, so do the test for real
-      const LayoutConstraint *result = NULL;
+      const LayoutConstraint *result = nullptr;
       const bool conflicted = conflicts(*constraints, total_dims, &result);
 #ifdef DEBUG_LEGION
-      assert(conflicted ^ (result == NULL)); // only one should be true
+      assert(conflicted ^ (result == nullptr)); // only one should be true
 #endif
       // Save the result in the cache
       AutoLock lay(layout_lock);
       conflict_cache[key] = result;
-      if (conflicted && (conflict_constraint != NULL))
+      if (conflicted && (conflict_constraint != nullptr))
         *conflict_constraint = result;
       return conflicted;
     }
@@ -636,7 +636,7 @@ namespace Legion {
       derez.deserialize(can_fail);
       LayoutConstraints *constraints = 
         runtime->find_layout_constraints(lay_id, can_fail);
-      if (can_fail && (constraints == NULL))
+      if (can_fail && (constraints == nullptr))
         Runtime::trigger_event(done_event);
       else
         constraints->send_constraint_response(source, done_event);

@@ -176,14 +176,14 @@ namespace Legion {
       const AddressSpaceID event_space = find_event_space(lhs);
       if (event_space != runtime->address_space)
       {
-        ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(rename, lhs);
         lhs = rename;
       }
 #ifndef LEGION_DISABLE_EVENT_PRUNING
       else if (!lhs.exists() || (rhs.find(lhs) != rhs.end()))
       {
-        ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(rename, lhs);
         lhs = rename;
       }
@@ -269,14 +269,14 @@ namespace Legion {
       const AddressSpaceID event_space = find_event_space(lhs);
       if (event_space != runtime->address_space)
       {
-        ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(rename, lhs);
         lhs = rename;
       }
 #ifndef LEGION_DISABLE_EVENT_PRUNING
       else if (!lhs.exists())
       {
-        ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(rename);
         lhs = rename;
       }
@@ -286,7 +286,7 @@ namespace Legion {
         {
           if (lhs != rhs[idx])
             continue;
-          ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+          ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
           Runtime::trigger_event_untraced(rename, lhs);
           lhs = rename;
           break;
@@ -464,7 +464,7 @@ namespace Legion {
         const AddressSpaceID event_space = find_event_space(lhs);
         if (event_space != runtime->address_space)
         {
-          ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+          ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
           Runtime::trigger_event_untraced(rename, lhs);
           lhs = rename;
         }
@@ -500,7 +500,7 @@ namespace Legion {
         const AddressSpaceID event_space = find_event_space(lhs);
         if (event_space != runtime->address_space)
         {
-          ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+          ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
           Runtime::trigger_event_untraced(rename, lhs);
           lhs = rename;
         }
@@ -532,7 +532,7 @@ namespace Legion {
         const AddressSpaceID event_space = find_event_space(lhs);
         if (event_space != runtime->address_space)
         {
-          ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+          ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
           Runtime::trigger_event_untraced(rename, lhs);
           lhs = rename;
         }
@@ -1022,7 +1022,7 @@ namespace Legion {
       if (!tpl_lock.has_lock())
       {
         RtUserEvent deferral;
-        if (dargs != NULL)
+        if (dargs != nullptr)
           deferral = dargs->deferral_event;
         RtEvent pre;
         if (!deferral.exists())
@@ -1032,7 +1032,7 @@ namespace Legion {
         }
         else
           pre = tpl_lock.try_next();
-        if (dargs == NULL)
+        if (dargs == nullptr)
         {
           DeferTraceUpdateArgs args(this, UPDATE_MUTATED_INST, done, inst,
                                     derez, user_expr, deferral);
@@ -1096,9 +1096,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(op != NULL);
+      assert(op != nullptr);
       ReplTraceOp *repl_op = dynamic_cast<ReplTraceOp*>(op);
-      assert(repl_op != NULL);
+      assert(repl_op != nullptr);
 #else
       ReplTraceOp *repl_op = static_cast<ReplTraceOp*>(op);
 #endif
@@ -1506,7 +1506,7 @@ namespace Legion {
               pending_event_requests.end()))
           all_events.insert(it->first);
       }
-      return Runtime::merge_events(NULL, all_events);
+      return Runtime::merge_events(nullptr, all_events);
     }
 
     //--------------------------------------------------------------------------

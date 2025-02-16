@@ -597,7 +597,7 @@ namespace Legion {
      */
     class Exception : public Realm::LoggerMessage {
     public:
-      Exception(ExceptionType type, const Operation *op = NULL);
+      Exception(ExceptionType type, const Operation *op = nullptr);
       Exception(const Exception &rhs) = delete;
       Exception(Exception &&rhs) = delete;
       ~Exception(void);

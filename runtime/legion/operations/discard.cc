@@ -203,7 +203,7 @@ namespace Legion {
       // the collective mapping initialized properly
       const InstanceSet empty_instances;
       const RtEvent views_ready = analysis->convert_views(requirement.region,
-          empty_instances, NULL/*sources*/, NULL/*usage*/, false/*rendezvous*/);
+          empty_instances, nullptr/*sources*/, nullptr/*usage*/, false/*rendezvous*/);
       const RtEvent traversal_done = analysis->perform_traversal(
           views_ready, version_info, map_applied_conditions);
       // Send out any remote updates
@@ -267,7 +267,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -291,7 +291,7 @@ namespace Legion {
                                                    requirement,
                                                    version_info,
                                                    preconditions,
-                                                   NULL/*output region*/,
+                                                   nullptr/*output region*/,
                                                    true/*rendezvous*/);
       if (!collective_map_barrier.has_triggered())
         preconditions.insert(collective_map_barrier);
@@ -326,7 +326,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif

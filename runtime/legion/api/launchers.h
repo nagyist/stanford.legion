@@ -122,7 +122,7 @@ namespace Legion {
     // If the predicate is set to anything other than
     // Predicate::TRUE_PRED, then the application must 
     // specify a value for the future in the case that
-    // the predicate resolves to false. UntypedBuffer(NULL,0)
+    // the predicate resolves to false. UntypedBuffer(nullptr,0)
     // can be used if the task's return type is void.
     Future                             predicate_false_future;
     UntypedBuffer                      predicate_false_result;
@@ -259,7 +259,7 @@ namespace Legion {
     // If the predicate is set to anything other than
     // Predicate::TRUE_PRED, then the application must 
     // specify a value for the future in the case that
-    // the predicate resolves to false. UntypedBuffer(NULL,0)
+    // the predicate resolves to false. UntypedBuffer(nullptr,0)
     // can be used if the task's return type is void.
     Future                             predicate_false_future;
     UntypedBuffer                      predicate_false_result;
@@ -758,7 +758,7 @@ namespace Legion {
   public:
     inline void initialize_constraints(bool column_major, bool soa,
                            const std::vector<FieldID> &fields,
-                           const std::map<FieldID,size_t> *alignments = NULL);
+                           const std::map<FieldID,size_t> *alignments = nullptr);
     LEGION_DEPRECATED("Use Realm::ExternalFileResource instead")
     inline void attach_file(const char *file_name,
                             const std::vector<FieldID> &fields,
@@ -773,12 +773,12 @@ namespace Legion {
     inline void attach_array_aos(void *base, bool column_major,
                            const std::vector<FieldID> &fields,
                            Memory memory = Memory::NO_MEMORY,
-                           const std::map<FieldID,size_t> *alignments = NULL);
+                           const std::map<FieldID,size_t> *alignments = nullptr);
     LEGION_DEPRECATED("Use Realm::ExternalMemoryResource instead")
     inline void attach_array_soa(void *base, bool column_major,
                            const std::vector<FieldID> &fields,
                            Memory memory = Memory::NO_MEMORY,
-                           const std::map<FieldID,size_t> *alignments = NULL); 
+                           const std::map<FieldID,size_t> *alignments = nullptr); 
   public:
     ExternalResource                              resource;
     LogicalRegion                                 parent;
@@ -849,7 +849,7 @@ namespace Legion {
   public:
     inline void initialize_constraints(bool column_major, bool soa,
                            const std::vector<FieldID> &fields,
-                           const std::map<FieldID,size_t> *alignments = NULL);
+                           const std::map<FieldID,size_t> *alignments = nullptr);
     inline void add_external_resource(LogicalRegion handle,
                             const Realm::ExternalInstanceResource *resource);
     LEGION_DEPRECATED("Use Realm::ExternalFileResource instead")
@@ -869,13 +869,13 @@ namespace Legion {
                            void *base, bool column_major,
                            const std::vector<FieldID> &fields,
                            Memory memory = Memory::NO_MEMORY,
-                           const std::map<FieldID,size_t> *alignments = NULL);
+                           const std::map<FieldID,size_t> *alignments = nullptr);
     LEGION_DEPRECATED("Use Realm::ExternalMemoryResource instead")
     inline void attach_array_soa(LogicalRegion handle,
                            void *base, bool column_major,
                            const std::vector<FieldID> &fields,
                            Memory memory = Memory::NO_MEMORY,
-                           const std::map<FieldID,size_t> *alignments = NULL);
+                           const std::map<FieldID,size_t> *alignments = nullptr);
   public:
     ExternalResource                              resource;
     LogicalRegion                                 parent;

@@ -33,7 +33,7 @@ namespace Legion {
       // If we're unordered or inside an explicit trace then pass through
       // Note that we might set outermost to false if we're being flushed
       // from the trace cache so set it back to true for the context
-      if (unordered || (this->current_trace != NULL) || !outermost)
+      if (unordered || (this->current_trace != nullptr) || !outermost)
         return T::add_to_dependence_queue(
             op, dependences, unordered, true/*outermost*/);
       else if (op->record_trace_hash(this->recognizer, this->opidx))
@@ -59,7 +59,7 @@ namespace Legion {
       // Check to see if the blocking operation happens for any operation
       // that occurs inside of the range of operations that we are buffering
       if ((blocking_index != InnerContext::NO_BLOCKING_INDEX) &&
-          (this->current_trace == NULL) &&
+          (this->current_trace == nullptr) &&
           (this->current_trace_blocking_index <= blocking_index))
       {
         // Handling waits from the application is very similar

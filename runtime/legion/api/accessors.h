@@ -84,7 +84,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // For Realm::AffineAccessor specializations there are additional
     // methods for creating accessors with limited bounding boxes and
@@ -101,7 +101,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Specify a specific Affine transform to use for interpreting points
     // Not avalable for Realm::MultiAffineAccessor specializations
@@ -117,7 +117,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Specify both a transform and a bounds to use
     // Not avalable for Realm::MultiAffineAccessor specializations
@@ -134,7 +134,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Create a field accessor for a Future 
     // (only with READ-ONLY privileges and AffineAccessors)
@@ -149,7 +149,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Create a field accessor for a Future
     // (only with READ-ONLY privileges and AffineAccessors)
@@ -165,7 +165,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
   public:
     // Variations of the above four methods but with multiple physical
@@ -183,7 +183,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // For Realm::AffineAccessor specializations there are additional
     // methods for creating accessors with limited bounding boxes and
@@ -203,7 +203,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Specify a specific Affine transform to use for interpreting points
     // Not avalable for Realm::MultiAffineAccessor specializations
@@ -221,7 +221,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Specify both a transform and a bounds to use
     // Not avalable for Realm::MultiAffineAccessor specializations
@@ -240,7 +240,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
   public:
     // Create a FieldAccessor for an UntypedDeferredValue
@@ -255,7 +255,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Create a FieldAccessor for an UntypedDeferredValue
     // Specify a specific bounds rectangle to use for the accessor
@@ -271,7 +271,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
   public:
     // Create a FieldAccessor for UntypedDeferredBuffer
@@ -286,7 +286,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Create a FieldAccessor for UntypedDeferredBuffer
     // Specify a specific bounds rectangle to use for the accessor
@@ -302,7 +302,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Create a FieldAccessor for UntypedDeferredBuffer
     // Specify a specific Affine transform to use for interpreting points
@@ -319,7 +319,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
     // Create a FieldAccessor for UntypedDeferredBuffer
     // Specify both a transform and a bounds to use
@@ -337,7 +337,7 @@ namespace Legion {
                   bool check_field_size = false,
 #endif
                   bool silence_warnings = false,
-                  const char *warning_string = NULL,
+                  const char *warning_string = nullptr,
                   size_t subfield_offset = 0) { }
   public:
     typedef FT value_type;
@@ -374,7 +374,7 @@ namespace Legion {
     ReductionAccessor(void) { }
     ReductionAccessor(const PhysicalRegion &region, FieldID fid,
                       ReductionOpID redop, bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -391,7 +391,7 @@ namespace Legion {
                       ReductionOpID redop, 
                       const Rect<N,COORD_T> bounds,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -407,7 +407,7 @@ namespace Legion {
                       ReductionOpID redop,
                       const AffineTransform<M,N,COORD_T> transform,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -424,7 +424,7 @@ namespace Legion {
                       const AffineTransform<M,N,COORD_T> transform,
                       const Rect<N,COORD_T> bounds,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -441,7 +441,7 @@ namespace Legion {
     ReductionAccessor(InputIterator start_region,
                       InputIterator stop_region, FieldID fid,
                       ReductionOpID redop, bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -461,7 +461,7 @@ namespace Legion {
                       ReductionOpID redop, 
                       const Rect<N,COORD_T> bounds,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -479,7 +479,7 @@ namespace Legion {
                       ReductionOpID redop,
                       const AffineTransform<M,N,COORD_T> transform,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -498,7 +498,7 @@ namespace Legion {
                       const AffineTransform<M,N,COORD_T> transform,
                       const Rect<N,COORD_T> bounds,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -512,7 +512,7 @@ namespace Legion {
     // (only with AffineAccessors)
     ReductionAccessor(const UntypedDeferredValue &value,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -527,7 +527,7 @@ namespace Legion {
     ReductionAccessor(const UntypedDeferredValue &value,
                       const Rect<N,COORD_T> &bounds,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -541,7 +541,7 @@ namespace Legion {
     // (only with AffineAccessors)
     ReductionAccessor(const UntypedDeferredBuffer<COORD_T> &buffer,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -556,7 +556,7 @@ namespace Legion {
     ReductionAccessor(const UntypedDeferredBuffer<COORD_T> &buffer,
                       const Rect<N,COORD_T> &bounds,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -572,7 +572,7 @@ namespace Legion {
     ReductionAccessor(const UntypedDeferredBuffer<COORD_T> &buffer,
                       const AffineTransform<M,N,COORD_T> &transform, 
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -589,7 +589,7 @@ namespace Legion {
                       const AffineTransform<M,N,COORD_T> &transform, 
                       const Rect<N,COORD_T> &bounds,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL,
+                      const char *warning_string = nullptr,
                       size_t subfield_offset = 0,
                       size_t actual_field_size = sizeof(typename REDOP::RHS),
 #ifdef DEBUG_LEGION
@@ -647,7 +647,7 @@ namespace Legion {
                     bool check_field_size = false,
 #endif
                     bool silence_warnings = false,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     size_t subfield_offset = 0) { }
   };
 
@@ -720,7 +720,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t subfield_offset = 0) { }
     // Specify a specific bounds rectangle to use for the accessor
     template<typename InputIterator>
@@ -735,7 +735,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t subfield_offset = 0) { }
     // Specify a specific Affine transform to use for interpreting points
     template<int M, typename InputIterator>
@@ -750,7 +750,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t subfield_offset = 0) { }
     // Specify both a transform and a bounds to use
     template<int M, typename InputIterator>
@@ -766,7 +766,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t subfield_offset = 0) { }
   public: // explicit data structure versions of the implicit iterators above
     MultiRegionAccessor(const std::vector<PhysicalRegion> &regions,
@@ -779,7 +779,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t subfield_offset = 0) { }
     // Specify a specific bounds rectangle to use for the accessor
     MultiRegionAccessor(const std::vector<PhysicalRegion> &regions,
@@ -793,7 +793,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t subfield_offset = 0) { }
     // Specify a specific Affine transform to use for interpreting points
     template<int M>
@@ -808,7 +808,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t subfield_offset = 0) { }
     // Specify both a transform and a bounds to use
     template<int M>
@@ -824,7 +824,7 @@ namespace Legion {
                         bool check_field_size = false,
 #endif
                         bool silence_warnings = false,
-                        const char *warning_string = NULL,
+                        const char *warning_string = nullptr,
                         size_t subfield_offset = 0) { }
   public:
     typedef FT value_type;

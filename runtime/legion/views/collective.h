@@ -399,7 +399,7 @@ namespace Legion {
       struct UserRendezvous {
         UserRendezvous(void) 
           : remaining_local_arrivals(0), remaining_remote_arrivals(0),
-            remaining_analyses(0), trace_info(NULL), mask(NULL), expr(NULL),
+            remaining_analyses(0), trace_info(nullptr), mask(nullptr), expr(nullptr),
             op_id(0), symbolic(false), local_initialized(false) { }
         // event for when local instances can be used
         std::vector<ApUserEvent> ready_events;

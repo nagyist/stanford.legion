@@ -84,7 +84,7 @@ namespace Legion {
                    std::vector<DomainPoint> &&shard_points,
                    std::vector<DomainPoint> &&sorted_points,
                    std::vector<ShardID> &&shard_lookup,
-                   SingleTask *original = NULL,
+                   SingleTask *original = nullptr,
                    RtBarrier callback_bar = RtBarrier::NO_RT_BARRIER);
       ShardManager(const ShardManager &rhs) = delete;
       ~ShardManager(void);
@@ -154,12 +154,12 @@ namespace Legion {
     public:
       EquivalenceSet* get_initial_equivalence_set(unsigned idx,
               LogicalRegion region, InnerContext *context, bool first_shard);
-      // If the creating shards are NULL we'll assume that they are all
+      // If the creating shards are nullptr we'll assume that they are all
       // participating in the creation of the index space
       EquivalenceSet* deduplicate_equivalence_set_creation(RegionNode *node,
           size_t op_ctx_index, unsigned refinement_number, 
           InnerContext *context, bool first_shard,
-          const std::vector<ShardID> *creating_shards = NULL);
+          const std::vector<ShardID> *creating_shards = nullptr);
       FillView* deduplicate_fill_view_creation(DistributedID did, FillOp *op,
                                                bool &set_view);
       void deduplicate_attaches(const IndexAttachLauncher &launcher,
@@ -410,7 +410,7 @@ namespace Legion {
     protected:
       struct ShardLocalData {
       public:
-        ShardLocalData(void) : buffer(NULL), size(0), remaining(0) { }
+        ShardLocalData(void) : buffer(nullptr), size(0), remaining(0) { }
       public:
         void *buffer;
         size_t size;

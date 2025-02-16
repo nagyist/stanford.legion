@@ -101,7 +101,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       InnerContext *context = op->find_physical_context(index);
-      if ((sources != NULL) && !sources->empty())
+      if ((sources != nullptr) && !sources->empty())
         context->convert_individual_views(*sources, source_views);
       target_instances.resize(targets.size());
       for (unsigned idx = 0; idx < targets.size(); idx++)
@@ -113,7 +113,7 @@ namespace Legion {
       // Note this needs to be done eagerly and cannot be deferred!
       // All reductions need to get an atomic lock since they can race
       // with copy reductions to the same instance as the task
-      if ((usage != NULL) && (IS_ATOMIC(*usage) || IS_REDUCE(*usage)))
+      if ((usage != nullptr) && (IS_ATOMIC(*usage) || IS_REDUCE(*usage)))
       {
         std::vector<IndividualView*> individual_views;
         context->convert_individual_views(target_instances, individual_views);
@@ -134,7 +134,7 @@ namespace Legion {
       else if (op->perform_collective_analysis(collective_mapping,
                                                collective_first_local))
       {
-        if (collective_mapping != NULL)
+        if (collective_mapping != nullptr)
         {
           std::vector<IndividualView*> views(targets.size());
           context->convert_individual_views(targets, views, collective_mapping);
@@ -163,7 +163,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(region != NULL);
+      assert(region != nullptr);
       assert(termination.exists());
 #endif
       if (precondition.exists() && !precondition.has_triggered())

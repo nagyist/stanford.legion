@@ -155,7 +155,7 @@ namespace Legion {
                                                    requirement, 
                                                    version_info,
                                                    preconditions,
-                                                   NULL/*output region*/,
+                                                   nullptr/*output region*/,
                                                    is_point_detach());
       if (!preconditions.empty())
         enqueue_ready_operation(Runtime::merge_events(preconditions));
@@ -204,7 +204,7 @@ namespace Legion {
       {
         requirement.privilege = LEGION_READ_ONLY;
         std::vector<PhysicalManager*> dummy_sources;
-        UpdateAnalysis *analysis = NULL;
+        UpdateAnalysis *analysis = nullptr;
         filter_precondition = physical_perform_updates(
                                                 requirement, version_info,
                                                 0/*idx*/, 
@@ -265,8 +265,8 @@ namespace Legion {
     void DetachOp::trigger_complete(ApEvent effects)
     //--------------------------------------------------------------------------
     {
-      // Can be NULL if this is a PointDetachOp
-      if (result.impl != NULL)
+      // Can be nullptr if this is a PointDetachOp
+      if (result.impl != nullptr)
         result.impl->set_result(effects);
       InstanceSet references;
       region.impl->get_references(references);
@@ -340,7 +340,7 @@ namespace Legion {
       // If we have a filter precondition, then we know this is not the first
       // potential collective analysis to be used here
       const RtEvent views_ready = analysis->convert_views(requirement.region, 
-          instances, NULL/*sources*/, NULL/*usage*/, false/*rendezvous*/, 
+          instances, nullptr/*sources*/, nullptr/*usage*/, false/*rendezvous*/, 
           second_analysis ? 1 : 0);
       // Don't start the analysis until the views are ready and the filter
       // precondition has been met
@@ -383,7 +383,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PointwiseAnalyzable<CollectiveViewCreator<Operation> >::activate();
-      launch_space = NULL;
+      launch_space = nullptr;
       points_completed.store(0);
       points_committed = 0;
       commit_request = false;
@@ -524,7 +524,7 @@ namespace Legion {
         {
           std::map<LogicalRegion,std::vector<DomainPoint> > dependences;
           pit->find_dependences(requirement, regions, dependences);
-          if (pit->sharding != NULL)
+          if (pit->sharding != nullptr)
           {
             const Domain launch_domain =
               pit->sharding_domain->get_tight_domain();
@@ -772,7 +772,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DetachOp::activate();
-      owner = NULL;
+      owner = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -931,7 +931,7 @@ namespace Legion {
       analyze_region_requirements();
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
       assert(!collective_map_barrier.exists());
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
@@ -965,7 +965,7 @@ namespace Legion {
                                                    requirement,
                                                    version_info,
                                                    preconditions,
-                                                   NULL/*output region*/,
+                                                   nullptr/*output region*/,
                                                    true/*rendezvous*/);
       if (!collective_map_barrier.has_triggered())
         preconditions.insert(collective_map_barrier);
@@ -1002,7 +1002,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx = 
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1046,7 +1046,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx =
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1104,9 +1104,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ReplCollectiveViewCreator<IndexDetachOp>::activate();
-      sharding_function = NULL;
+      sharding_function = nullptr;
       effects_barrier = ApBarrier::NO_AP_BARRIER;
-      participants = NULL;
+      participants = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1114,7 +1114,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ReplCollectiveViewCreator<IndexDetachOp>::deactivate(false/*free*/);
-      if (participants != NULL)
+      if (participants != nullptr)
         delete participants;
       if (freeop)
         runtime->free_operation(this);
@@ -1162,9 +1162,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function == NULL);
+      assert(sharding_function == nullptr);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1177,9 +1177,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1230,7 +1230,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(participants != NULL);
+      assert(participants != nullptr);
 #endif
       return participants->find_shard_participants(shards);
     }

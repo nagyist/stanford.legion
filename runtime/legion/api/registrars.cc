@@ -23,14 +23,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     LayoutConstraintRegistrar::LayoutConstraintRegistrar(void)
-      : handle(FieldSpace::NO_SPACE), layout_name(NULL)
+      : handle(FieldSpace::NO_SPACE), layout_name(nullptr)
     //--------------------------------------------------------------------------
     {
     }
 
     //--------------------------------------------------------------------------
     LayoutConstraintRegistrar::LayoutConstraintRegistrar(FieldSpace h,
-                                                  const char *layout/*= NULL*/)
+                                                  const char *layout/*= nullptr*/)
       : handle(h), layout_name(layout)
     //--------------------------------------------------------------------------
     {
@@ -43,7 +43,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     TaskVariantRegistrar::TaskVariantRegistrar(void)
       : task_id(0), global_registration(true), 
-        task_variant_name(NULL), leaf_variant(false), 
+        task_variant_name(nullptr), leaf_variant(false), 
         inner_variant(false), idempotent_variant(false),
         replicable_variant(false), concurrent_variant(false),
         concurrent_barrier(false)

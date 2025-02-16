@@ -124,7 +124,7 @@ namespace Legion {
       if (perform_precondition.exists() && 
           !perform_precondition.has_triggered())
         return defer_updates(perform_precondition, applied_events);
-      if (recorded_instances != NULL)
+      if (recorded_instances != nullptr)
       {
         if (original_source != runtime->address_space)
         {
@@ -339,7 +339,7 @@ namespace Legion {
       if (perform_precondition.exists() && 
           !perform_precondition.has_triggered())
         return defer_updates(perform_precondition, applied_events);
-      if (recorded_instances != NULL)
+      if (recorded_instances != nullptr)
       {
         if (original_source != runtime->address_space)
         {
@@ -380,7 +380,7 @@ namespace Legion {
       size_t num_eq_sets;
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
-      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, NULL);
+      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
       LegionVector<FieldMask> eq_masks(num_eq_sets);
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
       {
@@ -567,7 +567,7 @@ namespace Legion {
       if (perform_precondition.exists() && 
           !perform_precondition.has_triggered())
         return defer_updates(perform_precondition, applied_events);
-      if (recorded_instances != NULL)
+      if (recorded_instances != nullptr)
       {
         if (original_source != runtime->address_space)
         {
@@ -608,7 +608,7 @@ namespace Legion {
       size_t num_eq_sets;
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
-      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, NULL);
+      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
       LegionVector<FieldMask> eq_masks(num_eq_sets);
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
       {

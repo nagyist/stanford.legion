@@ -121,7 +121,7 @@ namespace Legion {
       RtUserEvent effects_applied;
       derez.deserialize(effects_applied);
       if (!effects_applied.exists())
-        return NULL;
+        return nullptr;
 #ifndef NON_AGGRESSIVE_AGGREGATORS
       // Note we use the effects applied event here twice because all
       // copy-fill aggregators on this node will need to wait for the
@@ -258,10 +258,10 @@ namespace Legion {
         collective_mapping(analysis->get_replicated_mapping()),
         src_index(analysis->index), dst_index(analysis->index),
 #ifndef NON_AGGRESSIVE_AGGREGATORS
-        guard_precondition((previous == NULL) ? RtEvent::NO_RT_EVENT :
+        guard_precondition((previous == nullptr) ? RtEvent::NO_RT_EVENT :
                             RtEvent(previous->guard_postcondition)),
 #else
-        guard_precondition((previous == NULL) ? RtEvent::NO_RT_EVENT :
+        guard_precondition((previous == nullptr) ? RtEvent::NO_RT_EVENT :
                             RtEvent(previous->effects_applied)),
 #endif
         predicate_guard(p), track_events(t)
@@ -270,7 +270,7 @@ namespace Legion {
       analysis->add_reference();
       // Need to transitively chain effects across aggregators since they
       // each need to summarize all the ones that came before
-      if (previous != NULL)
+      if (previous != nullptr)
         effects.insert(previous->effects_applied);
     }
 
@@ -289,22 +289,22 @@ namespace Legion {
         collective_mapping(analysis->get_replicated_mapping()),
         src_index(src_idx), dst_index(dst_idx),
 #ifndef NON_AGGRESSIVE_AGGREGATORS
-        guard_precondition((previous == NULL) ? alternative_precondition :
+        guard_precondition((previous == nullptr) ? alternative_precondition :
                             RtEvent(previous->guard_postcondition)),
 #else
-        guard_precondition((previous == NULL) ? alternative_precondition:
+        guard_precondition((previous == nullptr) ? alternative_precondition:
                             RtEvent(previous->effects_applied)),
 #endif
         predicate_guard(p), track_events(t)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((previous == NULL) || !alternative_precondition.exists());
+      assert((previous == nullptr) || !alternative_precondition.exists());
 #endif
       analysis->add_reference();
       // Need to transitively chain effects across aggregators since they
       // each need to summarize all the ones that came before
-      if (previous != NULL)
+      if (previous != nullptr)
         effects.insert(previous->effects_applied);
     }
 
@@ -414,7 +414,7 @@ namespace Legion {
                                            const PhysicalTraceInfo &trace_info,
                                            EquivalenceSet *tracing_eq,
                                            ReductionOpID redop /*=0*/,
-                                           CopyAcrossHelper *helper /*=NULL*/)
+                                           CopyAcrossHelper *helper /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -433,10 +433,10 @@ namespace Legion {
       else
       {
         InstanceView *inst_view = src_view->as_instance_view();
-        PhysicalManager *src_man = NULL;
+        PhysicalManager *src_man = nullptr;
         if (inst_view->is_collective_view())
         {
-          if (dst_man != NULL)
+          if (dst_man != nullptr)
           {
             std::vector<InstanceView*> src_views(1, inst_view);
             const SelectSourcesResult &result = 
@@ -474,11 +474,11 @@ namespace Legion {
       CopyUpdate *update = 
         new CopyUpdate(src_view, src_man, src_mask, expr, redop, helper);
       FieldMaskSet<Update> &updates = sources[dst_view];
-      if (helper == NULL)
+      if (helper == nullptr)
         updates.insert(update, src_mask);
       else
         updates.insert(update, helper->convert_src_to_dst(src_mask));
-      if (tracing_eq != NULL)
+      if (tracing_eq != nullptr)
         update_tracing_valid_views(tracing_eq, src_view, dst_view, 
                                    src_mask, expr, redop);
     }
@@ -491,8 +491,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(dst_view != NULL);
-      assert(dst_man != NULL);
+      assert(dst_view != nullptr);
+      assert(dst_man != nullptr);
       assert(!src_views.empty());
 #endif
       const std::pair<InstanceView*,PhysicalManager*> key(dst_view, dst_man);
@@ -551,7 +551,7 @@ namespace Legion {
                                     const PhysicalTraceInfo &trace_info,
                                     EquivalenceSet *tracing_eq,
                                     ReductionOpID redop /*=0*/,
-                                    CopyAcrossHelper *helper /*=NULL*/)
+                                    CopyAcrossHelper *helper /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -587,7 +587,7 @@ namespace Legion {
           else
           {
             // Sort the views, prefer deferred  then instances
-            DeferredView *deferred = NULL;
+            DeferredView *deferred = nullptr;
             std::vector<InstanceView*> instances;
             for (std::set<LogicalView*>::const_iterator it = 
                   vit->elements.begin(); it != vit->elements.end(); it++)
@@ -601,7 +601,7 @@ namespace Legion {
               else
                 instances.push_back((*it)->as_instance_view());
             }
-            if (deferred != NULL)
+            if (deferred != nullptr)
               deferred->flatten(*this, dst_view, vit->set_mask, expr,
                   predicate_guard, trace_info, tracing_eq, helper);
             else if (!instances.empty())
@@ -624,7 +624,7 @@ namespace Legion {
 #endif
                 const unsigned first = result.ranking.front();
                 InstanceView *src_view = instances[first];
-                PhysicalManager *src_man = NULL;
+                PhysicalManager *src_man = nullptr;
                 // Find the source point if it is a collective view 
                 if (src_view->is_collective_view())
                 {
@@ -751,7 +751,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < ranking.size(); idx++)
         {
           InstanceView *src_view = instances[ranking[idx]];
-          PhysicalManager *src_man = NULL;
+          PhysicalManager *src_man = nullptr;
           // Find the source key if this is a collective instance
           if (src_view->is_collective_view())
           {
@@ -824,7 +824,7 @@ namespace Legion {
                                          IndexSpaceExpression *expr,
                                          const PredEvent fill_guard,
                                          EquivalenceSet *tracing_eq,
-                                         CopyAcrossHelper *helper /*=NULL*/)
+                                         CopyAcrossHelper *helper /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -836,11 +836,11 @@ namespace Legion {
       record_view(dst_view);
       FillUpdate *update = 
         new FillUpdate(src_view, fill_mask, expr, fill_guard, helper); 
-      if (helper == NULL)
+      if (helper == nullptr)
         sources[dst_view].insert(update, fill_mask);
       else
         sources[dst_view].insert(update, helper->convert_src_to_dst(fill_mask));
-      if (tracing_eq != NULL)
+      if (tracing_eq != nullptr)
         tracing_eq->update_tracing_fill_views(src_view, dst_view, expr,
             fill_mask, (src_index != dst_index));
     }
@@ -879,10 +879,10 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(redop > 0);
 #endif
-        PhysicalManager *src_man = NULL;
+        PhysicalManager *src_man = nullptr;
         if (it->first->is_collective_view())
         {
-          if (dst_man != NULL)
+          if (dst_man != nullptr)
           {
             std::vector<InstanceView*> src_views(1, it->first);
             const SelectSourcesResult &result =
@@ -902,7 +902,7 @@ namespace Legion {
                                             it->second, redop, across_helper);
         // Ignore shadows when tracing, we only care about the normal
         // preconditions and postconditions for the copies
-        if (tracing_eq != NULL)
+        if (tracing_eq != nullptr)
           update_tracing_valid_views(tracing_eq, it->first, dst_view, 
                                      src_mask, it->second, redop);
         // Scan along looking for a reduction op epoch that matches
@@ -1102,7 +1102,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(tracing_eq != NULL);
+      assert(tracing_eq != nullptr);
 #endif
       if (redop > 0)
         tracing_eq->update_tracing_reduction_views(src, dst, expr, mask,
@@ -1122,7 +1122,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool pipelined = true;
-      std::vector<ApEvent> *target_events = NULL;
+      std::vector<ApEvent> *target_events = nullptr;
       for (LegionMap<InstanceView*,FieldMaskSet<Update> >::const_iterator
             uit = updates.begin(); uit != updates.end(); uit++)
       {
@@ -1133,7 +1133,7 @@ namespace Legion {
         if (!manage_dst_events)
         {
 #ifdef DEBUG_LEGION
-          assert(dst_events != NULL);
+          assert(dst_events != nullptr);
 #endif
           // This only happens in the case of across copies
           std::map<InstanceView*,std::vector<ApEvent> >::iterator finder =
@@ -1191,8 +1191,8 @@ namespace Legion {
         // If the collective mapping of the target view does not match the
         // collective mapping of the analysis then we cannot pipeline 
         // the view analysis for issuing of copies
-        if ((collective_mapping == NULL) ||
-            (uit->first->collective_mapping == NULL) ||
+        if ((collective_mapping == nullptr) ||
+            (uit->first->collective_mapping == nullptr) ||
             (*collective_mapping != *(uit->first->collective_mapping)))
           pipelined = false;
       }
@@ -1215,8 +1215,8 @@ namespace Legion {
       assert(!fills.empty());
       assert(!!fill_mask); 
       // Should only have across helper on across copies
-      assert((fills[0]->across_helper == NULL) || !manage_dst_events);
-      assert((dst_events == NULL) || track_events);
+      assert((fills[0]->across_helper == nullptr) || !manage_dst_events);
+      assert((dst_events == nullptr) || track_events);
 #endif
       const IndexSpaceID match_space = analysis->get_collective_match_space();
       if (fills.size() == 1)
@@ -1225,7 +1225,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
         // Should cover all the fields
-        if (fills[0]->across_helper != NULL)
+        if (fills[0]->across_helper != nullptr)
         {
           const FieldMask src_mask =
             fills[0]->across_helper->convert_dst_to_src(fill_mask);
@@ -1254,7 +1254,7 @@ namespace Legion {
         {
           if (track_events)
             events.push_back(result);
-          if (dst_events != NULL)
+          if (dst_events != nullptr)
             dst_events->push_back(result);
         }
       }
@@ -1263,7 +1263,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
         FieldMask src_mask;
-        if (fills[0]->across_helper != NULL)
+        if (fills[0]->across_helper != nullptr)
           src_mask = fills[0]->across_helper->convert_dst_to_src(fill_mask);
         else
           src_mask = fill_mask;
@@ -1310,7 +1310,7 @@ namespace Legion {
           {
             if (track_events)
               events.push_back(result);
-            if (dst_events != NULL)
+            if (dst_events != nullptr)
               dst_events->push_back(result);
           }
         }
@@ -1331,7 +1331,7 @@ namespace Legion {
       assert(!copies.empty());
       assert(!!copy_mask);
       assert((src_index == dst_index) || !manage_dst_events);
-      assert((dst_events == NULL) || track_events);
+      assert((dst_events == nullptr) || track_events);
 #endif
       const IndexSpaceID match_space = analysis->get_collective_match_space();
       // We'll also look for an interesting optimization case here 
@@ -1357,7 +1357,7 @@ namespace Legion {
                 cit->second.begin(); it != cit->second.end(); /*nothing*/)
           {
 #ifdef DEBUG_LEGION
-            assert((*it)->across_helper == NULL);
+            assert((*it)->across_helper == nullptr);
             assert(!(copy_mask - (*it)->src_mask));
 #endif
             if ((*it)->redop == 0)
@@ -1407,7 +1407,7 @@ namespace Legion {
           {
             if (track_events)
               events.push_back(result);
-            if (dst_events != NULL)
+            if (dst_events != nullptr)
               dst_events->push_back(result);
           }
         }
@@ -1430,7 +1430,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(!cit->second.empty());
         // Should only have across helpers for across copies
-        assert((cit->second[0]->across_helper == NULL) || !manage_dst_events);
+        assert((cit->second[0]->across_helper == nullptr) || !manage_dst_events);
 #endif
         if (cit->second.size() == 1)
         {
@@ -1438,7 +1438,7 @@ namespace Legion {
           CopyUpdate *update = cit->second[0];
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
-          if (cit->second[0]->across_helper != NULL)
+          if (cit->second[0]->across_helper != nullptr)
           {
             const FieldMask src_mask =
               cit->second[0]->across_helper->convert_dst_to_src(copy_mask);
@@ -1466,7 +1466,7 @@ namespace Legion {
           {
             if (track_events)
               events.push_back(result);
-            if (dst_events != NULL)
+            if (dst_events != nullptr)
               dst_events->push_back(result);
           }
         }
@@ -1475,7 +1475,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
           FieldMask src_mask;
-          if (cit->second[0]->across_helper != NULL)
+          if (cit->second[0]->across_helper != nullptr)
             src_mask = 
               cit->second[0]->across_helper->convert_dst_to_src(copy_mask);
           else
@@ -1524,7 +1524,7 @@ namespace Legion {
             {
               if (track_events)
                 events.push_back(result);
-              if (dst_events != NULL)
+              if (dst_events != nullptr)
                 dst_events->push_back(result);
             }
           }
@@ -1541,7 +1541,7 @@ namespace Legion {
           cfargs->restricted_output, cfargs->manage_dst_events,
           cfargs->dst_events, cfargs->stage);
       cfargs->remove_recorder_reference();
-      if (cfargs->dst_events != NULL)
+      if (cfargs->dst_events != nullptr)
         delete cfargs->dst_events;
     }
 

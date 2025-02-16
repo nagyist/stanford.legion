@@ -236,7 +236,7 @@ namespace Legion {
       : single(true)
     //--------------------------------------------------------------------------
     {
-      if (!no_null || (init != NULL))
+      if (!no_null || (init != nullptr))
       {
         entries.single_entry = init;
         valid_fields = mask;
@@ -269,7 +269,7 @@ namespace Legion {
         entries.multi_entries = rhs.entries.multi_entries;
       rhs.valid_fields.clear();
       rhs.single = true;
-      rhs.entries.single_entry = NULL;
+      rhs.entries.single_entry = nullptr;
     }
     
     //--------------------------------------------------------------------------
@@ -293,7 +293,7 @@ namespace Legion {
           entries.single_entry = rhs.entries.single_entry;
         else
           entries.multi_entries = rhs.entries.multi_entries;
-        rhs.entries.single_entry = NULL;
+        rhs.entries.single_entry = nullptr;
         rhs.valid_fields.clear();
         rhs.single = true;
       }
@@ -378,7 +378,7 @@ namespace Legion {
       valid_fields = rhs.valid_fields;
       rhs.valid_fields.clear();
       rhs.single = true;
-      rhs.entries.single_entry = NULL;
+      rhs.entries.single_entry = nullptr;
       return *this;
     }
 
@@ -403,7 +403,7 @@ namespace Legion {
     inline void FieldMaskSet<T,L,D>::relax_valid_mask(const FieldMask &m)
     //--------------------------------------------------------------------------
     {
-      if (single && (entries.single_entry != NULL))
+      if (single && (entries.single_entry != nullptr))
       {
         if (!(m - valid_fields))
           return;
@@ -463,7 +463,7 @@ namespace Legion {
       bool result = true;
       if (single)
       {
-        if (entries.single_entry == NULL)
+        if (entries.single_entry == nullptr)
         {
           entries.single_entry = entry;
           valid_fields |= mask;
@@ -488,7 +488,7 @@ namespace Legion {
       else
       {
  #ifdef DEBUG_LEGION
-        assert(entries.multi_entries != NULL);
+        assert(entries.multi_entries != nullptr);
 #endif   
         typename LegionMap<T*,FieldMask,L,Comparator>::iterator finder = 
           entries.multi_entries->find(entry);
@@ -512,12 +512,12 @@ namespace Legion {
     {
       if (single)
       {
-        if (entries.single_entry != NULL)
+        if (entries.single_entry != nullptr)
         {
           if (tighten)
             valid_fields -= filter;
           if (!valid_fields)
-            entries.single_entry = NULL;
+            entries.single_entry = nullptr;
         }
       }
       else
@@ -528,7 +528,7 @@ namespace Legion {
         {
           // No fields left so just clean everything up
           delete entries.multi_entries;
-          entries.multi_entries = NULL;
+          entries.multi_entries = nullptr;
           single = true;
         }
         else
@@ -553,7 +553,7 @@ namespace Legion {
               if (entries.multi_entries->empty())
               {
                 delete entries.multi_entries;
-                entries.multi_entries = NULL;
+                entries.multi_entries = nullptr;
                 single = true;
               }
               else if ((entries.multi_entries->size() == 1) &&
@@ -570,7 +570,7 @@ namespace Legion {
             else
             {
               delete entries.multi_entries;
-              entries.multi_entries = NULL;
+              entries.multi_entries = nullptr;
               single = true;
             }
           }
@@ -588,7 +588,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(entries.single_entry == to_erase);
 #endif
-        entries.single_entry = NULL;
+        entries.single_entry = nullptr;
         valid_fields.clear();
       }
       else
@@ -618,14 +618,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (single)
-        entries.single_entry = NULL;
+        entries.single_entry = nullptr;
       else
       {
 #ifdef DEBUG_LEGION
-        assert(entries.multi_entries != NULL);
+        assert(entries.multi_entries != nullptr);
 #endif
         delete entries.multi_entries;
-        entries.multi_entries = NULL;
+        entries.multi_entries = nullptr;
         single = true;
       }
       valid_fields.clear();
@@ -638,7 +638,7 @@ namespace Legion {
     {
       if (single)
       {
-        if (entries.single_entry == NULL)
+        if (entries.single_entry == nullptr)
           return 0;
         else
           return 1;
@@ -676,10 +676,10 @@ namespace Legion {
       if (single)
       {
         // If we're empty return end
-        if (entries.single_entry == NULL)
+        if (entries.single_entry == nullptr)
           return end();
         FieldMaskSet<T,L,D> *ptr = this;
-        std::pair<T*const,FieldMask> *result = NULL;
+        std::pair<T*const,FieldMask> *result = nullptr;
         static_assert(sizeof(result) == sizeof(ptr));
         memcpy(&result, &ptr, sizeof(result));
         return iterator(this, result); 
@@ -696,10 +696,10 @@ namespace Legion {
     {
       if (single)
       {
-        if ((entries.single_entry == NULL) || (entries.single_entry != e))
+        if ((entries.single_entry == nullptr) || (entries.single_entry != e))
           return end();
         FieldMaskSet<T,L,D> *ptr = this;
-        std::pair<T*const,FieldMask> *result = NULL;
+        std::pair<T*const,FieldMask> *result = nullptr;
         static_assert(sizeof(result) == sizeof(ptr));
         memcpy(&result, &ptr, sizeof(result));
         return iterator(this, result);
@@ -727,7 +727,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(entries.single_entry == it->first);
 #endif
-        entries.single_entry = NULL;
+        entries.single_entry = nullptr;
         valid_fields.clear();
       }
       else
@@ -753,7 +753,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (single)
-        return iterator(this, NULL);
+        return iterator(this, nullptr);
       else
         return iterator(this, entries.multi_entries->end(), true/*end*/);
     }
@@ -768,10 +768,10 @@ namespace Legion {
       if (single)
       {
         // If we're empty return end
-        if (entries.single_entry == NULL)
+        if (entries.single_entry == nullptr)
           return end();
         FieldMaskSet<T,L,D> *ptr = const_cast<FieldMaskSet<T,L,D>*>(this);
-        std::pair<T*const,FieldMask> *result = NULL;
+        std::pair<T*const,FieldMask> *result = nullptr;
         static_assert(sizeof(ptr) == sizeof(result));
         memcpy(&result, &ptr, sizeof(result));
         return const_iterator(this, result); 
@@ -788,10 +788,10 @@ namespace Legion {
     {
       if (single)
       {
-        if ((entries.single_entry == NULL) || (entries.single_entry != e))
+        if ((entries.single_entry == nullptr) || (entries.single_entry != e))
           return end();
         FieldMaskSet<T,L,D> *ptr = const_cast<FieldMaskSet<T,L,D>*>(this);
-        std::pair<T*const,FieldMask> *result = NULL;
+        std::pair<T*const,FieldMask> *result = nullptr;
         static_assert(sizeof(ptr) == sizeof(result));
         memcpy(&result, &ptr, sizeof(result));
         return const_iterator(this, result);
@@ -813,7 +813,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (single)
-        return const_iterator(this, NULL);
+        return const_iterator(this, nullptr);
       else
         return const_iterator(this, entries.multi_entries->end(), true/*end*/);
     }

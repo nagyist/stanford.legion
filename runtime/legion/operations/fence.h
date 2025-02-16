@@ -111,7 +111,7 @@ namespace Legion {
       virtual void trigger_replay(void);
       virtual void trigger_complete(ApEvent complete);
     protected:
-      void initialize_fence_barriers(ReplicateContext *repl_ctx = NULL);
+      void initialize_fence_barriers(ReplicateContext *repl_ctx = nullptr);
     protected:
       RtBarrier mapping_fence_barrier;
       ApBarrier execution_fence_barrier;

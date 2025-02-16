@@ -48,7 +48,7 @@ namespace Legion {
     {
       SingleTask::activate();
       orig_task = this;
-      slice_owner = NULL;
+      slice_owner = nullptr;
       concurrent_color = 0;
       concurrent_task_barrier = RtBarrier::NO_RT_BARRIER;
     }
@@ -57,7 +57,7 @@ namespace Legion {
     void PointTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->register_slice_owner(
             this->slice_owner->get_unique_op_id(),
             this->get_unique_op_id());
@@ -268,8 +268,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool PointTask::perform_mapping(MustEpochOp *must_epoch_owner/*=NULL*/,
-                                       const DeferMappingArgs *args/*=NULL*/)
+    bool PointTask::perform_mapping(MustEpochOp *must_epoch_owner/*=nullptr*/,
+                                       const DeferMappingArgs *args/*=nullptr*/)
     //--------------------------------------------------------------------------
     {
       if (!map_all_regions(must_epoch_owner, args))
@@ -373,7 +373,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       // Should only be happening for must-epoch operations
-      assert(must_epoch != NULL);
+      assert(must_epoch != nullptr);
 #endif
       slice_owner->record_point_mapped(this,
           mapped_precondition, true/*shard off*/);
@@ -444,7 +444,7 @@ namespace Legion {
       // Invalidate the logical context so child operations that still have
       // mapping references can begin committing
       slice_owner->record_point_complete(effects);
-      if (execution_context != NULL)
+      if (execution_context != nullptr)
         execution_context->invalidate_logical_context();
       complete_operation(effects);
     }
@@ -454,7 +454,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::set<RtEvent> commit_preconditions;
-      if (execution_context != NULL)
+      if (execution_context != nullptr)
       {
         slice_owner->return_privileges(execution_context, commit_preconditions);
         // Invalidate any context that we had so that the child
@@ -547,7 +547,7 @@ namespace Legion {
           complete_mapping();
         slice_owner->record_point_mapped(this, get_mapped_event());
       }
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->register_operation(this);
       return false;
     }
@@ -559,7 +559,7 @@ namespace Legion {
                                   Processor future_proc, bool own_functor)
     //--------------------------------------------------------------------------
     {
-      if ((instance != NULL) && (instance->size > 0) && (shard_manager == NULL))
+      if ((instance != nullptr) && (instance->size > 0) && (shard_manager == nullptr))
         check_future_return_bounds(instance);
       slice_owner->handle_future(effects, index_point,
           instance, metadata, metasize, functor, future_proc, own_functor); 
@@ -750,10 +750,10 @@ namespace Legion {
       // Get our point
       index_point = point;
       // Get our argument
-      if (point_arguments.impl != NULL)
+      if (point_arguments.impl != nullptr)
       {
         Future f = point_arguments.impl->get_future(point, true/*internal*/);
-        if (f.impl != NULL)
+        if (f.impl != nullptr)
         {
           if (inline_task)
           {
@@ -914,7 +914,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shard_manager != NULL);
+      assert(shard_manager != nullptr);
 #endif
       if (IS_COLLECTIVE(regions[index]) || std::binary_search(
             check_collective_regions.begin(), 
@@ -934,7 +934,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shard_manager != NULL);
+      assert(shard_manager != nullptr);
 #endif
       if (IS_COLLECTIVE(regions[key.region_index]) || std::binary_search(
             check_collective_regions.begin(), 
@@ -969,7 +969,7 @@ namespace Legion {
             get_task_name(), get_unique_id(), index)
       if (!check_collective_regions.empty())
       {
-        if (mapper == NULL)
+        if (mapper == nullptr)
           mapper = runtime->find_mapper(current_proc, map_id);
         REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
             "Mapper %s asked for collective region checks for index task "

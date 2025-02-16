@@ -436,16 +436,16 @@ namespace Legion {
     public:
       void destroy_index_space(IndexSpace handle, AddressSpaceID source,
                                std::set<RtEvent> &applied_events,
-                               const CollectiveMapping *mapping = NULL);
+                               const CollectiveMapping *mapping = nullptr);
       void destroy_index_partition(IndexPartition handle,
                                std::set<RtEvent> &applied,
-                               const CollectiveMapping *mapping = NULL);
+                               const CollectiveMapping *mapping = nullptr);
       void destroy_field_space(FieldSpace handle,
                                std::set<RtEvent> &applied,
-                               const CollectiveMapping *mapping = NULL);
+                               const CollectiveMapping *mapping = nullptr);
       void destroy_logical_region(LogicalRegion handle,
                                   std::set<RtEvent> &applied,
-                                  const CollectiveMapping *mapping = NULL);
+                                  const CollectiveMapping *mapping = nullptr);
     public:
       void get_all_fields(FieldSpace handle, std::set<FieldID> &fields);
       void get_all_regions(FieldSpace handle, std::set<LogicalRegion> &regions);
@@ -499,7 +499,7 @@ namespace Legion {
       void free_local_fields(FieldSpace handle,
                              const std::vector<FieldID> &to_free,
                              const std::vector<unsigned> &indexes,
-                             const CollectiveMapping *mapping = NULL);
+                             const CollectiveMapping *mapping = nullptr);
       void update_local_fields(FieldSpace handle,
                                const std::vector<FieldID> &fields,
                                const std::vector<size_t> &sizes,
@@ -559,7 +559,7 @@ namespace Legion {
                               const Domain &domain,
                               bool take_ownership,
                               Provenance *provenance,
-                              CollectiveMapping *mapping = NULL,
+                              CollectiveMapping *mapping = nullptr,
                               IndexSpaceExprID expr_id = 0,
                               ApEvent ready = ApEvent::NO_AP_EVENT,
                               RtEvent initialized = RtEvent::NO_RT_EVENT);
@@ -567,19 +567,19 @@ namespace Legion {
                               Provenance *provenance,
                               const std::vector<IndexSpace> &sources,
                               RtEvent initialized = RtEvent::NO_RT_EVENT,
-                              CollectiveMapping *mapping = NULL,
+                              CollectiveMapping *mapping = nullptr,
                               IndexSpaceExprID expr_id = 0);
       IndexSpaceNode* create_intersection_space(IndexSpace handle, 
                               Provenance *provenance,
                               const std::vector<IndexSpace> &sources,
                               RtEvent initialized = RtEvent::NO_RT_EVENT,
-                              CollectiveMapping *mapping = NULL,
+                              CollectiveMapping *mapping = nullptr,
                               IndexSpaceExprID expr_id = 0);
       IndexSpaceNode* create_difference_space(IndexSpace handle,
                               Provenance *provenance,
                               IndexSpace left, IndexSpace right,
                               RtEvent initialized = RtEvent::NO_RT_EVENT,
-                              CollectiveMapping *mapping = NULL,
+                              CollectiveMapping *mapping = nullptr,
                               IndexSpaceExprID expr_id = 0);
     public:
       // We know the domain of the index space
@@ -589,7 +589,7 @@ namespace Legion {
                                   RtEvent initialized, Provenance *provenance,
                                   ApEvent is_ready = ApEvent::NO_AP_EVENT,
                                   IndexSpaceExprID expr_id = 0,
-                                  CollectiveMapping *mapping = NULL,
+                                  CollectiveMapping *mapping = nullptr,
                                   const bool add_root_reference = false,
                                   unsigned depth = UINT_MAX,
                                   const bool tree_valid = true);
@@ -598,7 +598,7 @@ namespace Legion {
                                   RtEvent initialized,
                                   Provenance *provenance,
                                   IndexSpaceExprID expr_id = 0,
-                                  CollectiveMapping *mapping = NULL,
+                                  CollectiveMapping *mapping = nullptr,
                                   unsigned depth = UINT_MAX);
       // We know the disjointness of the index partition
       IndexPartNode*  create_node(IndexPartition p, IndexSpaceNode *par,
@@ -606,25 +606,25 @@ namespace Legion {
                                   LegionColor color, bool disjoint,int complete,
                                   Provenance *provenance,
                                   RtEvent init,
-                                  CollectiveMapping *mapping = NULL);
+                                  CollectiveMapping *mapping = nullptr);
       // Give the event for when the disjointness information is ready
       IndexPartNode*  create_node(IndexPartition p, IndexSpaceNode *par,
                                   IndexSpaceNode *color_space,
                                   LegionColor color, int complete,
                                   Provenance *provenance,
                                   RtEvent init,
-                                  CollectiveMapping *mapping = NULL);
+                                  CollectiveMapping *mapping = nullptr);
       FieldSpaceNode* create_node(FieldSpace space,
                                   RtEvent init, Provenance *provenance,
-                                  CollectiveMapping *mapping = NULL);
+                                  CollectiveMapping *mapping = nullptr);
       FieldSpaceNode* create_node(FieldSpace space,
                                   RtEvent initialized, Provenance *provenance,
                                   CollectiveMapping *mapping,
                                   Deserializer &derez);
       RegionNode*     create_node(LogicalRegion r, PartitionNode *par,
                                   RtEvent initialized, DistributedID did,
-                                  Provenance *provenance = NULL,
-                                  CollectiveMapping *mapping = NULL);
+                                  Provenance *provenance = nullptr,
+                                  CollectiveMapping *mapping = nullptr);
       PartitionNode*  create_node(LogicalPartition p, RegionNode *par);
     public:
       void record_pending_index_space(DistributedID space);
@@ -637,13 +637,13 @@ namespace Legion {
       void revoke_pending_field_space(DistributedID space);
       void revoke_pending_region_tree(RegionTreeID tree);
     public:
-      IndexSpaceNode* get_node(IndexSpace space, RtEvent *defer = NULL, 
+      IndexSpaceNode* get_node(IndexSpace space, RtEvent *defer = nullptr, 
                         const bool can_fail = false, const bool first = true);
-      IndexPartNode*  get_node(IndexPartition part, RtEvent *defer = NULL, 
+      IndexPartNode*  get_node(IndexPartition part, RtEvent *defer = nullptr, 
                         const bool can_fail = false, const bool first = true,
                         const bool local_only = false);
       FieldSpaceNode* get_node(FieldSpace space, 
-                               RtEvent *defer = NULL, bool first = true);
+                               RtEvent *defer = nullptr, bool first = true);
       RegionNode*     get_node(LogicalRegion handle, 
                                bool need_check = true, bool first = true);
       PartitionNode*  get_node(LogicalPartition handle, bool need_check = true);
@@ -689,7 +689,7 @@ namespace Legion {
       // Internal version
       IndexSpaceExpression* union_index_spaces(
                                const std::vector<IndexSpaceExpression*> &exprs,
-                               OperationCreator *creator = NULL);
+                               OperationCreator *creator = nullptr);
     public:
       IndexSpaceExpression* intersect_index_spaces(
                                               IndexSpaceExpression *lhs,
@@ -699,10 +699,10 @@ namespace Legion {
     protected:
       IndexSpaceExpression* intersect_index_spaces(
                                const std::vector<IndexSpaceExpression*> &exprs,
-                               OperationCreator *creator = NULL);
+                               OperationCreator *creator = nullptr);
     public:
       IndexSpaceExpression* subtract_index_spaces(IndexSpaceExpression *lhs,
-                  IndexSpaceExpression *rhs, OperationCreator *creator = NULL);
+                  IndexSpaceExpression *rhs, OperationCreator *creator = nullptr);
     protected:
       // You don't call this method directly, call 
       // IndexSpaceExpression::get_canonical_expression instead
@@ -760,7 +760,7 @@ namespace Legion {
                                        ProjectionFunctor *func,
                                        bool need_zero_check = true,
                                        bool silence_warnings = false,
-                                       const char *warning_string = NULL,
+                                       const char *warning_string = nullptr,
                                        bool preregistered = false);
       static void preregister_projection_functor(ProjectionID pid,
                                        ProjectionFunctor *func);
@@ -777,7 +777,7 @@ namespace Legion {
                                      ShardingFunctor *func,
                                      bool need_zero_check = true,
                                      bool silence_warnings= false,
-                                     const char *warning_string = NULL,
+                                     const char *warning_string = nullptr,
                                      bool preregistered = false);
       static void preregister_sharding_functor(ShardingID sid,
                                      ShardingFunctor *func);
@@ -794,7 +794,7 @@ namespace Legion {
                                      ConcurrentColoringFunctor *functor,
                                      bool need_zero_check = true,
                                      bool silence_warnings= false,
-                                     const char *warning_string = NULL,
+                                     const char *warning_string = nullptr,
                                      bool preregistered = false);
       static void preregister_concurrent_functor(ConcurrentID cid,
                                      ConcurrentColoringFunctor *functor);
@@ -1883,11 +1883,11 @@ namespace Legion {
                                         bool has_global_reference,
                                         // Can be ignored with global ref
                                         RtEvent &registered,
-                                        Operation *op = NULL,
+                                        Operation *op = nullptr,
                                         GenerationID op_gen = 0, 
                                         UniqueID op_uid = 0,
                                         int op_depth = 0,
-                                        CollectiveMapping *mapping = NULL);
+                                        CollectiveMapping *mapping = nullptr);
       FutureMapImpl* find_or_create_future_map(DistributedID did,
           TaskContext *ctx, uint64_t coord, IndexSpace domain,
           Provenance *provenance, const std::optional<uint64_t> &ctx_index);
@@ -1900,7 +1900,7 @@ namespace Legion {
       void issue_runtime_shutdown_attempt(void);
       void initiate_runtime_shutdown(AddressSpaceID source, 
                                      ShutdownManager::ShutdownPhase phase,
-                                     ShutdownManager *owner = NULL);
+                                     ShutdownManager *owner = nullptr);
       void confirm_runtime_shutdown(ShutdownManager *shutdown_manager, 
                                     bool phase_one);
       void prepare_runtime_shutdown(void);
@@ -1919,7 +1919,7 @@ namespace Legion {
       template<typename OP>
       inline OP* get_operation(void)
       {
-        OP *result = NULL;
+        OP *result = nullptr;
         {
           AutoLock op_lock(operation_lock);
           operation_industry.create(result);
@@ -2419,7 +2419,7 @@ namespace Legion {
       LayoutConstraintID register_layout(
           const LayoutConstraintRegistrar &registrar, 
           LayoutConstraintID id, DistributedID did = 0,
-          CollectiveMapping *collective_mapping = NULL);
+          CollectiveMapping *collective_mapping = nullptr);
       LayoutConstraints* register_layout(FieldSpace handle,
                const LayoutConstraintSet &cons, bool internal);
       bool register_layout(LayoutConstraints *new_constraints);
@@ -2434,7 +2434,7 @@ namespace Legion {
       const char* get_layout_constraints_name(LayoutConstraintID layout_id);
       LayoutConstraints* find_layout_constraints(LayoutConstraintID layout_id,
                                                  bool can_fail = false,
-                                                 RtEvent *wait_for = NULL);
+                                                 RtEvent *wait_for = nullptr);
     public:
       // Static methods for start-up and callback phases
       static int start(int argc, char **argv, bool background, 
@@ -2453,12 +2453,12 @@ namespace Legion {
       static int wait_for_shutdown(void);
       static void set_return_code(int return_code);
       Future launch_top_level_task(const TaskLauncher &launcher,
-                                   TopLevelContext *context = NULL);
+                                   TopLevelContext *context = nullptr);
       IndividualTask* create_implicit_top_level(TaskID top_task_id,
                                             MapperID top_mapper_id,
                                             Processor proxy,
                                             const char *task_name,
-                                            CollectiveMapping *mapping = NULL);
+                                            CollectiveMapping *mapping = nullptr);
       ImplicitShardManager* find_implicit_shard_manager(TaskID top_task_id,
                                                 MapperID top_mapper_id,
                                                 Processor::Kind kind,
@@ -2618,7 +2618,7 @@ namespace Legion {
       static inline ApBarrier get_previous_phase(const PhaseBarrier &bar);
       inline void phase_barrier_arrive(const PhaseBarrier &bar, 
                 unsigned cnt, ApEvent precondition = ApEvent::NO_AP_EVENT,
-                const void *reduce_value = NULL, size_t reduce_value_size = 0);
+                const void *reduce_value = nullptr, size_t reduce_value_size = 0);
       static inline void advance_barrier(PhaseBarrier &bar);
       static inline void alter_arrival_count(PhaseBarrier &bar, int delta);
     public:
@@ -2635,7 +2635,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION_COLLECTIVES 
       inline void phase_barrier_arrive(const RtBarrier &bar,
                 unsigned cnt, RtEvent precondition = RtEvent::NO_RT_EVENT,
-                const void *reduce_value = NULL, size_t reduce_value_size = 0);
+                const void *reduce_value = nullptr, size_t reduce_value_size = 0);
 #else
       inline void phase_barrier_arrive(const RtBarrier &bar,
                 unsigned cnt, RtEvent precondition = RtEvent::NO_RT_EVENT);

@@ -77,11 +77,11 @@ namespace Legion {
       tunable_id = 0;
       mapper_id = 0;
       tag = 0;
-      arg = NULL;
+      arg = nullptr;
       argsize = 0;
       tunable_index = 0;
       return_type_size = 0;
-      instance = NULL;
+      instance = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -89,11 +89,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Operation::deactivate(false/*free*/);
-      if (arg != NULL)
+      if (arg != nullptr)
         free(arg);
       result = Future();
       futures.clear();
-      if (instance != NULL)
+      if (instance != nullptr)
         delete instance;
       if (freeop)
         runtime->free_operation(this);
@@ -147,7 +147,7 @@ namespace Legion {
         compute_task_tree_coordinates(coordinates);
         // Safe to block here indefinitely waiting for unbounded pools
         instance = manager->create_future_instance(unique_op_id,
-            coordinates, return_type_size, NULL/*safe_for_unbounded_pools*/);
+            coordinates, return_type_size, nullptr/*safe_for_unbounded_pools*/);
         complete_mapping(futures_mapped);
       }
       // Also make sure we wait for any execution fences that we have
@@ -178,7 +178,7 @@ namespace Legion {
       input.futures = futures;
       input.args = arg;
       input.size = argsize;
-      output.value = NULL;
+      output.value = nullptr;
       output.size = 0;
       output.take_ownership = true;
       mapper->invoke_select_tunable_value(parent_ctx->get_owner_task(), 
@@ -187,7 +187,7 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
         LegionSpy::log_tunable_value(parent_ctx->get_unique_id(), 
                         tunable_index, output.value, output.size);
-      if (instance != NULL)
+      if (instance != nullptr)
       {
         if (output.size > return_type_size)
           Exception(MAPPER_EXCEPTION, this)
@@ -240,7 +240,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       TunableOp::activate();
-      value_broadcast = NULL;
+      value_broadcast = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -248,10 +248,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       TunableOp::deactivate(false/*freeop*/);
-      if (value_broadcast != NULL)
+      if (value_broadcast != nullptr)
       {
         delete value_broadcast;
-        value_broadcast = NULL;
+        value_broadcast = nullptr;
       }
       if (freeop)
         runtime->free_operation(this);
@@ -264,10 +264,10 @@ namespace Legion {
       if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
-        assert(value_broadcast == NULL);
+        assert(value_broadcast == nullptr);
         ReplicateContext *repl_ctx = 
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -288,10 +288,10 @@ namespace Legion {
       if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
-        assert(value_broadcast != NULL);
+        assert(value_broadcast != nullptr);
         ReplicateContext *repl_ctx = 
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif

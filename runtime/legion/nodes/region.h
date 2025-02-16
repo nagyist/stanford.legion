@@ -38,8 +38,8 @@ namespace Legion {
     public:
       RegionTreeNode(FieldSpaceNode *column,
                      RtEvent initialized, RtEvent tree_init, 
-                     Provenance *provenance = NULL, DistributedID did = 0,
-                     CollectiveMapping *mapping = NULL);
+                     Provenance *provenance = nullptr, DistributedID did = 0,
+                     CollectiveMapping *mapping = nullptr);
       virtual ~RegionTreeNode(void);
     public:
       static AddressSpaceID get_owner_space(RegionTreeID tid);
@@ -106,8 +106,8 @@ namespace Legion {
                                     RegionTreeNode *path_node,
                                     LogicalAnalysis &analysis,
                                     FieldMask &open_below,
-                                    RegionTreeNode *next_child = NULL,
-                                    FieldMask *next_child_fields = NULL,
+                                    RegionTreeNode *next_child = nullptr,
+                                    FieldMask *next_child_fields = nullptr,
                                     const bool filter_next_child = false);
       void close_logical_node(const LogicalUser &user,
                               const FieldMask &closing_mask,
@@ -292,7 +292,7 @@ namespace Legion {
                                        Operation *op, unsigned index,
                                        unsigned parent_req_index,
                                        std::set<RtEvent> &ready_events,
-                                       RtEvent *output_region_ready = NULL,
+                                       RtEvent *output_region_ready = nullptr,
                                        bool collective_rendezvous = false);
     public:
       void find_open_complete_partitions(ContextID ctx,

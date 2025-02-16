@@ -70,7 +70,7 @@ namespace Legion {
       OverwriteAnalysis& operator=(const OverwriteAnalysis &rhs) = delete;
     public:
       bool has_output_updates(void) const 
-        { return (output_aggregator != NULL); }
+        { return (output_aggregator != nullptr); }
     public:
       virtual RtEvent perform_traversal(RtEvent precondition,
                                         const VersionInfo &version_info,

@@ -26,8 +26,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     IndexSpaceExpression::IndexSpaceExpression(LocalLock &lock)
-      : type_tag(0), expr_id(0), expr_lock(lock), canonical(NULL),
-        sparsity_map_kd_tree(NULL), volume(0), has_volume(false),
+      : type_tag(0), expr_id(0), expr_lock(lock), canonical(nullptr),
+        sparsity_map_kd_tree(nullptr), volume(0), has_volume(false),
         empty(false), has_empty(false)
     //--------------------------------------------------------------------------
     {
@@ -37,7 +37,7 @@ namespace Legion {
     IndexSpaceExpression::IndexSpaceExpression(TypeTag tag,
                                                LocalLock &lock)
       : type_tag(tag), expr_id(runtime->get_unique_index_space_expr_id()), 
-        expr_lock(lock), canonical(NULL), sparsity_map_kd_tree(NULL),
+        expr_lock(lock), canonical(nullptr), sparsity_map_kd_tree(nullptr),
         volume(0), has_volume(false), empty(false), has_empty(false)
     //--------------------------------------------------------------------------
     {
@@ -46,8 +46,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpaceExpression::IndexSpaceExpression(TypeTag tag, IndexSpaceExprID id,
                                                LocalLock &lock)
-      : type_tag(tag), expr_id(id), expr_lock(lock), canonical(NULL),
-        sparsity_map_kd_tree(NULL), volume(0), has_volume(false),
+      : type_tag(tag), expr_id(id), expr_lock(lock), canonical(nullptr),
+        sparsity_map_kd_tree(nullptr), volume(0), has_volume(false),
         empty(false), has_empty(false)
     //--------------------------------------------------------------------------
     {
@@ -60,7 +60,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(derived_operations.empty());
 #endif
-      if (sparsity_map_kd_tree != NULL)
+      if (sparsity_map_kd_tree != nullptr)
         delete sparsity_map_kd_tree;
     }
 
@@ -169,7 +169,7 @@ namespace Legion {
       assert(is_valid());
 #endif
       IndexSpaceExpression *expr = canonical.load();
-      if (expr != NULL)
+      if (expr != nullptr)
       {
         // If we're our own canonical expression then assume we're
         // still alive and don't need to add a live expression
@@ -189,7 +189,7 @@ namespace Legion {
         // if we're the first one to write to see if we need to remove any
         // references from a prior expression
         IndexSpaceExpression *prev = canonical.exchange(expr);
-        if ((prev != NULL) && (prev != expr))
+        if ((prev != nullptr) && (prev != expr))
         {
           const DistributedID did = get_distributed_id();
           if (prev->remove_canonical_reference(did))
@@ -208,7 +208,7 @@ namespace Legion {
         const DistributedID did = get_distributed_id();
         // We're the first to store this result so remove the reference
         // from the previous one if it existed
-        if ((prev != NULL) && prev->remove_canonical_reference(did))
+        if ((prev != nullptr) && prev->remove_canonical_reference(did))
           delete prev;
         // Add a nested resource reference for the new one
         expr->add_canonical_reference(did);
@@ -234,7 +234,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           IndexSpaceOperation *op = 
             dynamic_cast<IndexSpaceOperation*>(result);
-          assert(op != NULL);
+          assert(op != nullptr);
 #else
           IndexSpaceOperation *op = static_cast<IndexSpaceOperation*>(result);
 #endif
@@ -268,7 +268,7 @@ namespace Legion {
           runtime->find_or_create_remote_expression(remote_expr_id, derez, created);
 #ifdef DEBUG_LEGION
         IndexSpaceOperation *op = dynamic_cast<IndexSpaceOperation*>(result);
-        assert(op != NULL);
+        assert(op != nullptr);
 #else
         IndexSpaceOperation *op = static_cast<IndexSpaceOperation*>(result);
 #endif
@@ -335,7 +335,7 @@ namespace Legion {
       // Remove this operation from the region tree
       remove_operation();
       IndexSpaceExpression *canon = canonical.load();
-      if (canon != NULL)
+      if (canon != nullptr)
       {
         if (canon == this)
           runtime->remove_canonical_expression(this);
@@ -471,7 +471,7 @@ namespace Legion {
       {
         // We're the node that should have the operation
         // Check to see if we've made the operation yet
-        if (local_operation != NULL)
+        if (local_operation != nullptr)
         {
           result = local_operation;
           return true;
@@ -484,7 +484,7 @@ namespace Legion {
         // The next node should have the operation, but we might be
         // storing it until it actually gets made
         // See if we already have it or we have the next trie node
-        ExpressionTrieNode *next = NULL;
+        ExpressionTrieNode *next = nullptr;
         const IndexSpaceExprID target_expr = expressions.back()->expr_id;
         {
           AutoLock t_lock(trie_lock,1,false/*exclusive*/);
@@ -502,7 +502,7 @@ namespace Legion {
         }
         // Didn't find either, retake the lock in exclusive mode and then
         // see if we lost the race, if not make the operation or
-        if (next == NULL)
+        if (next == nullptr)
         {
           AutoLock t_lock(trie_lock);
           std::map<IndexSpaceExprID,IndexSpaceExpression*>::const_iterator
@@ -524,7 +524,7 @@ namespace Legion {
             next = node_finder->second;
         }
 #ifdef DEBUG_LEGION
-        assert(next != NULL);
+        assert(next != nullptr);
 #endif
         return next->find_operation(expressions, result, last);
       }
@@ -532,7 +532,7 @@ namespace Legion {
       {
         // Intermediate case 
         // See if we have the next node, or if we have to make it
-        ExpressionTrieNode *next = NULL;
+        ExpressionTrieNode *next = nullptr;
         const IndexSpaceExprID target_expr = expressions[depth+1]->expr_id;
         {
           AutoLock t_lock(trie_lock,1,false/*exclusive*/);
@@ -542,7 +542,7 @@ namespace Legion {
             next = finder->second;
         }
         // Still don't have it so we have to try and make it
-        if (next == NULL)
+        if (next == nullptr)
         {
           AutoLock t_lock(trie_lock);
           // See if we lost the race
@@ -568,7 +568,7 @@ namespace Legion {
             next = finder->second;
         }
 #ifdef DEBUG_LEGION
-        assert(next != NULL);
+        assert(next != nullptr);
 #endif
         return next->find_operation(expressions, result, last);
       }
@@ -589,12 +589,12 @@ namespace Legion {
       {
         // We're the node that should have the operation
         // Check to see if we've made the operation yet
-        if ((local_operation != NULL) &&
+        if ((local_operation != nullptr) &&
             local_operation->try_add_live_reference())
           return local_operation;
         // Operation doesn't exist yet, retake the lock and try to make it
         AutoLock t_lock(trie_lock);
-        if ((local_operation != NULL) &&
+        if ((local_operation != nullptr) &&
             local_operation->try_add_live_reference())
           return local_operation;
         local_operation = creator.consume();
@@ -607,7 +607,7 @@ namespace Legion {
         // The next node should have the operation, but we might be
         // storing it until it actually gets made
         // See if we already have it or we have the next trie node
-        ExpressionTrieNode *next = NULL;
+        ExpressionTrieNode *next = nullptr;
         const IndexSpaceExprID target_expr = expressions.back()->expr_id;
         {
           AutoLock t_lock(trie_lock,1,false/*exclusive*/);
@@ -623,7 +623,7 @@ namespace Legion {
         }
         // Didn't find either, retake the lock in exclusive mode and then
         // see if we lost the race, if not make the operation or
-        if (next == NULL)
+        if (next == nullptr)
         {
           AutoLock t_lock(trie_lock);
           std::map<IndexSpaceExprID,IndexSpaceExpression*>::const_iterator
@@ -647,7 +647,7 @@ namespace Legion {
             next = node_finder->second;
         }
 #ifdef DEBUG_LEGION
-        assert(next != NULL);
+        assert(next != nullptr);
 #endif
         return next->find_or_create_operation(expressions, creator);
       }
@@ -655,7 +655,7 @@ namespace Legion {
       {
         // Intermediate case 
         // See if we have the next node, or if we have to make it
-        ExpressionTrieNode *next = NULL;
+        ExpressionTrieNode *next = nullptr;
         const IndexSpaceExprID target_expr = expressions[depth+1]->expr_id;
         {
           AutoLock t_lock(trie_lock,1,false/*exclusive*/);
@@ -665,7 +665,7 @@ namespace Legion {
             next = finder->second;
         }
         // Still don't have it so we have to try and make it
-        if (next == NULL)
+        if (next == nullptr)
         {
           AutoLock t_lock(trie_lock);
           // See if we lost the race
@@ -691,7 +691,7 @@ namespace Legion {
             next = finder->second;
         }
 #ifdef DEBUG_LEGION
-        assert(next != NULL);
+        assert(next != nullptr);
 #endif
         return next->find_or_create_operation(expressions, creator);
       }
@@ -711,7 +711,7 @@ namespace Legion {
       if (expressions.size() == (depth+1))
       {
         // Simple case, clear our local operation
-        local_operation = NULL;
+        local_operation = nullptr;
       }
       else if (expressions.size() == (depth+2))
       {
@@ -749,7 +749,7 @@ namespace Legion {
           nodes.erase(finder);
         }
       }
-      if (local_operation != NULL)
+      if (local_operation != nullptr)
         return false;
       if (!operations.empty())
         return false;

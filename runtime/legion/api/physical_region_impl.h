@@ -52,7 +52,7 @@ namespace Legion {
       inline bool created_accessor(void) const { return made_accessor; }
     public:
       void wait_until_valid(bool silence_warnings, const char *warning_string, 
-                            bool warn = false, const char *src = NULL);
+                            bool warn = false, const char *src = nullptr);
       bool is_valid(void) const;
       bool is_mapped(void) const;
       LogicalRegion get_logical_region(void) const;

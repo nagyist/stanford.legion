@@ -49,7 +49,7 @@ namespace Legion {
       // AllReduceOps should never actually need this but it might get
       // called in the process of doing a mapping call
       virtual std::map<PhysicalManager*,unsigned>*
-                   get_acquired_instances_ref(void) { return NULL; }
+                   get_acquired_instances_ref(void) { return nullptr; }
     protected:
       void invoke_mapper(void);
       ApEvent finalize_serdez_targets(void);

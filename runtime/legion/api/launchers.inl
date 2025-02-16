@@ -696,7 +696,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     inline void AttachLauncher::initialize_constraints(bool column_major, 
                           bool soa, const std::vector<FieldID> &fields,
-                          const std::map<FieldID,size_t> *alignments /*= NULL*/)
+                          const std::map<FieldID,size_t> *alignments /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
       constraints.add_constraint(
@@ -718,7 +718,7 @@ namespace Legion {
       }
       constraints.add_constraint(
           OrderingConstraint(dim_order, false/*contiguous*/));
-      if (alignments != NULL)
+      if (alignments != nullptr)
         for (std::map<FieldID,size_t>::const_iterator it = alignments->begin();
              it != alignments->end(); it++)
           constraints.add_constraint(
@@ -772,7 +772,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     inline void AttachLauncher::attach_array_aos(void *base, bool column_major,
                           const std::vector<FieldID> &fields, Memory mem,
-                          const std::map<FieldID,size_t> *alignments /*= NULL*/)
+                          const std::map<FieldID,size_t> *alignments /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -791,7 +791,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     inline void AttachLauncher::attach_array_soa(void *base, bool column_major,
                           const std::vector<FieldID> &fields, Memory mem,
-                          const std::map<FieldID,size_t> *alignments /*= NULL*/)
+                          const std::map<FieldID,size_t> *alignments /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -810,7 +810,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     inline void IndexAttachLauncher::initialize_constraints(bool column_major, 
                           bool soa, const std::vector<FieldID> &fields,
-                          const std::map<FieldID,size_t> *alignments /*= NULL*/)
+                          const std::map<FieldID,size_t> *alignments /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
       constraints.add_constraint(
@@ -832,7 +832,7 @@ namespace Legion {
       }
       constraints.add_constraint(
           OrderingConstraint(dim_order, false/*contiguous*/));
-      if (alignments != NULL)
+      if (alignments != nullptr)
         for (std::map<FieldID,size_t>::const_iterator it = alignments->begin();
              it != alignments->end(); it++)
           constraints.add_constraint(
@@ -970,7 +970,7 @@ namespace Legion {
                 ((DimensionKind)(LEGION_DIM_X + (dims-1) - idx)));
         }
         // Check that the alignments are the same
-        if (alignments != NULL)
+        if (alignments != nullptr)
         {
           assert(alignments->size() == 
                   constraints.alignment_constraints.size());
@@ -1030,7 +1030,7 @@ namespace Legion {
         }
         assert(order.ordering.back() == LEGION_DIM_F);
         // Check that the alignments are the same
-        if (alignments != NULL)
+        if (alignments != nullptr)
         {
           assert(alignments->size() == 
                   constraints.alignment_constraints.size());

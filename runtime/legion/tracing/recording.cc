@@ -33,11 +33,11 @@ namespace Legion {
     LogicalTraceInfo::LogicalTraceInfo(Operation *op, unsigned idx,
         const RegionRequirement &r, const FieldMask &mask)
       : trace(op->get_trace()), req_idx(idx), req(r),
-        skip_analysis((trace != NULL) && 
+        skip_analysis((trace != nullptr) && 
                        trace->skip_analysis(r.parent.get_tree_id()))
     //--------------------------------------------------------------------------
     {
-      if (!skip_analysis && (trace != NULL) && trace->has_physical_trace())
+      if (!skip_analysis && (trace != nullptr) && trace->has_physical_trace())
         trace->get_physical_trace()->record_parent_req_fields(
             op->find_parent_index(idx), mask);
     }
@@ -116,7 +116,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(remote_tpl != NULL);
+      assert(remote_tpl != nullptr);
 #endif
     }
 
@@ -912,7 +912,7 @@ namespace Legion {
         derez.deserialize(trace_id);
         ShardManager *manager = 
           runtime->find_shard_manager(did, true/*can fail*/);
-        if (manager != NULL)
+        if (manager != nullptr)
         {
           ReplicateContext *ctx = manager->find_local_context();
           return ctx->find_current_shard_template(trace_id);
@@ -1607,10 +1607,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     TraceInfo::TraceInfo(Operation *op)
       : rec(init_recorder(op)), tlid(init_tlid(op)),
-        recording((rec == NULL) ? false : rec->is_recording())
+        recording((rec == nullptr) ? false : rec->is_recording())
     //--------------------------------------------------------------------------
     {
-      if (rec != NULL)
+      if (rec != nullptr)
         rec->add_recorder_reference();
     }
 
@@ -1618,11 +1618,11 @@ namespace Legion {
     /*static*/ PhysicalTraceRecorder* TraceInfo::init_recorder(Operation *op)
     //--------------------------------------------------------------------------
     {
-      if (op == NULL)
-        return NULL;
+      if (op == nullptr)
+        return nullptr;
       MemoizableOp *memo = op->get_memoizable();
-      if (memo == NULL)
-        return NULL;
+      if (memo == nullptr)
+        return nullptr;
       return memo->get_template();
     }
 
@@ -1630,17 +1630,17 @@ namespace Legion {
     /*static*/ TraceLocalID TraceInfo::init_tlid(Operation *op)
     //--------------------------------------------------------------------------
     {
-      if (op == NULL)
+      if (op == nullptr)
         return TraceLocalID();
       MemoizableOp *memo = op->get_memoizable();
-      if (memo == NULL)
+      if (memo == nullptr)
         return TraceLocalID();
       return memo->get_trace_local_id();
     }
 
     //--------------------------------------------------------------------------
     TraceInfo::TraceInfo(SingleTask *task, RemoteTraceRecorder *r)
-      : rec(r), tlid(task->get_trace_local_id()), recording(rec != NULL)
+      : rec(r), tlid(task->get_trace_local_id()), recording(rec != nullptr)
     //--------------------------------------------------------------------------
     {
       if (recording)
@@ -1652,16 +1652,16 @@ namespace Legion {
       : rec(rhs.rec), tlid(rhs.tlid), recording(rhs.recording)
     //--------------------------------------------------------------------------
     {
-      if (rec != NULL)
+      if (rec != nullptr)
         rec->add_recorder_reference();
     }
 
    //--------------------------------------------------------------------------
     TraceInfo::TraceInfo(PhysicalTraceRecorder *r, const TraceLocalID &tld)
-      : rec(r), tlid(tld), recording((r != NULL) && r->is_recording())
+      : rec(r), tlid(tld), recording((r != nullptr) && r->is_recording())
     //--------------------------------------------------------------------------
     {
-      if (rec != NULL)
+      if (rec != nullptr)
         rec->add_recorder_reference();
     }
 
@@ -1669,7 +1669,7 @@ namespace Legion {
     TraceInfo::~TraceInfo(void)
     //--------------------------------------------------------------------------
     {
-      if ((rec != NULL) && rec->remove_recorder_reference())
+      if ((rec != nullptr) && rec->remove_recorder_reference())
         delete rec;
     }
 
@@ -1740,7 +1740,7 @@ namespace Legion {
       if (recording)
       {
 #ifdef DEBUG_LEGION
-        assert(rec != NULL);
+        assert(rec != nullptr);
 #endif
         tlid.serialize(rez);
         rez.serialize(index);
@@ -1772,7 +1772,7 @@ namespace Legion {
                                  update_validity, recorder);
       }
       else
-        return PhysicalTraceInfo(NULL, -1U);
+        return PhysicalTraceInfo(nullptr, -1U);
     }
 
   } // namespace Internal

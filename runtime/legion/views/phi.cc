@@ -128,7 +128,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(is_owner());
-      assert(collective_mapping == NULL);
+      assert(collective_mapping == nullptr);
 #endif
       Serializer rez;
       {

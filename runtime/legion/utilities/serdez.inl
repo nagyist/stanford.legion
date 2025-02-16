@@ -276,7 +276,7 @@ namespace Legion {
 #endif
       uint8_t *next = (uint8_t*)realloc(buffer,total_bytes);
 #ifdef DEBUG_LEGION
-      assert(next != NULL);
+      assert(next != nullptr);
 #endif
       buffer = next;
     }
@@ -457,7 +457,7 @@ namespace Legion {
       if (field.size > Internal::CopySrcDstField::MAX_DIRECT_SIZE)
       {
         free(field.fill_data.indirect);
-        field.fill_data.indirect = NULL;
+        field.fill_data.indirect = nullptr;
       }
       deserialize(field.size);
       // we know if there's a fill value if the field ID is -1

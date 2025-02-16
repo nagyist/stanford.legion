@@ -53,7 +53,7 @@ namespace Legion {
                              Provenance *provenance,
                              bool top_level=false,
                              bool must_epoch_launch = false,
-                             std::vector<OutputRequirement> *outputs = NULL);
+                             std::vector<OutputRequirement> *outputs = nullptr);
       void perform_base_dependence_analysis(void);
     protected:
       void create_output_regions(std::vector<OutputRequirement> &outputs);
@@ -70,8 +70,8 @@ namespace Legion {
     public:
       virtual void predicate_false(void);
       virtual bool distribute_task(void);
-      virtual bool perform_mapping(MustEpochOp *owner = NULL,
-                                   const DeferMappingArgs *args = NULL);
+      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
+                                   const DeferMappingArgs *args = nullptr);
       virtual bool finalize_map_task_output(Mapper::MapTaskInput &input,
                                             Mapper::MapTaskOutput &output,
                                             MustEpochOp *must_epoch_owner);

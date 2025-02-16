@@ -996,7 +996,7 @@ namespace Legion {
           exclusive(excl), held(true)
       {
 #ifdef DEBUG_REENTRANT_LOCKS
-        if (previous != NULL)
+        if (previous != nullptr)
           previous->check_for_reentrant_locks(&local_lock);
 #endif
         if (exclusive)
@@ -1026,7 +1026,7 @@ namespace Legion {
           exclusive(excl), held(false)
       {
 #ifdef DEBUG_REENTRANT_LOCKS
-        if (previous != NULL)
+        if (previous != nullptr)
           previous->check_for_reentrant_locks(&local_lock);
 #endif
       }
@@ -1067,7 +1067,7 @@ namespace Legion {
         assert(local_lock_list == previous);
 #endif
 #ifdef DEBUG_REENTRANT_LOCKS
-        if (previous != NULL)
+        if (previous != nullptr)
           previous->check_for_reentrant_locks(&local_lock);
 #endif
         if (exclusive)
@@ -1096,21 +1096,21 @@ namespace Legion {
       {
         if (held)
           local_lock.advise_sleep_entry(guard);
-        if (previous != NULL)
+        if (previous != nullptr)
           previous->advise_sleep_entry(guard);
       }
       inline void advise_sleep_exit(void) const
       {
         if (held)
           local_lock.advise_sleep_exit();
-        if (previous != NULL)
+        if (previous != nullptr)
           previous->advise_sleep_exit();
       }
 #ifdef DEBUG_REENTRANT_LOCKS
       inline void check_for_reentrant_locks(LocalLock *to_acquire) const
       {
         assert(to_acquire != &local_lock);
-        if (previous != NULL)
+        if (previous != nullptr)
           previous->check_for_reentrant_locks(to_acquire);
       }
 #endif
@@ -1162,28 +1162,28 @@ namespace Legion {
       // Do this first in case we get a re-entrant wait (e.g. because
       // SerializingManager::pause_mapper_call takes and lock and we might
       // end up coming back around here to wait on that event too)
-      if (local_call != NULL)
+      if (local_call != nullptr)
       {
-        implicit_mapper_call = NULL;
+        implicit_mapper_call = nullptr;
         begin_mapper_call_wait(local_call);
       }
       // Save whether we are in a registration callback
       RegistrationCallbackMode local_callback = inside_registration_callback;
       // Save the reference tracker that we have
       ImplicitReferenceTracker *local_tracker = implicit_reference_tracker;
-      implicit_reference_tracker = NULL;
+      implicit_reference_tracker = nullptr;
       LegionProfInstance *local_profiler = implicit_profiler;
-      if (local_profiler != NULL)
+      if (local_profiler != nullptr)
       {
         // Cannot call back into wait while recording a wait
-        implicit_profiler = NULL;
+        implicit_profiler = nullptr;
         Realm::Backtrace bt;
         bt.capture_backtrace();
         record_event_wait(local_profiler, bt);
       }
       // Save the context locally
       TaskContext *local_ctx = implicit_context; 
-      implicit_context = NULL; 
+      implicit_context = nullptr; 
       // Save the implicit fevent
       LgEvent local_fevent = implicit_fevent;
       implicit_fevent = LgEvent::NO_LG_EVENT;
@@ -1191,30 +1191,30 @@ namespace Legion {
       UniqueID local_provenance = implicit_provenance;
       implicit_provenance = 0;
       // Check to see if we have any local locks to notify
-      if (local_lock_list != NULL)
+      if (local_lock_list != nullptr)
       {
         // Make a copy of the local locks here
         AutoLock *local_lock_list_copy = local_lock_list;
-        // Set this back to NULL until we are done waiting
-        local_lock_list = NULL;
+        // Set this back to nullptr until we are done waiting
+        local_lock_list = nullptr;
         // Make a user event and notify all the thread locks
         const Realm::UserEvent done = Realm::UserEvent::create_user_event();
         local_lock_list_copy->advise_sleep_entry(done);
-        if (local_ctx != NULL)
+        if (local_ctx != nullptr)
           begin_context_wait(local_ctx, false/*from application*/); 
         // Now we can do the wait
         if (!Processor::get_executing_processor().exists())
           Realm::Event::external_wait();
         else
           Realm::Event::wait();
-        if (local_ctx != NULL)
+        if (local_ctx != nullptr)
           end_context_wait(local_ctx, false/*from application*/);
         // When we wake up, notify that we are done and exited the wait
         local_lock_list_copy->advise_sleep_exit();
         // If we're profiling we need to record that we triggered this
         // event as it will help us hook up the critical path for
         // local lock acquires
-        if (local_profiler != NULL)
+        if (local_profiler != nullptr)
         {
           // Make sure to restore this before recording
           implicit_fevent = local_fevent;
@@ -1229,13 +1229,13 @@ namespace Legion {
       }
       else // Just do the normal wait
       {
-        if (local_ctx != NULL)
+        if (local_ctx != nullptr)
           begin_context_wait(local_ctx, false/*from application*/);
         if (!Processor::get_executing_processor().exists())
           Realm::Event::external_wait();
         else
           Realm::Event::wait();
-        if (local_ctx != NULL)
+        if (local_ctx != nullptr)
           end_context_wait(local_ctx, false/*from application*/);
       }
       // Write the context back
@@ -1255,7 +1255,7 @@ namespace Legion {
       // Write the registration callback information back
       inside_registration_callback = local_callback;
 #ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == NULL);
+      assert(implicit_reference_tracker == nullptr);
 #endif
       // Write the local reference tracker back
       implicit_reference_tracker = local_tracker;
@@ -1279,28 +1279,28 @@ namespace Legion {
       // Do this first in case we get a re-entrant wait (e.g. because
       // SerializingManager::pause_mapper_call takes and lock and we might
       // end up coming back around here to wait on that event too)
-      if (local_call != NULL)
+      if (local_call != nullptr)
       {
-        implicit_mapper_call = NULL;
+        implicit_mapper_call = nullptr;
         begin_mapper_call_wait(local_call);
       }
       // Save whether we are in a registration callback
       RegistrationCallbackMode local_callback = inside_registration_callback;
       // Save the reference tracker that we have
       ImplicitReferenceTracker *local_tracker = implicit_reference_tracker;
-      implicit_reference_tracker = NULL;
+      implicit_reference_tracker = nullptr;
       LegionProfInstance *local_profiler = implicit_profiler;
-      if (local_profiler != NULL)
+      if (local_profiler != nullptr)
       {
         // Cannot call back into wait while recording a wait
-        implicit_profiler = NULL;
+        implicit_profiler = nullptr;
         Realm::Backtrace bt;
         bt.capture_backtrace();
         record_event_wait(local_profiler, bt);
       }
       // Save the context locally
       TaskContext *local_ctx = implicit_context; 
-      implicit_context = NULL;
+      implicit_context = nullptr;
       // Save the fevent
       LgEvent local_fevent = implicit_fevent;
       implicit_fevent = LgEvent::NO_LG_EVENT;
@@ -1308,30 +1308,30 @@ namespace Legion {
       UniqueID local_provenance = implicit_provenance;
       implicit_provenance = 0;
       // Check to see if we have any local locks to notify
-      if (local_lock_list != NULL)
+      if (local_lock_list != nullptr)
       {
         // Make a copy of the local locks here
         AutoLock *local_lock_list_copy = local_lock_list;
-        // Set this back to NULL until we are done waiting
-        local_lock_list = NULL;
+        // Set this back to nullptr until we are done waiting
+        local_lock_list = nullptr;
         // Make a user event and notify all the thread locks
         const Realm::UserEvent done = Realm::UserEvent::create_user_event();
         local_lock_list_copy->advise_sleep_entry(done);
-        if (local_ctx != NULL)
+        if (local_ctx != nullptr)
           begin_context_wait(local_ctx, from_app);
         // Now we can do the wait
         if (!Processor::get_executing_processor().exists())
           Realm::Event::external_wait_faultaware(poisoned);
         else
           Realm::Event::wait_faultaware(poisoned);
-        if (local_ctx != NULL)
+        if (local_ctx != nullptr)
           end_context_wait(local_ctx, from_app);
         // When we wake up, notify that we are done and exited the wait
         local_lock_list_copy->advise_sleep_exit();
         // If we're profiling we need to record that we triggered this
         // event as it will help us hook up the critical path for
         // local lock acquires
-        if (local_profiler != NULL)
+        if (local_profiler != nullptr)
         {
           // Make sure to restore this before recording
           implicit_fevent = local_fevent;
@@ -1346,13 +1346,13 @@ namespace Legion {
       }
       else // Just do the normal wait
       {
-        if (local_ctx != NULL)
+        if (local_ctx != nullptr)
           begin_context_wait(local_ctx, from_app);
         if (!Processor::get_executing_processor().exists())
           Realm::Event::external_wait_faultaware(poisoned);
         else
           Realm::Event::wait_faultaware(poisoned);
-        if (local_ctx != NULL)
+        if (local_ctx != nullptr)
           end_context_wait(local_ctx, from_app);
       }
       // Write the context back
@@ -1372,7 +1372,7 @@ namespace Legion {
       // Write the registration callback information back
       inside_registration_callback = local_callback;
 #ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == NULL);
+      assert(implicit_reference_tracker == nullptr);
 #endif
       // Write the local reference tracker back
       implicit_reference_tracker = local_tracker;

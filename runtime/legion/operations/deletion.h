@@ -156,9 +156,9 @@ namespace Legion {
       virtual void trigger_commit(void);
     public:
       void initialize_replication(ReplicateContext *ctx, bool is_first,
-                                  RtBarrier *ready_barrier = NULL,
-                                  RtBarrier *mapping_barrier = NULL,
-                                  RtBarrier *commit_barrier = NULL);
+                                  RtBarrier *ready_barrier = nullptr,
+                                  RtBarrier *mapping_barrier = nullptr,
+                                  RtBarrier *commit_barrier = nullptr);
       // Help for handling unordered deletions 
       void record_unordered_kind(
        std::map<IndexSpace,ReplDeletionOp*> &index_space_deletions,

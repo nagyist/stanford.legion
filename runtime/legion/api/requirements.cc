@@ -29,7 +29,7 @@ namespace Legion {
         privilege(LEGION_NO_ACCESS), prop(LEGION_EXCLUSIVE), 
         parent(LogicalRegion::NO_REGION), redop(0), tag(0), 
         flags(LEGION_NO_FLAG), handle_type(LEGION_SINGULAR_PROJECTION), 
-        projection(0), projection_args(NULL), projection_args_size(0)
+        projection(0), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
     }
@@ -45,7 +45,7 @@ namespace Legion {
       : region(_handle), privilege(_priv), prop(_prop), parent(_parent),
         redop(0), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_SINGULAR_PROJECTION), 
-        projection(0), projection_args(NULL), projection_args_size(0)
+        projection(0), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     { 
       privilege_fields = priv_fields;
@@ -68,7 +68,7 @@ namespace Legion {
       : partition(pid), privilege(_priv), prop(_prop), parent(_parent),
         redop(0), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_PARTITION_PROJECTION), 
-        projection(_proj), projection_args(NULL), projection_args_size(0)
+        projection(_proj), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     { 
       privilege_fields = priv_fields;
@@ -91,7 +91,7 @@ namespace Legion {
       : region(_handle), privilege(_priv), prop(_prop), parent(_parent),
         redop(0), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_REGION_PROJECTION), 
-        projection(_proj), projection_args(NULL), projection_args_size(0)
+        projection(_proj), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
       privilege_fields = priv_fields;
@@ -114,7 +114,7 @@ namespace Legion {
       : region(_handle), privilege(LEGION_REDUCE), prop(_prop), parent(_parent),
         redop(op), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_SINGULAR_PROJECTION), 
-        projection(0), projection_args(NULL), projection_args_size(0)
+        projection(0), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
       privilege_fields = priv_fields;
@@ -135,7 +135,7 @@ namespace Legion {
       : partition(pid), privilege(LEGION_REDUCE), prop(_prop), parent(_parent),
         redop(op), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_PARTITION_PROJECTION), 
-        projection(_proj), projection_args(NULL), projection_args_size(0)
+        projection(_proj), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
       privilege_fields = priv_fields;
@@ -156,7 +156,7 @@ namespace Legion {
       : region(_handle), privilege(LEGION_REDUCE), prop(_prop), parent(_parent),
         redop(op), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_REGION_PROJECTION), 
-        projection(_proj), projection_args(NULL), projection_args_size(0)
+        projection(_proj), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
       privilege_fields = priv_fields;
@@ -176,7 +176,7 @@ namespace Legion {
       : region(_handle), privilege(_priv), prop(_prop), parent(_parent),
         redop(0), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_SINGULAR_PROJECTION), 
-        projection(), projection_args(NULL), projection_args_size(0)
+        projection(), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     { 
       // For backwards compatibility with the old encoding
@@ -198,7 +198,7 @@ namespace Legion {
       : partition(pid), privilege(_priv), prop(_prop), parent(_parent),
         redop(0), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_PARTITION_PROJECTION), 
-        projection(_proj), projection_args(NULL), projection_args_size(0)
+        projection(_proj), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     { 
       // For backwards compatibility with the old encoding
@@ -220,7 +220,7 @@ namespace Legion {
       : region(_handle), privilege(_priv), prop(_prop), parent(_parent),
         redop(0), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_REGION_PROJECTION), 
-        projection(_proj), projection_args(NULL), projection_args_size(0)
+        projection(_proj), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
       // For backwards compatibility with the old encoding
@@ -241,7 +241,7 @@ namespace Legion {
       : region(_handle), privilege(LEGION_REDUCE), prop(_prop), parent(_parent),
         redop(op), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_SINGULAR_PROJECTION), 
-        projection(0), projection_args(NULL), projection_args_size(0)
+        projection(0), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
       if (redop == 0)
@@ -260,7 +260,7 @@ namespace Legion {
       : partition(pid), privilege(LEGION_REDUCE), prop(_prop), parent(_parent),
         redop(op), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_PARTITION_PROJECTION), 
-        projection(_proj), projection_args(NULL), projection_args_size(0)
+        projection(_proj), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
       if (redop == 0)
@@ -279,7 +279,7 @@ namespace Legion {
       : region(_handle), privilege(LEGION_REDUCE), prop(_prop), parent(_parent),
         redop(op), tag(_tag), flags(_verified ? LEGION_VERIFIED_FLAG : 
             LEGION_NO_FLAG), handle_type(LEGION_REGION_PROJECTION), 
-        projection(_proj), projection_args(NULL), projection_args_size(0)
+        projection(_proj), projection_args(nullptr), projection_args_size(0)
     //--------------------------------------------------------------------------
     {
       if (redop == 0)
@@ -294,7 +294,7 @@ namespace Legion {
         instance_fields(rhs.instance_fields), privilege(rhs.privilege),
         prop(rhs.prop), parent(rhs.parent), redop(rhs.redop), tag(rhs.tag),
         flags(rhs.flags), handle_type(rhs.handle_type), 
-        projection(rhs.projection), projection_args(NULL),
+        projection(rhs.projection), projection_args(nullptr),
         projection_args_size(rhs.projection_args_size)
     //--------------------------------------------------------------------------
     {
@@ -331,10 +331,10 @@ namespace Legion {
       handle_type = rhs.handle_type;
       projection = rhs.projection;
       projection_args_size = rhs.projection_args_size;
-      if (projection_args != NULL)
+      if (projection_args != nullptr)
       {
         free(projection_args);
-        projection_args = NULL;
+        projection_args = nullptr;
       }
       if (projection_args_size > 0)
       {
@@ -493,7 +493,7 @@ namespace Legion {
     const void* RegionRequirement::get_projection_args(size_t *size) const
     //--------------------------------------------------------------------------
     {
-      if (size != NULL)
+      if (size != nullptr)
         *size = projection_args_size;
       return projection_args;
     }
@@ -506,7 +506,7 @@ namespace Legion {
       if (projection_args_size > 0)
       {
         free(projection_args);
-        projection_args = NULL;
+        projection_args = nullptr;
       }
       projection_args_size = size;
       if (projection_args_size > 0)

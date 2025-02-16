@@ -28,7 +28,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PendingPartitionOp::PendingPartitionOp(void)
-      : Operation(), thunk(NULL)
+      : Operation(), thunk(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -48,7 +48,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new EqualPartitionThunk(pid, granularity);
       if (runtime->legion_spy_enabled)
@@ -63,7 +63,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new WeightPartitionThunk(pid, granularity);
       // Also save this locally for analysis
@@ -82,7 +82,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new UnionPartitionThunk(pid, h1, h2);
       if (runtime->legion_spy_enabled)
@@ -100,7 +100,7 @@ namespace Legion {
     {
       initialize_operation(ctx, prov);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new IntersectionPartitionThunk(pid, h1, h2);
       if (runtime->legion_spy_enabled)
@@ -118,7 +118,7 @@ namespace Legion {
     {
       initialize_operation(ctx, prov);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new IntersectionWithRegionThunk(pid, part, dominates);
       if (runtime->legion_spy_enabled)
@@ -135,7 +135,7 @@ namespace Legion {
     {
       initialize_operation(ctx, prov);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new DifferencePartitionThunk(pid, h1, h2);
       if (runtime->legion_spy_enabled)
@@ -154,7 +154,7 @@ namespace Legion {
     {
       initialize_operation(ctx, prov);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new RestrictedPartitionThunk(pid, transform, transform_size,
                                            extent, extent_size);
@@ -172,7 +172,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new FutureMapThunk(pid, fm, perform_intersections);
       // Also save this locally for analysis
@@ -194,7 +194,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new CrossProductThunk(base, source, part_color, shard, mapping);
       if (runtime->legion_spy_enabled)
@@ -210,7 +210,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ComputePendingSpace(target, true/*union*/, handles);
       if (runtime->legion_spy_enabled)
@@ -226,7 +226,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ComputePendingSpace(target, true/*union*/, handle);
       if (runtime->legion_spy_enabled)
@@ -242,7 +242,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ComputePendingSpace(target, false/*union*/, handles);
       if (runtime->legion_spy_enabled)
@@ -257,7 +257,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ComputePendingSpace(target, false/*union*/, handle);
       if (runtime->legion_spy_enabled)
@@ -274,7 +274,7 @@ namespace Legion {
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ComputePendingDifference(target, initial, handles);
       if (runtime->legion_spy_enabled)
@@ -294,7 +294,7 @@ namespace Legion {
     void PendingPartitionOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      if ((future_map.impl != NULL) && (future_map.impl->op != NULL))
+      if ((future_map.impl != nullptr) && (future_map.impl->op != nullptr))
         register_dependence(future_map.impl->op, future_map.impl->op_gen);
       // Recording this as a pending implicit creation
       parent_ctx->update_current_implicit_creation(this);
@@ -319,7 +319,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(sources.empty());
 #endif
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
         future_map.impl->get_all_futures(sources);
     }
 
@@ -387,9 +387,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Operation::deactivate(false/*free*/);
-      if (thunk != NULL)
+      if (thunk != nullptr)
         delete thunk;
-      thunk = NULL;
+      thunk = nullptr;
       future_map = FutureMap(); // clear any references
       sources.clear();
       if (freeop)
@@ -611,7 +611,7 @@ namespace Legion {
       IndexPartNode *base_node = runtime->get_node(base);
       IndexPartNode *source_node = runtime->get_node(source);
       std::set<ApEvent> ready_events;
-      if (shard_mapping == NULL)
+      if (shard_mapping == nullptr)
       {
         for (ColorSpaceIterator itr(base_node); itr; itr++)
         {
@@ -670,7 +670,7 @@ namespace Legion {
           ready_events.insert(ready);
         }
       }
-      return Runtime::merge_events(NULL, ready_events);
+      return Runtime::merge_events(nullptr, ready_events);
     }
 
     //--------------------------------------------------------------------------
@@ -680,7 +680,7 @@ namespace Legion {
     {
       IndexSpaceNode *child_node = runtime->get_node(target);
       // See if we own this child or not
-      if (!child_node->is_owner() && ((child_node->collective_mapping == NULL)
+      if (!child_node->is_owner() && ((child_node->collective_mapping == nullptr)
          || !child_node->collective_mapping->contains(child_node->local_space)))
         return ApEvent::NO_AP_EVENT;
       return child_node->compute_pending_space(this, handles, is_union);
@@ -693,7 +693,7 @@ namespace Legion {
     {
       IndexSpaceNode *child_node = runtime->get_node(target);
       // See if we own this child or not
-      if (!child_node->is_owner() && ((child_node->collective_mapping == NULL)
+      if (!child_node->is_owner() && ((child_node->collective_mapping == nullptr)
          || !child_node->collective_mapping->contains(child_node->local_space)))
         return ApEvent::NO_AP_EVENT;
       return child_node->compute_pending_space(this, handle, is_union);
@@ -707,7 +707,7 @@ namespace Legion {
     {
       IndexSpaceNode *child_node = runtime->get_node(target);
       // See if we own this child or not
-      if (!child_node->is_owner() && ((child_node->collective_mapping == NULL)
+      if (!child_node->is_owner() && ((child_node->collective_mapping == nullptr)
          || !child_node->collective_mapping->contains(child_node->local_space)))
         return ApEvent::NO_AP_EVENT;
       return child_node->compute_pending_difference(this, initial, handles);
@@ -754,9 +754,9 @@ namespace Legion {
       future_map = fm;
 #ifdef DEBUG_LEGION
       assert(sources.empty());
-      assert(future_map.impl != NULL);
+      assert(future_map.impl != nullptr);
 #endif
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
       {
         if (!needs_all_futures)
         {
@@ -784,7 +784,7 @@ namespace Legion {
       // We know we are in a replicate context
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif

@@ -72,14 +72,14 @@ namespace Legion {
                                 const IndexTaskLauncher &launcher,
                                 IndexSpace launch_space,
                                 Provenance *provenance, bool track,
-                                std::vector<OutputRequirement> *outputs = NULL);
+                                std::vector<OutputRequirement> *outputs = nullptr);
       Future initialize_task(InnerContext *ctx,
                              const IndexTaskLauncher &launcher,
                              IndexSpace launch_space,
                              Provenance *provenance,
                              ReductionOpID redop,
                              bool deterministic, bool track,
-                             std::vector<OutputRequirement> *outputs = NULL);
+                             std::vector<OutputRequirement> *outputs = nullptr);
       void initialize_regions(const std::vector<RegionRequirement> &regions);
       void initialize_predicate(const Future &pred_future,
                                 const UntypedBuffer &pred_arg);
@@ -116,8 +116,8 @@ namespace Legion {
       virtual void predicate_false(void);
       virtual void premap_task(void);
       virtual bool distribute_task(void);
-      virtual bool perform_mapping(MustEpochOp *owner = NULL,
-                                   const DeferMappingArgs *args = NULL);
+      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
+                                   const DeferMappingArgs *args = nullptr);
       virtual void launch_task(bool inline_task = false);
       virtual bool is_stealable(void) const;
       virtual void trigger_complete(ApEvent effects);
@@ -187,7 +187,7 @@ namespace Legion {
     public:
       void return_point_mapped(const DomainPoint &point, RtEvent mapped);
       void return_slice_complete(unsigned points, ApEvent effects,
-                             void *metadata = NULL, size_t metasize = 0);
+                             void *metadata = nullptr, size_t metasize = 0);
       void return_slice_commit(unsigned points, RtEvent applied_condition);
     public:
       void unpack_point_mapped(Deserializer &derez, AddressSpaceID source);

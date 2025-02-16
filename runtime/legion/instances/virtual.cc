@@ -26,7 +26,7 @@ namespace Legion {
     VirtualManager::VirtualManager(DistributedID did,
                             LayoutDescription *desc, CollectiveMapping *mapping)
       : InstanceManager(did, desc,
-                        NULL/*field space node*/,NULL/*index space expression*/,
+                        nullptr/*field space node*/,nullptr/*index space expression*/,
                         0/*tree id*/, true/*register now*/, mapping)
     //--------------------------------------------------------------------------
     {

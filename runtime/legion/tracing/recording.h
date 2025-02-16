@@ -505,7 +505,7 @@ namespace Legion {
         {
 #ifdef DEBUG_LEGION
           assert(recording);
-          assert(rec != NULL);
+          assert(rec != nullptr);
           assert(rec->is_recording());
 #endif
         }

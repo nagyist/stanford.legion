@@ -60,7 +60,7 @@ namespace Legion {
 
 #define REGISTER_BUILTIN_REDOP(id, type)  \
   register_reduction_op(id, Realm::ReductionOpUntyped::create_reduction_op< \
-      type >(), NULL, NULL, false);
+      type >(), nullptr, nullptr, false);
 
   namespace Internal {
 #if defined(LEGION_USE_CUDA)

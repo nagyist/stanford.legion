@@ -29,7 +29,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     Exception::Exception(ExceptionType t, const Operation *o)
       : Realm::LoggerMessage((t == APPLICATION_EXCEPTION) ? log_legion.print() :
-          ((t == WARNING_EXCEPTION) && ((runtime == NULL) ||
+          ((t == WARNING_EXCEPTION) && ((runtime == nullptr) ||
             !runtime->warnings_are_errors)) ? log_legion.warning() :
           log_legion.error()), op(o), type(t)
     //--------------------------------------------------------------------------
@@ -74,7 +74,7 @@ namespace Legion {
           }
         case WARNING_EXCEPTION:
           {
-            if ((runtime == NULL) || !runtime->warnings_are_errors)
+            if ((runtime == nullptr) || !runtime->warnings_are_errors)
               (*this) << "LEGION_ENCOUNTERED A WARNING";
             else
               (*this) << "LEGION ENCOUNTERED A WARNING BEING TREATED AS AN ERROR";
@@ -84,10 +84,10 @@ namespace Legion {
           std::abort();
       }
       // Check to see if we can report where this error occurred
-      if (op != NULL)
+      if (op != nullptr)
         (*this) << " IN " << op->get_logging_name()
                 << " (" << op->get_unique_op_id() << "):\n";
-      else if (implicit_context != NULL)
+      else if (implicit_context != nullptr)
         (*this) << " IN " << implicit_context->get_task_name() << "("
                 << implicit_context->get_unique_id() << "):\n";
       else if (implicit_provenance > 0)
@@ -104,7 +104,7 @@ namespace Legion {
       // If this is a warning, check to see if we're just going to report 
       // that and be done with it, otherwise we do extra work
       if ((type == WARNING_EXCEPTION) && 
-          ((runtime == NULL) || !runtime->warnings_are_errors))
+          ((runtime == nullptr) || !runtime->warnings_are_errors))
       {
         if (runtime->warnings_backtrace)
         {
@@ -119,10 +119,10 @@ namespace Legion {
         // when the base class destructor is called
         return;
       }
-      if (op != NULL)
+      if (op != nullptr)
       {
         Provenance *prov = op->get_provenance();
-        if (prov != NULL)
+        if (prov != nullptr)
         {
           (*this) << "\n-----------------------------------\n";
           (*this) << "Provenance:\n\n" << prov->human;
@@ -131,17 +131,17 @@ namespace Legion {
         (*this) << "Task Tree Trace:\n\n";
         (*this) << op->get_logging_name() << "(" << op->get_unique_op_id() << ")";
         InnerContext *context = op->get_context();
-        while (context->owner_task != NULL)
+        while (context->owner_task != nullptr)
         {
           (*this) << "\n" << context->get_task_name() << "("
                   << context->get_unique_id() << ")";
           context = context->owner_task->get_context();
         }
       }
-      else if (implicit_context != NULL)
+      else if (implicit_context != nullptr)
       {
         Provenance *prov = implicit_context->owner_task->get_provenance();
-        if (prov != NULL)
+        if (prov != nullptr)
         {
           (*this) << "\n-----------------------------------\n";
           (*this) << "Provenance:\n\n" << prov->human;
@@ -149,7 +149,7 @@ namespace Legion {
         (*this) << "\n-----------------------------------\n";
         (*this) << "Task Tree Trace:\n";
         TaskContext *context = implicit_context;
-        while (context->owner_task != NULL)
+        while (context->owner_task != nullptr)
         {
           (*this) << "\n" << context->get_task_name() << "("
                   << context->get_unique_id() << ")";

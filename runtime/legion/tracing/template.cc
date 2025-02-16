@@ -48,7 +48,7 @@ namespace Legion {
             views.begin(); it != views.end(); it++)
         it->first->add_base_gc_ref(TRACE_REF);
 #ifdef DEBUG_LEGION
-      analysis.invalid = NULL;
+      analysis.invalid = nullptr;
 #endif
     }
 
@@ -58,7 +58,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(equivalence_sets.empty());
-      assert(analysis.invalid == NULL);
+      assert(analysis.invalid == nullptr);
 #endif
       if (condition_expr->remove_base_expression_reference(TRACE_REF))
         delete condition_expr;
@@ -141,7 +141,7 @@ namespace Legion {
       // We should already have refreshed the equivalence sets before we
       // get here so that they should all be up to date
       assert(!(views.get_valid_mask() - equivalence_sets.get_valid_mask()));
-      assert(analysis.invalid == NULL);
+      assert(analysis.invalid == nullptr);
 #endif
       analysis.invalid = new InvalidInstAnalysis(
             op, index, condition_expr, views);
@@ -172,13 +172,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(analysis.invalid != NULL);
+      assert(analysis.invalid != nullptr);
 #endif
       const bool result = !analysis.invalid->has_invalid();
       if (analysis.invalid->remove_reference())
         delete analysis.invalid;
 #ifdef DEBUG_LEGION
-      analysis.invalid = NULL;
+      analysis.invalid = nullptr;
 #endif
       return result;
     }
@@ -195,7 +195,7 @@ namespace Legion {
       // We should already have refreshed the equivalence sets before we
       // get here so that they should all be up to date
       assert(!(views.get_valid_mask() - equivalence_sets.get_valid_mask()));
-      assert(analysis.invalid == NULL);
+      assert(analysis.invalid == nullptr);
 #endif
       analysis.antivalid = new AntivalidInstAnalysis(op, index, 
           condition_expr, views);
@@ -226,13 +226,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(analysis.antivalid != NULL);
+      assert(analysis.antivalid != nullptr);
 #endif
       const bool result = !analysis.antivalid->has_antivalid();
       if (analysis.antivalid->remove_reference())
         delete analysis.antivalid;
 #ifdef DEBUG_LEGION
-      analysis.invalid = NULL;
+      analysis.invalid = nullptr;
 #endif
       return result;
     }
@@ -292,7 +292,7 @@ namespace Legion {
         {
           AutoLock s_lock(set_lock);
 #ifdef DEBUG_LEGION
-          assert(equivalence_sets_ready == NULL);
+          assert(equivalence_sets_ready == nullptr);
 #endif
           equivalence_sets_ready = new LegionMap<RtUserEvent,FieldMask>();
           equivalence_sets_ready->insert(
@@ -330,12 +330,12 @@ namespace Legion {
         idempotency(IDEMPOTENT), fence_completion_id(0),
         has_virtual_mapping(false), has_non_leaf_task(false),
         has_variable_return_size(false), has_no_consensus(false),
-        last_fence(NULL), remaining_replays(0), total_logical(0)
+        last_fence(nullptr), remaining_replays(0), total_logical(0)
     //--------------------------------------------------------------------------
     {
       events.push_back(fence_event);
       event_map[fence_event] = fence_completion_id;
-      finished_transitive_reduction.store(NULL);
+      finished_transitive_reduction.store(nullptr);
       instructions.push_back(
          new AssignFenceCompletion(*this, fence_completion_id, TraceLocalID()));
     }
@@ -345,8 +345,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(failure.view == NULL);
-      assert(failure.expr == NULL);
+      assert(failure.view == nullptr);
+      assert(failure.expr == nullptr);
 #endif
       {
         AutoLock tpl_lock(template_lock); 
@@ -377,7 +377,7 @@ namespace Legion {
         cached_mappings.clear();
       }
       TransitiveReductionState *state = finished_transitive_reduction.load();
-      if (state != NULL)
+      if (state != nullptr)
         delete state;
       for (std::map<DistributedID,IndividualView*>::const_iterator it =
             recorded_views.begin(); it != recorded_views.end(); it++)
@@ -407,7 +407,7 @@ namespace Legion {
         // If this is one of our local barriers then don't use it
         if (local_barriers.find(it->first) == local_barriers.end())
           all_events.insert(it->first);
-      return Runtime::merge_events(NULL, all_events);
+      return Runtime::merge_events(nullptr, all_events);
     }
 
     //--------------------------------------------------------------------------
@@ -434,7 +434,7 @@ namespace Legion {
           break;
         }
       }
-      if (last_fence == NULL)
+      if (last_fence == nullptr)
         preconditions.insert(0);
 #ifdef DEBUG_LEGION
       assert(!preconditions.empty());
@@ -537,7 +537,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(memoizable != NULL);
+      assert(memoizable != nullptr);
 #endif
       const TraceLocalID tid = memoizable->get_trace_local_id();
       
@@ -681,7 +681,7 @@ namespace Legion {
     {
       // First check to see if these conditions are idempotent or not  
       TraceViewSet::FailedPrecondition fail;
-      if ((previews != NULL) && (postviews != NULL) &&
+      if ((previews != nullptr) && (postviews != nullptr) &&
           !previews->subsumed_by(*postviews, unique_dirty_exprs, &fail))
       {
         unsigned initial = IDEMPOTENT;
@@ -689,13 +689,13 @@ namespace Legion {
               NOT_IDEMPOTENT_SUBSUMPTION) && runtime->dump_physical_traces)
         {
           failure = fail;
-          if (failure.view != NULL)
+          if (failure.view != nullptr)
             failure.view->add_base_resource_ref(TRACE_REF);
-          if (failure.expr != NULL)
+          if (failure.expr != nullptr)
             failure.expr->add_base_expression_reference(TRACE_REF);
         }
       }
-      else if ((postviews != NULL) && (antiviews != NULL) &&
+      else if ((postviews != nullptr) && (antiviews != nullptr) &&
           !postviews->independent_of(*antiviews, &fail))
       {
         unsigned initial = IDEMPOTENT;
@@ -703,9 +703,9 @@ namespace Legion {
               NOT_IDEMPOTENT_ANTIDEPENDENT) && runtime->dump_physical_traces)
         {
           failure = fail;
-          if (failure.view != NULL)
+          if (failure.view != nullptr)
             failure.view->add_base_resource_ref(TRACE_REF);
-          if (failure.expr != NULL)
+          if (failure.expr != nullptr)
             failure.expr->add_base_expression_reference(TRACE_REF);
         }
       }
@@ -713,7 +713,7 @@ namespace Legion {
       std::vector<TraceConditionSet*> postsets;
       // Create the postconditions first so we can see if we can share
       // them with any of the preconditions or anticonditions
-      if (postviews != NULL)
+      if (postviews != nullptr)
       {
         LegionMap<IndexSpaceExpression*,FieldMaskSet<LogicalView> > expr_views;
         postviews->transpose_uniquely(expr_views);
@@ -732,14 +732,14 @@ namespace Legion {
       }
       // Next do the previews and the antiviews looking for sharing with
       // the postviews so we can minimize the number of EqSetTrackers
-      if (previews != NULL)
+      if (previews != nullptr)
       {
         LegionMap<IndexSpaceExpression*,FieldMaskSet<LogicalView> > expr_views;
         previews->transpose_uniquely(expr_views);
         for (LegionMap<IndexSpaceExpression*,FieldMaskSet<LogicalView> >::
               iterator eit = expr_views.begin(); eit != expr_views.end(); eit++)
         {
-          TraceConditionSet *set = NULL;
+          TraceConditionSet *set = nullptr;
           for (std::vector<TraceConditionSet*>::iterator it =
                 postsets.begin(); it != postsets.end(); it++)
           {
@@ -749,7 +749,7 @@ namespace Legion {
             postsets.erase(it);
             break;
           }
-          if (set == NULL)
+          if (set == nullptr)
             set = new TraceConditionSet(this, parent_req_index, tree_id, 
                 eit->first, std::move(eit->second));
           else
@@ -759,14 +759,14 @@ namespace Legion {
           preconditions.push_back(set);
         }
       }
-      if (antiviews != NULL)
+      if (antiviews != nullptr)
       {
         LegionMap<IndexSpaceExpression*,FieldMaskSet<LogicalView> > expr_views;
         antiviews->transpose_uniquely(expr_views);
         for (LegionMap<IndexSpaceExpression*,FieldMaskSet<LogicalView> >::
               iterator eit = expr_views.begin(); eit != expr_views.end(); eit++)
         {
-          TraceConditionSet *set = NULL;
+          TraceConditionSet *set = nullptr;
           for (std::vector<TraceConditionSet*>::iterator it =
                 postsets.begin(); it != postsets.end(); it++)
           {
@@ -776,7 +776,7 @@ namespace Legion {
             postsets.erase(it);
             break;
           }
-          if (set == NULL)
+          if (set == nullptr)
             set = new TraceConditionSet(this, parent_req_index, tree_id, 
                 eit->first, std::move(eit->second));
           else
@@ -1458,7 +1458,7 @@ namespace Legion {
           used[g] = true;
       }
       // Don't eliminate the last fence instruction
-      if (last_fence != NULL)
+      if (last_fence != nullptr)
         used[gen[last_fence->complete]] = true;
     }
 
@@ -2213,7 +2213,7 @@ namespace Legion {
                   sit->begin(); iit != sit->end(); iit++)
             {
               TriggerEvent *trigger = (*iit)->as_trigger_event();
-              if (trigger == NULL)
+              if (trigger == nullptr)
                 continue;
               if (trigger->lhs == it->first)
               {
@@ -2238,15 +2238,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       TransitiveReductionState *state =
-        finished_transitive_reduction.exchange(NULL);
-      if (state != NULL)
+        finished_transitive_reduction.exchange(nullptr);
+      if (state != nullptr)
       {
         finalize_transitive_reduction(state->inv_topo_order, 
                                       state->incoming_reduced);
         delete state;
         // We also need to rerun the propagate copies analysis to
         // remove any mergers which contain only a single input
-        propagate_copies(NULL/*don't need the gen out*/);
+        propagate_copies(nullptr/*don't need the gen out*/);
         if (runtime->dump_physical_traces)
           dump_template();
       }
@@ -2275,7 +2275,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             assert(merge->lhs != substitutions[merge->lhs]);
 #endif
-            if (gen == NULL)
+            if (gen == nullptr)
               to_prune.insert(inst);
             else
               delete inst;
@@ -2295,8 +2295,8 @@ namespace Legion {
       // Then rewrite the instructions
       instructions.swap(new_instructions);
 
-      std::vector<unsigned> new_gen((gen == NULL) ? 0 : gen->size(), -1U);
-      if (gen != NULL)
+      std::vector<unsigned> new_gen((gen == nullptr) ? 0 : gen->size(), -1U);
+      if (gen != nullptr)
         initialize_generators(new_gen);
 
       for (unsigned idx = 0; idx < instructions.size(); ++idx)
@@ -2433,10 +2433,10 @@ namespace Legion {
               break;
             }
         }
-        if ((lhs != -1) && (gen != NULL))
+        if ((lhs != -1) && (gen != nullptr))
           new_gen[lhs] = idx;
       }
-      if (gen != NULL)
+      if (gen != nullptr)
         gen->swap(new_gen);
       if (!to_prune.empty())
       {
@@ -2704,27 +2704,27 @@ namespace Legion {
       {
         log_tracing.info() << "Non-subsumed condition: "
                            << failure.to_string(trace->logical_trace->context);
-        if ((failure.view != NULL) && 
+        if ((failure.view != nullptr) && 
             failure.view->remove_base_resource_ref(TRACE_REF))
           delete failure.view;
-        failure.view = NULL;
-        if ((failure.expr != NULL) &&
+        failure.view = nullptr;
+        if ((failure.expr != nullptr) &&
             failure.expr->remove_base_expression_reference(TRACE_REF))
           delete failure.expr;
-        failure.expr = NULL;
+        failure.expr = nullptr;
       }
       else if (idempotency == NOT_IDEMPOTENT_ANTIDEPENDENT)
       {
         log_tracing.info() << "Anti-dependent condition: " 
                            << failure.to_string(trace->logical_trace->context);
-        if ((failure.view != NULL) && 
+        if ((failure.view != nullptr) && 
             failure.view->remove_base_resource_ref(TRACE_REF))
           delete failure.view;
-        failure.view = NULL;
-        if ((failure.expr != NULL) &&
+        failure.view = nullptr;
+        if ((failure.expr != nullptr) &&
             failure.expr->remove_base_expression_reference(TRACE_REF))
           delete failure.expr;
-        failure.expr = NULL;
+        failure.expr = nullptr;
       }
       const size_t replay_parallelism = trace->get_replay_targets().size();
       for (unsigned sidx = 0; sidx < replay_parallelism; ++sidx)
@@ -2930,7 +2930,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!term_event.exists() || term_event.has_triggered_faultignorant());
 #endif
-      term_event = Runtime::create_ap_user_event(NULL);
+      term_event = Runtime::create_ap_user_event(nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -2941,7 +2941,7 @@ namespace Legion {
       // Make the event here so it is on our local node
       // Note this is important for control replications where the
       // convert_event method will check this property
-      lhs = Runtime::create_ap_user_event(NULL);
+      lhs = Runtime::create_ap_user_event(nullptr);
       AutoLock tpl_lock(template_lock);
 #ifdef DEBUG_LEGION
       assert(is_recording());
@@ -3045,7 +3045,7 @@ namespace Legion {
 #ifndef LEGION_DISABLE_EVENT_PRUNING
       if (!lhs.exists() || (rhs.find(lhs) != rhs.end()))
       {
-        ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(rename, lhs);
         lhs = rename;
       }
@@ -3229,7 +3229,7 @@ namespace Legion {
     {
       if (!lhs.exists())
       {
-        ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(rename);
         lhs = rename;
       }
@@ -3262,7 +3262,7 @@ namespace Legion {
     {
       if (!lhs.exists())
       {
-        ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+        ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(rename);
         lhs = rename;
       }
@@ -3458,7 +3458,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Always make a fresh event here for these
-      ApUserEvent rename = Runtime::create_ap_user_event(NULL);
+      ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
       Runtime::trigger_event_untraced(rename, lhs);
       lhs = rename;
       AutoLock tpl_lock(template_lock);
@@ -3619,7 +3619,7 @@ namespace Legion {
     {
       // Only called on sharded physical template
       assert(false);
-      return NULL;
+      return nullptr;
     } 
 
     //--------------------------------------------------------------------------
@@ -3646,7 +3646,7 @@ namespace Legion {
 
       if (recurrent)
       {
-        if (last_fence != NULL)
+        if (last_fence != nullptr)
           events[fence_completion_id] = events[last_fence->complete];
         for (std::map<unsigned, unsigned>::iterator it = frontiers.begin();
             it != frontiers.end(); ++it)
@@ -3663,7 +3663,7 @@ namespace Legion {
       for (std::map<unsigned, unsigned>::iterator it =
             crossing_events.begin(); it != crossing_events.end(); ++it)
       {
-        ApUserEvent ev = Runtime::create_ap_user_event(NULL);
+        ApUserEvent ev = Runtime::create_ap_user_event(nullptr);
         events[it->first] = ev;
         user_events[it->first] = ev;
       }
@@ -3766,7 +3766,7 @@ namespace Legion {
       for (std::map<unsigned,unsigned>::const_iterator it =
             frontiers.begin(); it != frontiers.end(); it++)
         postconditions.insert(events[it->first]);
-      if (last_fence != NULL)
+      if (last_fence != nullptr)
         postconditions.insert(events[last_fence->complete]);
       operations.clear();
       replay_complete = fence->get_completion_event();

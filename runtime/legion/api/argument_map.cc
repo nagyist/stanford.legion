@@ -31,7 +31,7 @@ namespace Legion {
     {
       impl = new Internal::ArgumentMapImpl();
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->add_reference();
     }
@@ -42,7 +42,7 @@ namespace Legion {
     {
       impl = new Internal::ArgumentMapImpl(rhs);
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->add_reference();
     }
@@ -52,7 +52,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -61,7 +61,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -69,7 +69,7 @@ namespace Legion {
       : impl(i)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -77,7 +77,7 @@ namespace Legion {
     ArgumentMap::~ArgumentMap(void)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         // Remove our reference and if we were the
         // last reference holder, then delete it
@@ -85,7 +85,7 @@ namespace Legion {
         {
           delete impl;
         }
-        impl = NULL;
+        impl = nullptr;
       }
     }
 
@@ -93,9 +93,9 @@ namespace Legion {
     ArgumentMap& ArgumentMap::operator=(const FutureMap &rhs)
     //--------------------------------------------------------------------------
     {
-      // Check to see if our current impl is not NULL,
+      // Check to see if our current impl is not nullptr,
       // if so remove our reference
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
         {
@@ -111,9 +111,9 @@ namespace Legion {
     ArgumentMap& ArgumentMap::operator=(const ArgumentMap &rhs)
     //--------------------------------------------------------------------------
     {
-      // Check to see if our current impl is not NULL,
+      // Check to see if our current impl is not nullptr,
       // if so remove our reference
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
         {
@@ -122,7 +122,7 @@ namespace Legion {
       }
       impl = rhs.impl;
       // Add our reference to the new impl
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         impl->add_reference();
       }
@@ -133,10 +133,10 @@ namespace Legion {
     ArgumentMap& ArgumentMap::operator=(ArgumentMap &&rhs) noexcept
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
       impl = rhs.impl;
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
       return *this;
     }
 
@@ -145,7 +145,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       return impl->has_point(point);
     }
@@ -156,7 +156,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->set_point(point, arg, replace);
     }
@@ -167,7 +167,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->set_point(point, f, replace);
     }
@@ -177,7 +177,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       return impl->remove_point(point);
     }
@@ -187,7 +187,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       return impl->get_point(point);
     }
@@ -201,7 +201,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     ArgumentMapImpl::ArgumentMapImpl(void)
       : Collectable(),
-        future_map(NULL), point_set(NULL), dimensionality(0), 
+        future_map(nullptr), point_set(nullptr), dimensionality(0), 
         dependent_futures(0), update_point_set(false), equivalent(false)
     //--------------------------------------------------------------------------
     {
@@ -213,7 +213,7 @@ namespace Legion {
         dependent_futures(0), update_point_set(false), equivalent(false)
     //--------------------------------------------------------------------------
     {
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
       {
         point_set = future_map.impl->future_map_domain;
         point_set->add_base_expression_reference(RUNTIME_REF);
@@ -221,7 +221,7 @@ namespace Legion {
       }
       else
       {
-        point_set = NULL;
+        point_set = nullptr;
         dimensionality = 0;
       }
     }
@@ -230,7 +230,7 @@ namespace Legion {
     ArgumentMapImpl::~ArgumentMapImpl(void)
     //--------------------------------------------------------------------------
     {
-      if ((point_set != NULL) && 
+      if ((point_set != nullptr) && 
           point_set->remove_base_expression_reference(RUNTIME_REF))
         delete point_set;
     }
@@ -249,10 +249,10 @@ namespace Legion {
               "must always contain points of the same dimensionality.",
               dimensionality, point_dim)
       }
-      if ((point_set != NULL) && !update_point_set &&
+      if ((point_set != nullptr) && !update_point_set &&
            point_set->contains_point(point))
         return true;
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
         unfreeze();
       return (arguments.find(point) != arguments.end());
     }
@@ -279,10 +279,10 @@ namespace Legion {
         assert(dimensionality > 0);
 #endif
       }
-      if (!replace and (point_set != NULL) && !update_point_set &&
+      if (!replace and (point_set != nullptr) && !update_point_set &&
           point_set->contains_point(point))
         return;
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
         unfreeze();
       std::map<DomainPoint,Future>::iterator finder = arguments.find(point);
       if (finder != arguments.end())
@@ -290,7 +290,7 @@ namespace Legion {
         // If it already exists and we're not replacing it then we're done
         if (!replace)
           return;
-        if (finder->second.impl->producer_op != NULL)
+        if (finder->second.impl->producer_op != nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(dependent_futures > 0);
@@ -314,7 +314,7 @@ namespace Legion {
         update_point_set = true;
       }
       // If we modified things then they are no longer equivalent
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
       {
         equivalent = false;
         future_map = FutureMap();
@@ -343,10 +343,10 @@ namespace Legion {
         assert(dimensionality > 0);
 #endif
       }
-      if (!replace and (point_set != NULL) && !update_point_set &&
+      if (!replace and (point_set != nullptr) && !update_point_set &&
           point_set->contains_point(point))
         return;
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
         unfreeze();
       std::map<DomainPoint,Future>::iterator finder = arguments.find(point);
       if (finder != arguments.end())
@@ -354,7 +354,7 @@ namespace Legion {
         // If it already exists and we're not replacing it then we're done
         if (!replace)
           return;
-        if (finder->second.impl->producer_op != NULL)
+        if (finder->second.impl->producer_op != nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(dependent_futures > 0);
@@ -370,10 +370,10 @@ namespace Legion {
         // Had to add a new point so the point set is no longer valid
         update_point_set = true;
       }
-      if (f.impl->producer_op != NULL)
+      if (f.impl->producer_op != nullptr)
           dependent_futures++;
       // If we modified things then they are no longer equivalent
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
       {
         equivalent = false;
         future_map = FutureMap();
@@ -401,15 +401,15 @@ namespace Legion {
         assert(dimensionality > 0);
 #endif
       }
-      if ((point_set != NULL) && !update_point_set &&
+      if ((point_set != nullptr) && !update_point_set &&
           !point_set->contains_point(point))
         return false;
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
         unfreeze();
       std::map<DomainPoint,Future>::iterator finder = arguments.find(point);
       if (finder != arguments.end())
       {
-        if (finder->second.impl->producer_op != NULL)
+        if (finder->second.impl->producer_op != nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(dependent_futures > 0);
@@ -418,7 +418,7 @@ namespace Legion {
         }
         arguments.erase(finder);
         // If we modified things then they are no longer equivalent
-        if (future_map.impl != NULL)
+        if (future_map.impl != nullptr)
         {
           equivalent = false;
           future_map = FutureMap();
@@ -444,13 +444,13 @@ namespace Legion {
               "must always contain points of the same dimensionality.",
               dimensionality, point_dim)
       }
-      if ((point_set != NULL) && !update_point_set &&
+      if ((point_set != nullptr) && !update_point_set &&
           !point_set->contains_point(point))
         return UntypedBuffer();
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
         unfreeze();
       std::map<DomainPoint,Future>::const_iterator finder=arguments.find(point);
-      if ((finder == arguments.end()) || (finder->second.impl == NULL))
+      if ((finder == arguments.end()) || (finder->second.impl == nullptr))
         return UntypedBuffer();
       size_t arg_size = 0;
       const void *ptr = finder->second.impl->get_buffer(
@@ -463,7 +463,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // If we already have a future map then we are good
-      if (future_map.impl != NULL)
+      if (future_map.impl != nullptr)
         return future_map;
       // If we have no futures then we can return an empty map
       if (arguments.empty())
@@ -471,7 +471,7 @@ namespace Legion {
       // Compute the point set if needed
       if (update_point_set)
       {
-        if ((point_set != NULL) &&
+        if ((point_set != nullptr) &&
             point_set->remove_base_expression_reference(RUNTIME_REF))
           delete point_set;
         if (!arguments.empty())
@@ -510,13 +510,13 @@ namespace Legion {
           point_set->add_base_expression_reference(RUNTIME_REF);
         }
         else
-          point_set = NULL;
+          point_set = nullptr;
         update_point_set = false;
       }
       // See if we have any dependent future points, if we do then we need
       // to launch an explicit creation operation to ensure we get the right
       // mapping dependences for this future map
-      if (point_set == NULL)
+      if (point_set == nullptr)
         future_map = FutureMap();
       else if (dependent_futures == 0 && !runtime->safe_control_replication)
       {
@@ -541,7 +541,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(future_map.impl != NULL);
+      assert(future_map.impl != nullptr);
 #endif
       // If they are already equivalent then we're done
       if (equivalent)
@@ -553,7 +553,7 @@ namespace Legion {
       for (std::map<DomainPoint,FutureImpl*>::const_iterator it =
             futures.begin(); it != futures.end(); it++)
         arguments[it->first] = Future(it->second);
-      if ((point_set != NULL) && 
+      if ((point_set != nullptr) && 
           point_set->remove_base_expression_reference(RUNTIME_REF))
         delete point_set;
       point_set = future_map.impl->future_map_domain;
@@ -565,7 +565,7 @@ namespace Legion {
 #endif
       for (std::map<DomainPoint,Future>::const_iterator it = 
             arguments.begin(); it != arguments.end(); it++)
-        if (it->second.impl->producer_op != NULL)
+        if (it->second.impl->producer_op != nullptr)
           dependent_futures++;
       equivalent = true;
     }

@@ -36,7 +36,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RemoteTask::RemoteTask(const RemoteTask &rhs)
-      : owner(NULL)
+      : owner(nullptr)
     //--------------------------------------------------------------------------
     {
       // should never be called
@@ -125,7 +125,7 @@ namespace Legion {
     const Task* RemoteTask::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if ((parent_task == NULL) && has_parent_task())
+      if ((parent_task == nullptr) && has_parent_task())
         parent_task = owner->get_parent_task();
       return parent_task;
     }
@@ -135,7 +135,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = owner->get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -172,11 +172,11 @@ namespace Legion {
                                  CollectiveMapping *mapping)
       : HeapifyMixin<RemoteContext,InnerContext,CONTEXT_LIFETIME>(
           configure_remote_context(),
-          (SingleTask*)NULL, -1, false/*full inner*/, remote_task.regions,
+          (SingleTask*)nullptr, -1, false/*full inner*/, remote_task.regions,
                      remote_task.output_regions, local_parent_req_indexes,
                      local_virtual_mapped, 0/*priority*/, ApEvent::NO_AP_EVENT,
                      id, false, false, false, mapping),
-        parent_ctx(NULL), shard_manager(NULL), provenance(NULL),
+        parent_ctx(nullptr), shard_manager(nullptr), provenance(nullptr),
         top_level_context(false), remote_task(RemoteTask(this)),
         remote_uid(0), repl_id(0)
     //--------------------------------------------------------------------------
@@ -239,7 +239,7 @@ namespace Legion {
         }
         local_field_infos.clear();
       } 
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -264,7 +264,7 @@ namespace Legion {
       if (!top_level_context)
         return find_parent_context()->find_top_context(this);
  #ifdef DEBUG_LEGION
-      assert(previous != NULL);
+      assert(previous != nullptr);
 #endif
       return previous;     
     }
@@ -274,10 +274,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (top_level_context)
-        return NULL;
+        return nullptr;
       // See if we already have it
       InnerContext *result = parent_ctx.load();
-      if (result != NULL)
+      if (result != nullptr)
         return result;
 #ifdef DEBUG_LEGION
       assert(parent_context_did != 0);
@@ -286,9 +286,9 @@ namespace Legion {
       // A MESSAGE IN THE CONTEXT_VIRTUAL_CHANNEL
       result = runtime->find_or_request_inner_context(parent_context_did);
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
-      if (parent_ctx.exchange(result) == NULL)
+      if (parent_ctx.exchange(result) == nullptr)
         remote_task.parent_task = result->get_task();
       return result;
     }
@@ -479,7 +479,7 @@ namespace Legion {
             applied_events, sharded, false/*first*/, mapping);
         return;
       }
-      if ((mapping == NULL) || (!mapping->contains(owner_space) &&
+      if ((mapping == nullptr) || (!mapping->contains(owner_space) &&
             (local_space == mapping->find_nearest(owner_space))))
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
@@ -525,13 +525,13 @@ namespace Legion {
     {
       if ((req_index < regions.size()) && virtual_mapped[req_index])
       {
-        if (node == NULL)
+        if (node == nullptr)
           node = runtime->get_node(regions[req_index].region.get_index_space());
         find_parent_context()->find_trace_local_sets(req_index, mask,
             current_sets, node, mapping);
         return;
       }
-      if ((mapping == NULL) || (!mapping->contains(owner_space) &&
+      if ((mapping == nullptr) || (!mapping->contains(owner_space) &&
             (local_space == mapping->find_nearest(owner_space))))
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
@@ -541,7 +541,7 @@ namespace Legion {
           rez.serialize(did);
           rez.serialize(req_index);
           rez.serialize(mask);
-          if (node == NULL)
+          if (node == nullptr)
             rez.serialize(IndexSpace::NO_SPACE);
           else
             rez.serialize(node->handle);
@@ -588,7 +588,7 @@ namespace Legion {
       {
         RezCheck z(rez);
         rez.serialize(did);
-        if (shard_mapping != NULL)
+        if (shard_mapping != nullptr)
         {
           shard_mapping->pack_mapping(rez);
           rez.serialize(source_shard);
@@ -671,7 +671,7 @@ namespace Legion {
           runtime->find_distributed_collectable(context_did));
       context->receive_created_region_contexts(created_nodes,
           created_trees, applied_events, 
-          src_mapping.empty() ? NULL : &src_mapping, source_shard);
+          src_mapping.empty() ? nullptr : &src_mapping, source_shard);
       if (!applied_events.empty())
         Runtime::trigger_event(done_event, 
             Runtime::merge_events(applied_events));
@@ -679,7 +679,7 @@ namespace Legion {
         Runtime::trigger_event(done_event);
       for (std::vector<EqKDTree*>::const_iterator it =
             created_trees.begin(); it != created_trees.end(); it++)
-        if (((*it) != NULL) && (*it)->remove_reference())
+        if (((*it) != nullptr) && (*it)->remove_reference())
           delete (*it);
       context->unpack_global_ref();
     }
@@ -709,7 +709,7 @@ namespace Legion {
       derez.deserialize(parent_context_did);
       context_coordinates.deserialize(derez);
       provenance = Provenance::deserialize(derez);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
       derez.deserialize(remote_uid);
       // Unpack any local fields that we have
@@ -732,7 +732,7 @@ namespace Legion {
       // CHANNELS AND HOW CONTEXT META-DATA IS MOVED!
       InnerContext *parent = static_cast<InnerContext*>(
         runtime->weak_find_distributed_collectable(parent_context_did));
-      if (parent != NULL)
+      if (parent != nullptr)
       {
         parent_ctx.store(parent);
         remote_task.parent_task = parent->get_task();
@@ -749,11 +749,11 @@ namespace Legion {
       // because we are no longer in the virtual channel for unpacking
       // remote contexts therefore we can page in the context
       InnerContext *parent = parent_ctx.load();
-      if (parent == NULL)
+      if (parent == nullptr)
       {
         parent = runtime->find_or_request_inner_context(parent_context_did);
         const Task *result = parent->get_task();
-        if (parent_ctx.exchange(parent) == NULL)
+        if (parent_ctx.exchange(parent) == nullptr)
           remote_task.parent_task = result;
         return result;
       }
@@ -774,7 +774,7 @@ namespace Legion {
         FieldSpace handle;
         derez.deserialize(handle);
         Provenance *provenance = Provenance::deserialize(derez);
-        if (provenance != NULL)
+        if (provenance != nullptr)
           provenance->add_reference();
         size_t num_local;
         derez.deserialize(num_local); 
@@ -800,7 +800,7 @@ namespace Legion {
         }
         runtime->update_local_fields(handle, fields, field_sizes,
                                              serdez_ids, indexes, provenance);
-        if ((provenance != NULL) && provenance->remove_reference())
+        if ((provenance != nullptr) && provenance->remove_reference())
           delete provenance;
       }
     }
@@ -1002,7 +1002,7 @@ namespace Legion {
       derez.deserialize(mask);
       IndexSpace handle;
       derez.deserialize(handle);
-      IndexSpaceNode *node = NULL;
+      IndexSpaceNode *node = nullptr;
       if (handle.exists())
         node = runtime->get_node(handle);
       std::map<EquivalenceSet*,unsigned> current_sets;
@@ -1017,7 +1017,7 @@ namespace Legion {
         {
           RezCheck z2(rez);
           rez.serialize(target);
-          rez.serialize<LocalLock*>(NULL);
+          rez.serialize<LocalLock*>(nullptr);
           rez.serialize(req_index);
           rez.serialize<size_t>(current_sets.size());
           for (std::map<EquivalenceSet*,unsigned>::const_iterator it =
@@ -1052,7 +1052,7 @@ namespace Legion {
       size_t num_sets;
       derez.deserialize(num_sets);
       std::vector<RtEvent> ready_events;
-      if (target_lock != NULL)
+      if (target_lock != nullptr)
       {
         AutoLock t_lock(*target_lock);
         for (unsigned idx = 0; idx < num_sets; idx++)
@@ -1101,7 +1101,7 @@ namespace Legion {
       DistributedCollectable *dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
       InnerContext *context = dynamic_cast<InnerContext*>(dc);
-      assert(context != NULL);
+      assert(context != nullptr);
 #else
       InnerContext *context = static_cast<InnerContext*>(dc);
 #endif

@@ -35,7 +35,7 @@ namespace Legion {
     {
       MemoizableOp::activate();
       predication_state = PENDING_PREDICATE_STATE;
-      predicate = NULL;
+      predicate = nullptr;
       true_guard = PredEvent::NO_PRED_EVENT;
       false_guard = PredEvent::NO_PRED_EVENT;
     }
@@ -44,7 +44,7 @@ namespace Legion {
     void PredicatedOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      if ((predicate != NULL) && predicate->remove_reference())
+      if ((predicate != nullptr) && predicate->remove_reference())
         delete predicate;
       MemoizableOp::deactivate(freeop);
     }
@@ -58,12 +58,12 @@ namespace Legion {
       if (p == Predicate::TRUE_PRED)
       {
         predication_state = PREDICATED_TRUE_STATE;
-        predicate = NULL;
+        predicate = nullptr;
       }
       else if (p == Predicate::FALSE_PRED)
       {
         predication_state = PREDICATED_FALSE_STATE;
-        predicate = NULL;
+        predicate = nullptr;
       }
       else
       {
@@ -79,7 +79,7 @@ namespace Legion {
     bool PredicatedOp::is_predicated_op(void) const
     //--------------------------------------------------------------------------
     {
-      return (predicate != NULL);
+      return (predicate != nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -93,7 +93,7 @@ namespace Legion {
       if (predication_state == PENDING_PREDICATE_STATE)
       {
 #ifdef DEBUG_LEGION
-        assert(predicate != NULL);
+        assert(predicate != nullptr);
 #endif
         bool value = predicate->get_predicate(index, true_guard, false_guard);
         if (false_guard.exists())

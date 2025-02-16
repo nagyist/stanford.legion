@@ -1921,57 +1921,57 @@ namespace Legion {
   {
     if (specialized_constraint != other.specialized_constraint)
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_SPECIALIZED_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
     if (field_constraint != other.field_constraint)
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_FIELD_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
     if (memory_constraint != other.memory_constraint)
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_MEMORY_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
     if (pointer_constraint != other.pointer_constraint)
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_POINTER_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
     if (ordering_constraint != other.ordering_constraint)
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_ORDERING_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
     if (padding_constraint != other.padding_constraint)
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_PADDING_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
     if (tiling_constraints.size() != other.tiling_constraints.size())
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_TILING_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
@@ -1989,18 +1989,18 @@ namespace Legion {
       }
       if (!found)
       {
-        if (bad_kind != NULL)
+        if (bad_kind != nullptr)
           *bad_kind = LEGION_TILING_CONSTRAINT;
-        if (bad_index != NULL)
+        if (bad_index != nullptr)
           *bad_index = idx;
         return false;
       }
     }
     if (dimension_constraints.size() != other.dimension_constraints.size())
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_DIMENSION_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
@@ -2018,18 +2018,18 @@ namespace Legion {
       }
       if (!found)
       {
-        if (bad_kind != NULL)
+        if (bad_kind != nullptr)
           *bad_kind = LEGION_DIMENSION_CONSTRAINT;
-        if (bad_index != NULL)
+        if (bad_index != nullptr)
           *bad_index = idx;
         return false;
       }
     }
     if (alignment_constraints.size() != other.alignment_constraints.size())
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_ALIGNMENT_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
@@ -2047,18 +2047,18 @@ namespace Legion {
       }
       if (!found)
       {
-        if (bad_kind != NULL)
+        if (bad_kind != nullptr)
           *bad_kind = LEGION_ALIGNMENT_CONSTRAINT;
-        if (bad_index != NULL)
+        if (bad_index != nullptr)
           *bad_index = idx;
         return false;
       }
     }
     if (offset_constraints.size() != other.offset_constraints.size())
     {
-      if (bad_kind != NULL)
+      if (bad_kind != nullptr)
         *bad_kind = LEGION_OFFSET_CONSTRAINT;
-      if (bad_index != NULL)
+      if (bad_index != nullptr)
         *bad_index = 0;
       return false;
     }
@@ -2076,9 +2076,9 @@ namespace Legion {
       }
       if (!found)
       {
-        if (bad_kind != NULL)
+        if (bad_kind != nullptr)
           *bad_kind = LEGION_OFFSET_CONSTRAINT;
-        if (bad_index != NULL)
+        if (bad_index != nullptr)
           *bad_index = idx;
         return false;
       }
@@ -2095,37 +2095,37 @@ namespace Legion {
   {
     if (!specialized_constraint.entails(other.specialized_constraint))
     {
-      if (failed != NULL)
+      if (failed != nullptr)
         *failed = &other.specialized_constraint;
       return false;
     }
     if (!field_constraint.entails(other.field_constraint))
     {
-      if (failed != NULL)
+      if (failed != nullptr)
         *failed = &other.field_constraint;
       return false;
     }
     if (!memory_constraint.entails(other.memory_constraint))
     {
-      if (failed != NULL)
+      if (failed != nullptr)
         *failed = &other.memory_constraint;
       return false;
     }
     if (test_pointer && !pointer_constraint.entails(other.pointer_constraint))
     {
-      if (failed != NULL)
+      if (failed != nullptr)
         *failed = &other.pointer_constraint;
       return false;
     }
     if (!padding_constraint.entails(other.padding_constraint))
     {
-      if (failed != NULL)
+      if (failed != nullptr)
         *failed = &other.padding_constraint;
       return false;
     }
     if (!ordering_constraint.entails(other.ordering_constraint, total_dims))
     {
-      if (failed != NULL)
+      if (failed != nullptr)
         *failed = &other.ordering_constraint;
       return false;
     }
@@ -2144,7 +2144,7 @@ namespace Legion {
       }
       if (!entailed)
       {
-        if (failed != NULL)
+        if (failed != nullptr)
           *failed = &(*it);
         return false;
       }
@@ -2164,7 +2164,7 @@ namespace Legion {
       }
       if (!entailed)
       {
-        if (failed != NULL)
+        if (failed != nullptr)
           *failed = &(*it);
         return false;
       }
@@ -2184,7 +2184,7 @@ namespace Legion {
       }
       if (!entailed)
       {
-        if (failed != NULL)
+        if (failed != nullptr)
           *failed = &(*it);
         return false;
       }
@@ -2204,7 +2204,7 @@ namespace Legion {
       }
       if (!entailed)
       {
-        if (failed != NULL)
+        if (failed != nullptr)
           *failed = &(*it);
         return false;
       }
@@ -2221,37 +2221,37 @@ namespace Legion {
     // Do these in order
     if (specialized_constraint.conflicts(other.specialized_constraint))
     {
-      if (conflict != NULL)
+      if (conflict != nullptr)
         *conflict = &specialized_constraint;
       return true;
     }
     if (field_constraint.conflicts(other.field_constraint))
     {
-      if (conflict != NULL)
+      if (conflict != nullptr)
         *conflict = &field_constraint;
       return true;
     }
     if (memory_constraint.conflicts(other.memory_constraint))
     {
-      if (conflict != NULL)
+      if (conflict != nullptr)
         *conflict = &memory_constraint;
       return true;
     }
     if (pointer_constraint.conflicts(other.pointer_constraint))
     {
-      if (conflict != NULL)
+      if (conflict != nullptr)
         *conflict = &pointer_constraint;
       return true;
     }
     if (padding_constraint.conflicts(other.padding_constraint))
     {
-      if (conflict != NULL)
+      if (conflict != nullptr)
         *conflict = &padding_constraint;
       return true;
     }
     if (ordering_constraint.conflicts(other.ordering_constraint, total_dims))
     {
-      if (conflict != NULL)
+      if (conflict != nullptr)
         *conflict = &ordering_constraint;
       return true;
     }
@@ -2262,7 +2262,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < other.tiling_constraints.size(); idx++)
         if (it->conflicts(other.tiling_constraints[idx]))
         {
-          if (conflict != NULL)
+          if (conflict != nullptr)
             *conflict = &(*it);
           return true;
         }
@@ -2274,7 +2274,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < other.dimension_constraints.size(); idx++)
         if (it->conflicts(other.dimension_constraints[idx]))
         {
-          if (conflict != NULL)
+          if (conflict != nullptr)
             *conflict = &(*it);
           return true;
         }
@@ -2286,7 +2286,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < other.alignment_constraints.size(); idx++)
         if (it->conflicts(other.alignment_constraints[idx]))
         {
-          if (conflict != NULL)
+          if (conflict != nullptr)
             *conflict = &(*it);
           return true;
         }
@@ -2298,7 +2298,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < other.offset_constraints.size(); idx++)
         if (it->conflicts(other.offset_constraints[idx]))
         {
-          if (conflict != NULL)
+          if (conflict != nullptr)
             *conflict = &(*it);
           return true;
         }
@@ -2336,7 +2336,7 @@ namespace Legion {
       default:
         assert(false);
     }
-    return NULL;
+    return nullptr;
   }
 
   //--------------------------------------------------------------------------

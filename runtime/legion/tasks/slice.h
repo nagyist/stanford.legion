@@ -49,8 +49,8 @@ namespace Legion {
       virtual bool distribute_task(void);
       virtual VersionInfo& get_version_info(unsigned idx);
       virtual const VersionInfo& get_version_info(unsigned idx) const;
-      virtual bool perform_mapping(MustEpochOp *owner = NULL,
-                                   const DeferMappingArgs *args = NULL);
+      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
+                                   const DeferMappingArgs *args = nullptr);
       virtual void launch_task(bool inline_task = false);
       virtual bool is_stealable(void) const;
       virtual bool is_output_global(unsigned idx) const;

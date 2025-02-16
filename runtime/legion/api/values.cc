@@ -64,7 +64,7 @@ namespace Legion {
             constraints, dim_order);
       layout->alignment_reqd = alignment;
       instance = allocate_instance(memory, layout);
-      if (initial_value != NULL)
+      if (initial_value != nullptr)
       {
         // Check to see if we can write to it directly
         Runtime *runtime = Runtime::get_runtime();
@@ -144,7 +144,7 @@ namespace Legion {
         Memory memory, Realm::InstanceLayoutGeneric *layout)
     //--------------------------------------------------------------------------
     {
-      if (Internal::implicit_context == NULL)
+      if (Internal::implicit_context == nullptr)
         Internal::Exception(Internal::INTERFACE_EXCEPTION)
             << "Illegal request to create a DeferredBuffer, DeferredValue, "
             << "or a DeferredReduction outside of a Legion task.";
@@ -157,7 +157,7 @@ namespace Legion {
         Realm::RegionInstance instance, Realm::Event precondition)
     //--------------------------------------------------------------------------
     {
-      if (Internal::implicit_context == NULL)
+      if (Internal::implicit_context == nullptr)
         Internal::Exception(Internal::INTERFACE_EXCEPTION)
             << "Illegal request to destroy a DeferredBuffer, DeferredValue, "
             << "or a DeferredReduction outside of a Legion task.";

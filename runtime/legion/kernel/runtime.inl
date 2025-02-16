@@ -48,7 +48,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(target.exists());
 #endif
-      if (profiler != NULL)
+      if (profiler != nullptr)
       {
         Realm::ProfilingRequestSet requests;
         profiler->add_meta_request(requests, T::TASK_ID, 
@@ -92,7 +92,7 @@ namespace Legion {
 #ifdef DEBUG_SHUTDOWN_HANG
       outstanding_counts[T::TASK_ID].fetch_add(1);
 #endif
-      if (profiler != NULL)
+      if (profiler != nullptr)
       {
         Realm::ProfilingRequestSet requests;
         profiler->add_meta_request(requests, T::TASK_ID,
@@ -138,13 +138,13 @@ namespace Legion {
       LegionSpy::log_event_dependence(e1, result);
       LegionSpy::log_event_dependence(e2, result);
 #endif
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         const LgEvent preconditions[2] = { e1, e2 };
         implicit_profiler->record_event_merger(result, preconditions, 2);
       }
       // Always do tracing after profiling
-      if ((info != NULL) && info->recording)
+      if ((info != nullptr) && info->recording)
         info->record_merge_events(result, e1, e2);
       return result;
     }
@@ -175,13 +175,13 @@ namespace Legion {
       LegionSpy::log_event_dependence(e2, result);
       LegionSpy::log_event_dependence(e3, result);
 #endif
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         const LgEvent preconditions[3] = { e1, e2, e3 };
         implicit_profiler->record_event_merger(result, preconditions, 3);
       }
       // Always do tracing after profiling
-      if ((info != NULL) && info->recording)
+      if ((info != nullptr) && info->recording)
         info->record_merge_events(result, e1, e2, e3);
       return result;
     }
@@ -195,7 +195,7 @@ namespace Legion {
       if (events.empty())
       {
         // Still need to do this for tracing because of merge filter code
-        if ((info != NULL) && info->recording)
+        if ((info != nullptr) && info->recording)
         {
           ApEvent result;
           info->record_merge_events(result, events);
@@ -207,7 +207,7 @@ namespace Legion {
       if (events.size() == 1)
       {
         // Still need to do this for tracing because of merge filter code
-        if ((info != NULL) && info->recording)
+        if ((info != nullptr) && info->recording)
         {
           ApEvent result = *(events.begin());
           info->record_merge_events(result, events);
@@ -240,7 +240,7 @@ namespace Legion {
             it != events.end(); it++)
         LegionSpy::log_event_dependence(*it, result);
 #endif
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         static_assert(sizeof(ApEvent) == sizeof(LgEvent));
         const std::vector<ApEvent> preconditions(events.begin(), events.end());
@@ -248,7 +248,7 @@ namespace Legion {
             &preconditions.front(), preconditions.size());
       }
       // Always do tracing after profiling
-      if ((info != NULL) && info->recording)
+      if ((info != nullptr) && info->recording)
         info->record_merge_events(result, events);
       return result;
     }
@@ -262,7 +262,7 @@ namespace Legion {
       if (events.empty())
       {
         // Still need to do this for tracing because of merge filter code
-        if ((info != NULL) && info->recording)
+        if ((info != nullptr) && info->recording)
         {
           ApEvent result;
           info->record_merge_events(result, events);
@@ -274,7 +274,7 @@ namespace Legion {
       if (events.size() == 1)
       {
         // Still need to do this for tracing because of merge filter code
-        if ((info != NULL) && info->recording)
+        if ((info != nullptr) && info->recording)
         {
           ApEvent result = events.front();
           info->record_merge_events(result, events);
@@ -317,14 +317,14 @@ namespace Legion {
             it != events.end(); it++)
         LegionSpy::log_event_dependence(*it, result);
 #endif
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         static_assert(sizeof(ApEvent) == sizeof(LgEvent));
         implicit_profiler->record_event_merger(result,
             &events.front(), events.size());
       }
       // Always do tracing after profiling
-      if ((info != NULL) && info->recording)
+      if ((info != nullptr) && info->recording)
         info->record_merge_events(result, events);
       return result;
     }
@@ -335,7 +335,7 @@ namespace Legion {
     {
       // No logging for runtime operations currently
       RtEvent result(Realm::Event::merge_events(e1, e2)); 
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         const LgEvent preconditions[2] = { e1 , e2 };
         implicit_profiler->record_event_merger(result, preconditions, 2);
@@ -350,7 +350,7 @@ namespace Legion {
     {
       // No logging for runtime operations currently
       const RtEvent result(Realm::Event::merge_events(e1, e2, e3)); 
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         const LgEvent preconditions[3] = { e1, e2, e3 };
         implicit_profiler->record_event_merger(result, preconditions, 3);
@@ -377,7 +377,7 @@ namespace Legion {
       memcpy(&realm_events, &legion_events, sizeof(legion_events));
       // No logging for runtime operations currently
       const RtEvent result(Realm::Event::merge_events(*realm_events));
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         static_assert(sizeof(RtEvent) == sizeof(LgEvent));
         const std::vector<RtEvent> preconditions(events.begin(), events.end());
@@ -406,7 +406,7 @@ namespace Legion {
       memcpy(&realm_events, &legion_events, sizeof(legion_events));
       // No logging for runtime operations currently
       const RtEvent result(Realm::Event::merge_events(*realm_events));
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         static_assert(sizeof(RtEvent) == sizeof(LgEvent));
         implicit_profiler->record_event_merger(result,
@@ -421,7 +421,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ApUserEvent result;
-      if ((info == NULL) || !info->recording)
+      if ((info == nullptr) || !info->recording)
       {
         result = ApUserEvent(Realm::UserEvent::create_user_event());
 #ifdef LEGION_SPY
@@ -440,7 +440,7 @@ namespace Legion {
     {
       // Record trigger event timing first since it might be expensive
       // to actually propagate the triggered event
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->record_event_trigger(to_trigger, precondition);
       Realm::UserEvent copy = to_trigger;
       copy.trigger(precondition);
@@ -458,7 +458,7 @@ namespace Legion {
     {
       // Record trigger event timing first since it might be expensive
       // to actually propagate the triggered event
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->record_event_trigger(to_trigger, precondition);
       Realm::UserEvent copy = to_trigger;
       copy.trigger(precondition);
@@ -477,7 +477,7 @@ namespace Legion {
     {
       // Record poison event timing first since it might be expensive
       // to actually propagate the poison
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->record_event_poison(to_poison);
       Realm::UserEvent copy = to_poison;
       copy.cancel();
@@ -507,7 +507,7 @@ namespace Legion {
     {
       // Record trigger event timing first since it might be expensive
       // to actually propagate the triggered event
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->record_event_trigger(to_trigger, precondition);
       Realm::UserEvent copy = to_trigger;
       copy.trigger(precondition);
@@ -522,7 +522,7 @@ namespace Legion {
     {
       // Record poison event timing first since it might be expensive
       // to actually propagate the poison
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->record_event_poison(to_poison);
       Realm::UserEvent copy = to_poison;
       copy.cancel();
@@ -551,7 +551,7 @@ namespace Legion {
     {
       // Record trigger event timing first since it might be expensive
       // to actually propagate the triggered event
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->record_event_trigger(to_trigger,
                                                 LgEvent::NO_LG_EVENT);
       Realm::UserEvent copy = to_trigger;
@@ -567,7 +567,7 @@ namespace Legion {
     {
       // Record poison event timing first since it might be expensive
       // to actually propagate the poison
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->record_event_poison(to_poison);
       Realm::UserEvent copy = to_poison;
       copy.cancel();
@@ -604,13 +604,13 @@ namespace Legion {
       LegionSpy::log_event_dependence(e1, result);
       LegionSpy::log_event_dependence(e2, result);
 #endif
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         const LgEvent preconditions[2] = { e1, e2 };
         implicit_profiler->record_event_merger(result, preconditions, 2);
       }
       // Always do tracing after profiling
-      if ((info != NULL) && info->recording)
+      if ((info != nullptr) && info->recording)
         info->record_merge_events(result, e1, e2);
       return result;
     }
@@ -631,7 +631,7 @@ namespace Legion {
       LegionSpy::log_event_dependence(ApEvent(e), result);
 #endif
 #endif
-      if ((implicit_profiler != NULL) && result.exists() && (result != e))
+      if ((implicit_profiler != nullptr) && result.exists() && (result != e))
         implicit_profiler->record_event_trigger(result, e);
       return result;
     }
@@ -643,7 +643,7 @@ namespace Legion {
       if (to_protect.exists())
       {
         const RtEvent result(Realm::Event::ignorefaults(to_protect));
-        if ((implicit_profiler != NULL) && result.exists() &&
+        if ((implicit_profiler != nullptr) && result.exists() &&
             (result.id != to_protect.id))
           implicit_profiler->record_event_trigger(result, to_protect);
         return result;
@@ -658,11 +658,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const std::set<ApEvent> *ptr = &events;
-      const std::set<Realm::Event> *realm_events = NULL;
+      const std::set<Realm::Event> *realm_events = nullptr;
       static_assert(sizeof(realm_events) == sizeof(ptr));
       memcpy(&realm_events, &ptr, sizeof(realm_events));
       RtEvent result(Realm::Event::merge_events_ignorefaults(*realm_events));
-      if ((implicit_profiler != NULL) && result.exists())
+      if ((implicit_profiler != nullptr) && result.exists())
       {
         static_assert(sizeof(ApEvent) == sizeof(LgEvent));
         const std::vector<ApEvent> preconditions(events.begin(), events.end());
@@ -681,11 +681,11 @@ namespace Legion {
       Realm::Barrier copy = bar.phase_barrier;
       // Record barrier arrivals before we actually do them since it
       // might be expensive to propagate the effects
-      if ((profiler != NULL) && !profiler->no_critical_paths)
+      if ((profiler != nullptr) && !profiler->no_critical_paths)
       {
         if (profiler->all_critical_arrivals)
         {
-          if (implicit_profiler != NULL)
+          if (implicit_profiler != nullptr)
             implicit_profiler->record_barrier_arrival(
                 bar.phase_barrier, precondition);
           copy.arrive(count, precondition, reduce_value, reduce_value_size);
@@ -693,7 +693,7 @@ namespace Legion {
         else
         {
 #ifdef DEBUG_LEGION
-          assert(reduce_value == NULL);
+          assert(reduce_value == nullptr);
 #endif
           // We're computing the critical path through the graph so
           // need to record when when this arrival triggers so we can
@@ -747,7 +747,7 @@ namespace Legion {
     inline ApBarrier Runtime::create_ap_barrier(size_t arrivals) 
     //--------------------------------------------------------------------------
     {
-      if ((profiler == NULL) || profiler->no_critical_paths ||
+      if ((profiler == nullptr) || profiler->no_critical_paths ||
           profiler->all_critical_arrivals)
         return ApBarrier(Realm::Barrier::create_barrier(arrivals));
       else
@@ -774,11 +774,11 @@ namespace Legion {
       Realm::Barrier copy = bar;
       // Record barrier arrivals before we actually do them since it
       // might be expensive to propagate the effects
-      if ((profiler != NULL) && !profiler->no_critical_paths)
+      if ((profiler != nullptr) && !profiler->no_critical_paths)
       {
         if (profiler->all_critical_arrivals)
         {
-          if (implicit_profiler != NULL)
+          if (implicit_profiler != nullptr)
             implicit_profiler->record_barrier_arrival(bar, precondition);
           copy.arrive(count, precondition);
         }
@@ -827,7 +827,7 @@ namespace Legion {
     inline RtBarrier Runtime::create_rt_barrier(size_t arrivals) 
     //--------------------------------------------------------------------------
     {
-      if ((profiler == NULL) || profiler->no_critical_paths ||
+      if ((profiler == nullptr) || profiler->no_critical_paths ||
           profiler->all_critical_arrivals)
         return RtBarrier(Realm::Barrier::create_barrier(arrivals));
       else
@@ -854,12 +854,12 @@ namespace Legion {
       Realm::Barrier copy = bar;
       // Record barrier arrivals before we actually do them since it
       // might be expensive to propagate the effects
-      if ((profiler != NULL) && !profiler->no_critical_paths)
+      if ((profiler != nullptr) && !profiler->no_critical_paths)
       {
 #ifdef DEBUG_LEGION
         assert(profiler->all_critical_arrivals);
 #endif
-        if (implicit_profiler != NULL)
+        if (implicit_profiler != nullptr)
           implicit_profiler->record_barrier_arrival(bar, precondition);
       }
       copy.arrive(count, precondition, value, size); 
@@ -873,11 +873,11 @@ namespace Legion {
       Realm::Barrier copy = bar;
       // Record barrier arrivals before we actually do them since it
       // might be expensive to propagate the effects
-      if ((profiler != NULL) && !profiler->no_critical_paths)
+      if ((profiler != nullptr) && !profiler->no_critical_paths)
       {
         if (profiler->all_critical_arrivals)
         {
-          if (implicit_profiler != NULL)
+          if (implicit_profiler != nullptr)
             implicit_profiler->record_barrier_arrival(bar, precondition);
           copy.arrive(count, precondition);
         }
@@ -944,7 +944,7 @@ namespace Legion {
       LegionSpy::log_reservation_acquire(r, precondition, result);
 #endif
       // Result can be the same as precondition if precondition is poisoned
-      if ((implicit_profiler != NULL) && result.exists() && 
+      if ((implicit_profiler != nullptr) && result.exists() && 
           (result != precondition))
         implicit_profiler->record_reservation_acquire(r, result, precondition);
       return result;
@@ -957,7 +957,7 @@ namespace Legion {
     {
       RtEvent result(r.acquire(exclusive ? 0 : 1, exclusive, precondition)); 
       // Result can be the same as precondition if precondition is poisoned
-      if ((implicit_profiler != NULL) && result.exists() && 
+      if ((implicit_profiler != nullptr) && result.exists() && 
           (result != precondition))
         implicit_profiler->record_reservation_acquire(r, result, precondition);
       return result;

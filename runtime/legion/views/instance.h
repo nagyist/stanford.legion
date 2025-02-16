@@ -111,7 +111,7 @@ namespace Legion {
       virtual void send_view(AddressSpaceID target) = 0; 
       virtual ReductionOpID get_redop(void) const { return 0; }
       virtual FillView* get_redop_fill_view(void) const 
-        { assert(false); return NULL; }
+        { assert(false); return nullptr; }
       virtual AddressSpaceID get_analysis_space(PhysicalManager *man) const = 0;
       virtual bool aliases(InstanceView *other) const = 0;
     public:

@@ -96,7 +96,7 @@ namespace Legion {
       struct PendingInstance {
       public:
         PendingInstance(void)
-          : instance(NULL), creator_uid(0) { }
+          : instance(nullptr), creator_uid(0) { }
         PendingInstance(FutureInstance *i, UniqueID u)
           : instance(i), creator_uid(u) { }
       public:
@@ -107,7 +107,7 @@ namespace Legion {
       };
       struct FutureInstanceTracker {
       public:
-        FutureInstanceTracker(void) : instance(NULL) { }
+        FutureInstanceTracker(void) : instance(nullptr) { }
         FutureInstanceTracker(FutureInstance *inst, ApEvent ready,
             ApUserEvent remote = ApUserEvent::NO_AP_USER_EVENT)
           : instance(inst), ready_event(ready), remote_postcondition(remote) { }
@@ -124,14 +124,14 @@ namespace Legion {
       // be provided later with set_future_result_size 
       FutureImpl(TaskContext *ctx, bool register_future,
                  DistributedID did, Provenance *provenance,
-                 Operation *op = NULL);
+                 Operation *op = nullptr);
       // This constructor is for futures made by tasks or other operations
       // which do not know the size or effects for the operation until later
       FutureImpl(TaskContext *ctx, bool register_future, 
                  DistributedID did, Operation *op, GenerationID gen,
                  const ContextCoordinate &coordinate,
                  UniqueID op_uid, int op_depth, Provenance *provenance,
-                 CollectiveMapping *mapping = NULL);
+                 CollectiveMapping *mapping = nullptr);
       FutureImpl(const FutureImpl &rhs) = delete;
       virtual ~FutureImpl(void);
     public:
@@ -144,15 +144,15 @@ namespace Legion {
       // Wait without subscribing to the payload
       void wait(bool silence_warnings, const char *warning_string);
       const void* get_buffer(Processor proc, Memory::Kind memory,
-                             size_t *extent_in_bytes = NULL, 
+                             size_t *extent_in_bytes = nullptr, 
                              bool check_extent = false,
                              bool silence_warnings = false, 
-                             const char *warning_string = NULL);
+                             const char *warning_string = nullptr);
       const void* get_buffer(Memory memory,
-                             size_t *extent_in_bytes = NULL, 
+                             size_t *extent_in_bytes = nullptr, 
                              bool check_extent = false,
                              bool silence_warnings = false, 
-                             const char *warning_string = NULL);
+                             const char *warning_string = nullptr);
       void get_memories(std::set<Memory> &memories,
                         bool silence_warnings, const char *warning_string);
       PhysicalInstance get_instance(Memory::Kind kind,
@@ -177,7 +177,7 @@ namespace Legion {
                         const ReductionOpID redop_id, const ReductionOp *redop,
                         bool exclusive, ApEvent precondition);
       bool is_empty(bool block, bool silence_warnings = true,
-                    const char *warning_string = NULL,
+                    const char *warning_string = nullptr,
                     bool internal = false);
       size_t get_untyped_size(void);
       const void *get_metadata(size_t *metasize);
@@ -187,11 +187,11 @@ namespace Legion {
       bool get_boolean_value(TaskContext *ctx);
     public:
       // This will simply save the value of the future
-      void set_result(ApEvent complete, FutureInstance *instance = NULL, 
-                      const void *metadata = NULL, size_t metasize = 0);
+      void set_result(ApEvent complete, FutureInstance *instance = nullptr, 
+                      const void *metadata = nullptr, size_t metasize = 0);
       void set_results(ApEvent complete,
                       const std::vector<FutureInstance*> &instances,
-                      const void *metadata = NULL, size_t metasize = 0);
+                      const void *metadata = nullptr, size_t metasize = 0);
       void set_result(ApEvent complete, FutureFunctor *callback_functor,
                       bool own, Processor functor_proc);
       void set_result(Operation *op, FutureImpl *previous,
@@ -216,7 +216,7 @@ namespace Legion {
                                   ContextCoordinate &coordinate) const;
       void pack_future(Serializer &rez, AddressSpaceID target);
       static Future unpack_future(
-          Deserializer &derez, Operation *op = NULL, GenerationID op_gen = 0,
+          Deserializer &derez, Operation *op = nullptr, GenerationID op_gen = 0,
           UniqueID op_uid = 0, int op_depth = 0);
     public:
       virtual void notify_local(void);
@@ -367,7 +367,7 @@ namespace Legion {
       FutureInstance(const void *data, size_t size, bool own,
                      const Realm::ExternalInstanceResource *allocation,
                      void (*freefunc)(
-                       const Realm::ExternalInstanceResource&) = NULL,
+                       const Realm::ExternalInstanceResource&) = nullptr,
                      Processor free_proc = Processor::NO_PROC,
                      LgEvent unique_event = LgEvent::NO_LG_EVENT,
                      PhysicalInstance inst = PhysicalInstance::NO_INST,

@@ -66,7 +66,7 @@ namespace Legion {
         typedef FT *pointer;
         typedef FT& reference;
 
-        iterator(void) : ptr(NULL), stride(0) { } 
+        iterator(void) : ptr(nullptr), stride(0) { } 
       private:
         iterator(const uint8_t *p, size_t s) : ptr(p), stride(s) { }
       public:
@@ -76,21 +76,21 @@ namespace Legion {
         inline iterator& operator-=(int rhs) { ptr -= stride; return *this; }
         inline const FT& operator*(void) const 
           { 
-            FT *result = NULL;
+            FT *result = nullptr;
             static_assert(sizeof(result) == sizeof(ptr));
             memcpy(&result, &ptr, sizeof(result));
             return *result;
           }
         inline const FT* operator->(void) const
           { 
-            FT *result = NULL;
+            FT *result = nullptr;
             static_assert(sizeof(result) == sizeof(ptr));
             memcpy(&result, &ptr, sizeof(result));
             return result;
           }
         inline const FT& operator[](int rhs) const
           { 
-            FT *result = NULL;
+            FT *result = nullptr;
             const uint8_t *ptr2 = ptr + rhs * stride;
             static_assert(sizeof(result) == sizeof(ptr2));
             memcpy(&result, &ptr2, sizeof(result));
@@ -133,7 +133,7 @@ namespace Legion {
         typedef FT *pointer;
         typedef FT& reference;
 
-        reverse_iterator(void) : ptr(NULL), stride(0) { } 
+        reverse_iterator(void) : ptr(nullptr), stride(0) { } 
       private:
         reverse_iterator(const uint8_t *p, size_t s) : ptr(p), stride(s) { }
       public:
@@ -145,21 +145,21 @@ namespace Legion {
           { ptr += stride; return *this; }
         inline const FT& operator*(void) const 
           { 
-            FT *result = NULL;
+            FT *result = nullptr;
             static_assert(sizeof(result) == sizeof(ptr));
             memcpy(&result, &ptr, sizeof(result));
             return *result;
           }
         inline const FT* operator->(void) const
           { 
-            FT *result = NULL;
+            FT *result = nullptr;
             static_assert(sizeof(result) == sizeof(ptr));
             memcpy(&result, &ptr, sizeof(result));
             return result;
           }
         inline const FT& operator[](int rhs) const
           { 
-            FT *result = NULL;
+            FT *result = nullptr;
             const uint8_t *ptr2 = ptr - rhs * stride;
             static_assert(sizeof(result) == sizeof(ptr2));
             memcpy(&result, &ptr2, sizeof(result));
@@ -196,9 +196,9 @@ namespace Legion {
         size_t stride;
       };
     public:
-      Span(void) : base(NULL), extent(0), stride(0) { }
+      Span(void) : base(nullptr), extent(0), stride(0) { }
       Span(const FT *b, size_t e, size_t s = sizeof(FT))
-        : base(NULL), extent(e), stride(s)
+        : base(nullptr), extent(e), stride(s)
         { 
           static_assert(sizeof(base) == sizeof(b));
           memcpy(&base, &b, sizeof(base));
@@ -214,14 +214,14 @@ namespace Legion {
     public:
       inline const FT& front(void) const 
         { 
-          FT *result = NULL;
+          FT *result = nullptr;
           static_assert(sizeof(result) == sizeof(base));
           memcpy(&result, &base, sizeof(result));
           return *result;
         }
       inline const FT& back(void) const
         {
-          FT *result = NULL;
+          FT *result = nullptr;
           const uint8_t *ptr = base + (extent-1)*stride;
           static_assert(sizeof(result) == sizeof(ptr));
           memcpy(&result, &ptr, sizeof(result));
@@ -229,7 +229,7 @@ namespace Legion {
         }
       inline const FT& operator[](int index) const
         { 
-          FT *result = NULL;
+          FT *result = nullptr;
           const uint8_t *ptr = base + index * stride;
           static_assert(sizeof(result) == sizeof(ptr));
           memcpy(&result, &ptr, sizeof(result));
@@ -237,7 +237,7 @@ namespace Legion {
         }
       inline const FT* data(void) const
         {
-          FT *result = NULL;
+          FT *result = nullptr;
           static_assert(sizeof(result) == sizeof(base));
           memcpy(&result, &base, sizeof(result));
           return result;
@@ -269,7 +269,7 @@ namespace Legion {
       UnsafeSpanIterator(const PhysicalRegion &region, FieldID fid,
                          bool privileges_only = true,
                          bool silence_warnings = false,
-                         const char *warning_string = NULL,
+                         const char *warning_string = nullptr,
                          size_t offset = 0)
         : piece_iterator(PieceIteratorT<DIM,T>(region, fid, privileges_only)),
           partial_piece(false)
@@ -335,7 +335,7 @@ namespace Legion {
             // If we ever hit this it is a runtime error because the 
             // runtime should already be guaranteeing these rectangles
             // are inside of pieces for the instance
-            assert(ptr != NULL);
+            assert(ptr != nullptr);
 #endif         
             // Find the minimum stride and see if this piece is dense
             size_t min_stride = SIZE_MAX;
@@ -463,7 +463,7 @@ namespace Legion {
     inline bool PieceIterator::valid(void) const
     //--------------------------------------------------------------------------
     {
-      return (impl != NULL) && (index >= 0);
+      return (impl != nullptr) && (index >= 0);
     }
 
     //--------------------------------------------------------------------------
@@ -717,7 +717,7 @@ namespace Legion {
         // If we ever hit this it is a runtime error because the 
         // runtime should already be guaranteeing these rectangles
         // are inside of pieces for the instance
-        assert(ptr != NULL);
+        assert(ptr != nullptr);
 #endif         
         // Find the minimum stride and see if this piece is dense
         size_t min_stride = SIZE_MAX;

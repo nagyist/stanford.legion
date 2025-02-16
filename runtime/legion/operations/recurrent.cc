@@ -58,7 +58,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       TraceOp::activate();
-      previous = NULL;
+      previous = nullptr;
       has_blocking_call = false;
       has_intermediate_fence = false;
       remove_trace_reference = false;
@@ -232,7 +232,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ReplTraceBegin<ReplTraceComplete<ReplRecurrentOp> >::activate();
-      previous = NULL;
+      previous = nullptr;
       has_blocking_call = false;
       has_intermediate_fence = false;
       remove_trace_reference = false;

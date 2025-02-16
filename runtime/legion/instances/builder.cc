@@ -37,11 +37,11 @@ namespace Legion {
       : regions(regs), constraints(cons), memory_manager(memory),
         creator_id(cid), instance(PhysicalInstance::NO_INST), 
         field_space_node(node), instance_domain(expr), tree_id(tid), 
-        redop_id(0), reduction_op(NULL), realm_layout(NULL), piece_list(NULL),
+        redop_id(0), reduction_op(nullptr), realm_layout(nullptr), piece_list(nullptr),
         piece_list_size(0), valid(true), allocated(false)
     //--------------------------------------------------------------------------
     {
-      if (pl != NULL)
+      if (pl != nullptr)
       {
         piece_list_size = pl_size;
         piece_list = malloc(piece_list_size);
@@ -54,9 +54,9 @@ namespace Legion {
     InstanceBuilder::~InstanceBuilder(void)
     //--------------------------------------------------------------------------
     {
-      if (realm_layout != NULL)
+      if (realm_layout != nullptr)
         delete realm_layout;
-      if (piece_list != NULL)
+      if (piece_list != nullptr)
         free(piece_list);
     }
 
@@ -76,15 +76,15 @@ namespace Legion {
                         "Ignoring request to create instance in "
                         "memory " IDFMT " with no fields.",
                         memory_manager->memory.id);
-        if (footprint != NULL)
+        if (footprint != nullptr)
           *footprint = 0;
-        if (unsat_kind != NULL)
+        if (unsat_kind != nullptr)
           *unsat_kind = LEGION_FIELD_CONSTRAINT;
-        if (unsat_index != NULL)
+        if (unsat_index != nullptr)
           *unsat_index = 0;
-        return NULL;
+        return nullptr;
       }
-      if (realm_layout == NULL)
+      if (realm_layout == nullptr)
       {
         const std::vector<FieldID> &field_set = 
           constraints.field_constraint.get_field_set();
@@ -106,19 +106,19 @@ namespace Legion {
           instance_domain->create_layout(constraints, field_set,
              field_sizes, compact, &piece_list, &piece_list_size, &num_pieces);
 #ifdef DEBUG_LEGION
-        assert(realm_layout != NULL);
+        assert(realm_layout != nullptr);
 #endif
         // If we were doing a compact layout then Check that we met 
         // the constraints for efficiency and number of pieces
         if (compact && (spec.max_pieces < num_pieces))
         {
-          if (unsat_kind != NULL)
+          if (unsat_kind != nullptr)
             *unsat_kind = LEGION_SPECIALIZED_CONSTRAINT;
-          if (unsat_index != NULL)
+          if (unsat_index != nullptr)
             *unsat_index = 0;
-          if (footprint != NULL)
+          if (footprint != nullptr)
             *footprint = realm_layout->bytes_used;
-          return NULL;
+          return nullptr;
         }
       }
       // Clone the realm layout each time since (realm will take ownership 
@@ -126,13 +126,13 @@ namespace Legion {
       Realm::InstanceLayoutGeneric *inst_layout = 
         hole.exists() ? realm_layout : realm_layout->clone();
 #ifdef DEBUG_LEGION
-      assert(inst_layout != NULL);
+      assert(inst_layout != nullptr);
 #endif
       // Have to grab this now since realm is going to take ownership of
       // the instance layout generic object once we do the creation call
       const size_t instance_footprint = inst_layout->bytes_used;
       // Save the footprint size if we need to
-      if (footprint != NULL)
+      if (footprint != nullptr)
         *footprint = instance_footprint;
       Realm::ProfilingRequestSet requests;
       // Add a profiling request to see if the instance is actually allocated
@@ -151,14 +151,14 @@ namespace Legion {
       assert(!instance.exists()); // shouldn't exist before this
 #endif
       LgEvent unique_event;
-      if (runtime->legion_spy_enabled || (runtime->profiler != NULL))
+      if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
       {
         Realm::UserEvent unique = Realm::UserEvent::create_user_event();
         unique.trigger();
         unique_event = LgEvent(unique);
       }
       ApEvent ready;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
       {
         runtime->profiler->add_inst_request(requests, creator_id, unique_event);
         current_unique_event = unique_event;
@@ -189,18 +189,18 @@ namespace Legion {
           instance.destroy();
           instance = PhysicalInstance::NO_INST;
         }
-        if (unsat_kind != NULL)
+        if (unsat_kind != nullptr)
           *unsat_kind = LEGION_MEMORY_CONSTRAINT;
-        if (unsat_index != NULL)
+        if (unsat_index != nullptr)
           *unsat_index = 0;
-        return NULL;
+        return nullptr;
       }
 #ifdef LEGION_DEBUG
       assert(!constraints.pointer_constraint.is_valid);
 #endif
       // If we successfully made the instance then Realm 
       // took over ownership of the layout
-      PhysicalManager *result = NULL;
+      PhysicalManager *result = nullptr;
       // If we successfully made it then we can 
       // switch over the polarity of our constraints, this
       // shouldn't be necessary once Realm gets its act together
@@ -215,7 +215,7 @@ namespace Legion {
       LayoutDescription *layout = field_space_node->find_layout_description(
                                         instance_mask, num_dims, constraints);
       // If we couldn't find one then we make one
-      if (layout == NULL)
+      if (layout == nullptr)
       {
         // First make a new layout constraint
         LayoutConstraints *layout_constraints = 
@@ -267,20 +267,20 @@ namespace Legion {
           assert(false); // illegal specialized case
       }
       // manager takes ownership of the piece list
-      piece_list = NULL;
+      piece_list = nullptr;
       // Remove the reference we got back from finding or creating the layout
       if (layout->remove_reference())
         delete layout;
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
 #ifdef LEGION_MALLOC_INSTANCES
       memory_manager->record_legion_instance(result, instance);
 #else
-      if (ready.exists() && (implicit_profiler != NULL))
+      if (ready.exists() && (implicit_profiler != nullptr))
         implicit_profiler->record_instance_ready(ready, unique_event);
 #endif
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
       {
         // Log the logical regions and fields that make up this instance
         for (std::vector<LogicalRegion>::const_iterator it =
@@ -345,8 +345,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(!regions.empty());
-      assert(field_space_node == NULL);
-      assert(instance_domain == NULL);
+      assert(field_space_node == nullptr);
+      assert(instance_domain == nullptr);
       assert(tree_id == 0);
 #endif
       std::set<IndexSpaceExpression*> region_exprs;
@@ -355,7 +355,7 @@ namespace Legion {
       {
         if (!it->exists())
           continue;
-        if (field_space_node == NULL)
+        if (field_space_node == nullptr)
           field_space_node = runtime->get_node(it->get_field_space());
         if (tree_id == 0)
           tree_id = it->get_tree_id();

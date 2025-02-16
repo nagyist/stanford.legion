@@ -33,8 +33,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     PointwiseDependence::PointwiseDependence(void)
       : context_index(0), unique_id(0), kind(LAST_OP_KIND),
-        region_index(0), domain(NULL), projection(NULL), sharding(NULL),
-        sharding_id(0), sharding_domain(NULL)
+        region_index(0), domain(nullptr), projection(nullptr), sharding(nullptr),
+        sharding_id(0), sharding_domain(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -45,15 +45,15 @@ namespace Legion {
         kind(user.op->get_operation_kind()), region_index(user.idx),
         domain(user.shard_proj->domain),
         projection(user.shard_proj->projection),
-        sharding((user.shard_proj->sharding == NULL) ? NULL :
+        sharding((user.shard_proj->sharding == nullptr) ? nullptr :
             user.shard_proj->sharding->functor),
-        sharding_id((user.shard_proj->sharding == NULL) ? 0 : 
+        sharding_id((user.shard_proj->sharding == nullptr) ? 0 : 
             user.shard_proj->sharding->sharding_id),
         sharding_domain(user.shard_proj->sharding_domain)
     //--------------------------------------------------------------------------
     {
       domain->add_base_expression_reference(POINTWISE_DEPENDENCE_REF);
-      if (sharding_domain != NULL)
+      if (sharding_domain != nullptr)
         sharding_domain->add_base_expression_reference(
             POINTWISE_DEPENDENCE_REF);
     }
@@ -66,9 +66,9 @@ namespace Legion {
         sharding_id(rhs.sharding_id), sharding_domain(rhs.sharding_domain)
     //--------------------------------------------------------------------------
     {
-      if (domain != NULL)
+      if (domain != nullptr)
         domain->add_base_expression_reference(POINTWISE_DEPENDENCE_REF);
-      if (sharding_domain != NULL)
+      if (sharding_domain != nullptr)
         sharding_domain->add_base_expression_reference(
             POINTWISE_DEPENDENCE_REF);
     }
@@ -82,18 +82,18 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Move references to ourselves
-      rhs.domain = NULL;
-      rhs.sharding_domain = NULL;
+      rhs.domain = nullptr;
+      rhs.sharding_domain = nullptr;
     }
 
     //--------------------------------------------------------------------------
     PointwiseDependence::~PointwiseDependence(void)
     //--------------------------------------------------------------------------
     {
-      if ((domain != NULL) && 
+      if ((domain != nullptr) && 
           domain->remove_base_expression_reference(POINTWISE_DEPENDENCE_REF))
         delete domain;
-      if ((sharding_domain != NULL) &&
+      if ((sharding_domain != nullptr) &&
           sharding_domain->remove_base_expression_reference(
             POINTWISE_DEPENDENCE_REF))
         delete sharding_domain;
@@ -104,10 +104,10 @@ namespace Legion {
                                                  const PointwiseDependence &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((domain != NULL) && 
+      if ((domain != nullptr) && 
           domain->remove_base_expression_reference(POINTWISE_DEPENDENCE_REF))
         delete domain;
-      if ((sharding_domain != NULL) &&
+      if ((sharding_domain != nullptr) &&
           sharding_domain->remove_base_expression_reference(
             POINTWISE_DEPENDENCE_REF))
         delete sharding_domain;
@@ -120,9 +120,9 @@ namespace Legion {
       sharding = rhs.sharding;
       sharding_id = rhs.sharding_id;
       sharding_domain = rhs.sharding_domain;
-      if (domain != NULL)
+      if (domain != nullptr)
         domain->add_base_expression_reference(POINTWISE_DEPENDENCE_REF);
-      if (sharding_domain != NULL)
+      if (sharding_domain != nullptr)
         sharding_domain->add_base_expression_reference(
             POINTWISE_DEPENDENCE_REF);
       return *this;
@@ -133,10 +133,10 @@ namespace Legion {
                                                       PointwiseDependence &&rhs)
     //--------------------------------------------------------------------------
     {
-      if ((domain != NULL) && 
+      if ((domain != nullptr) && 
           domain->remove_base_expression_reference(POINTWISE_DEPENDENCE_REF))
         delete domain;
-      if ((sharding_domain != NULL) &&
+      if ((sharding_domain != nullptr) &&
           sharding_domain->remove_base_expression_reference(
             POINTWISE_DEPENDENCE_REF))
         delete sharding_domain;
@@ -150,8 +150,8 @@ namespace Legion {
       sharding_id = rhs.sharding_id;
       sharding_domain = rhs.sharding_domain;
       // Just move over the references
-      rhs.domain = NULL;
-      rhs.sharding_domain = NULL;
+      rhs.domain = nullptr;
+      rhs.sharding_domain = nullptr;
       return *this;
     }
 
@@ -160,7 +160,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(user.shard_proj != NULL);
+      assert(user.shard_proj != nullptr);
 #endif
       if (context_index != user.ctx_index)
         return false;
@@ -190,7 +190,7 @@ namespace Legion {
       rez.serialize(domain->handle);
       rez.serialize(projection->projection_id);
       rez.serialize(sharding_id);
-      if (sharding_domain != NULL)
+      if (sharding_domain != nullptr)
         rez.serialize(sharding_domain->handle);
       else
         rez.serialize(IndexSpace::NO_SPACE);
@@ -200,10 +200,10 @@ namespace Legion {
     void PointwiseDependence::deserialize(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      if ((domain != NULL) && 
+      if ((domain != nullptr) && 
           domain->remove_base_expression_reference(POINTWISE_DEPENDENCE_REF))
         delete domain;
-      if ((sharding_domain != NULL) &&
+      if ((sharding_domain != nullptr) &&
           sharding_domain->remove_base_expression_reference(
             POINTWISE_DEPENDENCE_REF))
         delete sharding_domain;
@@ -228,7 +228,7 @@ namespace Legion {
             POINTWISE_DEPENDENCE_REF);
       }
       else
-        sharding_domain = NULL;
+        sharding_domain = nullptr;
     }
 
     /////////////////////////////////////////////////////////////
@@ -267,7 +267,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(previous.shard_proj != NULL);
+      assert(previous.shard_proj != nullptr);
 #endif
       std::vector<PointwiseDependence> &dependences = 
         pointwise_dependences[idx];
@@ -279,7 +279,7 @@ namespace Legion {
       if (this->tracing)
       {
 #ifdef DEBUG_LEGION
-        assert(this->trace != NULL);
+        assert(this->trace != nullptr);
 #endif
         this->trace->record_pointwise_dependence(previous.op, previous.gen,
             this, this->gen, idx, dependences.back());

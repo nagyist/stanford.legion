@@ -380,7 +380,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
@@ -621,7 +621,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PredicatedOp::activate();
-      mapper = NULL;
+      mapper = nullptr;
       outstanding_profiling_requests.store(0);
       outstanding_profiling_reported.store(0);
       profiling_reported = RtUserEvent::NO_RT_USER_EVENT;
@@ -663,10 +663,10 @@ namespace Legion {
         release_acquired_instances(acquired_instances);
       map_applied_conditions.clear();
       profiling_requests.clear();
-      if (mapper_data != NULL)
+      if (mapper_data != nullptr)
       {
         free(mapper_data);
-        mapper_data = NULL;
+        mapper_data = nullptr;
         mapper_data_size = 0;
       }
       // Return this operation to the runtime
@@ -925,7 +925,7 @@ namespace Legion {
       output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY;
       output.copy_fill_priority = 0;
       output.compute_preimages = false;
-      if (mapper == NULL)
+      if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
         mapper = runtime->find_mapper(exec_proc, map_id);
@@ -1130,7 +1130,7 @@ namespace Legion {
             physical_convert_sources(
                 src_requirements[idx], output.src_source_instances[idx], 
                 across_sources,
-                runtime->safe_mapper ? &acquired_instances : NULL);
+                runtime->safe_mapper ? &acquired_instances : nullptr);
           // This is a bit weird but we don't currently have any mechanism
           // for passing the reservations that we find in these cases through
           // to the CopyAcrossAnalysis and through the CopyFillAggregator so
@@ -1311,13 +1311,13 @@ namespace Legion {
           deferred_src->swap(src_targets);
           InstanceSet *deferred_dst = new InstanceSet();
           deferred_dst->swap(dst_targets);
-          InstanceSet *deferred_gather = NULL;
+          InstanceSet *deferred_gather = nullptr;
           if (!gather_targets.empty())
           {
             deferred_gather = new InstanceSet();
             deferred_gather->swap(gather_targets);
           }
-          InstanceSet *deferred_scatter = NULL;
+          InstanceSet *deferred_scatter = nullptr;
           if (!scatter_targets.empty())
           {
             deferred_scatter = new InstanceSet();
@@ -1344,8 +1344,8 @@ namespace Legion {
                               local_postcondition, collective_precondition,
                               collective_postcondition,
                               true_guard, src_targets, dst_targets, 
-                              gather_targets.empty() ? NULL : &gather_targets,
-                              scatter_targets.empty() ? NULL : &scatter_targets,
+                              gather_targets.empty() ? nullptr : &gather_targets,
+                              scatter_targets.empty() ? nullptr : &scatter_targets,
                               physical_trace_info, map_applied_conditions,
                               output.compute_preimages,
                               output.compute_preimages &&
@@ -1387,9 +1387,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ApEvent copy_post;
-      if (scatter_targets == NULL)
+      if (scatter_targets == nullptr)
       {
-        if (gather_targets == NULL)
+        if (gather_targets == nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(!local_precondition.exists());
@@ -1425,7 +1425,7 @@ namespace Legion {
       }
       else
       {
-        if (gather_targets == NULL)
+        if (gather_targets == nullptr)
         {
           // Scatter copy
 #ifdef DEBUG_LEGION
@@ -1477,7 +1477,7 @@ namespace Legion {
       if (is_recording())
       {
 #ifdef DEBUG_LEGION
-        assert((tpl != NULL) && tpl->is_recording());
+        assert((tpl != nullptr) && tpl->is_recording());
 #endif
         // This can happen in cases when the copy index space is empty
         if (!copy_post.exists())
@@ -1512,9 +1512,9 @@ namespace Legion {
         Runtime::trigger_event(dargs->applied);
       delete dargs->src_targets;
       delete dargs->dst_targets;
-      if (dargs->gather_targets != NULL)
+      if (dargs->gather_targets != nullptr)
         delete dargs->gather_targets;
-      if (dargs->scatter_targets != NULL)
+      if (dargs->scatter_targets != nullptr)
         delete dargs->scatter_targets;
       dargs->remove_recorder_reference();
     }
@@ -1720,7 +1720,7 @@ namespace Legion {
           }
         }
       }
-      if (mapper == NULL)
+      if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
         mapper = runtime->find_mapper(exec_proc, map_id);
@@ -1790,7 +1790,7 @@ namespace Legion {
     const Task* CopyOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -1800,7 +1800,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -1926,7 +1926,7 @@ namespace Legion {
       std::vector<PhysicalManager*> unacquired;
       if (!input.empty())
         physical_convert_sources(req, input, sources,
-            runtime->safe_mapper ? &acquired_instances : NULL);
+            runtime->safe_mapper ? &acquired_instances : nullptr);
       int composite_idx = physical_convert_mapping(
                               req, output, targets, bad_tree, missing_fields,
                               &acquired_instances, unacquired, 
@@ -2080,7 +2080,7 @@ namespace Legion {
       }
       // Need thetimeline for the operation to know how to profile this
       // profiling response
-      if (!has_finish && (runtime->profiler != NULL))
+      if (!has_finish && (runtime->profiler != nullptr))
         request.add_measurement(Realm::PMID_OP_FINISH_EVENT);
       handle_profiling_update(count);
       return copy_fill_priority;
@@ -2093,7 +2093,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(mapper != NULL);
+      assert(mapper != nullptr);
 #endif
       const OpProfilingResponse *op_info = 
         static_cast<const OpProfilingResponse*>(response.user_data());
@@ -2845,7 +2845,7 @@ namespace Legion {
       PointwiseAnalyzable<CopyOp>::activate();
       index_domain = Domain::NO_DOMAIN;
       sharding_space = IndexSpace::NO_SPACE;
-      launch_space = NULL;
+      launch_space = nullptr;
       points_completed.store(0);
       points_committed = 0;
       commit_request = false;
@@ -3196,7 +3196,7 @@ namespace Legion {
           finder = pointwise_dependences.find(idx);
         function->project_points(this, idx, src_requirements[idx],
                                  index_domain, projection_points,
-            (finder == pointwise_dependences.end()) ? NULL : &finder->second,
+            (finder == pointwise_dependences.end()) ? nullptr : &finder->second,
             parent_ctx->get_total_shards(), is_replaying());
       }
       unsigned offset = src_requirements.size();
@@ -3210,7 +3210,7 @@ namespace Legion {
           finder = pointwise_dependences.find(offset + idx);
         function->project_points(this, offset + idx, dst_requirements[idx],
             index_domain, projection_points,
-            (finder == pointwise_dependences.end()) ? NULL : &finder->second,
+            (finder == pointwise_dependences.end()) ? nullptr : &finder->second,
             parent_ctx->get_total_shards(), is_replaying());
       }
       offset += dst_requirements.size();
@@ -3229,7 +3229,7 @@ namespace Legion {
           function->project_points(this, offset + idx,
                                    src_indirect_requirements[idx],
               index_domain, projection_points,
-              (finder == pointwise_dependences.end()) ? NULL : &finder->second,
+              (finder == pointwise_dependences.end()) ? nullptr : &finder->second,
               parent_ctx->get_total_shards(), is_replaying());
         }
         offset += src_indirect_requirements.size();
@@ -3249,7 +3249,7 @@ namespace Legion {
           function->project_points(this, offset + idx,
                                    dst_indirect_requirements[idx],
               index_domain, projection_points,
-              (finder == pointwise_dependences.end()) ? NULL : &finder->second,
+              (finder == pointwise_dependences.end()) ? nullptr : &finder->second,
               parent_ctx->get_total_shards(), is_replaying());
         }
       }
@@ -3269,7 +3269,7 @@ namespace Legion {
             pending_pointwise_dependences.begin(); pit !=
             pending_pointwise_dependences.end(); pit++)
       {
-        PointCopyOp *point = NULL; 
+        PointCopyOp *point = nullptr; 
         for (std::vector<PointCopyOp*>::const_iterator it =
               points.begin(); it != points.end(); it++)
         {
@@ -3279,7 +3279,7 @@ namespace Legion {
           break;
         }
 #ifdef DEBUG_LEGION
-        assert(point != NULL);
+        assert(point != nullptr);
 #endif
         Runtime::trigger_event(pit->second, point->get_mapped_event());
       }
@@ -3683,7 +3683,7 @@ namespace Legion {
       // From Memoizable
       trace_local_id            = owner->get_trace_local_id().context_index;
       tpl                       = owner->get_template();
-      if (tpl != NULL)
+      if (tpl != nullptr)
         memo_state              = owner->get_memoizable_state();
       // From Copy
       src_requirements          = owner->src_requirements;
@@ -3700,7 +3700,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, owner->mapper_data, mapper_data_size);
@@ -3728,7 +3728,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       CopyOp::activate();
-      owner = NULL;
+      owner = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -4117,11 +4117,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       CopyOp::activate();
-      launch_space = NULL;
+      launch_space = nullptr;
       sharding_functor = UINT_MAX;
-      sharding_function = NULL;
+      sharding_function = nullptr;
 #ifdef DEBUG_LEGION
-      sharding_collective = NULL;
+      sharding_collective = nullptr;
 #endif
     }
 
@@ -4130,7 +4130,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      if (sharding_collective != NULL)
+      if (sharding_collective != nullptr)
         delete sharding_collective;
 #endif
       CopyOp::deactivate(false/*free*/);
@@ -4144,12 +4144,12 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // Do the mapper call to get the sharding function to use
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(
             parent_ctx->get_executing_processor(), map_id); 
       Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
@@ -4165,7 +4165,7 @@ namespace Legion {
       sharding_function = 
         repl_ctx->shard_manager->find_sharding_function(sharding_functor);
 #ifdef DEBUG_LEGION
-      assert(sharding_collective != NULL);
+      assert(sharding_collective != nullptr);
       sharding_collective->contribute(this->sharding_functor);
       if (sharding_collective->is_target() &&
           !sharding_collective->validate(this->sharding_functor))
@@ -4206,7 +4206,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -4224,7 +4224,7 @@ namespace Legion {
       if (is_recording())
       {
 #ifdef DEBUG_LEGION
-        assert((tpl != NULL) && tpl->is_recording());
+        assert((tpl != nullptr) && tpl->is_recording());
 #endif
         tpl->record_owner_shard(trace_local_id, owner_shard);
       }
@@ -4252,9 +4252,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(tpl != NULL);
+      assert(tpl != nullptr);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -4298,12 +4298,12 @@ namespace Legion {
     {
       IndexCopyOp::activate();
       sharding_functor = UINT_MAX;
-      sharding_function = NULL;
-      shard_points = NULL;
+      sharding_function = nullptr;
+      shard_points = nullptr;
       interfering_check_id = 0;
-      interfering_exchange = NULL;
+      interfering_exchange = nullptr;
 #ifdef DEBUG_LEGION
-      sharding_collective = NULL;
+      sharding_collective = nullptr;
 #endif
     }
 
@@ -4312,7 +4312,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      if (sharding_collective != NULL)
+      if (sharding_collective != nullptr)
         delete sharding_collective;
 #endif
       IndexCopyOp::deactivate(false/*free*/);
@@ -4334,7 +4334,7 @@ namespace Legion {
       }
       unique_intra_space_deps.clear();
       remove_launch_space_reference(shard_points);
-      if (interfering_exchange != NULL)
+      if (interfering_exchange != nullptr)
         delete interfering_exchange;
       if (freeop)
         runtime->free_operation(this);
@@ -4346,12 +4346,12 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // Do the mapper call to get the sharding function to use
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(
             parent_ctx->get_executing_processor(), map_id); 
       Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
@@ -4368,7 +4368,7 @@ namespace Legion {
       sharding_function = 
         repl_ctx->shard_manager->find_sharding_function(sharding_functor); 
 #ifdef DEBUG_LEGION
-      assert(sharding_collective != NULL);
+      assert(sharding_collective != nullptr);
       sharding_collective->contribute(this->sharding_functor);
       if (sharding_collective->is_target() &&
           !sharding_collective->validate(this->sharding_functor))
@@ -4406,13 +4406,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // See if this is the first time through or not
-      if (interfering_exchange == NULL)
+      if (interfering_exchange == nullptr)
       {
         // First time through, make the exchange and kick it off
 #ifdef DEBUG_LEGION
         assert(interfering_check_id > 0);
         ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -4433,7 +4433,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
       assert(pre_indirection_barriers.size() == 
               post_indirection_barriers.size());
 #else
@@ -4453,7 +4453,7 @@ namespace Legion {
       if (is_recording())
       {
 #ifdef DEBUG_LEGION
-        assert((tpl != NULL) && tpl->is_recording());
+        assert((tpl != nullptr) && tpl->is_recording());
 #endif
         tpl->record_local_space(trace_local_id, local_space);
       }
@@ -4536,7 +4536,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(tpl != NULL);
+      assert(tpl != nullptr);
       assert(pre_indirection_barriers.size() == 
               post_indirection_barriers.size());
 #endif
@@ -4547,7 +4547,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ShardedPhysicalTemplate *shard_template =
           dynamic_cast<ShardedPhysicalTemplate*>(tpl);
-        assert(shard_template != NULL);
+        assert(shard_template != nullptr);
 #else
         ShardedPhysicalTemplate *shard_template =
           static_cast<ShardedPhysicalTemplate*>(tpl);
@@ -4818,9 +4818,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -4843,7 +4843,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
 #endif
       if (sharding_space.exists())
         return sharding_function->find_shard_participants(launch_space,
@@ -4902,7 +4902,7 @@ namespace Legion {
     const Task* RemoteCopyOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -4913,7 +4913,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -4988,7 +4988,7 @@ namespace Legion {
           }
         }
       }
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(map_id);
       mapper->invoke_select_copy_sources(this, input, output);
       compute_ranking(mapper, output.chosen_ranking, sources, ranking, points);

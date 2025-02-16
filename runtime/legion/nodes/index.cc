@@ -33,7 +33,7 @@ namespace Legion {
         provenance(prov), initialized(init)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -41,7 +41,7 @@ namespace Legion {
     IndexTreeNode::~IndexTreeNode(void)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     } 
 
@@ -229,7 +229,7 @@ namespace Legion {
                                    unsigned dep, Provenance *prov,
                                    CollectiveMapping *map, bool tree_valid)
       : IndexTreeNode(
-          (dep == UINT_MAX) ? ((par == NULL) ? 0 : par->depth + 1) : dep, c, 
+          (dep == UINT_MAX) ? ((par == nullptr) ? 0 : par->depth + 1) : dep, c, 
           h.did, init, map, prov, tree_valid),
         IndexSpaceExpression(h.type_tag, exp_id > 0 ? exp_id : 
             runtime->get_unique_index_space_expr_id(), node_lock),
@@ -238,10 +238,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      if (parent != NULL)
+      if (parent != nullptr)
         assert(handle.get_type_tag() == parent->handle.get_type_tag());
 #endif
-      if (parent != NULL)
+      if (parent != nullptr)
         parent->add_nested_resource_ref(did);
 #ifdef LEGION_GC
       log_garbage.info("GC Index Space %lld %d %lld",
@@ -255,7 +255,7 @@ namespace Legion {
     IndexSpaceNode::~IndexSpaceNode(void)
     //--------------------------------------------------------------------------
     {
-      if ((parent != NULL) && parent->remove_nested_resource_ref(did))
+      if ((parent != nullptr) && parent->remove_nested_resource_ref(did))
         delete parent;
       // Remove ourselves from the context
       if (registered_with_runtime)
@@ -278,7 +278,7 @@ namespace Legion {
       // Invalidate any derived operations
       invalidate_derived_operations(did);
       IndexSpaceExpression *canon = canonical.load();
-      if (canon != NULL)
+      if (canon != nullptr)
       {
         if (canon == this)
           runtime->remove_canonical_expression(this);
@@ -306,7 +306,7 @@ namespace Legion {
     IndexPartNode* IndexSpaceNode::as_index_part_node(void)
     //--------------------------------------------------------------------------
     {
-      return NULL;
+      return nullptr;
     }
 #endif
 
@@ -378,7 +378,7 @@ namespace Legion {
       assert(get_owner_space() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = NULL;
+      void *result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
@@ -405,7 +405,7 @@ namespace Legion {
           semantic_info[tag] = SemanticInfo(ready_event);
         }
       }
-      if (result == NULL)
+      if (result == nullptr)
       {
         if (can_fail || !wait_until)
           Runtime::trigger_event(ready);
@@ -469,8 +469,8 @@ namespace Legion {
     bool IndexSpaceNode::has_color(const LegionColor c)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *child = get_child(c, NULL/*defer*/, true/*can fail*/);
-      if (child == NULL)
+      IndexPartNode *child = get_child(c, nullptr/*defer*/, true/*can fail*/);
+      if (child == nullptr)
         return false;
       if (child->remove_base_resource_ref(REGION_TREE_REF))
         delete child;
@@ -509,7 +509,7 @@ namespace Legion {
           if ((next_uncollected_color <= suggestion) &&
               (color_map.find(suggestion) == color_map.end()))
           {
-            color_map[suggestion] = NULL;
+            color_map[suggestion] = nullptr;
             return suggestion;
           }
           else
@@ -518,7 +518,7 @@ namespace Legion {
         if (color_map.empty())
         {
           // save a space for later
-          color_map[next_uncollected_color] = NULL;
+          color_map[next_uncollected_color] = nullptr;
           return next_uncollected_color;
         }
         std::map<LegionColor,IndexPartNode*>::const_iterator next = 
@@ -526,7 +526,7 @@ namespace Legion {
         if (next->first > next_uncollected_color)
         {
           // save a space for later
-          color_map[next_uncollected_color] = NULL;
+          color_map[next_uncollected_color] = nullptr;
           return next_uncollected_color;
         }
         std::map<LegionColor,IndexPartNode*>::const_iterator prev = next++;
@@ -535,12 +535,12 @@ namespace Legion {
           if (next->first != (prev->first + 1))
           {
             // save a space for later
-            color_map[prev->first+1] = NULL;
+            color_map[prev->first+1] = nullptr;
             return prev->first+1;
           }
           prev = next++;
         }
-        color_map[prev->first+1] = NULL;
+        color_map[prev->first+1] = nullptr;
         return prev->first+1;
       }
       else
@@ -574,7 +574,7 @@ namespace Legion {
           color_map.find(color);
 #ifdef DEBUG_LEGION
         assert(finder != color_map.end());
-        assert(finder->second == NULL);
+        assert(finder->second == nullptr);
 #endif
         color_map.erase(finder);
       }
@@ -602,7 +602,7 @@ namespace Legion {
         AutoLock n_lock(node_lock,1,false/*exclusive*/);
         std::map<LegionColor,IndexPartNode*>::const_iterator finder = 
           color_map.find(c);
-        if ((finder != color_map.end()) && (finder->second != NULL))
+        if ((finder != color_map.end()) && (finder->second != nullptr))
         {
           if (can_fail)
             finder->second->add_base_resource_ref(REGION_TREE_REF);
@@ -620,12 +620,12 @@ namespace Legion {
         if (remote_handle.exists())
         {
           IndexPartNode *result = runtime->get_node(remote_handle, defer);
-          if (can_fail && (result != NULL))
+          if (can_fail && (result != nullptr))
             result->add_base_resource_ref(REGION_TREE_REF);
           return result;
         }
         if (can_fail)
-          return NULL;
+          return nullptr;
         REPORT_LEGION_ERROR(ERROR_INVALID_PARTITION_COLOR,
           "Unable to find entry for color %lld in "
                         "index space %llu.", c, handle.get_id())
@@ -638,20 +638,20 @@ namespace Legion {
         RezCheck z(rez);
         rez.serialize(handle);
         rez.serialize(c);
-        if (defer == NULL)
+        if (defer == nullptr)
           rez.serialize(&child_id);
         else
-          rez.serialize<DistributedID*>(NULL);
+          rez.serialize<DistributedID*>(nullptr);
         rez.serialize(ready_event);
       }
       runtime->send_index_space_child_request(owner_space, rez);
-      if (defer == NULL)
+      if (defer == nullptr)
       {
         ready_event.wait();
         if (child_id == 0)
         {
           if (can_fail)
-            return NULL;
+            return nullptr;
           REPORT_LEGION_ERROR(ERROR_INVALID_PARTITION_COLOR,
             "Unable to find entry for color %lld in "
                           "index space %llu.", c, handle.get_id())
@@ -668,7 +668,7 @@ namespace Legion {
       else
       {
         *defer = ready_event;
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -678,9 +678,9 @@ namespace Legion {
     {
       AutoLock n_lock(node_lock);
 #ifdef DEBUG_LEGION
-      // Can have a NULL pointer
+      // Can have a nullptr pointer
       assert((color_map.find(child->color) == color_map.end()) ||
-             (color_map[child->color] == NULL));
+             (color_map[child->color] == nullptr));
 #endif
       if (is_owner() && 
           (remote_colors.find(INVALID_COLOR) != remote_colors.end()) &&
@@ -706,7 +706,7 @@ namespace Legion {
         color_map.find(c);
 #ifdef DEBUG_LEGION
       assert(finder != color_map.end());
-      assert(finder->second != NULL);
+      assert(finder->second != nullptr);
       assert(finder->second != ((IndexPartNode*)REMOVED_CHILD));
 #endif
       finder->second = (IndexPartNode*)REMOVED_CHILD;
@@ -834,8 +834,8 @@ namespace Legion {
         for (std::map<LegionColor,IndexPartNode*>::const_iterator it = 
               color_map.begin(); it != color_map.end(); it++)
         {
-          // Can be NULL in some cases of parallel partitioning
-          if ((it->second != NULL) && (!it->second->initialized.exists() ||
+          // Can be nullptr in some cases of parallel partitioning
+          if ((it->second != nullptr) && (!it->second->initialized.exists() ||
                 it->second->initialized.has_triggered()))
             colors.push_back(it->first);
         }
@@ -863,13 +863,13 @@ namespace Legion {
       if (has_remote_instance(target))
         return;
       // Send our parent first if necessary
-      if (recurse && (parent != NULL))
+      if (recurse && (parent != nullptr))
         parent->send_node(target, true/*recurse*/);
       // Only send it if we're the owner without a collective mapping
       // or the target is not in the collective mapping and we're the
       // closest node in the collective mapping to the target
-      if ((is_owner() && (collective_mapping == NULL)) ||
-          ((collective_mapping != NULL) && 
+      if ((is_owner() && (collective_mapping == nullptr)) ||
+          ((collective_mapping != nullptr) && 
            !collective_mapping->contains(target) && 
            collective_mapping->contains(local_space) &&
            (local_space == collective_mapping->find_nearest(target))))
@@ -896,7 +896,7 @@ namespace Legion {
     {
       RezCheck z(rez);
       rez.serialize(handle);
-      if (recurse && (parent != NULL))
+      if (recurse && (parent != nullptr))
         rez.serialize(parent->handle);
       else
         rez.serialize(IndexPartition::NO_PART);
@@ -904,11 +904,11 @@ namespace Legion {
       rez.serialize(expr_id);
       rez.serialize(initialized);
       rez.serialize(depth);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez); 
-      if (collective_mapping != NULL)
+      if (collective_mapping != nullptr)
         collective_mapping->pack(rez);
       else
         rez.serialize<size_t>(0); // total spaces
@@ -922,7 +922,7 @@ namespace Legion {
         rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
         rez.serialize(it->second.is_mutable);
       } 
-      if (index_space_set && ((collective_mapping == NULL) ||
+      if (index_space_set && ((collective_mapping == nullptr) ||
             !collective_mapping->contains(target)))
       {
         rez.serialize<bool>(true);
@@ -938,15 +938,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(parent == NULL);
+      assert(parent == nullptr);
 #endif
       bool need_broadcast = true;
       if (source == local_space)
       {
         // Entry point
-        if (mapping != NULL)
+        if (mapping != nullptr)
         {
-          if ((collective_mapping != NULL) && ((mapping == collective_mapping) 
+          if ((collective_mapping != nullptr) && ((mapping == collective_mapping) 
                 || (*mapping == *collective_mapping)))
           {
             need_broadcast = false;
@@ -965,7 +965,7 @@ namespace Legion {
             runtime->send_index_space_destruction(handle, owner_space, applied);
             // If we're part of the broadcast tree then we'll get sent back here
             // later so we don't need to do anything now
-            if ((collective_mapping != NULL) && 
+            if ((collective_mapping != nullptr) && 
                 collective_mapping->contains(local_space))
               return false;
           }
@@ -980,7 +980,7 @@ namespace Legion {
           }
         }
       }
-      if (need_broadcast && (collective_mapping != NULL) &&
+      if (need_broadcast && (collective_mapping != nullptr) &&
           collective_mapping->contains(local_space))
       {
 #ifdef DEBUG_LEGION
@@ -1019,13 +1019,13 @@ namespace Legion {
       AutoProvenance provenance(Provenance::deserialize(derez));
       size_t num_spaces;
       derez.deserialize(num_spaces);
-      CollectiveMapping *mapping = NULL;
+      CollectiveMapping *mapping = nullptr;
       if (num_spaces > 0)
         mapping = new CollectiveMapping(derez, num_spaces);
       bool valid;
       derez.deserialize<bool>(valid);
 
-      IndexPartNode *parent_node = NULL;
+      IndexPartNode *parent_node = nullptr;
       if (parent != IndexPartition::NO_PART)
         parent_node = runtime->get_node(parent);
       IndexSpaceNode *node = runtime->create_node(handle, Domain::NO_DOMAIN,
@@ -1033,7 +1033,7 @@ namespace Legion {
           ApEvent::NO_AP_EVENT, expr_id, mapping, 
           false/*add root reference*/, depth, valid);
 #ifdef DEBUG_LEGION
-      assert(node != NULL);
+      assert(node != nullptr);
 #endif
       size_t num_semantic;
       derez.deserialize(num_semantic);
@@ -1067,13 +1067,13 @@ namespace Legion {
       AddressSpaceID source;
       derez.deserialize(source);
       IndexSpaceNode *target =
-        runtime->get_node(handle, NULL, true/*can fail*/);
+        runtime->get_node(handle, nullptr, true/*can fail*/);
       bool valid = false;
-      if (target != NULL)
+      if (target != nullptr)
       {
         // If there is a collective mapping, check to see if we're on the
         // right node and if not forward it on to the right node
-        if (target->collective_mapping != NULL)
+        if (target->collective_mapping != nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(!target->collective_mapping->contains(source));
@@ -1105,7 +1105,7 @@ namespace Legion {
         }
         // See if we're going to be sending the whole tree or not
         bool recurse = false;
-        if (target->parent == NULL)
+        if (target->parent == nullptr)
         {
           if (target->check_valid_and_increment(REGION_TREE_REF))
           {
@@ -1211,7 +1211,7 @@ namespace Legion {
             LG_LATENCY_DEFERRED_PRIORITY, defer);
         return;
       }
-      if (child != NULL)
+      if (child != nullptr)
       {
         if (child->check_global_and_increment(REGION_TREE_REF))
         {
@@ -1242,8 +1242,8 @@ namespace Legion {
     {
       const DeferChildArgs *dargs = (const DeferChildArgs*)args;
       IndexPartNode *child = 
-       dargs->proxy_this->get_child(dargs->child_color, NULL, true/*can fail*/);
-      if (child != NULL)
+       dargs->proxy_this->get_child(dargs->child_color, nullptr, true/*can fail*/);
+      if (child != nullptr)
       {
         if (child->check_global_and_increment(REGION_TREE_REF))
         {
@@ -1280,7 +1280,7 @@ namespace Legion {
       derez.deserialize(target);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
-      if (target == NULL)
+      if (target == nullptr)
       {
         // In this case we need to block here to make sure we can
         // unpack the global reference we added on the remote node
@@ -1552,7 +1552,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const IndexSpaceNode *node = this;
-      while ((node->parent != NULL) && 
+      while ((node->parent != nullptr) && 
               (node->parent->depth <= partition->depth))
       {
         if (node->parent == partition)
@@ -1612,9 +1612,9 @@ namespace Legion {
           one = one->parent->parent;
           two = two->parent->parent;
         }
-        // If they have the same parent and it's not NULL and 
+        // If they have the same parent and it's not nullptr and 
         // it is disjoint then they don't intersect if they are different
-        if ((one->parent != NULL) && (one != two) && one->parent->is_disjoint())
+        if ((one->parent != nullptr) && (one != two) && one->parent->is_disjoint())
           return false;
         // Otherwise fall through and do the expensive test
       }
@@ -1683,7 +1683,7 @@ namespace Legion {
         max_linearized_color(color_sp->get_max_linearized_color()),
         total_children_volume(0), total_intersection_volume(0),
         has_disjoint(true), disjoint(dis),
-        has_complete(comp >= 0), complete(comp != 0), first_entry(NULL)
+        has_complete(comp >= 0), complete(comp != 0), first_entry(nullptr)
     //--------------------------------------------------------------------------
     { 
       parent->add_nested_resource_ref(did);
@@ -1710,7 +1710,7 @@ namespace Legion {
         max_linearized_color(color_sp->get_max_linearized_color()),
         total_children_volume(0), total_intersection_volume(0),
         has_disjoint(false), disjoint(true),
-        has_complete(comp >= 0), complete(comp != 0), first_entry(NULL)
+        has_complete(comp >= 0), complete(comp != 0), first_entry(nullptr)
     //--------------------------------------------------------------------------
     {
       parent->add_nested_resource_ref(did);
@@ -1729,7 +1729,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Figure out how many notifications we're waiting for
-      if (is_owner() || ((collective_mapping != NULL) && 
+      if (is_owner() || ((collective_mapping != nullptr) && 
             collective_mapping->contains(local_space)))
       {
         remaining_local_disjoint_complete_notifications = 0;
@@ -1742,7 +1742,7 @@ namespace Legion {
         else
           remaining_global_disjoint_complete_notifications = 0;
         // More notifications from any remote nodes
-        if (collective_mapping != NULL)
+        if (collective_mapping != nullptr)
           remaining_global_disjoint_complete_notifications +=
             collective_mapping->count_children(owner_space, local_space);
         if (remaining_global_disjoint_complete_notifications == 0)
@@ -1797,13 +1797,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Remove the valid reference that we hold on the color space
-      if (color_space->parent != NULL)
+      if (color_space->parent != nullptr)
         color_space->parent->remove_nested_valid_ref(did);
       else
         color_space->remove_nested_valid_ref(did);
       // Remove valid ref on partition of parent if it exists, otherwise
       // our parent index space is a root so we remove the reference there
-      if (parent->parent != NULL)
+      if (parent->parent != nullptr)
       {
         if (parent->parent->remove_nested_valid_ref(did))
           delete parent->parent;
@@ -1852,7 +1852,7 @@ namespace Legion {
     IndexSpaceNode* IndexPartNode::as_index_space_node(void)
     //--------------------------------------------------------------------------
     {
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1932,7 +1932,7 @@ namespace Legion {
       assert(get_owner_space() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = NULL;
+      void *result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
@@ -1959,7 +1959,7 @@ namespace Legion {
           semantic_info[tag] = SemanticInfo(ready_event);
         }
       }
-      if (result == NULL)
+      if (result == nullptr)
       {
         if (can_fail || !wait_until)
           Runtime::trigger_event(ready);
@@ -2032,9 +2032,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(child_mapping == NULL);
+      assert(child_mapping == nullptr);
 #endif
-      if (collective_mapping == NULL)
+      if (collective_mapping == nullptr)
       {
         if (is_owner())
           return local_space;
@@ -2120,12 +2120,12 @@ namespace Legion {
       if (!ready_event.exists())
       {
         // See if we need to send a request to get the handle for this
-        CollectiveMapping *child_mapping = NULL;
+        CollectiveMapping *child_mapping = nullptr;
         AddressSpaceID creator_space = 
           find_color_creator_space(c, child_mapping);
         if (creator_space != local_space)
         {
-          if (child_mapping != NULL)
+          if (child_mapping != nullptr)
             delete child_mapping;
           // Find or get the ready event to wait on
           AutoLock n_lock(node_lock);
@@ -2152,7 +2152,7 @@ namespace Legion {
             pending_finder->second = Runtime::create_rt_user_event();
           ready_event = pending_finder->second;
         }
-        else if ((child_mapping != NULL) && 
+        else if ((child_mapping != nullptr) && 
             (local_space != child_mapping->get_origin()))
         {
           // We're not the origin that will make IDs, so retake the lock
@@ -2178,9 +2178,9 @@ namespace Legion {
           // If we get here then we're the ones to actually make the name 
           // of the index subspace and instantiate the node
 #ifdef DEBUG_LEGION
-          assert(is_owner() || ((collective_mapping != NULL) &&
+          assert(is_owner() || ((collective_mapping != nullptr) &&
                 collective_mapping->contains(local_space)));
-          assert((child_mapping == NULL) || 
+          assert((child_mapping == nullptr) || 
               (local_space == child_mapping->get_origin()));
 #endif
           IndexSpace is(runtime->get_unique_index_space_id(),
@@ -2190,7 +2190,7 @@ namespace Legion {
           // Make a new index space node ready when the partition is ready
           IndexSpaceNode *result = runtime->create_node(is, *this, c,
                                initialized, provenance, expr_id, child_mapping);
-          if ((child_mapping != NULL) && (child_mapping->size() > 1))
+          if ((child_mapping != nullptr) && (child_mapping->size() > 1))
           {
             // We know other participants are nodes are going to need
             // these IDs so broadcast them up to the other nodes that
@@ -2216,7 +2216,7 @@ namespace Legion {
           if (runtime->legion_spy_enabled)
             LegionSpy::log_index_subspace(handle.get_id(), is.get_id(), 
                 runtime->address_space, result->get_domain_point_color());
-          if (implicit_profiler != NULL)
+          if (implicit_profiler != nullptr)
             implicit_profiler->register_index_subspace(handle.get_id(),
                   is.get_id(), result->get_domain_point_color());
           return result;
@@ -2225,7 +2225,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(ready_event.exists());
 #endif
-      if (defer == NULL)
+      if (defer == nullptr)
       {
         ready_event.wait();
         return get_child(c);
@@ -2233,7 +2233,7 @@ namespace Legion {
       else
       {
         *defer = ready_event;
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -2385,7 +2385,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(is_owner() || ((collective_mapping != NULL) &&
+      assert(is_owner() || ((collective_mapping != nullptr) &&
             collective_mapping->contains(local_space)));
 #endif
       if (is_complete(false/*from app*/, true/*false if not ready*/) ||
@@ -2406,7 +2406,7 @@ namespace Legion {
         // larger than the collective mapping then we can eagerly sum
         // the volumes together, otherwise we need to keep them separte
         // so we can deduplicate the volumes across nodes
-        if ((collective_mapping == NULL) || 
+        if ((collective_mapping == nullptr) || 
             (((LegionColor)collective_mapping->size()) <= total_children))
         {
           // Children are sharded so no need to worry about uniqueness
@@ -2446,7 +2446,7 @@ namespace Legion {
         // intersection of all the remaining interfering children with D
         // Try drawing yourself n-way venn diagrams to convince yourself 
         // this is correct and will count all overlapping points exactly once.
-        if ((collective_mapping == NULL) ||
+        if ((collective_mapping == nullptr) ||
             (((LegionColor)collective_mapping->size()) <= total_children))
         {
           // Children are sharded so no need to worry about uniqueness
@@ -2463,7 +2463,7 @@ namespace Legion {
             if (!find_interfering_children_kd(child, interfering))
             {
               // Not enough entries for a kd-tree so do it locally
-              IndexSpaceExpression *difference = NULL;
+              IndexSpaceExpression *difference = nullptr;
               std::set<IndexSpaceExpression*> previous;
               for (ColorSpaceIterator itr2(this); itr2; itr2++)
               {
@@ -2505,7 +2505,7 @@ namespace Legion {
 #endif
               if (interfering.size() > 1)
               {
-                IndexSpaceExpression *difference = NULL;
+                IndexSpaceExpression *difference = nullptr;
                 std::set<IndexSpaceExpression*> previous;
                 for (std::vector<LegionColor>::const_iterator it =
                       interfering.begin(); it != interfering.end(); it++)
@@ -2557,7 +2557,7 @@ namespace Legion {
             if (!find_interfering_children_kd(child, interfering))
             {
               // Not enough entries for a kd-tree so do it locally
-              IndexSpaceExpression *difference = NULL;
+              IndexSpaceExpression *difference = nullptr;
               std::set<IndexSpaceExpression*> previous;
               for (ColorSpaceIterator itr2(this); itr2; itr2++)
               {
@@ -2601,7 +2601,7 @@ namespace Legion {
 #endif
               if (interfering.size() > 1)
               {
-                IndexSpaceExpression *difference = NULL;
+                IndexSpaceExpression *difference = nullptr;
                 std::set<IndexSpaceExpression*> previous;
                 for (std::vector<LegionColor>::const_iterator it =
                       interfering.begin(); it != interfering.end(); it++)
@@ -2691,7 +2691,7 @@ namespace Legion {
       }
       else
         total_children_volumes.swap(children_volumes);
-      if (intersection_volumes != NULL)
+      if (intersection_volumes != nullptr)
       {
         if (!total_intersection_volumes.empty())
         {
@@ -2815,7 +2815,7 @@ namespace Legion {
             complete.store((parent_volume == total_children_volume));
           }
         }
-        if (implicit_profiler != NULL)
+        if (implicit_profiler != nullptr)
           implicit_profiler->register_index_partition(parent->handle.get_id(),
               handle.get_id(), disjoint.load(), color);
       }
@@ -2823,7 +2823,7 @@ namespace Legion {
       has_complete.store(true);
       if (disjoint_complete_ready.exists())
         Runtime::trigger_event(disjoint_complete_ready);
-      if ((collective_mapping != NULL) && 
+      if ((collective_mapping != nullptr) && 
           collective_mapping->contains(local_space))
       {
         // Broadcast the result out to the children
@@ -3114,9 +3114,9 @@ namespace Legion {
           one = one->parent->parent;
           two = two->parent->parent;
         }
-        // If they have the same parent and it's not NULL and 
+        // If they have the same parent and it's not nullptr and 
         // it is disjoint then they don't intersect if they are different
-        if ((one->parent != NULL) && (one != two) && one->parent->is_disjoint())
+        if ((one->parent != nullptr) && (one != two) && one->parent->is_disjoint())
           return false;
         // Otherwise fall through and do the expensive test
       }
@@ -3173,9 +3173,9 @@ namespace Legion {
           one = one->parent->parent;
           two = two->parent->parent;
         }
-        // If they have the same parent and it's not NULL and
+        // If they have the same parent and it's not nullptr and
         // it is dijsoint then they don't intersect if they are different
-        if ((one->parent != NULL) && (one != two) && one->parent->is_disjoint())
+        if ((one->parent != nullptr) && (one != two) && one->parent->is_disjoint())
           return false;
         // Otherwise we fall through and do the expensive test
       }
@@ -3214,12 +3214,12 @@ namespace Legion {
           {
             InterferenceEntry *entry = &finder->second;
             // Remove it from its place in line
-            if (entry->older != NULL)
+            if (entry->older != nullptr)
               entry->older->newer = entry->newer;
-            if (entry->newer != NULL)
+            if (entry->newer != nullptr)
               entry->newer->older = entry->older;
             // Move it to the front of the line
-            entry->newer = NULL;
+            entry->newer = nullptr;
             entry->older = first_entry;
             first_entry->newer = entry;
             first_entry = entry;
@@ -3260,7 +3260,7 @@ namespace Legion {
       InterferenceEntry *entry = &interference_cache[expr->expr_id];
       entry->expr_id = expr->expr_id;
       entry->colors = colors;
-      if (first_entry != NULL)
+      if (first_entry != nullptr)
         first_entry->newer = entry;
       entry->older = first_entry;
       first_entry = entry;
@@ -3268,10 +3268,10 @@ namespace Legion {
       {
         // Remove the oldest entry in the cache
         InterferenceEntry *last_entry = first_entry; 
-        while (last_entry->older != NULL)
+        while (last_entry->older != nullptr)
           last_entry = last_entry->older;
-        if (last_entry->newer != NULL)
-          last_entry->newer->older = NULL;
+        if (last_entry->newer != nullptr)
+          last_entry->newer->older = nullptr;
         interference_cache.erase(last_entry->expr_id);
       }
     }
@@ -3282,7 +3282,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(recurse);
-      assert(parent != NULL);
+      assert(parent != nullptr);
 #endif
       // Quick out if we've already sent this
       if (has_remote_instance(target))
@@ -3292,8 +3292,8 @@ namespace Legion {
       // Only send it if we're the owner without a collective mapping
       // or the target is not in the collective mapping and we're the
       // closest node in the collective mapping to the target
-      if ((is_owner() && (collective_mapping == NULL)) ||
-          ((collective_mapping != NULL) && 
+      if ((is_owner() && (collective_mapping == nullptr)) ||
+          ((collective_mapping != nullptr) && 
            !collective_mapping->contains(target) && 
            collective_mapping->contains(local_space) &&
            (local_space == collective_mapping->find_nearest(target))))
@@ -3336,11 +3336,11 @@ namespace Legion {
       else
         rez.serialize<int>(-1); // we don't know yet
       rez.serialize(initialized);
-      if (collective_mapping != NULL)
+      if (collective_mapping != nullptr)
         collective_mapping->pack(rez);
       else
         rez.serialize<size_t>(0); // total spaces
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -3378,15 +3378,15 @@ namespace Legion {
       derez.deserialize(initialized);
       size_t num_spaces;
       derez.deserialize(num_spaces);
-      CollectiveMapping *mapping = NULL;
+      CollectiveMapping *mapping = nullptr;
       if (num_spaces > 0)
         mapping = new CollectiveMapping(derez, num_spaces);
       AutoProvenance provenance(Provenance::deserialize(derez));
       IndexSpaceNode *parent_node = runtime->get_node(parent);
       IndexSpaceNode *color_space_node = runtime->get_node(color_space);
 #ifdef DEBUG_LEGION
-      assert(parent_node != NULL);
-      assert(color_space_node != NULL);
+      assert(parent_node != nullptr);
+      assert(color_space_node != nullptr);
 #endif
       IndexPartNode *node = has_disjoint ?
         runtime->create_node(handle, parent_node, color_space_node, color, 
@@ -3394,7 +3394,7 @@ namespace Legion {
         runtime->create_node(handle, parent_node, color_space_node, color,
                complete, provenance, initialized, mapping);
 #ifdef DEBUG_LEGION
-      assert(node != NULL);
+      assert(node != nullptr);
 #endif
       size_t num_semantic;
       derez.deserialize(num_semantic);
@@ -3424,12 +3424,12 @@ namespace Legion {
       derez.deserialize(to_trigger);
       AddressSpaceID source;
       derez.deserialize(source);
-      IndexPartNode *target = runtime->get_node(handle, NULL, true/*can fail*/);
-      if (target != NULL)
+      IndexPartNode *target = runtime->get_node(handle, nullptr, true/*can fail*/);
+      if (target != nullptr)
       {
         // If there is a collective mapping, check to see if we're on the
         // right node and if not forward it on to the right node
-        if (target->collective_mapping != NULL)
+        if (target->collective_mapping != nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(!target->collective_mapping->contains(source));
@@ -3592,7 +3592,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
 #endif
       std::vector<AddressSpaceID> children;
       {
@@ -3631,7 +3631,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
 #endif
       bool up;
       derez.deserialize<bool>(up);
@@ -3954,7 +3954,7 @@ namespace Legion {
     {
       simple_step = 
             (partition->total_children == partition->max_linearized_color);
-      if (local_only && (partition->collective_mapping != NULL))
+      if (local_only && (partition->collective_mapping != nullptr))
       {
         if (partition->collective_mapping->contains(partition->local_space))
         {

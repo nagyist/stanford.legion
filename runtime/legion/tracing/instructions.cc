@@ -56,7 +56,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(operations.find(owner) != operations.end());
-      assert(operations.find(owner)->second != NULL);
+      assert(operations.find(owner)->second != nullptr);
 #endif
       events[lhs] = operations[owner]->replay_mapping();
     }
@@ -103,7 +103,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(user_events.find(lhs) != user_events.end());
 #endif
-      ApUserEvent ev = Runtime::create_ap_user_event(NULL);
+      ApUserEvent ev = Runtime::create_ap_user_event(nullptr);
       events[lhs] = ev;
       user_events[lhs] = ev;
     }
@@ -195,7 +195,7 @@ namespace Legion {
 #endif
         to_merge.push_back(events[*it]);
       }
-      ApEvent result = Runtime::merge_events(NULL, to_merge);
+      ApEvent result = Runtime::merge_events(nullptr, to_merge);
       events[lhs] = result;
     }
 
@@ -279,7 +279,7 @@ namespace Legion {
       assert(src_fields.size() > 0);
       assert(dst_fields.size() > 0);
       assert(precondition_idx < tpl.events.size());
-      assert(expr != NULL);
+      assert(expr != nullptr);
 #endif
       expr->add_base_expression_reference(TRACE_REF);
     }
@@ -310,7 +310,7 @@ namespace Legion {
       }
 #ifdef DEBUG_LEGION
       assert(finder != operations.end());
-      assert(finder->second != NULL);
+      assert(finder->second != nullptr);
 #endif
       ApEvent precondition = events[precondition_idx];
       const PhysicalTraceInfo trace_info(finder->second, -1U);
@@ -404,7 +404,7 @@ namespace Legion {
       }
 #ifdef DEBUG_LEGION
       assert(finder != operations.end());
-      assert(finder->second != NULL);
+      assert(finder->second != nullptr);
 #endif
       ApEvent copy_pre = events[copy_precondition];
       ApEvent src_indirect_pre = events[src_indirect_precondition];
@@ -491,7 +491,7 @@ namespace Legion {
       }
 #ifdef DEBUG_LEGION
       assert(finder != operations.end());
-      assert(finder->second != NULL);
+      assert(finder->second != nullptr);
 #endif
       ApEvent precondition = events[precondition_idx];
       const PhysicalTraceInfo trace_info(finder->second, -1U);
@@ -550,11 +550,11 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(operations.find(owner) != operations.end());
-      assert(operations.find(owner)->second != NULL);
+      assert(operations.find(owner)->second != nullptr);
 #endif
       MemoizableOp *memoizable = operations[owner];
 #ifdef DEBUG_LEGION
-      assert(memoizable != NULL);
+      assert(memoizable != nullptr);
 #endif
       TraceInfo info(memoizable);
       ApEvent sync_condition = memoizable->compute_sync_precondition(info);
@@ -601,11 +601,11 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(operations.find(owner) != operations.end());
-      assert(operations.find(owner)->second != NULL);
+      assert(operations.find(owner)->second != nullptr);
 #endif
       MemoizableOp *memoizable = operations[owner];
 #ifdef DEBUG_LEGION
-      assert(memoizable != NULL);
+      assert(memoizable != nullptr);
 #endif
       memoizable->complete_replay(events[complete]);
     }

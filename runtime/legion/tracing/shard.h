@@ -157,7 +157,7 @@ namespace Legion {
       bool handle_update_mutated_inst(const UniqueInst &inst, 
                             IndexSpaceExpression *ex, Deserializer &derez, 
                             std::set<RtEvent> &applied, RtUserEvent done, 
-                            const DeferTraceUpdateArgs *dargs = NULL);
+                            const DeferTraceUpdateArgs *dargs = nullptr);
     protected:
 #ifdef DEBUG_LEGION
       virtual unsigned convert_event(const ApEvent &event, bool check = true);

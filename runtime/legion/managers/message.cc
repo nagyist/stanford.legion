@@ -54,8 +54,8 @@ namespace Legion {
       static_assert(sizeof(uint8_t*) == sizeof(VirtualChannel*));
       memcpy(&receiving_buffer, &buffer, sizeof(buffer));
 #ifdef DEBUG_LEGION
-      assert(sending_buffer != NULL);
-      assert(receiving_buffer != NULL);
+      assert(sending_buffer != nullptr);
+      assert(receiving_buffer != nullptr);
 #endif
       // Use a dummy implicit provenance at the front for the message
       // to comply with the requirements of the meta-task handler which
@@ -85,7 +85,7 @@ namespace Legion {
       sending_index += sizeof(packaged_messages);
       last_message_event = RtEvent::NO_RT_EVENT;
       partial_message_id = 0;
-      partial_assembly = NULL;
+      partial_assembly = nullptr;
       partial = false;
       // Set up the receiving buffer
       received_messages = 0;
@@ -94,7 +94,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     VirtualChannel::VirtualChannel(const VirtualChannel &rhs)
-      : sending_buffer(NULL), sending_buffer_size(0), 
+      : sending_buffer(nullptr), sending_buffer_size(0), 
         ordered_channel(false), profile_outgoing_messages(false),
         request_priority(rhs.request_priority),
         response_priority(rhs.response_priority)
@@ -112,9 +112,9 @@ namespace Legion {
       VirtualChannel *buffer;
       memcpy(&buffer, &receiving_buffer, sizeof(buffer));
       legion_free<VirtualChannel>(buffer, receiving_buffer_size);
-      receiving_buffer = NULL;
+      receiving_buffer = nullptr;
       receiving_buffer_size = 0;
-      if (partial_assembly != NULL)
+      if (partial_assembly != nullptr)
         delete partial_assembly;
     }
 
@@ -485,12 +485,12 @@ namespace Legion {
             if (!ordered_channel)
             {
               AutoLock c_lock(channel_lock);
-              if (partial_assembly == NULL)
+              if (partial_assembly == nullptr)
                 partial_assembly = new std::map<unsigned,PartialMessage>();
               PartialMessage &message = 
                 (*partial_assembly)[incoming_message_id];
               // Allocate the buffer on the first pass
-              if (message.buffer == NULL)
+              if (message.buffer == nullptr)
               {
                 // Same as max message size
                 message.size = sending_buffer_size;
@@ -514,7 +514,7 @@ namespace Legion {
           {
             // Save the remaining messages onto the receiving
             // buffer, then handle them and reset the state.
-            uint8_t *final_buffer = NULL;
+            uint8_t *final_buffer = nullptr;
             size_t final_index = 0;
             unsigned final_messages = 0;
             bool free_buffer_size = 0;
@@ -522,13 +522,13 @@ namespace Legion {
             {
               AutoLock c_lock(channel_lock);
 #ifdef DEBUG_LEGION
-              assert(partial_assembly != NULL);
+              assert(partial_assembly != nullptr);
 #endif
               std::map<unsigned,PartialMessage>::iterator finder = 
                 partial_assembly->find(incoming_message_id);
 #ifdef DEBUG_LEGION
               assert(finder != partial_assembly->end());
-              assert(finder->second.buffer != NULL);
+              assert(finder->second.buffer != nullptr);
 #endif
               buffer_messages(num_messages, buffer, arglen,
                               finder->second.buffer, finder->second.size,
@@ -2221,7 +2221,7 @@ namespace Legion {
         memcpy(&receiving_buffer, &buffer, sizeof(buffer));
         receiving_buffer_size = new_buffer_size;
 #ifdef DEBUG_LEGION
-        assert(receiving_buffer != NULL);
+        assert(receiving_buffer != nullptr);
 #endif
       }
       // Copy the data in
@@ -2245,7 +2245,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(remote != runtime->address_space);
 #endif
-      const bool has_profiler = (runtime->profiler != NULL);
+      const bool has_profiler = (runtime->profiler != nullptr);
       // Initialize our virtual channels 
       for (unsigned idx = 0; idx < MAX_NUM_VIRTUAL_CHANNELS; idx++)
       {
@@ -2270,7 +2270,7 @@ namespace Legion {
     {
       const VirtualChannelKind channel = find_message_vc(message);
       // Always flush for the profiler if we're doing that
-      if (!flush && (runtime->profiler != NULL) && 
+      if (!flush && (runtime->profiler != nullptr) && 
           (channel != PROFILING_VIRTUAL_CHANNEL))
         flush = true;
       channels[channel].package_message(rez, message, flush, flush_precondition,

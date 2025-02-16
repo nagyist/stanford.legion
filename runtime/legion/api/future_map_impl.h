@@ -36,12 +36,12 @@ namespace Legion {
       FutureMapImpl(TaskContext *ctx, Operation *op, IndexSpaceNode *domain,
                     DistributedID did, Provenance *provenance,
                     bool register_now = true, 
-                    CollectiveMapping *mapping = NULL);
+                    CollectiveMapping *mapping = nullptr);
       FutureMapImpl(TaskContext *ctx, IndexSpaceNode *domain,
                     DistributedID did, uint64_t blocking_index,
                     const std::optional<uint64_t> &context_index,
                     Provenance *provenance, bool register_now = true, 
-                    CollectiveMapping *mapping = NULL); // remote
+                    CollectiveMapping *mapping = nullptr); // remote
       FutureMapImpl(TaskContext *ctx, Operation *op, uint64_t blocking_index,
                     GenerationID gen, int depth, UniqueID uid,
                     IndexSpaceNode *domain, DistributedID did,
@@ -59,13 +59,13 @@ namespace Legion {
       Domain get_domain(void) const;
       virtual Future get_future(const DomainPoint &point, 
                                 bool internal_only,
-                                RtEvent *wait_on = NULL); 
+                                RtEvent *wait_on = nullptr); 
       void set_future(const DomainPoint &point, FutureImpl *impl);
       void get_void_result(const DomainPoint &point, 
                             bool silence_warnings = true,
-                            const char *warning_string = NULL);
+                            const char *warning_string = nullptr);
       virtual void wait_all_results(bool silence_warnings = true,
-                                    const char *warning_string = NULL);
+                                    const char *warning_string = nullptr);
       bool reset_all_futures(void);
     public:
       void pack_future_map(Serializer &rez, AddressSpaceID target);
@@ -129,10 +129,10 @@ namespace Legion {
       virtual bool is_replicate_future_map(void) const;
       virtual Future get_future(const DomainPoint &point, 
                                 bool internal_only,
-                                RtEvent *wait_on = NULL);
+                                RtEvent *wait_on = nullptr);
       virtual void get_all_futures(std::map<DomainPoint,FutureImpl*> &futures);
       virtual void wait_all_results(bool silence_warnings = true,
-                                    const char *warning_string = NULL);
+                                    const char *warning_string = nullptr);
     public:
       virtual FutureImpl* find_local_future(const DomainPoint &point);
       virtual void get_shard_local_futures(ShardID shard,
@@ -174,10 +174,10 @@ namespace Legion {
       virtual bool is_replicate_future_map(void) const { return true; }
     public:
       virtual Future get_future(const DomainPoint &point,
-                                bool internal, RtEvent *wait_on = NULL);
+                                bool internal, RtEvent *wait_on = nullptr);
       virtual void get_all_futures(std::map<DomainPoint,FutureImpl*> &futures);
     public:
-      // Will return NULL if it does not exist
+      // Will return nullptr if it does not exist
       virtual void get_shard_local_futures(ShardID shard,
                                     std::map<DomainPoint,FutureImpl*> &futures);
       virtual RtEvent find_pointwise_dependence(const DomainPoint &point,

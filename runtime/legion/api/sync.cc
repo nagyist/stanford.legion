@@ -90,7 +90,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Grant::Grant(void)
-      : impl(NULL)
+      : impl(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -100,7 +100,7 @@ namespace Legion {
       : impl(i)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -109,7 +109,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -117,11 +117,11 @@ namespace Legion {
     Grant::~Grant(void)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
-        impl = NULL;
+        impl = nullptr;
       }
     }
 
@@ -129,13 +129,13 @@ namespace Legion {
     Grant& Grant::operator=(const Grant &rhs)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
       }
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
       return *this;
     }
@@ -319,7 +319,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock g_lock(grant_lock);
-      ApEvent deferred_release = Runtime::merge_events(NULL, completion_events);
+      ApEvent deferred_release = Runtime::merge_events(nullptr, completion_events);
       for (std::vector<ReservationRequest>::const_iterator it = 
             requests.begin(); it != requests.end(); it++)
       {

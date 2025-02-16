@@ -47,7 +47,7 @@ namespace Legion {
     public:
       MaterializedView(DistributedID did,
                        AddressSpaceID logical_owner, PhysicalManager *manager,
-                       bool register_now, CollectiveMapping *mapping = NULL);
+                       bool register_now, CollectiveMapping *mapping = nullptr);
       MaterializedView(const MaterializedView &rhs) = delete;
       virtual ~MaterializedView(void);
     public:

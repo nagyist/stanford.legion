@@ -76,8 +76,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(ctx != NULL);
-      assert(f.impl != NULL);
+      assert(ctx != nullptr);
+      assert(f.impl != nullptr);
 #endif
       initialize_operation(ctx, provenance);
       future = f;
@@ -86,7 +86,7 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
       {
         LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
-        if (future.impl != NULL)
+        if (future.impl != nullptr)
           LegionSpy::log_future_use(unique_op_id, future.impl->did); 
       }
       return predicate;
@@ -98,8 +98,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(ctx != NULL);
-      assert(p.impl != NULL);
+      assert(ctx != nullptr);
+      assert(p.impl != nullptr);
 #endif
       initialize_operation(ctx, provenance);
       predicate = p;
@@ -122,7 +122,7 @@ namespace Legion {
       if (to_predicate)
       {
 #ifdef DEBUG_LEGION
-        assert(future.impl != NULL);
+        assert(future.impl != nullptr);
 #endif
         // Register this operation as dependent on task that
         // generated the future
@@ -131,7 +131,7 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        assert(predicate.impl != NULL);
+        assert(predicate.impl != nullptr);
 #endif
         register_dependence(predicate.impl->creator,
                             predicate.impl->creator_gen);
@@ -209,7 +209,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(ctx != NULL);
+      assert(ctx != nullptr);
 #endif
       initialize_operation(ctx, provenance);
       to_set = Predicate(ctx->create_predicate_impl(this));
@@ -314,7 +314,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(ctx != NULL);
+      assert(ctx != nullptr);
 #endif
       initialize_operation(ctx, provenance);
       to_set = Predicate(ctx->create_predicate_impl(this));
@@ -442,7 +442,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(ctx != NULL);
+      assert(ctx != nullptr);
 #endif
       initialize_operation(ctx, provenance);
       previous.swap(predicates);

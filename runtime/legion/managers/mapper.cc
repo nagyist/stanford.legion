@@ -44,14 +44,14 @@ namespace Legion {
     MappingCallInfo::MappingCallInfo(MapperManager *man, MappingCallKind k,
                                      Operation *op, bool prioritize)
       : manager(man), resume(RtUserEvent::NO_RT_USER_EVENT), 
-        kind(k), operation(op), acquired_instances((op == NULL) ? NULL :
-            operation->get_acquired_instances_ref()), profiling_ranges(NULL),
+        kind(k), operation(op), acquired_instances((op == nullptr) ? nullptr :
+            operation->get_acquired_instances_ref()), profiling_ranges(nullptr),
         start_time(0), reentrant(manager->initially_reentrant), paused(false),
         runtime_call(false), priority(prioritize)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(implicit_mapper_call == NULL);
+      assert(implicit_mapper_call == nullptr);
 #endif
       manager->begin_mapper_call(this, prioritize);
       implicit_mapper_call = this;
@@ -64,9 +64,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(implicit_mapper_call == this);
 #endif
-      implicit_mapper_call = NULL;
+      implicit_mapper_call = nullptr;
       manager->finish_mapper_call(this);
-      if (profiling_ranges != NULL)
+      if (profiling_ranges != nullptr)
       {
         if (!profiling_ranges->empty())
           REPORT_LEGION_ERROR(ERROR_MISMATCHED_PROFILING_RANGE,
@@ -87,7 +87,7 @@ namespace Legion {
         return;
       PhysicalManager *manager = man->as_physical_manager();
 #ifdef DEBUG_LEGION
-      assert(acquired_instances != NULL);
+      assert(acquired_instances != nullptr);
 #endif
       std::map<PhysicalManager*,unsigned> &acquired =
         *(acquired_instances);
@@ -107,7 +107,7 @@ namespace Legion {
         return;
       PhysicalManager *manager = man->as_physical_manager();
 #ifdef DEBUG_LEGION
-      assert(acquired_instances != NULL);
+      assert(acquired_instances != nullptr);
 #endif
       std::map<PhysicalManager*,unsigned> &acquired = 
         *(acquired_instances);
@@ -142,7 +142,7 @@ namespace Legion {
         PhysicalManager *manager = man->as_physical_manager();
         if (already_acquired.find(manager) != already_acquired.end())
         {
-          if ((to_erase != NULL) && filter_acquired_instances)
+          if ((to_erase != nullptr) && filter_acquired_instances)
             to_erase->push_back(idx);
           continue;
         }
@@ -153,13 +153,13 @@ namespace Legion {
         {
           // We already know it wasn't there before
           already_acquired[manager] = 1;
-          if ((to_erase != NULL) && filter_acquired_instances)
+          if ((to_erase != nullptr) && filter_acquired_instances)
             to_erase->push_back(idx);
         }
         else
         {
           all_acquired = false;
-          if ((to_erase != NULL) && !filter_acquired_instances)
+          if ((to_erase != nullptr) && !filter_acquired_instances)
             to_erase->push_back(idx);
         }
       }
@@ -170,10 +170,10 @@ namespace Legion {
     void MappingCallInfo::start_profiling_range(void)
     //--------------------------------------------------------------------------
     {
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
       {
         const long long start = Realm::Clock::current_time_in_nanoseconds();
-        if (profiling_ranges == NULL)
+        if (profiling_ranges == nullptr)
           profiling_ranges = new std::vector<long long>();
         profiling_ranges->push_back(start);
       }
@@ -183,17 +183,17 @@ namespace Legion {
     void MappingCallInfo::stop_profiling_range(const char *prov)
     //--------------------------------------------------------------------------
     {
-      if (prov == NULL)
+      if (prov == nullptr)
         REPORT_LEGION_ERROR(ERROR_MISSING_PROFILING_PROVENANCE,
             "Missing provenance string for mapper profiling range "
             "in mapper call %s by mapper %s for %s (UID %lld)", 
             get_mapper_call_name(), get_mapper_name(),
             operation->get_logging_name(), operation->get_unique_op_id())
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
       {
         Provenance *provenance = 
           runtime->find_or_create_provenance(prov, strlen(prov));
-        if ((profiling_ranges == NULL) || profiling_ranges->empty())
+        if ((profiling_ranges == nullptr) || profiling_ranges->empty())
           REPORT_LEGION_ERROR(ERROR_MISMATCHED_PROFILING_RANGE,
             "Detected mismatched profiling range calls, received a stop call "
             "without a corresponding start call in mapper call %s by mapper %s "
@@ -218,7 +218,7 @@ namespace Legion {
     MapperManager::MapperManager(Mapping::Mapper *mp, 
                                  MapperID mid, Processor p, bool is_default)
       : mapper(mp), mapper_id(mid), processor(p),
-        profile_mapper(runtime->profiler != NULL),
+        profile_mapper(runtime->profiler != nullptr),
         request_valid_instances(mp->request_valid_instances()),
         is_default_mapper(is_default), initially_reentrant(
             mapper->get_mapper_sync_model() != 
@@ -691,7 +691,7 @@ namespace Legion {
                                    Mapper::MapDataflowGraphOutput &output)
     //--------------------------------------------------------------------------
     {
-      MappingCallInfo ctx(this, MAP_DATAFLOW_GRAPH_CALL, NULL);
+      MappingCallInfo ctx(this, MAP_DATAFLOW_GRAPH_CALL, nullptr);
       mapper->map_dataflow_graph(&ctx, input, output);
     }
 
@@ -701,7 +701,7 @@ namespace Legion {
                                                  Mapper::MemoizeOutput &output)
     //--------------------------------------------------------------------------
     {
-      MappingCallInfo ctx(this, MEMOIZE_OPERATION_CALL, NULL);
+      MappingCallInfo ctx(this, MEMOIZE_OPERATION_CALL, nullptr);
       mapper->memoize_operation(&ctx, *mappable, input, output);
     }
 
@@ -711,7 +711,7 @@ namespace Legion {
                                     Mapper::SelectMappingOutput &output)
     //--------------------------------------------------------------------------
     {
-      MappingCallInfo ctx(this, SELECT_TASKS_TO_MAP_CALL, NULL);
+      MappingCallInfo ctx(this, SELECT_TASKS_TO_MAP_CALL, nullptr);
       mapper->select_tasks_to_map(&ctx, input, output);
     }
 
@@ -721,7 +721,7 @@ namespace Legion {
                                      Mapper::SelectStealingOutput &output)
     //--------------------------------------------------------------------------
     {
-      MappingCallInfo ctx(this, SELECT_STEAL_TARGETS_CALL, NULL);
+      MappingCallInfo ctx(this, SELECT_STEAL_TARGETS_CALL, nullptr);
       mapper->select_steal_targets(&ctx, input, output);
     }
 
@@ -731,7 +731,7 @@ namespace Legion {
                                      Mapper::StealRequestOutput &output)
     //--------------------------------------------------------------------------
     {
-      MappingCallInfo ctx(this, PERMIT_STEAL_REQUEST_CALL, NULL);
+      MappingCallInfo ctx(this, PERMIT_STEAL_REQUEST_CALL, nullptr);
       mapper->permit_steal_request(&ctx, input, output);
     }
 
@@ -744,7 +744,7 @@ namespace Legion {
       // to the same mapper or between mappers, all we need to check is that
       // the mapper call is still in a reentrant mode, if it is then we can do
       // the next mapper call directly, otherwise we need to defer it
-      if ((previous != NULL) && !previous->reentrant)
+      if ((previous != nullptr) && !previous->reentrant)
       {
         DeferMessageArgs args(this, message->sender, message->kind, 
                               malloc(message->size), message->size,
@@ -755,9 +755,9 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        implicit_mapper_call = NULL;
+        implicit_mapper_call = nullptr;
 #endif
-        MappingCallInfo ctx(this, HANDLE_MESSAGE_CALL, NULL);
+        MappingCallInfo ctx(this, HANDLE_MESSAGE_CALL, nullptr);
         mapper->handle_message(&ctx, *message);
       }
       implicit_mapper_call = previous;
@@ -768,7 +768,7 @@ namespace Legion {
                                    Mapper::MapperTaskResult &result)
     //--------------------------------------------------------------------------
     {
-      MappingCallInfo ctx(this, HANDLE_TASK_RESULT_CALL, NULL);
+      MappingCallInfo ctx(this, HANDLE_TASK_RESULT_CALL, nullptr);
       mapper->handle_task_result(&ctx, result);
     }
 
@@ -781,7 +781,7 @@ namespace Legion {
       // to the same mapper or between mappers, all we need to check is that
       // the mapper call is still in a reentrant mode, if it is then we can do
       // the next mapper call directly, otherwise we need to defer it
-      if ((previous != NULL) && !previous->reentrant) 
+      if ((previous != nullptr) && !previous->reentrant) 
       {
         DeferInstanceCollectionArgs args(this, manager);
         manager->add_base_resource_ref(MAPPER_REF);
@@ -790,10 +790,10 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        implicit_mapper_call = NULL;
+        implicit_mapper_call = nullptr;
 #endif
         const MappingInstance instance(manager);
-        MappingCallInfo ctx(this, HANDLE_INSTANCE_COLLECTION_CALL, NULL);
+        MappingCallInfo ctx(this, HANDLE_INSTANCE_COLLECTION_CALL, nullptr);
         mapper->handle_instance_collection(&ctx, instance);
       }
       implicit_mapper_call = previous;
@@ -922,7 +922,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     SerializingManager::SerializingManager(Mapping::Mapper *mp,
              MapperID map_id, Processor p, bool init_reentrant, bool def)
-      : MapperManager(mp,map_id,p,def),executing_call(NULL),paused_calls(0),
+      : MapperManager(mp,map_id,p,def),executing_call(nullptr),paused_calls(0),
         allow_reentrant(init_reentrant), permit_reentrant(init_reentrant)
     //--------------------------------------------------------------------------
     {
@@ -1038,7 +1038,7 @@ namespace Legion {
         else if (pending_finish_call.load())
           to_trigger = complete_pending_finish_mapper_call();
         // See if we are ready to run this or not
-        if ((executing_call != NULL) || (!permit_reentrant && 
+        if ((executing_call != nullptr) || (!permit_reentrant && 
               ((paused_calls > 0) || !ready_calls.empty())))
         {
           // Put this on the list of pending calls
@@ -1114,7 +1114,7 @@ namespace Legion {
         // that are allowed to resume because reentrant is disabled
         if (executing_call != info)
         {
-          if (executing_call != NULL)
+          if (executing_call != nullptr)
           {
             info->resume = Runtime::create_rt_user_event();
             wait_on = info->resume;
@@ -1144,7 +1144,7 @@ namespace Legion {
       // Record our finish time when we're done
       if (profile_mapper)
         implicit_profiler->record_mapper_call(mapper_id, processor, info->kind,
-            (info->operation == NULL) ? 0 : info->operation->get_unique_op_id(),
+            (info->operation == nullptr) ? 0 : info->operation->get_unique_op_id(),
             info->start_time, Realm::Clock::current_time_in_nanoseconds());
       // Set this flag asynchronously without the lock, there will
       // be a race to see who gets the lock next and therefore can
@@ -1214,7 +1214,7 @@ namespace Legion {
         }
         // If we are allowing reentrant calls then clear the executing
         // call which will allow other resuming calls to run
-        executing_call = NULL;
+        executing_call = nullptr;
       }
       // No one to wake up
       return RtUserEvent::NO_RT_USER_EVENT;
@@ -1227,7 +1227,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!pending_pause_call.load());
       assert(pending_finish_call.load());
-      assert(executing_call != NULL);
+      assert(executing_call != nullptr);
 #endif
       pending_finish_call.store(false);
       // If we allow reentrant calls then reset whether we are permitting
@@ -1269,7 +1269,7 @@ namespace Legion {
       }
       else
       {
-        executing_call = NULL;
+        executing_call = nullptr;
         return RtUserEvent::NO_RT_USER_EVENT;
       }
     }
@@ -1487,7 +1487,7 @@ namespace Legion {
       // Record our finish time when we are done
       if (profile_mapper)
         implicit_profiler->record_mapper_call(mapper_id, processor, info->kind,
-            (info->operation == NULL) ? 0 : info->operation->get_unique_op_id(),
+            (info->operation == nullptr) ? 0 : info->operation->get_unique_op_id(),
             info->start_time, Realm::Clock::current_time_in_nanoseconds());
       std::vector<RtUserEvent> to_trigger;
       {

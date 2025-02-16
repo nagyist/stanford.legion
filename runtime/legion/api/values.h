@@ -29,11 +29,11 @@ namespace Legion {
   public:
     UntypedDeferredValue(void);
     UntypedDeferredValue(size_t field_size, Memory target_memory,
-                         const void *initial_value = NULL,
+                         const void *initial_value = nullptr,
                          size_t alignment = 16);
     UntypedDeferredValue(size_t field_size,
                          Memory::Kind memory_kind = Memory::Z_COPY_MEM,
-                         const void *initial_value = NULL,
+                         const void *initial_value = nullptr,
                          size_t alignment = 16);
     UntypedDeferredValue(const UntypedDeferredValue &rhs);
   public:

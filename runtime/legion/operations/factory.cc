@@ -95,7 +95,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(dynamic_cast<WRAP*>(op) != NULL);
+      assert(dynamic_cast<WRAP*>(op) != nullptr);
 #endif
       available.push_back(op);
     }
@@ -140,7 +140,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(dynamic_cast<WRAP*>(op) != NULL);
+      assert(dynamic_cast<WRAP*>(op) != nullptr);
 #endif
       available.push_back(op);
       if (available.size() > LEGION_MAX_RECYCLABLE_OBJECTS)

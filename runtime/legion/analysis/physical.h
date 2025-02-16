@@ -113,13 +113,13 @@ namespace Legion {
       PhysicalAnalysis(Operation *op, unsigned index,
                        IndexSpaceExpression *expr, bool on_heap,
                        bool immutable, bool exclusive = false,
-                       CollectiveMapping *mapping = NULL,
+                       CollectiveMapping *mapping = nullptr,
                        bool first_local = true);
       // Remote physical analysis
       PhysicalAnalysis(AddressSpaceID source, AddressSpaceID prev,
                        Operation *op, unsigned index, 
                        IndexSpaceExpression *expr, bool on_heap,
-                       bool immutable = false,CollectiveMapping *mapping = NULL,
+                       bool immutable = false,CollectiveMapping *mapping = nullptr,
                        bool exclusive = false, bool first_local = true);
       PhysicalAnalysis(const PhysicalAnalysis &rhs) = delete;
       virtual ~PhysicalAnalysis(void);
@@ -129,7 +129,7 @@ namespace Legion {
       inline void record_parallel_traversals(void)
         { parallel_traversals = true; } 
       inline bool is_replicated(void) const 
-        { return (collective_mapping != NULL); }
+        { return (collective_mapping != nullptr); }
       inline CollectiveMapping* get_replicated_mapping(void) const
         { return collective_mapping; }
       inline bool is_collective_first_local(void) const

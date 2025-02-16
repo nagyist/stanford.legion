@@ -34,14 +34,14 @@ namespace Legion {
     LogicalTrace::LogicalTrace(InnerContext *c, TraceID t, bool logical_only,
                                bool static_trace, Provenance *p,
                                const std::set<RegionTreeID> *trees)
-      : context(c), tid(t), begin_provenance(p), end_provenance(NULL),
-        physical_trace(logical_only ? NULL : new PhysicalTrace(this)),
+      : context(c), tid(t), begin_provenance(p), end_provenance(nullptr),
+        physical_trace(logical_only ? nullptr : new PhysicalTrace(this)),
         verification_index(0), blocking_call_observed(false), fixed(false),
-        intermediate_fence(false), recording(true), trace_fence(NULL),
-        static_translator(static_trace ? new StaticTranslator(trees) : NULL)
+        intermediate_fence(false), recording(true), trace_fence(nullptr),
+        static_translator(static_trace ? new StaticTranslator(trees) : nullptr)
     //--------------------------------------------------------------------------
     {
-      if (begin_provenance != NULL)
+      if (begin_provenance != nullptr)
         begin_provenance->add_reference();
     }
 
@@ -49,11 +49,11 @@ namespace Legion {
     LogicalTrace::~LogicalTrace(void)
     //--------------------------------------------------------------------------
     {
-      if (physical_trace != NULL)
+      if (physical_trace != nullptr)
         delete physical_trace;
-      if ((begin_provenance != NULL) && begin_provenance->remove_reference())
+      if ((begin_provenance != nullptr) && begin_provenance->remove_reference())
         delete begin_provenance;
-      if ((end_provenance != NULL) && end_provenance->remove_reference())
+      if ((end_provenance != nullptr) && end_provenance->remove_reference())
         delete end_provenance;
     }
 
@@ -63,11 +63,11 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(!fixed);
-      assert(end_provenance == NULL);
+      assert(end_provenance == nullptr);
 #endif
       fixed = true;
       end_provenance = provenance;
-      if (end_provenance != NULL)
+      if (end_provenance != nullptr)
         end_provenance->add_reference();
     }
 
@@ -83,7 +83,7 @@ namespace Legion {
       }
       else
       {
-        if (has_physical_trace() && (op->get_memoizable() == NULL))
+        if (has_physical_trace() && (op->get_memoizable() == nullptr))
           REPORT_LEGION_ERROR(ERROR_PHYSICAL_TRACING_UNSUPPORTED_OP,
               "Illegal operation in physical trace. The application launched "
               "a %s operation inside of physical trace %d of parent task %s "
@@ -104,7 +104,7 @@ namespace Legion {
           {
 #ifdef DEBUG_LEGION
             TaskOp *task = dynamic_cast<TaskOp*>(op);
-            assert(task != NULL);
+            assert(task != nullptr);
 #else
             TaskOp *task = dynamic_cast<TaskOp*>(op);
 #endif
@@ -224,7 +224,7 @@ namespace Legion {
         if (fixed)
           return false;
       }
-      if (static_translator != NULL)
+      if (static_translator != nullptr)
         static_translator->push_dependences(dependences);
       return true;
     }
@@ -255,7 +255,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(recording);
 #endif
-      if (static_translator == NULL)
+      if (static_translator == nullptr)
         return false;
       return static_translator->skip_analysis(tid);
     }
@@ -280,7 +280,7 @@ namespace Legion {
         op_map[key] = std::make_pair(op_index,index);
         operations.emplace_back(OpInfo(op));
         replay_info.emplace_back(OperationInfo());
-        if (static_translator != NULL)
+        if (static_translator != nullptr)
         {
           // Add a mapping reference since we might need to refer to it later
           op->add_mapping_reference(gen);
@@ -751,7 +751,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(trace_fence == NULL);
+      assert(trace_fence == nullptr);
 #endif
       if (!recording)
       {
@@ -769,7 +769,7 @@ namespace Legion {
       if (!recording)
       {
 #ifdef DEBUG_LEGION
-        assert(trace_fence != NULL);
+        assert(trace_fence != nullptr);
 #endif
         if (replay_index != replay_info.size())
           REPORT_LEGION_ERROR(ERROR_TRACE_VIOLATION_RECORDED,
@@ -781,7 +781,7 @@ namespace Legion {
                         context->get_unique_id(), replay_index)
         op->register_dependence(trace_fence, trace_fence_gen);
         trace_fence->remove_mapping_reference(trace_fence_gen);
-        trace_fence = NULL;
+        trace_fence = nullptr;
         // Register for this fence on every one of the operations in
         // the trace and then clear out the operations data structure
         for (std::set<std::pair<Operation*,GenerationID> >::iterator it =
@@ -810,13 +810,13 @@ namespace Legion {
         op_map.clear();
         for (unsigned idx = 0; idx < replay_info.size(); idx++)
           replay_info[idx].internal_dependences.clear();
-        if (static_translator != NULL)
+        if (static_translator != nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(static_translator->dependences.empty());
 #endif
           delete static_translator;
-          static_translator = NULL;
+          static_translator = nullptr;
           // Also remove the mapping references from all the operations
           for (std::vector<OpInfo>::const_iterator
                 it = operations.begin(); it != operations.end(); it++)
@@ -952,7 +952,7 @@ namespace Legion {
     void LogicalTrace::invalidate_equivalence_sets(void) const 
     //--------------------------------------------------------------------------
     {
-      if (physical_trace != NULL)
+      if (physical_trace != nullptr)
         physical_trace->invalidate_equivalence_sets();
     }
 

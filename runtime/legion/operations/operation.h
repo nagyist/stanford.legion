@@ -121,7 +121,7 @@ namespace Legion {
       virtual OpKind get_operation_kind(void) const = 0;
       virtual size_t get_region_count(void) const;
       virtual Mappable* get_mappable(void);
-      virtual MemoizableOp* get_memoizable(void) { return NULL; }
+      virtual MemoizableOp* get_memoizable(void) { return nullptr; }
       virtual bool invalidates_physical_trace_template(bool &exec_fence) const
         { exec_fence = false; return true; }
       virtual Operation* get_origin_operation(void) { return this; }
@@ -188,7 +188,7 @@ namespace Legion {
       // Initialize this operation in a new parent context
       // along with the number of regions this task has
       void initialize_operation(InnerContext *ctx,
-                                Provenance *provenance = NULL);
+                                Provenance *provenance = nullptr);
       void set_provenance(Provenance *provenance);
     public:
       RtEvent execute_prepipeline_stage(GenerationID gen,
@@ -446,7 +446,7 @@ namespace Legion {
                                        const RegionRequirement &req,
                                        VersionInfo &version_info,
                                        std::set<RtEvent> &ready_events,
-                                       RtEvent *output_region_ready = NULL,
+                                       RtEvent *output_region_ready = nullptr,
                                        bool collective_rendezvous = false);  
       void physical_premap_region(unsigned index,
                                   RegionRequirement &req,

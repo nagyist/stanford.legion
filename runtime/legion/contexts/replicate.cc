@@ -90,7 +90,7 @@ namespace Legion {
         next_logical_collective_index(1), next_physical_template_index(0), 
         next_replicate_bar_index(0), next_logical_bar_index(0),
         unordered_ops_counter(0), unordered_ops_epoch(MIN_UNORDERED_OPS_EPOCH),
-        unordered_collective(NULL), minimize_repeats_collective(NULL)
+        unordered_collective(nullptr), minimize_repeats_collective(nullptr)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION_COLLECTIVES
@@ -117,7 +117,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(unordered_collective == NULL);
+      assert(unordered_collective == nullptr);
 #endif
       if (shard_manager->remove_nested_resource_ref(did))
         delete shard_manager;
@@ -127,7 +127,7 @@ namespace Legion {
         returned_resource_mapped_barrier.destroy_barrier();
       if (returned_resource_execution_barrier.exists())
         returned_resource_execution_barrier.destroy_barrier();
-      if (minimize_repeats_collective != NULL)
+      if (minimize_repeats_collective != nullptr)
       {
         minimize_repeats_collective->wait_all_reduce();
         delete minimize_repeats_collective;
@@ -161,7 +161,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_PERFORM_REGISTRATION_CALLBACK, __func__);
@@ -206,7 +206,7 @@ namespace Legion {
       Future result = 
         TaskContext::from_value(value, size, owned, provenance, shard_local);
       for (int i = 0; runtime->safe_control_replication && !shard_local &&
-        (i < 2) && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+        (i < 2) && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_FUTURE_FROM_VALUE, __func__);
@@ -229,7 +229,7 @@ namespace Legion {
       Future result = TaskContext::from_value(buffer, size, owned,
           resource, freefunc, provenance, shard_local);
       for (int i = 0; runtime->safe_control_replication && !shard_local &&
-        (i < 2) && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+        (i < 2) && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_FUTURE_FROM_VALUE, __func__);
@@ -248,7 +248,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_CONSENSUS_MATCH, __func__);
@@ -317,13 +317,13 @@ namespace Legion {
         return TaskContext::register_variant(registrar, user_data, 
             user_data_size, desc, ret_size, has_ret_size, vid, check_task_id);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_REGISTER_TASK_VARIANT, __func__);
         hasher.hash(registrar.task_id, "task_id");
         hasher.hash(registrar.global_registration, "global_registration");
-        if (registrar.task_variant_name != NULL)
+        if (registrar.task_variant_name != nullptr)
           hasher.hash(registrar.task_variant_name, 
                       strlen(registrar.task_variant_name), "task_variant_name");
         hash_execution_constraints(hasher, registrar.execution_constraints);
@@ -344,7 +344,7 @@ namespace Legion {
         hasher.hash(registrar.replicable_variant, "replicable_variant");
         if (has_ret_size)
           hasher.hash(ret_size, "ret_size");
-        if ((user_data != NULL) && (runtime->safe_control_replication > 1))
+        if ((user_data != nullptr) && (runtime->safe_control_replication > 1))
           hasher.hash(user_data, user_data_size, "user_data");
         hasher.hash(vid, "vid");
         if (hasher.verify(__func__))
@@ -450,7 +450,7 @@ namespace Legion {
       if (inside_registration_callback)
         return TaskContext::generate_dynamic_trace_id();
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_GENERATE_DYNAMIC_TRACE_ID, __func__);
@@ -481,7 +481,7 @@ namespace Legion {
       if (inside_registration_callback)
         return TaskContext::generate_dynamic_mapper_id();
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_GENERATE_DYNAMIC_MAPPER_ID, __func__);
@@ -512,7 +512,7 @@ namespace Legion {
       if (inside_registration_callback)
         return TaskContext::generate_dynamic_projection_id();
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_GENERATE_DYNAMIC_PROJECTION_ID, __func__);
@@ -544,7 +544,7 @@ namespace Legion {
       if (inside_registration_callback)
         return TaskContext::generate_dynamic_sharding_id();
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_GENERATE_DYNAMIC_SHARDING_ID, __func__);
@@ -575,7 +575,7 @@ namespace Legion {
       if (inside_registration_callback)
         return TaskContext::generate_dynamic_concurrent_id();
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_GENERATE_DYNAMIC_CONCURRENT_ID, __func__);
@@ -606,7 +606,7 @@ namespace Legion {
       if (inside_registration_callback)
         return TaskContext::generate_dynamic_task_id();
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_GENERATE_DYNAMIC_TASK_ID, __func__);
@@ -637,7 +637,7 @@ namespace Legion {
       if (inside_registration_callback)
         return TaskContext::generate_dynamic_reduction_id();
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_GENERATE_DYNAMIC_REDUCTION_ID, __func__);
@@ -668,7 +668,7 @@ namespace Legion {
       if (inside_registration_callback)
         return TaskContext::generate_dynamic_serdez_id();
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_GENERATE_DYNAMIC_SERDEZ_ID, __func__);
@@ -702,7 +702,7 @@ namespace Legion {
         return TaskContext::perform_semantic_attach(func, kind, arg, arglen,
             tag, buffer, size, is_mutable, global, arg2, arg2len);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(kind, func);
@@ -713,7 +713,7 @@ namespace Legion {
           hasher.hash(buffer, size, "buffer");
         hasher.hash(is_mutable, "is_mutable");
         hasher.hash(global, "send_to_owner");
-        if (arg2 != NULL)
+        if (arg2 != nullptr)
           hasher.hash(arg2, arg2len, "fid");
         if (hasher.verify(func))
           break;
@@ -765,7 +765,7 @@ namespace Legion {
                                        const char *description) const
     //--------------------------------------------------------------------------
     {
-      if (future.impl == NULL)
+      if (future.impl == nullptr)
         return;
       ContextCoordinate coordinate;
       if (future.impl->get_context_coordinate(this, coordinate))
@@ -791,7 +791,7 @@ namespace Legion {
                                   const FutureMap &map, const char *description)
     //--------------------------------------------------------------------------
     {
-      if (map.impl == NULL)
+      if (map.impl == nullptr)
         return;
       hasher.hash(map.impl->blocking_index, description);
     }
@@ -896,7 +896,7 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION
         ReplPredicateImpl *impl = dynamic_cast<ReplPredicateImpl*>(pred.impl);
-        assert(impl != NULL);
+        assert(impl != nullptr);
 #else
         ReplPredicateImpl *impl = static_cast<ReplPredicateImpl*>(pred.impl);
 #endif
@@ -909,7 +909,7 @@ namespace Legion {
         HashVerifier &hasher, const std::vector<StaticDependence> *dependences)
     //--------------------------------------------------------------------------
     {
-      if ((dependences == NULL) || dependences->empty())
+      if ((dependences == nullptr) || dependences->empty())
         return;
       Serializer rez;
       for (std::vector<StaticDependence>::const_iterator it = 
@@ -986,7 +986,7 @@ namespace Legion {
       hash_phase_barriers(hasher, launcher.wait_barriers);
       hash_phase_barriers(hasher, launcher.arrive_barriers);
       hash_argument(hasher, safe_level, launcher.global_arg, "global_arg");
-      if (launcher.argument_map.impl != NULL)
+      if (launcher.argument_map.impl != nullptr)
         hash_future_map(hasher,
             launcher.argument_map.impl->freeze(this, hasher.provenance),
                         "argument_map");
@@ -1153,8 +1153,8 @@ namespace Legion {
            " call sites. We'll run the hash algorithm again to try to recognize"
            " what value differs between the shards, hang tight...",
            description, get_task_name(), get_unique_id(), owner_shard->shard_id,
-           (provenance == NULL) ? 7 : int(provenance->human.length()),
-           (provenance == NULL) ? "unknown" : provenance->human.data());
+           (provenance == nullptr) ? 7 : int(provenance->human.length()),
+           (provenance == nullptr) ? "unknown" : provenance->human.data());
       }
       else
         REPORT_LEGION_ERROR(ERROR_CONTROL_REPLICATION_VIOLATION,
@@ -1183,14 +1183,14 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(created_nodes.size() == created_trees.size());
 #endif
-      if ((mapping == NULL) || (mapping->size() != total_shards))
+      if ((mapping == nullptr) || (mapping->size() != total_shards))
       {
         // Do the volumetric extraction to send all of the equivalence sets
         // from the source shard to the right shards in this context
         std::map<ShardID,LegionMap<RegionNode*,FieldMaskSet<EquivalenceSet> > >
           eq_sets;
         for (unsigned idx = 0; idx < created_nodes.size(); idx++)
-          if (created_trees[idx] != NULL)
+          if (created_trees[idx] != nullptr)
             created_trees[idx]->find_shard_equivalence_sets(eq_sets,
                 source_shard, 0/*lower shard id*/, 
                 total_shards-1/*upper shard id*/, created_nodes[idx]);
@@ -1238,7 +1238,7 @@ namespace Legion {
             RegionNode *region = created_nodes[idx];
             rez.serialize(region->handle);
             FieldMaskSet<EquivalenceSet> eq_sets;
-            if (created_trees[idx] != NULL)
+            if (created_trees[idx] != nullptr)
               created_trees[idx]->find_local_equivalence_sets(eq_sets,
                                                         source_shard);
             rez.serialize<size_t>(eq_sets.size());
@@ -1367,7 +1367,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              (i > 0), provenance);
@@ -1408,7 +1408,7 @@ namespace Legion {
         handle = IndexSpace(value.did, value.tid, type_tag);
         double_buffer = value.double_buffer;
         runtime->create_node(handle, domain, take_ownership,
-            NULL/*parent*/, 0/*color*/, creation_bar,
+            nullptr/*parent*/, 0/*color*/, creation_bar,
             provenance, ApEvent::NO_AP_EVENT, value.expr_id,
             &collective_mapping, true/*add root reference*/);
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -1419,7 +1419,7 @@ namespace Legion {
 #endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
-              (provenance == NULL) ? std::string_view() : provenance->human);
+              (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -1436,7 +1436,7 @@ namespace Legion {
 #endif
         double_buffer = value.double_buffer;
         runtime->create_node(handle, domain, take_ownership,
-            NULL/*parent*/, 0/*color*/, creation_bar,
+            nullptr/*parent*/, 0/*color*/, creation_bar,
             provenance, ApEvent::NO_AP_EVENT, value.expr_id, 
             &collective_mapping, true/*add root reference*/);
         // Arrive on the creation barrier
@@ -1464,7 +1464,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              i > 0, provenance);
@@ -1518,7 +1518,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              i > 0, provenance);
@@ -1539,7 +1539,7 @@ namespace Legion {
       bool double_buffer = false;
       std::pair<ValueBroadcast<ISBroadcast>*,bool> &collective = 
         pending_index_spaces.front();
-      IndexSpaceNode *node = NULL;
+      IndexSpaceNode *node = nullptr;
       // Get a new creation operation
       CreationOp *creator_op = runtime->get_operation<CreationOp>();
       const ApEvent ready = creator_op->get_completion_event();
@@ -1552,7 +1552,7 @@ namespace Legion {
         handle = IndexSpace(value.did, value.tid, type_tag);
         double_buffer = value.double_buffer;
         node = runtime->create_node(handle, Domain::NO_DOMAIN, 
-            true/*task ownership*/, NULL/*parent*/, 0/*color*/, creation_bar,
+            true/*task ownership*/, nullptr/*parent*/, 0/*color*/, creation_bar,
             provenance, ready, value.expr_id, &collective_mapping,
             true/*add root reference*/);
         // Arrive on the creation barrier
@@ -1564,7 +1564,7 @@ namespace Legion {
 #endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
-              (provenance == NULL) ? std::string_view() : provenance->human);
+              (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -1581,7 +1581,7 @@ namespace Legion {
 #endif
         double_buffer = value.double_buffer;
         node = runtime->create_node(handle, Domain::NO_DOMAIN,
-            true/*take ownership*/, NULL/*parent*/, 0/*color*/, creation_bar,
+            true/*take ownership*/, nullptr/*parent*/, 0/*color*/, creation_bar,
             provenance, ready, value.expr_id, &collective_mapping,
             true/*add root reference*/);
         // Arrive on the creation barrier
@@ -1613,7 +1613,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              i > 0, provenance);
@@ -1653,7 +1653,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-          ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+          ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              i > 0, provenance);
@@ -1692,7 +1692,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              i > 0, provenance);
@@ -1749,7 +1749,7 @@ namespace Legion {
 #endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
-              (provenance == NULL) ? std::string_view() : provenance->human);
+              (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -1792,7 +1792,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              i > 0, provenance);
@@ -1849,7 +1849,7 @@ namespace Legion {
 #endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
-              (provenance == NULL) ? std::string_view() : provenance->human);
+              (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -1892,7 +1892,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              i > 0, provenance);
@@ -1939,7 +1939,7 @@ namespace Legion {
 #endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_index_space(handle.get_id(), runtime->address_space,
-              (provenance == NULL) ? std::string_view() : provenance->human);
+              (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -1981,7 +1981,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-          ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+          ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_CREATE_SHARED_OWNERSHIP, __func__);
@@ -2019,7 +2019,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
-           && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+           && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              i > 0, provenance);
@@ -2099,7 +2099,7 @@ namespace Legion {
                                           unordered, provenance);
       op->initialize_replication(this,
           shard_manager->is_first_local_shard(owner_shard));
-      if (!add_to_dependence_queue(op, NULL/*deps*/, unordered))
+      if (!add_to_dependence_queue(op, nullptr/*deps*/, unordered))
       {
 #ifdef DEBUG_LEGION
         assert(unordered);
@@ -2117,7 +2117,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_CREATE_SHARED_OWNERSHIP, __func__); 
@@ -2147,7 +2147,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
-           && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+           && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                              i > 0, provenance);
@@ -2218,7 +2218,7 @@ namespace Legion {
                                          unordered, provenance);
       op->initialize_replication(this,
           shard_manager->is_first_local_shard(owner_shard));
-      if (!add_to_dependence_queue(op, NULL/*deps*/, unordered))
+      if (!add_to_dependence_queue(op, nullptr/*deps*/, unordered))
       {
 #ifdef DEBUG_LEGION
         assert(unordered);
@@ -2365,7 +2365,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -2407,7 +2407,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -2452,7 +2452,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -2545,7 +2545,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -2636,7 +2636,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -2711,7 +2711,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -2792,7 +2792,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -2953,7 +2953,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3013,7 +3013,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3065,7 +3065,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !skip_check &&(i < 2)
-           && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+           && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3118,7 +3118,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3199,7 +3199,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3279,7 +3279,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3358,7 +3358,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3455,7 +3455,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3532,7 +3532,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !trust && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3554,7 +3554,7 @@ namespace Legion {
       else
         color_generated = true;
       IndexPartition pid(0/*temp*/,parent.get_tree_id(),parent.get_type_tag());
-      if (create_shard_partition(NULL/*op*/, pid, parent, color_space,
+      if (create_shard_partition(nullptr/*op*/, pid, parent, color_space,
             provenance, part_kind, part_color, color_generated))
         log_index.debug("Creating pending partition in task %s (ID %lld)", 
                         get_task_name(), get_unique_id());
@@ -3580,7 +3580,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3618,7 +3618,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3654,7 +3654,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3693,7 +3693,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3731,7 +3731,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3910,7 +3910,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -3937,7 +3937,7 @@ namespace Legion {
       bool double_buffer = false;
       std::pair<ValueBroadcast<FSBroadcast>*,bool> &collective = 
         pending_field_spaces.front();
-      if (creator != NULL)
+      if (creator != nullptr)
         *creator = collective.first->origin;
       CollectiveMapping &collective_mapping = 
         shard_manager->get_collective_mapping();
@@ -3959,7 +3959,7 @@ namespace Legion {
 #endif
         if (runtime->legion_spy_enabled)
           LegionSpy::log_field_space(space.get_id(), runtime->address_space,
-              (provenance == NULL) ? std::string_view() : provenance->human);
+              (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -4005,7 +4005,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4089,7 +4089,7 @@ namespace Legion {
         if (runtime->legion_spy_enabled && !non_owner)
           for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
             LegionSpy::log_field_creation(space.get_id(), resulting_fields[idx],
-             sizes[idx], (provenance == NULL) ? std::string_view() : 
+             sizes[idx], (provenance == nullptr) ? std::string_view() : 
              provenance->human);
       }
       else
@@ -4109,7 +4109,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4177,7 +4177,7 @@ namespace Legion {
 #endif
       }
       for (unsigned idx = 0; idx < sizes.size(); idx++)
-        if (sizes[idx].impl == NULL)
+        if (sizes[idx].impl == nullptr)
           REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE,
               "Invalid empty future passed to field allocation for field %d "
               "in task %s (UID %lld)", resulting_fields[idx],
@@ -4277,7 +4277,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
-            && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4352,7 +4352,7 @@ namespace Legion {
       op->initialize_field_space_deletion(this, handle, unordered, provenance);
       op->initialize_replication(this,
           shard_manager->is_first_local_shard(owner_shard));
-      if (!add_to_dependence_queue(op, NULL/*deps*/, unordered))
+      if (!add_to_dependence_queue(op, nullptr/*deps*/, unordered))
       {
 #ifdef DEBUG_LEGION
         assert(unordered);
@@ -4373,7 +4373,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4449,7 +4449,7 @@ namespace Legion {
                                              serdez_id, provenance, non_owner);
         if (runtime->legion_spy_enabled && !non_owner)
           LegionSpy::log_field_creation(space.get_id(), fid, field_size,
-              (provenance == NULL) ? std::string_view() : provenance->human);
+              (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       const RtBarrier creation_bar = creation_barrier.next(this);
       runtime->phase_barrier_arrive(creation_bar, 1/*count*/, precondition);
@@ -4499,7 +4499,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4562,7 +4562,7 @@ namespace Legion {
                      "ID %d which exceeds the LEGION_MAX_APPLICATION_FIELD_ID"
                      " bound set in legion_config.h", get_task_name(),
                      get_unique_id(), fid)
-      if (field_size.impl == NULL)
+      if (field_size.impl == nullptr)
         REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE,
             "Invalid empty future passed to field allocation for field %d "
             "in task %s (UID %lld)", fid, get_task_name(), get_unique_id())
@@ -4610,7 +4610,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4646,7 +4646,7 @@ namespace Legion {
                                     provenance, (owner_shard->shard_id != 0));
       op->initialize_replication(this,
           shard_manager->is_first_local_shard(owner_shard));
-      if (!add_to_dependence_queue(op, NULL/*deps*/, unordered))
+      if (!add_to_dependence_queue(op, nullptr/*deps*/, unordered))
       {
 #ifdef DEBUG_LEGION
         assert(unordered);
@@ -4668,7 +4668,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4754,7 +4754,7 @@ namespace Legion {
         if (runtime->legion_spy_enabled && !non_owner)
           for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
             LegionSpy::log_field_creation(space.get_id(), resulting_fields[idx],
-             sizes[idx], (provenance == NULL) ? std::string_view() :
+             sizes[idx], (provenance == nullptr) ? std::string_view() :
              provenance->human);
       }
       const RtBarrier creation_bar = creation_barrier.next(this);
@@ -4773,7 +4773,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4845,7 +4845,7 @@ namespace Legion {
 #endif
       }
       for (unsigned idx = 0; idx < sizes.size(); idx++)
-        if (sizes[idx].impl == NULL)
+        if (sizes[idx].impl == nullptr)
           REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE,
               "Invalid empty future passed to field allocation for field %d "
               "in task %s (UID %lld)", resulting_fields[idx],
@@ -4896,7 +4896,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
-            && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4941,7 +4941,7 @@ namespace Legion {
                     allocator, provenance, (owner_shard->shard_id != 0));
       op->initialize_replication(this,
           shard_manager->is_first_local_shard(owner_shard));
-      if (!add_to_dependence_queue(op, NULL/*deps*/, unordered))
+      if (!add_to_dependence_queue(op, nullptr/*deps*/, unordered))
       {
 #ifdef DEBUG_LEGION
         assert(unordered);
@@ -4964,7 +4964,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -4995,7 +4995,7 @@ namespace Legion {
         handle.tree_did = value.tid;
         double_buffer = value.double_buffer;
         // Have to register this before doing the broadcast
-        runtime->create_node(handle, NULL/*parent*/, creation_bar,
+        runtime->create_node(handle, nullptr/*parent*/, creation_bar,
             value.did, provenance, &collective_mapping);
         // Arrive on the creation barrier
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -5009,7 +5009,7 @@ namespace Legion {
         if (runtime->legion_spy_enabled)
           LegionSpy::log_top_region(index_space.get_id(), field_space.get_id(),
               handle.get_tree_id(), runtime->address_space,
-              (provenance == NULL) ? std::string_view() : provenance->human);
+              (provenance == nullptr) ? std::string_view() : provenance->human);
       }
       else
       {
@@ -5025,7 +5025,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(handle.exists());
 #endif
-        runtime->create_node(handle, NULL/*parent*/, creation_bar,
+        runtime->create_node(handle, nullptr/*parent*/, creation_bar,
             value.did, provenance, &collective_mapping);
         // Signal that we are done our creation
         runtime->phase_barrier_arrive(creation_bar, 1/*count*/);
@@ -5101,7 +5101,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_CREATE_SHARED_OWNERSHIP, __func__);
@@ -5138,7 +5138,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
-            && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -5207,7 +5207,7 @@ namespace Legion {
       op->initialize_logical_region_deletion(this, handle,unordered,provenance);
       op->initialize_replication(this,
           shard_manager->is_first_local_shard(owner_shard));
-      if (!add_to_dependence_queue(op, NULL/*deps*/, unordered))
+      if (!add_to_dependence_queue(op, nullptr/*deps*/, unordered))
       {
 #ifdef DEBUG_LEGION
         assert(unordered);
@@ -5226,7 +5226,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_RESET_EQUIVALENCE_SETS, __func__);
@@ -5239,7 +5239,7 @@ namespace Legion {
           break;
       }
       // Ignore reset calls inside of traces replays
-      if ((current_trace != NULL) && current_trace->is_fixed())
+      if ((current_trace != nullptr) && current_trace->is_fixed())
       {
         REPORT_LEGION_WARNING(
             LEGION_WARNING_IGNORING_EQUIVALENCE_SETS_RESET,
@@ -5268,7 +5268,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
-            && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_CREATE_FIELD_ALLOCATOR, __func__);
@@ -5389,7 +5389,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(unordered_collective == NULL);
+      assert(unordered_collective == nullptr);
 #endif
       unordered_ops_counter = 0;
       unordered_collective = 
@@ -5402,7 +5402,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(unordered_collective != NULL);
+      assert(unordered_collective != nullptr);
 #endif
       const RtEvent ready =
         unordered_collective->perform_collective_wait(false/*block*/);
@@ -5416,7 +5416,7 @@ namespace Legion {
       if (!unordered_ops.empty())
         unordered_collective->find_ready_operations(ready_operations);
       delete unordered_collective;
-      unordered_collective = NULL;
+      unordered_collective = nullptr;
       if (!ready_operations.empty())
       {
         // Filter out the ready operations
@@ -5456,7 +5456,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // If we have a trace then we're definitely not inserting operations
-      if (current_trace != NULL)
+      if (current_trace != nullptr)
         return;
       // For control replication, we need to have an algorithm to determine
       // when the shards try to sync up to insert operations that doesn't
@@ -5473,7 +5473,7 @@ namespace Legion {
         return;
       // Check to see if the previous exchange had any matching unordered
       // operations for us to perform
-      if (unordered_collective != NULL)
+      if (unordered_collective != nullptr)
         finalize_unordered_collective(d_lock);
       // Start the next exchange
       initialize_unordered_collective();
@@ -5489,19 +5489,19 @@ namespace Legion {
         // This is the end of this parent task so mark that we're done
 #ifdef DEBUG_LEGION
         assert(!finished_execution);
-        assert(current_trace == NULL);
+        assert(current_trace == nullptr);
 #endif
         finished_execution = true;
       }
       // No progress can occur inside of a trace
-      else if (current_trace != NULL)
+      else if (current_trace != nullptr)
         return;
       // With control replication we're always doing half phases for detecting
       // when we have unordered operations across all shards that are ready to
       // be performed, but in this case the user has asked us to actually
       // perform a full phase, so finish the previous one and then start a 
       // new phase if we're not the end last phase
-      if (unordered_collective != NULL)
+      if (unordered_collective != nullptr)
         finalize_unordered_collective(d_lock);
       initialize_unordered_collective();
       finalize_unordered_collective(d_lock);
@@ -5523,7 +5523,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       unsigned result = 0;
-      if (minimize_repeats_collective != NULL)
+      if (minimize_repeats_collective != nullptr)
       {
         result = minimize_repeats_collective->get_result();
 #ifdef DEBUG_LEGION
@@ -5548,13 +5548,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
         hasher.hash(REPLICATE_EXECUTE_TASK, __func__);
         hash_task_launcher(hasher, runtime->safe_control_replication, launcher);
-        if (outputs != NULL) hash_output_requirements(hasher, *outputs);
+        if (outputs != nullptr) hash_output_requirements(hasher, *outputs);
         if (hasher.verify(__func__))
           break;
       }
@@ -5610,13 +5610,13 @@ namespace Legion {
         return result;
       }
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-          ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+          ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
         hasher.hash(REPLICATE_EXECUTE_INDEX_SPACE, __func__);
         hash_index_launcher(hasher, runtime->safe_control_replication,launcher);
-        if (outputs != NULL) hash_output_requirements(hasher, *outputs);
+        if (outputs != nullptr) hash_output_requirements(hasher, *outputs);
         if (hasher.verify(__func__))
           break;
       }
@@ -5681,7 +5681,7 @@ namespace Legion {
                                  launcher.initial_value);
       }
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -5689,7 +5689,7 @@ namespace Legion {
         hash_index_launcher(hasher, runtime->safe_control_replication,launcher);
         hasher.hash(redop, "redop");
         hasher.hash<bool>(deterministic, "deterministic");
-        if (outputs != NULL) hash_output_requirements(hasher, *outputs);
+        if (outputs != nullptr) hash_output_requirements(hasher, *outputs);
         if (hasher.verify(__func__))
           break;
       } 
@@ -5750,7 +5750,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -5765,7 +5765,7 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-      if (future_map.impl == NULL)
+      if (future_map.impl == nullptr)
       {
         const ReductionOp *reduction_op = runtime->get_reduction(redop);
         FutureImpl *result = new FutureImpl(this, true/*register*/,
@@ -5867,7 +5867,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -5967,7 +5967,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -6054,7 +6054,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -6087,7 +6087,7 @@ namespace Legion {
                     get_task_name(), get_unique_id());
 #endif
       map_op->initialize_replication(this); 
-      if (current_trace != NULL)
+      if (current_trace != nullptr)
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
                       "Attempted an inline mapping of region "
                       "(%llu,%llu,%llu) inside of trace %d of parent task %s "
@@ -6137,7 +6137,7 @@ namespace Legion {
       if (!internal)
       {
         for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-              ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+              ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
         {
           HashVerifier hasher(this, runtime->safe_control_replication > 1,
                                 i > 0, provenance);
@@ -6156,7 +6156,7 @@ namespace Legion {
       // if it is then we are done
       if (region.is_mapped())
         return ApEvent::NO_AP_EVENT;
-      if (current_trace != NULL)
+      if (current_trace != nullptr)
       {
         const RegionRequirement &req = region.impl->get_requirement();
         REPORT_LEGION_ERROR(ERROR_ATTEMPTED_INLINE_MAPPING_REGION,
@@ -6182,7 +6182,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -6258,7 +6258,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -6347,7 +6347,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -6403,7 +6403,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -6480,7 +6480,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -6573,7 +6573,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_ACQUIRE, __func__);
@@ -6589,7 +6589,7 @@ namespace Legion {
         hasher.hash(launcher.tag, "tag");
         hash_argument(hasher,
             runtime->safe_control_replication, launcher.map_arg, "map_arg");
-        if (launcher.physical_region.impl != NULL)
+        if (launcher.physical_region.impl != nullptr)
         {
           Serializer rez;
           ExternalMappable::pack_region_requirement(
@@ -6638,7 +6638,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_RELEASE, __func__);
@@ -6654,7 +6654,7 @@ namespace Legion {
         hasher.hash(launcher.tag, "tag");
         hash_argument(hasher,
             runtime->safe_control_replication, launcher.map_arg, "map_arg");
-        if (launcher.physical_region.impl != NULL)
+        if (launcher.physical_region.impl != nullptr)
         {
           Serializer rez;
           ExternalMappable::pack_region_requirement(
@@ -6704,7 +6704,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -6789,7 +6789,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -6908,7 +6908,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Call the base version first if our indexes are not empty
-      RegionTreeNode *result = indexes.empty() ? NULL :
+      RegionTreeNode *result = indexes.empty() ? nullptr :
         InnerContext::compute_index_attach_upper_bound(launcher, indexes);
       // Do the exchange between the shards
       IndexAttachUpperBound exchange(this, COLLECTIVE_LOC_26);
@@ -6922,13 +6922,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
-            && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
         hasher.hash(REPLICATE_DETACH_RESOURCE, __func__);
         Serializer rez;
-        if (region.impl != NULL)
+        if (region.impl != nullptr)
           ExternalMappable::pack_region_requirement(
               region.impl->get_requirement(), rez);
         hasher.hash(rez.get_buffer(), rez.get_used_bytes(), "requirement");
@@ -6948,7 +6948,7 @@ namespace Legion {
         unregister_inline_mapped_region(region);
         region.impl->unmap_region();
       }
-      if (!add_to_dependence_queue(op, NULL/*deps*/, unordered))
+      if (!add_to_dependence_queue(op, nullptr/*deps*/, unordered))
       {
 #ifdef DEBUG_LEGION
         assert(unordered);
@@ -6968,12 +6968,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && !unordered && (i < 2)
-            && ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            && ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
         hasher.hash(REPLICATE_INDEX_DETACH_RESOURCE, __func__);
-        if (resources.impl != NULL)
+        if (resources.impl != nullptr)
         {
           hasher.hash(resources.impl->parent, "parent");
           for (std::vector<FieldID>::const_iterator it =
@@ -6992,13 +6992,13 @@ namespace Legion {
         if (hasher.verify(__func__))
           break;
       }
-      if (resources.impl == NULL)
+      if (resources.impl == nullptr)
         return Future();
       ReplIndexDetachOp *op = runtime->get_operation<ReplIndexDetachOp>();
       Future result =
         resources.impl->detach(this, op, flush, unordered, provenance);
       op->initialize_replication(this);
-      if (!add_to_dependence_queue(op, NULL/*deps*/, unordered))
+      if (!add_to_dependence_queue(op, nullptr/*deps*/, unordered))
       {
 #ifdef DEBUG_LEGION
         assert(unordered);
@@ -7018,7 +7018,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -7078,7 +7078,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -7114,7 +7114,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -7147,7 +7147,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -7172,7 +7172,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1,
                               i > 0, provenance);
@@ -7207,7 +7207,7 @@ namespace Legion {
         hasher.hash<bool>(logical_only, "logical_only");
         hasher.hash<bool>(static_trace, "static_trace");
         hasher.hash<bool>(deprecated, "deprecated");
-        if (trees != NULL)
+        if (trees != nullptr)
           for (std::set<RegionTreeID>::const_iterator it = 
                 trees->begin(); it != trees->end(); it++)
             hasher.hash(*it, "trees");
@@ -7222,11 +7222,11 @@ namespace Legion {
 #endif
       // No need to hold the lock here, this is only ever called
       // by the one thread that is running the task.
-      if (current_trace != NULL)
+      if (current_trace != nullptr)
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_NESTED_TRACE,
           "Illegal nested trace with ID %d attempted in "
            "task %s (ID %lld)", tid, get_task_name(), get_unique_id())
-      LogicalTrace *trace = NULL;
+      LogicalTrace *trace = nullptr;
       std::map<TraceID,LogicalTrace*>::const_iterator finder = traces.find(tid);
       if (finder == traces.end())
       {
@@ -7245,10 +7245,10 @@ namespace Legion {
       else
         trace = finder->second;
 #ifdef DEBUG_LEGION
-      assert(trace != NULL);
+      assert(trace != nullptr);
 #endif
-      ReplTraceOp *trace_op = NULL;
-      if (previous_trace == NULL)
+      ReplTraceOp *trace_op = nullptr;
+      if (previous_trace == nullptr)
       {
         // Issue a begin op
         ReplTraceBeginOp *begin = runtime->get_operation<ReplTraceBeginOp>();
@@ -7262,7 +7262,7 @@ namespace Legion {
         recurrent->initialize_recurrent(this, trace, previous_trace,
             provenance, (traces.find(previous_trace->tid) == traces.end()));
         trace_op = recurrent;
-        previous_trace = NULL;
+        previous_trace = nullptr;
       }
       if (trace->is_fixed() && trace->has_physical_trace())
       {
@@ -7530,7 +7530,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(previous_trace != NULL);
+      assert(previous_trace != nullptr);
 #endif
       ReplTraceCompleteOp *op = 
         runtime->get_operation<ReplTraceCompleteOp>();
@@ -7604,7 +7604,7 @@ namespace Legion {
         IndexSpaceNode *launch_space = proj_info.projection_space;
         Domain launch_domain = launch_space->get_tight_domain();
         Domain shard_domain;
-        if (proj_info.sharding_space != NULL)
+        if (proj_info.sharding_space != nullptr)
           shard_domain = proj_info.sharding_space->get_tight_domain();
         else
           shard_domain = launch_domain;
@@ -7705,7 +7705,7 @@ namespace Legion {
     {
       bool previous_ready = true;
       bool double_latency = false;
-      if (exchange != NULL)
+      if (exchange != nullptr)
       {
         RtEvent ready = exchange->perform_collective_wait(false/*block*/);
         if (ready.exists() && !ready.has_triggered())
@@ -7876,7 +7876,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_CREATE_PHASE_BARRIER, __func__);
@@ -7902,7 +7902,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_DESTROY_PHASE_BARRIER, __func__);
@@ -7924,9 +7924,9 @@ namespace Legion {
     {
       // For now we issue a mapping fence whenever we do this because
       // we do not have any logical dependence analysis on phase barriers
-      issue_mapping_fence(NULL/*provenance*/);
+      issue_mapping_fence(nullptr/*provenance*/);
       for (int i = 0; runtime->safe_control_replication && (i < 2) &&
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_ADVANCE_PHASE_BARRIER, __func__);
@@ -8015,9 +8015,9 @@ namespace Legion {
     {
       // For now we issue a mapping fence whenever we do this because
       // we do not have any logical dependence analysis on phase barriers
-      issue_mapping_fence(NULL/*provenance*/);
+      issue_mapping_fence(nullptr/*provenance*/);
       for (int i = 0; runtime->safe_control_replication && (i < 2) && 
-            ((current_trace == NULL) || !current_trace->is_fixed()); i++)
+            ((current_trace == nullptr) || !current_trace->is_fixed()); i++)
       {
         HashVerifier hasher(this, runtime->safe_control_replication > 1, i > 0);
         hasher.hash(REPLICATE_ADVANCE_DYNAMIC_COLLECTIVE, __func__);
@@ -8130,7 +8130,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ShardCollective *collective = find_or_buffer_collective(derez);   
-      if (collective != NULL)
+      if (collective != nullptr)
         collective->handle_collective_message(derez);
     }
 
@@ -8178,7 +8178,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ShardRendezvous *rendezvous = find_or_buffer_rendezvous(derez);
-      if ((rendezvous != NULL) && rendezvous->receive_message(derez))
+      if ((rendezvous != nullptr) && rendezvous->receive_message(derez))
       {
         AutoLock repl_lock(replication_lock);
         std::map<ShardID,ShardRendezvous*>::iterator finder =
@@ -8211,7 +8211,7 @@ namespace Legion {
       derez.advance_pointer(remaining_bytes);
       pending_rendezvous_updates[origin_shard].push_back(
           std::pair<void*,size_t>(buffer, remaining_bytes));
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -8358,7 +8358,7 @@ namespace Legion {
           if (wait_on.exists() && !wait_on.has_triggered())
             wait_on.wait();
         }
-        EqKDTree *current = NULL;
+        EqKDTree *current = nullptr;
         {
           AutoLock priv_lock(privilege_lock);
           unsigned index = add_created_region(handle,
@@ -8394,8 +8394,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ShardedPhysicalTemplate *tpl = find_or_buffer_trace_update(derez, source);
-      // If the template is NULL then the request was buffered
-      if (tpl == NULL)
+      // If the template is nullptr then the request was buffered
+      if (tpl == nullptr)
         return;
       tpl->handle_trace_update(derez, source);
     }
@@ -8405,7 +8405,7 @@ namespace Legion {
                      size_t template_index, ApEvent event, ShardID remote_shard)
     //--------------------------------------------------------------------------
     {
-      ShardedPhysicalTemplate *physical_template = NULL;
+      ShardedPhysicalTemplate *physical_template = nullptr;
       {
         AutoLock r_lock(replication_lock);
         std::map<size_t,ShardedPhysicalTemplate*>::const_iterator finder = 
@@ -8428,7 +8428,7 @@ namespace Legion {
                      size_t template_index, ApEvent event, ShardID remote_shard)
     //--------------------------------------------------------------------------
     {
-      ShardedPhysicalTemplate *physical_template = NULL;
+      ShardedPhysicalTemplate *physical_template = nullptr;
       {
         AutoLock r_lock(replication_lock);
         std::map<size_t,ShardedPhysicalTemplate*>::const_iterator finder = 
@@ -9197,7 +9197,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(collectives.find(collective->collective_index) == 
                collectives.end());
-        assert(shard_manager != NULL);
+        assert(shard_manager != nullptr);
 #endif
         // If the collectives are empty then we add a reference to the
         // shard manager to prevent it being collected before we're
@@ -9247,7 +9247,7 @@ namespace Legion {
       derez.advance_pointer(remaining_bytes);
       pending_collective_updates[collective_index].push_back(
           std::pair<void*,size_t>(buffer, remaining_bytes));
-      return NULL;
+      return nullptr;
     } 
 
     //--------------------------------------------------------------------------
@@ -9330,7 +9330,7 @@ namespace Legion {
       derez.advance_pointer(remaining_bytes);
       pending_template_updates[trace_index].push_back(
           PendingTemplateUpdate(buffer, remaining_bytes, source));
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -9378,7 +9378,7 @@ namespace Legion {
             parent_req_indexes[req_index], targets, target_spaces,
             creation_target_space, expr, mask);
       // Find the equivalence set tree for this region requirement
-      LocalLock *tree_lock = NULL;
+      LocalLock *tree_lock = nullptr;
       EqKDTree *tree = find_equivalence_set_kd_tree(req_index, tree_lock);
       // Then ask the index space expression to traverse the tree for
       // all of its rectangles and find the equivalence sets that are needed
@@ -9443,7 +9443,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(regions.size() <= req_index);
 #endif
-      LocalLock *tree_lock = NULL;
+      LocalLock *tree_lock = nullptr;
       EqKDTree *tree = find_or_create_output_set_kd_tree(req_index, tree_lock); 
       FieldMaskSet<EqKDTree> new_subscriptions;
       std::map<ShardID,LegionMap<Domain,FieldMask> > remote_shard_rects;
@@ -9524,7 +9524,7 @@ namespace Legion {
       }
       if (sharded || !first)
       {
-        LocalLock *tree_lock = NULL;
+        LocalLock *tree_lock = nullptr;
         EqKDTree *tree = find_equivalence_set_kd_tree(req_index, tree_lock);
         std::map<ShardID,LegionMap<Domain,FieldMask> > remote_shard_rects;
         node->invalidate_shard_equivalence_set_kd_tree(tree, tree_lock,
@@ -9539,7 +9539,7 @@ namespace Legion {
           // address space of the node where the target shard is then we 
           // don't need to send that message as it will be handled by the
           // call done on that node
-          if (mapping != NULL)
+          if (mapping != nullptr)
           {
             AddressSpace target = shard_manager->get_shard_space(sit->first);
             if ((target != local_space) && (mapping->contains(target) ||
@@ -9574,7 +9574,7 @@ namespace Legion {
         IndexSpaceNode *node, const CollectiveMapping *mapping)
     //--------------------------------------------------------------------------
     {
-      const bool first = (node == NULL);
+      const bool first = (node == nullptr);
       if (first)
       {
         LogicalRegion region = find_logical_region(req_index);
@@ -9594,7 +9594,7 @@ namespace Legion {
       }
       if (!first)
       {
-        LocalLock *tree_lock = NULL;
+        LocalLock *tree_lock = nullptr;
         EqKDTree *tree = find_equivalence_set_kd_tree(req_index, tree_lock);
         LegionMap<ShardID,FieldMask> remote_shards;
         node->find_shard_trace_local_sets_kd_tree(tree, tree_lock, mask,
@@ -9612,7 +9612,7 @@ namespace Legion {
             // address space of the node where the target shard is then we 
             // don't need to send that message as it will be handled by the
             // call done on that node
-            if (mapping != NULL)
+            if (mapping != nullptr)
             {
               AddressSpace target = shard_manager->get_shard_space(it->first);
               if ((target != local_space) && (mapping->contains(target) ||
@@ -9652,7 +9652,7 @@ namespace Legion {
       IndexSpace handle;
       derez.deserialize(handle);
       IndexSpaceNode *node = runtime->get_node(handle);
-      LocalLock *tree_lock = NULL;
+      LocalLock *tree_lock = nullptr;
       EqKDTree *tree = find_equivalence_set_kd_tree(req_index, tree_lock);
       std::map<EquivalenceSet*,unsigned> local_sets;
       node->find_trace_local_sets_kd_tree(tree, tree_lock, mask, req_index,
@@ -9689,7 +9689,7 @@ namespace Legion {
     {
       unsigned req_index;
       derez.deserialize(req_index);
-      LocalLock *tree_lock = NULL;
+      LocalLock *tree_lock = nullptr;
       EqKDTree *tree = find_equivalence_set_kd_tree(req_index, tree_lock);
       size_t num_rects;
       derez.deserialize(num_rects);
@@ -9740,7 +9740,7 @@ namespace Legion {
       FieldMaskSet<EqKDTree> new_subscriptions;
       std::map<EqKDTree*,Domain> creation_rects;
       std::map<EquivalenceSet*,LegionMap<Domain,FieldMask> > creation_srcs;
-      LocalLock *tree_lock = NULL;
+      LocalLock *tree_lock = nullptr;
       EqKDTree *tree = find_equivalence_set_kd_tree(req_index, tree_lock);
       std::vector<unsigned> new_target_references(num_targets, 0);
       {
@@ -9791,7 +9791,7 @@ namespace Legion {
       derez.deserialize(num_rects);
       
       FieldMaskSet<EqKDTree> new_subscriptions;
-      LocalLock *tree_lock = NULL;
+      LocalLock *tree_lock = nullptr;
       EqKDTree *tree = find_or_create_output_set_kd_tree(req_index, tree_lock);
       if (set_ready.exists() && !set_ready.has_triggered())
         set_ready.wait();
@@ -9982,7 +9982,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       ShardedPhysicalTemplate *result = 
         static_cast<ShardedPhysicalTemplate*>(tpl);
-      assert(result != NULL);
+      assert(result != nullptr);
       return result;
 #else
       return static_cast<ShardedPhysicalTemplate*>(tpl);
@@ -10006,7 +10006,7 @@ namespace Legion {
       // See Runtime::get_current_static_sharding_id for how we get this ID
       runtime->register_sharding_functor(LEGION_MAX_APPLICATION_SHARDING_ID,
           new AttachDetachShardingFunctor(), false/*need check*/,
-          true/*silence warnings*/, NULL, true/*preregistered*/);
+          true/*silence warnings*/, nullptr, true/*preregistered*/);
     }
 
     //--------------------------------------------------------------------------
@@ -10096,7 +10096,7 @@ namespace Legion {
       // See Runtime::get_current_static_sharding_id for how we get this ID
       runtime->register_sharding_functor(LEGION_MAX_APPLICATION_SHARDING_ID + 1,
           new UniversalShardingFunctor(), false/*need check*/,
-          true/*silence warnings*/, NULL, true/*preregistered*/);
+          true/*silence warnings*/, nullptr, true/*preregistered*/);
     }
 
     //--------------------------------------------------------------------------
@@ -10633,7 +10633,7 @@ namespace Legion {
               {
 #ifdef DEBUG_LEGION
                 ReplDeletionOp *op = dynamic_cast<ReplDeletionOp*>(*it);
-                assert(op != NULL);
+                assert(op != nullptr);
 #else
                 ReplDeletionOp *op = static_cast<ReplDeletionOp*>(*it);
 #endif
@@ -10645,12 +10645,12 @@ namespace Legion {
             case DETACH_OP_KIND:
               {
                 ReplDetachOp *op = dynamic_cast<ReplDetachOp*>(*it);
-                if (op == NULL)
+                if (op == nullptr)
                 {
 #ifdef DEBUG_LEGION
                   ReplIndexDetachOp *index = 
                     dynamic_cast<ReplIndexDetachOp*>(*it);
-                  assert(index != NULL);
+                  assert(index != nullptr);
 #else
                   ReplIndexDetachOp *index = 
                     static_cast<ReplIndexDetachOp*>(*it);

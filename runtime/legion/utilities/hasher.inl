@@ -60,7 +60,7 @@ namespace Legion {
     {
       static_assert(std::is_trivially_copyable<T>::value);
       const T *ptr = &value;
-      const uint8_t *data = NULL;
+      const uint8_t *data = nullptr;
       static_assert(sizeof(ptr) == sizeof(data));
       memcpy(&data, &ptr, sizeof(data));
       for (unsigned idx = 0; idx < sizeof(T); idx++)
@@ -129,7 +129,7 @@ namespace Legion {
     inline void Murmur3Hasher::hash(const void *value, size_t size)
     //-------------------------------------------------------------------------
     {
-      const uint8_t *data = NULL;
+      const uint8_t *data = nullptr;
       static_assert(sizeof(data) == sizeof(value));
       memcpy(&data, &value, sizeof(data));
       for (unsigned idx = 0; idx < size; idx++)

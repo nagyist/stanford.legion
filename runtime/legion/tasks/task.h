@@ -220,8 +220,8 @@ namespace Legion {
                                             get_acquired_instances_ref(void);
     public:
       virtual bool distribute_task(void) = 0;
-      virtual bool perform_mapping(MustEpochOp *owner = NULL,
-                                   const DeferMappingArgs *args = NULL) = 0;
+      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
+                                   const DeferMappingArgs *args = nullptr) = 0;
       virtual void launch_task(bool inline_task = false) = 0;
       virtual bool is_stealable(void) const = 0;
       virtual bool is_output_global(unsigned idx) const { return false; }
@@ -239,8 +239,8 @@ namespace Legion {
     public:
       bool defer_perform_mapping(RtEvent precondition, MustEpochOp *op,
                                     unsigned invocation_count = 0,
-                                    std::vector<unsigned> *performed = NULL,
-                                    std::vector<ApEvent> *effects = NULL);
+                                    std::vector<unsigned> *performed = nullptr,
+                                    std::vector<ApEvent> *effects = nullptr);
     public:
       // Tell the parent context that this task is in a ready queue
       void activate_outstanding_task(void);
@@ -339,7 +339,7 @@ namespace Legion {
         const AddressSpaceID source;
       };
     public:
-      TaskImpl(TaskID tid, const char *name = NULL);
+      TaskImpl(TaskID tid, const char *name = nullptr);
       TaskImpl(const TaskImpl &rhs) = delete;
       ~TaskImpl(void);
     public:
@@ -399,7 +399,7 @@ namespace Legion {
                   const TaskVariantRegistrar &registrar, 
                   size_t return_type_size, bool has_return_type_size,
                   const CodeDescriptor &realm_desc,
-                  const void *user_data = NULL, size_t user_data_size = 0);
+                  const void *user_data = nullptr, size_t user_data_size = 0);
       VariantImpl(const VariantImpl &rhs) = delete;
       ~VariantImpl(void);
     public:

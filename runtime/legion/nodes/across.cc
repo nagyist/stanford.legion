@@ -52,7 +52,7 @@ namespace Legion {
       std::vector<unsigned> field_indexes(req.instance_fields.size());
       fs->get_field_indexes(req.instance_fields, field_indexes);
       instances.resize(field_indexes.size());
-      if ((runtime->profiler != NULL) || runtime->legion_spy_enabled)
+      if ((runtime->profiler != nullptr) || runtime->legion_spy_enabled)
         instance_events.resize(field_indexes.size());
       // For each of the fields in the region requirement
       // (importantly in the order they will be copied)
@@ -295,7 +295,7 @@ namespace Legion {
       : LgTaskArgs<DeferCopyAcrossArgs>(o->get_unique_op_id()),
         executor(e), op(o), guard(g), copy_precondition(copy_pre),
         src_indirect_precondition(src_pre), dst_indirect_precondition(dst_pre), 
-        done_event(Runtime::create_ap_user_event(NULL)),
+        done_event(Runtime::create_ap_user_event(nullptr)),
         stage(s+1), replay(repl), recurrent_replay(recurrent)
     //--------------------------------------------------------------------------
     {

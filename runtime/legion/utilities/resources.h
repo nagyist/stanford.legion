@@ -35,7 +35,7 @@ namespace Legion {
       struct DeletedRegion {
       public:
         DeletedRegion(void);
-        DeletedRegion(LogicalRegion r, Provenance *provenance = NULL);
+        DeletedRegion(LogicalRegion r, Provenance *provenance = nullptr);
         DeletedRegion(const DeletedRegion &rhs);
         DeletedRegion(DeletedRegion &&rhs);
         ~DeletedRegion(void);
@@ -52,7 +52,7 @@ namespace Legion {
       struct DeletedField {
       public:
         DeletedField(void);
-        DeletedField(FieldSpace sp, FieldID f, Provenance *provenance = NULL);
+        DeletedField(FieldSpace sp, FieldID f, Provenance *provenance = nullptr);
         DeletedField(const DeletedField &rhs);
         DeletedField(DeletedField &&rhs);
         ~DeletedField(void);
@@ -70,7 +70,7 @@ namespace Legion {
       struct DeletedFieldSpace {
       public:
         DeletedFieldSpace(void);
-        DeletedFieldSpace(FieldSpace sp, Provenance *provenance = NULL);
+        DeletedFieldSpace(FieldSpace sp, Provenance *provenance = nullptr);
         DeletedFieldSpace(const DeletedFieldSpace &rhs);
         DeletedFieldSpace(DeletedFieldSpace &&rhs);
         ~DeletedFieldSpace(void);
@@ -88,7 +88,7 @@ namespace Legion {
       public:
         DeletedIndexSpace(void);
         DeletedIndexSpace(IndexSpace sp, bool recurse, 
-                          Provenance *provenance = NULL);
+                          Provenance *provenance = nullptr);
         DeletedIndexSpace(const DeletedIndexSpace &rhs);
         DeletedIndexSpace(DeletedIndexSpace &&rhs);
         ~DeletedIndexSpace(void);
@@ -107,7 +107,7 @@ namespace Legion {
       public:
         DeletedPartition(void);
         DeletedPartition(IndexPartition p, bool recurse,
-                         Provenance *provenance = NULL);
+                         Provenance *provenance = nullptr);
         DeletedPartition(const DeletedPartition &rhs);
         DeletedPartition(DeletedPartition &&rhs);
         ~DeletedPartition(void);

@@ -60,22 +60,22 @@ namespace Legion {
      */
     class AutoProvenance {
     public:
-      AutoProvenance(void) : provenance(NULL) { }
+      AutoProvenance(void) : provenance(nullptr) { }
       AutoProvenance(const char *prov)
-        : provenance((prov == NULL) ? NULL :
+        : provenance((prov == nullptr) ? nullptr :
             runtime->find_or_create_provenance(prov, strlen(prov)))
         { }
       AutoProvenance(const std::string &prov)
-        : provenance(prov.empty() ? NULL : 
+        : provenance(prov.empty() ? nullptr : 
             runtime->find_or_create_provenance(prov.c_str(), prov.size()))
         { }
       AutoProvenance(Provenance *prov)
         : provenance(prov)
-        { if (provenance != NULL) provenance->add_reference(); }
+        { if (provenance != nullptr) provenance->add_reference(); }
       AutoProvenance(AutoProvenance &&rhs) = delete;
       AutoProvenance(const AutoProvenance &rhs) = delete;
       ~AutoProvenance(void)
-        { if ((provenance != NULL) && provenance->remove_reference()) 
+        { if ((provenance != nullptr) && provenance->remove_reference()) 
             delete provenance; }
     public:
       AutoProvenance& operator=(AutoProvenance &&rhs) = delete;

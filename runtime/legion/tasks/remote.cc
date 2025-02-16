@@ -36,7 +36,7 @@ namespace Legion {
     RemoteTaskOp::~RemoteTaskOp(void)
     //--------------------------------------------------------------------------
     {
-      if (local_args != NULL)
+      if (local_args != nullptr)
         free(local_args);
     }
 
@@ -88,7 +88,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -174,7 +174,7 @@ namespace Legion {
                           input.collective_views);
       prepare_for_mapping(target, input.target);
       input.region_req_index = index;
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(map_id);
       mapper->invoke_select_task_sources(this, input, output);
       compute_ranking(mapper, output.chosen_ranking, sources, ranking, points);

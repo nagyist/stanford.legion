@@ -39,7 +39,7 @@ namespace Legion {
       bool operator==(const InstanceRef &rhs) const;
       bool operator!=(const InstanceRef &rhs) const;
     public:
-      inline bool has_ref(void) const { return (manager != NULL); }
+      inline bool has_ref(void) const { return (manager != nullptr); }
       inline InstanceManager* get_manager(void) const { return manager; }
       inline const FieldMask& get_valid_fields(void) const 
         { return valid_fields; }

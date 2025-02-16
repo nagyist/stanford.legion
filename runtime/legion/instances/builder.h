@@ -30,11 +30,11 @@ namespace Legion {
     public:
       InstanceBuilder(const std::vector<LogicalRegion> &regs,
                       const LayoutConstraintSet &cons,
-                      MemoryManager *memory = NULL, UniqueID cid = 0)
+                      MemoryManager *memory = nullptr, UniqueID cid = 0)
         : regions(regs), constraints(cons), memory_manager(memory),
           creator_id(cid), instance(PhysicalInstance::NO_INST), 
-          field_space_node(NULL), instance_domain(NULL), tree_id(0),
-          redop_id(0), reduction_op(NULL), realm_layout(NULL), piece_list(NULL),
+          field_space_node(nullptr), instance_domain(nullptr), tree_id(0),
+          redop_id(0), reduction_op(nullptr), realm_layout(nullptr), piece_list(nullptr),
           piece_list_size(0), valid(false), allocated(false) { }
       InstanceBuilder(const std::vector<LogicalRegion> &regs,
                       IndexSpaceExpression *expr, FieldSpaceNode *node,
@@ -46,7 +46,7 @@ namespace Legion {
       void initialize(void);
       PhysicalManager* create_physical_instance(
             LayoutConstraintKind *unsat_kind,
-                        unsigned *unsat_index, size_t *footprint = NULL,
+                        unsigned *unsat_index, size_t *footprint = nullptr,
                         RtEvent collection_done = RtEvent::NO_RT_EVENT,
                         PhysicalInstance hole = PhysicalInstance::NO_INST);
     public:

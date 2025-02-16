@@ -256,7 +256,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldAllocator::FieldAllocator(void)
-      : impl(NULL)
+      : impl(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -266,7 +266,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -275,18 +275,18 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
     }
 
     //--------------------------------------------------------------------------
     FieldAllocator::~FieldAllocator(void)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
-        impl = NULL;
+        impl = nullptr;
       }
     }
 
@@ -295,7 +295,7 @@ namespace Legion {
       : impl(i)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -303,10 +303,10 @@ namespace Legion {
     FieldAllocator& FieldAllocator::operator=(const FieldAllocator &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
       return *this;
     }
@@ -315,10 +315,10 @@ namespace Legion {
     FieldAllocator& FieldAllocator::operator=(FieldAllocator &&rhs) noexcept
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
       impl = rhs.impl;
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
       return *this;
     }
 
@@ -330,7 +330,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       Internal::AutoProvenance provenance(prov);
       return impl->allocate_field(field_size, desired_fieldid, serdez_id,
@@ -345,7 +345,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       Internal::AutoProvenance provenance(prov);
       return impl->allocate_field(field_size, desired_fieldid, serdez_id,
@@ -358,7 +358,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif     
       Internal::AutoProvenance provenance(prov);
       impl->free_field(fid, unordered, provenance);
@@ -372,7 +372,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       Internal::AutoProvenance provenance(prov);
       return impl->allocate_field(field_size, desired_fieldid, 
@@ -387,7 +387,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       Internal::AutoProvenance provenance(prov);
       impl->allocate_fields(field_sizes, resulting_fields, serdez_id,
@@ -402,7 +402,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       Internal::AutoProvenance provenance(prov);
       impl->allocate_fields(field_sizes, resulting_fields,
@@ -415,7 +415,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       Internal::AutoProvenance provenance(prov);
       impl->free_fields(to_free, unordered, provenance);
@@ -430,7 +430,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       Internal::AutoProvenance provenance(prov);
       impl->allocate_fields(field_sizes, resulting_fields, 
@@ -441,7 +441,7 @@ namespace Legion {
     FieldSpace FieldAllocator::get_field_space(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return FieldSpace::NO_SPACE;
       else
         return impl->get_field_space();
@@ -460,8 +460,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(node != NULL);
-      assert(context != NULL);
+      assert(node != nullptr);
+      assert(context != nullptr);
 #endif
       context->add_base_resource_ref(FIELD_ALLOCATOR_REF);
       node->add_base_resource_ref(FIELD_ALLOCATOR_REF);

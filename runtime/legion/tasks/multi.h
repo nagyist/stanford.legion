@@ -37,7 +37,7 @@ namespace Legion {
       };
       struct ConcurrentGroup {
         ConcurrentGroup(void)
-          : exchange(NULL), group_points(0), color_points(0),
+          : exchange(nullptr), group_points(0), color_points(0),
             lamport_clock(0), variant(0), poisoned(false) { }
         union ConcurrentPrecondition {
           ConcurrentPrecondition(void)
@@ -91,8 +91,8 @@ namespace Legion {
       virtual void predicate_false(void) = 0;
       virtual void premap_task(void) = 0;
       virtual bool distribute_task(void) = 0;
-      virtual bool perform_mapping(MustEpochOp *owner = NULL,
-                                   const DeferMappingArgs *args = NULL) = 0;
+      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
+                                   const DeferMappingArgs *args = nullptr) = 0;
       virtual void launch_task(bool inline_task = false) = 0;
       virtual bool is_stealable(void) const = 0;
     public:

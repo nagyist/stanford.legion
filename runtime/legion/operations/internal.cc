@@ -41,20 +41,20 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(creator != NULL);
+      assert(creator != nullptr);
 #endif
       // We never track internal operations
       initialize_operation(creator->get_context(), creator->get_provenance());
       context_index = creator->get_context_index();
 #ifdef DEBUG_LEGION
       assert(creator_req_idx == -1);
-      assert(create_op == NULL);
+      assert(create_op == nullptr);
 #endif
       create_op = creator;
       create_gen = creator->get_generation();
       creator_req_idx = intern_idx;
       trace = creator->get_trace();
-      if (trace != NULL)
+      if (trace != nullptr)
         tracing = trace->initialize_op_tracing(this);
     }
 
@@ -64,7 +64,7 @@ namespace Legion {
     {
       Operation::activate();
       creator_req_idx = -1;
-      create_op = NULL;
+      create_op = nullptr;
       create_gen = 0;
     }
 

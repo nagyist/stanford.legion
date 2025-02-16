@@ -35,7 +35,7 @@ namespace Legion {
                                const PhysicalTraceInfo &t_info)
       : CollectiveCopyFillAnalysis(o, idx, node, true/*on heap*/,
                                    t_info, true/*exclusive*/),
-        precondition(pre), target_analysis(this), release_aggregator(NULL)
+        precondition(pre), target_analysis(this), release_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -53,7 +53,7 @@ namespace Legion {
                                    std::move(target_insts),
                                    std::move(target_vws), std::move(source_vws),
                                    info, mapping, first, true/*exclusive*/),
-        precondition(pre), target_analysis(t), release_aggregator(NULL)
+        precondition(pre), target_analysis(t), release_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -140,7 +140,7 @@ namespace Legion {
           // We only need to pack the collective mapping once when going
           // from the origin space to the next space
           CollectiveMapping *mapping = get_replicated_mapping();
-          if ((mapping != NULL) && (original_source == runtime->address_space))
+          if ((mapping != nullptr) && (original_source == runtime->address_space))
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
@@ -166,7 +166,7 @@ namespace Legion {
           !perform_precondition.has_triggered())
         return defer_remote(perform_precondition, applied_events);
       // See if we have any instance names to send back
-      if ((target_analysis != this) && (recorded_instances != NULL))
+      if ((target_analysis != this) && (recorded_instances != nullptr))
       {
         if (original_source != runtime->address_space)
         {
@@ -193,7 +193,7 @@ namespace Legion {
           target_analysis->process_local_instances(*recorded_instances, 
                                                    restricted);
       }
-      if (release_aggregator != NULL)
+      if (release_aggregator != nullptr)
       {
         std::set<RtEvent> guard_events;
         release_aggregator->issue_updates(trace_info, precondition);
@@ -232,7 +232,7 @@ namespace Legion {
       size_t num_eq_sets;
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
-      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, NULL);
+      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
       LegionVector<FieldMask> eq_masks(num_eq_sets);
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
       {
@@ -302,9 +302,9 @@ namespace Legion {
       size_t collective_mapping_size;
       derez.deserialize(collective_mapping_size);
       CollectiveMapping *mapping = ((collective_mapping_size) > 0) ?
-        new CollectiveMapping(derez, collective_mapping_size) : NULL;
+        new CollectiveMapping(derez, collective_mapping_size) : nullptr;
       bool first_local = true;
-      if (mapping != NULL)
+      if (mapping != nullptr)
         derez.deserialize<bool>(first_local);
 
       ReleaseAnalysis *analysis = new ReleaseAnalysis(original_source,

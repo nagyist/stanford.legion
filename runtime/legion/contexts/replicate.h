@@ -114,7 +114,7 @@ namespace Legion {
       public:
 #ifdef DEBUG_LEGION_COLLECTIVES
         inline T next(ReplicateContext *ctx, ReductionOpID redop = 0,
-            const void *init_value = NULL, size_t init_size = 0)
+            const void *init_value = nullptr, size_t init_size = 0)
 #else
         inline T next(ReplicateContext *ctx)
 #endif
@@ -265,7 +265,7 @@ namespace Legion {
       class HashVerifier : protected Murmur3Hasher {
       public:
         HashVerifier(ReplicateContext *ctx, bool p,
-                     bool every_call, Provenance *prov = NULL)
+                     bool every_call, Provenance *prov = nullptr)
           : Murmur3Hasher(), context(ctx), provenance(prov), precise(p),
             verify_every_call(every_call) { }
         HashVerifier(const HashVerifier &rhs) = delete;
@@ -438,7 +438,7 @@ namespace Legion {
       virtual bool perform_semantic_attach(const char *func, unsigned kind,
           const void *arg, size_t arglen, SemanticTag tag, const void *buffer,
           size_t size, bool is_mutable, bool &global, 
-          const void *arg2 = NULL, size_t arg2len = 0);
+          const void *arg2 = nullptr, size_t arg2len = 0);
       virtual void post_semantic_attach(void);
     public:
       virtual EquivalenceSet* create_initial_equivalence_set(unsigned idx1,
@@ -448,12 +448,12 @@ namespace Legion {
                                        const FieldMask &refinement_mask,
                                        std::vector<RtEvent> &applied_events,
                                        bool sharded = false, bool first = true,
-                                       const CollectiveMapping *mapping = NULL);
+                                       const CollectiveMapping *mapping = nullptr);
       virtual void find_trace_local_sets(unsigned req_index,
                             const FieldMask &mask,
                             std::map<EquivalenceSet*,unsigned> &current_sets,
-                            IndexSpaceNode *node = NULL,
-                            const CollectiveMapping *mapping = NULL);
+                            IndexSpaceNode *node = nullptr,
+                            const CollectiveMapping *mapping = nullptr);
       virtual void receive_created_region_contexts(
                           const std::vector<RegionNode*> &created_regions,
                           const std::vector<EqKDTree*> &created_trees,
@@ -688,7 +688,7 @@ namespace Legion {
                                         CustomSerdezID serdez_id,
                                         Provenance *provenance);
       FieldSpace create_replicated_field_space(Provenance *provenance,
-                                        ShardID *creator_shard = NULL);
+                                        ShardID *creator_shard = nullptr);
       virtual void create_shared_ownership(FieldSpace handle);
       virtual void destroy_field_space(FieldSpace handle,
                                        const bool unordered,
@@ -802,7 +802,7 @@ namespace Legion {
                                         const std::vector<unsigned> &indexes);
       virtual Future detach_resource(PhysicalRegion region, const bool flush,
                                      const bool unordered,
-                                     Provenance *provenance = NULL);
+                                     Provenance *provenance = nullptr);
       virtual Future detach_resources(ExternalResources resources,
                                       const bool flush, const bool unordered,
                                       Provenance *provenance);
@@ -829,7 +829,7 @@ namespace Legion {
                       ApEvent effects);
       virtual void post_end_task(void);
       virtual bool add_to_dependence_queue(Operation *op, 
-          const std::vector<StaticDependence> *dependences = NULL,
+          const std::vector<StaticDependence> *dependences = nullptr,
           bool unordered = false, bool outermost = true);
       virtual FenceOp* initialize_trace_completion(Provenance *prov);
       virtual PredicateImpl* create_predicate_impl(Operation *op);
@@ -1243,7 +1243,7 @@ namespace Legion {
       struct PendingTemplateUpdate {
       public:
         PendingTemplateUpdate(void)
-          : ptr(NULL), size(0), source(0) { }
+          : ptr(nullptr), size(0), source(0) { }
         PendingTemplateUpdate(void *p, size_t s, AddressSpaceID src)
           : ptr(p), size(s), source(src) { }
       public:

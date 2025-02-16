@@ -43,7 +43,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       InternalOp::activate();
-      refinement_node = NULL;
+      refinement_node = nullptr;
       parent_req_index = 0;
       refinement_number = 0;
     }
@@ -86,7 +86,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(refinement_node == NULL);
+      assert(refinement_node == nullptr);
 #endif
       initialize_internal(creator, index);
       refinement_node = refine;
@@ -131,7 +131,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(!refinement_mask);
-      assert(refinement_node != NULL);
+      assert(refinement_node != nullptr);
 #endif
       refinement_mask = mask;
       refinement_number = number;
@@ -148,7 +148,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(refinement_node != NULL);
+      assert(refinement_node != nullptr);
 #endif
       return refinement_node;
     }
@@ -157,10 +157,10 @@ namespace Legion {
     void RefinementOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      // Set the must epoch op back to NULL since we know our dependence
+      // Set the must epoch op back to nullptr since we know our dependence
       // analysis is now complete and we want to run through the rest
       // of the pipeline without being impeded by the must epoch op
-      must_epoch = NULL;
+      must_epoch = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -169,7 +169,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(!!refinement_mask);
-      assert(refinement_node != NULL);
+      assert(refinement_node != nullptr);
 #endif
       std::vector<RtEvent> map_applied_conditions;
       // Check to see if this is a region or a parttiion
@@ -277,7 +277,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(mapped_barrier.exists());
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif

@@ -37,20 +37,20 @@ namespace Legion {
     /**
      * This class helps with recording runtime calls for profiling
      * and also will check that the user has passed in the correct
-     * context when they pass in a non-NULL one.
+     * context when they pass in a non-nullptr one.
      */
     template<Internal::RuntimeCallKind KIND>
     class AutoCall : public Internal::AutoProvenance {
     public:
       // no string versions
       inline AutoCall(void)
-        : AutoProvenance(), start((Internal::implicit_context == NULL) ? 0 :
+        : AutoProvenance(), start((Internal::implicit_context == nullptr) ? 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
             Realm::Clock::current_time_in_nanoseconds() : 0)
       {
       }
       inline AutoCall(Internal::TaskContext *ctx, const char *func)
-        : AutoProvenance(), start((Internal::implicit_context == NULL) ? 0 :
+        : AutoProvenance(), start((Internal::implicit_context == nullptr) ? 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
             Realm::Clock::current_time_in_nanoseconds() : 0)
       {
@@ -60,14 +60,14 @@ namespace Legion {
       }
       // C string versions
       inline AutoCall(const char *prov)
-        : AutoProvenance(prov), start((Internal::implicit_context == NULL) ? 0 :
+        : AutoProvenance(prov), start((Internal::implicit_context == nullptr) ? 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
             Realm::Clock::current_time_in_nanoseconds() : 0)
       {
       }
       inline AutoCall(const char *prov, Internal::TaskContext *ctx, 
                       const char *func)
-        : AutoProvenance(prov), start((Internal::implicit_context == NULL) ? 0 :
+        : AutoProvenance(prov), start((Internal::implicit_context == nullptr) ? 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
             Realm::Clock::current_time_in_nanoseconds() : 0)
       {
@@ -77,14 +77,14 @@ namespace Legion {
       }
       // std::string versions
       inline AutoCall(const std::string &prov)
-        : AutoProvenance(prov), start((Internal::implicit_context == NULL) ? 0 :
+        : AutoProvenance(prov), start((Internal::implicit_context == nullptr) ? 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
             Realm::Clock::current_time_in_nanoseconds() : 0)
       {
       }
       inline AutoCall(const std::string &prov, Internal::TaskContext *ctx, 
                       const char *func)
-        : AutoProvenance(prov), start((Internal::implicit_context == NULL) ? 0 :
+        : AutoProvenance(prov), start((Internal::implicit_context == nullptr) ? 0 :
             Internal::implicit_context->begin_runtime_call(KIND, *this) ?
             Realm::Clock::current_time_in_nanoseconds() : 0)
       {
@@ -94,7 +94,7 @@ namespace Legion {
       }
       inline ~AutoCall(void)
       {
-        if (Internal::implicit_context != NULL)
+        if (Internal::implicit_context != nullptr)
         {
           if (start == 0)
             Internal::implicit_context->end_runtime_call(KIND, *this, start, 0);
@@ -138,7 +138,7 @@ namespace Legion {
       const Rect<1,coord_t> bounds((Point<1,coord_t>(0)),
                                    (Point<1,coord_t>(max_num_elmts-1)));
       const Domain domain(bounds);
-      return create_index_space(ctx, domain, TYPE_TAG_1D, NULL/*provenance*/);
+      return create_index_space(ctx, domain, TYPE_TAG_1D, nullptr/*provenance*/);
     }
 
     //--------------------------------------------------------------------------
@@ -203,7 +203,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<Domain> rects(domains.begin(), domains.end());
-      return create_index_space(ctx, rects, NULL/*provenance*/); 
+      return create_index_space(ctx, rects, nullptr/*provenance*/); 
     }
 
     //--------------------------------------------------------------------------
@@ -1515,7 +1515,7 @@ namespace Legion {
     {
       // Don't check against implicit_context here because this method might
       // be called from OpenMP processors which don't have implicit_context set
-      if (ctx == NULL)
+      if (ctx == nullptr)
         Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Invalid task context passed to Runtime::safe_cast";
       Internal::AutoProvenance prov;
@@ -2152,7 +2152,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Future Runtime::execute_task(Context ctx, const TaskLauncher &launcher,
-                             std::vector<OutputRequirement> *outputs /*= NULL*/)
+                             std::vector<OutputRequirement> *outputs /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
       AutoCall<Internal::RUNTIME_EXECUTE_TASK_CALL>
@@ -2163,7 +2163,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     FutureMap Runtime::execute_index_space(
                              Context ctx, const IndexTaskLauncher &launcher,
-                             std::vector<OutputRequirement> *outputs /*= NULL*/)
+                             std::vector<OutputRequirement> *outputs /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
       AutoCall<Internal::RUNTIME_EXECUTE_INDEX_SPACE_CALL>
@@ -2175,7 +2175,7 @@ namespace Legion {
     Future Runtime::execute_index_space(
                              Context ctx, const IndexTaskLauncher &launcher,
                              ReductionOpID redop, bool deterministic,
-                             std::vector<OutputRequirement> *outputs /*= NULL*/)
+                             std::vector<OutputRequirement> *outputs /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
       AutoCall<Internal::RUNTIME_EXECUTE_INDEX_SPACE_CALL>
@@ -2350,7 +2350,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       InlineLauncher launcher(req, id, tag);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         launcher.provenance = provenance;
       return map_region(ctx, launcher);
     }
@@ -2652,7 +2652,7 @@ namespace Legion {
       PredicateLauncher launcher(true/*and*/);
       launcher.add_predicate(p1);
       launcher.add_predicate(p2);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         launcher.provenance.assign(provenance);
       return create_predicate(ctx, launcher);
     }
@@ -2666,7 +2666,7 @@ namespace Legion {
       PredicateLauncher launcher(false/*and*/);
       launcher.add_predicate(p1);
       launcher.add_predicate(p2);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         launcher.provenance.assign(provenance);
       return create_predicate(ctx, launcher);
     }
@@ -2883,7 +2883,7 @@ namespace Legion {
     {
       AutoCall<Internal::RUNTIME_BEGIN_TRACE_CALL> call(ctx, __func__);
       ctx->begin_trace(0, true/*logical only*/, true/*static*/, managed,
-                       true/*deprecated*/, NULL/*provenance*/);
+                       true/*deprecated*/, nullptr/*provenance*/);
     }
 
     //--------------------------------------------------------------------------
@@ -2891,7 +2891,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoCall<Internal::RUNTIME_END_TRACE_CALL> call(ctx, __func__);
-      ctx->end_trace(0, true/*deprecated*/, NULL/*provenance*/);
+      ctx->end_trace(0, true/*deprecated*/, nullptr/*provenance*/);
     }
 
     //--------------------------------------------------------------------------
@@ -3942,7 +3942,7 @@ namespace Legion {
     /*static*/ bool Runtime::has_context(void)
     //--------------------------------------------------------------------------
     {
-      return (Internal::implicit_context != NULL);
+      return (Internal::implicit_context != nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -4028,7 +4028,7 @@ namespace Legion {
     VariantID Runtime::register_task_variant(
                                     const TaskVariantRegistrar &registrar,
                                     const CodeDescriptor &realm_desc,
-                                    const void *user_data /*= NULL*/,
+                                    const void *user_data /*= nullptr*/,
                                     size_t user_len /*= 0*/,
                                     size_t return_type_size/*=MAX_RETURN_SIZE*/,
                                     VariantID vid /*= AUTO_GENERATE_ID*/,
@@ -4043,9 +4043,9 @@ namespace Legion {
     /*static*/ VariantID Runtime::preregister_task_variant(
               const TaskVariantRegistrar &registrar,
 	      const CodeDescriptor &realm_desc,
-	      const void *user_data /*= NULL*/,
+	      const void *user_data /*= nullptr*/,
 	      size_t user_len /*= 0*/,
-	      const char *task_name /*= NULL*/,
+	      const char *task_name /*= nullptr*/,
               VariantID vid /*=AUTO_GENERATE_ID*/,
               size_t return_type_size /*=MAX_RETURN_SIZE*/,
               bool has_return_type_size /*=true*/,
@@ -4089,8 +4089,8 @@ namespace Legion {
                                                  size_t metadatasize)
     //--------------------------------------------------------------------------
     {
-      ctx->end_task(retvalptr, retvalsize, owned, inst, NULL/*functor*/,
-          NULL/*resource*/, NULL/*freefunc*/, metadataptr, metadatasize,
+      ctx->end_task(retvalptr, retvalsize, owned, inst, nullptr/*functor*/,
+          nullptr/*resource*/, nullptr/*freefunc*/, metadataptr, metadatasize,
           Internal::ApEvent::NO_AP_EVENT);
     }
 
@@ -4099,8 +4099,8 @@ namespace Legion {
                                     FutureFunctor *callback_functor, bool owned)
     //--------------------------------------------------------------------------
     {
-      ctx->end_task(NULL, 0, owned, Realm::RegionInstance::NO_INST,
-          callback_functor, NULL/*resource*/, NULL/*freefunc*/, NULL, 0,
+      ctx->end_task(nullptr, 0, owned, Realm::RegionInstance::NO_INST,
+          callback_functor, nullptr/*resource*/, nullptr/*freefunc*/, nullptr, 0,
           Internal::ApEvent::NO_AP_EVENT);
     }
 
@@ -4113,7 +4113,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ctx->end_task(ptr, size, owned, Realm::RegionInstance::NO_INST,
-          NULL/*functor*/, &resource, freefunc, metadataptr, metadatasize,
+          nullptr/*functor*/, &resource, freefunc, metadataptr, metadatasize,
           Internal::ApEvent::NO_AP_EVENT);
     }
 

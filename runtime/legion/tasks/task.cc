@@ -58,7 +58,7 @@ namespace Legion {
       // If we are remote we can just do the normal pack
       for (std::vector<Future>::const_iterator it =
             futures.begin(); it != futures.end(); it++)
-        if (it->impl != NULL)
+        if (it->impl != nullptr)
           it->impl->pack_future(rez, target);
         else
           rez.serialize<DistributedID>(0);
@@ -232,7 +232,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(parent_ctx != NULL);
+      assert(parent_ctx != nullptr);
 #endif
       return parent_ctx->get_depth() + 1;
     }
@@ -248,7 +248,7 @@ namespace Legion {
     const Task* TaskOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -324,7 +324,7 @@ namespace Legion {
       assert(runtime->is_local(current));
 #endif
       // Always clear target_proc and the mapper when setting a new current proc
-      mapper = NULL;
+      mapper = nullptr;
       current_proc = current;
       target_proc = current;
     }
@@ -344,8 +344,8 @@ namespace Legion {
       replicate = false; 
       local_cached = false;
       target_proc = Processor::NO_PROC;
-      mapper = NULL;
-      must_epoch = NULL;
+      mapper = nullptr;
+      must_epoch = nullptr;
       must_epoch_task = false;
       concurrent_task = false;
       local_function = false;
@@ -365,21 +365,21 @@ namespace Legion {
       wait_barriers.clear();
       arrive_barriers.clear();
       arg_manager.clear();
-      if (args != NULL)
+      if (args != nullptr)
       {
-        args = NULL;
+        args = nullptr;
         arglen = 0;
       }
-      if (local_args != NULL)
+      if (local_args != nullptr)
       {
         free(local_args);
-        local_args = NULL;
+        local_args = nullptr;
         local_arglen = 0;
       }
-      if (mapper_data != NULL)
+      if (mapper_data != nullptr)
       {
         free(mapper_data);
-        mapper_data = NULL;
+        mapper_data = nullptr;
         mapper_data_size = 0;
       }
       check_collective_regions.clear();
@@ -655,7 +655,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!options_selected);
 #endif
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       Mapper::TaskOptions options;
       options.initial_proc = current_proc;
@@ -891,7 +891,7 @@ namespace Legion {
       prepare_for_mapping(sources, input.source_instances,
                           input.collective_views);
       input.region_req_index = index;
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_select_task_sources(this, input, output);
       compute_ranking(mapper, output.chosen_ranking, sources, ranking, points);
@@ -971,7 +971,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -1004,7 +1004,7 @@ namespace Legion {
       this->context_index = rhs->get_context_index();
       this->execution_fence_event = rhs->get_execution_fence_event();
       // Don't register this an operation when setting the must epoch info
-      if (rhs->must_epoch != NULL)
+      if (rhs->must_epoch != nullptr)
         this->set_must_epoch(rhs->must_epoch, rhs->must_epoch_index,
                              false/*do registration*/);
       // From Memoizable
@@ -1032,7 +1032,7 @@ namespace Legion {
       if (rhs->mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(rhs->mapper_data != NULL);
+        assert(rhs->mapper_data != nullptr);
 #endif
         this->mapper_data_size = rhs->mapper_data_size;
         this->mapper_data = malloc(this->mapper_data_size);
@@ -1226,7 +1226,7 @@ namespace Legion {
           constraint_mask = FieldMask(LEGION_FIELD_MASK_FIELD_ALL_ONES) ^
 	    field_node->get_field_mask(explicit_fields);
 	}
-        const LayoutConstraint *conflict_constraint = NULL;
+        const LayoutConstraint *conflict_constraint = nullptr;
         for (unsigned idx = 0; idx < instances.size(); idx++)
         {
           const InstanceRef &ref = instances[idx];
@@ -1258,9 +1258,9 @@ namespace Legion {
             }
           }
         }
-        if (conflict_constraint != NULL)
+        if (conflict_constraint != nullptr)
         {
-          if (local_mapper == NULL)
+          if (local_mapper == nullptr)
             local_mapper = runtime->find_mapper(current_proc, map_id);
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output. Mapper " << local_mapper->get_mapper_name()
@@ -1280,7 +1280,7 @@ namespace Legion {
         // If the constraint is a no processor constraint we can ignore it
         if (!execution_constraints.processor_constraint.can_use(kind))
         {
-          if (local_mapper == NULL)
+          if (local_mapper == nullptr)
             local_mapper = runtime->find_mapper(current_proc, map_id);
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output. Mapper " << local_mapper->get_mapper_name()
@@ -1299,7 +1299,7 @@ namespace Legion {
         unsigned idx = 0;
         bool first = true;
         DistributedID tree_id = 0;
-        FieldSpaceNode *field_space_node = NULL;
+        FieldSpaceNode *field_space_node = nullptr;
         std::map<unsigned/*field index*/,
           std::pair<PhysicalManager*,unsigned> > colocation_instances;
         for (std::set<unsigned>::const_iterator iit = con_it->indexes.begin();
@@ -1327,7 +1327,7 @@ namespace Legion {
               {
                 unsigned index = field_space_node->get_field_index(*it);
                 colocation_instances[index] = 
-                  std::pair<PhysicalManager*,unsigned>(NULL, *iit);
+                  std::pair<PhysicalManager*,unsigned>(nullptr, *iit);
                 colocation_mask.set_bit(index);
               }
             }
@@ -1341,7 +1341,7 @@ namespace Legion {
                   continue;
                 unsigned index = field_space_node->get_field_index(*it);
                 colocation_instances[index] = 
-                  std::pair<PhysicalManager*,unsigned>(NULL, *iit);
+                  std::pair<PhysicalManager*,unsigned>(nullptr, *iit);
                 colocation_mask.set_bit(index);
               }
             }
@@ -1371,7 +1371,7 @@ namespace Legion {
                     colocation_instances.find(index);
 #ifdef DEBUG_LEGION
                 assert(finder != colocation_instances.end());
-                assert(finder->second.first == NULL);
+                assert(finder->second.first == nullptr);
                 assert(finder->second.second == *iit);
 #endif
                 finder->second.first = manager;
@@ -1396,7 +1396,7 @@ namespace Legion {
                 << "be specified on region requirements with regions "
                 << "from the same region tree.";
             const InstanceSet &insts = physical_instances[*iit];
-            if (local_mapper == NULL)
+            if (local_mapper == nullptr)
               local_mapper = runtime->find_mapper(current_proc, map_id);
             for (unsigned idx = 0; idx < insts.size(); idx++)
             {
@@ -1535,14 +1535,14 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TaskImpl::TaskImpl(TaskID tid, const char *name/*=NULL*/)
+    TaskImpl::TaskImpl(TaskID tid, const char *name/*=nullptr*/)
       : task_id(tid), initial_name(static_cast<char*>(
-          malloc(((name == NULL) ? 64 : strlen(name) + 1) * sizeof(char)))),
+          malloc(((name == nullptr) ? 64 : strlen(name) + 1) * sizeof(char)))),
         all_idempotent(false)
     //--------------------------------------------------------------------------
     {
       // Always fill in semantic info 0 with a name for the task
-      if (name != NULL)
+      if (name != nullptr)
       {
         const size_t name_size = strlen(name) + 1; // for \0
         semantic_infos[LEGION_NAME_SEMANTIC_TAG] = 
@@ -1552,14 +1552,14 @@ namespace Legion {
         // Also set the initial name to be safe
         memcpy(initial_name, name, name_size);
         // Register this task with the profiler if necessary
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->register_task_kind(task_id, name, false);
       }
       else // Just set the initial name
       {
         snprintf(initial_name,64,"unnamed_task_%d", task_id);
         // Register this task with the profiler if necessary
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->register_task_kind(task_id, initial_name, false);
       }
     }
@@ -1641,7 +1641,7 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_UNREGISTERED_VARIANT, 
                             "Unable to find variant %d of task %s!",
                             variant_id, get_name())
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1679,11 +1679,11 @@ namespace Legion {
       if (needs_lock)
       {
         // Do the request through the semantic information
-        const void *ptr = NULL; size_t dummy_size;
+        const void *ptr = nullptr; size_t dummy_size;
         if (retrieve_semantic_information(LEGION_NAME_SEMANTIC_TAG, ptr,
               dummy_size, true/*can fail*/, false/*wait until*/))
         {
-          const char *result = NULL;
+          const char *result = nullptr;
           static_assert(sizeof(result) == sizeof(ptr));
           memcpy(&result, &ptr, sizeof(result));
           return result;
@@ -1709,7 +1709,7 @@ namespace Legion {
                                             bool is_mutable, bool send_to_owner)
     //--------------------------------------------------------------------------
     {
-      if ((tag == LEGION_NAME_SEMANTIC_TAG) && (runtime->profiler != NULL))
+      if ((tag == LEGION_NAME_SEMANTIC_TAG) && (runtime->profiler != nullptr))
         runtime->profiler->register_task_kind(task_id,(const char*)buffer,true);
 
       bool added = true;
@@ -1931,7 +1931,7 @@ namespace Legion {
       assert(get_owner_space() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = NULL;
+      void *result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
@@ -1958,7 +1958,7 @@ namespace Legion {
           semantic_infos[tag] = SemanticInfo(ready_event);
         }
       }
-      if (result == NULL)
+      if (result == nullptr)
       {
         // this will cause a failure on the original node
         if (can_fail || !wait_until)
@@ -2036,7 +2036,7 @@ namespace Legion {
                              const TaskVariantRegistrar &registrar,
                              size_t return_size, bool has_return_size,
                              const CodeDescriptor &realm,
-                             const void *udata/*=NULL*/,size_t udata_size/*=0*/)
+                             const void *udata/*=nullptr*/,size_t udata_size/*=0*/)
       : vid(v), owner(own), global(registrar.global_registration),
         needs_padding(check_padding(registrar.layout_constraints)),
         has_return_type_size(has_return_size), return_type_size(return_size),
@@ -2053,15 +2053,15 @@ namespace Legion {
         concurrent_barrier(registrar.concurrent_barrier)
     //--------------------------------------------------------------------------
     { 
-      if (udata != NULL)
+      if (udata != nullptr)
       {
         user_data = malloc(user_data_size);
         memcpy(user_data, udata, user_data_size);
       }
       else
-        user_data = NULL;
+        user_data = nullptr;
       // If we have a variant name, then record it
-      if (registrar.task_variant_name == NULL)
+      if (registrar.task_variant_name == nullptr)
       {
         variant_name = (char*)malloc(64*sizeof(char));
         snprintf(variant_name,64,"unnamed_variant_%d", vid);
@@ -2098,14 +2098,14 @@ namespace Legion {
           ready_events.insert(ApEvent(Processor::register_task_by_kind(*it,
               false/*global*/, descriptor_id, realm_descriptor, 
               profiling_requests, user_data, user_data_size)));
-        ready_event = Runtime::merge_events(NULL, ready_events);
+        ready_event = Runtime::merge_events(nullptr, ready_events);
       }
       else
         ready_event = ApEvent(Processor::register_task_by_kind(
             proc_constraint.valid_kinds[0], false/*global*/, descriptor_id, 
             realm_descriptor, profiling_requests, user_data, user_data_size));
       // register this with the runtime profiler if we have to
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->register_task_variant(own->task_id, vid,
             variant_name);
       // Check that global registration has portable implementations
@@ -2128,9 +2128,9 @@ namespace Legion {
     VariantImpl::~VariantImpl(void)
     //--------------------------------------------------------------------------
     {
-      if (user_data != NULL)
+      if (user_data != nullptr)
         free(user_data);
-      if (variant_name != NULL)
+      if (variant_name != nullptr)
         free(variant_name);
     }
 
@@ -2168,7 +2168,7 @@ namespace Legion {
               (target.kind() == Processor::PROC_GROUP));
 #endif
       // Add any profiling requests
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_task_request(requests, owner->task_id, vid,
             task->get_unique_op_id(), target, precondition);
       // Increment the number of outstanding tasks
@@ -2179,7 +2179,7 @@ namespace Legion {
 #endif
       if (ready_event.exists())
         return ApEvent(target.spawn(descriptor_id, &ctx, sizeof(ctx),requests,
-           Runtime::merge_events(NULL, precondition, ready_event), priority));
+           Runtime::merge_events(nullptr, precondition, ready_event), priority));
       return ApEvent(target.spawn(descriptor_id, &ctx, sizeof(ctx), requests,
                                   precondition, priority));
     }

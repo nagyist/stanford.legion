@@ -54,45 +54,45 @@ namespace Legion {
   public: // Constructors specifying a generic memory kind
     DeferredBuffer(Memory::Kind kind, 
                    const Domain &bounds,
-                   const T *initial_value = NULL,
+                   const T *initial_value = nullptr,
                    size_t alignment = std::alignment_of<T>(),
                    bool fortran_order_dims = false);
     DeferredBuffer(const Rect<DIM,COORD_T> &bounds, 
                    Memory::Kind kind,
-                   const T *initial_value = NULL,
+                   const T *initial_value = nullptr,
                    size_t alignment = std::alignment_of<T>(),
                    bool fortran_order_dims = false);
   public: // Constructors specifying a specific memory
     DeferredBuffer(Memory memory, 
                    const Domain &bounds,
-                   const T *initial_value = NULL,
+                   const T *initial_value = nullptr,
                    size_t alignment = std::alignment_of<T>(),
                    bool fortran_order_dims = false);
     DeferredBuffer(const Rect<DIM,COORD_T> &bounds, 
                    Memory memory,
-                   const T *initial_value = NULL,
+                   const T *initial_value = nullptr,
                    size_t alignment = std::alignment_of<T>(),
                    bool fortran_order_dims = false);
   public: // Constructors specifying a specific ordering
     DeferredBuffer(Memory::Kind kind,
                    const Domain &bounds,
                    std::array<DimensionKind,DIM> ordering,
-                   const T *initial_value = NULL,
+                   const T *initial_value = nullptr,
                    size_t alignment = std::alignment_of<T>());
     DeferredBuffer(const Rect<DIM,COORD_T> &bounds,
                    Memory::Kind kind,
                    std::array<DimensionKind,DIM> ordering,
-                   const T *initial_value = NULL,
+                   const T *initial_value = nullptr,
                    size_t alignment = std::alignment_of<T>());
     DeferredBuffer(Memory memory,
                    const Domain &bounds,
                    std::array<DimensionKind,DIM> ordering,
-                   const T *initial_value = NULL,
+                   const T *initial_value = nullptr,
                    size_t alignment = std::alignment_of<T>());
     DeferredBuffer(const Rect<DIM,COORD_T> &bounds,
                    Memory memory,
                    std::array<DimensionKind,DIM> ordering,
-                   const T *initial_value = NULL,
+                   const T *initial_value = nullptr,
                    size_t alignment = std::alignment_of<T>());
   protected:
     inline void initialize_layout(size_t alignment, bool fortran_order_dims);
@@ -148,26 +148,26 @@ namespace Legion {
     UntypedDeferredBuffer(size_t field_size, int dims,
                           Memory::Kind kind, 
                           const Domain &bounds,
-                          const void *initial_value = NULL,
+                          const void *initial_value = nullptr,
                           size_t alignment = 16,
                           bool fortran_order_dims = false);
     UntypedDeferredBuffer(size_t field_size, int dims,
                           Memory::Kind kind, 
                           IndexSpace bounds,
-                          const void *initial_value = NULL,
+                          const void *initial_value = nullptr,
                           size_t alignment = 16,
                           bool fortran_order_dims = false);
   public: // Constructors specifying a specific memory
     UntypedDeferredBuffer(size_t field_size, int dims,
                           Memory memory, 
                           const Domain &bounds,
-                          const void *initial_value = NULL,
+                          const void *initial_value = nullptr,
                           size_t alignment = 16,
                           bool fortran_order_dims = false);
     UntypedDeferredBuffer(size_t field_size, int dims,
                           Memory memory, 
                           IndexSpace bounds,
-                          const void *initial_value = NULL,
+                          const void *initial_value = nullptr,
                           size_t alignment = 16,
                           bool fortran_order_dims = false);
   public:

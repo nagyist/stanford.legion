@@ -25,7 +25,7 @@ namespace Legion {
     DeferredBuffer<T,DIM,COORD_T,CHECK_BOUNDS> OutputRegion::create_buffer(
                                               const Point<DIM,COORD_T> &extents,
                                               FieldID field_id,
-                                              const T *initial_value /*= NULL*/,
+                                              const T *initial_value /*= nullptr*/,
                                               bool return_buffer /*= false*/)
     //--------------------------------------------------------------------------
     {

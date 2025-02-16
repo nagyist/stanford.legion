@@ -26,7 +26,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     LegionHandshake::LegionHandshake(void)
-      : impl(NULL)
+      : impl(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -36,7 +36,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -44,11 +44,11 @@ namespace Legion {
     LegionHandshake::~LegionHandshake(void)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
-        impl = NULL;
+        impl = nullptr;
       }
     }
 
@@ -57,7 +57,7 @@ namespace Legion {
       : impl(i)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -65,13 +65,13 @@ namespace Legion {
     LegionHandshake& LegionHandshake::operator=(const LegionHandshake &rhs)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
       }
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
       return *this;
     }
@@ -81,7 +81,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->ext_handoff_to_legion();
     }
@@ -91,7 +91,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->ext_wait_on_legion();
     }
@@ -101,7 +101,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->legion_handoff_to_ext();
     }
@@ -111,7 +111,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->legion_wait_on_ext();
     }
@@ -121,7 +121,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       return impl->get_legion_wait_phase_barrier();
     }
@@ -131,7 +131,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       return impl->get_legion_arrive_phase_barrier();
     }
@@ -141,7 +141,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->advance_legion_handshake();
     }
@@ -182,13 +182,13 @@ namespace Legion {
                                                   const MPILegionHandshake &rhs)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
       }
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
       return *this;
     }

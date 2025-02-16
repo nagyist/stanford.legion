@@ -46,7 +46,7 @@ namespace Legion {
       };
     public:
       ShutdownManager(ShutdownPhase phase, AddressSpaceID source,
-                      unsigned radix, ShutdownManager *owner = NULL);
+                      unsigned radix, ShutdownManager *owner = nullptr);
       ShutdownManager(const ShutdownManager &rhs) = delete;
       ~ShutdownManager(void);
     public:

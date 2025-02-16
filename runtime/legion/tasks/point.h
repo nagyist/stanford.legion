@@ -55,8 +55,8 @@ namespace Legion {
     public:
       virtual void predicate_false(void);
       virtual bool distribute_task(void);
-      virtual bool perform_mapping(MustEpochOp *owner = NULL,
-                                   const DeferMappingArgs *args = NULL);
+      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
+                                   const DeferMappingArgs *args = nullptr);
       virtual void handle_future_size(size_t return_type_size,
                                       std::set<RtEvent> &applied_events);
       virtual void shard_off(RtEvent mapped_precondition);

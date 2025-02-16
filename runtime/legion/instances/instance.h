@@ -38,7 +38,7 @@ namespace Legion {
       InstanceManager(DistributedID did, LayoutDescription *layout,
                       FieldSpaceNode *node, IndexSpaceExpression *domain,
                       RegionTreeID tree_id, bool register_now,
-                      CollectiveMapping *mapping = NULL);
+                      CollectiveMapping *mapping = nullptr);
       virtual ~InstanceManager(void);
     public:
       virtual PointerConstraint get_pointer_constraint(void) const = 0;
@@ -58,15 +58,15 @@ namespace Legion {
     public:
       // Interface to the mapper for layouts
       inline void get_fields(std::set<FieldID> &fields) const
-        { if (layout != NULL) layout->get_fields(fields); }
+        { if (layout != nullptr) layout->get_fields(fields); }
       inline bool has_field(FieldID fid) const
-        { if (layout != NULL) return layout->has_field(fid); return false; }
+        { if (layout != nullptr) return layout->has_field(fid); return false; }
       inline void has_fields(std::map<FieldID,bool> &fields) const
-        { if (layout != NULL) layout->has_fields(fields); 
+        { if (layout != nullptr) layout->has_fields(fields); 
           else for (std::map<FieldID,bool>::iterator it = fields.begin();
                     it != fields.end(); it++) it->second = false; } 
       inline void remove_space_fields(std::set<FieldID> &fields) const
-        { if (layout != NULL) layout->remove_space_fields(fields);
+        { if (layout != nullptr) layout->remove_space_fields(fields);
           else fields.clear(); } 
     public:
       bool entails(LayoutConstraints *constraints,

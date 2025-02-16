@@ -57,7 +57,7 @@ namespace Legion {
         rez.serialize<size_t>(instances.size());
         rez.serialize(&instances.front(), 
             instances.size() * sizeof(DistributedID));
-        if (collective_mapping != NULL)
+        if (collective_mapping != nullptr)
           collective_mapping->pack(rez);
         else
           rez.serialize<size_t>(0);
@@ -81,7 +81,7 @@ namespace Legion {
       derez.deserialize(&instances.front(), num_insts * sizeof(DistributedID));
       size_t num_spaces;
       derez.deserialize(num_spaces);
-      CollectiveMapping *mapping = NULL;
+      CollectiveMapping *mapping = nullptr;
       if (num_spaces > 0)
       {
         mapping = new CollectiveMapping(derez, num_spaces);
@@ -94,7 +94,7 @@ namespace Legion {
           no_views, instances, false/*register now*/, mapping);
       // Register only after construction
       view->register_with_runtime();
-      if ((mapping != NULL) && mapping->remove_reference())
+      if ((mapping != nullptr) && mapping->remove_reference())
         delete mapping;
     }
 

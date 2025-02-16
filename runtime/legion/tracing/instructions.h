@@ -54,20 +54,20 @@ namespace Legion {
       virtual std::string to_string(const MemoEntries &memo_entires) = 0;
 
       virtual InstructionKind get_kind(void) = 0;
-      virtual ReplayMapping* as_replay_mapping(void) { return NULL; }
-      virtual CreateApUserEvent* as_create_ap_user_event(void) { return NULL; }
-      virtual TriggerEvent* as_trigger_event(void) { return NULL; }
-      virtual MergeEvent* as_merge_event(void) { return NULL; }
+      virtual ReplayMapping* as_replay_mapping(void) { return nullptr; }
+      virtual CreateApUserEvent* as_create_ap_user_event(void) { return nullptr; }
+      virtual TriggerEvent* as_trigger_event(void) { return nullptr; }
+      virtual MergeEvent* as_merge_event(void) { return nullptr; }
       virtual AssignFenceCompletion* as_assignment_fence_completion(void) 
-        { return NULL; }
-      virtual IssueCopy* as_issue_copy(void) { return NULL; }
-      virtual IssueFill* as_issue_fill(void) { return NULL; }
-      virtual IssueAcross* as_issue_across(void) { return NULL; }
-      virtual SetOpSyncEvent* as_set_op_sync_event(void) { return NULL; }
-      virtual SetEffects* as_set_effects(void) { return NULL; }
-      virtual CompleteReplay* as_complete_replay(void) { return NULL; }
-      virtual BarrierArrival* as_barrier_arrival(void) { return NULL; }
-      virtual BarrierAdvance* as_barrier_advance(void) { return NULL; }
+        { return nullptr; }
+      virtual IssueCopy* as_issue_copy(void) { return nullptr; }
+      virtual IssueFill* as_issue_fill(void) { return nullptr; }
+      virtual IssueAcross* as_issue_across(void) { return nullptr; }
+      virtual SetOpSyncEvent* as_set_op_sync_event(void) { return nullptr; }
+      virtual SetEffects* as_set_effects(void) { return nullptr; }
+      virtual CompleteReplay* as_complete_replay(void) { return nullptr; }
+      virtual BarrierArrival* as_barrier_arrival(void) { return nullptr; }
+      virtual BarrierAdvance* as_barrier_advance(void) { return nullptr; }
     public:
       const TraceLocalID owner;
     };

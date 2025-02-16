@@ -112,7 +112,7 @@ namespace Legion {
       LayoutConstraints(LayoutConstraintID layout_id,
                         const LayoutConstraintRegistrar &registrar, 
                         bool inter, DistributedID did = 0,
-                        CollectiveMapping *collective_mapping = NULL);
+                        CollectiveMapping *collective_mapping = nullptr);
       LayoutConstraints(LayoutConstraintID layout_id,
                         const LayoutConstraintSet &cons,
                         FieldSpace handle, bool inter);

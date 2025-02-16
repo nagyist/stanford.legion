@@ -157,7 +157,7 @@ namespace Legion {
         return finder->second.first;
       }
       AutoLock m_lock(mapper_lock, 0/*mode*/, false/*exclusive*/);
-      MapperManager *result = NULL;
+      MapperManager *result = nullptr;
       // We've got the lock, so do the operation
       std::map<MapperID,std::pair<MapperManager*,bool> >::const_iterator
         finder = mappers.find(mid);
@@ -389,7 +389,7 @@ namespace Legion {
         // have been initialized on that processor.  There's no 
         // correctness problem for ignoring a steal request so just do that.
         MapperManager *mapper = find_mapper(stealer);
-        if (mapper == NULL)
+        if (mapper == nullptr)
           continue;
         Mapper::StealRequestInput input;
         {
@@ -545,7 +545,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(task != NULL);
+      assert(task != nullptr);
 #endif
       // have to do this when we are not holding the lock
       task->activate_outstanding_task();
@@ -691,14 +691,14 @@ namespace Legion {
       // See if we can prove that there is a task that is safe to start
       uint64_t min_next = std::numeric_limits<uint64_t>::max();
       uint64_t min_pending = std::numeric_limits<uint64_t>::max();
-      SingleTask *next = NULL;
+      SingleTask *next = nullptr;
       TaskTreeCoordinates next_coords;
       for (std::map<SingleTask*,ConcurrentState>::const_iterator it =
             concurrent_tasks.begin(); it != concurrent_tasks.end(); it++)
       {
         if (it->second.max)
         {
-          if (next != NULL)
+          if (next != nullptr)
           {
             // Compare the lamport clocks
             if (it->second.lamport_clock < min_next)

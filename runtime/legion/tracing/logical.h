@@ -111,7 +111,7 @@ namespace Legion {
       class StaticTranslator {
       public:
         StaticTranslator(const std::set<RegionTreeID> *trs)
-        { if (trs != NULL) trees.insert(trs->begin(), trs->end()); }
+        { if (trs != nullptr) trees.insert(trs->begin(), trs->end()); }
       public:
         inline bool skip_analysis(RegionTreeID tid) const
         { if (trees.empty()) return true; 
@@ -119,7 +119,7 @@ namespace Legion {
         inline void push_dependences(const std::vector<StaticDependence> *deps)
         {
           AutoLock t_lock(translator_lock);
-          if (deps != NULL)
+          if (deps != nullptr)
             dependences.emplace_back(*deps);
           else
             dependences.resize(dependences.size() + 1);
@@ -149,7 +149,7 @@ namespace Legion {
         { return replay_info.size(); }
     public:
       bool initialize_op_tracing(Operation *op,
-                     const std::vector<StaticDependence> *dependences = NULL);
+                     const std::vector<StaticDependence> *dependences = nullptr);
       void check_operation_count(void);
       bool skip_analysis(RegionTreeID tid) const;
       size_t register_operation(Operation *op, GenerationID gen);
@@ -192,7 +192,7 @@ namespace Legion {
       void begin_logical_trace(FenceOp *fence_op);
       void end_logical_trace(FenceOp *fence_op);
     public:
-      bool has_physical_trace(void) const { return (physical_trace != NULL); }
+      bool has_physical_trace(void) const { return (physical_trace != nullptr); }
       PhysicalTrace* get_physical_trace(void) { return physical_trace; }
       void invalidate_equivalence_sets(void) const;
     public:

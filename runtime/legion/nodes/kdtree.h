@@ -152,7 +152,7 @@ namespace Legion {
                                    const FieldMask &mask,
                                    std::vector<RtEvent> &invalidated_events,
                                    bool move_to_previous,
-                                   FieldMask *parent_all_previous = NULL) = 0;
+                                   FieldMask *parent_all_previous = nullptr) = 0;
       virtual void invalidate_shard_tree(const Domain &domain,
                                          const FieldMask &mask,
                                          std::vector<RtEvent> &invalidated);
@@ -230,7 +230,7 @@ namespace Legion {
                                    const FieldMask &mask,
                                    std::vector<RtEvent> &invalidated_events,
                                    bool move_to_previous,
-                                   FieldMask *parent_all_previous = NULL);
+                                   FieldMask *parent_all_previous = nullptr);
       virtual void invalidate_shard_tree_remote(const Rect<DIM,T> &rect,
                                          const FieldMask &mask,
                                          std::vector<RtEvent> &invalidated,
@@ -354,7 +354,7 @@ namespace Legion {
                                    const FieldMask &mask,
                                    std::vector<RtEvent> &invalidated_events,
                                    bool move_to_previous,
-                                   FieldMask *parent_all_previous = NULL);
+                                   FieldMask *parent_all_previous = nullptr);
       virtual void invalidate_shard_tree_remote(const Rect<DIM,T> &rect,
                                          const FieldMask &mask,
                                          std::vector<RtEvent> &invalidated,
@@ -428,7 +428,7 @@ namespace Legion {
                                    const FieldMask &mask,
                                    std::vector<RtEvent> &invalidated_events,
                                    bool move_to_previous,
-                                   FieldMask *parent_all_previous = NULL);
+                                   FieldMask *parent_all_previous = nullptr);
       virtual void invalidate_shard_tree_remote(const Rect<DIM,T> &rect,
                                          const FieldMask &mask,
                                          std::vector<RtEvent> &invalidated,

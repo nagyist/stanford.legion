@@ -112,8 +112,8 @@ namespace Legion {
                       LayoutDescription *desc, ReductionOpID redop, 
                       bool register_now, size_t footprint,
                       ApEvent use_event, LgEvent unique_event,
-                      InstanceKind kind, const ReductionOp *op = NULL,
-                      CollectiveMapping *collective_mapping = NULL,
+                      InstanceKind kind, const ReductionOp *op = nullptr,
+                      CollectiveMapping *collective_mapping = nullptr,
                       ApEvent producer_event = ApEvent::NO_AP_EVENT,
                       GarbageCollectionState init = COLLECTABLE_GC_STATE);
       PhysicalManager(const PhysicalManager &rhs) = delete;
@@ -170,14 +170,14 @@ namespace Legion {
       bool can_collect(bool &already_collected) const;
       bool acquire_collect(std::set<ApEvent> &gc_events, 
           uint64_t &sent_valid, uint64_t &received_valid);
-      bool collect(RtEvent &collected, PhysicalInstance *hole = NULL,
-                   AutoLock *i_lock = NULL);
+      bool collect(RtEvent &collected, PhysicalInstance *hole = nullptr,
+                   AutoLock *i_lock = nullptr);
       void notify_remote_deletion(void);
       RtEvent set_garbage_collection_priority(MapperID mapper_id, Processor p, 
                                               GCPriority priority);
       RtEvent broadcast_garbage_collection_priority_update(GCPriority priority);
       RtEvent perform_deletion(AddressSpaceID source, 
-          PhysicalInstance *hole = NULL, AutoLock *i_lock = NULL);
+          PhysicalInstance *hole = nullptr, AutoLock *i_lock = nullptr);
       void force_deletion(void);
       RtEvent attach_external_instance(void);
       void detach_external_instance(void);
@@ -216,10 +216,10 @@ namespace Legion {
     public:
       bool meets_regions(const std::vector<LogicalRegion> &regions,
                          bool tight_region_bounds = false,
-                         const Domain *padding_delta = NULL) const;
+                         const Domain *padding_delta = nullptr) const;
       bool meets_expression(IndexSpaceExpression *expr, 
                             bool tight_bounds = false,
-                            const Domain *padding_delta = NULL) const;
+                            const Domain *padding_delta = nullptr) const;
     public:
       void find_padded_reservations(const FieldMask &mask,
                                     Operation *op, unsigned index);

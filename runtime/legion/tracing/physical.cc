@@ -31,7 +31,7 @@ namespace Legion {
     PhysicalTrace::PhysicalTrace(LogicalTrace *lt)
       : logical_trace(lt), perform_fence_elision(
           !(runtime->no_trace_optimization || runtime->no_fence_elision)),
-        current_template(NULL), nonreplayable_count(0),
+        current_template(nullptr), nonreplayable_count(0),
         new_template_count(0), recording(false), recurrent(false)
     //--------------------------------------------------------------------------
     {
@@ -119,7 +119,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(current_template == NULL);
+      assert(current_template == nullptr);
 #endif
       if (templates.empty())
         return false;
@@ -219,7 +219,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(current_template == NULL);
+      assert(current_template == nullptr);
 #endif
       const bool replaying = find_replay_template(op,
             map_applied_conditions, execution_preconditions);
@@ -243,7 +243,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(current_template != NULL);
+      assert(current_template != nullptr);
 #endif
       if (recording)
       {
@@ -265,7 +265,7 @@ namespace Legion {
             op->get_complete_operation(), execution_preconditions);
         current_template->release_instance_references(map_applied_conditions);
       }
-      current_template = NULL;
+      current_template = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -275,11 +275,11 @@ namespace Legion {
         bool has_blocking_call, bool has_intermediate_fence)
     //--------------------------------------------------------------------------
     {
-      PhysicalTemplate *non_idempotent_template = NULL;
+      PhysicalTemplate *non_idempotent_template = nullptr;
       if (recording)
       {
 #ifdef DEBUG_LEGION
-        assert(current_template != NULL);
+        assert(current_template != nullptr);
 #endif
         // Complete the recording. If we recorded a replayable template
         // and it is idempotent then we can replay it right away
@@ -329,9 +329,9 @@ namespace Legion {
         }
         // If we get here then we can't replay the current template so we
         // can just do a normal begin physical trace
-        current_template = NULL;
+        current_template = nullptr;
       }
-      else if (current_template != NULL)
+      else if (current_template != nullptr)
       {
 #ifdef DEBUG_LEGION
         // We should only be here if we're going to do a recurrent replay
@@ -369,9 +369,9 @@ namespace Legion {
         templates.pop_back();
       }
 #ifdef DEBUG_LEGION
-      assert(current_template == NULL);
+      assert(current_template == nullptr);
 #endif
-      if (non_idempotent_template != NULL)
+      if (non_idempotent_template != nullptr)
       {
         // If we have a non-idempotent template we figure out what kind of
         // replay we're going to do and then put the non-idempotent template
@@ -408,7 +408,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(recording);
-      assert(current_template != NULL);
+      assert(current_template != nullptr);
 #endif
       // Reset the tracing state for the next time
       recording = false;
@@ -496,7 +496,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(current_template != NULL);
+      assert(current_template != nullptr);
 #endif
       recording = false;
       recurrent = recur;

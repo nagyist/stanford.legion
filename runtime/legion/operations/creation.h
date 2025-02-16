@@ -44,7 +44,7 @@ namespace Legion {
       void initialize_index_space(InnerContext *ctx, IndexSpaceNode *node, 
                             const Future &future, Provenance *provenance,
                             bool owner = true, 
-                            const CollectiveMapping *mapping = NULL);
+                            const CollectiveMapping *mapping = nullptr);
       void initialize_field(InnerContext *ctx, FieldSpaceNode *node,
                             FieldID fid, const Future &field_size,
                             Provenance *provenance, bool owner = true);

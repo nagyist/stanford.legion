@@ -35,14 +35,14 @@ namespace Legion {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
       if (runtime->legion_spy_enabled)
-        return NULL;
+        return nullptr;
       DomainT<DIM,T> domain = get_tight_domain();
       if (!domain.dense())
-        return NULL;
+        return nullptr;
       Rect<DIM,T> bounds = domain.bounds;
       domain = rhs->get_tight_domain();
       if (!domain.dense())
-        return NULL;
+        return nullptr;
       if (bounds.contains(domain.bounds))
         return this;
       if (domain.bounds.contains(bounds))
@@ -55,7 +55,7 @@ namespace Legion {
             bounds.intersection(domain.bounds).volume()))
         return new IndexSpaceUnion<DIM,T>(result);
       else
-        return NULL;
+        return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -67,12 +67,12 @@ namespace Legion {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
       if (runtime->legion_spy_enabled)
-        return NULL;
+        return nullptr;
       if (exprs.size() == 2)
         return this->inline_union_internal<DIM,T>(*exprs.rbegin());
       DomainT<DIM,T> domain = get_tight_domain();;
       if (!domain.dense())
-        return NULL;
+        return nullptr;
       Rect<DIM,T> result = domain.bounds;
       std::vector<Rect<DIM,T> > previous;
       previous.reserve(exprs.size());
@@ -85,7 +85,7 @@ namespace Legion {
       {
         domain = (*eit)->get_tight_domain();
         if (!domain.dense())
-          return NULL;
+          return nullptr;
         bool dominated = false;
         for (typename std::vector<Rect<DIM,T> >::iterator it =
               previous.begin(); it != previous.end(); /*nothing*/)
@@ -111,7 +111,7 @@ namespace Legion {
           }
           // If we get here it overlaps without dominating which is bad
           // and we can't handle that case with union bbox at the moment
-          return NULL;
+          return nullptr;
         }
         if (!dominated)
         {
@@ -123,7 +123,7 @@ namespace Legion {
       if (result.volume() == total_volume)
         return new IndexSpaceUnion<DIM,T>(result);
       else
-        return NULL;
+        return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -135,7 +135,7 @@ namespace Legion {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
       if (runtime->legion_spy_enabled)
-        return NULL;
+        return nullptr;
       DomainT<DIM,T> left = get_tight_domain();
       DomainT<DIM,T> right = rhs->get_tight_domain();
       if (!left.bounds.overlaps(right.bounds))
@@ -164,10 +164,10 @@ namespace Legion {
             else if (right.bounds == intersection)
               return rhs;
             else
-              return NULL;
+              return nullptr;
           }
           else
-            return NULL;
+            return nullptr;
         }
         else
         {
@@ -175,7 +175,7 @@ namespace Legion {
           if (left.bounds == intersection)
             return this;
           else
-            return NULL;
+            return nullptr;
         }
       }
       else if (!right.dense())
@@ -184,7 +184,7 @@ namespace Legion {
         if (right.bounds == intersection)
           return rhs;
         else
-          return NULL;
+          return nullptr;
       }
       if (intersection == left.bounds)
         return this;
@@ -203,13 +203,13 @@ namespace Legion {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
       if (runtime->legion_spy_enabled)
-        return NULL;
+        return nullptr;
       DomainT<DIM,T> domain = get_tight_domain();
       if (domain.empty())
         return this;
       Rect<DIM,T> result = domain.bounds;
       bool has_sparsity = !domain.dense();
-      IndexSpaceExpression *smallest = NULL;
+      IndexSpaceExpression *smallest = nullptr;
       for (std::set<IndexSpaceExpression*>::const_iterator it =
             exprs.begin(); it != exprs.end(); it++)
       {
@@ -232,12 +232,12 @@ namespace Legion {
           if (next == domain.bounds)
             smallest = (*it);
           else
-            smallest = NULL;
+            smallest = nullptr;
         }
       }
       if (has_sparsity)
-        return NULL;
-      if (smallest != NULL)
+        return nullptr;
+      if (smallest != nullptr)
         return smallest;
       return new IndexSpaceIntersection<DIM,T>(result);
     }
@@ -251,7 +251,7 @@ namespace Legion {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
       if (runtime->legion_spy_enabled)
-        return NULL;
+        return nullptr;
       DomainT<DIM,T> left = get_tight_domain();
       DomainT<DIM,T> right = rhs->get_tight_domain();
       // If they don't overlap then this is easy
@@ -259,7 +259,7 @@ namespace Legion {
         return this;
       // If right is not dense we toss up our hands
       if (!right.dense())
-        return NULL;
+        return nullptr;
       if (!left.dense())
       {
         // Can still do a test for containment here to see if we're empty
@@ -269,7 +269,7 @@ namespace Legion {
           return new IndexSpaceDifference<DIM,T>(empty);
         }
         else
-          return NULL;
+          return nullptr;
       }
       // We can find up to one non-dominating dimension and still easily
       // compute the difference, as soon as we have more than one then 
@@ -287,18 +287,18 @@ namespace Legion {
             continue;
           // Just dominated on the low-side
           if (non_dominating_dim > -1)
-            return NULL;
+            return nullptr;
           left.bounds.lo[i] = right.bounds.hi[i]+1;
         }
         else if (left.bounds.hi[i] <= right.bounds.hi[i])
         {
           // Just dominated on the high side
           if (non_dominating_dim > -1)
-            return NULL;
+            return nullptr;
           left.bounds.hi[i] = right.bounds.lo[i]-1;
         }
         else // Not dominated on either side
-          return NULL;
+          return nullptr;
         non_dominating_dim = i;
       }
       if (non_dominating_dim == -1)
@@ -389,10 +389,10 @@ namespace Legion {
       ApEvent fill_pre;
       if (pred_guard.exists())
         // No need for tracing to know about the precondition
-        fill_pre = Runtime::merge_events(NULL,precondition,ApEvent(pred_guard));
+        fill_pre = Runtime::merge_events(nullptr,precondition,ApEvent(pred_guard));
       else
         fill_pre = precondition;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
       {
         SmallNameClosure<1> *closure = new SmallNameClosure<1>();
         closure->record_instance_name(dst_fields.front().inst, unique_event);
@@ -409,14 +409,14 @@ namespace Legion {
         if (precondition.exists())
         {
           if (result.exists())
-            result = Runtime::merge_events(NULL, result, precondition);
+            result = Runtime::merge_events(nullptr, result, precondition);
           else
             result = precondition;
           // Little catch here for tracing, make sure the result is unique
           if (trace_info.recording && result.exists() &&
               (result == precondition))
           {
-            ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+            ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
             Runtime::trigger_event_untraced(new_result, precondition);
             result = new_result;
           }
@@ -425,7 +425,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists())
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -486,14 +486,14 @@ namespace Legion {
           op->add_copy_profiling_request(trace_info, requests, false/*fill*/);
       ApEvent copy_pre;
       if (pred_guard.exists())
-        copy_pre = Runtime::merge_events(NULL,precondition,ApEvent(pred_guard));
+        copy_pre = Runtime::merge_events(nullptr,precondition,ApEvent(pred_guard));
       else
         copy_pre = precondition;
       for (std::vector<Reservation>::const_iterator it =
             reservations.begin(); it != reservations.end(); it++)
         copy_pre = Runtime::acquire_ap_reservation(*it, 
                                         true/*exclusive*/, copy_pre);
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
       {
         SmallNameClosure<2> *closure = new SmallNameClosure<2>();
         closure->record_instance_name(src_fields.front().inst, src_unique);
@@ -515,14 +515,14 @@ namespace Legion {
         if (precondition.exists())
         {
           if (result.exists())
-            result = Runtime::merge_events(NULL, result, precondition);
+            result = Runtime::merge_events(nullptr, result, precondition);
           else
             result = precondition;
           // Little catch here for tracing, make sure the result is unique
           if (trace_info.recording && result.exists() &&
               (result == precondition))
           {
-            ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+            ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
             Runtime::trigger_event_untraced(new_result, precondition);
             result = new_result;
           }
@@ -542,7 +542,7 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists())
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -603,11 +603,11 @@ namespace Legion {
           if (!constraints.tiling_constraints.empty())
           {
 #ifdef DEBUG_LEGION
-            assert(piece_list != NULL);
-            assert((*piece_list) == NULL);
-            assert(piece_list_size != NULL);
+            assert(piece_list != nullptr);
+            assert((*piece_list) == nullptr);
+            assert(piece_list_size != nullptr);
             assert((*piece_list_size) == 0);
-            assert(num_pieces != NULL);
+            assert(num_pieces != nullptr);
             assert((*num_pieces) == 0);
 #endif
             // First get the tile bounds
@@ -668,11 +668,11 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        assert(piece_list != NULL);
-        assert((*piece_list) == NULL);
-        assert(piece_list_size != NULL);
+        assert(piece_list != nullptr);
+        assert((*piece_list) == nullptr);
+        assert(piece_list_size != nullptr);
         assert((*piece_list_size) == 0);
-        assert(num_pieces != NULL);
+        assert(num_pieces != nullptr);
         assert((*num_pieces) == 0);
 #endif
         if (spec.max_overhead > 0)
@@ -1010,7 +1010,7 @@ namespace Legion {
                                      const Rect<DIM,T> *rects, size_t num_rects)
     //--------------------------------------------------------------------------
     {
-      if (rects == NULL)
+      if (rects == nullptr)
       {
         if (space.dense())
           return this;
@@ -1040,7 +1040,7 @@ namespace Legion {
       assert(type_tag == space_expr->type_tag);
 #endif
       // See if this an convex hull or a piece list case
-      if (piece_list == NULL)
+      if (piece_list == nullptr)
       {
         // Get the bounds for each of them, can ignore ready events
         // since we're just going to be looking at the bounds
@@ -1049,7 +1049,7 @@ namespace Legion {
         // Check to see if we contain the space expression
         if (!local.bounds.contains(other.bounds))
           return false;
-        if ((padding_delta != NULL) && (padding_delta->get_dim() > 0))
+        if ((padding_delta != nullptr) && (padding_delta->get_dim() > 0))
         {
 #ifdef DEBUG_LEGION
           assert(padding_delta->get_dim() == DIM);
@@ -1074,7 +1074,7 @@ namespace Legion {
       else
       {
         // Padding is not supported for sparse layouts
-        if ((padding_delta != NULL) && (padding_delta->get_dim() > 0))
+        if ((padding_delta != nullptr) && (padding_delta->get_dim() > 0))
           return false;
 #ifdef DEBUG_LEGION
         assert(piece_list_size > 0);
@@ -1178,7 +1178,7 @@ namespace Legion {
         return this;
       DomainT<DIM,T> local_space = get_tight_domain();
       size_t local_rect_count = 0;
-      KDNode<DIM,T,void> *local_tree = NULL;
+      KDNode<DIM,T,void> *local_tree = nullptr;
       for (unsigned idx = 0; idx < expressions.size(); idx++)
       {
         IndexSpaceExpression *expr = expressions[idx];
@@ -1194,7 +1194,7 @@ namespace Legion {
           // can be used as a canonical expression
           if (expr->try_add_live_reference())
           {
-            if (local_tree != NULL)
+            if (local_tree != nullptr)
               delete local_tree;
             return expr;
           }
@@ -1236,7 +1236,7 @@ namespace Legion {
           if (other_rect_count < local_rect_count)
           {
             // Build our KD tree if we haven't already
-            if (local_tree == NULL)
+            if (local_tree == nullptr)
             {
               std::vector<Rect<DIM,T> > local_rects;
               for (Realm::IndexSpaceIterator<DIM,T> itr(local_space);
@@ -1282,7 +1282,7 @@ namespace Legion {
         // here though so handle the case we're we can't add a reference
         if (expr->try_add_live_reference())
         {
-          if (local_tree != NULL)
+          if (local_tree != nullptr)
             delete local_tree;
           return expr;
         }
@@ -1290,10 +1290,10 @@ namespace Legion {
       // Did not find any congruences so add ourself
       expressions.insert(this);
       // If we have a KD tree we can save it for later congruence tests
-      if (local_tree != NULL)
+      if (local_tree != nullptr)
       {
 #ifdef DEBUG_LEGION
-        assert(sparsity_map_kd_tree == NULL); // should not have a kd tree yet
+        assert(sparsity_map_kd_tree == nullptr); // should not have a kd tree yet
 #endif
         sparsity_map_kd_tree = local_tree;
       }
@@ -1305,7 +1305,7 @@ namespace Legion {
     inline KDTree* IndexSpaceExpression::get_sparsity_map_kd_tree_internal(void)
     //--------------------------------------------------------------------------
     {
-      if (sparsity_map_kd_tree != NULL)
+      if (sparsity_map_kd_tree != nullptr)
         return sparsity_map_kd_tree;
       DomainT<DIM,T> local_space = get_tight_domain();
 #ifdef DEBUG_LEGION
@@ -1380,7 +1380,7 @@ namespace Legion {
         {
           if (!tight_index_space_ready.has_triggered())
             preconditions.push_back(ApEvent(tight_index_space_ready));
-          ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+          ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
           // Protect it if necessary to make sure the deletion happens
           // even if one of the users was poisoned
           if (precondition.exists())
@@ -1431,7 +1431,7 @@ namespace Legion {
         {
           // Still not tight so record a user on the index space
           if (!to_trigger.exists())
-            to_trigger = Runtime::create_ap_user_event(NULL);
+            to_trigger = Runtime::create_ap_user_event(nullptr);
           while (!index_space_users.empty() &&
               index_space_users.front().has_triggered_faultignorant())
             index_space_users.pop_front();
@@ -1532,7 +1532,7 @@ namespace Legion {
         {
           if (!tight_index_space_ready.has_triggered())
             preconditions.push_back(ApEvent(tight_index_space_ready));
-          ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+          ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
           // Protect it if necessary to make sure the deletion happens
           // even if one of the users was poisoned
           if (precondition.exists())
@@ -1654,13 +1654,13 @@ namespace Legion {
       if (is_index_space_tight.load())
         return runtime->create_node(handle, Domain(tight_index_space), 
                           false/*take ownership*/,
-                          NULL/*parent*/, 0/*color*/, initialized,
+                          nullptr/*parent*/, 0/*color*/, initialized,
                           provenance, realm_index_space_ready, new_expr_id,
                           collective_mapping, true/*add root ref*/);
       else
         return runtime->create_node(handle, Domain(realm_index_space),
                           false/*take ownership*/,
-                          NULL/*parent*/, 0/*color*/, initialized,
+                          nullptr/*parent*/, 0/*color*/, initialized,
                           provenance, realm_index_space_ready, new_expr_id,
                           collective_mapping, true/*add root ref*/);
     }
@@ -1950,9 +1950,9 @@ namespace Legion {
         spaces[idx] = domain;
       }
       // Kick this off to Realm
-      ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             implicit_provenance, DEP_PART_UNION_REDUCTION, precondition);
       this->realm_index_space_ready = ApEvent(
@@ -2079,9 +2079,9 @@ namespace Legion {
         spaces[idx] = domain;
       }
       // Kick this off to Realm
-      ApEvent precondition = Runtime::merge_events(NULL, preconditions);
+      ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_partition_request(requests,
             implicit_provenance, DEP_PART_INTERSECTION_REDUCTION, precondition);
       this->realm_index_space_ready = ApEvent(
@@ -2217,9 +2217,9 @@ namespace Legion {
         ApEvent right_ready = rhs->get_loose_domain(domain, to_trigger);
         DomainT<DIM,T> rhs_space = domain;
         ApEvent precondition = 
-          Runtime::merge_events(NULL, left_ready, right_ready);
+          Runtime::merge_events(nullptr, left_ready, right_ready);
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests,
               implicit_provenance, DEP_PART_DIFFERENCE, precondition);
         this->realm_index_space_ready = ApEvent(
@@ -2267,7 +2267,7 @@ namespace Legion {
     IndexSpaceDifference<DIM,T>::IndexSpaceDifference(
         const Rect<DIM,T> &bounds)
       : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::DIFFERENCE_OP_KIND)
-        , lhs(NULL), rhs(NULL)
+        , lhs(nullptr), rhs(nullptr)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2286,10 +2286,10 @@ namespace Legion {
     IndexSpaceDifference<DIM,T>::~IndexSpaceDifference(void)
     //--------------------------------------------------------------------------
     {
-      if ((rhs != NULL) && (lhs != rhs) && 
+      if ((rhs != nullptr) && (lhs != rhs) && 
           rhs->remove_tree_expression_reference(this->did))
         delete rhs;
-      if ((lhs != NULL) && lhs->remove_tree_expression_reference(this->did))
+      if ((lhs != nullptr) && lhs->remove_tree_expression_reference(this->did))
         delete lhs;
     }
 
@@ -2302,9 +2302,9 @@ namespace Legion {
       if (this->invalidated.fetch_add(1) > 0)
         return false;
       // Remove the parent operation from all the sub expressions
-      if (lhs != NULL)
+      if (lhs != nullptr)
         lhs->remove_derived_operation(this);
-      if ((rhs != NULL) && (lhs != rhs))
+      if ((rhs != nullptr) && (lhs != rhs))
         rhs->remove_derived_operation(this);
       // We were successfully removed
       return true;
@@ -2315,7 +2315,7 @@ namespace Legion {
     void IndexSpaceDifference<DIM,T>::remove_operation(void)
     //--------------------------------------------------------------------------
     {
-       if ((lhs != NULL) && (rhs != NULL))
+       if ((lhs != nullptr) && (rhs != nullptr))
         runtime->remove_subtraction_operation(this, lhs, rhs);
     }
 

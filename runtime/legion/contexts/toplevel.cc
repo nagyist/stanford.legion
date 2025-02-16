@@ -28,7 +28,7 @@ namespace Legion {
         DistributedID id, CollectiveMapping *mapping)
       : HeapifyMixin<TopLevelContext,InnerContext,CONTEXT_LIFETIME>(
           configure_toplevel_context(),
-          (SingleTask*)NULL, -1, false/*full inner*/,
+          (SingleTask*)nullptr, -1, false/*full inner*/,
                      dummy_requirements, dummy_output_requirements,
                      dummy_indexes, dummy_mapped, 0/*priority*/,
                      ApEvent::NO_AP_EVENT, id, false, false, false, mapping),
@@ -92,7 +92,7 @@ namespace Legion {
     InnerContext* TopLevelContext::find_parent_context(void)
     //--------------------------------------------------------------------------
     {
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -133,7 +133,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(previous != NULL);
+      assert(previous != nullptr);
 #endif
       return previous;
     }

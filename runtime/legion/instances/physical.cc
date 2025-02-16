@@ -40,8 +40,8 @@ namespace Legion {
                         LayoutDescription *layout, ReductionOpID redop_id,
                         bool register_now, size_t footprint,
                         ApEvent u_event, LgEvent unique, InstanceKind k,
-                        const ReductionOp *op /*= NULL*/,
-                        CollectiveMapping *mapping /*=NULL*/,
+                        const ReductionOp *op /*= nullptr*/,
+                        CollectiveMapping *mapping /*=nullptr*/,
                         ApEvent p_event /*= ApEvent::NO_AP_EVENT*/,
                         GarbageCollectionState init /*COLLECTABLE_GC_STATE*/)
       : InstanceManager(encode_instance_did(did, 
@@ -54,16 +54,16 @@ namespace Legion {
             instance_domain->create_layout_expression(pl, pl_size) : 
             instance_domain, tree_id, register_now, mapping), 
         memory_manager(memory), unique_event(unique), 
-        instance_footprint(footprint), reduction_op((redop_id == 0) ? NULL : 
+        instance_footprint(footprint), reduction_op((redop_id == 0) ? nullptr : 
             runtime->get_reduction(redop_id)), redop(redop_id),
         piece_list(pl), piece_list_size(pl_size), instance(inst),
-        use_event(Runtime::create_ap_user_event(NULL)),
+        use_event(Runtime::create_ap_user_event(nullptr)),
         instance_ready((k == UNBOUND_INSTANCE_KIND) ? 
             Runtime::create_rt_user_event() : RtUserEvent::NO_RT_USER_EVENT),
         kind(k), producer_event(p_event), gc_state(init), pending_changes(0),
         failed_collection_count(0), min_gc_priority(0), added_gc_events(0),
         valid_references(0), sent_valid_references(0),
-        received_valid_references(0), padded_reservations(NULL)
+        received_valid_references(0), padded_reservations(nullptr)
     //--------------------------------------------------------------------------
     {
       // If the manager was initialized with a valid Realm instance,
@@ -115,7 +115,7 @@ namespace Legion {
       // Remote references removed by DistributedCollectable destructor
       if (!is_owner() && !is_external_instance())
         memory_manager->unregister_remote_instance(this);
-      if (padded_reservations != NULL)
+      if (padded_reservations != nullptr)
       {
         // If this is the owner view, delete any atomic reservations
         if (is_owner())
@@ -226,7 +226,7 @@ namespace Legion {
       if (instance_ready.exists() && !instance_ready.has_triggered())
         instance_ready.wait();
 #ifdef DEBUG_LEGION
-      assert(layout != NULL);
+      assert(layout != nullptr);
       assert(instance.exists());
 #endif
       // Pass in our physical instance so the layout knows how to specialize
@@ -243,7 +243,7 @@ namespace Legion {
     {
       if (redop > 0)
       {
-        if (mapping != NULL)
+        if (mapping != nullptr)
         {
           // Handle the case where we already requested this view on this
           // node from an unrelated meta-task execution
@@ -259,7 +259,7 @@ namespace Legion {
       }
       else
       {
-        if (mapping != NULL)
+        if (mapping != nullptr)
         {
           // Handle the case where we already requested this view on this
           // node from an unrelated meta-task execution
@@ -347,17 +347,17 @@ namespace Legion {
         return finder->second.first;
       }
       // At this point we're repsonsibile for doing the work to make the view 
-      IndividualView *result = NULL;
+      IndividualView *result = nullptr;
       // Check to see if we're the owner
       if (is_owner())
       {
         // We're going to construct the view no matter what, see which 
         // node is going to be the logical owner
         DistributedID view_did = runtime->get_available_distributed_id(); 
-        result = construct_top_view((mapping == NULL) ? logical_owner :
+        result = construct_top_view((mapping == nullptr) ? logical_owner :
             owner_space, view_did, own_ctx, mapping);
       }
-      else if ((mapping != NULL) && mapping->contains(local_space))
+      else if ((mapping != nullptr) && mapping->contains(local_space))
       {
         // If we're collectively making this view then we're just going to
         // do that and use the owner node as the logical owner for the view
@@ -911,7 +911,7 @@ namespace Legion {
         if (min_gc_priority == LEGION_GC_EAGER_PRIORITY)
         {
           RtEvent dummy_ready;
-          collect(dummy_ready, NULL, &i_lock);
+          collect(dummy_ready, nullptr, &i_lock);
         }
       }
       return remove_base_gc_ref(INTERNAL_VALID_REF);
@@ -1167,7 +1167,7 @@ namespace Legion {
           runtime->find_distributed_collectable(did));
       RtEvent ready;
       PhysicalInstance hole_instance = PhysicalInstance::NO_INST;
-      if (manager->collect(ready, (hole == NULL) ? NULL : &hole_instance))
+      if (manager->collect(ready, (hole == nullptr) ? nullptr : &hole_instance))
       {
         Serializer rez;
         {
@@ -1176,7 +1176,7 @@ namespace Legion {
           rez.serialize(target);
           rez.serialize(ready);
           rez.serialize(hole);
-          if (hole != NULL)
+          if (hole != nullptr)
             rez.serialize(hole_instance);
           rez.serialize(done);
         }
@@ -1200,7 +1200,7 @@ namespace Legion {
       derez.deserialize(*target);
       PhysicalInstance *hole;
       derez.deserialize(hole);
-      if (hole != NULL)
+      if (hole != nullptr)
         derez.deserialize(*hole);
       RtUserEvent done;
       derez.deserialize(done);
@@ -1248,7 +1248,7 @@ namespace Legion {
         // event on this node
         if (!gc_events.empty())
         {
-          const ApEvent remote = Runtime::merge_events(NULL, gc_events);
+          const ApEvent remote = Runtime::merge_events(nullptr, gc_events);
           if (remote.exists())
             manager->record_instance_user(remote, ready_events);
         }
@@ -1270,7 +1270,7 @@ namespace Legion {
         }
         const AddressSpaceID local = manager->local_space;
         // Check to see if we need to broadcast this out to more places
-        if ((manager->collective_mapping != NULL) &&
+        if ((manager->collective_mapping != nullptr) &&
             manager->collective_mapping->contains(local))
         {
           // Broadcast this out to all our children
@@ -1374,7 +1374,7 @@ namespace Legion {
       assert(!is_owner());
 #endif
       // Forward on the deletion notification to any children
-      if ((collective_mapping != NULL) && 
+      if ((collective_mapping != nullptr) && 
           collective_mapping->contains(local_space))
       {
         std::vector<AddressSpaceID> children;
@@ -1466,9 +1466,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((hole == NULL) || !hole->exists());
+      assert((hole == nullptr) || !hole->exists());
 #endif
-      if (i_lock == NULL)
+      if (i_lock == nullptr)
       {
         AutoLock i2_lock(inst_lock);
         return collect(ready, hole, &i2_lock);
@@ -1495,7 +1495,7 @@ namespace Legion {
           local_valid_received = received_valid_references;
           has_local_references = true;
           std::vector<RtEvent> ready_events;
-          if (collective_mapping != NULL)
+          if (collective_mapping != nullptr)
           {
 #ifdef DEBUG_LEGION
             // We're the owner so it should contain ourselves
@@ -1623,12 +1623,12 @@ namespace Legion {
                 RtEvent hole_ready = 
                   perform_deletion(runtime->address_space, hole, i_lock);
                 // Only save the event for the whole being ready if we have one
-                if ((hole != NULL) && hole->exists())
+                if ((hole != nullptr) && hole->exists())
                   ready = hole_ready;
                 // Send notification messages to the remote nodes to tell
                 // them that this instance has been deleted, this is needed
                 // so that we can invalidate any subscribers on those nodes
-                if (collective_mapping != NULL)
+                if (collective_mapping != nullptr)
                 {
 #ifdef DEBUG_LEGION
                   // We're the owner so it should contain ourselves
@@ -1873,7 +1873,7 @@ namespace Legion {
               // in case they become locally valid and then 
               // invalid they need to know to check for that 
               // as soon as they see it
-              if (!collect(updated, NULL, &i_lock))
+              if (!collect(updated, nullptr, &i_lock))
                 broadcast_priority_update = true;
             }
             if (min_gc_priority == LEGION_GC_NEVER_PRIORITY)
@@ -1972,7 +1972,7 @@ namespace Legion {
       DistributedCollectable *dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
       PhysicalManager *manager = dynamic_cast<PhysicalManager*>(dc);
-      assert(manager != NULL);
+      assert(manager != nullptr);
 #else
       PhysicalManager *manager = dynamic_cast<PhysicalManager*>(dc);
 #endif
@@ -1997,7 +1997,7 @@ namespace Legion {
         return ready;
       if (!ready.exists())
         return use_event;
-      return Runtime::merge_events(NULL, ready, use_event);
+      return Runtime::merge_events(nullptr, ready, use_event);
     } 
 
     //--------------------------------------------------------------------------
@@ -2014,7 +2014,7 @@ namespace Legion {
       InnerContext *context = InnerContext::unpack_inner_context(derez);
       AddressSpaceID logical_owner;
       derez.deserialize(logical_owner);
-      CollectiveMapping *mapping = NULL;
+      CollectiveMapping *mapping = nullptr;
       size_t total_spaces;
       derez.deserialize(total_spaces);
       if (total_spaces > 0)
@@ -2037,7 +2037,7 @@ namespace Legion {
       }
       process_top_view_request(manager, context, logical_owner, mapping,
                                target, source, done);
-      if ((mapping != NULL) && mapping->remove_reference())
+      if ((mapping != nullptr) && mapping->remove_reference())
         delete mapping;
     }
 
@@ -2085,7 +2085,7 @@ namespace Legion {
       process_top_view_request(rargs->manager, rargs->context,
           rargs->logical_owner, rargs->mapping, rargs->target,
           rargs->source, rargs->done_event);
-      if ((rargs->mapping != NULL) && rargs->mapping->remove_reference())
+      if ((rargs->mapping != nullptr) && rargs->mapping->remove_reference())
         delete rargs->mapping;
     } 
 
@@ -2140,7 +2140,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(is_owner());
-      assert((collective_mapping == NULL) ||
+      assert((collective_mapping == nullptr) ||
           !collective_mapping->contains(target));
 #endif
       Serializer rez;
@@ -2189,7 +2189,7 @@ namespace Legion {
         IndexSpaceExpression::unpack_expression(derez, source);
       size_t piece_list_size;
       derez.deserialize(piece_list_size);
-      void *piece_list = NULL;
+      void *piece_list = nullptr;
       if (piece_list_size > 0)
       {
         piece_list = malloc(piece_list_size);
@@ -2319,7 +2319,7 @@ namespace Legion {
                                 space_node, inst_domain->get_num_dims());
       MemoryManager *memory = runtime->find_memory_manager(mem);
       const ReductionOp *op = 
-        (redop == 0) ? NULL : runtime->get_reduction(redop);
+        (redop == 0) ? nullptr : runtime->get_reduction(redop);
       void *location = runtime->find_or_create_pending_collectable_location<
                                                         PhysicalManager>(did);
       PhysicalManager *man = new(location) PhysicalManager(
@@ -2329,7 +2329,7 @@ namespace Legion {
                                             redop, false/*reg now*/, 
                                             inst_footprint, use_event, 
                                             unique_event, kind, op,
-                                            NULL, ApEvent::NO_AP_EVENT, state);
+                                            nullptr, ApEvent::NO_AP_EVENT, state);
       // Hold-off doing the registration until construction is complete
       man->register_with_runtime();
       // Remove the reference we got back on the layout description
@@ -2339,14 +2339,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RtEvent PhysicalManager::perform_deletion(AddressSpaceID source,
-                           PhysicalInstance *hole, AutoLock *i_lock /* = NULL*/)
+                           PhysicalInstance *hole, AutoLock *i_lock /* = nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(is_owner());
       assert(source == local_space);
 #endif
-      if (i_lock == NULL)
+      if (i_lock == nullptr)
       {
         AutoLock instance_lock(inst_lock);
         return perform_deletion(source, hole, &instance_lock);
@@ -2378,7 +2378,7 @@ namespace Legion {
       // delete them explicity but everything else we can escape
       if (!serdez_fields.empty())
         instance.destroy(serdez_fields, deferred_deletion);
-      else if (hole != NULL)
+      else if (hole != nullptr)
         *hole = instance; // escape the hole to use for redistricting
       else
         instance.destroy(deferred_deletion);
@@ -2449,7 +2449,7 @@ namespace Legion {
     {
       std::vector<RtEvent> done_events;
       // Send out the messages to perform the broadcast
-      if ((collective_mapping != NULL) && 
+      if ((collective_mapping != nullptr) && 
           collective_mapping->contains(local_space))
       {
         std::vector<AddressSpaceID> children;
@@ -2677,7 +2677,7 @@ namespace Legion {
       if (is_owner())
       {
         AutoLock i_lock(inst_lock);
-        if (padded_reservations == NULL)
+        if (padded_reservations == nullptr)
           padded_reservations = new std::map<unsigned,Reservation>();
         for (int idx = mask.find_first_set(); idx >= 0;
               idx = mask.find_next_set(idx+1))
@@ -2701,7 +2701,7 @@ namespace Legion {
         FieldMask needed_fields;
         {
           AutoLock i_lock(inst_lock, 1, false);
-          if (padded_reservations == NULL)
+          if (padded_reservations == nullptr)
           {
             for (int idx = mask.find_first_set(); idx >= 0;
                   idx = mask.find_next_set(idx+1))
@@ -2736,7 +2736,7 @@ namespace Legion {
           // Now retake the lock and get the remaining reservations
           AutoLock i_lock(inst_lock, 1, false);
 #ifdef DEBUG_LEGION
-          assert(padded_reservations != NULL);
+          assert(padded_reservations != nullptr);
 #endif
           for (int idx = needed_fields.find_first_set(); idx >= 0;
                 idx = needed_fields.find_next_set(idx+1))
@@ -2773,7 +2773,7 @@ namespace Legion {
       DistributedCollectable *dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
       PhysicalManager *target = dynamic_cast<PhysicalManager*>(dc);
-      assert(target != NULL);
+      assert(target != nullptr);
 #else
       PhysicalManager *target = static_cast<PhysicalManager*>(dc);
 #endif
@@ -2802,7 +2802,7 @@ namespace Legion {
 #endif
       unsigned offset = 0;
       AutoLock i_lock(inst_lock);
-      if (padded_reservations == NULL)
+      if (padded_reservations == nullptr)
         padded_reservations = new std::map<unsigned,Reservation>();
       for (int idx = mask.find_first_set(); idx >= 0;
             idx = mask.find_next_set(idx+1))
@@ -2827,7 +2827,7 @@ namespace Legion {
       DistributedCollectable *dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
       PhysicalManager *target = dynamic_cast<PhysicalManager*>(dc);
-      assert(target != NULL);
+      assert(target != nullptr);
 #else
       PhysicalManager *target = static_cast<PhysicalManager*>(dc);
 #endif

@@ -37,7 +37,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(expr != NULL);
+      assert(expr != nullptr);
 #endif
       expr->add_base_expression_reference(PHYSICAL_USER_REF);
     }
@@ -47,7 +47,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(expr != NULL);
+      assert(expr != nullptr);
 #endif
       if (expr->remove_base_expression_reference(PHYSICAL_USER_REF))
         delete expr;
@@ -721,7 +721,7 @@ namespace Legion {
             // Check for the cases where we dominated perfectly
             if (overlap_volume == it->first->get_view_volume())
             {
-              if (covered_user == NULL)
+              if (covered_user == nullptr)
               {
                 covered_user = new PhysicalUser(usage, user_expr, term_event,
                     op_id, index, true/*copy*/, true/*covers*/);
@@ -749,7 +749,7 @@ namespace Legion {
       // If we still have local fields, make a user and record it here
       if (!!user_mask)
       {
-        if (uncovered_user == NULL)
+        if (uncovered_user == nullptr)
         {
           uncovered_user = new PhysicalUser(usage, user_expr, term_event,
               op_id, index, true/*copy*/, false/*covers*/);
@@ -1145,17 +1145,17 @@ namespace Legion {
       : InstanceView(did, register_now, mapping),
         manager(man), logical_owner(log_owner), current_users(
         (log_owner == local_space) ? new ExprView(this->did,
-          manager->instance_domain, manager->is_unbound()) : NULL),
+          manager->instance_domain, manager->is_unbound()) : nullptr),
         expr_cache_uses(0), outstanding_additions(0)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(manager != NULL);
+      assert(manager != nullptr);
 #endif
       // Keep the manager from being collected
       manager->add_nested_resource_ref(did);
       manager->add_nested_gc_ref(did);
-      if (current_users != NULL)
+      if (current_users != nullptr)
         current_users->add_reference();
     }
 
@@ -1167,14 +1167,14 @@ namespace Legion {
       {
         std::set<ApEvent> done_events;
         current_users->find_all_done_events(done_events);
-        const ApEvent all_done = Runtime::merge_events(NULL, done_events);
+        const ApEvent all_done = Runtime::merge_events(nullptr, done_events);
         // No need for the lock here since we should be in a destructor
         // and there should be no more races
         for (std::map<unsigned,Reservation>::iterator it =
               view_reservations.begin(); it != view_reservations.end(); it++)
           it->second.destroy_reservation(all_done);
       }
-      if ((current_users != NULL) && current_users->remove_reference())
+      if ((current_users != nullptr) && current_users->remove_reference())
         delete current_users;
       if (manager->remove_nested_resource_ref(did))
         delete manager;
@@ -1272,7 +1272,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((across_helper == NULL) || !manage_dst_events);
+      assert((across_helper == nullptr) || !manage_dst_events);
 #endif
       // Compute the precondition first
       if (manage_dst_events)
@@ -1290,7 +1290,7 @@ namespace Legion {
         }
       }
       std::vector<CopySrcDstField> dst_fields;
-      if (across_helper != NULL)
+      if (across_helper != nullptr)
       {
         const FieldMask src_mask = across_helper->convert_dst_to_src(fill_mask);
         across_helper->compute_across_offsets(src_mask, dst_fields);
@@ -1334,7 +1334,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((across_helper == NULL) || !manage_dst_events);
+      assert((across_helper == nullptr) || !manage_dst_events);
 #endif
       // Compute the preconditions first
       const UniqueID op_id = op->get_unique_op_id();
@@ -1353,7 +1353,7 @@ namespace Legion {
             precondition = dst_pre;
         }
       }
-      const FieldMask *src_mask = (across_helper == NULL) ? &copy_mask :
+      const FieldMask *src_mask = (across_helper == nullptr) ? &copy_mask :
           new FieldMask(across_helper->convert_dst_to_src(copy_mask));
       // Several cases here:
       // 1. The source is another individual manager - just straight up 
@@ -1380,7 +1380,7 @@ namespace Legion {
         }
         // Compute the field offsets
         std::vector<CopySrcDstField> dst_fields, src_fields;
-        if (across_helper == NULL)
+        if (across_helper == nullptr)
           manager->compute_copy_offsets(copy_mask, dst_fields);
         else
           across_helper->compute_across_offsets(*src_mask, dst_fields);
@@ -1436,7 +1436,7 @@ namespace Legion {
       {
         CollectiveView *collective = src_view->as_collective_view();
         std::vector<CopySrcDstField> dst_fields;
-        if (across_helper == NULL)
+        if (across_helper == nullptr)
           manager->compute_copy_offsets(copy_mask, dst_fields);
         else
           across_helper->compute_across_offsets(*src_mask, dst_fields);
@@ -1484,7 +1484,7 @@ namespace Legion {
           if (manage_dst_events)
           {
             // Reduction-tree case
-            const AddressSpaceID origin = (src_point != NULL) ?
+            const AddressSpaceID origin = (src_point != nullptr) ?
               src_point->owner_space :
               collective->select_source_space(owner_space);
             // There will always be a single result for this copy
@@ -1507,7 +1507,7 @@ namespace Legion {
                 rez.serialize(index);
                 rez.serialize(*src_mask);
                 rez.serialize(copy_mask);
-                if (src_point != NULL)
+                if (src_point != nullptr)
                   rez.serialize(src_point->did);
                 else
                   rez.serialize<DistributedID>(0);
@@ -1547,7 +1547,7 @@ namespace Legion {
               allreduce->perform_collective_reduction(dst_fields,
                   reservations, precondition, predicate_guard, copy_expression,
                   op, index, *src_mask, copy_mask, 
-                  (src_point != NULL) ? src_point->did : 0, dst_inst,
+                  (src_point != nullptr) ? src_point->did : 0, dst_inst,
                   manager->get_unique_event(), trace_info, COLLECTIVE_REDUCTION,
                   recorded_events, applied_events, to_trigger, origin);
             }
@@ -1626,7 +1626,7 @@ namespace Legion {
           // We can issue the copy from an instance in the source
           const Memory location = manager->memory_manager->memory;
           const DomainPoint no_point;
-          const AddressSpaceID origin = (src_point != NULL) ?
+          const AddressSpaceID origin = (src_point != nullptr) ?
               src_point->owner_space :
               collective->select_source_space(owner_space);
           const UniqueInst dst_inst(this);
@@ -1653,7 +1653,7 @@ namespace Legion {
               rez.serialize(location);
               dst_inst.serialize(rez);
               rez.serialize(manager->get_unique_event());
-              if (src_point != NULL)
+              if (src_point != nullptr)
                 rez.serialize(src_point->did);
               else
                 rez.serialize<DistributedID>(0);
@@ -1672,7 +1672,7 @@ namespace Legion {
             result = collective->perform_collective_point(
                 dst_fields, reservations, precondition, predicate_guard,
                 copy_expression, op, index, *src_mask, copy_mask, location, 
-                dst_inst, manager->get_unique_event(), (src_point != NULL) ?
+                dst_inst, manager->get_unique_event(), (src_point != nullptr) ?
                 src_point->did : 0, trace_info, recorded_events,applied_events);
         }
         if (result.exists() && manage_dst_events)
@@ -1680,7 +1680,7 @@ namespace Legion {
               copy_mask, copy_expression, op_id, index,
             recorded_events, trace_info.recording, runtime->address_space);
       } 
-      if (across_helper != NULL)
+      if (across_helper != nullptr)
         delete src_mask;
       return result;
     }
@@ -2000,7 +2000,7 @@ namespace Legion {
       // Hold a reference to this in case it finishes before we're done
       // with the analysis and its get pruned/deleted
       user->add_reference();
-      ExprView *target_view = NULL;
+      ExprView *target_view = nullptr;
       bool has_target_view = false;
       // Handle an easy case first, if the user_expr is the same as the 
       // view_expr for the root then this is easy
@@ -2086,7 +2086,7 @@ namespace Legion {
         AutoLock e_lock(expr_lock);
         // If we don't have a target view see if there is a 
         // congruent one already in the tree
-        if (target_view == NULL)
+        if (target_view == nullptr)
         {
           // Check to see if someone else made it when we released the lock
           LegionMap<IndexSpaceExprID,ExprView*>::const_iterator
@@ -2160,7 +2160,7 @@ namespace Legion {
       // First we're going to check to see if we can add this directly to 
       // an existing ExprView with the same expresssion in which case
       // we'll be able to mark this user as being precise
-      ExprView *target_view = NULL;
+      ExprView *target_view = nullptr;
       bool has_target_view = false;
       bool skip_check = false;
       // Handle an easy case first, if the user_expr is the same as the 
@@ -2242,7 +2242,7 @@ namespace Legion {
         AutoLock e_lock(expr_lock);
         // If we don't have a target view see if there is a 
         // congruent one already in the tree
-        if (target_view == NULL)
+        if (target_view == nullptr)
         {
           // Check to see if someone else made it when we released the lock
           LegionMap<IndexSpaceExprID,ExprView*>::const_iterator
@@ -2251,7 +2251,7 @@ namespace Legion {
             target_view = finder->second;
         }
         // Don't make it though if we don't already have it
-        if (target_view != NULL)
+        if (target_view != nullptr)
         {
           // No need to insert this if it's the root
           if (target_view != current_users)
@@ -2286,17 +2286,17 @@ namespace Legion {
         // We're traversing the view tree but not modifying it so 
         // we need a read-only copy of the expr_lock
         AutoLock e_lock(expr_lock,1,false/*exclusive*/);
-        PhysicalUser *covered_user = NULL;
-        PhysicalUser *uncovered_user = NULL;
+        PhysicalUser *covered_user = nullptr;
+        PhysicalUser *uncovered_user = nullptr;
         current_users->add_partial_user(usage, op_id, index,
                                         user_mask, term_event, 
                                         user_expr, 
                                         user_expr->get_volume(),
                                         covered_user, uncovered_user);
         // Remove the reference that was added when this was made
-        if ((covered_user != NULL) && covered_user->remove_reference())
+        if ((covered_user != nullptr) && covered_user->remove_reference())
           delete covered_user;
-        if ((uncovered_user != NULL) && uncovered_user->remove_reference())
+        if ((uncovered_user != nullptr) && uncovered_user->remove_reference())
           delete uncovered_user;
       }
       if (update_count && (outstanding_additions.fetch_sub(1) == 1) &&
@@ -2357,7 +2357,7 @@ namespace Legion {
         if (finder != collective_analyses.end())
         {
           // Note that this will deduplicate multiple registrations
-          if (finder->second.analysis == NULL)
+          if (finder->second.analysis == nullptr)
           {
 #ifdef DEBUG_LEGION
             assert(finder->second.ready.exists());
@@ -2401,7 +2401,7 @@ namespace Legion {
           collective_analyses.find(key);
         if (finder != collective_analyses.end())
         {
-          if (finder->second.analysis == NULL)
+          if (finder->second.analysis == nullptr)
           {
 #ifdef DEBUG_LEGION
             assert(finder->second.ready.exists());
@@ -2414,7 +2414,7 @@ namespace Legion {
         else
         {
           RegisteredAnalysis &registration = collective_analyses[key];
-          registration.analysis = NULL;
+          registration.analysis = nullptr;
           registration.ready = Runtime::create_rt_user_event();
           wait_on = registration.ready;
         }
@@ -2426,7 +2426,7 @@ namespace Legion {
         collective_analyses.find(key);
 #ifdef DEBUG_LEGION
       assert(finder != collective_analyses.end());
-      assert(finder->second.analysis != NULL);
+      assert(finder->second.analysis != nullptr);
 #endif
       return finder->second.analysis;
     }
@@ -2437,7 +2437,7 @@ namespace Legion {
                              unsigned region_index, IndexSpaceID match_space)
     //--------------------------------------------------------------------------
     {
-      CollectiveAnalysis *removed = NULL;
+      CollectiveAnalysis *removed = nullptr;
       const RendezvousKey key(context_index, region_index, match_space);
       {
         AutoLock v_lock(view_lock);
@@ -2450,7 +2450,7 @@ namespace Legion {
         if (finder == collective_analyses.end())
           return;
 #ifdef DEBUG_LEGION
-        assert(finder->second.analysis != NULL);
+        assert(finder->second.analysis != nullptr);
         assert(!finder->second.ready.exists());
 #endif
         std::set<DistributedID>::iterator view_finder = 
@@ -2495,19 +2495,19 @@ namespace Legion {
       // well, especially in intra-node cases
 #ifdef DEBUG_LEGION
       assert(local_collective_arrivals > 0);
-      assert((analysis_mapping != NULL) || (local_collective_arrivals > 1));
+      assert((analysis_mapping != nullptr) || (local_collective_arrivals > 1));
 #endif
       // First we need to decide which node is going to be the owner node
       // We'll prefer it to be the logical view owner since that is where
       // the event will be produced, otherwise, we'll just pick whichever
       // is closest to the logical view node
-      const AddressSpaceID origin = (analysis_mapping == NULL) ? local_space : 
+      const AddressSpaceID origin = (analysis_mapping == nullptr) ? local_space : 
         analysis_mapping->contains(logical_owner) ? logical_owner : 
         analysis_mapping->find_nearest(logical_owner);
       ApUserEvent result;
       RtUserEvent applied, registered;
       std::vector<ApEvent> term_events;
-      PhysicalTraceInfo *result_info = NULL;
+      PhysicalTraceInfo *result_info = nullptr;
       const RendezvousKey key(op_ctx_index, index, match_space);
       {
         AutoLock v_lock(view_lock);
@@ -2523,11 +2523,11 @@ namespace Legion {
           UserRendezvous &rendezvous = finder->second;
           rendezvous.remaining_local_arrivals = local_collective_arrivals;
           rendezvous.local_initialized = true;
-          rendezvous.remaining_remote_arrivals = (analysis_mapping == NULL) ? 0
+          rendezvous.remaining_remote_arrivals = (analysis_mapping == nullptr) ? 0
             : analysis_mapping->count_children(origin, local_space);
           rendezvous.ready_event = Runtime::create_ap_user_event(&trace_info);
           rendezvous.trace_info = new PhysicalTraceInfo(trace_info);
-          if (analysis_mapping != NULL)
+          if (analysis_mapping != nullptr)
           {
             rendezvous.analysis_mapping = analysis_mapping; 
             analysis_mapping->add_reference();
@@ -2541,8 +2541,8 @@ namespace Legion {
         {
 #ifdef DEBUG_LEGION
           assert(!finder->second.ready_event.exists());
-          assert(finder->second.trace_info == NULL);
-          assert(finder->second.analysis_mapping != NULL);
+          assert(finder->second.trace_info == nullptr);
+          assert(finder->second.analysis_mapping != nullptr);
 #endif
           // First local arrival
           finder->second.remaining_local_arrivals = local_collective_arrivals;
@@ -2583,7 +2583,7 @@ namespace Legion {
             (finder->second.remaining_remote_arrivals > 0))
         {
           // We need to save the trace info no matter what
-          if (finder->second.mask == NULL)
+          if (finder->second.mask == nullptr)
           {
             if (local_space == origin)
             {
@@ -2609,7 +2609,7 @@ namespace Legion {
       if (local_space != origin)
       {
 #ifdef DEBUG_LEGION
-        assert(analysis_mapping != NULL);
+        assert(analysis_mapping != nullptr);
 #endif
         const AddressSpaceID parent = 
           analysis_mapping->get_parent(origin, local_space);
@@ -2636,7 +2636,7 @@ namespace Legion {
         std::set<RtEvent> local_applied; 
         const ApEvent ready = register_user(usage, user_mask, expr, op_id,
             op_ctx_index, index, match_space, term_event, target, 
-            NULL/*analysis*/, 0/*no collective arrivals*/, local_registered,
+            nullptr/*analysis*/, 0/*no collective arrivals*/, local_registered,
             local_applied, *result_info, runtime->address_space, symbolic);
         Runtime::trigger_event(result, ready, *result_info, local_applied);
         if (!local_registered.empty())
@@ -2652,7 +2652,7 @@ namespace Legion {
       }
       if (expr->remove_nested_expression_reference(did))
         delete expr;
-      if ((analysis_mapping != NULL) && analysis_mapping->remove_reference())
+      if ((analysis_mapping != nullptr) && analysis_mapping->remove_reference())
         delete analysis_mapping;
       delete result_info;
       return result;
@@ -2673,7 +2673,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(analysis_mapping != NULL);
+      assert(analysis_mapping != nullptr);
 #endif
       UserRendezvous to_perform;
       const RendezvousKey key(op_ctx_index, index, match_space);
@@ -2720,7 +2720,7 @@ namespace Legion {
           return;
 #ifdef DEBUG_LEGION
         assert(finder->second.remote_ready_events.empty());
-        assert(finder->second.trace_info != NULL);
+        assert(finder->second.trace_info != nullptr);
 #endif
         // Last needed arrival, see if we're the origin or not
         to_perform = std::move(finder->second);
@@ -2734,7 +2734,7 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION
         assert(to_perform.applied.exists());
-        assert(to_perform.analysis_mapping != NULL);
+        assert(to_perform.analysis_mapping != nullptr);
 #endif
         // Send the message to the parent
         const AddressSpaceID parent = 
@@ -2771,7 +2771,7 @@ namespace Legion {
         const ApEvent ready = register_user(to_perform.usage,
             *to_perform.mask, to_perform.expr, to_perform.op_id, op_ctx_index,
             index, match_space, term_event, manager,
-            NULL/*no analysis mapping*/, 0/*no collective arrivals*/,
+            nullptr/*no analysis mapping*/, 0/*no collective arrivals*/,
             registered_events, applied_events, *to_perform.trace_info,
             runtime->address_space, to_perform.symbolic);
         Runtime::trigger_event(to_perform.ready_event, ready,
@@ -2790,7 +2790,7 @@ namespace Legion {
       }
       if (to_perform.expr->remove_nested_expression_reference(did))
         delete to_perform.expr;
-      if ((to_perform.analysis_mapping != NULL) &&
+      if ((to_perform.analysis_mapping != nullptr) &&
           to_perform.analysis_mapping->remove_reference())
         delete to_perform.analysis_mapping;
       delete to_perform.trace_info;

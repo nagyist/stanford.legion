@@ -40,7 +40,7 @@ namespace Legion {
 #ifdef LEGION_SPY
         fill_op_uid(op_uid),
 #endif
-        value(NULL), value_size(0), collective_first_active((map != NULL) &&
+        value(nullptr), value_size(0), collective_first_active((map != nullptr) &&
             map->contains(local_space))
     //--------------------------------------------------------------------------
     {
@@ -64,7 +64,7 @@ namespace Legion {
         fill_op_uid(op_uid),
 #endif
         value(malloc(size)), value_size(size), collective_first_active(
-          (map != NULL) && map->contains(local_space))
+          (map != nullptr) && map->contains(local_space))
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -81,7 +81,7 @@ namespace Legion {
     FillView::~FillView(void)
     //--------------------------------------------------------------------------
     {
-      if (value.load() != NULL)
+      if (value.load() != nullptr)
         free(value.load());
     }
 
@@ -105,7 +105,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(is_owner());
-      assert(collective_mapping == NULL);
+      assert(collective_mapping == nullptr);
 #endif
       Serializer rez;
       {
@@ -153,7 +153,7 @@ namespace Legion {
       
       void *location = runtime->find_or_create_pending_collectable_location<
                                                               FillView>(did);
-      FillView *view = NULL;
+      FillView *view = nullptr;
       if (value_size > 0)
       {
         const void *value = derez.get_current_pointer();
@@ -177,12 +177,12 @@ namespace Legion {
     bool FillView::matches(FillView *other)
     //--------------------------------------------------------------------------
     {
-      if (value == NULL)
+      if (value == nullptr)
       {
         RtEvent wait_on;
         {
           AutoLock v_lock(view_lock);
-          if (value == NULL)
+          if (value == nullptr)
           {
             value_ready = Runtime::create_rt_user_event();
             wait_on = value_ready;
@@ -192,7 +192,7 @@ namespace Legion {
           wait_on.wait();
       }
 #ifdef DEBUG_LEGION
-      assert(value != NULL);
+      assert(value != nullptr);
 #endif
       return other->matches(value, value_size);
     }
@@ -201,12 +201,12 @@ namespace Legion {
     bool FillView::matches(const void *other, size_t size)
     //--------------------------------------------------------------------------
     {
-      if (value == NULL)
+      if (value == nullptr)
       {
         RtEvent wait_on;
         {
           AutoLock v_lock(view_lock);
-          if (value == NULL)
+          if (value == nullptr)
           {
             value_ready = Runtime::create_rt_user_event();
             wait_on = value_ready;
@@ -216,7 +216,7 @@ namespace Legion {
           wait_on.wait();
       }
 #ifdef DEBUG_LEGION
-      assert(value != NULL);
+      assert(value != nullptr);
 #endif
       if (value_size != size)
         return false;
@@ -229,8 +229,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(size > 0);
-      assert(val != NULL);
-      assert(value.load() == NULL);
+      assert(val != nullptr);
+      assert(value.load() == nullptr);
       assert(value_size.load() == 0);
 #endif
       void *result = malloc(size);

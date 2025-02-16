@@ -199,7 +199,7 @@ namespace Legion {
     public:
       static inline void record_live_expression(IndexSpaceExpression *expr)
       {
-        if (implicit_reference_tracker == NULL)
+        if (implicit_reference_tracker == nullptr)
           implicit_reference_tracker = new ImplicitReferenceTracker;
         implicit_reference_tracker->live_expressions.push_back(expr);
       }
@@ -234,7 +234,7 @@ namespace Legion {
     public:
       DistributedCollectable(DistributedID did,
                              bool register_with_runtime = true,
-                             CollectiveMapping *mapping = NULL,
+                             CollectiveMapping *mapping = nullptr,
                              State initial_state = GLOBAL_REF_STATE);
       DistributedCollectable(const DistributedCollectable &rhs) = delete;
       virtual ~DistributedCollectable(void);
@@ -384,7 +384,7 @@ namespace Legion {
     public:
       ValidDistributedCollectable(DistributedID did,
                                   bool register_with_runtime = true,
-                                  CollectiveMapping *mapping = NULL,
+                                  CollectiveMapping *mapping = nullptr,
                                   bool start_in_valid_state = true);
       ValidDistributedCollectable(
           const ValidDistributedCollectable &rhs) = delete;

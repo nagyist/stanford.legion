@@ -156,7 +156,7 @@ namespace Legion {
     void FenceOp::trigger_complete(ApEvent complete)
     //--------------------------------------------------------------------------
     {
-      if (result.impl != NULL)
+      if (result.impl != nullptr)
         result.impl->set_result(complete);
       complete_operation(complete);
     }
@@ -246,11 +246,11 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!mapping_fence_barrier.exists());
       assert(!execution_fence_barrier.exists());
-      if (repl_ctx == NULL)
+      if (repl_ctx == nullptr)
         repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
-      if (repl_ctx == NULL)
+      if (repl_ctx == nullptr)
         repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // If we get here that means we weren't replayed so make our fences

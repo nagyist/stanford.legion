@@ -434,7 +434,7 @@ namespace Legion {
       virtual RtEvent post_complete_exchange(void) 
         { return RtEvent::NO_RT_EVENT; }
     protected:
-      const std::vector<ShardID> *const participants; // can be NULL
+      const std::vector<ShardID> *const participants; // can be nullptr
       const size_t total_shards;
       int local_index;
       int shard_collective_radix;
@@ -496,12 +496,12 @@ namespace Legion {
       BufferBroadcast(ReplicateContext *ctx, ShardID origin,
                      CollectiveIndexLocation loc)
         : BroadcastCollective(loc, ctx, origin),
-          buffer(NULL), size(0), own(false) { }
+          buffer(nullptr), size(0), own(false) { }
       BufferBroadcast(CollectiveID id, ReplicateContext *ctx);
       BufferBroadcast(CollectiveID id, ShardID origin,
                       ReplicateContext *ctx)
         : BroadcastCollective(ctx, id, origin),
-          buffer(NULL), size(0), own(false) { }
+          buffer(nullptr), size(0), own(false) { }
       BufferBroadcast(const BufferBroadcast &rhs) = delete;
       virtual ~BufferBroadcast(void) { if (own) free(buffer); }
     public:

@@ -34,7 +34,7 @@ namespace Legion {
     public:
       struct FailedPrecondition {
       public:
-        FailedPrecondition(void) : view(NULL), expr(NULL) { }
+        FailedPrecondition(void) : view(nullptr), expr(nullptr) { }
       public:
         LogicalView *view;
         IndexSpaceExpression *expr;
@@ -56,14 +56,14 @@ namespace Legion {
       void invalidate(LogicalView *view,
                       IndexSpaceExpression *expr,
                       const FieldMask &mask,
-           std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = NULL,
-           std::map<LogicalView*,unsigned> *view_refs_to_remove = NULL, 
+           std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = nullptr,
+           std::map<LogicalView*,unsigned> *view_refs_to_remove = nullptr, 
                       bool antialiased = false);
       void invalidate_all_but(LogicalView *except,
                               IndexSpaceExpression *expr,
                               const FieldMask &mask,
-           std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = NULL,
-           std::map<LogicalView*,unsigned> *view_refs_to_remove = NULL,
+           std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = nullptr,
+           std::map<LogicalView*,unsigned> *view_refs_to_remove = nullptr,
                               bool antialiased = false);
     public:
       bool dominates(LogicalView *view, IndexSpaceExpression *expr, 
@@ -76,10 +76,10 @@ namespace Legion {
                                      FieldMask &mask) const;
       bool subsumed_by(TraceViewSet &set, 
           const FieldMaskSet<IndexSpaceExpression> &unique_dirty_exprs,
-          FailedPrecondition *condition = NULL) const;
+          FailedPrecondition *condition = nullptr) const;
       bool independent_of(const TraceViewSet &set,
-                       FailedPrecondition *condition = NULL) const; 
-      void record_first_failed(FailedPrecondition *condition = NULL) const;
+                       FailedPrecondition *condition = nullptr) const; 
+      void record_first_failed(FailedPrecondition *condition = nullptr) const;
       void transpose_uniquely(LegionMap<IndexSpaceExpression*,
                                   FieldMaskSet<LogicalView> > &target) const;
       void find_overlaps(TraceViewSet &target, IndexSpaceExpression *expr,

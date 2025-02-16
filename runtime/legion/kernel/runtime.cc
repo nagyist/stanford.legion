@@ -86,15 +86,15 @@ namespace Legion {
     Realm::Logger log_auto_trace("auto_trace");
     Realm::Logger log_spy("legion_spy");
 
-    Runtime *runtime = NULL;
-    thread_local TaskContext *implicit_context = NULL;
-    thread_local MappingCallInfo *implicit_mapper_call = NULL;
-    thread_local LegionProfInstance *implicit_profiler = NULL;
-    thread_local AutoLock *local_lock_list = NULL;
+    Runtime *runtime = nullptr;
+    thread_local TaskContext *implicit_context = nullptr;
+    thread_local MappingCallInfo *implicit_mapper_call = nullptr;
+    thread_local LegionProfInstance *implicit_profiler = nullptr;
+    thread_local AutoLock *local_lock_list = nullptr;
     thread_local UniqueID implicit_provenance = 0;
     thread_local LgEvent implicit_fevent = LgEvent::NO_LG_EVENT;
     thread_local RegistrationCallbackMode inside_registration_callback=NO_REGISTRATION_CALLBACK;
-    thread_local ImplicitReferenceTracker *implicit_reference_tracker = NULL;
+    thread_local ImplicitReferenceTracker *implicit_reference_tracker = nullptr;
 #ifdef DEBUG_LEGION_CALLERS
     thread_local LgTaskID implicit_task_kind = LG_SCHEDULER_ID;
     thread_local LgTaskID implicit_task_caller = LG_SCHEDULER_ID;
@@ -145,7 +145,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(exists());
-      assert(implicit_profiler != NULL);
+      assert(implicit_profiler != nullptr);
 #endif
       implicit_profiler->record_event_trigger(*this, precondition);
     }
@@ -171,7 +171,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     OperationCreator::OperationCreator(void)
-      : result(NULL)
+      : result(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -182,7 +182,7 @@ namespace Legion {
     {
       // If we still have a result then it's because it wasn't consumed need 
       // we need to remove it's reference that was added by the constructor 
-      if ((result != NULL) && result->remove_base_resource_ref(REGION_TREE_REF))
+      if ((result != nullptr) && result->remove_base_resource_ref(REGION_TREE_REF))
         delete result;
     }
 
@@ -191,7 +191,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(result == NULL);
+      assert(result == nullptr);
 #endif
       result = op;
     }
@@ -200,10 +200,10 @@ namespace Legion {
     IndexSpaceExpression* OperationCreator::consume(void)
     //--------------------------------------------------------------------------
     {
-      if (result == NULL)
+      if (result == nullptr)
         create_operation();
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       // Add an expression reference here since this is going to be put
       // into the region tree expression trie data structure, the reference
@@ -225,17 +225,17 @@ namespace Legion {
                                   const char *task_name)
       : vid(v), return_type_size(return_size),
         has_return_type_size(has_return_size), registrar(reg), 
-        realm_desc(realm), logical_task_name(NULL)
+        realm_desc(realm), logical_task_name(nullptr)
     //--------------------------------------------------------------------------
     {
       // If we're doing a pending registration, this is a static
       // registration so we don't have to register it globally
       registrar.global_registration = false;
       // Make sure we own the task variant name
-      if (reg.task_variant_name != NULL)
+      if (reg.task_variant_name != nullptr)
         registrar.task_variant_name = strdup(reg.task_variant_name);
       // We need to own the user data too
-      if (udata != NULL)
+      if (udata != nullptr)
       {
         user_data_size = udata_size;
         user_data = malloc(user_data_size);
@@ -244,9 +244,9 @@ namespace Legion {
       else
       {
         user_data_size = 0;
-        user_data = NULL;
+        user_data = nullptr;
       }
-      if (task_name != NULL)
+      if (task_name != nullptr)
         logical_task_name = strdup(task_name);
     }
 
@@ -263,11 +263,11 @@ namespace Legion {
     PendingVariantRegistration::~PendingVariantRegistration(void)
     //--------------------------------------------------------------------------
     {
-      if (registrar.task_variant_name != NULL)
+      if (registrar.task_variant_name != nullptr)
         free(const_cast<char*>(registrar.task_variant_name));
-      if (user_data != NULL)
+      if (user_data != nullptr)
         free(user_data);
-      if (logical_task_name != NULL)
+      if (logical_task_name != nullptr)
         free(logical_task_name);
     }
 
@@ -287,7 +287,7 @@ namespace Legion {
     {
       // If we have a logical task name, attach the name info
       // Do this first before any logging for the variant
-      if (logical_task_name != NULL)
+      if (logical_task_name != nullptr)
         runtime->attach_semantic_information(registrar.task_id, 
                           LEGION_NAME_SEMANTIC_TAG, logical_task_name, 
                           strlen(logical_task_name)+1, 
@@ -314,8 +314,8 @@ namespace Legion {
         mapper_runtime(new Legion::Mapping::MapperRuntime(this)),
         machine(m), runtime_system_memory(system), address_space(unique), 
         total_address_spaces(address_spaces.size()),
-        runtime_stride(address_spaces.size()), profiler(NULL),
-        virtual_manager(NULL), 
+        runtime_stride(address_spaces.size()), profiler(nullptr),
+        virtual_manager(nullptr), 
         num_utility_procs(local_utilities.empty() ? locals.size() : 
                           local_utilities.size()), input_args(args),
         initial_task_window_size(config.initial_task_window_size),
@@ -371,7 +371,7 @@ namespace Legion {
         dump_free_ranges(config.dump_free_ranges),
         legion_collective_radix(config.legion_collective_radix),
         mpi_rank_table((mpi_rank >= 0) ? new MPIRankTable(
-          legion_collective_radix, address_space, total_address_spaces) : NULL),
+          legion_collective_radix, address_space, total_address_spaces) : nullptr),
         prepared_for_shutdown(false), total_outstanding_tasks(0), 
         outstanding_top_level_tasks(initialize_outstanding_top_level_tasks(
               address_space, total_address_spaces, legion_collective_radix)),
@@ -415,7 +415,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(runtime == NULL);
+      assert(runtime == nullptr);
 #endif
       runtime = this;
 #ifdef DEBUG_LEGION
@@ -479,7 +479,7 @@ namespace Legion {
       // Initialize the message manager array so that we can construct
       // message managers lazily as they are needed
       for (unsigned idx = 0; idx < LEGION_MAX_NUM_NODES; idx++)
-        message_managers[idx].store(NULL);
+        message_managers[idx].store(nullptr);
       
       // Make the default number of contexts
       // No need to hold the lock yet because nothing is running
@@ -530,26 +530,26 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(outstanding_operations.empty());
 #endif
-      if (profiler != NULL)
+      if (profiler != nullptr)
       {
         delete profiler;
-        profiler = NULL;
+        profiler = nullptr;
       }
       // Make sure we don't send anymore messages
       for (unsigned idx = 0; idx < LEGION_MAX_NUM_NODES; idx++)
       {
         MessageManager *manager = message_managers[idx].load();
-        if (manager != NULL)
+        if (manager != nullptr)
         {
           delete manager;
-          message_managers[idx].store(NULL);
+          message_managers[idx].store(nullptr);
         }
       } 
       // Free any input arguments
       if (input_args.argc > 0)
       {
         for (int i = 0; i < input_args.argc; i++)
-          if (input_args.argv[i] != NULL)
+          if (input_args.argv[i] != nullptr)
             free(input_args.argv[i]);
         free(input_args.argv);
       }
@@ -674,7 +674,7 @@ namespace Legion {
       std::map<LayoutConstraintID,LayoutConstraintRegistrar> 
         &pending_constraints = get_pending_constraint_table();
       // Create a collective mapping for all the nodes
-      CollectiveMapping *mapping = NULL;
+      CollectiveMapping *mapping = nullptr;
       if (total_address_spaces > 1)
       {
         std::vector<AddressSpaceID> all_spaces(total_address_spaces);
@@ -721,11 +721,11 @@ namespace Legion {
       {
         it->second->set_runtime(external);
         register_projection_functor(it->first, it->second, true/*need check*/,
-                          true/*was preregistered*/, NULL, true/*pregistered*/);
+                          true/*was preregistered*/, nullptr, true/*pregistered*/);
       }
       register_projection_functor(0, 
           new IdentityProjectionFunctor(this->external), false/*need check*/,
-                        true/*was preregistered*/, NULL, true/*preregistered*/);
+                        true/*was preregistered*/, nullptr, true/*preregistered*/);
     }
 
     //--------------------------------------------------------------------------
@@ -738,10 +738,10 @@ namespace Legion {
             pending_sharding_functors.begin(); it !=
             pending_sharding_functors.end(); it++)
         register_sharding_functor(it->first, it->second, true/*zero check*/,
-                    true/*was preregistered*/, NULL, true/*preregistered*/);
+                    true/*was preregistered*/, nullptr, true/*preregistered*/);
       register_sharding_functor(0,
           new CyclicShardingFunctor(), false/*need check*/, 
-          true/*was preregistered*/, NULL, true/*preregistered*/);
+          true/*was preregistered*/, nullptr, true/*preregistered*/);
       // Register the attach-detach sharding functor
       ReplicateContext::register_attach_detach_sharding_functor();
       // Register the universal sharding functor
@@ -758,10 +758,10 @@ namespace Legion {
             it = pending_concurrent_functors.begin(); it !=
             pending_concurrent_functors.end(); it++)
         register_concurrent_functor(it->first, it->second, true/*zero check*/,
-                    true/*was preregistered*/, NULL, true/*preregistered*/);
+                    true/*was preregistered*/, nullptr, true/*preregistered*/);
       register_concurrent_functor(0,
           new ZeroColoringFunctor(), false/*need check*/,
-          true/*was preregistered*/, NULL, true/*preregistered*/);
+          true/*was preregistered*/, nullptr, true/*preregistered*/);
     }
 
     //--------------------------------------------------------------------------
@@ -1086,7 +1086,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(virtual_manager == NULL);
+      assert(virtual_manager == nullptr);
 #endif
       // make a layout constraints
       FieldMask all_ones(LEGION_FIELD_MASK_FIELD_ALL_ONES);
@@ -1107,7 +1107,7 @@ namespace Legion {
     {  
       // If we have an MPI rank table do the exchanges before initializing
       // the mappers as they may want to look at the rank table
-      if (mpi_rank_table != NULL)
+      if (mpi_rank_table != nullptr)
         mpi_rank_table->perform_rank_exchange();
       // Starts at 1 since 0 is a reserved ID for the virtual manager
       uint64_t next_static_did = 1;
@@ -1154,7 +1154,7 @@ namespace Legion {
         return top_context;
       }
       else
-        return NULL;
+        return nullptr;
     }
 
 #ifdef LEGION_USE_LIBDL
@@ -1205,7 +1205,7 @@ namespace Legion {
             "Nested registration callbacks are not permitted in Legion")
       RegistrationKey global_key;
 #ifdef LEGION_USE_LIBDL
-      Realm::DSOReferenceImplementation *dso = NULL;
+      Realm::DSOReferenceImplementation *dso = nullptr;
       if (global)
       {
         // No such thing as global registration if there's only one addres space
@@ -1226,7 +1226,7 @@ namespace Legion {
           dso = static_cast<Realm::DSOReferenceImplementation*>(
               callback_translator.translate(&impl, 
                 typeid(Realm::DSOReferenceImplementation)));
-          if (dso == NULL)
+          if (dso == nullptr)
             REPORT_LEGION_FATAL(LEGION_FATAL_CALLBACK_NOT_PORTABLE,
                 "Global registration callback function pointer %p is not "
                 "portable. All registration callbacks requesting to be "
@@ -1349,7 +1349,7 @@ namespace Legion {
 #endif
       // See if we're inside of a task and can use that to help do the 
       // global invocations of this registration callback
-      if (!deduplicate || (implicit_context == NULL))
+      if (!deduplicate || (implicit_context == nullptr))
       {
         // This means we're in an external thread asking for us to
         // perform a global registration so just send out messages
@@ -1400,13 +1400,13 @@ namespace Legion {
           break;
         MessageManager *messenger = find_messenger(next);
         shutdown_preconditions.push_back(RtEvent(messenger->target.spawn(
-                LG_SHUTDOWN_TASK_ID, NULL, 0, empty_requests)));
+                LG_SHUTDOWN_TASK_ID, nullptr, 0, empty_requests)));
       }
       // Have the memory managers for deletion of all their instances
       for (std::map<Memory,MemoryManager*>::const_iterator it =
            memory_managers.begin(); it != memory_managers.end(); it++)
         it->second->finalize();
-      if (profiler != NULL)
+      if (profiler != nullptr)
         profiler->finalize();
     }
     
@@ -1424,7 +1424,7 @@ namespace Legion {
       // Get an individual task to be the top-level task
       IndividualTask *mapper_task = get_operation<IndividualTask>();
       Future f = mapper_task->initialize_task(map_context, launcher, 
-                          NULL/*provenance*/, true/*top level*/);
+                          nullptr/*provenance*/, true/*top level*/);
       mapper_task->set_current_proc(proc);
       mapper_task->select_task_options(false/*prioritize*/);
       // Add a reference to the future impl to prevent it being collected
@@ -1590,7 +1590,7 @@ namespace Legion {
     TraceID Runtime::generate_dynamic_trace_id(bool check_context/*= true*/)
     //--------------------------------------------------------------------------
     {
-      if (check_context && (implicit_context != NULL))
+      if (check_context && (implicit_context != nullptr))
         return implicit_context->generate_dynamic_trace_id();
       TraceID result = unique_trace_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
@@ -1767,14 +1767,14 @@ namespace Legion {
     bool Runtime::is_MPI_interop_configured(void)
     //--------------------------------------------------------------------------
     {
-      return (mpi_rank_table != NULL);
+      return (mpi_rank_table != nullptr);
     }
 
     //--------------------------------------------------------------------------
     const std::map<int,AddressSpace>& Runtime::find_forward_MPI_mapping(void)
     //--------------------------------------------------------------------------
     {
-      if (mpi_rank_table == NULL)
+      if (mpi_rank_table == nullptr)
         REPORT_LEGION_ERROR(ERROR_MPI_INTEROPERABILITY_NOT_CONFIGURED, 
              "Forward MPI mapping call not supported without "
                       "calling configure_MPI_interoperability during "
@@ -1789,7 +1789,7 @@ namespace Legion {
     const std::map<AddressSpace,int>& Runtime::find_reverse_MPI_mapping(void)
     //--------------------------------------------------------------------------
     {
-      if (mpi_rank_table == NULL)
+      if (mpi_rank_table == nullptr)
         REPORT_LEGION_ERROR(ERROR_MPI_INTEROPERABILITY_NOT_CONFIGURED,
              "Reverse MPI mapping call not supported without "
                       "calling configure_MPI_interoperability during "
@@ -1804,7 +1804,7 @@ namespace Legion {
     int Runtime::find_local_MPI_rank(void)
     //-------------------------------------------------------------------------
     {
-      if (mpi_rank_table == NULL)
+      if (mpi_rank_table == nullptr)
         REPORT_LEGION_ERROR(ERROR_MPI_INTEROPERABILITY_NOT_CONFIGURED,
              "Findling local MPI rank not supported without "
                       "calling configure_MPI_interoperability during "
@@ -1873,7 +1873,7 @@ namespace Legion {
     MapperID Runtime::generate_dynamic_mapper_id(bool check_context/*= true*/)
     //--------------------------------------------------------------------------
     {
-      if (check_context && (implicit_context != NULL))
+      if (check_context && (implicit_context != nullptr))
         return implicit_context->generate_dynamic_mapper_id();
       MapperID result = unique_mapper_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
@@ -2067,7 +2067,7 @@ namespace Legion {
                                   MapperID map_id, Processor p, bool is_default)
     //--------------------------------------------------------------------------
     {
-      MapperManager *manager = NULL;
+      MapperManager *manager = nullptr;
       switch (mapper->get_mapper_sync_model())
       {
         case Mapper::CONCURRENT_MAPPER_MODEL:
@@ -2101,10 +2101,10 @@ namespace Legion {
             proc_managers.begin(); it != proc_managers.end(); it++)
       {
         MapperManager *result = it->second->find_mapper(map_id);
-        if (result != NULL)
+        if (result != nullptr)
           return result;
       }
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -2138,7 +2138,7 @@ namespace Legion {
                                                    bool check_context/*= true*/)
     //--------------------------------------------------------------------------
     {
-      if (check_context && (implicit_context != NULL))
+      if (check_context && (implicit_context != nullptr))
         return implicit_context->generate_dynamic_projection_id();
       ProjectionID result = unique_projection_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
@@ -2308,7 +2308,7 @@ namespace Legion {
                         "ensure that this projection functor is registered on "
                         "all nodes where it will be required. "
                         "Warning string: %s", pid, total_address_spaces,
-                        (warning_string == NULL) ? "" : warning_string)
+                        (warning_string == nullptr) ? "" : warning_string)
       ProjectionFunction *function = new ProjectionFunction(pid, functor);
       AutoLock p_lock(projection_lock);
       std::map<ProjectionID,ProjectionFunction*>::
@@ -2357,7 +2357,7 @@ namespace Legion {
       if (finder == projection_functions.end())
       {
         if (can_fail)
-          return NULL;
+          return nullptr;
         REPORT_LEGION_ERROR(ERROR_INVALID_PROJECTION_ID, 
                         "Unable to find registered region projection ID %d. "
                         "Please upgrade to using projection functors!", pid);
@@ -2374,7 +2374,7 @@ namespace Legion {
       {
         ProjectionFunction *func = 
           runtime->find_projection_function(pid, true/*can fail*/);
-        if (func != NULL)
+        if (func != nullptr)
           return func->functor;
       }
       else
@@ -2386,14 +2386,14 @@ namespace Legion {
         if (finder != pending_projection_functors.end())
           return finder->second;
       }
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
     ShardingID Runtime::generate_dynamic_sharding_id(bool check_context/*true*/)
     //--------------------------------------------------------------------------
     {
-      if (check_context && (implicit_context != NULL))
+      if (check_context && (implicit_context != nullptr))
         return implicit_context->generate_dynamic_sharding_id();
       ShardingID result = unique_sharding_id.fetch_add(runtime_stride); 
       // Check for hitting the library limit
@@ -2568,7 +2568,7 @@ namespace Legion {
                         "ensure that this sharding functor is registered on "
                         "all nodes where it will be required. "
                         "Warning string: %s", sid, total_address_spaces,
-                        (warning_string == NULL) ? "" : warning_string)
+                        (warning_string == nullptr) ? "" : warning_string)
       AutoLock s_lock(sharding_lock);
       std::map<ShardingID,ShardingFunctor*>::const_iterator finder = 
         sharding_functors.find(sid);
@@ -2616,7 +2616,7 @@ namespace Legion {
       if (finder == sharding_functors.end())
       {
         if (can_fail)
-          return NULL;
+          return nullptr;
         REPORT_LEGION_ERROR(ERROR_INVALID_SHARDING_ID,
                     "Unable to find registered sharding functor ID %d.", sid)
       }
@@ -2634,7 +2634,7 @@ namespace Legion {
         std::map<ShardID,ShardingFunctor*>::const_iterator finder = 
           pending_sharding_functors.find(sid);
         if (finder == pending_sharding_functors.end())
-          return NULL;
+          return nullptr;
         else
           return finder->second;
       }
@@ -2647,7 +2647,7 @@ namespace Legion {
                                                      bool check_context/*true*/)
     //--------------------------------------------------------------------------
     {
-      if (check_context && (implicit_context != NULL))
+      if (check_context && (implicit_context != nullptr))
         return implicit_context->generate_dynamic_concurrent_id();
       ConcurrentID result = unique_concurrent_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
@@ -2821,7 +2821,7 @@ namespace Legion {
                         "functor is registered on all nodes where it will be "
                         "required. Warning string: %s", cid, 
                         total_address_spaces,
-                        (warning_string == NULL) ? "" : warning_string)
+                        (warning_string == nullptr) ? "" : warning_string)
       AutoLock s_lock(concurrent_lock);
       std::map<ConcurrentID,ConcurrentColoringFunctor*>::const_iterator finder = 
         concurrent_functors.find(cid);
@@ -2869,7 +2869,7 @@ namespace Legion {
       if (finder == concurrent_functors.end())
       {
         if (can_fail)
-          return NULL;
+          return nullptr;
         REPORT_LEGION_ERROR(ERROR_INVALID_CONCURRENT_ID,
           "Unable to find registered concurrent coloring functor ID %d.", cid)
       }
@@ -2888,7 +2888,7 @@ namespace Legion {
         std::map<ConcurrentID,ConcurrentColoringFunctor*>::const_iterator
           finder = pending_concurrent_functors.find(cid);
         if (finder == pending_concurrent_functors.end())
-          return NULL;
+          return nullptr;
         else
           return finder->second;
       }
@@ -2920,7 +2920,7 @@ namespace Legion {
            const void *buffer, size_t size, bool is_mutable, bool send_to_owner)
     //--------------------------------------------------------------------------
     {
-      if ((implicit_context != NULL) && 
+      if ((implicit_context != nullptr) && 
           !implicit_context->perform_semantic_attach(__func__, 
             ReplicateContext::REPLICATE_ATTACH_TASK_INFO, &task_id,
             sizeof(task_id), tag, buffer, size, is_mutable, send_to_owner))
@@ -2930,7 +2930,7 @@ namespace Legion {
       TaskImpl *impl = find_or_create_task_impl(task_id);
       impl->attach_semantic_information(tag, address_space, buffer, size, 
                                         is_mutable, send_to_owner);
-      if (implicit_context != NULL)
+      if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
 
@@ -2942,14 +2942,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool global = true;
-      if ((implicit_context != NULL) && 
+      if ((implicit_context != nullptr) && 
           !implicit_context->perform_semantic_attach(__func__,
             ReplicateContext::REPLICATE_ATTACH_INDEX_SPACE_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
       get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
-      if (implicit_context != NULL)
+      if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
 
@@ -2961,14 +2961,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool global = true;
-      if ((implicit_context != NULL) && 
+      if ((implicit_context != nullptr) && 
           !implicit_context->perform_semantic_attach(__func__,
             ReplicateContext::REPLICATE_ATTACH_INDEX_PARTITION_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
       get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
-      if (implicit_context != NULL)
+      if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
 
@@ -2980,14 +2980,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool global = true;
-      if ((implicit_context != NULL) && 
+      if ((implicit_context != nullptr) && 
           !implicit_context->perform_semantic_attach(__func__,
             ReplicateContext::REPLICATE_ATTACH_FIELD_SPACE_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
       get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
-      if (implicit_context != NULL)
+      if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
 
@@ -2999,7 +2999,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool global = true;
-      if ((implicit_context != NULL) && 
+      if ((implicit_context != nullptr) && 
           !implicit_context->perform_semantic_attach(__func__,
             ReplicateContext::REPLICATE_ATTACH_FIELD_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global, 
@@ -3007,7 +3007,7 @@ namespace Legion {
         return;
       get_node(handle)->attach_semantic_information(fid, tag, address_space, 
                                           buffer, size, is_mutable, !global);
-      if (implicit_context != NULL)
+      if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
 
@@ -3019,14 +3019,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool global = true;
-      if ((implicit_context != NULL) && 
+      if ((implicit_context != nullptr) && 
           !implicit_context->perform_semantic_attach(__func__,
             ReplicateContext::REPLICATE_ATTACH_LOGICAL_REGION_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
       get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
-      if (implicit_context != NULL)
+      if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
 
@@ -3038,14 +3038,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool global = true;
-      if ((implicit_context != NULL) && 
+      if ((implicit_context != nullptr) && 
           !implicit_context->perform_semantic_attach(__func__,
             ReplicateContext::REPLICATE_ATTACH_LOGICAL_PARTITION_INFO, &handle,
             sizeof(handle), tag, buffer, size, is_mutable, global))
         return;
       get_node(handle)->attach_semantic_information(tag, address_space, 
                                           buffer, size, is_mutable, !global);
-      if (implicit_context != NULL)
+      if (implicit_context != nullptr)
         implicit_context->post_semantic_attach();
     }
 
@@ -3135,7 +3135,7 @@ namespace Legion {
     TaskID Runtime::generate_dynamic_task_id(bool check_context/*= true*/)
     //--------------------------------------------------------------------------
     {
-      if (check_context && (implicit_context != NULL))
+      if (check_context && (implicit_context != nullptr))
         return implicit_context->generate_dynamic_task_id();
       TaskID result = unique_task_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
@@ -3266,7 +3266,7 @@ namespace Legion {
                                   bool preregistered /*= false*/)
     //--------------------------------------------------------------------------
     {
-      if (check_context && (implicit_context != NULL))
+      if (check_context && (implicit_context != nullptr))
         return implicit_context->register_variant(registrar, user_data,
          user_data_size, realm_code_desc, return_type_size, has_return_size,
          vid, check_task_id);
@@ -3368,7 +3368,7 @@ namespace Legion {
                                                    bool check_context/*= true*/)
     //--------------------------------------------------------------------------
     {
-      if (check_context && (implicit_context != NULL))
+      if (check_context && (implicit_context != nullptr))
         return implicit_context->generate_dynamic_reduction_id();
       ReductionOpID result = unique_redop_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
@@ -3494,7 +3494,7 @@ namespace Legion {
                                                    bool check_context/*= true*/)
     //--------------------------------------------------------------------------
     {
-      if (check_context && (implicit_context != NULL))
+      if (check_context && (implicit_context != nullptr))
         return implicit_context->generate_dynamic_serdez_id();
       CustomSerdezID result = unique_serdez_id.fetch_add(runtime_stride);
       // Check for hitting the library limit
@@ -3656,7 +3656,7 @@ namespace Legion {
       assert(sid != address_space); // shouldn't be sending messages to ourself
 #endif
       MessageManager *result = message_managers[sid].load();
-      if (result != NULL)
+      if (result != nullptr)
         return result;
       // If we made it here, then we don't have a message manager yet
       // re-take the lock and re-check to see if we don't have a manager
@@ -3668,7 +3668,7 @@ namespace Legion {
         // Re-check to see if we lost the race, force the compiler
         // to re-load the value here
         result = message_managers[sid].load();
-        if (result != NULL)
+        if (result != nullptr)
           return result;
         // Figure out if there is an event to wait on yet
         std::map<AddressSpace,RtUserEvent>::const_iterator finder = 
@@ -3720,7 +3720,7 @@ namespace Legion {
       // When we wake up there should be a result
       result = message_managers[sid].load();
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       return result;
     }
@@ -6642,8 +6642,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(implicit_context == NULL);
-      assert(runtime!= NULL);
+      assert(implicit_context == nullptr);
+      assert(runtime!= nullptr);
 #endif
       DerezCheck z(derez);
       size_t dso_size;
@@ -6706,7 +6706,7 @@ namespace Legion {
             callback_translator.translate(&dso, 
               typeid(Realm::FunctionPointerImplementation)));
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       void* callback = impl->get_impl<void*>();
       RtEvent precondition;
@@ -8714,7 +8714,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(Runtime::mpi_rank_table != NULL);
+      assert(Runtime::mpi_rank_table != nullptr);
 #endif
       Runtime::mpi_rank_table->handle_mpi_rank_exchange(derez);
     }
@@ -9290,7 +9290,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       MemoryManager *manager = find_memory_manager(target_memory);
-      if (unsat != NULL)
+      if (unsat != nullptr)
       {
         LayoutConstraintKind unsat_kind = LEGION_SPECIALIZED_CONSTRAINT;
         unsigned unsat_index = 0;
@@ -9308,7 +9308,7 @@ namespace Legion {
       else
         return manager->create_physical_instance(constraints, regions, 
             coordinates, result, processor, acquire, priority, tight_bounds,
-            NULL, NULL, footprint, safe_for_unbounded_pools, creator_id);
+            nullptr, nullptr, footprint, safe_for_unbounded_pools, creator_id);
     }
 
     //--------------------------------------------------------------------------
@@ -9326,7 +9326,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     { 
       MemoryManager *manager = find_memory_manager(target_memory);
-      if (unsat != NULL)
+      if (unsat != nullptr)
       {
         LayoutConstraintKind unsat_kind = LEGION_SPECIALIZED_CONSTRAINT;
         unsigned unsat_index = 0;
@@ -9344,7 +9344,7 @@ namespace Legion {
       else
         return manager->create_physical_instance(constraints, regions, 
             coordinates, result, processor, acquire, priority, tight_bounds,
-            NULL, NULL, footprint, safe_for_unbounded_pools, creator_id);
+            nullptr, nullptr, footprint, safe_for_unbounded_pools, creator_id);
     }
 
     //--------------------------------------------------------------------------
@@ -9362,7 +9362,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       MemoryManager *manager = find_memory_manager(target_memory);
-      if (unsat != NULL)
+      if (unsat != nullptr)
       {
         LayoutConstraintKind unsat_kind = LEGION_SPECIALIZED_CONSTRAINT;
         unsigned unsat_index = 0;
@@ -9380,7 +9380,7 @@ namespace Legion {
       else
         return manager->find_or_create_physical_instance(constraints, regions, 
             coordinates, result, created, processor, acquire, priority,
-            tight_bounds, NULL, NULL, footprint, safe_for_unbounded_pools,
+            tight_bounds, nullptr, nullptr, footprint, safe_for_unbounded_pools,
             creator_id);
     }
 
@@ -9399,7 +9399,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     { 
       MemoryManager *manager = find_memory_manager(target_memory);
-      if (unsat != NULL)
+      if (unsat != nullptr)
       {
         LayoutConstraintKind unsat_kind = LEGION_SPECIALIZED_CONSTRAINT;
         unsigned unsat_index = 0;
@@ -9417,7 +9417,7 @@ namespace Legion {
       else
         return manager->find_or_create_physical_instance(constraints, regions,
             coordinates, result, created, processor, acquire, priority,
-            tight_bounds, NULL, NULL, footprint, safe_for_unbounded_pools,
+            tight_bounds, nullptr, nullptr, footprint, safe_for_unbounded_pools,
             creator_id);
     }
 
@@ -9773,7 +9773,7 @@ namespace Legion {
         {
 #ifdef DEBUG_LEGION
           assert((finder->second.first == dc) || 
-                 (finder->second.first == NULL));
+                 (finder->second.first == nullptr));
 #endif
           to_trigger = finder->second.second;
           pending_collectables.erase(finder);
@@ -9812,7 +9812,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       RtEvent ready;
-      DistributedCollectable *result = NULL;
+      DistributedCollectable *result = nullptr;
       const DistributedID to_find = LEGION_DISTRIBUTED_ID_FILTER(did);
       {
         AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
@@ -9848,7 +9848,7 @@ namespace Legion {
           if (pending_finder == pending_collectables.end())
             pending_finder = pending_collectables.emplace(std::make_pair(
                   to_find, std::pair<DistributedCollectable*,RtUserEvent>(
-                    (DistributedCollectable*)NULL,
+                    (DistributedCollectable*)nullptr,
                     RtUserEvent::NO_RT_USER_EVENT))).first;
           result = pending_finder->second.first;
           if (!pending_finder->second.second.exists())
@@ -9860,7 +9860,7 @@ namespace Legion {
       }
       if (!ready.has_triggered())
         ready.wait();
-      if (result != NULL)
+      if (result != nullptr)
         return result;
       AutoLock d_lock(distributed_collectable_lock,1,false/*exclusive*/);
       std::map<DistributedID,DistributedCollectable*>::const_iterator finder =
@@ -9881,7 +9881,7 @@ namespace Legion {
       std::map<DistributedID,DistributedCollectable*>::const_iterator finder =
         dist_collectables.find(to_find);
       if (finder == dist_collectables.end())
-        return NULL;
+        return nullptr;
       finder->second->add_base_resource_ref(RUNTIME_REF);
       return finder->second;
     }
@@ -9902,8 +9902,8 @@ namespace Legion {
       if (finder == pending_collectables.end())
         finder = pending_collectables.emplace(std::make_pair(did,
           std::pair<DistributedCollectable*,RtUserEvent>(
-           (DistributedCollectable*)NULL,RtUserEvent::NO_RT_USER_EVENT))).first;
-      if (finder->second.first == NULL)
+           (DistributedCollectable*)nullptr,RtUserEvent::NO_RT_USER_EVENT))).first;
+      if (finder->second.first == nullptr)
         finder->second.first =
           legion_malloc<T,LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
       return finder->second.first;
@@ -9943,7 +9943,7 @@ namespace Legion {
                                                        RtEvent &ready)
     //--------------------------------------------------------------------------
     {
-      DistributedCollectable *dc = NULL;
+      DistributedCollectable *dc = nullptr;
       if (LogicalView::is_materialized_did(did))
         dc = find_or_request_distributed_collectable<
          MaterializedView,SEND_VIEW_REQUEST>(did,ready);
@@ -9973,7 +9973,7 @@ namespace Legion {
                                               DistributedID did, RtEvent &ready)
     //--------------------------------------------------------------------------
     {
-      DistributedCollectable *dc = NULL;
+      DistributedCollectable *dc = nullptr;
       if (InstanceManager::is_physical_did(did))
         dc = find_or_request_distributed_collectable<
           PhysicalManager, SEND_MANAGER_REQUEST>(did, ready);
@@ -10026,7 +10026,7 @@ namespace Legion {
         std::map<DistributedID,DistributedCollectable*>::const_iterator 
           finder = dist_collectables.find(to_find);
         if (finder == dist_collectables.end())
-          return NULL;
+          return nullptr;
         else
           return static_cast<ShardManager*>(finder->second);
       }
@@ -10041,7 +10041,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const DistributedID did = LEGION_DISTRIBUTED_ID_FILTER(to_find);
-      DistributedCollectable *result = NULL;
+      DistributedCollectable *result = nullptr;
       {
         AutoLock d_lock(distributed_collectable_lock);
         std::map<DistributedID,DistributedCollectable*>::const_iterator finder =
@@ -10057,7 +10057,7 @@ namespace Legion {
           >::iterator pending_finder = pending_collectables.find(did);
         if (pending_finder != pending_collectables.end())
         {
-          if (pending_finder->second.first == NULL)
+          if (pending_finder->second.first == nullptr)
             pending_finder->second.first =
               legion_malloc<T,LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
           if (!pending_finder->second.second.exists())
@@ -10109,7 +10109,7 @@ namespace Legion {
         {
 #ifdef DEBUG_LEGION
           FutureImpl *result = dynamic_cast<FutureImpl*>(finder->second);
-          assert(result != NULL);
+          assert(result != nullptr);
 #else
           FutureImpl *result = static_cast<FutureImpl*>(finder->second);
 #endif
@@ -10129,7 +10129,7 @@ namespace Legion {
         delete result;
 #ifdef DEBUG_LEGION
         result = dynamic_cast<FutureImpl*>(finder->second);
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         result = static_cast<FutureImpl*>(finder->second);
 #endif
@@ -10155,7 +10155,7 @@ namespace Legion {
         {
 #ifdef DEBUG_LEGION
           FutureMapImpl *result = dynamic_cast<FutureMapImpl*>(finder->second);
-          assert(result != NULL);
+          assert(result != nullptr);
 #else
           FutureMapImpl *result = static_cast<FutureMapImpl*>(finder->second);
 #endif
@@ -10177,7 +10177,7 @@ namespace Legion {
         delete result;
 #ifdef DEBUG_LEGION
         result = dynamic_cast<FutureMapImpl*>(finder->second);
-        assert(result != NULL);
+        assert(result != nullptr);
 #else
         result = static_cast<FutureMapImpl*>(finder->second);
 #endif
@@ -10246,13 +10246,13 @@ namespace Legion {
       {
         const IndexSpace result(get_unique_index_space_id(),
                                 get_unique_index_tree_id(), type_tag);
-        create_node(result, domain, take_ownership, NULL/*parent*/,
+        create_node(result, domain, take_ownership, nullptr/*parent*/,
             0/*color*/, RtEvent::NO_RT_EVENT, provenance,
-            ApEvent::NO_AP_EVENT, 0/*expr id*/, NULL/*mapping*/,
+            ApEvent::NO_AP_EVENT, 0/*expr id*/, nullptr/*mapping*/,
             true/*add root reference*/);
         if (legion_spy_enabled)
           LegionSpy::log_top_index_space(result.get_id(), address_space,
-              (provenance == NULL) ? std::string_view() : provenance->human);
+              (provenance == nullptr) ? std::string_view() : provenance->human);
         // Overwrite and leak for now, don't care too much as this 
         // should occur infrequently
         AutoLock is_lock(is_slice_lock);
@@ -10409,7 +10409,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < LEGION_MAX_NUM_NODES; idx++)
       {
         MessageManager *manager = message_managers[idx].load();
-        if (manager != NULL)
+        if (manager != nullptr)
           manager->confirm_shutdown(shutdown_manager, phase_one);
       }
     }
@@ -10420,7 +10420,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(!prepared_for_shutdown);
-      assert(virtual_manager != NULL);
+      assert(virtual_manager != nullptr);
 #endif
       // Search through all our distributed collectables and find any
       // futures which are leaking and therefore need to be finalized
@@ -10436,7 +10436,7 @@ namespace Legion {
             continue;
 #ifdef DEBUG_LEGION
           FutureImpl *impl = dynamic_cast<FutureImpl*>(it->second);
-          assert(impl != NULL);
+          assert(impl != nullptr);
 #else
           FutureImpl *impl = static_cast<FutureImpl*>(it->second);
 #endif
@@ -10494,7 +10494,7 @@ namespace Legion {
       }
       if (virtual_manager->remove_base_gc_ref(NEVER_GC_REF))
         delete virtual_manager;
-      virtual_manager = NULL;
+      virtual_manager = nullptr;
       if (!applied.empty())
       {
         const RtEvent wait_on = Runtime::merge_events(applied);
@@ -10559,7 +10559,7 @@ namespace Legion {
                                         RtEvent init /*= RtEvent::NO_RT_EVENT*/)
     //--------------------------------------------------------------------------
     {
-      return create_node(handle, domain, take_ownership, NULL/*parent*/, 
+      return create_node(handle, domain, take_ownership, nullptr/*parent*/, 
                          0/*color*/, init, provenance, ready, expr_id,
                          mapping, true/*add root reference*/);
     }
@@ -10659,7 +10659,7 @@ namespace Legion {
     {
       const AddressSpaceID owner_space = 
         IndexPartNode::get_owner_space(handle);
-      if (mapping != NULL)
+      if (mapping != nullptr)
       {
         if (mapping->contains(owner_space))
         {
@@ -10800,7 +10800,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexSpaceNode *node = get_node(handle);
-      if (node->parent == NULL)
+      if (node->parent == nullptr)
       {
         // We know the answer here
         if (type_tag != NT_TemplateHelper::encode_tag<1,coord_t>())
@@ -10845,7 +10845,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexSpaceNode *node = get_node(handle);
-      return (node->parent != NULL);
+      return (node->parent != nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -10854,7 +10854,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexSpaceNode *node = get_node(handle);
-      if (node->parent == NULL)
+      if (node->parent == nullptr)
         REPORT_LEGION_ERROR(ERROR_PARENT_INDEX_PARTITION_REQUESTED,
           "Parent index partition requested for "
                             "index space %llu with no parent. Use "
@@ -10934,7 +10934,7 @@ namespace Legion {
     {
       const AddressSpaceID owner_space = 
         FieldSpaceNode::get_owner_space(handle);
-      if (mapping != NULL)
+      if (mapping != nullptr)
       {
         if (mapping->contains(owner_space))
         {
@@ -11149,7 +11149,7 @@ namespace Legion {
     {
       const AddressSpaceID owner_space = 
         RegionNode::get_owner_space(handle.get_tree_id());
-      if (mapping != NULL)
+      if (mapping != nullptr)
       {
         if (mapping->contains(owner_space))
         {
@@ -11277,7 +11277,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexSpaceNode *node = get_node(handle.get_index_space());
-      if (node->parent == NULL)
+      if (node->parent == nullptr)
       {
         // We know the answer here
         if (type_tag != NT_TemplateHelper::encode_tag<1,coord_t>())
@@ -11323,7 +11323,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       RegionNode *node = get_node(handle);
-      return (node->parent != NULL);
+      return (node->parent != nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -11332,7 +11332,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       RegionNode *node = get_node(handle);
-      if (node->parent == NULL)
+      if (node->parent == nullptr)
         REPORT_LEGION_ERROR(ERROR_PARENT_LOGICAL_PARTITION_REQUESTED,
           "Parent logical partition requested for "
                             "logical region (%llu,%llu,%llu) with no parent. "
@@ -11400,7 +11400,7 @@ namespace Legion {
       NT_TemplateHelper::demux<IndexSpaceCreator>(sp.get_type_tag(), &creator);
       IndexSpaceNode *result = creator.result;  
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       // Check to see if someone else has already made it
       {
@@ -11413,8 +11413,8 @@ namespace Legion {
           // Need to remove resource reference if not owner
           delete result;
           result = it->second;
-          // If the parent is NULL then we don't need to perform a duplicate set
-          if (!domain.exists() || (parent == NULL))
+          // If the parent is nullptr then we don't need to perform a duplicate set
+          if (!domain.exists() || (parent == nullptr))
             return result;
         }
         else
@@ -11429,7 +11429,7 @@ namespace Legion {
           {
             // Hold the reference on the parent partition to keep both it
             // and the child index space alive if there is a a parent
-            if (result->parent != NULL)
+            if (result->parent != nullptr)
               result->parent->add_base_gc_ref(REGION_TREE_REF);
             else
               result->add_base_gc_ref(REGION_TREE_REF);
@@ -11437,7 +11437,7 @@ namespace Legion {
           else
             result->set_domain(domain, is_ready, take_ownership,
                 false/*broadcast*/, true/*initializing*/);
-          if (parent != NULL)
+          if (parent != nullptr)
           {
 #ifdef DEBUG_LEGION
             assert(!add_root_reference);
@@ -11474,7 +11474,7 @@ namespace Legion {
       NT_TemplateHelper::demux<IndexSpaceCreator>(sp.get_type_tag(), &creator);
       IndexSpaceNode *result = creator.result;  
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       // Check to see if someone else has already made it
       {
@@ -11516,8 +11516,8 @@ namespace Legion {
       NT_TemplateHelper::demux<IndexPartCreator>(p.get_type_tag(), &creator);
       IndexPartNode *result = creator.result;
 #ifdef DEBUG_LEGION
-      assert(parent != NULL);
-      assert(result != NULL);
+      assert(parent != nullptr);
+      assert(result != nullptr);
 #endif
       // Check to see if someone else has already made it
       {
@@ -11539,11 +11539,11 @@ namespace Legion {
         parent->add_child(result);
         // Add it to the partition of our parent if it exists, otherwise
         // our parent index space is a root so we add the reference there
-        if (parent->parent != NULL)
+        if (parent->parent != nullptr)
           parent->parent->add_nested_valid_ref(result->did);
         else
           parent->add_nested_valid_ref(result->did);
-        if (color_space->parent != NULL)
+        if (color_space->parent != nullptr)
           color_space->parent->add_nested_valid_ref(result->did);
         else
           color_space->add_nested_valid_ref(result->did);
@@ -11551,7 +11551,7 @@ namespace Legion {
         // still be getting notifications to compute the complete
         if (complete < 0)
           result->initialize_disjoint_complete_notifications();
-        else if ((implicit_profiler != NULL) && result->is_owner())
+        else if ((implicit_profiler != nullptr) && result->is_owner())
           implicit_profiler->register_index_partition(parent->handle.get_id(),
               p.get_id(), disjoint, result->color);
         result->register_with_runtime();
@@ -11575,8 +11575,8 @@ namespace Legion {
       NT_TemplateHelper::demux<IndexPartCreator>(p.get_type_tag(), &creator);
       IndexPartNode *result = creator.result;
 #ifdef DEBUG_LEGION
-      assert(parent != NULL);
-      assert(result != NULL);
+      assert(parent != nullptr);
+      assert(result != nullptr);
 #endif
       // Check to see if someone else has already made it
       {
@@ -11599,11 +11599,11 @@ namespace Legion {
         parent->add_child(result);
         // Add it to the partition of our parent if it exists, otherwise
         // our parent index space is a root so we add the reference there
-        if (parent->parent != NULL)
+        if (parent->parent != nullptr)
           parent->parent->add_nested_valid_ref(result->did);
         else
           parent->add_nested_valid_ref(result->did);
-        if (color_space->parent != NULL)
+        if (color_space->parent != nullptr)
           color_space->parent->add_nested_valid_ref(result->did);
         else
           color_space->add_nested_valid_ref(result->did);
@@ -11625,7 +11625,7 @@ namespace Legion {
       FieldSpaceNode *result = new FieldSpaceNode(space,
           initialized, mapping, provenance);
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       // Hold the lookup lock while modifying the lookup table
       {
@@ -11661,7 +11661,7 @@ namespace Legion {
       FieldSpaceNode *result = new FieldSpaceNode(space,
           initialized, mapping, provenance, derez);
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       // Hold the lookup lock while modifying the lookup table
       {
@@ -11696,14 +11696,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      if (parent != NULL)
+      if (parent != nullptr)
       {
         assert(r.field_space == parent->handle.field_space);
         assert(r.tree_did == parent->handle.tree_did);
       }
 #endif
       // Special case for root nodes without dids, we better find them
-      if ((parent == NULL) && (did == 0))
+      if ((parent == nullptr) && (did == 0))
       {
         AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
         // Check to see if it already exists
@@ -11717,13 +11717,13 @@ namespace Legion {
       RtEvent row_ready, col_ready;
       IndexSpaceNode *row_src = get_node(r.index_space, &row_ready);
       FieldSpaceNode *col_src = get_node(r.field_space, &col_ready);
-      if (row_src == NULL)
+      if (row_src == nullptr)
       {
         row_ready.wait();
         row_src = get_node(r.index_space);
         row_ready = RtEvent::NO_RT_EVENT;
       }
-      if (col_src == NULL)
+      if (col_src == nullptr)
       {
         col_ready.wait();
         col_src = get_node(r.field_space);
@@ -11733,10 +11733,10 @@ namespace Legion {
       if (row_ready.exists() || col_ready.exists())
         initialized = Runtime::merge_events(initialized, row_ready, col_ready); 
       RegionNode *result = new RegionNode(r, parent, row_src, col_src, did,
-        initialized, (parent == NULL) ? initialized : parent->tree_initialized,
+        initialized, (parent == nullptr) ? initialized : parent->tree_initialized,
         mapping, provenance);
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       // Special case here in case multiple clients attempt to
       // make the node at the same time
@@ -11757,7 +11757,7 @@ namespace Legion {
         region_nodes[r] = result;
         // If this is a top level region add it to the collection
         // of top level tree IDs
-        if (parent == NULL)
+        if (parent == nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(tree_nodes.find(r.get_tree_id()) == tree_nodes.end());
@@ -11780,20 +11780,20 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(parent != NULL);
+      assert(parent != nullptr);
       assert(p.field_space == parent->handle.field_space);
       assert(p.tree_did == parent->handle.tree_did);
 #endif
       RtEvent row_ready, col_ready;
       IndexPartNode *row_src = get_node(p.index_partition, &row_ready);
       FieldSpaceNode *col_src = get_node(p.field_space, &col_ready);
-      if (row_src == NULL)
+      if (row_src == nullptr)
       {
         row_ready.wait();
         row_src = get_node(p.index_partition);
         row_ready = RtEvent::NO_RT_EVENT;
       }
-      if (col_src == NULL)
+      if (col_src == nullptr)
       {
         col_ready.wait();
         col_src = get_node(p.field_space);
@@ -11805,7 +11805,7 @@ namespace Legion {
       PartitionNode *result = new PartitionNode(p, parent, row_src, col_src, 
                                   initialized, parent->tree_initialized);
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       // Special case here in case multiple clients attempt
       // to make the node at the same time
@@ -11833,7 +11833,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     IndexSpaceNode* Runtime::get_node(IndexSpace space, 
-                                               RtEvent *defer /*=NULL*/,
+                                               RtEvent *defer /*=nullptr*/,
                                                const bool can_fail /*=false*/,
                                                const bool first /*=true*/)
     //--------------------------------------------------------------------------
@@ -11842,7 +11842,7 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_FOR_INDEXSPACE,
           "Invalid request for IndexSpace NO_SPACE.")
       RtEvent wait_on;
-      IndexSpaceNode *result = NULL;
+      IndexSpaceNode *result = nullptr;
       {
         AutoLock l_lock(lookup_lock,1,false/*exclusive*/); 
         std::map<IndexSpace,IndexSpaceNode*>::const_iterator finder = 
@@ -11851,7 +11851,7 @@ namespace Legion {
         {
           if (!finder->second->initialized.exists())
             return finder->second;
-          if ((defer != NULL) && !finder->second->initialized.has_triggered())
+          if ((defer != nullptr) && !finder->second->initialized.has_triggered())
           {
             *defer = finder->second->initialized;
             return finder->second;
@@ -11860,7 +11860,7 @@ namespace Legion {
           result = finder->second;
         }
       }
-      if (result != NULL)
+      if (result != nullptr)
       {
         if (!wait_on.has_triggered())
           wait_on.wait();
@@ -11889,10 +11889,10 @@ namespace Legion {
         }
         if (pending_wait.exists())
         {
-          if (defer != NULL)
+          if (defer != nullptr)
           {
             *defer = pending_wait;
-            return NULL;
+            return nullptr;
           }
           else
           {
@@ -11901,7 +11901,7 @@ namespace Legion {
           }
         }
         else if (can_fail)
-          return NULL;
+          return nullptr;
         else
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
             "Unable to find entry for index space %llu.", space.get_id())
@@ -11931,7 +11931,7 @@ namespace Legion {
         else
           wait_on = wait_finder->second;
       }
-      if (defer == NULL)
+      if (defer == nullptr)
       {
         // Wait on the event
         wait_on.wait();
@@ -11955,7 +11955,7 @@ namespace Legion {
               return finder->second;
           }
           else if (can_fail)
-            return NULL;
+            return nullptr;
           else
             wait_on = RtEvent::NO_RT_EVENT;
         }
@@ -11964,18 +11964,18 @@ namespace Legion {
             "Unable to find entry for index space %llu."
                           "This is definitely a runtime bug.", space.get_id())
         wait_on.wait();
-        return get_node(space, NULL, can_fail, false/*first*/);
+        return get_node(space, nullptr, can_fail, false/*first*/);
       }
       else
       {
         *defer = wait_on;
-        return NULL;
+        return nullptr;
       }
     }
 
     //--------------------------------------------------------------------------
     IndexPartNode* Runtime::get_node(IndexPartition part,
-                                              RtEvent *defer/* = NULL*/,
+                                              RtEvent *defer/* = nullptr*/,
                                               const bool can_fail /* = false*/,
                                               const bool first/* = true*/,
                                               const bool local_only/* = false*/)
@@ -11985,7 +11985,7 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_INDEXPARTITION,
           "Invalid request for IndexPartition NO_PART.")
       RtEvent wait_on;
-      IndexPartNode *result = NULL;
+      IndexPartNode *result = nullptr;
       {
         AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
         std::map<IndexPartition,IndexPartNode*>::const_iterator finder =
@@ -11994,7 +11994,7 @@ namespace Legion {
         {
           if (!finder->second->initialized.exists())
             return finder->second;
-          if ((defer != NULL) && !finder->second->initialized.has_triggered())
+          if ((defer != nullptr) && !finder->second->initialized.has_triggered())
           {
             *defer = finder->second->initialized;
             return finder->second;
@@ -12003,7 +12003,7 @@ namespace Legion {
           result = finder->second;
         }
       }
-      if (result != NULL)
+      if (result != nullptr)
       {
         if (!wait_on.has_triggered())
           wait_on.wait();
@@ -12033,10 +12033,10 @@ namespace Legion {
         }
         if (pending_wait.exists())
         {
-          if (defer != NULL)
+          if (defer != nullptr)
           {
             *defer = pending_wait;
-            return NULL;
+            return nullptr;
           }
           else
           {
@@ -12045,7 +12045,7 @@ namespace Legion {
           }
         }
         else if (can_fail)
-          return NULL;
+          return nullptr;
         else
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
             "Unable to find entry for index partition %llu.",part.get_id())
@@ -12075,7 +12075,7 @@ namespace Legion {
         else
           wait_on = wait_finder->second;
       }
-      if (defer == NULL)
+      if (defer == nullptr)
       {
         // Wait for the event
         wait_on.wait();
@@ -12099,7 +12099,7 @@ namespace Legion {
               return finder->second;
           }
           else if (can_fail)
-            return NULL;
+            return nullptr;
           else
             wait_on = RtEvent::NO_RT_EVENT;
         }
@@ -12108,25 +12108,25 @@ namespace Legion {
             "Unable to find entry for index partition %llu. "
                           "This is definitely a runtime bug.", part.get_id())
         wait_on.wait();
-        return get_node(part, NULL, can_fail, false/*first*/);
+        return get_node(part, nullptr, can_fail, false/*first*/);
       }
       else
       {
         *defer = wait_on;
-        return NULL;
+        return nullptr;
       }
     }
 
     //--------------------------------------------------------------------------
     FieldSpaceNode* Runtime::get_node(FieldSpace space,
-                                 RtEvent *defer /*=NULL*/, bool first /*=true*/) 
+                                 RtEvent *defer /*=nullptr*/, bool first /*=true*/) 
     //--------------------------------------------------------------------------
     {
       if (!space.exists())
         REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_FIELDSPACE,
           "Invalid request for FieldSpace NO_SPACE.")
       RtEvent wait_on;
-      FieldSpaceNode *result = NULL;
+      FieldSpaceNode *result = nullptr;
       {
         AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
         std::map<FieldSpace,FieldSpaceNode*>::const_iterator finder = 
@@ -12135,7 +12135,7 @@ namespace Legion {
         {
           if (!finder->second->initialized.exists())
             return finder->second;
-          if ((defer != NULL) && !finder->second->initialized.has_triggered())
+          if ((defer != nullptr) && !finder->second->initialized.has_triggered())
           {
             *defer = finder->second->initialized;
             return finder->second;
@@ -12144,7 +12144,7 @@ namespace Legion {
           result = finder->second;
         }
       }
-      if (result != NULL)
+      if (result != nullptr)
       {
         if (!wait_on.has_triggered())
           wait_on.wait();
@@ -12173,10 +12173,10 @@ namespace Legion {
         }
         if (pending_wait.exists())
         {
-          if (defer != NULL)
+          if (defer != nullptr)
           {
             *defer = pending_wait;
-            return NULL;
+            return nullptr;
           }
           else
           {
@@ -12213,7 +12213,7 @@ namespace Legion {
         else
           wait_on = wait_finder->second;
       }
-      if (defer == NULL)
+      if (defer == nullptr)
       {
         // Wait for the event to be ready
         wait_on.wait();
@@ -12244,12 +12244,12 @@ namespace Legion {
             "Unable to find entry for field space %llu. "
                           "This is definitely a runtime bug.", space.get_id())
         wait_on.wait();
-        return get_node(space, NULL, false/*first*/);
+        return get_node(space, nullptr, false/*first*/);
       }
       else
       {
         *defer = wait_on;
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -12263,7 +12263,7 @@ namespace Legion {
           "Invalid request for LogicalRegion NO_REGION.")
       // Check to see if the node already exists
       RtEvent wait_on;
-      RegionNode *result = NULL;
+      RegionNode *result = nullptr;
       bool has_top_level_region = false;
       {
         AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
@@ -12283,7 +12283,7 @@ namespace Legion {
         else
           has_top_level_region = true;
       }
-      if (result != NULL)
+      if (result != nullptr)
       {
         if (!wait_on.has_triggered())
           wait_on.wait();
@@ -12359,7 +12359,7 @@ namespace Legion {
         if (wait_on.exists())
         {
           wait_on.wait();
-          RegionNode *result = NULL;
+          RegionNode *result = nullptr;
           {
             // Retake the lock and see again if the handle we
             // were looking for was the top-level node or not
@@ -12372,7 +12372,7 @@ namespace Legion {
               wait_on = result->initialized;
             }
           }
-          if (result != NULL)
+          if (result != nullptr)
           {
             if (wait_on.exists())
             {
@@ -12387,10 +12387,10 @@ namespace Legion {
       }
       // Otherwise it hasn't been made yet, so make it
       IndexSpaceNode *index_node = get_node(handle.index_space);
-      if (index_node->parent != NULL)
+      if (index_node->parent != nullptr)
       {
 #ifdef DEBUG_LEGION
-        assert(index_node->parent != NULL);
+        assert(index_node->parent != nullptr);
 #endif
         LogicalPartition parent_handle(handle.tree_did, 
                               index_node->parent->handle, handle.field_space);
@@ -12409,7 +12409,7 @@ namespace Legion {
         assert(index_node->depth == 0);
 #endif
         // Even though this is a root node, we'll discover it's already made
-        result = create_node(handle, NULL, RtEvent::NO_RT_EVENT, 0/*did*/);
+        result = create_node(handle, nullptr, RtEvent::NO_RT_EVENT, 0/*did*/);
       }
       {
         AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
@@ -12433,7 +12433,7 @@ namespace Legion {
         REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_LOGICALPARTITION,
           "Invalid request for LogicalPartition NO_PART.")
       RtEvent wait_on;
-      PartitionNode *result = NULL;
+      PartitionNode *result = nullptr;
       // Check to see if the node already exists
       {
         AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
@@ -12450,7 +12450,7 @@ namespace Legion {
             return it->second;
         }
       }
-      if (result != NULL)
+      if (result != nullptr)
       {
         if (!wait_on.has_triggered())
           wait_on.wait();
@@ -12461,7 +12461,7 @@ namespace Legion {
       // Otherwise it hasn't been made yet so make it
       IndexPartNode *index_node = get_node(handle.index_partition);
 #ifdef DEBUG_LEGION
-      assert(index_node->parent != NULL);
+      assert(index_node->parent != nullptr);
 #endif
       LogicalRegion parent_handle(handle.tree_did, index_node->parent->handle,
                                   handle.field_space);
@@ -12491,12 +12491,12 @@ namespace Legion {
       if (tid == 0)
       {
         if (can_fail)
-          return NULL;
+          return nullptr;
         REPORT_LEGION_ERROR(ERROR_INVALID_REQUEST_TREE_ID,
           "Invalid request for tree ID 0 which is never a tree ID")
       }
       RtEvent wait_on;
-      RegionNode *result = NULL;
+      RegionNode *result = nullptr;
       {
         AutoLock l_lock(lookup_lock,1,false/*exclusive*/);
         std::map<RegionTreeID,RegionNode*>::const_iterator finder = 
@@ -12509,7 +12509,7 @@ namespace Legion {
           result = finder->second;
         }
       }
-      if (result != NULL)
+      if (result != nullptr)
       {
         wait_on.wait();
         AutoLock l_lock(lookup_lock);
@@ -12541,7 +12541,7 @@ namespace Legion {
           return get_tree(tid, can_fail, false/*first*/); 
         }
         else if (can_fail)
-          return NULL;
+          return nullptr;
         else
           REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_ENTRY,
             "Unable to find entry for region tree ID %lld", tid)
@@ -12578,7 +12578,7 @@ namespace Legion {
       if (finder == tree_nodes.end())
       {
         if (can_fail)
-          return NULL;
+          return nullptr;
         REPORT_LEGION_ERROR(ERROR_UNABLE_FIND_TOPLEVEL_TREE,
           "Unable to find top-level tree entry for "
                          "region tree %lld.  This is either a runtime "
@@ -12861,14 +12861,14 @@ namespace Legion {
     bool Runtime::is_top_level_index_space(IndexSpace handle)
     //--------------------------------------------------------------------------
     {
-      return (get_node(handle)->parent == NULL);
+      return (get_node(handle)->parent == nullptr);
     }
 
     //--------------------------------------------------------------------------
     bool Runtime::is_top_level_region(LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
-      return (get_node(handle)->parent == NULL);
+      return (get_node(handle)->parent == nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -12892,7 +12892,7 @@ namespace Legion {
         return false;
       RegionNode *child_node = get_node(child);
       PartitionNode *parent_node = get_node(parent);
-      while (child_node->parent != NULL)
+      while (child_node->parent != nullptr)
       {
         if (child_node->parent == parent_node)
           return true;
@@ -12967,7 +12967,7 @@ namespace Legion {
       // Some older code still relies on us being able to prove that two index
       // spaces are non-interfering with each other without using the tree so
       // we still check that even if we can't prove it with just the tree
-      IndexSpaceNode *original_one = NULL, *original_two = NULL;
+      IndexSpaceNode *original_one = nullptr, *original_two = nullptr;
       if (one->is_index_space_node())
         original_one = one->as_index_space_node();
       if (two->is_index_space_node())
@@ -13014,7 +13014,7 @@ namespace Legion {
           return true;
       }
       // Test if two index spaces are interfering without using the tree
-      if ((original_one != NULL) && (original_two != NULL))
+      if ((original_one != nullptr) && (original_two != nullptr))
       {
         IndexSpaceExpression *intersection =
           intersect_index_spaces(original_one, original_two);
@@ -13063,7 +13063,7 @@ namespace Legion {
       while (node->depth > (dom->depth + 1))
       {
 #ifdef DEBUG_LEGION
-        assert(node->parent != NULL);
+        assert(node->parent != nullptr);
 #endif
         node = node->parent->parent;
       }
@@ -13086,7 +13086,7 @@ namespace Legion {
       while (node->depth > (dom->depth + 1))
       {
 #ifdef DEBUG_LEGION
-        assert(node->parent != NULL);
+        assert(node->parent != nullptr);
 #endif
         node = node->parent->parent;
       }
@@ -13109,7 +13109,7 @@ namespace Legion {
       while (node->depth > dom->depth)
       {
 #ifdef DEBUG_LEGION
-        assert(node->parent != NULL);
+        assert(node->parent != nullptr);
 #endif
         node = node->parent->parent;
       }
@@ -13131,7 +13131,7 @@ namespace Legion {
       {
         if (parent_node->depth >= child_node->depth)
           return false;
-        if (child_node->parent == NULL)
+        if (child_node->parent == nullptr)
           return false;
         child_node = child_node->parent->parent;
       }
@@ -13143,7 +13143,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexPartNode *child_node = get_node(child);
-      if (child_node->parent == NULL)
+      if (child_node->parent == nullptr)
         return false;
       return has_index_path(parent, child_node->parent->handle);
     }
@@ -13171,7 +13171,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       RegionNode *start = get_node(result);
-      assert(start->parent != NULL);
+      assert(start->parent != nullptr);
       PartitionNode *finish = get_node(upper);
       unsigned depth = 0;
       while (start->parent != finish)
@@ -13179,7 +13179,7 @@ namespace Legion {
         assert(start->parent->get_depth() > finish->get_depth());
         start = start->parent->parent;
         depth++;
-        assert(start->parent != NULL);
+        assert(start->parent != nullptr);
       }
       return depth;
     }
@@ -13213,7 +13213,7 @@ namespace Legion {
         return lhs;
       }
       IndexSpaceExpression *result = lhs->inline_union(rhs);
-      if (result == NULL)
+      if (result == nullptr)
       {
         IndexSpaceExpression *lhs_canon = lhs->get_canonical_expression();
         IndexSpaceExpression *rhs_canon = rhs->get_canonical_expression();
@@ -13259,7 +13259,7 @@ namespace Legion {
         return result;
       }
       IndexSpaceExpression *result = (*exprs.begin())->inline_union(exprs);
-      if (result != NULL)
+      if (result != nullptr)
       {
         result->add_base_expression_reference(LIVE_EXPR_REF);
         ImplicitReferenceTracker::record_live_expression(result);
@@ -13400,7 +13400,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpaceExpression* Runtime::union_index_spaces(
                           const std::vector<IndexSpaceExpression*> &expressions,
-                          OperationCreator *creator /*=NULL*/)
+                          OperationCreator *creator /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -13416,12 +13416,12 @@ namespace Legion {
           finder = union_ops.find(key);
         if (finder != union_ops.end())
         {
-          IndexSpaceExpression *result = NULL;
-          ExpressionTrieNode *next = NULL;
+          IndexSpaceExpression *result = nullptr;
+          ExpressionTrieNode *next = nullptr;
           if (finder->second->find_operation(expressions, result, next) &&
               result->try_add_live_reference())
             return result;
-          if (creator == NULL)
+          if (creator == nullptr)
           {
             UnionOpCreator union_creator(first->type_tag, expressions);
             return next->find_or_create_operation(expressions, union_creator);
@@ -13430,8 +13430,8 @@ namespace Legion {
             return next->find_or_create_operation(expressions, *creator);
         }
       }
-      ExpressionTrieNode *node = NULL;
-      if (creator == NULL)
+      ExpressionTrieNode *node = nullptr;
+      if (creator == nullptr)
       {
         UnionOpCreator union_creator(first->type_tag, expressions);
         // Didn't find it, retake the lock, see if we lost the race
@@ -13448,7 +13448,7 @@ namespace Legion {
         else
           node = finder->second;
 #ifdef DEBUG_LEGION
-        assert(node != NULL);
+        assert(node != nullptr);
 #endif
         return node->find_or_create_operation(expressions, union_creator);
       }
@@ -13468,7 +13468,7 @@ namespace Legion {
         else
           node = finder->second;
 #ifdef DEBUG_LEGION
-        assert(node != NULL);
+        assert(node != nullptr);
 #endif
         return node->find_or_create_operation(expressions, *creator);
       }
@@ -13503,7 +13503,7 @@ namespace Legion {
         return rhs;
       }
       IndexSpaceExpression *result = lhs->inline_intersection(rhs);
-      if (result == NULL)
+      if (result == nullptr)
       {
         IndexSpaceExpression *lhs_canon = lhs->get_canonical_expression();
         IndexSpaceExpression *rhs_canon = rhs->get_canonical_expression();
@@ -13550,7 +13550,7 @@ namespace Legion {
       }
       IndexSpaceExpression *result = 
         (*exprs.begin())->inline_intersection(exprs);
-      if (result != NULL)
+      if (result != nullptr)
       {
         result->add_base_expression_reference(LIVE_EXPR_REF);
         ImplicitReferenceTracker::record_live_expression(result);
@@ -13697,7 +13697,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpaceExpression* Runtime::intersect_index_spaces(
                           const std::vector<IndexSpaceExpression*> &expressions,
-                          OperationCreator *creator /*=NULL*/)
+                          OperationCreator *creator /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -13713,12 +13713,12 @@ namespace Legion {
           finder = intersection_ops.find(key);
         if (finder != intersection_ops.end())
         {
-          IndexSpaceExpression *result = NULL;
-          ExpressionTrieNode *next = NULL;
+          IndexSpaceExpression *result = nullptr;
+          ExpressionTrieNode *next = nullptr;
           if (finder->second->find_operation(expressions, result, next) &&
               result->try_add_live_reference())
             return result;
-          if (creator == NULL)
+          if (creator == nullptr)
           {
             IntersectionOpCreator inter_creator(first->type_tag, 
                                                 expressions);
@@ -13728,8 +13728,8 @@ namespace Legion {
             return next->find_or_create_operation(expressions, *creator);
         }
       }
-      ExpressionTrieNode *node = NULL;
-      if (creator == NULL)
+      ExpressionTrieNode *node = nullptr;
+      if (creator == nullptr)
       {
         IntersectionOpCreator inter_creator(first->type_tag, expressions);
         // Didn't find it, retake the lock, see if we lost the race
@@ -13747,7 +13747,7 @@ namespace Legion {
         else
           node = finder->second;
 #ifdef DEBUG_LEGION
-        assert(node != NULL); 
+        assert(node != nullptr); 
 #endif
         return node->find_or_create_operation(expressions, inter_creator);
       }
@@ -13768,7 +13768,7 @@ namespace Legion {
         else
           node = finder->second;
 #ifdef DEBUG_LEGION
-        assert(node != NULL); 
+        assert(node != nullptr); 
 #endif
         return node->find_or_create_operation(expressions, *creator);
       }
@@ -13777,7 +13777,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     IndexSpaceExpression* Runtime::subtract_index_spaces(
                            IndexSpaceExpression *lhs, IndexSpaceExpression *rhs,
-                           OperationCreator *creator/*=NULL*/)
+                           OperationCreator *creator/*=nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -13786,7 +13786,7 @@ namespace Legion {
       assert(rhs->is_valid());
 #endif
       // Handle a few easy cases
-      if (creator == NULL)
+      if (creator == nullptr)
       {
         if (lhs->is_empty())
         {
@@ -13802,7 +13802,7 @@ namespace Legion {
         }
       }
       IndexSpaceExpression *result = lhs->inline_subtraction(rhs);
-      if (result != NULL)
+      if (result != nullptr)
       {
         result->add_base_expression_reference(LIVE_EXPR_REF);
         ImplicitReferenceTracker::record_live_expression(result);
@@ -13819,14 +13819,14 @@ namespace Legion {
           finder = difference_ops.find(key);
         if (finder != difference_ops.end())
         {
-          IndexSpaceExpression *expr = NULL;
-          ExpressionTrieNode *next = NULL;
+          IndexSpaceExpression *expr = nullptr;
+          ExpressionTrieNode *next = nullptr;
           if (finder->second->find_operation(expressions, expr, next) &&
               expr->try_add_live_reference())
             result = expr;
-          if (result == NULL)
+          if (result == nullptr)
           {
-            if (creator == NULL)
+            if (creator == nullptr)
             {
               DifferenceOpCreator diff_creator(lhs->type_tag, 
                                     expressions[0], expressions[1]);
@@ -13837,10 +13837,10 @@ namespace Legion {
           }
         }
       }
-      if (result == NULL)
+      if (result == nullptr)
       {
-        ExpressionTrieNode *node = NULL;
-        if (creator == NULL)
+        ExpressionTrieNode *node = nullptr;
+        if (creator == nullptr)
         {
           DifferenceOpCreator diff_creator(lhs->type_tag,
                                 expressions[0], expressions[1]);
@@ -13859,7 +13859,7 @@ namespace Legion {
           else
             node = finder->second;
 #ifdef DEBUG_LEGION
-          assert(node != NULL);
+          assert(node != nullptr);
 #endif
           result = node->find_or_create_operation(expressions, diff_creator);
         }
@@ -13880,7 +13880,7 @@ namespace Legion {
           else
             node = finder->second;
 #ifdef DEBUG_LEGION
-          assert(node != NULL);
+          assert(node != nullptr);
 #endif
           result = node->find_or_create_operation(expressions, *creator);
         }
@@ -14030,7 +14030,7 @@ namespace Legion {
       RemoteExpressionCreator creator(remote_expr_id, type_tag, derez);
       NT_TemplateHelper::demux<RemoteExpressionCreator>(type_tag, &creator);
 #ifdef DEBUG_LEGION
-      assert(creator.operation != NULL);
+      assert(creator.operation != nullptr);
 #endif
       remote_expressions[remote_expr_id] = creator.operation;
       return creator.operation;
@@ -14364,8 +14364,8 @@ namespace Legion {
     Provenance* Runtime::find_or_create_provenance(const char *prov,size_t size)
     //--------------------------------------------------------------------------
     {
-      if ((prov == NULL) || (size == 0))
-        return NULL;
+      if ((prov == nullptr) || (size == 0))
+        return nullptr;
       // Check to see if we can find it in read-only mode first
       {
         AutoLock prov_lock(provenance_lock,1,false/*exclusive*/);
@@ -14407,7 +14407,7 @@ namespace Legion {
       result->add_reference(2); // one for ourself and one for the caller
       finder->second.push_back(result);
       // If we have a profiler, then record this provenance
-      if (profiler != NULL)
+      if (profiler != nullptr)
         profiler->record_provenance(unique_provenance_id, prov, size);
       unique_provenance_id += runtime_stride;
       return result;
@@ -14579,7 +14579,7 @@ namespace Legion {
     void Runtime::unregister_layout(LayoutConstraintID layout_id)
     //--------------------------------------------------------------------------
     {
-      LayoutConstraints *constraints = NULL;
+      LayoutConstraints *constraints = nullptr;
       {
         AutoLock l_lock(layout_constraints_lock);
         std::map<LayoutConstraintID,LayoutConstraints*>::iterator finder = 
@@ -14590,7 +14590,7 @@ namespace Legion {
           layout_constraints_table.erase(finder);
         }
       }
-      if ((constraints != NULL) && 
+      if ((constraints != nullptr) && 
           constraints->remove_base_resource_ref(RUNTIME_REF))
         delete (constraints);
     }
@@ -14676,7 +14676,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     LayoutConstraints* Runtime::find_layout_constraints(
                       LayoutConstraintID layout_id, bool can_fail /*= false*/, 
-                      RtEvent *wait_for /*=NULL*/)
+                      RtEvent *wait_for /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
       // See if we can find it first
@@ -14703,7 +14703,7 @@ namespace Legion {
             if (target == address_space)
             {
               if (can_fail)
-                return NULL;
+                return nullptr;
               REPORT_LEGION_ERROR(ERROR_INVALID_CONSTRAINT_ID,
                   "Unable to find layout constraint %ld", layout_id);
             }
@@ -14727,10 +14727,10 @@ namespace Legion {
         }
       }
       // If we want the wait event, just return
-      if (wait_for != NULL)
+      if (wait_for != nullptr)
       {
         *wait_for = wait_on;
-        return NULL;
+        return nullptr;
       }
       // If we didn't find it send a remote request for the constraints
       wait_on.wait();
@@ -14741,7 +14741,7 @@ namespace Legion {
       if (finder == layout_constraints_table.end())
       {
         if (can_fail)
-          return NULL;
+          return nullptr;
 #ifdef DEBUG_LEGION
         assert(finder != layout_constraints_table.end());
 #endif
@@ -14861,7 +14861,7 @@ namespace Legion {
         // this task and do not use the postcondition as it comes from
         // node zero and we don't want all the nodes to subscribe to
         // node zero unnecessarily.
-        realm.collective_spawn(first_proc, LG_STARTUP_TASK_ID, NULL, 0);
+        realm.collective_spawn(first_proc, LG_STARTUP_TASK_ID, nullptr, 0);
         // Now get the start-up barrier that will be set by the
         // start-up task as it broadcasts through the nodes
         startup_barrier = find_or_wait_for_startup_barrier();
@@ -14876,7 +14876,7 @@ namespace Legion {
       for (std::set<Processor>::const_iterator it =
             local_procs.begin(); it != local_procs.end(); it++)
         nop_events.push_back(RtEvent(it->spawn(
-                  Processor::TASK_ID_PROCESSOR_NOP, NULL, 0)));
+                  Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0)));
       // Now we can initialize the Legion runtime(s) on this node
       TopLevelContext *top_context = runtime->initialize_runtime(first_proc);
       if (startup_barrier.exists())
@@ -14898,7 +14898,7 @@ namespace Legion {
         if (legion_main_set)
         {
 #ifdef DEBUG_LEGION
-          assert(top_context != NULL);
+          assert(top_context != nullptr);
 #endif
           TaskLauncher launcher(Runtime::legion_main_id,
               UntypedBuffer(&runtime->input_args, sizeof(InputArgs)),
@@ -14960,7 +14960,7 @@ namespace Legion {
             e++;
             continue; 
           }
-          const char *starts = NULL;
+          const char *starts = nullptr;
           if (*e == '\'') 
           {
             // single quoted string
@@ -15248,14 +15248,14 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(target.exists());
 #endif
-      if (top_context == NULL)
+      if (top_context == nullptr)
         top_context = new TopLevelContext(target,
             get_unique_top_level_task_id(), 0/*implicit*/);
       // Save the current context if there is one and restore it later
       TaskContext *previous_implicit = implicit_context;
       // Save the context in the implicit context
       implicit_context = top_context;
-      if ((profiler != NULL) && (implicit_profiler == NULL))
+      if ((profiler != nullptr) && (implicit_profiler == nullptr))
         implicit_profiler = profiler->find_or_create_profiling_instance();
       // Add a reference to the top level context
       top_context->add_base_gc_ref(RUNTIME_REF);
@@ -15296,7 +15296,7 @@ namespace Legion {
       TaskLauncher launcher(top_task_id, UntypedBuffer(),
                             Predicate::TRUE_PRED, top_mapper_id);
       // Mark that this task is the top-level task
-      top_task->initialize_task(top_context, launcher, NULL/*provenance*/,
+      top_task->initialize_task(top_context, launcher, nullptr/*provenance*/,
           true/*top level task*/);
       increment_outstanding_top_level_tasks();
       // Launch a task to deactivate the top-level context
@@ -15353,23 +15353,23 @@ namespace Legion {
             "Implicit top-level tasks are not allowed to be started before "
             "the Legion runtime is started.")
       // Check that we're not inside a task
-      if (implicit_context != NULL)
+      if (implicit_context != nullptr)
         REPORT_LEGION_ERROR(ERROR_ILLEGAL_IMPLICIT_TOP_LEVEL_TASK,
             "Implicit top-level tasks are not allowed to be started inside "
             "of Legion tasks. Only external computations are permitted "
             "to create new implicit top-level tasks.")
       // Save the top-level task name if necessary
       // Record a fake variant if we're profiling
-      if (task_name != NULL)
+      if (task_name != nullptr)
       {
         attach_semantic_information(top_task_id,
             LEGION_NAME_SEMANTIC_TAG, task_name,
             strlen(task_name) + 1, true/*mutable*/, false/*send to owner*/);
-        if (profiler != NULL)
+        if (profiler != nullptr)
           profiler->register_task_variant(top_task_id, 0/*variant ID*/,
                                           task_name);
       }
-      else if (profiler != NULL)
+      else if (profiler != nullptr)
       {
         char implicit_name[64];
         snprintf(implicit_name, 64, "implicit_variant_%d", top_task_id);
@@ -15399,7 +15399,7 @@ namespace Legion {
       // as a new kind of processor to use
       assert(proxy.exists());
 #endif
-      SingleTask *local_task = NULL;
+      SingleTask *local_task = nullptr;
       // Now that the runtime is started we can make our context
       if (control_replicable && (total_address_spaces > 1))
       {
@@ -15439,8 +15439,8 @@ namespace Legion {
             "is not an implicit top-level task",
             ctx->get_task_name(), ctx->get_unique_id())
       ctx->begin_wait(LgEvent::NO_LG_EVENT, true/*from application*/);
-      implicit_context = NULL;
-      implicit_profiler = NULL;
+      implicit_context = nullptr;
+      implicit_profiler = nullptr;
       implicit_fevent = LgEvent::NO_LG_EVENT;
       implicit_provenance = 0;
     }
@@ -15455,7 +15455,7 @@ namespace Legion {
             "is not an implicit top-level task",
             ctx->get_task_name(), ctx->get_unique_id())
       ctx->end_wait(LgEvent::NO_LG_EVENT, true/*from application*/);
-      if ((profiler != NULL) && (implicit_profiler == NULL))
+      if ((profiler != nullptr) && (implicit_profiler == nullptr))
         implicit_profiler = profiler->find_or_create_profiling_instance();
       implicit_context = ctx;
       implicit_provenance = ctx->owner_task->get_unique_op_id();
@@ -15471,11 +15471,11 @@ namespace Legion {
             "that is not an implicit top-level task",
             ctx->get_task_name(), ctx->get_unique_id())
       // this is just a normal finish operation
-      ctx->end_task(NULL, 0, false/*owned*/, PhysicalInstance::NO_INST, 
-          NULL/*callback functor*/, NULL/*resource*/,  NULL/*freefunc*/,
-          NULL/*metadataptr*/, 0/*metadatasize*/, effects);
-      implicit_context = NULL;
-      implicit_profiler = NULL;
+      ctx->end_task(nullptr, 0, false/*owned*/, PhysicalInstance::NO_INST, 
+          nullptr/*callback functor*/, nullptr/*resource*/,  nullptr/*freefunc*/,
+          nullptr/*metadataptr*/, 0/*metadatasize*/, effects);
+      implicit_context = nullptr;
+      implicit_profiler = nullptr;
       implicit_fevent = LgEvent::NO_LG_EVENT;
       implicit_provenance = 0;
     }
@@ -15735,14 +15735,14 @@ namespace Legion {
         input_args.argv = (char**)malloc(argc*sizeof(char*));
         for (int i = 0; i < argc; i++)
         {
-          if (argv[i] != NULL)
+          if (argv[i] != nullptr)
             input_args.argv[i] = strdup(argv[i]);
           else
-            input_args.argv[i] = NULL;
+            input_args.argv[i] = nullptr;
         }
       }
       else
-        input_args.argv = NULL;
+        input_args.argv = nullptr;
       // Construct the runtime singleton
       new Runtime(machine, config, background, input_args, local_space,
           system_memory, local_procs, local_util_procs, address_spaces,
@@ -16042,7 +16042,7 @@ namespace Legion {
       const ReductionOp *reduction_op =
         get_reduction_op(redop, true/*has lock*/);
 #ifdef DEBUG_LEGION
-      assert(reduction_op->identity != NULL);
+      assert(reduction_op->identity != nullptr);
 #endif
       FillView *fill_view = new FillView(get_available_distributed_id(),
 #ifdef LEGION_SPY
@@ -16098,7 +16098,7 @@ namespace Legion {
         SerdezRedopTable::const_iterator finder = serdez_table.find(redop_id);
         if (finder != serdez_table.end())
           return &(finder->second);
-        return NULL;
+        return nullptr;
       }
       else
         return runtime->get_serdez_redop(redop_id);
@@ -16179,7 +16179,7 @@ namespace Legion {
       if (runtime_started)
       {
         const RtEvent done_event = runtime->perform_registration_callback(
-            (void*)callback, NULL/*buffer*/, 0/*size*/, false/*withargs*/,
+            (void*)callback, nullptr/*buffer*/, 0/*size*/, false/*withargs*/,
             global, false/*preregistered*/, deduplicate, dedup_tag);
         if (done_event.exists() && !done_event.has_triggered())
         {
@@ -16294,7 +16294,7 @@ namespace Legion {
                          "set in legion_config.h.", redop_id, 
                          LEGION_MAX_APPLICATION_REDOP_ID)
 #endif
-        if (redop->identity == NULL)
+        if (redop->identity == nullptr)
           REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID,
               "ERROR: Legion does not support reduction operators "
               "without identity values. All reduction operators must "
@@ -16307,10 +16307,10 @@ namespace Legion {
           REPORT_LEGION_ERROR(ERROR_DUPLICATE_REDOP_ID, "ERROR: ReductionOpID "
                     "%d has already been used in the reduction table",redop_id)
         red_table[redop_id] = redop;
-        if ((init_fnptr != NULL) || (fold_fnptr != NULL))
+        if ((init_fnptr != nullptr) || (fold_fnptr != nullptr))
         {
 #ifdef DEBUG_LEGION
-          assert((init_fnptr != NULL) && (fold_fnptr != NULL));
+          assert((init_fnptr != nullptr) && (fold_fnptr != nullptr));
 #endif
           SerdezRedopTable &serdez_red_table = 
             Runtime::get_serdez_redop_table(true/*safe*/);
@@ -16599,7 +16599,7 @@ namespace Legion {
     {
       log_run.warning("LEGION WARNING: %s (from file %s:%d)",
                       message, file_name, line);
-      if ((runtime != NULL) && runtime->warnings_backtrace)
+      if ((runtime != nullptr) && runtime->warnings_backtrace)
       {
         Realm::Backtrace bt;
         bt.capture_backtrace();
@@ -16617,7 +16617,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We don't profile this task
-      implicit_profiler = NULL;
+      implicit_profiler = nullptr;
       implicit_fevent = LgEvent::NO_LG_EVENT;
       // Finalize the runtime and then delete it
       std::vector<RtEvent> shutdown_events;
@@ -16645,9 +16645,9 @@ namespace Legion {
       // Meta-tasks can run on application processors only when there
       // are no utility processors for us to use
       if (!runtime->local_utils.empty())
-        assert(implicit_context == NULL); // this better hold
+        assert(implicit_context == nullptr); // this better hold
 #endif
-      assert(implicit_reference_tracker == NULL);
+      assert(implicit_reference_tracker == nullptr);
 #endif
       // We immediately bump the priority of all meta-tasks once they start
       // up to the highest level to ensure that they drain once they begin
@@ -16667,14 +16667,14 @@ namespace Legion {
 #endif
       data += sizeof(tid);
       arglen -= sizeof(tid);
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
       {
         implicit_fevent = LgEvent(Processor::get_current_finish_event());
         // If this is a message task, then we need to initialize the
         // implicit_fevent before doing anything that can block
         if (tid == LG_MESSAGE_ID)
           runtime->profiler->increment_outstanding_message_request();
-        if (implicit_profiler == NULL)
+        if (implicit_profiler == nullptr)
           implicit_profiler = 
             runtime->profiler->find_or_create_profiling_instance();
       }
@@ -17141,10 +17141,10 @@ namespace Legion {
         default:
           assert(false); // should never get here
       }
-      if (implicit_reference_tracker != NULL)
+      if (implicit_reference_tracker != nullptr)
       {
         delete implicit_reference_tracker;
-        implicit_reference_tracker = NULL;
+        implicit_reference_tracker = nullptr;
       }
 #ifdef DEBUG_LEGION
       if (tid < LG_BEGIN_SHUTDOWN_TASK_IDS)
@@ -17165,10 +17165,10 @@ namespace Legion {
 				   Processor p)
     //--------------------------------------------------------------------------
     {
-      if (runtime->profiler != NULL) 
+      if (runtime->profiler != nullptr) 
       {
         implicit_fevent = LgEvent(Processor::get_current_finish_event());
-        if (implicit_profiler == NULL)
+        if (implicit_profiler == nullptr)
           implicit_profiler = 
             runtime->profiler->find_or_create_profiling_instance();
       }
@@ -17177,11 +17177,11 @@ namespace Legion {
         static_cast<const ProfilingResponseBase*>(response.user_data());
       LgEvent fevent;
       bool failed_alloc = false;
-      if (base->handler == NULL)
+      if (base->handler == nullptr)
       {
         // This is the remote message case
 #ifdef DEBUG_LEGION
-        assert(runtime->profiler != NULL);
+        assert(runtime->profiler != nullptr);
 #endif
         const long long t_start = Realm::Clock::current_time_in_nanoseconds();
         // Check to see if should report this profiling
@@ -17197,7 +17197,7 @@ namespace Legion {
               fevent, finish_event, base->completion || failed_alloc);
         }
       }
-      else if (runtime->profiler != NULL)
+      else if (runtime->profiler != nullptr)
       {
         const long long t_start = Realm::Clock::current_time_in_nanoseconds();
         // Check to see if should report this profiling
@@ -17258,7 +17258,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // We don't profile this task
-      implicit_profiler = NULL;
+      implicit_profiler = nullptr;
       implicit_fevent = LgEvent::NO_LG_EVENT;
       // Create the startup barrier and send it out
       // Note we don't profile this for critical paths
@@ -17276,7 +17276,7 @@ namespace Legion {
     {
       Deserializer derez(args, arglen);
       // We don't profile this task
-      implicit_profiler = NULL;
+      implicit_profiler = nullptr;
       implicit_fevent = LgEvent::NO_LG_EVENT;
       runtime->handle_endpoint_creation(derez);
     }
@@ -17289,12 +17289,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(implicit_reference_tracker == NULL);
+      assert(implicit_reference_tracker == nullptr);
 #endif
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
       {
         implicit_fevent = LgEvent(Processor::get_current_finish_event());
-        if (implicit_profiler == NULL)
+        if (implicit_profiler == nullptr)
           implicit_profiler =
             runtime->profiler->find_or_create_profiling_instance();
       }
@@ -17353,10 +17353,10 @@ namespace Legion {
         default:
           assert(false); // should never get here
       }
-      if (implicit_reference_tracker != NULL)
+      if (implicit_reference_tracker != nullptr)
       {
         delete implicit_reference_tracker;
-        implicit_reference_tracker = NULL;
+        implicit_reference_tracker = nullptr;
       }
 #ifdef DEBUG_LEGION
       runtime->decrement_total_outstanding_tasks(tid, true/*meta*/);
@@ -17400,7 +17400,7 @@ namespace Legion {
                              const std::type_info &info, size_t size, int elems)
     //--------------------------------------------------------------------------
     {
-      if (runtime != NULL)
+      if (runtime != nullptr)
         runtime->trace_allocation(info, size, elems);
     }
 
@@ -17409,7 +17409,7 @@ namespace Legion {
                                                  size_t size, int elems)
     //--------------------------------------------------------------------------
     {
-      if (runtime != NULL)
+      if (runtime != nullptr)
         runtime->trace_free(info, size, elems);
     }
 #endif

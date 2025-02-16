@@ -55,22 +55,22 @@ namespace Legion {
                                 bool human = true) const = 0;
     public:
       virtual MappableType get_mappable_type(void) const = 0;
-      virtual const Task* as_task(void) const { return NULL; }
-      virtual const Copy* as_copy(void) const { return NULL; }
-      virtual const InlineMapping* as_inline(void) const { return NULL; }
-      virtual const Acquire* as_acquire(void) const { return NULL; }
-      virtual const Release* as_release(void) const { return NULL; }
-      virtual const Close* as_close(void) const { return NULL; }
-      virtual const Fill* as_fill(void) const { return NULL; }
-      virtual const Partition* as_partition(void) const { return NULL; }
-      virtual const MustEpoch* as_must_epoch(void) const { return NULL; }
+      virtual const Task* as_task(void) const { return nullptr; }
+      virtual const Copy* as_copy(void) const { return nullptr; }
+      virtual const InlineMapping* as_inline(void) const { return nullptr; }
+      virtual const Acquire* as_acquire(void) const { return nullptr; }
+      virtual const Release* as_release(void) const { return nullptr; }
+      virtual const Close* as_close(void) const { return nullptr; }
+      virtual const Fill* as_fill(void) const { return nullptr; }
+      virtual const Partition* as_partition(void) const { return nullptr; }
+      virtual const MustEpoch* as_must_epoch(void) const { return nullptr; }
     public:
       MapperID                                  map_id;
       MappingTagID                              tag;
     public:
       // The 'parent_task' member is here for backwards compatibility
       // It's better to use the 'get_parent_task' method
-      // as this may be NULL until that method is called
+      // as this may be nullptr until that method is called
       mutable const Task*                       parent_task;
     public:
       // Mapper annotated data 
@@ -438,7 +438,7 @@ namespace Legion {
     public:
       // Check to see if a whole set of constraints are satisfied
       bool entails(const LayoutConstraintSet &constraint_set,
-                   const LayoutConstraint **failed_constraint = NULL) const;
+                   const LayoutConstraint **failed_constraint = nullptr) const;
     public:
       static PhysicalInstance get_virtual_instance(void);
     private:
@@ -2522,10 +2522,10 @@ namespace Legion {
                                     LayoutConstraintID layout_id) const;
       bool do_constraints_conflict(MapperContext ctx,
                      LayoutConstraintID set1, LayoutConstraintID set2,
-                     const LayoutConstraint **conflict_constraint = NULL) const;
+                     const LayoutConstraint **conflict_constraint = nullptr) const;
       bool do_constraints_entail(MapperContext ctx,
                    LayoutConstraintID source, LayoutConstraintID target,
-                   const LayoutConstraint **failed_constraint = NULL) const;
+                   const LayoutConstraint **failed_constraint = nullptr) const;
     public:
       //------------------------------------------------------------------------
       // Methods for manipulating variants 
@@ -2580,7 +2580,7 @@ namespace Legion {
       VariantID register_task_variant(MapperContext ctx, 
                                       const TaskVariantRegistrar &registrar,
 				      const CodeDescriptor &codedesc,
-				      const void *user_data = NULL,
+				      const void *user_data = nullptr,
 				      size_t user_len = 0,
                                       size_t return_type_size =
                                               LEGION_MAX_RETURN_SIZE,
@@ -2614,8 +2614,8 @@ namespace Legion {
                                    PhysicalInstance &result, bool acquire=true,
                                    GCPriority priority = 0,
                                    bool tight_region_bounds = false,
-                                   size_t *footprint = NULL,
-                                   const LayoutConstraint **unsat = NULL) const;
+                                   size_t *footprint = nullptr,
+                                   const LayoutConstraint **unsat = nullptr) const;
       bool create_physical_instance(
                                    MapperContext ctx, Memory target_memory,
                                    LayoutConstraintID layout_id,
@@ -2623,8 +2623,8 @@ namespace Legion {
                                    PhysicalInstance &result, bool acquire=true,
                                    GCPriority priority = 0,
                                    bool tight_region_bounds = false,
-                                   size_t *footprint = NULL,
-                                   const LayoutConstraint **unsat = NULL) const;
+                                   size_t *footprint = nullptr,
+                                   const LayoutConstraint **unsat = nullptr) const;
       bool find_or_create_physical_instance(
                                    MapperContext ctx, Memory target_memory,
                                    const LayoutConstraintSet &constraints, 
@@ -2632,8 +2632,8 @@ namespace Legion {
                                    PhysicalInstance &result, bool &created, 
                                    bool acquire = true,GCPriority priority = 0,
                                    bool tight_region_bounds = false,
-                                   size_t *footprint = NULL,
-                                   const LayoutConstraint **unsat = NULL) const;
+                                   size_t *footprint = nullptr,
+                                   const LayoutConstraint **unsat = nullptr) const;
       bool find_or_create_physical_instance(
                                    MapperContext ctx, Memory target_memory,
                                    LayoutConstraintID layout_id,
@@ -2641,8 +2641,8 @@ namespace Legion {
                                    PhysicalInstance &result, bool &created, 
                                    bool acquire = true,GCPriority priority = 0,
                                    bool tight_region_bounds = false,
-                                   size_t *footprint = NULL,
-                                   const LayoutConstraint **unsat = NULL) const;
+                                   size_t *footprint = nullptr,
+                                   const LayoutConstraint **unsat = nullptr) const;
       bool find_physical_instance(
                                    MapperContext ctx, Memory target_memory,
                                    const LayoutConstraintSet &constraints,
@@ -2756,58 +2756,58 @@ namespace Legion {
       IndexSpace create_index_space(MapperContext ctx, 
                                     const Domain &bounds,
                                     TypeTag type_tag = 0,
-                                    const char *provenance = NULL,
+                                    const char *provenance = nullptr,
                                     bool take_ownership = false) const;
       // Template version
       template<int DIM, typename COORD_T>
       IndexSpaceT<DIM,COORD_T> create_index_space(MapperContext ctx,
                                            Rect<DIM,COORD_T> bounds,
-                                           const char *provenance = NULL) const;
+                                           const char *provenance = nullptr) const;
 
       IndexSpace create_index_space(MapperContext ctx, 
                                     const std::vector<DomainPoint> &points,
-                                    const char *provenance = NULL) const;
+                                    const char *provenance = nullptr) const;
       // Template version
       template<int DIM, typename COORD_T>
       IndexSpaceT<DIM,COORD_T> create_index_space(MapperContext ctx,
                     const std::vector<Point<DIM,COORD_T> > &points,
-                    const char *provenance = NULL) const;
+                    const char *provenance = nullptr) const;
 
       IndexSpace create_index_space(MapperContext ctx,
                                     const std::vector<Domain> &rects,
-                                    const char *provenance = NULL) const;
+                                    const char *provenance = nullptr) const;
       // Template version
       template<int DIM, typename COORD_T>
       IndexSpaceT<DIM,COORD_T> create_index_space(MapperContext ctx,
                       const std::vector<Rect<DIM,COORD_T> > &rects,
-                      const char *provenance = NULL) const;
+                      const char *provenance = nullptr) const;
 
       IndexSpace union_index_spaces(MapperContext ctx,
                       const std::vector<IndexSpace> &sources,
-                      const char *provenance = NULL) const;
+                      const char *provenance = nullptr) const;
       // Template version
       template<int DIM, typename COORD_T>
       IndexSpaceT<DIM,COORD_T> union_index_spaces(MapperContext ctx,
                 const std::vector<IndexSpaceT<DIM,COORD_T> > &sources,
-                const char *provenance = NULL) const;
+                const char *provenance = nullptr) const;
 
       IndexSpace intersect_index_spaces(MapperContext ctx,
                       const std::vector<IndexSpace> &sources,
-                      const char *provenance = NULL) const;
+                      const char *provenance = nullptr) const;
       // Template version
       template<int DIM, typename COORD_T>
       IndexSpaceT<DIM,COORD_T> intersect_index_spaces(MapperContext ctx,
                 const std::vector<IndexSpaceT<DIM,COORD_T> > &sources,
-                const char *provenance = NULL) const;
+                const char *provenance = nullptr) const;
 
       IndexSpace subtract_index_spaces(MapperContext ctx,
                         IndexSpace left, IndexSpace right,
-                        const char *provenance = NULL) const;
+                        const char *provenance = nullptr) const;
       // Template version
       template<int DIM, typename COORD_T>
       IndexSpaceT<DIM,COORD_T> subtract_index_spaces(MapperContext ctx,
           IndexSpaceT<DIM,COORD_T> left, IndexSpaceT<DIM,COORD_T> right,
-          const char *provenance = NULL) const;
+          const char *provenance = nullptr) const;
     public:
       //------------------------------------------------------------------------
       // Convenience methods for introspecting index spaces

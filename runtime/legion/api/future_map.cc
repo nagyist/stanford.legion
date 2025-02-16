@@ -30,7 +30,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FutureMap::FutureMap(void)
-      : impl(NULL)
+      : impl(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -40,7 +40,7 @@ namespace Legion {
       : impl(map.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_base_gc_ref(Internal::APPLICATION_REF);
     }
 
@@ -49,7 +49,7 @@ namespace Legion {
       : impl(map.impl)
     //--------------------------------------------------------------------------
     {
-      map.impl = NULL;
+      map.impl = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -57,7 +57,7 @@ namespace Legion {
       : impl(i)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_base_gc_ref(Internal::APPLICATION_REF);
     }
 
@@ -65,7 +65,7 @@ namespace Legion {
     FutureMap::~FutureMap(void)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_base_gc_ref(Internal::APPLICATION_REF))
+      if ((impl != nullptr) && impl->remove_base_gc_ref(Internal::APPLICATION_REF))
         delete impl;
     }
 
@@ -73,10 +73,10 @@ namespace Legion {
     FutureMap& FutureMap::operator=(const FutureMap &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_base_gc_ref(Internal::APPLICATION_REF))
+      if ((impl != nullptr) && impl->remove_base_gc_ref(Internal::APPLICATION_REF))
         delete impl;
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_base_gc_ref(Internal::APPLICATION_REF);
       return *this;
     }
@@ -85,10 +85,10 @@ namespace Legion {
     FutureMap& FutureMap::operator=(FutureMap &&rhs) noexcept
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_base_gc_ref(Internal::APPLICATION_REF))
+      if ((impl != nullptr) && impl->remove_base_gc_ref(Internal::APPLICATION_REF))
         delete impl;
       impl = rhs.impl;
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
       return *this;
     }
 
@@ -96,7 +96,7 @@ namespace Legion {
     std::size_t FutureMap::hash(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         return std::hash<unsigned long long>{}(impl->did);
       else
         return std::hash<unsigned long long>{}(0);
@@ -107,7 +107,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       return impl->get_future(point, false/*internal*/);
     }
@@ -118,7 +118,7 @@ namespace Legion {
                                     const char *warning_string) const
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->get_void_result(point, silence_warnings, warning_string);
     }
 
@@ -127,7 +127,7 @@ namespace Legion {
                                      const char *warning_string) const
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->wait_all_results(silence_warnings, warning_string);
     }
 
@@ -135,7 +135,7 @@ namespace Legion {
     Domain FutureMap::get_future_map_domain(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return Domain::NO_DOMAIN;
       else
         return impl->get_domain();
@@ -163,10 +163,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(future_map_domain != NULL);
+      assert(future_map_domain != nullptr);
 #endif
       future_map_domain->add_nested_valid_ref(did);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
 #ifdef LEGION_GC
       log_garbage.info("GC Future Map %lld %d", 
@@ -183,16 +183,16 @@ namespace Legion {
       : DistributedCollectable(
           LEGION_DISTRIBUTED_HELP_ENCODE(did, FUTURE_MAP_DC),
           register_now, mapping),
-        context(ctx), op(NULL), op_gen(0), op_depth(0), op_uid(0),
+        context(ctx), op(nullptr), op_gen(0), op_depth(0), op_uid(0),
         blocking_index(blocking), provenance(prov), future_map_domain(d),
         context_index(index)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(future_map_domain != NULL);
+      assert(future_map_domain != nullptr);
 #endif
       future_map_domain->add_nested_valid_ref(did);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
 #ifdef LEGION_GC
       log_garbage.info("GC Future Map %lld %d", 
@@ -214,10 +214,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(future_map_domain != NULL);
+      assert(future_map_domain != nullptr);
 #endif
       future_map_domain->add_nested_valid_ref(did);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
 #ifdef LEGION_GC
       log_garbage.info("GC Future Map %lld %d", 
@@ -236,7 +236,7 @@ namespace Legion {
       futures.clear();
       if (future_map_domain->remove_nested_valid_ref(did))
         delete future_map_domain;
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -293,7 +293,7 @@ namespace Legion {
           rez.serialize<bool>(internal);
         }
         runtime->send_future_map_request_future(owner_space, rez);
-        if (wait_on != NULL)
+        if (wait_on != nullptr)
         {
           *wait_on = future_ready_event;
           return Future();
@@ -361,11 +361,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(implicit_context != NULL);
+      assert(implicit_context != nullptr);
       assert(implicit_context == context);
 #endif
       if (runtime->runtime_warnings && !silence_warnings && 
-          (context != NULL) && !context->is_leaf_context())
+          (context != nullptr) && !context->is_leaf_context())
         REPORT_LEGION_WARNING(LEGION_WARNING_WAITING_ALL_FUTURES, 
             "Waiting for all futures in a future map in "
             "non-leaf task %s (UID %lld) is a violation of Legion's deferred "
@@ -373,9 +373,9 @@ namespace Legion {
             "performance degredation. Warning string: %s", 
             context->get_task_name(),
             context->get_unique_id(),
-            (warning_string == NULL) ? "" : warning_string)
+            (warning_string == nullptr) ? "" : warning_string)
       context->record_blocking_call(blocking_index);
-      if (op != NULL)
+      if (op != nullptr)
         context->wait_on_future_map(this, op->get_commit_event(op_gen));
     }
 
@@ -402,13 +402,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize(did);
-      if ((collective_mapping == NULL) || !collective_mapping->contains(target))
+      if ((collective_mapping == nullptr) || !collective_mapping->contains(target))
       {
         rez.serialize<bool>(true); // can create
         rez.serialize(future_map_domain->handle);
         rez.serialize(blocking_index);
         rez.serialize(context_index);
-        if (provenance != NULL)
+        if (provenance != nullptr)
           provenance->serialize(rez);
         else
           Provenance::serialize_null(rez);
@@ -535,7 +535,7 @@ namespace Legion {
     void FutureMapImpl::register_dependence(Operation *consumer_op)
     //--------------------------------------------------------------------------
     {
-      if (op == NULL)
+      if (op == nullptr)
         return;
       // Only record dependences on things from the same context
       // We know futures can never flow up the task tree so the
@@ -632,7 +632,7 @@ namespace Legion {
       DistributedCollectable *dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
       FutureMapImpl *impl = dynamic_cast<FutureMapImpl*>(dc);
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #else
       FutureMapImpl *impl = static_cast<FutureMapImpl*>(dc);
 #endif
@@ -682,7 +682,7 @@ namespace Legion {
       DistributedCollectable *dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
       FutureMapImpl *impl = dynamic_cast<FutureMapImpl*>(dc);
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #else
       FutureMapImpl *impl = static_cast<FutureMapImpl*>(dc);
 #endif
@@ -706,7 +706,7 @@ namespace Legion {
       DistributedCollectable *dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
       FutureMapImpl *impl = dynamic_cast<FutureMapImpl*>(dc);
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #else
       FutureMapImpl *impl = static_cast<FutureMapImpl*>(dc);
 #endif
@@ -986,12 +986,12 @@ namespace Legion {
       : FutureMapImpl(ctx, op, domain, did, prov,
                       false/*register now*/, mapping),
         shard_manager(man), shard_domain(shard_dom),
-        op_depth(ctx->get_depth()), sharding_function(NULL), 
+        op_depth(ctx->get_depth()), sharding_function(nullptr), 
         own_sharding_function(false), collective_performed(false)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shard_domain != NULL);
+      assert(shard_domain != nullptr);
 #endif
       shard_domain->add_nested_valid_ref(did);
       shard_manager->add_nested_gc_ref(did);
@@ -1006,12 +1006,12 @@ namespace Legion {
       : FutureMapImpl(ctx, domain, did, coord, ctx_index, prov,
                       false/*register now*/, mapping),
         shard_manager(man), shard_domain(shard_dom),
-        op_depth(ctx->get_depth()), sharding_function(NULL),
+        op_depth(ctx->get_depth()), sharding_function(nullptr),
         own_sharding_function(false), collective_performed(false)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shard_domain != NULL);
+      assert(shard_domain != nullptr);
 #endif
       shard_domain->add_nested_valid_ref(did);
       shard_manager->add_nested_gc_ref(did);
@@ -1044,7 +1044,7 @@ namespace Legion {
       }
       // Now we need to figure out which shard we're on, see if we know
       // the sharding function yet, if not we have to wait
-      if (sharding_function == NULL)
+      if (sharding_function == nullptr)
       {
         RtEvent wait_on = get_sharding_function_ready();
         if (wait_on.exists() && !wait_on.has_triggered())
@@ -1084,7 +1084,7 @@ namespace Legion {
           rez.serialize<bool>(internal);
         }
         runtime->send_future_map_request_future(space, rez);
-        if (wait_on != NULL)
+        if (wait_on != nullptr)
         {
           *wait_on = future_ready_event;
           return Future();
@@ -1134,7 +1134,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx =
           dynamic_cast<ReplicateContext*>(implicit_context);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx =
           static_cast<ReplicateContext*>(implicit_context);
@@ -1175,7 +1175,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Domain sharding_domain = shard_domain->get_tight_domain();
-      if (sharding_function == NULL)
+      if (sharding_function == nullptr)
       {
         RtEvent wait_on = get_sharding_function_ready();
         if (wait_on.exists() && !wait_on.has_triggered())
@@ -1218,7 +1218,7 @@ namespace Legion {
       RtUserEvent to_trigger;
       {
         AutoLock fm_lock(future_map_lock);
-        if (sharding_function == NULL)
+        if (sharding_function == nullptr)
         {
           sharding_function = function;
           own_sharding_function = own_function;
@@ -1237,7 +1237,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock f_lock(future_map_lock);
-      if (sharding_function == NULL)
+      if (sharding_function == nullptr)
       {
         if (!sharding_function_ready.exists())
           sharding_function_ready = Runtime::create_rt_user_event();
@@ -1262,7 +1262,7 @@ namespace Legion {
         return RtEvent::NO_RT_EVENT;
       }
       const Domain sharding_domain = shard_domain->get_tight_domain();
-      if (sharding_function.load() == NULL)
+      if (sharding_function.load() == nullptr)
       {
         RtEvent wait_on = get_sharding_function_ready();
         if (wait_on.exists() && !wait_on.has_triggered())
@@ -1303,7 +1303,7 @@ namespace Legion {
             results.begin(); it != results.end(); it++)
       {
         rez.serialize(it->first);
-        if (it->second.impl != NULL)
+        if (it->second.impl != nullptr)
           it->second.impl->pack_future(rez, target_space);
         else
           rez.serialize<DistributedID>(0);

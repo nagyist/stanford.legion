@@ -24,9 +24,9 @@ namespace Legion {
     inline bool Predicate::operator==(const Predicate &p) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
       {
-        if (p.impl == NULL)
+        if (p.impl == nullptr)
           return (const_value == p.const_value);
         else
           return false;
@@ -39,9 +39,9 @@ namespace Legion {
     inline bool Predicate::operator<(const Predicate &p) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
       {
-        if (p.impl == NULL)
+        if (p.impl == nullptr)
           return (const_value < p.const_value);
         else
           return true;

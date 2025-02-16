@@ -56,9 +56,9 @@ namespace Legion {
       selected_variant = 0;
       task_priority = 0;
       perform_postmap = false;
-      execution_context = NULL;
-      remote_trace_recorder = NULL;
-      shard_manager = NULL;
+      execution_context = nullptr;
+      remote_trace_recorder = nullptr;
+      shard_manager = nullptr;
       leaf_cached = false;
       inner_cached = false;
     }
@@ -79,10 +79,10 @@ namespace Legion {
       task_profiling_requests.clear();
       copy_profiling_requests.clear();
       untracked_valid_regions.clear();
-      if ((execution_context != NULL) && 
+      if ((execution_context != nullptr) && 
           execution_context->remove_base_gc_ref(SINGLE_TASK_REF))
         delete execution_context; 
-      if ((shard_manager != NULL) && 
+      if ((shard_manager != nullptr) && 
           shard_manager->remove_base_gc_ref(SINGLE_TASK_REF))
         delete shard_manager;
       for (std::map<Memory,MemoryPool*>::const_iterator it =
@@ -91,7 +91,7 @@ namespace Legion {
       leaf_memory_pools.clear();
 #ifdef DEBUG_LEGION
       premapped_instances.clear();
-      assert(remote_trace_recorder == NULL);
+      assert(remote_trace_recorder == nullptr);
 #endif
     }
 
@@ -253,7 +253,7 @@ namespace Legion {
           derez.deserialize(future_memories[idx]);
           // Safe to block indefinitely here for unbounded pools
           futures[idx].impl->request_application_instance(
-              future_memories[idx], this, NULL/*safe_for_unbounded_pools*/);
+              future_memories[idx], this, nullptr/*safe_for_unbounded_pools*/);
         }
         size_t num_task_requests;
         derez.deserialize(num_task_requests);
@@ -337,7 +337,7 @@ namespace Legion {
       {
         // See if we have a must epoch in which case
         // we can simply record ourselves and we are done
-        if (must_epoch == NULL)
+        if (must_epoch == nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(target_proc.exists());
@@ -442,7 +442,7 @@ namespace Legion {
         }
         else
           Operation::perform_versioning_analysis(idx,
-              req, version_info, ready_events, NULL/*output region*/,
+              req, version_info, ready_events, nullptr/*output region*/,
               IS_COLLECTIVE(req) || std::binary_search(
                 check_collective_regions.begin(),
                 check_collective_regions.end(), idx));
@@ -473,7 +473,7 @@ namespace Legion {
       output.output_constraints.resize(output_regions.size());
       // If we have must epoch owner, we have to check for any 
       // constrained mappings which must be heeded
-      if (must_epoch_owner != NULL)
+      if (must_epoch_owner != nullptr)
         must_epoch_owner->must_epoch_map_task_callback(this, input, output);
       std::set<Memory> visible_memories;
       runtime->machine.get_visible_memories(target_proc, visible_memories);
@@ -486,7 +486,7 @@ namespace Legion {
         if (!output.chosen_instances[idx].empty())
         {
 #ifdef DEBUG_LEGION
-          assert(must_epoch_owner != NULL);
+          assert(must_epoch_owner != nullptr);
 #endif
           // We can skip this since we already know the result
           continue;
@@ -537,7 +537,7 @@ namespace Legion {
         return false;
       // At this point we know we're going to map this task here
       // Check to see if we need to make a remote trace recorder
-      if (is_remote() && is_recording() && (remote_trace_recorder == NULL))
+      if (is_remote() && is_recording() && (remote_trace_recorder == nullptr))
       {
         remote_trace_recorder = new RemoteTraceRecorder(
             orig_proc.address_space(), get_trace_local_id(), tpl,
@@ -557,15 +557,15 @@ namespace Legion {
       // a name we're making for the termination event
       if (!single_task_termination.exists())
       {
-        single_task_termination = Runtime::create_ap_user_event(NULL); 
+        single_task_termination = Runtime::create_ap_user_event(nullptr); 
         record_completion_effect(single_task_termination);
       }
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       // first check the processors to make sure they are all on the
       // same node and of the same kind, if we know we have a must epoch
       // owner then we also know there is only one valid choice
-      if (must_epoch_owner == NULL)
+      if (must_epoch_owner == nullptr)
       {
         if (output.target_procs.empty())
         {
@@ -641,7 +641,7 @@ namespace Legion {
           // Request the future memories be created
           // Safe to block here indefinitely waiting for unbounded pools
           futures[idx].impl->request_application_instance(
-              future_memories[idx], this, NULL/*safe_for_unbounded_pools*/);
+              future_memories[idx], this, nullptr/*safe_for_unbounded_pools*/);
         }
         // Handle any unmapped futures too
         Memory target_memory = Memory::NO_MEMORY;
@@ -658,7 +658,7 @@ namespace Legion {
           future_memories.push_back(target_memory);
           // Safe to block here indefinitely waiting for unbounded pools
           futures[idx].impl->request_application_instance(target_memory,
-              this, NULL/*safe_for_unbounded_pools*/);
+              this, nullptr/*safe_for_unbounded_pools*/);
         }
       }
       // Sort out any profiling requests that we need to perform
@@ -739,7 +739,7 @@ namespace Legion {
           profiling_reported = Runtime::create_rt_user_event();
       }
       // See whether the mapper picked a variant or a generator
-      VariantImpl *variant_impl = NULL;
+      VariantImpl *variant_impl = nullptr;
       if (output.chosen_variant > 0)
         variant_impl = runtime->find_variant_impl(task_id, 
                                 output.chosen_variant, true/*can fail*/);
@@ -749,7 +749,7 @@ namespace Legion {
           << *mapper << ". Mapper specified an invalid task variant "
           << "of ID 0 for " << *this << ", but Legion does not yet "
           << "support task generators."; 
-      if (variant_impl == NULL)
+      if (variant_impl == nullptr)
         // If we couldn't find or make a variant that is bad
         Exception(MAPPER_EXCEPTION, this)
           << "Invalid mapper output from invocation of 'map_task' on mapper "
@@ -848,8 +848,8 @@ namespace Legion {
           runtime->find_visible_memories(target_proc, visible_memories);
       }
       bool free_acquired = false;
-      std::map<PhysicalManager*,unsigned> *acquired = NULL;
-      if (this->must_epoch != NULL)
+      std::map<PhysicalManager*,unsigned> *acquired = nullptr;
+      if (this->must_epoch != nullptr)
       {
         acquired = new std::map<PhysicalManager*,unsigned>(
                               *get_acquired_instances_ref());
@@ -858,7 +858,7 @@ namespace Legion {
         // if we need to check for all our instances being acquired
         std::map<PhysicalManager*,unsigned> *epoch_acquired = 
           this->must_epoch->get_acquired_instances_ref();
-        if (epoch_acquired != NULL)
+        if (epoch_acquired != nullptr)
           acquired->insert(epoch_acquired->begin(), epoch_acquired->end());
       }
       else
@@ -1240,7 +1240,7 @@ namespace Legion {
           const Memory memory = future_memories[idx];
           // Safe to block here indefinitely waiting for unbounded pools
           futures[idx].impl->request_application_instance(memory, this,
-              NULL/*safe_for_unbounded_pools*/);
+              nullptr/*safe_for_unbounded_pools*/);
         }
       }
       // Make any memory pools required to replay this task
@@ -1254,8 +1254,8 @@ namespace Legion {
         // Safe to block here indefinitely for unbounded pools since any
         // unbounded pools have to come from before the trace
         MemoryPool *pool = manager->create_memory_pool(get_unique_id(),
-            coordinates, it->second, NULL/*safe_for_unbounded_pools*/);
-        if (pool == NULL)
+            coordinates, it->second, nullptr/*safe_for_unbounded_pools*/);
+        if (pool == nullptr)
           Exception(RESOURCE_EXCEPTION, this)
               << "Failed to reserve a dynamic memory pool of " << it->second.size
               << " bytes for " << *this << " in " << manager->get_name()
@@ -1284,7 +1284,7 @@ namespace Legion {
       }
       if (!single_task_termination.exists())
       {
-        single_task_termination = Runtime::create_ap_user_event(NULL);
+        single_task_termination = Runtime::create_ap_user_event(nullptr);
         record_completion_effect(single_task_termination);
       }
       set_origin_mapped(true); // it's like this was origin mapped
@@ -1347,7 +1347,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shard_manager != NULL);
+      assert(shard_manager != nullptr);
       assert(!IS_COLLECTIVE(regions[index]));
       assert(!std::binary_search(check_collective_regions.begin(),
             check_collective_regions.end(), index));
@@ -1365,7 +1365,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shard_manager != NULL);
+      assert(shard_manager != nullptr);
       assert(!IS_COLLECTIVE(regions[key.region_index]));
       assert(!std::binary_search(check_collective_regions.begin(),
             check_collective_regions.end(), key.region_index));
@@ -1383,7 +1383,7 @@ namespace Legion {
       Mapper::ContextConfigOutput configuration;
       configure_execution_context(configuration);
 
-      InnerContext *inner_ctx = NULL;
+      InnerContext *inner_ctx = nullptr;
       if (configuration.auto_tracing_enabled)
       {
         log_auto_trace.info("Initializing auto tracing for %s (UID %lld)",
@@ -1427,7 +1427,7 @@ namespace Legion {
       context_configuration.auto_tracing_min_trace_length = 5;
       context_configuration.auto_tracing_max_trace_length = UINT_MAX;
       context_configuration.auto_tracing_visit_threshold = 10;
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_configure_context(this, context_configuration);
       // Do a little bit of checking on the output.  Make
@@ -1475,7 +1475,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(shard_manager == NULL);
+      assert(shard_manager == nullptr);
 #endif
       shard_manager = manager;
       shard_manager->add_base_gc_ref(SINGLE_TASK_REF);
@@ -1527,7 +1527,7 @@ namespace Legion {
       // down to the target nodes
       initialize_map_task_input(input, output, must_epoch_owner); 
       // Now we can invoke the mapper to do the mapping
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_map_task(this, input, output);
       // Now we can convert the mapper output into our physical instances
@@ -1541,8 +1541,8 @@ namespace Legion {
       if (is_recording())
       {
 #ifdef DEBUG_LEGION
-        assert((remote_trace_recorder != NULL) ||
-                ((tpl != NULL) && tpl->is_recording()));
+        assert((remote_trace_recorder != nullptr) ||
+                ((tpl != nullptr) && tpl->is_recording()));
         assert(futures.size() == future_memories.size());
 #endif
         // We swapped this in finalize output so we need to restore it 
@@ -1576,7 +1576,7 @@ namespace Legion {
         const TraceLocalID tlid = get_trace_local_id();
         VariantImpl *variant_impl = runtime->find_variant_impl(
             task_id, output.chosen_variant, false/*can fail*/);
-        if (remote_trace_recorder != NULL)
+        if (remote_trace_recorder != nullptr)
           remote_trace_recorder->record_mapper_output(tlid, output,
               physical_instances, variant_impl->is_leaf(),
               variant_impl->has_return_type_size, map_applied_conditions);
@@ -1592,7 +1592,7 @@ namespace Legion {
     bool SingleTask::replicate_task(void)
     //--------------------------------------------------------------------------
     {
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       // There are some local invariants checked here, but there are more
       // of them checked in select_task_options right after the mapper call
@@ -1632,12 +1632,12 @@ namespace Legion {
         replicate = false;
         return false;
       }
-      VariantImpl *var_impl = NULL;
+      VariantImpl *var_impl = nullptr;
       if (output.leaf_variants.empty())
       {
         var_impl = runtime->find_variant_impl(task_id,
             output.chosen_variant, true/*can_fail*/);
-        if (var_impl == NULL)
+        if (var_impl == nullptr)
           Exception(MAPPER_EXCEPTION, this)
             << "Invalid mapper output from invocation of 'replicate_task' "
             << "on mapper " << *mapper << ". Mapper selected an invalid task "
@@ -1666,13 +1666,13 @@ namespace Legion {
         {
           VariantImpl *impl = runtime->find_variant_impl(task_id,
             output.leaf_variants[idx], true/*can_fail*/);
-          if (impl == NULL)
+          if (impl == nullptr)
             Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from invocation of 'replicate_task' "
               << "on mapper " << *mapper << ". Mapper selected an invalid leaf task "
               << "variant " << output.leaf_variants[idx] << " for " << *this
               << " that was chosen to be replicated.";
-          if (var_impl == NULL)
+          if (var_impl == nullptr)
             var_impl = impl;
           // Check that the chosen variant is a leaf
           if (!impl->is_leaf())
@@ -1908,7 +1908,7 @@ namespace Legion {
         LegionSpy::log_replication(get_unique_id(), manager_did,
                                    !var_impl->is_leaf());
 #ifdef DEBUG_LEGION
-      assert(shard_manager == NULL);
+      assert(shard_manager == nullptr);
 #endif
       std::vector<ShardID> local_shards;
       for (ShardID idx = 0; idx < output.target_processors.size(); idx++)
@@ -1948,13 +1948,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Only do this the first or second time through
-      if ((defer_args == NULL) || (defer_args->invocation_count < 2))
+      if ((defer_args == nullptr) || (defer_args->invocation_count < 2))
       {
         if (request_valid_instances)
         {
           // If the mapper wants valid instances we first need to do our
           // versioning analysis and then call the mapper
-          if ((defer_args == NULL/*first invocation*/) ||
+          if ((defer_args == nullptr/*first invocation*/) ||
               (defer_args->invocation_count < 1))
           {
             const RtEvent version_ready_event = 
@@ -1972,7 +1972,7 @@ namespace Legion {
         {
           // If the mapper doesn't need valid instances, we do the mapper
           // call first and then see if we need to do any versioning analysis
-          if ((defer_args == NULL/*first invocation*/) ||
+          if ((defer_args == nullptr/*first invocation*/) ||
               (defer_args->invocation_count < 1))
           {
             if (!invoke_mapper(must_epoch_op))
@@ -2027,7 +2027,7 @@ namespace Legion {
           unsigned read_only_count = 0;
           std::vector<unsigned> performed_regions;
           performed_regions.reserve(region_count);
-          std::vector<UpdateAnalysis*> analyses(region_count, NULL);
+          std::vector<UpdateAnalysis*> analyses(region_count, nullptr);
           std::vector<RtEvent> reg_pre(region_count, RtEvent::NO_RT_EVENT);
           for (unsigned idx = 0; idx < logical_regions.size(); idx++)
           {
@@ -2126,13 +2126,13 @@ namespace Legion {
                                          map_applied_conditions);
         trace_info.record_complete_replay(map_applied_conditions, ready_event);
       }
-      if (remote_trace_recorder != NULL)
+      if (remote_trace_recorder != nullptr)
       {
         if (remote_trace_recorder->remove_recorder_reference())
           delete remote_trace_recorder;
-        remote_trace_recorder = NULL;
+        remote_trace_recorder = nullptr;
       }
-      if (must_epoch_op != NULL)
+      if (must_epoch_op != nullptr)
       {
         // If we are part of a must epoch operation, then report the
         // event that describes when all of our mapping activies are done
@@ -2182,7 +2182,7 @@ namespace Legion {
             input.mapped_regions[idx], input.valid_collectives[idx]);
       }
       // Now we can do the mapper call
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_post_map_task(this, input, output);
       // Check and register the results
@@ -2227,7 +2227,7 @@ namespace Legion {
         bool had_composite = 
           physical_convert_postmapping(req,
                               output.chosen_instances[idx], result, bad_tree,
-                              !runtime->safe_mapper ? NULL : 
+                              !runtime->safe_mapper ? nullptr : 
                                 get_acquired_instances_ref(),
                               unacquired, runtime->safe_mapper);
         if (bad_tree > 0)
@@ -2301,7 +2301,7 @@ namespace Legion {
         if (!output.source_instances[idx].empty())
           physical_convert_sources(regions[idx],
               output.source_instances[idx], sources, 
-              runtime->safe_mapper ? get_acquired_instances_ref() : NULL);
+              runtime->safe_mapper ? get_acquired_instances_ref() : nullptr);
         physical_perform_updates_and_registration(
                           regions[idx], local_version_info, idx,
                           single_task_termination/*wait for task to be done*/,
@@ -2321,7 +2321,7 @@ namespace Legion {
       if (future_return_size && (*future_return_size < instance->size))
       {
         Provenance *provenance = get_provenance();
-        if (provenance != NULL)
+        if (provenance != nullptr)
           Exception(DYNAMIC_TYPE_EXCEPTION, this)
               << "Task " << *this << " used a task variant "
               << "with a maximum return size of " << *future_return_size
@@ -2624,7 +2624,7 @@ namespace Legion {
         // launches that need to be able to acquire all their pools without
         // us interleaving in between them.
         RtEvent try_again;
-        MemoryPool *pool = NULL;
+        MemoryPool *pool = nullptr;
         unsigned unbound_acquired_index = unbounded_pools.size(); 
         do {
           if (try_again.exists())
@@ -2680,7 +2680,7 @@ namespace Legion {
           pool = manager->create_memory_pool(get_unique_id(),
               coordinates, it->second, &try_again);
         } while (try_again.exists());
-        if (pool == NULL)
+        if (pool == nullptr)
           Exception(RESOURCE_EXCEPTION, this)
             << "Failed to reserve a dynamic memory pool of " << it->second.size
             << " bytes for leaf task " << *this << " in " << manager->get_name()
@@ -2732,7 +2732,7 @@ namespace Legion {
       MemoryManager *manager = runtime->find_memory_manager(memory);
       MemoryPool *pool = manager->create_memory_pool(get_unique_id(), 
           coordinates, bounds, safe_for_unbounded_pools);
-      if (pool == NULL)
+      if (pool == nullptr)
         return false;
       leaf_memory_pools[memory] = pool;
       return true;
@@ -2792,7 +2792,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < futures.size(); idx++)
         {
           FutureImpl *impl = futures[idx].impl; 
-          if (impl == NULL)
+          if (impl == nullptr)
             continue;
           ApEvent ready;
           if (idx < future_memories.size())
@@ -2902,7 +2902,7 @@ namespace Legion {
       if (true_guard.exists())
         wait_on_events.insert(ApEvent(true_guard));
       // Merge together all the events for the start condition 
-      ApEvent start_condition = Runtime::merge_events(NULL, wait_on_events);
+      ApEvent start_condition = Runtime::merge_events(nullptr, wait_on_events);
       // If we're performing a concurrent index space task launch then we
       // need to perform an extra step here to ensure a global ordering 
       // between concurrent index space task launches on the same processor
@@ -2965,7 +2965,7 @@ namespace Legion {
         {
           // If we're doing profiling we need the fevent to know how to
           // profile the profiling response
-          if (runtime->profiler != NULL)
+          if (runtime->profiler != nullptr)
             realm_measurements.insert(Realm::PMID_OP_FINISH_EVENT);
           OpProfilingResponse response(this, 0, 0, false/*fill*/, true/*task*/);
           Realm::ProfilingRequest &request = profiling_requests.add_request(
@@ -3053,7 +3053,7 @@ namespace Legion {
         if (!wait_on_events.empty())
         {
           wait_on_events.insert(task_launch_event);
-          task_launch_event = Runtime::merge_events(NULL, wait_on_events);
+          task_launch_event = Runtime::merge_events(nullptr, wait_on_events);
         }
         // Protect the single task termination from the poison
         if (chain_task_termination.exists())
@@ -3134,7 +3134,7 @@ namespace Legion {
       }
       // Need thetimeline for the operation to know how to profile this
       // profiling response
-      if (!has_finish && (runtime->profiler != NULL))
+      if (!has_finish && (runtime->profiler != nullptr))
         request.add_measurement(Realm::PMID_OP_FINISH_EVENT);
       handle_profiling_update(count);
       return copy_fill_priority;
@@ -3149,7 +3149,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(profiling_reported.exists());
 #endif
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id); 
       const OpProfilingResponse *task_prof = 
             static_cast<const OpProfilingResponse*>(response.user_data());
@@ -3199,7 +3199,7 @@ namespace Legion {
         {
           // If we had an overhead profiler
           // see if this is the callback for the task
-          if (execution_context->overhead_profiler!= NULL)
+          if (execution_context->overhead_profiler!= nullptr)
             // This is the callback for the task itself
             info.profiling_responses.attach_overhead(
                 execution_context->overhead_profiler);
@@ -3236,7 +3236,7 @@ namespace Legion {
 #endif
       if (outstanding_profiling_requests == 0)
       {
-        if (mapper == NULL)
+        if (mapper == nullptr)
           mapper = runtime->find_mapper(current_proc, map_id);
         // We're not expecting any profiling callbacks so we need to
         // do one ourself to inform the mapper that there won't be any
@@ -3307,7 +3307,7 @@ namespace Legion {
       {
         Mapper::ContextConfigOutput configuration;
         configure_execution_context(configuration);
-        InnerContext *inner_ctx = NULL;
+        InnerContext *inner_ctx = nullptr;
         if (configuration.auto_tracing_enabled)
         {
           log_auto_trace.info("Initializing auto tracing for %s (UID %lld)",

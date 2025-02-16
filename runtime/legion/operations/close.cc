@@ -102,7 +102,7 @@ namespace Legion {
     const Task* CloseOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -112,7 +112,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -210,10 +210,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       InternalOp::deactivate(freeop);
-      if (mapper_data != NULL)
+      if (mapper_data != nullptr)
       {
         free(mapper_data);
-        mapper_data = NULL;
+        mapper_data = nullptr;
         mapper_data_size = 0;
       }
     } 
@@ -265,7 +265,7 @@ namespace Legion {
       {
         if (trace == nullptr)
           parent_req_index = creator->find_parent_index(close_idx);
-        trace = NULL;
+        trace = nullptr;
       }
     }
 
@@ -378,7 +378,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       CloseOp::activate();
-      mapper = NULL;
+      mapper = nullptr;
       outstanding_profiling_requests.store(0);
       outstanding_profiling_reported.store(0);
       profiling_reported = RtUserEvent::NO_RT_USER_EVENT;
@@ -522,7 +522,7 @@ namespace Legion {
       prepare_for_mapping(target, input.target);
       prepare_for_mapping(sources, input.source_instances,
                           input.collective_views);
-      if (mapper == NULL)
+      if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
         mapper = runtime->find_mapper(exec_proc, map_id);
@@ -563,7 +563,7 @@ namespace Legion {
       }
       // Need thetimeline for the operation to know how to profile this
       // profiling response
-      if (!has_finish && (runtime->profiler != NULL))
+      if (!has_finish && (runtime->profiler != nullptr))
         request.add_measurement(Realm::PMID_OP_FINISH_EVENT);
       handle_profiling_update(count);
       return 0;
@@ -576,7 +576,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(mapper != NULL);
+      assert(mapper != nullptr);
 #endif
       const OpProfilingResponse *op_info = 
         static_cast<const OpProfilingResponse*>(response.user_data());
@@ -694,7 +694,7 @@ namespace Legion {
       // and we're replaying it then we don't need to actually do the 
       // synchronization across the shards since we know all the shards
       // can replay independently
-      if ((trace != NULL) && trace->has_physical_trace())
+      if ((trace != nullptr) && trace->has_physical_trace())
       {
         PhysicalTrace *physical = trace->get_physical_trace();
         if (physical->is_replaying())
@@ -756,7 +756,7 @@ namespace Legion {
     const Task* RemoteCloseOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -767,7 +767,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -809,7 +809,7 @@ namespace Legion {
       prepare_for_mapping(sources, input.source_instances,
                           input.collective_views); 
       prepare_for_mapping(target, input.target);
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(map_id);
       mapper->invoke_select_close_sources(this, input, output);
       compute_ranking(mapper, output.chosen_ranking, sources, ranking, points);

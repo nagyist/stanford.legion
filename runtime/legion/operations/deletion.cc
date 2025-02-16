@@ -108,8 +108,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
-      assert(allocator == NULL);
+      assert(impl != nullptr);
+      assert(allocator == nullptr);
 #endif
       initialize_operation(ctx, provenance);
       kind = FIELD_DELETION;
@@ -143,8 +143,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
-      assert(allocator == NULL);
+      assert(impl != nullptr);
+      assert(allocator == nullptr);
 #endif
       initialize_operation(ctx, provenance);
       kind = FIELD_DELETION;
@@ -188,7 +188,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Operation::activate();
-      allocator = NULL;
+      allocator = nullptr;
       has_preconditions = false;
     }
 
@@ -199,7 +199,7 @@ namespace Legion {
       Operation::deactivate(false/*free*/);
       // We can remove the reference to the allocator once we are
       // done with all of our free operations
-      if ((allocator != NULL) && allocator->remove_reference())
+      if ((allocator != nullptr) && allocator->remove_reference())
         delete allocator;
       sub_partitions.clear();
       free_fields.clear();
@@ -367,7 +367,7 @@ namespace Legion {
           invalidate_fields(idx, 
               deletion_requirements[idx], version_info,
               PhysicalTraceInfo(trace_info, idx),
-              NULL/*no collective map*/, false/*not collective*/);
+              nullptr/*no collective map*/, false/*not collective*/);
           // Make sure we keep the equivalence sets alive while the 
           // invalidation analysis is running since we're about to 
           // invalidate the equivalence sets in the next step
@@ -516,7 +516,7 @@ namespace Legion {
       IndexSpaceExpression *local_expr = 
         runtime->get_node(req.region.get_index_space());
       OverwriteAnalysis *analysis = new OverwriteAnalysis(this, index,
-          usage, local_expr, NULL/*view*/, version_info.get_valid_mask(), 
+          usage, local_expr, nullptr/*view*/, version_info.get_valid_mask(), 
           trace_info, collective_mapping, ApEvent::NO_AP_EVENT,
           PredEvent::NO_PRED_EVENT, PredEvent::NO_PRED_EVENT,
           false/*add restriction*/, collective_first_local);
@@ -581,7 +581,7 @@ namespace Legion {
       assert(!mapping_barrier.exists());
       assert(!commit_barrier.exists());
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -614,7 +614,7 @@ namespace Legion {
                                             deletion_requirements[idx],
                                             version_infos[idx],
                                             preconditions,
-                                            NULL/*output region*/,
+                                            nullptr/*output region*/,
                                             true/*collective rendezvous*/);
         if (!preconditions.empty())
         {
@@ -632,7 +632,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -701,7 +701,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(commit_barrier.exists());
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -839,7 +839,7 @@ namespace Legion {
       assert(!commit_barrier.exists());
 #endif
       is_first_local_shard = is_first;
-      if (commit_bar != NULL)
+      if (commit_bar != nullptr)
       {
         // Get our barriers now
         if ((kind == LOGICAL_REGION_DELETION) || (kind == FIELD_DELETION))

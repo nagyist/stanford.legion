@@ -73,7 +73,7 @@ namespace Legion {
         iterator(FieldMaskSet *_set,
             typename LegionMap<T*,FieldMask,L,Comparator>::iterator _it,
             bool end = false)
-          : set(_set), result(end ? NULL : &(*_it)), it(_it), single(false) { }
+          : set(_set), result(end ? nullptr : &(*_it)), it(_it), single(false) { }
       public:
         iterator(const iterator &rhs)
           : set(rhs.set), result(rhs.result), 
@@ -115,10 +115,10 @@ namespace Legion {
               if ((*this) != set->end())
                 result = &(*it);
               else
-                result = NULL;
+                result = nullptr;
             }
             else
-              result = NULL;
+              result = nullptr;
             return *this;
           }
         inline iterator operator++(/*postfix*/int)
@@ -130,15 +130,15 @@ namespace Legion {
               if ((*this) != set->end())
                 result = &(*it);
               else
-                result = NULL;
+                result = nullptr;
             }
             else
-              result = NULL;
+              result = nullptr;
             return copy;
           }
       public:
         inline operator bool(void) const
-          { return (result != NULL); }
+          { return (result != nullptr); }
       public:
         inline void merge(const FieldMask &mask)
           {
@@ -165,7 +165,7 @@ namespace Legion {
           target.erase(it);
           // Invalidate the iterator
           it = target.end();
-          result = NULL;
+          result = nullptr;
         }
       private:
         friend class const_iterator;
@@ -190,7 +190,7 @@ namespace Legion {
         const_iterator(const FieldMaskSet *_set,
             typename LegionMap<T*,FieldMask,L,Comparator>::const_iterator _it,
             bool end = false)
-          : set(_set), result(end ? NULL : &(*_it)), it(_it), single(false) { }
+          : set(_set), result(end ? nullptr : &(*_it)), it(_it), single(false) { }
       public:
         const_iterator(const const_iterator &rhs)
           : set(rhs.set), result(rhs.result), it(rhs.it), single(rhs.single) { }
@@ -237,10 +237,10 @@ namespace Legion {
               if ((*this) != set->end())
                 result = &(*it);
               else
-                result = NULL;
+                result = nullptr;
             }
             else
-              result = NULL;
+              result = nullptr;
             return *this;
           }
         inline const_iterator operator++(/*postfix*/int)
@@ -252,15 +252,15 @@ namespace Legion {
               if ((*this) != set->end())
                 result = &(*it);
               else
-                result = NULL;
+                result = nullptr;
             }
             else
-              result = NULL;
+              result = nullptr;
             return copy;
           }
       public:
         inline operator bool(void) const
-          { return (result != NULL); }
+          { return (result != nullptr); }
       private:
         const FieldMaskSet *set;
         const std::pair<T*const,FieldMask> *result;
@@ -269,7 +269,7 @@ namespace Legion {
       };
     public:
       FieldMaskSet(void)
-        : single(true) { entries.single_entry = NULL; }
+        : single(true) { entries.single_entry = nullptr; }
       inline FieldMaskSet(T *init, const FieldMask &m, bool no_null = true);
       inline FieldMaskSet(const FieldMaskSet<T,L,DETERMINISTIC> &rhs);
       inline FieldMaskSet(FieldMaskSet<T,L,DETERMINISTIC> &&rhs);
@@ -281,7 +281,7 @@ namespace Legion {
       inline FieldMaskSet& operator=(FieldMaskSet<T,L,DETERMINISTIC> &&rhs);
     public:
       inline bool empty(void) const 
-        { return single && (entries.single_entry == NULL); }
+        { return single && (entries.single_entry == nullptr); }
       inline const FieldMask& get_valid_mask(void) const 
         { return valid_fields; }
       inline const FieldMask& tighten_valid_mask(void);

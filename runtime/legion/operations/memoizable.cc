@@ -42,7 +42,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Operation::activate();
-      tpl = NULL;
+      tpl = nullptr;
       memo_state = NO_MEMO;
     }
 
@@ -60,12 +60,12 @@ namespace Legion {
       // Can be called multiple times so handle that case
       if (memo_state != NO_MEMO)
         return;
-      if ((trace != NULL) && trace->has_physical_trace() && !is_tracing_fence())
+      if ((trace != nullptr) && trace->has_physical_trace() && !is_tracing_fence())
       {
         PhysicalTrace *physical = trace->get_physical_trace();
         tpl = physical->get_current_template();
 #ifdef DEBUG_LEGION
-        assert(tpl != NULL);
+        assert(tpl != nullptr);
 #endif
         if (physical->is_recording())
         {
@@ -89,12 +89,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(trace != NULL);
+      assert(trace != nullptr);
       assert(!runtime->no_tracing);
       assert(!runtime->no_physical_tracing);
 #endif
       Mappable *mappable = get_mappable();
-      if (mappable != NULL)
+      if (mappable != nullptr)
       {
         Mapper::MemoizeInput  input;
         Mapper::MemoizeOutput output;
@@ -105,7 +105,7 @@ namespace Legion {
         MapperManager *mapper = runtime->find_mapper(mapper_proc, 
                                                      mappable->map_id);
 #ifdef DEBUG_LEGION
-        assert(mappable != NULL);
+        assert(mappable != nullptr);
 #endif
         mapper->invoke_memoize_operation(mappable, input, output);
         return output.memoize;

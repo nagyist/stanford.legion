@@ -133,7 +133,7 @@ namespace Legion {
       parent_req_index = ctx->find_parent_region_index(this, requirement, 0/*index*/, true/*skip privileges*/);
       logical_region = launcher.logical_region;
       restricted_region = launcher.physical_region;
-      if (restricted_region.impl != NULL)
+      if (restricted_region.impl != nullptr)
       {
         const RegionRequirement &region_req =
           restricted_region.impl->get_requirement();
@@ -169,7 +169,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
@@ -184,7 +184,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PredicatedOp::activate();
-      mapper = NULL;
+      mapper = nullptr;
       outstanding_profiling_requests.store(0);
       outstanding_profiling_reported.store(0);
       profiling_reported = RtUserEvent::NO_RT_USER_EVENT;
@@ -207,10 +207,10 @@ namespace Legion {
         release_acquired_instances(acquired_instances);
       map_applied_conditions.clear();
       profiling_requests.clear();
-      if (mapper_data != NULL)
+      if (mapper_data != nullptr)
       {
         free(mapper_data);
-        mapper_data = NULL;
+        mapper_data = nullptr;
         mapper_data_size = 0;
       }
       // Return this operation to the runtime
@@ -323,7 +323,7 @@ namespace Legion {
       std::vector<PhysicalManager*> source_instances;
       invoke_mapper(source_instances);
       InstanceSet restricted_instances;
-      if (restricted_region.impl != NULL)
+      if (restricted_region.impl != nullptr)
         restricted_region.impl->get_references(restricted_instances); 
       const ApEvent init_precondition = compute_sync_precondition(trace_info); 
       ApUserEvent release_post = Runtime::create_ap_user_event(&trace_info);
@@ -445,7 +445,7 @@ namespace Legion {
       prepare_for_mapping(target, input.target);
       prepare_for_mapping(sources, input.source_instances,
                           input.collective_views);
-      if (mapper == NULL)
+      if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
         mapper = runtime->find_mapper(exec_proc, map_id);
@@ -494,7 +494,7 @@ namespace Legion {
     const Task* ReleaseOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -504,7 +504,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -564,7 +564,7 @@ namespace Legion {
       Mapper::MapReleaseInput input;
       Mapper::MapReleaseOutput output;
       output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY;
-      if (mapper == NULL)
+      if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
         mapper = runtime->find_mapper(exec_proc, map_id);
@@ -586,7 +586,7 @@ namespace Legion {
       if (!output.source_instances.empty())
         physical_convert_sources(requirement,
             output.source_instances, src_instances,
-            runtime->safe_mapper ? &acquired_instances : NULL);
+            runtime->safe_mapper ? &acquired_instances : nullptr);
     }
 
     //--------------------------------------------------------------------------
@@ -613,7 +613,7 @@ namespace Legion {
       }
       // Need thetimeline for the operation to know how to profile this
       // profiling response
-      if (!has_finish && (runtime->profiler != NULL))
+      if (!has_finish && (runtime->profiler != nullptr))
         request.add_measurement(Realm::PMID_OP_FINISH_EVENT);
       handle_profiling_update(count);
       return copy_fill_priority;
@@ -626,7 +626,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(mapper != NULL);
+      assert(mapper != nullptr);
 #endif
       const OpProfilingResponse *op_info = 
         static_cast<const OpProfilingResponse*>(response.user_data());
@@ -807,7 +807,7 @@ namespace Legion {
       if (runtime->safe_mapper)
         sources_check = context->get_next_collective_index(COLLECTIVE_LOC_23);
       is_first_local_shard = first_local_shard;
-      if (restricted_region.impl == NULL)
+      if (restricted_region.impl == nullptr)
         REPORT_LEGION_ERROR(ERROR_CONTROL_REPLICATION_VIOLATION,
             "Acquire operation in control replicated parent task %s "
             "(UID %lld) did not specify a `physical_region' argument. "
@@ -867,7 +867,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -896,7 +896,7 @@ namespace Legion {
                                                    requirement,
                                                    version_info,
                                                    preconditions,
-                                                   NULL/*output region*/,
+                                                   nullptr/*output region*/,
                                                    true/*rendezvous*/);
       if (!collective_map_barrier.has_triggered())
         preconditions.insert(collective_map_barrier);
@@ -931,7 +931,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx = 
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
         assert(!collective_map_barrier.exists());
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
@@ -985,7 +985,7 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx =dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1062,7 +1062,7 @@ namespace Legion {
     const Task* RemoteReleaseOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -1073,7 +1073,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -1115,7 +1115,7 @@ namespace Legion {
       prepare_for_mapping(sources, input.source_instances,
                           input.collective_views); 
       prepare_for_mapping(target, input.target);
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(map_id);
       mapper->invoke_select_release_sources(this, input, output);
       compute_ranking(mapper, output.chosen_ranking, sources, ranking, points);

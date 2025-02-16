@@ -50,7 +50,7 @@ namespace Legion {
       num_unmapped_points = 0;
       num_uncompleted_points.store(0);
       num_uncommitted_points = 0;
-      index_owner = NULL;
+      index_owner = nullptr;
       remote_unique_id = get_unique_id();
       origin_mapped = false;
       // Slice tasks always already have their options selected
@@ -204,13 +204,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool SliceTask::perform_mapping(MustEpochOp *epoch_owner/*=NULL*/,
-                                    const DeferMappingArgs *args/*=NULL*/)
+    bool SliceTask::perform_mapping(MustEpochOp *epoch_owner/*=nullptr*/,
+                                    const DeferMappingArgs *args/*=nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       // Should never get duplicate invocations here
-      assert(args == NULL);
+      assert(args == nullptr);
 #endif
       // Check to see if we already enumerated all the points, if
       // not then do so now
@@ -476,11 +476,11 @@ namespace Legion {
         if (redop == 0)
         {
 #ifdef DEBUG_LEGION
-          assert(future_map.impl != NULL);
+          assert(future_map.impl != nullptr);
 #endif
           future_map.impl->pack_future_map(rez, target);
         }
-        if (predicate_false_future.impl != NULL)
+        if (predicate_false_future.impl != nullptr)
           predicate_false_future.impl->pack_future(rez, target);
         else
           rez.serialize<DistributedID>(0);
@@ -490,7 +490,7 @@ namespace Legion {
               predicate_false_result.get_size());
       }
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -500,7 +500,7 @@ namespace Legion {
       // and any trace info that we need for doing remote tracing
       if (points_to_send.empty())
       {
-        if (point_arguments.impl != NULL)
+        if (point_arguments.impl != nullptr)
           point_arguments.impl->pack_future_map(rez, target);
         else
           rez.serialize<DistributedID>(0);
@@ -549,7 +549,7 @@ namespace Legion {
       derez.deserialize(internal_space);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_slice_slice(remote_unique_id, get_unique_id());
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->register_slice_owner(remote_unique_id,
             get_unique_op_id());
       num_unmapped_points = num_points;
@@ -617,7 +617,7 @@ namespace Legion {
                                                         derez, parent_ctx);
         }
       }
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->register_operation(this);
       // Return true to add this to the ready queue
       return true;
@@ -692,7 +692,7 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
         LegionSpy::log_slice_slice(get_unique_id(), 
                                    result->get_unique_id());
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->register_slice_owner(get_unique_op_id(),
             result->get_unique_op_id());
       return result;
@@ -722,11 +722,11 @@ namespace Legion {
         {
           // If we're not doing serdez functions, we'll grab the first
           // one of these instances as the target for us to reduce into
-          if ((serdez_redop_fns == NULL) && (reduction_instance == NULL))
+          if ((serdez_redop_fns == nullptr) && (reduction_instance == nullptr))
           {
             AutoLock o_lock(op_lock);
             // See if we lost the race
-            if (reduction_instance == NULL)
+            if (reduction_instance == nullptr)
             {
               reduction_instance_point = point;
               if (inst->is_meta_visible ||
@@ -770,30 +770,30 @@ namespace Legion {
     {
       if (elide_future_return)
       {
-        if (functor != NULL)
+        if (functor != nullptr)
         {
 #ifdef DEBUG_LEGION
-          assert(instance == NULL);
-          assert(metadata == NULL);
+          assert(instance == nullptr);
+          assert(metadata == nullptr);
 #endif
           functor->callback_release_future();
           if (own_functor)
             delete functor;
         }
-        else if ((instance != NULL) && !instance->defer_deletion(effects))
+        else if ((instance != nullptr) && !instance->defer_deletion(effects))
           delete instance;
       }
       else if (redop > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(functor == NULL);
-        assert(instance != NULL);
+        assert(functor == nullptr);
+        assert(instance != nullptr);
 #endif
         reduce_future(point, instance, effects);
-        if (metadata != NULL)
+        if (metadata != nullptr)
         {
           AutoLock o_lock(op_lock);
-          if (reduction_metadata == NULL)
+          if (reduction_metadata == nullptr)
           {
             reduction_metasize = metasize;
             reduction_metadata = malloc(metasize);
@@ -804,7 +804,7 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        assert(future_handles != NULL);
+        assert(future_handles != nullptr);
 #endif
         std::map<DomainPoint,DistributedID>::const_iterator finder = 
           future_handles->handles.find(point);
@@ -816,11 +816,11 @@ namespace Legion {
         FutureImpl *impl = runtime->find_or_create_future(finder->second, 
             parent_ctx->did, coordinate, get_provenance(),
             false/*has global reference*/, registered);
-        if (functor != NULL)
+        if (functor != nullptr)
         {
 #ifdef DEBUG_LEGION
-          assert(instance == NULL);
-          assert(metadata == NULL);
+          assert(instance == nullptr);
+          assert(metadata == nullptr);
 #endif
           impl->set_result(effects, functor, own_functor, future_proc);
         }
@@ -839,7 +839,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(must_epoch != NULL);
+      assert(must_epoch != nullptr);
 #endif
       if (points.empty())
         enumerate_points(false/*inling*/);
@@ -930,7 +930,7 @@ namespace Legion {
         std::map<unsigned,std::vector<PointwiseDependence> >::const_iterator
           finder = pointwise_dependences.find(idx);
         function->project_points(req, idx, index_domain, points,
-            (finder == pointwise_dependences.end()) ? NULL : &finder->second,
+            (finder == pointwise_dependences.end()) ? nullptr : &finder->second,
             parent_ctx->get_total_shards(), is_replaying());
       }
       // Update the no access regions
@@ -971,7 +971,7 @@ namespace Legion {
       if (elide_future_return || (redop > 0))
         return;
 #ifdef DEBUG_LEGION
-      assert(future_handles != NULL);
+      assert(future_handles != nullptr);
 #endif
       std::map<DomainPoint,DistributedID>::const_iterator finder = 
         future_handles->handles.find(point);
@@ -983,13 +983,13 @@ namespace Legion {
       FutureImpl *impl = runtime->find_or_create_future(finder->second, 
           parent_ctx->did, coordinate, get_provenance(),
           false/*has global reference*/, registered);
-      if (predicate_false_future.impl == NULL)
+      if (predicate_false_future.impl == nullptr)
       {
         if (predicate_false_result.get_size() > 0)
           impl->set_local(predicate_false_result.get_buffer(),
               predicate_false_result.get_size(), false/*own*/);
         else
-          impl->set_result(ApEvent::NO_AP_EVENT, NULL);
+          impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
       }
       else
         impl->set_result(execution_context, predicate_false_future.impl);
@@ -1019,13 +1019,13 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION
         assert(temporary_futures.empty());
-        assert(reduction_instance == NULL);
-        assert(serdez_redop_state == NULL);
+        assert(reduction_instance == nullptr);
+        assert(serdez_redop_state == nullptr);
 #endif
         index_owner->return_slice_complete(points.size(), effects,
                                         reduction_metadata, reduction_metasize);
         // No longer own the buffer so clear it
-        reduction_metadata = NULL;
+        reduction_metadata = nullptr;
       }
       complete_operation();
     }
@@ -1061,7 +1061,7 @@ namespace Legion {
       // otherwise pass them directly back to the index owner
       if (is_remote())
         point_context->return_resources(this, context_index, preconditions);
-      else if (must_epoch != NULL)
+      else if (must_epoch != nullptr)
         point_context->return_resources(must_epoch, context_index,
                                         preconditions);
       else
@@ -1176,7 +1176,7 @@ namespace Legion {
         return;
 #ifdef DEBUG_LEGION
       assert(!elide_future_return);
-      assert(future_handles != NULL);
+      assert(future_handles != nullptr);
 #endif
       const std::map<DomainPoint,DistributedID> &handles = 
         future_handles->handles;
@@ -1695,7 +1695,7 @@ namespace Legion {
         if (deterministic_redop)
         {
 #ifdef DEBUG_LEGION
-          assert(reduction_instance == NULL);
+          assert(reduction_instance == nullptr);
           // Might have no temporary futures if this task was predicated
           // and the predicate resolved to false
           assert((temporary_futures.size() == points.size()) || 
@@ -1715,10 +1715,10 @@ namespace Legion {
         }
         else
         {
-          if (serdez_redop_fns != NULL)
+          if (serdez_redop_fns != nullptr)
           {
 #ifdef DEBUG_LEGION
-            assert(reduction_instance == NULL);
+            assert(reduction_instance == nullptr);
             assert(reduction_fold_effects.empty());
 #endif
             // Easy case just for serdez, we just pack up the local buffer
@@ -1731,8 +1731,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             // We might not have a reduction instance if this task was
             // predicated and ended up predicating false
-            assert((reduction_instance != NULL) || false_guard.exists());
-            assert((reduction_instance != NULL) == 
+            assert((reduction_instance != nullptr) || false_guard.exists());
+            assert((reduction_instance != nullptr) == 
                 (reduction_instance_point.get_dim() > 0));
 #endif
             rez.serialize(reduction_instance_point);
@@ -1741,14 +1741,14 @@ namespace Legion {
               // reduction_instance_precondition so we can just
               // overwrite it without including it in the merger
               reduction_instance_precondition =
-                Runtime::merge_events(NULL, reduction_fold_effects);
-            if ((reduction_instance != NULL) &&
+                Runtime::merge_events(nullptr, reduction_fold_effects);
+            if ((reduction_instance != nullptr) &&
                 !reduction_instance.load()->pack_instance(rez, 
                   reduction_instance_precondition, true/*pack ownership*/))
               rez.serialize(reduction_instance_precondition);
           }
         }
-        if (reduction_metadata != NULL)
+        if (reduction_metadata != nullptr)
         {
           rez.serialize(reduction_metasize);
           rez.serialize(reduction_metadata, reduction_metasize);

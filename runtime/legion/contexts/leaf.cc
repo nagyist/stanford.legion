@@ -746,7 +746,7 @@ namespace Legion {
       REPORT_LEGION_ERROR(ERROR_LEAF_TASK_VIOLATION,
        "Illegal field allocator creation performed in leaf task %s (ID %lld)",
        get_task_name(), get_unique_id())
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1358,7 +1358,7 @@ namespace Legion {
       input.futures = launcher.futures;
       input.args = launcher.arg.get_ptr();
       input.size = launcher.arg.get_size();
-      output.value = NULL;
+      output.value = nullptr;
       output.size = 0;
       output.take_ownership = true;
       mapper->invoke_select_tunable_value(owner_task, input, output);
@@ -1403,7 +1403,7 @@ namespace Legion {
                                             Provenance *provenance)
     //--------------------------------------------------------------------------
     {
-      if (f.impl == NULL)
+      if (f.impl == nullptr)
         return Predicate::FALSE_PRED;
       const bool value = *(const bool*)f.impl->get_buffer(
           runtime->runtime_system_memory);
@@ -1548,7 +1548,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       assert(false);
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1607,7 +1607,7 @@ namespace Legion {
         // any circumstances without risking a deadlock
         FutureInstance *instance = manager->create_future_instance(
             get_unique_id(), coordinates, size, &safe_for_unbounded_pools);
-        if (instance != NULL)
+        if (instance != nullptr)
         {
           if (instance->is_immediate())
           {
@@ -1624,7 +1624,7 @@ namespace Legion {
                     "the point of task variant registration or dynamically at "
                     "the point that the task is mapped. Warning string: %s",
                     get_task_name(), get_unique_id(), size, manager->get_name(),
-                    (warning_string == NULL) ? "" : warning_string)
+                    (warning_string == nullptr) ? "" : warning_string)
             return instance;
           }
           else
@@ -1667,7 +1667,7 @@ namespace Legion {
       }
       FutureInstance *instance = 
         finder->second->allocate_future(get_unique_id(), size);
-      if (instance == NULL)
+      if (instance == nullptr)
       {
         MemoryManager *manager = runtime->find_memory_manager(memory);
         const size_t memory_limit = manager->query_available_memory();
@@ -1732,7 +1732,7 @@ namespace Legion {
     {
       RtEvent use_event;
       LgEvent unique_event;
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
       {
         // If we're profiling then each of these needs a unique event
         const Realm::UserEvent unique = Realm::UserEvent::create_user_event();
@@ -1968,7 +1968,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No local regions or fields permitted in leaf tasks
-      if (overhead_profiler != NULL)
+      if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
         const long long diff = current - 
@@ -2005,7 +2005,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(num_results > 0);
-      assert((layouts != NULL) || (num_results == 1));
+      assert((layouts != nullptr) || (num_results == 1));
 #endif
       if (!memory_pools.empty())
       {
@@ -2017,7 +2017,7 @@ namespace Legion {
           // Special case where we can reuse the existing instance because
           // we're escaping this into exactly one other instance with the
           // same unique event result
-          if ((layouts == NULL) && (num_results == 1) &&
+          if ((layouts == nullptr) && (num_results == 1) &&
               !unique_events[0].exists() && 
               (unique_events[0] == finder->second))
             unique_events[0] = finder->second;

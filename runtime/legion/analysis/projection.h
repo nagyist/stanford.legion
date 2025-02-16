@@ -34,8 +34,8 @@ namespace Legion {
                      ShardingFunction *func,
                      IndexSpace shard_space);
     public:
-      inline bool is_projecting(void) const { return (projection != NULL); }
-      inline bool is_sharding(void) const { return (sharding_function != NULL); }
+      inline bool is_projecting(void) const { return (projection != nullptr); }
+      inline bool is_sharding(void) const { return (sharding_function != nullptr); }
       bool is_complete_projection(RegionTreeNode *node,
                                   const LogicalUser &user) const;
     public:
@@ -76,7 +76,7 @@ namespace Legion {
      * accessed by a projection function from a particular node in the 
      * region tree. In the case of control replication, it specifically
      * stores the accesses performed by the local shard, and stores at
-     * least one NULL child for any aliasing children from different
+     * least one nullptr child for any aliasing children from different
      * shards to facilitate testing for any close operations that might
      * be required between shards. We can also test a projection node 
      * to see if it can be converted to a refinement node (e.g. that
@@ -188,9 +188,9 @@ namespace Legion {
       };
     public:
       virtual ~ProjectionNode(void) { };
-      virtual ProjectionRegion* as_region_projection(void) { return NULL; }
+      virtual ProjectionRegion* as_region_projection(void) { return nullptr; }
       virtual ProjectionPartition *as_partition_projection(void) 
-        { return NULL; }
+        { return nullptr; }
       virtual bool is_disjoint(void) const = 0;
       virtual bool is_leaves_only(void) const = 0;
       virtual bool is_unique_shards(void) const = 0;
@@ -246,7 +246,7 @@ namespace Legion {
     class ProjectionPartition : public ProjectionNode {
     public:
 #ifdef LEGION_NAME_BASED_CHILDREN_SHARDS
-      ProjectionPartition(PartitionNode *node, ShardedColorMap *map = NULL);
+      ProjectionPartition(PartitionNode *node, ShardedColorMap *map = nullptr);
 #else
       ProjectionPartition(PartitionNode *node);
 #endif

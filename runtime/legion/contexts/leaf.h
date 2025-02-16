@@ -416,7 +416,7 @@ namespace Legion {
                                           Provenance *provenance);
       virtual Future detach_resource(PhysicalRegion region, const bool flush,
                                      const bool unordered,
-                                     Provenance *provenance = NULL);
+                                     Provenance *provenance = nullptr);
       virtual Future detach_resources(ExternalResources resources,
                                       const bool flush, const bool unordered,
                                       Provenance *provenance);
@@ -449,7 +449,7 @@ namespace Legion {
       virtual void wait_on_future(FutureImpl *future, RtEvent ready);
       virtual void wait_on_future_map(FutureMapImpl *map, RtEvent ready);
     public:
-      virtual InnerContext* find_top_context(InnerContext *previous = NULL);
+      virtual InnerContext* find_top_context(InnerContext *previous = nullptr);
     public:
       virtual void initialize_region_tree_contexts(
           const std::vector<RegionRequirement> &clone_requirements,
@@ -458,12 +458,12 @@ namespace Legion {
       virtual void invalidate_logical_context(void);
       virtual void invalidate_region_tree_contexts(const bool is_top_level_task,
                                       std::set<RtEvent> &applied,
-                                      const ShardMapping *mapping = NULL,
+                                      const ShardMapping *mapping = nullptr,
                                       ShardID source_shard = 0);
     public:
       virtual FutureInstance* create_task_local_future(Memory memory,
           size_t size, bool silence_warnings = false, 
-          const char *warning_string = NULL);
+          const char *warning_string = nullptr);
       virtual PhysicalInstance create_task_local_instance(Memory memory,
                                         Realm::InstanceLayoutGeneric *layout);
       virtual void destroy_task_local_instance(PhysicalInstance instance,
@@ -481,7 +481,7 @@ namespace Legion {
       virtual RtEvent escape_task_local_instance(PhysicalInstance instance,
           RtEvent effects, size_t num_results, PhysicalInstance *results, 
           LgEvent *unique_events,
-          const Realm::InstanceLayoutGeneric **layouts = NULL);
+          const Realm::InstanceLayoutGeneric **layouts = nullptr);
       virtual void release_task_local_instances(ApEvent effects,
                                                 RtEvent safe_effects);
       virtual void handle_mispredication(void);

@@ -177,7 +177,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       OP::activate();
-      slow_barrier = NULL;
+      slow_barrier = nullptr;
       slow_barrier_id = 0;
     }
 
@@ -191,7 +191,7 @@ namespace Legion {
 #endif
       OP::deactivate(free);
       status_collective_ids.clear();
-      if (slow_barrier != NULL)
+      if (slow_barrier != nullptr)
         delete slow_barrier;
     }
 
@@ -204,7 +204,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx =
         dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx =
         static_cast<ReplicateContext*>(this->parent_ctx);
@@ -223,7 +223,7 @@ namespace Legion {
       assert(!status_collective_ids.empty());
       ReplicateContext *repl_ctx =
         dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx =
         static_cast<ReplicateContext*>(this->parent_ctx);
@@ -246,10 +246,10 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(slow_barrier_id > 0);
-      assert(slow_barrier == NULL);
+      assert(slow_barrier == nullptr);
       ReplicateContext *repl_ctx =
         dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = 
         static_cast<ReplicateContext*>(this->parent_ctx);

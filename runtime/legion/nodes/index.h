@@ -241,7 +241,7 @@ namespace Legion {
       // If you pass can_fail=true here then the node comes back with 
       // a resource REGION_TREE_REF to keep it alive
       IndexPartNode* get_child(const LegionColor c, 
-                               RtEvent *defer = NULL, bool can_fail = false);
+                               RtEvent *defer = nullptr, bool can_fail = false);
       void add_child(IndexPartNode *child);
       void remove_child(const LegionColor c);
       size_t get_num_children(void) const;
@@ -772,9 +772,9 @@ namespace Legion {
                            const LayoutConstraintSet &constraints,
                            const std::vector<FieldID> &field_ids,
                            const std::vector<size_t> &field_sizes,
-                           bool compact, void **piece_list = NULL, 
-                           size_t *piece_list_size = NULL,
-                           size_t *num_pieces = NULL,
+                           bool compact, void **piece_list = nullptr, 
+                           size_t *piece_list_size = nullptr,
+                           size_t *num_pieces = nullptr,
                            size_t base_alignment = 32);
       virtual IndexSpaceExpression* create_layout_expression(
                            const void *piece_list, size_t piece_list_size);
@@ -1201,7 +1201,7 @@ namespace Legion {
                         CollectiveMapping *m, bool valid)
         : space(s), parent(p), color(c), expr_id(e),
           initialized(init), depth(dp), provenance(prov), mapping(m),
-          tree_valid(valid), result(NULL) { }
+          tree_valid(valid), result(nullptr) { }
     public:
       template<typename N, typename T>
       static inline void demux(IndexSpaceCreator *creator)
@@ -1311,7 +1311,7 @@ namespace Legion {
       class InterferenceEntry {
       public:
         InterferenceEntry(void)
-          : expr_id(0), older(NULL), newer(NULL) { }
+          : expr_id(0), older(nullptr), newer(nullptr) { }
       public:
         std::vector<LegionColor> colors;
         IndexSpaceExprID expr_id;
@@ -1376,7 +1376,7 @@ namespace Legion {
       bool has_color(const LegionColor c);
       AddressSpaceID find_color_creator_space(LegionColor color, 
                                   CollectiveMapping *&child_mapping) const;
-      IndexSpaceNode* get_child(const LegionColor c, RtEvent *defer = NULL);
+      IndexSpaceNode* get_child(const LegionColor c, RtEvent *defer = nullptr);
       void add_child(IndexSpaceNode *child);
       void set_child(IndexSpaceNode *child);
       void add_tracker(PartitionTracker *tracker); 
@@ -1387,7 +1387,7 @@ namespace Legion {
       bool update_disjoint_complete_result(
           std::map<LegionColor,uint64_t> &children_volumes,
           std::map<std::pair<LegionColor,LegionColor>,
-                   uint64_t> *intersection_volumes = NULL);
+                   uint64_t> *intersection_volumes = nullptr);
       bool finalize_disjoint_complete(void);
       void get_subspace_preconditions(std::set<ApEvent> &preconditions);
     public:

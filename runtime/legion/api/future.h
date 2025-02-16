@@ -55,7 +55,7 @@ namespace Legion {
     FRIEND_ALL_RUNTIME_CLASSES
     explicit Future(Internal::FutureImpl *impl);
   public:
-    inline bool exists(void) const { return (impl != NULL); }
+    inline bool exists(void) const { return (impl != nullptr); }
     inline bool operator==(const Future &f) const
       { return impl == f.impl; }
     inline bool operator<(const Future &f) const
@@ -74,14 +74,14 @@ namespace Legion {
      */
     template<typename T> 
       inline T get_result(bool silence_warnings = false,
-                          const char *warning_string = NULL) const;
+                          const char *warning_string = nullptr) const;
     /**
      * Block until the future completes.
      * @param silence_warnings silence any warnings for this blocking call
      * @param warning_string a string to be reported with the warning
      */
     void get_void_result(bool silence_warnings = false,
-                         const char *warning_string = NULL) const;
+                         const char *warning_string = nullptr) const;
     /**
      * Check to see if the future is empty.  The
      * user can specify whether to block and wait
@@ -94,7 +94,7 @@ namespace Legion {
      * @param warning_string a string to be reported with the warning
      */
     bool is_empty(bool block = false, bool silence_warnings = false,
-                  const char *warning_string = NULL) const;
+                  const char *warning_string = nullptr) const;
     /**
      * Check to see if the future is ready. This will return
      * true if the future can be used without blocking to wait
@@ -121,7 +121,7 @@ namespace Legion {
     template<typename T, PrivilegeMode PM = LEGION_READ_ONLY>
       Span<T,PM> get_span(Memory::Kind memory,
                           bool silence_warnings = false,
-                          const char *warning_string = NULL) const;
+                          const char *warning_string = nullptr) const;
 
     /**
      * Return a pointer and optional size for the data for the future.
@@ -137,10 +137,10 @@ namespace Legion {
      * @return a const pointer to the future data in the specified memory
      */
     const void* get_buffer(Memory::Kind memory, 
-                           size_t *extent_in_bytes = NULL,
+                           size_t *extent_in_bytes = nullptr,
                            bool check_extent = false,
                            bool silence_warnings = false,
-                           const char *warning_string = NULL) const;
+                           const char *warning_string = nullptr) const;
 
     /**
      * Report an instantaneous set of available memories where instances
@@ -151,7 +151,7 @@ namespace Legion {
      */
     void get_memories(std::set<Memory> &memories,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL) const;
+                      const char *warning_string = nullptr) const;
 
     /**
      * Return a const reference to the future.
@@ -169,7 +169,7 @@ namespace Legion {
     template<typename T> 
       LEGION_DEPRECATED("Use 'Future::get_span' instead")
       inline const T& get_reference(bool silence_warnings = false,
-                                    const char *warning_string = NULL) const;
+                                    const char *warning_string = nullptr) const;
     /**
      * Return an untyped pointer to the 
      * future result.  WARNING: this
@@ -182,7 +182,7 @@ namespace Legion {
      */
     LEGION_DEPRECATED("Use 'Future::get_buffer' instead")
     inline const void* get_untyped_pointer(bool silence_warnings = false,
-                                     const char *warning_string = NULL) const; 
+                                     const char *warning_string = nullptr) const; 
 
     /**
      * Return the number of bytes contained in the future.
@@ -197,7 +197,7 @@ namespace Legion {
      * @param optional pointer to a place to write the size
      * @return a pointer to the buffer containing the metadata
      */
-    const void* get_metadata(size_t *size = NULL) const;
+    const void* get_metadata(size_t *size = nullptr) const;
   public:
     // These methods provide partial support the C++ future interface
     template<typename T>
@@ -223,7 +223,7 @@ namespace Legion {
      * that the Domain maintains the right lifetime.
      */
     static Future from_domain(const Domain &d, bool take_ownership,
-        const char *provenance = NULL, bool shard_local = false);
+        const char *provenance = nullptr, bool shard_local = false);
 
     /**
      * Generates a future from an untyped pointer.  No
@@ -234,11 +234,11 @@ namespace Legion {
         const void *buffer, size_t bytes, bool take_ownership = false);
     static Future from_untyped_pointer(
         const void *buffer, size_t bytes, bool take_ownership = false,
-        const char *provenance = NULL, bool shard_local = false);
+        const char *provenance = nullptr, bool shard_local = false);
     static Future from_value(const void *buffer, size_t bytes, bool owned,
         const Realm::ExternalInstanceResource &resource,
-        void (*freefunc)(const Realm::ExternalInstanceResource&) = NULL,
-        const char *provenance = NULL, bool shard_local = false);
+        void (*freefunc)(const Realm::ExternalInstanceResource&) = nullptr,
+        const char *provenance = nullptr, bool shard_local = false);
   private:
     // This should only be available for accessor classes
     template<PrivilegeMode, typename, int, typename, typename, bool>

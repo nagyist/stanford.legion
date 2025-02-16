@@ -38,7 +38,7 @@ namespace Legion {
         initialized(init), tree_initialized(tree), registered(false)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -46,7 +46,7 @@ namespace Legion {
     RegionTreeNode::~RegionTreeNode(void)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -263,7 +263,7 @@ namespace Legion {
       const unsigned depth = get_depth();
       const bool arrived = !path.has_child(depth);
       FieldMask open_below;
-      RegionTreeNode *next_child = NULL;
+      RegionTreeNode *next_child = nullptr;
       if (!arrived)
         next_child = get_tree_child(path.get_child(depth));
       // Check to see if we need to traverse any interfering children
@@ -312,7 +312,7 @@ namespace Legion {
         {
           if (proj_info.is_projecting())
           {
-            if (user.shard_proj == NULL)
+            if (user.shard_proj == nullptr)
             {
               ProjectionSummary *summary = 
                 state.find_or_create_projection_summary(user.op, user.idx,
@@ -387,7 +387,7 @@ namespace Legion {
         // sub-tree up to exclusive so that later operations will know that
         // they need to traverse the sub-tree and find the dependence on the
         // refinement operation
-        if ((next_child != NULL) && !IS_WRITE(user.usage))
+        if ((next_child != nullptr) && !IS_WRITE(user.usage))
           state.promote_next_child(next_child, refinements.get_valid_mask());
       }
       // Perform any filtering that we need to do for timeout users
@@ -476,7 +476,7 @@ namespace Legion {
               {
                 // We're read-only too so there is no need to traverse
                 // See if the child that we want is already open
-                if (next_child != NULL)
+                if (next_child != nullptr)
                 {
                   OrderedFieldMaskChildren::const_iterator finder =
                     it->open_children.find(next_child);
@@ -520,7 +520,7 @@ namespace Legion {
               // See if this reduction is a reduction of the same kind
               if (IS_REDUCE(user.usage) && (user.usage.redop == it->redop))
               {
-                if (next_child != NULL)
+                if (next_child != nullptr)
                 {
                   OrderedFieldMaskChildren::const_iterator finder = 
                     it->open_children.find(next_child);
@@ -552,7 +552,7 @@ namespace Legion {
       }
       // If we had any fields that still need to be opened, create
       // a new field state and add it into the set of new states
-      if (next_child != NULL)
+      if (next_child != nullptr)
       {
         FieldMask open_mask = closing_mask;
         if (!!open_below)
@@ -583,7 +583,7 @@ namespace Legion {
                                         const bool filter_next_child)
     //--------------------------------------------------------------------------
     {
-      if (next_child != NULL)
+      if (next_child != nullptr)
       {
         if (!are_all_children_disjoint())
         {
@@ -643,7 +643,7 @@ namespace Legion {
             if (filter_next_child)
             {
 #ifdef DEBUG_LEGION
-              assert(next_child_fields != NULL);
+              assert(next_child_fields != nullptr);
 #endif
               FieldMask child_fields;
               next_child->close_logical_node(user, overlap, privilege_root,
@@ -852,7 +852,7 @@ namespace Legion {
               // so we don't want to go into the scope. If we ever get
               // rid of must-epoch operations we can get rid of the 
               // second part of this condition
-              ((prev.op == user.op) || (user.op->get_must_epoch_op() == NULL)))
+              ((prev.op == user.op) || (user.op->get_must_epoch_op() == nullptr)))
           {
             if ((prev.ctx_index == user.ctx_index) &&
                 !(check_mask * it->second))
@@ -913,13 +913,13 @@ namespace Legion {
                         user.op->get_context()->get_unique_id(),
                         prev.uid, prev.idx, user.uid, user.idx, dtype);
 #endif
-                    if (prev.shard_proj != NULL)
+                    if (prev.shard_proj != nullptr)
                     {
                      // Two operations from the same must epoch shouldn't
                       // be recording close dependences on each other so
                       // we can skip that part
                       if ((prev.ctx_index == user.ctx_index) &&
-                          (user.op->get_must_epoch_op() != NULL))
+                          (user.op->get_must_epoch_op() != nullptr))
                         break;
                       // If this is a sharding projection operation then check 
                       // to see if we need to record a fence dependence here to
@@ -946,7 +946,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
                         assert(runtime->enable_pointwise_analysis ||
                             proj_info.is_sharding());
-                        assert(user.shard_proj != NULL);
+                        assert(user.shard_proj != nullptr);
 #endif
                         dominates = true;
                         if (!state.has_interfering_shards(logical_analysis,
@@ -1125,7 +1125,7 @@ namespace Legion {
         // Unregister oursleves with the row source
         if (row_source->remove_nested_resource_ref(did))
           delete row_source;
-        const bool top_level = (parent == NULL);
+        const bool top_level = (parent == nullptr);
         // Unregister ourselves with the context
         runtime->remove_node(handle, top_level);
       }
@@ -1135,10 +1135,10 @@ namespace Legion {
     void RegionNode::notify_local(void)
     //--------------------------------------------------------------------------
     {
-      if (parent == NULL)
+      if (parent == nullptr)
       {
         runtime->release_tree_instances(handle.get_tree_id());
-        if (row_source->parent == NULL)
+        if (row_source->parent == nullptr)
           row_source->remove_nested_valid_ref(did);
         else
           row_source->parent->remove_nested_valid_ref(did);
@@ -1147,7 +1147,7 @@ namespace Legion {
       if (!partition_trackers.empty())
       {
 #ifdef DEBUG_LEGION
-        assert(parent == NULL); // should only happen on the root
+        assert(parent == nullptr); // should only happen on the root
 #endif
         for (std::list<PartitionTracker*>::const_iterator it = 
               partition_trackers.begin(); it != partition_trackers.end(); it++)
@@ -1167,9 +1167,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!registered);
 #endif
-      if (parent == NULL)
+      if (parent == nullptr)
       {
-        if (row_source->parent == NULL)
+        if (row_source->parent == nullptr)
           row_source->add_nested_valid_ref(did);
         else
           row_source->parent->add_nested_valid_ref(did);
@@ -1180,7 +1180,7 @@ namespace Legion {
       column_source->add_nested_resource_ref(did);
       row_source->add_nested_resource_ref(did);
       registered = true;
-      if (parent == NULL)
+      if (parent == nullptr)
         register_with_runtime();
     }
 
@@ -1208,7 +1208,7 @@ namespace Legion {
       // to make it through the proper channels
       IndexPartNode *index_part = row_source->get_child(c);
 #ifdef DEBUG_LEGION
-      assert(index_part != NULL);
+      assert(index_part != nullptr);
 #endif
       LogicalPartition part_handle(handle.tree_did, index_part->handle,
                                    handle.field_space);
@@ -1245,7 +1245,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(parent == NULL); // should only happen on the root
+      assert(parent == nullptr); // should only happen on the root
 #endif
       std::vector<PartitionTracker*> to_prune;
       {
@@ -1359,7 +1359,7 @@ namespace Legion {
     PartitionNode* RegionNode::as_partition_node(void) const
     //--------------------------------------------------------------------------
     {
-      return NULL;
+      return nullptr;
     }
 #endif
 
@@ -1477,7 +1477,7 @@ namespace Legion {
       }
       if (continue_up)
       {
-        if (parent != NULL)
+        if (parent != nullptr)
         {
           // Send the parent node first
           parent->send_node(rez, target);
@@ -1504,11 +1504,11 @@ namespace Legion {
           rez.serialize(handle);
           rez.serialize(did);
           rez.serialize(initialized);
-          if (provenance != NULL)
+          if (provenance != nullptr)
             provenance->serialize(rez);
           else
             Provenance::serialize_null(rez);
-          if (collective_mapping != NULL)
+          if (collective_mapping != nullptr)
             collective_mapping->pack(rez);
           else
             CollectiveMapping::pack_null(rez);
@@ -1539,14 +1539,14 @@ namespace Legion {
       AutoProvenance prov(Provenance::deserialize(derez));
       size_t num_spaces;
       derez.deserialize(num_spaces);
-      CollectiveMapping *mapping = NULL;
+      CollectiveMapping *mapping = nullptr;
       if (num_spaces > 0)
         mapping = new CollectiveMapping(derez, num_spaces);
 
-      RegionNode *node = runtime->create_node(handle, NULL/*parent*/,
+      RegionNode *node = runtime->create_node(handle, nullptr/*parent*/,
                                       initialized, did, prov, mapping);
 #ifdef DEBUG_LEGION
-      assert(node != NULL);
+      assert(node != nullptr);
 #endif
       size_t num_semantic;
       derez.deserialize(num_semantic);
@@ -1638,7 +1638,7 @@ namespace Legion {
     {
       // If we're the root, then the owner is the owner of the root
       // Otherwise the owner is the owner of the corresponding index space
-      if (parent == NULL)
+      if (parent == nullptr)
         return owner_space;
       else
         return row_source->owner_space;
@@ -1674,7 +1674,7 @@ namespace Legion {
       assert(find_semantic_owner() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = NULL;
+      void *result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
@@ -1701,7 +1701,7 @@ namespace Legion {
           semantic_info[tag] = SemanticInfo(ready_event);
         }
       }
-      if (result == NULL)
+      if (result == nullptr)
       {
         if (can_fail || !wait_until)
           Runtime::trigger_event(ready);
@@ -1772,11 +1772,11 @@ namespace Legion {
       derez.deserialize(done_event);
       AddressSpaceID source;
       derez.deserialize(source);
-      if (node != NULL)
+      if (node != nullptr)
       {
         // If there is a collective mapping, check to see if we're on the
         // right node and if not forward it on to the right node
-        if (node->collective_mapping != NULL)
+        if (node->collective_mapping != nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(!node->collective_mapping->contains(source));
@@ -1843,7 +1843,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PartitionTracker::PartitionTracker(const PartitionTracker &rhs)
-      : Collectable(), partition(NULL)
+      : Collectable(), partition(nullptr)
     //--------------------------------------------------------------------------
     {
       // should never be called
@@ -1957,7 +1957,7 @@ namespace Legion {
       PartitionTracker *tracker = new PartitionTracker(this);
       row_source->add_tracker(tracker); 
       RegionNode *root = parent;
-      while (root->parent != NULL)
+      while (root->parent != nullptr)
         root = root->parent->parent;
       root->add_tracker(tracker);
       registered = true;
@@ -1985,9 +1985,9 @@ namespace Legion {
       }
       // If we get here we didn't immediately have it so try
       // to make it through the proper channels
-      IndexSpaceNode *index_node = row_source->get_child(c, NULL);
+      IndexSpaceNode *index_node = row_source->get_child(c, nullptr);
 #ifdef DEBUG_LEGION
-      assert(index_node != NULL);
+      assert(index_node != nullptr);
 #endif
       LogicalRegion reg_handle(handle.tree_did, index_node->handle,
                                handle.field_space);
@@ -2078,7 +2078,7 @@ namespace Legion {
     RegionNode* PartitionNode::as_region_node(void) const
     //--------------------------------------------------------------------------
     {
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -2141,7 +2141,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(parent != NULL);
+      assert(parent != nullptr);
 #endif
       return row_source->is_complete();
     }
@@ -2185,7 +2185,7 @@ namespace Legion {
       if (continue_up)
       {
 #ifdef DEBUG_LEGION
-        assert(parent != NULL);
+        assert(parent != nullptr);
 #endif
         // Send the parent node first
         parent->send_node(rez, target);
@@ -2262,7 +2262,7 @@ namespace Legion {
       assert(find_semantic_owner() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = NULL;
+      void *result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
@@ -2289,7 +2289,7 @@ namespace Legion {
           semantic_info[tag] = SemanticInfo(ready_event);
         }
       }
-      if (result == NULL)
+      if (result == nullptr)
       {
         if (can_fail || !wait_until)
           Runtime::trigger_event(ready);

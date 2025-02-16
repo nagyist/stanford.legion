@@ -67,14 +67,14 @@ namespace Legion {
                UniqueID fill_op_uid,
 #endif
                bool register_now,
-               CollectiveMapping *mapping = NULL);
+               CollectiveMapping *mapping = nullptr);
       // Already know the fill value
       FillView(DistributedID did,
 #ifdef LEGION_SPY
                UniqueID fill_op_uid,
 #endif
                const void *value, size_t size, bool register_now,
-               CollectiveMapping *mapping = NULL);
+               CollectiveMapping *mapping = nullptr);
       FillView(const FillView &rhs) = delete;
       virtual ~FillView(void);
     public:

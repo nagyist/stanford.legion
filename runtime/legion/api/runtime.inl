@@ -79,7 +79,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         const Realm::ExternalMemoryResource *resource =
           dynamic_cast<const Realm::ExternalMemoryResource*>(&res);
-        assert(resource != NULL);
+        assert(resource != nullptr);
 #else
         const Realm::ExternalMemoryResource *resource =
           static_cast<const Realm::ExternalMemoryResource*>(&res);
@@ -92,7 +92,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         const Realm::ExternalMemoryResource *resource =
           dynamic_cast<const Realm::ExternalMemoryResource*>(&res);
-        assert(resource != NULL);
+        assert(resource != nullptr);
 #else
         const Realm::ExternalMemoryResource *resource =
           static_cast<const Realm::ExternalMemoryResource*>(&res);
@@ -122,7 +122,7 @@ namespace Legion {
             end_helper(ctx, buffer, buffer_size, resource, free_func);
           }
           else
-            end_helper(ctx, NULL, 0);
+            end_helper(ctx, nullptr, 0);
         }
         static inline Future from_value(const T *value)
         {
@@ -159,7 +159,7 @@ namespace Legion {
                 resource, free_func_wrapper<T::legion_buffer_finalize>);
           }
           else
-            end_helper(ctx, NULL, 0);
+            end_helper(ctx, nullptr, 0);
         }
         static inline Future from_value(const T *value)
         {
@@ -393,7 +393,7 @@ namespace Legion {
                                               ReductionOpID redop_id,
                                               bool permit_duplicates)
         {
-          Runtime::register_reduction_op(redop_id, redop, NULL, NULL, 
+          Runtime::register_reduction_op(redop_id, redop, nullptr, nullptr, 
                                          permit_duplicates);
         }
       };
@@ -416,7 +416,7 @@ namespace Legion {
                                               ReductionOpID redop_id,
                                               bool permit_duplicates)
         {
-          Runtime::register_reduction_op(redop_id, redop, NULL, NULL, 
+          Runtime::register_reduction_op(redop_id, redop, nullptr, nullptr, 
                                          permit_duplicates);
         }
       };
@@ -1601,7 +1601,7 @@ namespace Legion {
 				       Context& ctx,
 				       Runtime *& runtime);
       static void legion_task_postamble(Context ctx,
-					const void *retvalptr = NULL,
+					const void *retvalptr = nullptr,
 					size_t retvalsize = 0);
     };
     
@@ -1673,7 +1673,7 @@ namespace Legion {
       const std::vector<PhysicalRegion> *regions;
       Runtime::legion_task_preamble(args, arglen, p, task, regions, ctx, rt);
 
-      const UDT *user_data = NULL;
+      const UDT *user_data = nullptr;
       static_assert(sizeof(user_data) == sizeof(userdata), "C++ is dumb");
       memcpy(&user_data, &userdata, sizeof(user_data));
 
@@ -1699,7 +1699,7 @@ namespace Legion {
       const std::vector<PhysicalRegion> *regions;
       Runtime::legion_task_preamble(args, arglen, p, task, regions, ctx, rt);
 
-      const UDT *user_data = NULL;
+      const UDT *user_data = nullptr;
       static_assert(sizeof(user_data) == sizeof(userdata), "C++ is dumb");
       memcpy(&user_data, &userdata, sizeof(user_data));
 
@@ -1727,7 +1727,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     inline void LegionTaskWrapper::legion_task_postamble(
                   Context ctx,
-		  const void *retvalptr /*= NULL*/,
+		  const void *retvalptr /*= nullptr*/,
 		  size_t retvalsize /*= 0*/)
     //--------------------------------------------------------------------------
     {
@@ -1743,7 +1743,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       CodeDescriptor desc(LegionTaskWrapper::legion_task_wrapper<T,TASK_PTR>);
-      return register_task_variant(registrar, desc,NULL/*UDT*/,
+      return register_task_variant(registrar, desc,nullptr/*UDT*/,
           0/*sizeof(UDT)*/, LegionSerialization::ReturnSize<T>::value, vid);
     }
 
@@ -1770,7 +1770,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       CodeDescriptor desc(LegionTaskWrapper::legion_task_wrapper<TASK_PTR>);
-      return register_task_variant(registrar, desc, NULL/*UDT*/, 
+      return register_task_variant(registrar, desc, nullptr/*UDT*/, 
                                    0/*sizeof(UDT)*/, 0/*return size*/, vid);
     }
 
@@ -1794,11 +1794,11 @@ namespace Legion {
                     Context, Runtime*)>
     /*static*/ VariantID Runtime::preregister_task_variant(
         const TaskVariantRegistrar &registrar, 
-        const char *task_name /*= NULL*/, VariantID vid /*=AUTO_GENERATE_ID*/)
+        const char *task_name /*= nullptr*/, VariantID vid /*=AUTO_GENERATE_ID*/)
     //--------------------------------------------------------------------------
     {
       CodeDescriptor desc(LegionTaskWrapper::legion_task_wrapper<T,TASK_PTR>);
-      return preregister_task_variant(registrar, desc, NULL/*UDT*/, 
+      return preregister_task_variant(registrar, desc, nullptr/*UDT*/, 
                                   0/*sizeof(UDT)*/, task_name, vid, 
                                   LegionSerialization::ReturnSize<T>::value);
     }
@@ -1809,7 +1809,7 @@ namespace Legion {
                     Context, Runtime*, const UDT&)>
     /*static*/ VariantID Runtime::preregister_task_variant(
                     const TaskVariantRegistrar &registrar, 
-                    const UDT &user_data, const char *task_name /*= NULL*/,
+                    const UDT &user_data, const char *task_name /*= nullptr*/,
                     VariantID vid /*=AUTO_GENERATE_ID*/)
     //--------------------------------------------------------------------------
     {
@@ -1824,12 +1824,12 @@ namespace Legion {
       void (*TASK_PTR)(const Task*, const std::vector<PhysicalRegion>&,
                        Context, Runtime*)>
     /*static*/ VariantID Runtime::preregister_task_variant(
-        const TaskVariantRegistrar &registrar, const char *task_name /*= NULL*/,
+        const TaskVariantRegistrar &registrar, const char *task_name /*= nullptr*/,
         const VariantID vid /*=AUTO_GENERATE_ID*/)
     //--------------------------------------------------------------------------
     {
       CodeDescriptor desc(LegionTaskWrapper::legion_task_wrapper<TASK_PTR>);
-      return preregister_task_variant(registrar, desc, NULL/*UDT*/,
+      return preregister_task_variant(registrar, desc, nullptr/*UDT*/,
                 0/*sizeof(UDT)*/, task_name, vid, 0/*return size*/);
     }
 
@@ -1839,7 +1839,7 @@ namespace Legion {
                        Context, Runtime*, const UDT&)>
     /*static*/ VariantID Runtime::preregister_task_variant(
                     const TaskVariantRegistrar &registrar, 
-                    const UDT &user_data, const char *task_name /*= NULL*/,
+                    const UDT &user_data, const char *task_name /*= nullptr*/,
                     VariantID vid /*=AUTO_GENERATE_ID*/)
     //--------------------------------------------------------------------------
     {
@@ -1873,7 +1873,7 @@ namespace Legion {
       registrar.set_idempotent(options.idempotent);
       registrar.add_constraint(ProcessorConstraint(proc_kind));
       CodeDescriptor desc(LegionTaskWrapper::legion_task_wrapper<T,TASK_PTR>);
-      preregister_task_variant(registrar, desc, NULL/*UDT*/, 0/*sizeof(UDT)*/,
+      preregister_task_variant(registrar, desc, nullptr/*UDT*/, 0/*sizeof(UDT)*/,
       task_name, vid, LegionSerialization::ReturnSize<T>::value, check_task_id);
       return id;
     }
@@ -1902,7 +1902,7 @@ namespace Legion {
       registrar.set_idempotent(options.idempotent);
       registrar.add_constraint(ProcessorConstraint(proc_kind));
       CodeDescriptor desc(LegionTaskWrapper::legion_task_wrapper<TASK_PTR>);
-      preregister_task_variant(registrar, desc, NULL/*UDT*/, 0/*sizeof(UDT)*/,
+      preregister_task_variant(registrar, desc, nullptr/*UDT*/, 0/*sizeof(UDT)*/,
                                task_name, vid, 0/*return size*/, check_task_id);
       return id;
     }
@@ -1974,7 +1974,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Runtime *runtime = Runtime::get_runtime();
-      const void *name = NULL;
+      const void *name = nullptr;
       size_t size = 0;
       if (runtime->retrieve_semantic_information(lr, LEGION_NAME_SEMANTIC_TAG,
             name, size, true/*can fail*/, false/*wait until ready*/))
@@ -1993,7 +1993,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Runtime *runtime = Runtime::get_runtime();
-      const void *name = NULL;
+      const void *name = nullptr;
       size_t size = 0;
       if (runtime->retrieve_semantic_information(lp, LEGION_NAME_SEMANTIC_TAG,
             name, size, true/*can fail*/, false/*wait until ready*/))
@@ -2013,7 +2013,7 @@ namespace Legion {
     {
       // Check to see if we can find the semantic information name
       Runtime *runtime = Runtime::get_runtime();
-      const void *name = NULL;
+      const void *name = nullptr;
       size_t size = 0;
       if (runtime->retrieve_semantic_information(is, LEGION_NAME_SEMANTIC_TAG,
             name, size, true/*can fail*/, false/*wait until ready*/))
@@ -2031,7 +2031,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Runtime *runtime = Runtime::get_runtime();
-      const void *name = NULL;
+      const void *name = nullptr;
       size_t size = 0;
       if (runtime->retrieve_semantic_information(ip, LEGION_NAME_SEMANTIC_TAG,
             name, size, true/*can fail*/, false/*wait until ready*/))
@@ -2049,7 +2049,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Runtime *runtime = Runtime::get_runtime();
-      const void *name = NULL;
+      const void *name = nullptr;
       size_t size = 0;
       if (runtime->retrieve_semantic_information(fs, LEGION_NAME_SEMANTIC_TAG,
             name, size, true/*can fail*/, false/*wait unilt ready*/))

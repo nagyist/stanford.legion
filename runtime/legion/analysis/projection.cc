@@ -53,11 +53,11 @@ namespace Legion {
       // projection region requirements for the logical analysis
 #ifdef DEBUG_LEGION
       // Should always have a launch space with a sharding function
-      assert((func == NULL) || (launch_space != NULL));
+      assert((func == nullptr) || (launch_space != nullptr));
 #endif
       if (req->handle_type == LEGION_SINGULAR_PROJECTION)
       {
-        if (func != NULL)
+        if (func != nullptr)
         {
           // Treat single region requirements with sharding functions
           // as projections with the identity functor
@@ -67,9 +67,9 @@ namespace Legion {
         }
         else
         {
-          projection = NULL;
+          projection = nullptr;
           projection_type = req->handle_type;
-          projection_space = NULL;
+          projection_space = nullptr;
         }
       }
       else
@@ -134,7 +134,7 @@ namespace Legion {
       size_t num_colors;
       derez.deserialize(num_colors);
       if (num_colors == 0)
-        return NULL;
+        return nullptr;
       std::unordered_map<LegionColor,ShardID> color_shards;
       for (unsigned idx = 0; idx < num_colors; idx++)
       {
@@ -722,7 +722,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ProjectionRegion *rhs = dynamic_cast<ProjectionRegion*>(other);
-      assert(rhs != NULL);
+      assert(rhs != nullptr);
       assert(region == rhs->region);
       return has_interference(rhs, local_shard, dominates);
 #else
@@ -739,7 +739,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       const ProjectionRegion *rhs = 
         dynamic_cast<const ProjectionRegion*>(other);
-      assert(rhs != NULL);
+      assert(rhs != nullptr);
       assert(region == rhs->region);
       return has_pointwise_dominance(rhs);
 #else
@@ -918,7 +918,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       partition->add_base_gc_ref(PROJECTION_REF);
-      if (name_based_children_shards != NULL)
+      if (name_based_children_shards != nullptr)
         name_based_children_shards->add_reference();
     }
 #else
@@ -942,7 +942,7 @@ namespace Legion {
       if (partition->remove_base_gc_ref(PROJECTION_REF))
         delete partition;
 #ifdef LEGION_NAME_BASED_CHILDREN_SHARDS
-      if ((name_based_children_shards != NULL) &&
+      if ((name_based_children_shards != nullptr) &&
           name_based_children_shards->remove_reference())
         delete name_based_children_shards;
 #endif
@@ -990,7 +990,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ProjectionPartition *rhs = dynamic_cast<ProjectionPartition*>(other);
-      assert(rhs != NULL);
+      assert(rhs != nullptr);
       assert(partition == rhs->partition);
       return has_interference(rhs, local_shard, dominates);
 #else
@@ -1007,7 +1007,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       const ProjectionPartition *rhs =
         dynamic_cast<const ProjectionPartition*>(other);
-      assert(rhs != NULL);
+      assert(rhs != nullptr);
       assert(partition == rhs->partition);
       return has_pointwise_dominance(rhs);
 #else
@@ -1087,7 +1087,7 @@ namespace Legion {
         }
         // Now we can make our ShardedColorMap and save it
 #ifdef DEBUG_LEGION
-        assert(name_based_children_shards == NULL);
+        assert(name_based_children_shards == nullptr);
 #endif
         name_based_children_shards =
           new ShardedColorMap(std::move(nearest_shards));
@@ -1206,7 +1206,7 @@ namespace Legion {
         projection(proj_info.projection), sharding(proj_info.sharding_function),
         sharding_domain(proj_info.sharding_space), 
         arglen(req.projection_args_size), 
-        args((arglen > 0) ? malloc(arglen) : NULL), tree(node), exchange(NULL), 
+        args((arglen > 0) ? malloc(arglen) : nullptr), tree(node), exchange(nullptr), 
         // Special case here: if we can't prove its disjoint by the region tree
         // but we know that all the regions are writing and the projection
         // function is not invertible then the user is guaranteeing use that all
@@ -1221,11 +1221,11 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(proj_info.is_projecting());
-      assert(tree != NULL);
+      assert(tree != nullptr);
 #endif
-      if (domain != NULL)
+      if (domain != nullptr)
         domain->add_base_gc_ref(PROJECTION_REF);
-      if (sharding_domain != NULL)
+      if (sharding_domain != nullptr)
         sharding_domain->add_base_gc_ref(PROJECTION_REF);
       tree->add_reference();
       if (arglen > 0)
@@ -1241,7 +1241,7 @@ namespace Legion {
         projection(proj_info.projection), sharding(proj_info.sharding_function),
         sharding_domain(proj_info.sharding_space),
         arglen(req.projection_args_size), 
-        args((arglen > 0) ? malloc(arglen) : NULL), tree(node), exchange(NULL),
+        args((arglen > 0) ? malloc(arglen) : nullptr), tree(node), exchange(nullptr),
         // Special case here: if we can't prove its disjoint by the region tree
         // but we know that all the regions are writing and the projection
         // function is not invertible then the user is guaranteeing use that all
@@ -1255,11 +1255,11 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(proj_info.is_projecting());
-      assert(tree != NULL);
+      assert(tree != nullptr);
 #endif
-      if (domain != NULL)
+      if (domain != nullptr)
         domain->add_base_gc_ref(PROJECTION_REF);
-      if (sharding_domain != NULL)
+      if (sharding_domain != nullptr)
         sharding_domain->add_base_gc_ref(PROJECTION_REF);
       tree->add_reference();
       if (arglen > 0)
@@ -1275,7 +1275,7 @@ namespace Legion {
         projection(proj_info.projection), sharding(proj_info.sharding_function),
         sharding_domain(proj_info.sharding_space),
         arglen(req.projection_args_size), 
-        args((arglen > 0) ? malloc(arglen) : NULL), tree(node),
+        args((arglen > 0) ? malloc(arglen) : nullptr), tree(node),
         exchange(new ProjectionTreeExchange(tree, context, COLLECTIVE_LOC_50,
               disjoint, permits_name_based_self_analysis, unique_shard_users)),
         // Special case here: if we can't prove its disjoint by the region tree
@@ -1292,12 +1292,12 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(proj_info.is_projecting());
-      assert(tree != NULL);
+      assert(tree != nullptr);
 #endif
       exchange->perform_collective_async();
-      if (domain != NULL)
+      if (domain != nullptr)
         domain->add_base_gc_ref(PROJECTION_REF);
-      if (sharding_domain != NULL)
+      if (sharding_domain != nullptr)
         sharding_domain->add_base_gc_ref(PROJECTION_REF);
       tree->add_reference();
       if (arglen > 0)
@@ -1309,19 +1309,19 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       owner->remove_projection_summary(this);
-      if ((domain != NULL) && domain->remove_base_gc_ref(PROJECTION_REF))
+      if ((domain != nullptr) && domain->remove_base_gc_ref(PROJECTION_REF))
         delete domain;
-      if ((sharding_domain != NULL) && 
+      if ((sharding_domain != nullptr) && 
           sharding_domain->remove_base_gc_ref(PROJECTION_REF))
         delete sharding_domain;
-      if (exchange != NULL)
+      if (exchange != nullptr)
       {
         exchange->perform_collective_wait(true/*block*/);  
         delete exchange;
       }
       if (tree->remove_reference())
         delete tree;
-      if (args != NULL)
+      if (args != nullptr)
         free(args);
     }
 
@@ -1351,11 +1351,11 @@ namespace Legion {
     bool ProjectionSummary::is_disjoint(void)
     //--------------------------------------------------------------------------
     {
-      if (exchange != NULL)
+      if (exchange != nullptr)
       {
         exchange->perform_collective_wait(true/*block*/);
         delete exchange;
-        exchange = NULL;
+        exchange = nullptr;
       }
       return disjoint;
     }
@@ -1364,11 +1364,11 @@ namespace Legion {
     bool ProjectionSummary::can_perform_name_based_self_analysis(void)
     //--------------------------------------------------------------------------
     {
-      if (exchange != NULL)
+      if (exchange != nullptr)
       {
         exchange->perform_collective_wait(true/*block*/);
         delete exchange;
-        exchange = NULL;
+        exchange = nullptr;
       }
       return permits_name_based_self_analysis;
     }
@@ -1377,11 +1377,11 @@ namespace Legion {
     bool ProjectionSummary::has_unique_shard_users(void)
     //--------------------------------------------------------------------------
     {
-      if (exchange != NULL)
+      if (exchange != nullptr)
       {
         exchange->perform_collective_wait(true/*block*/);
         delete exchange;
-        exchange = NULL;
+        exchange = nullptr;
       }
       return unique_shard_users;
     }
@@ -1390,11 +1390,11 @@ namespace Legion {
     ProjectionNode* ProjectionSummary::get_tree(void)
     //--------------------------------------------------------------------------
     {
-      if (exchange != NULL)
+      if (exchange != nullptr)
       {
         exchange->perform_collective_wait(true/*block*/);
         delete exchange;
-        exchange = NULL;
+        exchange = nullptr;
       }
       return tree;
     }

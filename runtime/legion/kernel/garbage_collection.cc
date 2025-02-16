@@ -54,7 +54,7 @@ namespace Legion {
         registered_with_runtime(false)
     //--------------------------------------------------------------------------
     {
-      if (collective_mapping != NULL)
+      if (collective_mapping != nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(collective_mapping->contains(owner_space));
@@ -73,7 +73,7 @@ namespace Legion {
       assert(gc_references == 0);
       assert(resource_references == 0);
 #endif
-      if ((collective_mapping != NULL) && 
+      if ((collective_mapping != nullptr) && 
           collective_mapping->remove_reference())
         delete collective_mapping;
 #ifdef LEGION_GC
@@ -332,7 +332,7 @@ namespace Legion {
 
       DistributedCollectable *dc = 
         runtime->weak_find_distributed_collectable(did);
-      if (dc != NULL)
+      if (dc != nullptr)
       {
         AddressSpaceID current_owner = dc->local_space;
         if (dc->acquire_global_remote(current_owner, count, source))
@@ -587,11 +587,11 @@ namespace Legion {
       assert(remote_inst != owner_space);
       assert(remote_inst != local_space);
       // should not be recording things in the collective mapping
-      assert((collective_mapping == NULL) || 
+      assert((collective_mapping == nullptr) || 
               !collective_mapping->contains(remote_inst));
       // should only be recording on the owner or one of the
       // nodes in the collective mapping
-      assert(is_owner() || ((collective_mapping != NULL) && 
+      assert(is_owner() || ((collective_mapping != nullptr) && 
             collective_mapping->contains(local_space)));
 #endif
       AutoLock gc(gc_lock);
@@ -599,7 +599,7 @@ namespace Legion {
       // deletion because there was a packed reference, but we didn't know
       // where to send it to yet
       if (is_owner() && remote_instances.empty() && 
-          (collective_mapping == NULL) && 
+          (collective_mapping == nullptr) && 
           (sent_global_references != received_global_references))
       {
 #ifdef DEBUG_LEGION
@@ -752,7 +752,7 @@ namespace Legion {
             // We're the downgrade owner, so start the process to check to
             // see if all the nodes are ready to perform the deletion
             if (!is_owner() || !remote_instances.empty() || 
-                ((collective_mapping != NULL) && 
+                ((collective_mapping != nullptr) && 
                  (collective_mapping->size() > 1)) || 
                 (sent_global_references != received_global_references))
             {
@@ -801,10 +801,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Ready to downgrade, send the messages
-      if (is_owner() || ((collective_mapping != NULL) &&
+      if (is_owner() || ((collective_mapping != nullptr) &&
             collective_mapping->contains(local_space)))
       {
-        if (collective_mapping != NULL)
+        if (collective_mapping != nullptr)
         {
           std::vector<AddressSpaceID> children;
           if (collective_mapping->contains(downgrade_owner))
@@ -911,10 +911,10 @@ namespace Legion {
       {
         // We're ready to be downgraded
         // Send messages and count how many responses we expect to see
-        if (is_owner() || ((collective_mapping != NULL) && 
+        if (is_owner() || ((collective_mapping != nullptr) && 
               collective_mapping->contains(local_space)))
         {
-          if (collective_mapping != NULL)
+          if (collective_mapping != nullptr)
           {
             std::vector<AddressSpaceID> children;
             if (collective_mapping->contains(owner))
@@ -1152,7 +1152,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(owner != local_space);
 #endif
-      if (collective_mapping == NULL)
+      if (collective_mapping == nullptr)
       {
         if (local_space == owner_space)
           return owner;
@@ -1324,7 +1324,7 @@ namespace Legion {
       // itself has been deleted so we need a weak find here
       DistributedCollectable *dc =
         runtime->weak_find_distributed_collectable(did);
-      if (dc != NULL)
+      if (dc != nullptr)
       {
         dc->process_downgrade_success(to_downgrade);
         if (dc->remove_base_resource_ref(RUNTIME_REF))
@@ -1383,7 +1383,7 @@ namespace Legion {
       // there is nothing more for us to do
       DistributedCollectable *dc =
         runtime->weak_find_distributed_collectable(did);
-      if (dc != NULL)
+      if (dc != nullptr)
       {
         {
           AutoLock gc(dc->gc_lock);
@@ -1714,7 +1714,7 @@ namespace Legion {
       ValidDistributedCollectable *dc = 
         static_cast<ValidDistributedCollectable*>(
             runtime->weak_find_distributed_collectable(did));
-      if (dc != NULL)
+      if (dc != nullptr)
       {
         AddressSpaceID current_owner = dc->local_space;
         if (dc->acquire_valid_remote(current_owner, count, source))

@@ -100,7 +100,7 @@ namespace Legion {
       // We couldn't advance the pointer. Importantly, we can't check
       // node.end here, as this node could be the prefix of another
       // trace in the trie
-      if (node == NULL)
+      if (node == nullptr)
         return false;
       // Otherwise, move down to the node's child.
       depth++;

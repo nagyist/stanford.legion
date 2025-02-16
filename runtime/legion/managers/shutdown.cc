@@ -143,7 +143,7 @@ namespace Legion {
           Realm::ProfilingRequestSet empty_requests;
           const Processor utility_group = runtime->find_utility_group();
           shutdown_events.push_back(RtEvent(utility_group.spawn(
-                  LG_SHUTDOWN_TASK_ID, NULL, 0, empty_requests)));
+                  LG_SHUTDOWN_TASK_ID, nullptr, 0, empty_requests)));
           // One last really crazy precondition on shutdown, we actually need to
           // make sure that this task itself is done executing before trying to
           // shutdown so add our own completion event as a precondition
@@ -157,7 +157,7 @@ namespace Legion {
       else if (runtime->address_space != source)
       {
 #ifdef DEBUG_LEGION
-        assert(owner != NULL);
+        assert(owner != nullptr);
 #endif
         // Send the message back
         Serializer rez;
@@ -255,22 +255,22 @@ namespace Legion {
       MemoryManager *manager = find_memory_manager(memory);
       RtEvent safe_for_unbounded_pools;
       FutureInstance *result = manager->create_future_instance(uid,
-          coordinates, size, (remote_safe_for_unbounded_pools == NULL) ?
-          NULL : &safe_for_unbounded_pools);
-      if ((result != NULL) || ((remote_safe_for_unbounded_pools != NULL) &&
+          coordinates, size, (remote_safe_for_unbounded_pools == nullptr) ?
+          nullptr : &safe_for_unbounded_pools);
+      if ((result != nullptr) || ((remote_safe_for_unbounded_pools != nullptr) &&
             safe_for_unbounded_pools.exists()))
       {
         Serializer rez;
         {
           RezCheck z(rez);
           rez.serialize(target);
-          if (result != NULL)
+          if (result != nullptr)
             result->pack_instance(rez, ApEvent::NO_AP_EVENT,
                 true/*pack ownership*/, false/*allow by value*/);
           else
             FutureInstance::pack_null(rez);
           rez.serialize(remote_safe_for_unbounded_pools);
-          if (remote_safe_for_unbounded_pools != NULL)
+          if (remote_safe_for_unbounded_pools != nullptr)
             rez.serialize(safe_for_unbounded_pools);
           rez.serialize(done);
         }
@@ -291,7 +291,7 @@ namespace Legion {
       target->store(FutureInstance::unpack_instance(derez));
       RtEvent *safe_for_unbounded_pools;
       derez.deserialize(safe_for_unbounded_pools);
-      if (safe_for_unbounded_pools != NULL)
+      if (safe_for_unbounded_pools != nullptr)
         derez.deserialize(*safe_for_unbounded_pools);
       RtUserEvent done;
       derez.deserialize(done);

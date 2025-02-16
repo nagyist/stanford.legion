@@ -40,12 +40,12 @@ namespace Legion {
       : DistributedCollectable(id, perform_registration, mapping),
         owner_task(owner), regions(reqs), output_reqs(out_reqs), depth(d),
         executing_processor(Processor::NO_PROC), inlined_tasks(0),
-        total_tunable_count(0), overhead_profiler(NULL), implicit_task_profiler(NULL),
+        total_tunable_count(0), overhead_profiler(nullptr), implicit_task_profiler(nullptr),
         safe_cast_semaphore(0), task_executed(false), mutable_priority(false),
         inline_task(inline_t), implicit_task(implicit_t)
     //--------------------------------------------------------------------------
     {
-      if (implicit_task && (runtime->profiler != NULL))
+      if (implicit_task && (runtime->profiler != nullptr))
         implicit_task_profiler = new ImplicitTaskProfiler();
     }
 
@@ -64,13 +64,13 @@ namespace Legion {
               task_local_variables.begin(); it != 
               task_local_variables.end(); it++)
         {
-          if (it->second.second != NULL)
+          if (it->second.second != nullptr)
             (*it->second.second)(it->second.first);
         }
       }
-      if (overhead_profiler != NULL)
+      if (overhead_profiler != nullptr)
         delete overhead_profiler;
-      if (implicit_task_profiler != NULL)
+      if (implicit_task_profiler != nullptr)
         delete implicit_task_profiler;
     }
 
@@ -93,7 +93,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(owner_task != NULL);
+      assert(owner_task != nullptr);
 #endif
       return owner_task->get_context();
     }
@@ -156,7 +156,7 @@ namespace Legion {
       Future result(new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance));
       // Set the future result
-      FutureInstance *instance = NULL;
+      FutureInstance *instance = nullptr;
       if (size > 0)
       {
         if (owned)
@@ -184,7 +184,7 @@ namespace Legion {
       Future result(new FutureImpl(this, true/*register*/,
             runtime->get_available_distributed_id(), provenance));
       FutureInstance *instance = new FutureInstance(buffer, size,
-          owned, resource.clone(), freefunc, (freefunc == NULL) ?
+          owned, resource.clone(), freefunc, (freefunc == nullptr) ?
           Processor::NO_PROC : executing_processor);
       result.impl->set_result(ApEvent::NO_AP_EVENT, instance);
       return result;
@@ -378,7 +378,7 @@ namespace Legion {
       // time to handle when a processor has multiple threads such as
       // with OpenMP processors. We don't even bother having a lock to
       // look-up the node
-      IndexSpaceNode *node = NULL;
+      IndexSpaceNode *node = nullptr;
       // Try to take the semaphore in read-only mode to do the look-up
       int current = safe_cast_semaphore.load();
       while (true)
@@ -395,7 +395,7 @@ namespace Legion {
         node = finder->second;
       // Decrement the semaphore counter
       safe_cast_semaphore.fetch_sub(1);
-      if (node == NULL)
+      if (node == nullptr)
       {
         node = runtime->get_node(handle);
         // Take the semaphore in exclusive mode to update the data structure
@@ -556,10 +556,10 @@ namespace Legion {
     {
       implicit_context = this;
       implicit_provenance = owner_task->get_unique_op_id();
-      if (overhead_profiler != NULL)
+      if (overhead_profiler != nullptr)
         overhead_profiler->previous_profiling_time = 
           Realm::Clock::current_time_in_nanoseconds();
-      if (implicit_task_profiler != NULL)
+      if (implicit_task_profiler != nullptr)
         implicit_task_profiler->start_time = 
           Realm::Clock::current_time_in_nanoseconds();
       if (Processor::get_executing_processor().exists())
@@ -567,9 +567,9 @@ namespace Legion {
         realm_done_event = ApEvent(Processor::get_current_finish_event());
         implicit_fevent = realm_done_event;
       }
-      else if (runtime->profiler != NULL)
+      else if (runtime->profiler != nullptr)
         implicit_fevent = owner_task->get_completion_event();
-      if ((runtime->profiler != NULL) && (implicit_profiler == NULL))
+      if ((runtime->profiler != nullptr) && (implicit_profiler == nullptr))
         implicit_profiler = 
           runtime->profiler->find_or_create_profiling_instance();
       // Switch over the executing processor to the one
@@ -618,11 +618,11 @@ namespace Legion {
       // are then we're going to overwrite 'owned' so save it to callback_owned
       bool callback_owned = false;
       bool eager_callback = false;
-      if (callback_functor != NULL)
+      if (callback_functor != nullptr)
       {
 #ifdef DEBUG_LEGION
-        assert(res == NULL);
-        assert(metadataptr == NULL);
+        assert(res == nullptr);
+        assert(metadataptr == nullptr);
         assert(metadatasize == 0);
 #endif
         if (owner_task->is_reducing_future())
@@ -634,12 +634,12 @@ namespace Legion {
         }
       }
       // If we have a deferred result instance we need to escape that too
-      FutureInstance *instance = NULL;
+      FutureInstance *instance = nullptr;
       if (deferred_result_instance.exists())
       {
 #ifdef DEBUG_LEGION
-        assert(res != NULL);
-        assert(freefunc == NULL);
+        assert(res != nullptr);
+        assert(freefunc == nullptr);
 #endif
         // Find the unique event for this instance if there is one
         LgEvent unique_event;
@@ -653,7 +653,7 @@ namespace Legion {
             false/*external*/, true/*own alloc*/, unique_event,
             deferred_result_instance, executing_processor, ready);
       }
-      else if (resource != NULL)
+      else if (resource != nullptr)
       {
         if (!owned)
         {
@@ -685,7 +685,7 @@ namespace Legion {
       else if (res_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(res != NULL);
+        assert(res != nullptr);
 #endif
         if (owned)
         {
@@ -721,7 +721,7 @@ namespace Legion {
       // Grab some information before doing the next step in case it
       // results in the deletion of 'this'
 #ifdef DEBUG_LEGION
-      assert(owner_task != NULL);
+      assert(owner_task != nullptr);
       const TaskID owner_task_id = owner_task->task_id;
 #endif
       // Tell the parent context that we are ready for post-end
@@ -729,13 +729,13 @@ namespace Legion {
       if (inline_task)
         parent_ctx->decrement_inlined();
       owner_task->handle_future(realm_done_event, instance, metadataptr,
-          metadatasize, release_callback ? NULL : callback_functor, 
+          metadatasize, release_callback ? nullptr : callback_functor, 
           executing_processor, owned);
       owner_task->complete_execution();
       // If this is an implicit top-level task then we need to finish
       // the implicit profiling of the execution of that top-level task
       // now that everything else is done running
-      if (implicit_task_profiler != NULL)
+      if (implicit_task_profiler != nullptr)
       {
         // If we're an implicit top-level task then pull a bunch of
         // data onto the stack before we do any of the cleanup because
@@ -746,7 +746,7 @@ namespace Legion {
 #endif
         const ApEvent local_completion = owner_task->get_completion_event();
         ImplicitTaskProfiler *local_task_profiler = implicit_task_profiler;
-        implicit_task_profiler = NULL; // We take ownership
+        implicit_task_profiler = nullptr; // We take ownership
         // Cannot invoke any local methods after this call
         post_end_task();
         const long long stop = Realm::Clock::current_time_in_nanoseconds();
@@ -779,8 +779,8 @@ namespace Legion {
       }
       // Clear the thread local task context to prevent users from
       // calling back into this context now that the task has finished
-      implicit_context = NULL;
-      implicit_profiler = NULL;
+      implicit_context = nullptr;
+      implicit_profiler = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -813,7 +813,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(num_results > 0);
-      assert((layouts != NULL) || (num_results == 1));
+      assert((layouts != nullptr) || (num_results == 1));
 #endif
       std::map<PhysicalInstance,LgEvent>::iterator finder =
         task_local_instances.find(instance);
@@ -822,7 +822,7 @@ namespace Legion {
         // Special case where we can reuse the existing instance because
         // we're escaping this into exactly one other instance with the
         // same unique event result
-        if ((layouts == NULL) && (num_results == 1) &&
+        if ((layouts == nullptr) && (num_results == 1) &&
             (!unique_events[0].exists() || 
              (unique_events[0] == finder->second)))
         {
@@ -842,7 +842,7 @@ namespace Legion {
 #endif
       for (unsigned idx = 0; idx < num_results; idx++)
       {
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
         {
           if (!unique_events[idx].exists())
           {
@@ -868,7 +868,7 @@ namespace Legion {
       }
       RtEvent ready;
       const Realm::InstanceLayoutGeneric *layout = instance.get_layout();
-      if (layouts == NULL)
+      if (layouts == nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(num_results == 1);
@@ -942,7 +942,7 @@ namespace Legion {
       // tasks now that this task has started running
       owner_task->get_context()->decrement_pending(owner_task);
 #ifdef DEBUG_LEGION
-      assert(owner_task != NULL);
+      assert(owner_task != nullptr);
       runtime->decrement_total_outstanding_tasks(owner_task->task_id, 
                                                      false/*meta*/);
 #else
@@ -984,7 +984,7 @@ namespace Legion {
     {
       // Make an overhead tracker
 #ifdef DEBUG_LEGION
-      assert(overhead_profiler == NULL);
+      assert(overhead_profiler == nullptr);
 #endif
       overhead_profiler = new OverheadProfiler();
     } 
@@ -993,7 +993,7 @@ namespace Legion {
     void TaskContext::start_profiling_range(void)
     //--------------------------------------------------------------------------
     {
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
       {
         const long long start = Realm::Clock::current_time_in_nanoseconds();
         user_profiling_ranges.push_back(start);
@@ -1004,11 +1004,11 @@ namespace Legion {
     void TaskContext::stop_profiling_range(const char *prov)
     //--------------------------------------------------------------------------
     {
-      if (prov == NULL)
+      if (prov == nullptr)
         REPORT_LEGION_ERROR(ERROR_MISSING_PROFILING_PROVENANCE,
             "Missing provenance string for application profiling range "
             "in task %s (UID %lld)", get_task_name(), get_unique_id())
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
       {
         Provenance *provenance = 
           runtime->find_or_create_provenance(prov, strlen(prov));
@@ -1051,7 +1051,7 @@ namespace Legion {
       if (finder != task_local_variables.end())
       {
         // See if we need to clean things up first
-        if (finder->second.second != NULL)
+        if (finder->second.second != nullptr)
           (*finder->second.second)(finder->second.first);
         finder->second = 
           std::pair<void*,void (*)(void*)>(const_cast<void*>(value),destructor);
@@ -1138,7 +1138,7 @@ namespace Legion {
     {
       if (launcher.elide_future_return)
         return Future();
-      if (launcher.predicate_false_future.impl != NULL)
+      if (launcher.predicate_false_future.impl != nullptr)
         return launcher.predicate_false_future;
       // Otherwise check to see if we have a value
       FutureImpl *result = new FutureImpl(this, true/*register*/,
@@ -1148,7 +1148,7 @@ namespace Legion {
         result->set_local(launcher.predicate_false_result.get_ptr(),
             future_size, false/*own*/);
       else
-        result->set_result(ApEvent::NO_AP_EVENT, NULL);
+        result->set_result(ApEvent::NO_AP_EVENT, nullptr);
       return Future(result);
     }
 
@@ -1167,7 +1167,7 @@ namespace Legion {
           launch_node, runtime->get_available_distributed_id(),
           InnerContext::NO_BLOCKING_INDEX, std::optional<uint64_t>(),
           provenance);
-      if (launcher.predicate_false_future.impl != NULL)
+      if (launcher.predicate_false_future.impl != nullptr)
       {
         for (Domain::DomainPointIterator itr(launch_domain); itr; itr++)
         {
@@ -1181,7 +1181,7 @@ namespace Legion {
         for (Domain::DomainPointIterator itr(launch_domain); itr; itr++)
         {
           Future f = result->get_future(itr.p, true/*internal*/);
-          f.impl->set_result(ApEvent::NO_AP_EVENT, NULL);
+          f.impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
         }
       }
       else
@@ -1206,7 +1206,7 @@ namespace Legion {
       if (launcher.elide_future_return)
         return Future();
       // If there is an initial value for the reduction use that
-      if (launcher.initial_value.impl != NULL)
+      if (launcher.initial_value.impl != nullptr)
         return launcher.initial_value;
       // Otherwise set it to the identity value of the reduction operator
       FutureImpl *result = new FutureImpl(this, true/*register*/, 
@@ -1260,7 +1260,7 @@ namespace Legion {
       child_mapper->invoke_select_task_variant(child, input, output);
       VariantImpl *variant_impl = runtime->find_variant_impl(child->task_id,
                                    output.chosen_variant, true/*can fail*/);
-      if (variant_impl == NULL)
+      if (variant_impl == nullptr)
         REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
                       "Invalid mapper output from invoction of "
                       "'select_task_variant' on mapper %s. Mapper selected "

@@ -41,10 +41,10 @@ namespace Legion {
                          true/*exclusive*/, mapping, first_local),
         usage(use), trace_info(t_info), precondition(pre), true_guard(true_g),
         false_guard(false_g), add_restriction(restriction),
-        output_aggregator(NULL)
+        output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
-      if (view != NULL)
+      if (view != nullptr)
       {
         if (view->is_reduction_kind())
           reduction_views.insert(view->as_instance_view(), mask);
@@ -62,7 +62,7 @@ namespace Legion {
       : PhysicalAnalysis(o, idx, expr, true/*on heap*/, false/*immutable*/,
                          true/*exclusive*/), usage(use), trace_info(t_info),
         precondition(pre), add_restriction(restriction),
-        output_aggregator(NULL)
+        output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -76,7 +76,7 @@ namespace Legion {
                         const ApEvent pre, const bool restriction)
       : PhysicalAnalysis(o, idx, expr, true/*on heap*/, false/*immutable*/,
           true/*exclusive*/), usage(use), trace_info(t_info), precondition(pre),
-        add_restriction(restriction), output_aggregator(NULL)
+        add_restriction(restriction), output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
       for (FieldMaskSet<LogicalView>::const_iterator it =
@@ -104,7 +104,7 @@ namespace Legion {
         usage(use), trace_info(t_info), views(vws, true/*copy*/),
         reduction_views(reductions, true/*copy*/),
         precondition(pre), true_guard(true_g), false_guard(false_g),
-        add_restriction(restriction), output_aggregator(NULL)
+        add_restriction(restriction), output_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -130,7 +130,7 @@ namespace Legion {
       if (op->perform_collective_analysis(collective_mapping,
                                           collective_first_local))
       {
-        if (collective_mapping != NULL)
+        if (collective_mapping != nullptr)
         {
           std::vector<IndividualView*> indiv(targets.size());
           context->convert_individual_views(targets, indiv, collective_mapping);
@@ -250,7 +250,7 @@ namespace Legion {
           // We only need to pack the collective mapping once when going
           // from the origin space to the next space
           CollectiveMapping *mapping = get_replicated_mapping();
-          if ((mapping != NULL) && (original_source == runtime->address_space))
+          if ((mapping != nullptr) && (original_source == runtime->address_space))
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
@@ -288,7 +288,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       // In this case we know the expression should be a region
       IndexSpaceNode *expr_node = dynamic_cast<IndexSpaceNode*>(analysis_expr);
-      assert(expr_node != NULL);
+      assert(expr_node != nullptr);
 #else
       IndexSpaceNode *expr_node = static_cast<IndexSpaceNode*>(analysis_expr);
 #endif
@@ -348,7 +348,7 @@ namespace Legion {
           !perform_precondition.has_triggered())
         return defer_output(perform_precondition, trace_info,
                             false/*track*/, applied_events);
-      if (output_aggregator != NULL)
+      if (output_aggregator != nullptr)
       {
         output_aggregator->issue_updates(trace_info, precondition,
                                          true/*restricted output*/);
@@ -371,7 +371,7 @@ namespace Legion {
       size_t num_eq_sets;
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
-      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, NULL);
+      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
       LegionVector<FieldMask> eq_masks(num_eq_sets);
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
       {
@@ -434,8 +434,8 @@ namespace Legion {
       size_t collective_mapping_size;
       derez.deserialize(collective_mapping_size);
       CollectiveMapping *collective_mapping = ((collective_mapping_size) > 0) ?
-        new CollectiveMapping(derez, collective_mapping_size) : NULL;
-      if (collective_mapping != NULL)
+        new CollectiveMapping(derez, collective_mapping_size) : nullptr;
+      if (collective_mapping != nullptr)
         derez.deserialize<bool>(first_local);
       RtUserEvent applied;
       derez.deserialize(applied);

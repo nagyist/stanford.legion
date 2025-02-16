@@ -122,7 +122,7 @@ namespace Legion {
       if (runtime->safe_model)
         verify_requirement(requirement);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
-      if (launcher.future.impl != NULL)
+      if (launcher.future.impl != nullptr)
         future = launcher.future;
       else if (launcher.argument.get_size() > 0)
       {
@@ -144,7 +144,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
@@ -156,7 +156,7 @@ namespace Legion {
       {
         LegionSpy::log_fill_operation(parent_ctx->get_unique_id(), 
                                       unique_op_id);
-        if (future.impl != NULL)
+        if (future.impl != nullptr)
           LegionSpy::log_future_use(unique_op_id, future.impl->did); 
       }
     }
@@ -166,8 +166,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       PredicatedOp::activate();
-      fill_view = NULL;
-      value = NULL;
+      fill_view = nullptr;
+      value = nullptr;
       value_size = 0;
       set_view = false;
     }
@@ -183,12 +183,12 @@ namespace Legion {
       grants.clear();
       wait_barriers.clear();
       arrive_barriers.clear();
-      if (value != NULL)
+      if (value != nullptr)
         free(value);
-      if (mapper_data != NULL)
+      if (mapper_data != nullptr)
       {
         free(mapper_data);
-        mapper_data = NULL;
+        mapper_data = nullptr;
         mapper_data_size = 0;
       }
       if (freeop)
@@ -255,7 +255,7 @@ namespace Legion {
     const Task* FillOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -265,7 +265,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -278,7 +278,7 @@ namespace Legion {
     {
       // Fill Ops should never actually need this, but this method might
       // be called in the process of doing a mapper call
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -295,11 +295,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(fill_view == NULL);
+      assert(fill_view == nullptr);
 #endif
       // Note that this returns a fill view with a reference added to it
       // We remove the reference in trigger_complete
-      if (future.impl != NULL)
+      if (future.impl != nullptr)
         fill_view = parent_ctx->find_or_create_fill_view(this, future,set_view);
       else
         fill_view = parent_ctx->find_or_create_fill_view(this,value,value_size);
@@ -311,7 +311,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(fill_view != NULL);
+      assert(fill_view != nullptr);
 #endif
       return fill_view;
     }
@@ -338,12 +338,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Remove the old reference if we already had it
-      if ((fill_view != NULL) && 
+      if ((fill_view != nullptr) && 
           fill_view->remove_base_valid_ref(MAPPING_ACQUIRE_REF))
         delete fill_view;
       fill_view = view;
       // No need to add a reference here since we got it from the caller
-      if (future.impl == NULL)
+      if (future.impl == nullptr)
       {
         // Make sure to set the value before registering any eager fill views
         if (set)
@@ -382,7 +382,7 @@ namespace Legion {
         parent_ctx->perform_barrier_dependence_analysis(this, 
                               wait_barriers, arrive_barriers);
       // If we are waiting on a future register a dependence
-      if (future.impl != NULL)
+      if (future.impl != nullptr)
         future.impl->register_dependence(this);
     }
 
@@ -428,13 +428,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const PhysicalTraceInfo trace_info(this, 0/*index*/);
-      // This is NULL for now until we implement tracing for fills
+      // This is nullptr for now until we implement tracing for fills
       const ApEvent init_precondition = compute_sync_precondition(trace_info);
       fill_fields(get_fill_view(), init_precondition, trace_info);
       if (set_view)
       {
 #ifdef DEBUG_LEGION
-        assert(future.impl != NULL);
+        assert(future.impl != nullptr);
 #endif
         // This will make sure we have a mapping locally
         future.impl->request_runtime_instance(this);
@@ -461,7 +461,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Now that we've mapped we can remove the reference on our fill_view
-      if (fill_view != NULL)
+      if (fill_view != nullptr)
       {
         if (set_view)
         {
@@ -564,7 +564,7 @@ namespace Legion {
       RegionNode *region_node = 
         runtime->get_node(requirement.region);
       bool first_local = true;
-      CollectiveMapping *collective_mapping = NULL;
+      CollectiveMapping *collective_mapping = nullptr;
       perform_collective_analysis(collective_mapping, first_local);
       OverwriteAnalysis *analysis = new OverwriteAnalysis(this, 0/*index*/, 
           RegionUsage(requirement), region_node->row_source, fill_view, 
@@ -642,7 +642,7 @@ namespace Legion {
         verify_requirement(requirement, 0/*index*/, true/*allow projection*/);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       // Note that this returns a fill view with a reference added to it
-      if (launcher.future.impl != NULL)
+      if (launcher.future.impl != nullptr)
         future = launcher.future;
       else if (launcher.argument.get_size() > 0)
       {
@@ -664,7 +664,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
@@ -673,7 +673,7 @@ namespace Legion {
       {
         LegionSpy::log_fill_operation(parent_ctx->get_unique_id(), 
                                       unique_op_id);
-        if (future.impl != NULL)
+        if (future.impl != nullptr)
           LegionSpy::log_future_use(unique_op_id, future.impl->did); 
         log_launch_space(launch_space->handle);
       }
@@ -686,7 +686,7 @@ namespace Legion {
       PointwiseAnalyzable<FillOp>::activate();
       index_domain = Domain::NO_DOMAIN;
       sharding_space = IndexSpace::NO_SPACE;
-      launch_space = NULL;
+      launch_space = nullptr;
       points_completed.store(0);
       points_committed = 0;
       commit_request = false;
@@ -767,10 +767,10 @@ namespace Legion {
             requirement, 0/*idx*/, false/*skip privileges*/, true/*force*/);
       // Enumerate the points
       enumerate_points();
-      if (future.impl != NULL)
+      if (future.impl != nullptr)
       {
 #ifdef DEBUG_LEGION
-        assert(future.impl != NULL);
+        assert(future.impl != nullptr);
 #endif
         // This will make sure we have a mapping locally
         future.impl->request_runtime_instance(this);
@@ -884,7 +884,7 @@ namespace Legion {
                                                       temp_points.end());
       function->project_points(this, 0/*idx*/, requirement,
           index_domain, projection_points, pointwise_dependences.empty() ?
-          NULL : &pointwise_dependences.begin()->second,
+          nullptr : &pointwise_dependences.begin()->second,
           parent_ctx->get_total_shards(), is_replaying());
       if (runtime->legion_spy_enabled)
       {
@@ -903,7 +903,7 @@ namespace Legion {
             pending_pointwise_dependences.begin(); pit !=
             pending_pointwise_dependences.end(); pit++)
       {
-        PointFillOp *point = NULL; 
+        PointFillOp *point = nullptr; 
         for (std::vector<PointFillOp*>::const_iterator it =
               points.begin(); it != points.end(); it++)
         {
@@ -913,7 +913,7 @@ namespace Legion {
           break;
         }
 #ifdef DEBUG_LEGION
-        assert(point != NULL);
+        assert(point != nullptr);
 #endif
         Runtime::trigger_event(pit->second, point->get_mapped_event());
       }
@@ -1223,7 +1223,7 @@ namespace Legion {
       // From Memoizable
       trace_local_id     = owner->get_trace_local_id().context_index;
       tpl                = owner->get_template();
-      if (tpl != NULL)
+      if (tpl != nullptr)
         memo_state       = owner->get_memoizable_state();
       // From Fill
       requirement        = owner->get_requirement();
@@ -1236,7 +1236,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, owner->mapper_data, mapper_data_size);
@@ -1254,7 +1254,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       FillOp::activate();
-      owner = NULL;
+      owner = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1462,7 +1462,7 @@ namespace Legion {
         FillView *fill_view =
           manager->deduplicate_fill_view_creation(fresh_did, fill_op, set_view);
 #ifdef DEBUG_LEGION
-        assert(fill_view != NULL);
+        assert(fill_view != nullptr);
 #endif
         // Pass the MAPPING_ACQUIRE_REF into the registration
         fill_op->register_fill_view_creation(fill_view, set_view);
@@ -1503,7 +1503,7 @@ namespace Legion {
     {
       ReplCollectiveVersioning<CollectiveVersioning<FillOp> >::activate();
       collective_map_barrier = RtBarrier::NO_RT_BARRIER;
-      collective = NULL;
+      collective = nullptr;
       collective_id = 0;
       fresh_did = 0;
       is_first_local_shard = false;
@@ -1519,7 +1519,7 @@ namespace Legion {
 #endif
       ReplCollectiveVersioning<CollectiveVersioning<FillOp> >::deactivate(
                                                             false/*free*/);
-      if (collective != NULL)
+      if (collective != nullptr)
         delete collective;
       if (freeop)
         runtime->free_operation(this);
@@ -1531,7 +1531,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1561,7 +1561,7 @@ namespace Legion {
                                                    requirement,
                                                    version_info,
                                                    preconditions,
-                                                   NULL/*output region*/,
+                                                   nullptr/*output region*/,
                                                    true/*rendezvous*/);
       if (!collective_map_barrier.has_triggered())
         preconditions.insert(collective_map_barrier);
@@ -1589,20 +1589,20 @@ namespace Legion {
       // This is happening in the mapping stage of the pipeline so we 
       // need to do a collective rendezvous to see if everyone finds the
       // same values. If not then we'll need to make a view.
-      if (future.impl != NULL)
+      if (future.impl != nullptr)
         fill_view = parent_ctx->find_fill_view(future);
       else
         fill_view = parent_ctx->find_fill_view(value, value_size);
       // Create the rendezvous collective
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
-      assert(collective == NULL);
+      assert(repl_ctx != nullptr);
+      assert(collective == nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       collective = new CreateCollectiveFillView(repl_ctx, collective_id, this,
-          (fill_view == NULL) ? 0 : fill_view->did, fresh_did);
+          (fill_view == nullptr) ? 0 : fill_view->did, fresh_did);
       collective->perform_collective_async();
       return collective->perform_collective_wait(false/*block*/);
     }
@@ -1614,7 +1614,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1699,14 +1699,14 @@ namespace Legion {
     {
       IndexFillOp::activate();
       sharding_functor = UINT_MAX;
-      sharding_function = NULL;
-      shard_points = NULL;
-      mapper = NULL;
-      collective = NULL;
+      sharding_function = nullptr;
+      shard_points = nullptr;
+      mapper = nullptr;
+      collective = nullptr;
       collective_id = 0;
       fresh_did = 0;
 #ifdef DEBUG_LEGION
-      sharding_collective = NULL;
+      sharding_collective = nullptr;
 #endif
     }
 
@@ -1715,12 +1715,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      if (sharding_collective != NULL)
+      if (sharding_collective != nullptr)
         delete sharding_collective;
 #endif
       IndexFillOp::deactivate(false/*free*/);
       remove_launch_space_reference(shard_points);
-      if (collective != NULL)
+      if (collective != nullptr)
         delete collective;
       if (freeop)
         runtime->free_operation(this);
@@ -1732,12 +1732,12 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // Do the mapper call to get the sharding function to use
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(
             parent_ctx->get_executing_processor(), map_id);
       Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
@@ -1754,7 +1754,7 @@ namespace Legion {
       sharding_function = 
         repl_ctx->shard_manager->find_sharding_function(sharding_functor);
 #ifdef DEBUG_LEGION
-      assert(sharding_collective != NULL);
+      assert(sharding_collective != nullptr);
       sharding_collective->contribute(this->sharding_functor);
       if (sharding_collective->is_target() &&
           !sharding_collective->validate(this->sharding_functor))
@@ -1784,8 +1784,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
-      assert(launch_space != NULL);
+      assert(repl_ctx != nullptr);
+      assert(launch_space != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1803,7 +1803,7 @@ namespace Legion {
       if (is_recording())
       {
 #ifdef DEBUG_LEGION
-        assert((tpl != NULL) && tpl->is_recording());
+        assert((tpl != nullptr) && tpl->is_recording());
 #endif
         tpl->record_local_space(trace_local_id, local_space);
       }
@@ -1822,7 +1822,7 @@ namespace Legion {
           complete_mapping(Runtime::merge_events(map_applied_conditions));
         else
           complete_mapping();
-        if (future.impl != NULL)
+        if (future.impl != nullptr)
         {
           RtEvent future_ready = future.impl->subscribe(); 
           // Make sure both the future and the view are ready
@@ -1858,20 +1858,20 @@ namespace Legion {
       // This is happening in the mapping stage of the pipeline so we 
       // need to do a collective rendezvous to see if everyone finds the
       // same values. If not then we'll need to make a view.
-      if (future.impl != NULL)
+      if (future.impl != nullptr)
         fill_view = parent_ctx->find_fill_view(future);
       else
         fill_view = parent_ctx->find_fill_view(value, value_size);
       // Create the rendezvous collective
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
-      assert(collective == NULL);
+      assert(repl_ctx != nullptr);
+      assert(collective == nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       collective = new CreateCollectiveFillView(repl_ctx, collective_id, this,
-          (fill_view == NULL) ? 0 : fill_view->did, fresh_did);
+          (fill_view == nullptr) ? 0 : fill_view->did, fresh_did);
       collective->perform_collective_async();
       return collective->perform_collective_wait(false/*block*/);
     }
@@ -1881,7 +1881,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(tpl != NULL);
+      assert(tpl != nullptr);
 #endif
       const IndexSpace local_space = tpl->find_local_space(trace_local_id);
       // If it's empty we're done, otherwise we do the replay
@@ -1909,7 +1909,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
 #endif
       if (sharding_space.exists())
         return sharding_function->find_shard_participants(launch_space,
@@ -1977,7 +1977,7 @@ namespace Legion {
     const Task* RemoteFillOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -1988,7 +1988,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;

@@ -51,7 +51,7 @@ namespace Legion {
                                   VariantID v)
           : LgTaskArgs<OrderConcurrentLaunchArgs>(t->get_unique_op_id()),
             task(t), processor(p), vid(v), start(s),
-            ready(Runtime::create_ap_user_event(NULL)) { }
+            ready(Runtime::create_ap_user_event(nullptr)) { }
       public:
         SingleTask *const task;
         const Processor processor;
@@ -151,8 +151,8 @@ namespace Legion {
       virtual void predicate_false(void) = 0;
       virtual void launch_task(bool inline_task = false);
       virtual bool distribute_task(void) = 0;
-      virtual bool perform_mapping(MustEpochOp *owner = NULL,
-                                   const DeferMappingArgs *args = NULL) = 0;
+      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
+                                   const DeferMappingArgs *args = nullptr) = 0;
       virtual void handle_future_size(size_t return_type_size,
                                       std::set<RtEvent> &applied_events) = 0;
       virtual uint64_t order_collectively_mapped_unbounded_pools(

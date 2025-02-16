@@ -51,7 +51,7 @@ namespace Legion {
     inline bool operator==(const Predicate &p) const;
     inline bool operator<(const Predicate &p) const;
     inline bool operator!=(const Predicate &p) const;
-    inline bool exists(void) const { return (impl != NULL); }
+    inline bool exists(void) const { return (impl != nullptr); }
   private:
     bool const_value;
   };

@@ -69,7 +69,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     DependentPartitionOp::DependentPartitionOp(void)
       : ExternalPartition(), Operation(), 
-        thunk(NULL)
+        thunk(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -130,13 +130,13 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ByFieldThunk(pid);
       if (runtime->legion_spy_enabled)
@@ -189,13 +189,13 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ByImageThunk(pid, projection.get_index_partition());
       if (runtime->legion_spy_enabled)
@@ -250,13 +250,13 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ByImageRangeThunk(pid, projection.get_index_partition());
       if (runtime->legion_spy_enabled)
@@ -310,13 +310,13 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ByPreimageThunk(pid, proj);
       if (runtime->legion_spy_enabled)
@@ -370,13 +370,13 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new ByPreimageRangeThunk(pid, proj);
       if (runtime->legion_spy_enabled)
@@ -427,13 +427,13 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, marg.get_ptr(), mapper_data_size);
       }
 #ifdef DEBUG_LEGION
-      assert(thunk == NULL);
+      assert(thunk == nullptr);
 #endif
       thunk = new AssociationThunk(domain.get_index_space(), range);
       if (runtime->legion_spy_enabled)
@@ -528,7 +528,7 @@ namespace Legion {
     {
       // If this is an image then we already made this a projection
       // region requirement to reflect that
-      IndexPartNode *partition_node = NULL;
+      IndexPartNode *partition_node = nullptr;
       if (thunk->is_image())
       {
 #ifdef DEBUG_LEGION
@@ -549,7 +549,7 @@ namespace Legion {
         // Find the open complete projections, and then invoke the mapper call
         find_open_complete_partitions(input.open_complete_partitions);
         // Invoke the mapper
-        if (mapper == NULL)
+        if (mapper == nullptr)
         {
           Processor exec_proc = parent_ctx->get_executing_processor();
           mapper = runtime->find_mapper(exec_proc, map_id);
@@ -614,7 +614,7 @@ namespace Legion {
         std::vector<ProjectionPoint*> projection_points(points.begin(),
                                                         points.end());
         function->project_points(this, 0/*idx*/, requirement,
-            index_domain, projection_points, NULL/*no pointwise*/,
+            index_domain, projection_points, nullptr/*no pointwise*/,
             parent_ctx->get_total_shards(), false/*is replaying*/);
         // No need to check the validity of the points, we know they are good
         if (runtime->legion_spy_enabled)
@@ -823,7 +823,7 @@ namespace Legion {
       output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY;
       output.track_valid_region = true;
       // Invoke the mapper
-      if (mapper == NULL)
+      if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
         mapper = runtime->find_mapper(exec_proc, map_id);
@@ -843,7 +843,7 @@ namespace Legion {
       if (!output.source_instances.empty())
         physical_convert_sources(requirement,
             output.source_instances, source_instances, 
-            runtime->safe_mapper ? &acquired_instances : NULL);
+            runtime->safe_mapper ? &acquired_instances : nullptr);
       if (!output.profiling_requests.empty())
       {
         filter_copy_request_kinds(mapper,
@@ -1033,7 +1033,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((remote_targets == NULL) || remote_targets->empty());
+      assert((remote_targets == nullptr) || remote_targets->empty());
 #endif
       return op->create_partition_by_field(fid, pid, instances,
                                                results, instances_ready);
@@ -1049,8 +1049,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       // Should never see these here
-      assert(remote_targets == NULL);
-      assert(results == NULL);
+      assert(remote_targets == nullptr);
+      assert(results == nullptr);
 #endif
       return op->create_partition_by_image(fid, pid, projection, 
                                                instances, instances_ready);
@@ -1066,8 +1066,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       // Should never see these here
-      assert(remote_targets == NULL);
-      assert(results == NULL);
+      assert(remote_targets == nullptr);
+      assert(results == nullptr);
 #endif
       return op->create_partition_by_image_range(fid, pid, projection,
                                                   instances, instances_ready);
@@ -1107,8 +1107,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       // Should never see these here
-      assert(remote_targets == NULL);
-      assert(results == NULL);
+      assert(remote_targets == nullptr);
+      assert(results == nullptr);
 #endif
       return op->create_association(fid, domain, range, 
                                         instances, instances_ready);
@@ -1131,7 +1131,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(thunk != NULL);
+      assert(thunk != nullptr);
 #endif
       return thunk->get_kind();
     }
@@ -1168,7 +1168,7 @@ namespace Legion {
     const Task* DependentPartitionOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -1179,7 +1179,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -1198,12 +1198,12 @@ namespace Legion {
     {
       Operation::activate();
       is_index_space = false;
-      launch_space = NULL;
+      launch_space = nullptr;
       index_domain = Domain::NO_DOMAIN;
       parent_req_index = 0;
-      thunk = NULL;
+      thunk = nullptr;
       // can be changed for control rep
-      mapper = NULL;
+      mapper = nullptr;
       points_completed.store(0);
       points_committed = 0;
       commit_request = false;
@@ -1220,10 +1220,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Operation::deactivate(false/*free*/);
-      if (thunk != NULL)
+      if (thunk != nullptr)
       {
         delete thunk;
-        thunk = NULL;
+        thunk = nullptr;
       }
       version_info.clear();
       map_applied_conditions.clear();
@@ -1238,10 +1238,10 @@ namespace Legion {
       index_preconditions.clear();
       commit_preconditions.clear();
       profiling_requests.clear();
-      if (mapper_data != NULL)
+      if (mapper_data != nullptr)
       {
         free(mapper_data);
-        mapper_data = NULL;
+        mapper_data = nullptr;
         mapper_data_size = 0;
       }
       if (remove_launch_space_reference(launch_space))
@@ -1287,7 +1287,7 @@ namespace Legion {
       prepare_for_mapping(sources, input.source_instances,
                           input.collective_views);
       prepare_for_mapping(target, input.target);
-      if (mapper == NULL)
+      if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
         mapper = runtime->find_mapper(exec_proc, map_id);
@@ -1330,7 +1330,7 @@ namespace Legion {
       }
       // Need thetimeline for the operation to know how to profile this
       // profiling response
-      if (!has_finish && (runtime->profiler != NULL))
+      if (!has_finish && (runtime->profiler != nullptr))
         request.add_measurement(Realm::PMID_OP_FINISH_EVENT);
       handle_profiling_update(count);
       return copy_fill_priority;
@@ -1343,7 +1343,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(mapper != NULL);
+      assert(mapper != nullptr);
 #endif
       const OpProfilingResponse *op_info = 
         static_cast<const OpProfilingResponse*>(response.user_data());
@@ -1527,7 +1527,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PointDepPartOp::PointDepPartOp(void)
-      : DependentPartitionOp(), owner(NULL)
+      : DependentPartitionOp(), owner(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -1556,7 +1556,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, owner->mapper_data, mapper_data_size);
@@ -1589,7 +1589,7 @@ namespace Legion {
       DependentPartitionOp::activate();
       // Reset this to true after it was cleared by the base call
       is_index_space = true;
-      owner = NULL;
+      owner = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -1668,7 +1668,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(owner != NULL);
+      assert(owner != nullptr);
 #endif
       return owner->get_partition_kind();
     }
@@ -1719,7 +1719,7 @@ namespace Legion {
     DeppartResultScatter::DeppartResultScatter(ReplicateContext *ctx,
                   CollectiveID id, std::vector<DeppartResult> &res)
       : BroadcastCollective(ctx, id, 0/*origin shard*/), results(res),
-        done_event(Runtime::create_ap_user_event(NULL))
+        done_event(Runtime::create_ap_user_event(nullptr))
     //--------------------------------------------------------------------------
     {
     }
@@ -1864,7 +1864,7 @@ namespace Legion {
         rez.serialize(it->second);
       }
       if (!ready_events.empty())
-        rez.serialize(Runtime::merge_events(NULL, ready_events));
+        rez.serialize(Runtime::merge_events(nullptr, ready_events));
       else
         rez.serialize(ApEvent::NO_AP_EVENT);
     }
@@ -1913,7 +1913,7 @@ namespace Legion {
       if (ready_events.empty())
         return ApEvent::NO_AP_EVENT;
       else
-        return Runtime::merge_events(NULL, ready_events);
+        return Runtime::merge_events(nullptr, ready_events);
     }
 
     /////////////////////////////////////////////////////////////
@@ -1947,15 +1947,15 @@ namespace Legion {
     {
       ReplCollectiveViewCreator<CollectiveViewCreator<
         DependentPartitionOp> >::activate();
-      sharding_function = NULL;
-      shard_points = NULL;
-      gather = NULL;
-      scatter = NULL;
-      exchange = NULL;
+      sharding_function = nullptr;
+      shard_points = nullptr;
+      gather = nullptr;
+      scatter = nullptr;
+      exchange = nullptr;
       collective_ready = ApBarrier::NO_AP_BARRIER;
       collective_done = ApBarrier::NO_AP_BARRIER;
 #ifdef DEBUG_LEGION
-      sharding_collective = NULL;
+      sharding_collective = nullptr;
 #endif
     }
 
@@ -1965,16 +1965,16 @@ namespace Legion {
     {
       ReplCollectiveViewCreator<CollectiveViewCreator<
         DependentPartitionOp> >::deactivate(false/*free*/);
-      if (gather != NULL)
+      if (gather != nullptr)
         delete gather;
-      if (scatter != NULL)
+      if (scatter != nullptr)
         delete scatter;
-      if (exchange != NULL)
+      if (exchange != nullptr)
         delete exchange;
       remote_targets.clear();
       deppart_results.clear();
 #ifdef DEBUG_LEGION
-      if (sharding_collective != NULL)
+      if (sharding_collective != nullptr)
         delete sharding_collective;
 #endif
       remove_launch_space_reference(shard_points);
@@ -1988,13 +1988,13 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
-      assert(sharding_function == NULL);
+      assert(repl_ctx != nullptr);
+      assert(sharding_function == nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // Do the mapper call to get the sharding function to use
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(
             parent_ctx->get_executing_processor(), map_id);
       Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
@@ -2010,7 +2010,7 @@ namespace Legion {
       sharding_function = repl_ctx->shard_manager->find_sharding_function(
                                                     output.chosen_functor);
 #ifdef DEBUG_LEGION
-      assert(sharding_collective != NULL);
+      assert(sharding_collective != nullptr);
       sharding_collective->contribute(output.chosen_functor);
       if (sharding_collective->is_target() &&
           !sharding_collective->validate(output.chosen_functor))
@@ -2033,8 +2033,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx = 
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
-        assert(sharding_function == NULL);
+        assert(repl_ctx != nullptr);
+        assert(sharding_function == nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -2081,7 +2081,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx = 
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -2130,7 +2130,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -2138,7 +2138,7 @@ namespace Legion {
       if (is_index_space)
       {
 #ifdef DEBUG_LEGION
-        assert(sharding_function != NULL);
+        assert(sharding_function != nullptr);
         assert(points_completed.load() == 0);
 #endif
         // This is a bit tricky, but set the points_completed to be -1 as
@@ -2164,7 +2164,7 @@ namespace Legion {
           if (thunk->is_image())
           {
 #ifdef DEBUG_LEGION
-            assert(exchange != NULL);
+            assert(exchange != nullptr);
 #endif
             // We won't have any preconditions on the collective ready event
             runtime->phase_barrier_arrive(collective_ready, 1/*count*/);
@@ -2176,8 +2176,8 @@ namespace Legion {
           else
           {
 #ifdef DEBUG_LEGION
-            assert(gather != NULL);
-            assert(scatter != NULL);
+            assert(gather != nullptr);
+            assert(scatter != nullptr);
 #endif
             std::vector<ApEvent> preconditions;
             if (thunk->is_preimage())
@@ -2192,7 +2192,7 @@ namespace Legion {
               gather->contribute_instances(ApEvent::NO_AP_EVENT);
             else
               gather->contribute_instances(
-                  Runtime::merge_events(NULL, preconditions));
+                  Runtime::merge_events(nullptr, preconditions));
             if (gather->target == repl_ctx->owner_shard->shard_id)
               ready = gather->perform_collective_wait(false/*block*/);
             else
@@ -2220,7 +2220,7 @@ namespace Legion {
                                                      requirement,
                                                      version_info,
                                                      preconditions,
-                                                     NULL/*output region*/,
+                                                     nullptr/*output region*/,
                                                      true/*rendezvous*/);
         // Give these operations slightly higher priority since
         // they are likely needed for other operations
@@ -2260,7 +2260,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(mapped_insts.size() == 1);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -2379,7 +2379,7 @@ namespace Legion {
       assert(is_index_space);
       assert(requirement.privilege_fields.size() == 1);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
       assert(-1 <= points_completed.load());
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
@@ -2435,7 +2435,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(is_index_space);
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
 #endif
       return sharding_function->find_shard_participants(launch_space,
                                         launch_space->handle, shards);
@@ -2458,7 +2458,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       IndexPartNode *node = runtime->get_node(thunk->get_projection());
-      if (node->is_owner() || ((node->collective_mapping != NULL) &&
+      if (node->is_owner() || ((node->collective_mapping != nullptr) &&
             node->collective_mapping->contains(node->local_space)))
       {
         for (ColorSpaceIterator itr(node, true/*local only*/); itr; itr++)
@@ -2533,7 +2533,7 @@ namespace Legion {
     const Task* RemotePartitionOp::get_parent_task(void) const
     //--------------------------------------------------------------------------
     {
-      if (parent_task == NULL)
+      if (parent_task == nullptr)
         parent_task = parent_ctx->get_task();
       return parent_task;
     }
@@ -2544,7 +2544,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
@@ -2593,7 +2593,7 @@ namespace Legion {
       prepare_for_mapping(sources, input.source_instances,
                           input.collective_views); 
       prepare_for_mapping(target, input.target);
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(map_id);
       mapper->invoke_select_partition_sources(this, input, output);
       compute_ranking(mapper, output.chosen_ranking, sources, ranking, points);

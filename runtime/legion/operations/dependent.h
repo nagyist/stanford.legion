@@ -56,8 +56,8 @@ namespace Legion {
         virtual ApEvent perform(DependentPartitionOp *op,
             FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
-            const std::map<DomainPoint,Domain> *remote_targets = NULL,
-            std::vector<DeppartResult> *results = NULL) = 0;
+            const std::map<DomainPoint,Domain> *remote_targets = nullptr,
+            std::vector<DeppartResult> *results = nullptr) = 0;
         virtual PartitionKind get_kind(void) const = 0;
         virtual IndexPartition get_partition(void) const = 0;
         virtual IndexPartition get_projection(void) const = 0;
@@ -73,8 +73,8 @@ namespace Legion {
         virtual ApEvent perform(DependentPartitionOp *op,
             FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
-            const std::map<DomainPoint,Domain> *remote_targets = NULL,
-            std::vector<DeppartResult> *results = NULL);
+            const std::map<DomainPoint,Domain> *remote_targets = nullptr,
+            std::vector<DeppartResult> *results = nullptr);
         virtual PartitionKind get_kind(void) const { return BY_FIELD; }
         virtual IndexPartition get_partition(void) const { return pid; }
         virtual IndexPartition get_projection(void) const 
@@ -90,8 +90,8 @@ namespace Legion {
         virtual ApEvent perform(DependentPartitionOp *op,
             FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
-            const std::map<DomainPoint,Domain> *remote_targets = NULL,
-            std::vector<DeppartResult> *results = NULL);
+            const std::map<DomainPoint,Domain> *remote_targets = nullptr,
+            std::vector<DeppartResult> *results = nullptr);
         virtual PartitionKind get_kind(void) const { return BY_IMAGE; }
         virtual IndexPartition get_partition(void) const { return pid; }
         virtual IndexPartition get_projection(void) const { return projection; }
@@ -110,8 +110,8 @@ namespace Legion {
         virtual ApEvent perform(DependentPartitionOp *op,
             FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
-            const std::map<DomainPoint,Domain> *remote_targets = NULL,
-            std::vector<DeppartResult> *results = NULL);
+            const std::map<DomainPoint,Domain> *remote_targets = nullptr,
+            std::vector<DeppartResult> *results = nullptr);
         virtual PartitionKind get_kind(void) const { return BY_IMAGE_RANGE; }
         virtual IndexPartition get_partition(void) const { return pid; }
         virtual IndexPartition get_projection(void) const { return projection; }
@@ -130,8 +130,8 @@ namespace Legion {
         virtual ApEvent perform(DependentPartitionOp *op,
             FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
-            const std::map<DomainPoint,Domain> *remote_targets = NULL,
-            std::vector<DeppartResult> *results = NULL);
+            const std::map<DomainPoint,Domain> *remote_targets = nullptr,
+            std::vector<DeppartResult> *results = nullptr);
         virtual PartitionKind get_kind(void) const { return BY_PREIMAGE; }
         virtual IndexPartition get_partition(void) const { return pid; }
         virtual IndexPartition get_projection(void) const { return projection; }
@@ -148,8 +148,8 @@ namespace Legion {
         virtual ApEvent perform(DependentPartitionOp *op,
             FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
-            const std::map<DomainPoint,Domain> *remote_targets = NULL,
-            std::vector<DeppartResult> *results = NULL);
+            const std::map<DomainPoint,Domain> *remote_targets = nullptr,
+            std::vector<DeppartResult> *results = nullptr);
         virtual PartitionKind get_kind(void) const { return BY_PREIMAGE_RANGE; }
         virtual IndexPartition get_partition(void) const { return pid; }
         virtual IndexPartition get_projection(void) const { return projection; }
@@ -166,8 +166,8 @@ namespace Legion {
         virtual ApEvent perform(DependentPartitionOp *op,
             FieldID fid, ApEvent instances_ready,
             std::vector<FieldDataDescriptor> &instances,
-            const std::map<DomainPoint,Domain> *remote_targets = NULL,
-            std::vector<DeppartResult> *results = NULL);
+            const std::map<DomainPoint,Domain> *remote_targets = nullptr,
+            std::vector<DeppartResult> *results = nullptr);
         virtual PartitionKind get_kind(void) const { return BY_ASSOCIATION; }
         virtual IndexPartition get_partition(void) const
           { return IndexPartition::NO_PART; }

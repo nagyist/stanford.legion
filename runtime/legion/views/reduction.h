@@ -46,7 +46,7 @@ namespace Legion {
     public:
       ReductionView(DistributedID did,
                     AddressSpaceID logical_owner, PhysicalManager *manager,
-                    bool register_now, CollectiveMapping *mapping = NULL);
+                    bool register_now, CollectiveMapping *mapping = nullptr);
       ReductionView(const ReductionView &rhs) = delete;
       virtual ~ReductionView(void);
     public:

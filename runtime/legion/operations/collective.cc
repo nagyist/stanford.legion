@@ -260,7 +260,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       target_views.resize(targets.size());
-      RendezvousResult *result = NULL;
+      RendezvousResult *result = nullptr;
       // Find or create a rendezvous result and record for this context
       const PendingRendezvousKey key(index, analysis, region);
       AutoLock c_lock(collective_lock);
@@ -273,7 +273,7 @@ namespace Legion {
         result = (*it);
         break;
       }
-      if (result == NULL)
+      if (result == nullptr)
       {
         result = new RendezvousResult(this, key, targets, physical_ctx);
         // Reference for pending_rendezvous
@@ -1254,8 +1254,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(op != NULL);
-      assert(finalizer != NULL);
+      assert(op != nullptr);
+      assert(finalizer != nullptr);
 #endif
     }
 
@@ -1309,8 +1309,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(op != NULL);
-      assert(finalizer != NULL);
+      assert(op != nullptr);
+      assert(finalizer != nullptr);
 #endif
     }
 
@@ -1424,7 +1424,7 @@ namespace Legion {
               collective_versioning_rendezvous.end());
       ReplicateContext *repl_ctx = 
         dynamic_cast<ReplicateContext*>(this->get_context());
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = 
         static_cast<ReplicateContext*>(this->get_context());
@@ -1536,7 +1536,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = 
         dynamic_cast<ReplicateContext*>(this->get_context());
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = 
         static_cast<ReplicateContext*>(this->get_context());

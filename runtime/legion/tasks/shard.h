@@ -50,7 +50,7 @@ namespace Legion {
       virtual DomainPoint get_shard_point(void) const;
       virtual Domain get_shard_domain(void) const;
       virtual SingleTask* get_origin_task(void) const 
-        { assert(false); return NULL; }
+        { assert(false); return nullptr; }
       virtual bool is_shard_task(void) const { return true; }
       virtual bool is_top_level_task(void) const; 
       // Set this to true so we always eagerly evaluate future functors
@@ -64,8 +64,8 @@ namespace Legion {
       virtual void predicate_false(void);
       virtual bool distribute_task(void);
       virtual RtEvent perform_must_epoch_version_analysis(MustEpochOp *own);
-      virtual bool perform_mapping(MustEpochOp *owner = NULL,
-                                   const DeferMappingArgs *args = NULL);
+      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
+                                   const DeferMappingArgs *args = nullptr);
       virtual void handle_future_size(size_t return_type_size,
                                       std::set<RtEvent> &applied_events);
       virtual bool is_stealable(void) const;

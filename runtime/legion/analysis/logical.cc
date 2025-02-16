@@ -35,14 +35,14 @@ namespace Legion {
         uid(o->get_unique_op_id()),
         internal_idx(internal), idx(id), gen(o->get_generation()),
         shard_proj(p), pointwise_analyzable(op->is_pointwise_analyzable() &&
-            (shard_proj != NULL) &&
+            (shard_proj != nullptr) &&
              ((shard_proj->projection->projection_id == 0) ||
                shard_proj->projection->is_invertible))
     //--------------------------------------------------------------------------
     {
-      if (op != NULL)
+      if (op != nullptr)
         op->add_mapping_reference(gen);
-      if (shard_proj != NULL)
+      if (shard_proj != nullptr)
         shard_proj->add_reference();
     }
 
@@ -50,9 +50,9 @@ namespace Legion {
     LogicalUser::~LogicalUser(void)
     //--------------------------------------------------------------------------
     {
-      if (op != NULL)
+      if (op != nullptr)
         op->remove_mapping_reference(gen);
-      if ((shard_proj != NULL) && shard_proj->remove_reference())
+      if ((shard_proj != nullptr) && shard_proj->remove_reference())
         delete shard_proj;
     }
 
@@ -270,7 +270,7 @@ namespace Legion {
     LogicalState::LogicalState(RegionTreeNode *node, ContextID c)
       : owner(node), total_timeout_check_iterations(MIN_TIMEOUT_CHECK_SIZE),
         remaining_timeout_check_iterations(total_timeout_check_iterations),
-        timeout_exchange(NULL)
+        timeout_exchange(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -289,7 +289,7 @@ namespace Legion {
       assert(field_states.empty());
       assert(curr_epoch_users.empty());
       assert(prev_epoch_users.empty());
-      assert(timeout_exchange == NULL);
+      assert(timeout_exchange == nullptr);
       assert(refinement_trackers.empty());
       assert(projection_summary_cache.empty());
       assert(interfering_shards.empty());
@@ -364,11 +364,11 @@ namespace Legion {
       }
       total_timeout_check_iterations = MIN_TIMEOUT_CHECK_SIZE;
       remaining_timeout_check_iterations = total_timeout_check_iterations;
-      if (timeout_exchange != NULL)
+      if (timeout_exchange != nullptr)
       {
         timeout_exchange->perform_collective_wait();
         delete timeout_exchange;
-        timeout_exchange = NULL;
+        timeout_exchange = nullptr;
       }
       if (!refinement_trackers.empty())
       {
@@ -478,7 +478,7 @@ namespace Legion {
       {
         // Check to see if we can find this in the cache
         unsigned index = 0;
-        ProjectionSummary *invalidated = NULL;
+        ProjectionSummary *invalidated = nullptr;
         for (std::list<ProjectionSummary*>::iterator it =
               projection_summary_cache.begin(); it !=
               projection_summary_cache.end(); it++, index++)
@@ -498,7 +498,7 @@ namespace Legion {
                 // Add a reference to the result
                 result->add_reference();
 #ifdef DEBUG_LEGION
-                assert(invalidated != NULL);
+                assert(invalidated != nullptr);
 #endif
                 if (invalidated->remove_reference())
                   delete invalidated;
@@ -518,7 +518,7 @@ namespace Legion {
             invalidated = (*it);
           }
         }
-        if ((invalidated != NULL) && invalidated->remove_reference())
+        if ((invalidated != nullptr) && invalidated->remove_reference())
           delete invalidated;
       }
       ProjectionSummary *result =
@@ -643,8 +643,8 @@ namespace Legion {
       ProjectionSummary *one = prev.shard_proj;
       ProjectionSummary *two = next.shard_proj;
 #ifdef DEBUG_LEGION
-      assert(one != NULL);
-      assert(two != NULL);
+      assert(one != nullptr);
+      assert(two != nullptr);
       assert(one->owner == this);
       assert(two->owner == this);
 #endif
@@ -996,7 +996,7 @@ namespace Legion {
                         no_proj_info, *this, logical_analysis);
       // If we have a previous child and all the children are independent
       // then we know we don't need to traverse anything else
-      if ((previous_child == NULL) || !owner->are_all_children_disjoint())
+      if ((previous_child == nullptr) || !owner->are_all_children_disjoint())
       {
         // Now traverse any open children and record dependences on them as well
         for (LegionList<FieldState,SHORT_BOUNDED_LIFETIME>::const_iterator 
@@ -1015,11 +1015,11 @@ namespace Legion {
             const FieldMask overlap = refinement_mask & it->second;
             if (!overlap)
               continue;
-            if ((previous_child != NULL) && owner->are_children_disjoint(
+            if ((previous_child != nullptr) && owner->are_children_disjoint(
                   previous_child->get_color(), it->first->get_color()))
               continue;
             it->first->record_refinement_dependences(ctx, refinement_user,
-                overlap, no_proj_info, NULL/*previous child*/,
+                overlap, no_proj_info, nullptr/*previous child*/,
                 privilege_root, logical_analysis);
           }
         }
@@ -1229,7 +1229,7 @@ namespace Legion {
       {
         RegionTreeNode *node = it->first->get_refinement_node();
         RegionTreeNode *path_node = node;
-        while (path_node != NULL)
+        while (path_node != nullptr)
         {
           std::map<RegionTreeNode*,MergeCloseOp*>::const_iterator finder =
             pending_closes.find(path_node);
@@ -1384,7 +1384,7 @@ namespace Legion {
       // Record a user for this internal operation in the region tree 
       LogicalUser *user = new LogicalUser(internal_op, 0/*region index*/,
           RegionUsage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0/*redop*/),
-          NULL/*projection*/, internal_index);
+          nullptr/*projection*/, internal_index);
       LogicalState &state = node->get_logical_state(
                 context->get_logical_tree_context());
       // This will take ownership of the user
@@ -1446,7 +1446,7 @@ namespace Legion {
       while (true)
       {
 #ifdef DEBUG_LEGION
-        assert(node != NULL);
+        assert(node != nullptr);
 #endif
         depth = node->get_depth();
         has_child = path.has_child(depth);

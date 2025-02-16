@@ -261,46 +261,46 @@ namespace Legion {
     virtual LayoutConstraintKind get_constraint_kind(void) const = 0;
   public:
     virtual SpecializedConstraint* as_specialized_constraint(void)
-      { return NULL; }
+      { return nullptr; }
     virtual MemoryConstraint* as_memory_constraint(void)
-      { return NULL; }
+      { return nullptr; }
     virtual FieldConstraint* as_field_constraint(void)
-      { return NULL; }
+      { return nullptr; }
     virtual OrderingConstraint* as_ordering_constraint(void)
-      { return NULL; }
+      { return nullptr; }
     virtual TilingConstraint* as_tiling_constraint(void)
-      { return NULL; }
+      { return nullptr; }
     virtual DimensionConstraint* as_dimension_constraint(void)
-      { return NULL; } 
+      { return nullptr; } 
     virtual AlignmentConstraint* as_alignment_constraint(void)
-      { return NULL; }
+      { return nullptr; }
     virtual OffsetConstraint* as_offset_constraint(void)
-      { return NULL; }
+      { return nullptr; }
     virtual PointerConstraint* as_pointer_constraint(void)
-      { return NULL; }
+      { return nullptr; }
     virtual PaddingConstraint* as_padding_constraint(void)
-      { return NULL; }
+      { return nullptr; }
   public:
     virtual const SpecializedConstraint* 
-      as_specialized_constraint(void) const { return NULL; }
+      as_specialized_constraint(void) const { return nullptr; }
     virtual const MemoryConstraint* 
-      as_memory_constraint(void) const { return NULL; }
+      as_memory_constraint(void) const { return nullptr; }
     virtual const FieldConstraint* 
-      as_field_constraint(void) const { return NULL; }
+      as_field_constraint(void) const { return nullptr; }
     virtual const OrderingConstraint* 
-      as_ordering_constraint(void) const { return NULL; }
+      as_ordering_constraint(void) const { return nullptr; }
     virtual const TilingConstraint* 
-      as_tiling_constraint(void) const { return NULL; }
+      as_tiling_constraint(void) const { return nullptr; }
     virtual const DimensionConstraint* 
-      as_dimension_constraint(void) const { return NULL; }
+      as_dimension_constraint(void) const { return nullptr; }
     virtual const AlignmentConstraint* 
-      as_alignment_constraint(void) const { return NULL; }
+      as_alignment_constraint(void) const { return nullptr; }
     virtual const OffsetConstraint* 
-      as_offset_constraint(void) const { return NULL; }
+      as_offset_constraint(void) const { return nullptr; }
     virtual const PointerConstraint* 
-      as_pointer_constraint(void) const { return NULL; }
+      as_pointer_constraint(void) const { return nullptr; }
     virtual const PaddingConstraint*
-      as_padding_constraint(void) const { return NULL; }
+      as_padding_constraint(void) const { return nullptr; }
   };
 
   /**
@@ -772,19 +772,19 @@ namespace Legion {
     bool operator==(const LayoutConstraintSet &other) const;
     bool operator!=(const LayoutConstraintSet &other) const;
     bool equals(const LayoutConstraintSet &other,
-                LayoutConstraintKind *bad_kind = NULL,
-                size_t *bad_index = NULL) const;
+                LayoutConstraintKind *bad_kind = nullptr,
+                size_t *bad_index = nullptr) const;
   public:
     // failed_constraint will be the one from 'other' that wasn't entailed
     bool entails(const LayoutConstraintSet &other, 
                  unsigned total_dims = 0,
-                 const LayoutConstraint **failed_constraint = NULL,
+                 const LayoutConstraint **failed_constraint = nullptr,
                  bool test_pointer = true) const;
     // conflict_constraint will be the one from 'this' that conficted
     // with a constraint from 'other'
     bool conflicts(const LayoutConstraintSet &other,
                    unsigned total_dims = 0,
-                   const LayoutConstraint **conflict_constraint = NULL) const;
+                   const LayoutConstraint **conflict_constraint = nullptr) const;
     const LayoutConstraint* convert_unsatisfied(LayoutConstraintKind kind,
                                                 unsigned index) const;
   public:

@@ -65,7 +65,7 @@ namespace Legion {
                                       RegionTreeID tid) const;
     public:
       // Helper methods for traversing the total and partial valid views
-      // These should only be called on the root with collective != NULL
+      // These should only be called on the root with collective != nullptr
       void traverse_total(const FieldMask &mask, IndexSpaceExpression *set_expr,
                           const FieldMaskSet<LogicalView> &total_valid_views);
       void traverse_partial(const FieldMask &mask, const LegionMap<LogicalView*,
@@ -252,7 +252,7 @@ namespace Legion {
           std::vector<RtEvent> &invalidated_events);
       void cancel_subscriptions(
           const LegionMap<AddressSpaceID,FieldMaskSet<EqKDTree> > &to_cancel,
-          std::vector<RtEvent> *cancelled_events = NULL);
+          std::vector<RtEvent> *cancelled_events = nullptr);
       static void invalidate_subscriptions(EqKDTree *source,
           LegionMap<AddressSpaceID,FieldMaskSet<EqSetTracker> > &subscribers,
           std::vector<RtEvent> &applied_events);
@@ -285,9 +285,9 @@ namespace Legion {
          const std::vector<EqSetTracker*> &targets);
       struct SourceState : public FieldSet<Domain> {
       public:
-        SourceState(void) : source_expr(NULL), source_volume(0) { }
+        SourceState(void) : source_expr(nullptr), source_volume(0) { }
         SourceState(const FieldMask &m) : 
-          FieldSet(m), source_expr(NULL), source_volume(0) { }
+          FieldSet(m), source_expr(nullptr), source_volume(0) { }
         ~SourceState(void);
       public:
         IndexSpaceExpression* get_expression(void) const;
@@ -439,7 +439,7 @@ namespace Legion {
                      RegionTreeID tid,
                      InnerContext *context,
                      bool register_now, 
-                     CollectiveMapping *mapping = NULL,
+                     CollectiveMapping *mapping = nullptr,
                      bool replicate_logical_owner = false);
       EquivalenceSet(const EquivalenceSet &rhs) = delete;
       virtual ~EquivalenceSet(void);
@@ -619,15 +619,15 @@ namespace Legion {
       void filter_valid_instances(IndexSpaceExpression *expr, 
                                   const bool expr_covers, 
                                   const FieldMask &filter_mask,
-           std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = NULL,
-           std::map<LogicalView*,unsigned> *view_refs_to_remove = NULL);
+           std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = nullptr,
+           std::map<LogicalView*,unsigned> *view_refs_to_remove = nullptr);
       void filter_unrestricted_instances(IndexSpaceExpression *expr,
                                          const bool expr_covers, 
                                          FieldMask filter_mask);
       void filter_reduction_instances(IndexSpaceExpression *expr,
            const bool covers, const FieldMask &mask,
-           std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = NULL,
-           std::map<LogicalView*,unsigned> *view_refs_to_remove = NULL);
+           std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = nullptr,
+           std::map<LogicalView*,unsigned> *view_refs_to_remove = nullptr);
       void update_set_internal(CopyFillAggregator *&input_aggregator,
                                CopyFillGuard *previous_guard,
                                PhysicalAnalysis *analysis,
@@ -656,7 +656,7 @@ namespace Legion {
                                const PhysicalTraceInfo &trace_info,
                                const bool skip_check = false,
                                const ReductionOpID redop = 0,
-                               CopyAcrossHelper *across_helper = NULL);
+                               CopyAcrossHelper *across_helper = nullptr);
       void issue_update_copies_and_fills(InstanceView *target,
                                          PhysicalManager *target_manager,
                                const std::vector<IndividualView*> &source_views,
@@ -685,7 +685,7 @@ namespace Legion {
                             const bool track_events,
                             const PhysicalTraceInfo &trace_info,
                             FieldMaskSet<IndexSpaceExpression> *applied_exprs,
-                            CopyAcrossHelper *across_helper = NULL);
+                            CopyAcrossHelper *across_helper = nullptr);
       void apply_restricted_reductions(
                             const FieldMaskSet<InstanceView> &reduction_targets,
                             IndexSpaceExpression *expr, const bool expr_covers,
@@ -739,15 +739,15 @@ namespace Legion {
                 FieldMaskSet<InstanceView> &updates);
       void filter_initialized_data(IndexSpaceExpression *expr, 
           const bool expr_covers, const FieldMask &filter_mask, 
-          std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = NULL);
+          std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = nullptr);
       void filter_restricted_instances(IndexSpaceExpression *expr, 
           const bool covers, const FieldMask &mask,
-          std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = NULL,
-          std::map<LogicalView*,unsigned> *view_refs_to_remove = NULL);
+          std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = nullptr,
+          std::map<LogicalView*,unsigned> *view_refs_to_remove = nullptr);
       void filter_released_instances(IndexSpaceExpression *expr, 
           const bool covers, const FieldMask &mask,
-          std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = NULL,
-          std::map<LogicalView*,unsigned> *view_refs_to_remove = NULL);
+          std::map<IndexSpaceExpression*,unsigned> *expr_refs_to_remove = nullptr,
+          std::map<LogicalView*,unsigned> *view_refs_to_remove = nullptr);
       bool find_fully_valid_fields(InstanceView *inst, FieldMask &inst_mask,
           IndexSpaceExpression *expr, const bool expr_covers) const;
       bool find_partial_valid_fields(InstanceView *inst, FieldMask &inst_mask,

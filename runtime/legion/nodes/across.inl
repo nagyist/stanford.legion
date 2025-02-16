@@ -66,7 +66,7 @@ namespace Legion {
                 const bool preimages, const bool shadow)
       : CopyAcrossUnstructured(preimages, rsrvs), expr(e),
         copy_domain(domain), copy_domain_ready(ready), 
-        shadow_indirections(shadow), shadow_layout(NULL),
+        shadow_indirections(shadow), shadow_layout(nullptr),
         need_src_indirect_precondition(true),
         need_dst_indirect_precondition(true), 
         src_indirect_immutable_for_tracing(false),
@@ -105,7 +105,7 @@ namespace Legion {
       for (typename std::vector<const CopyIndirection*>::const_iterator it =
             indirections.begin(); it != indirections.end(); it++)
         delete (*it);
-      if (shadow_layout != NULL)
+      if (shadow_layout != nullptr)
         delete shadow_layout;
     }
 
@@ -270,14 +270,14 @@ namespace Legion {
         // see the dependences between the preimages and copy operations
         if (src_indirect_precondition.exists() ||
             dst_indirect_precondition.exists())
-          copy_precondition = Runtime::merge_events(NULL, copy_precondition,
+          copy_precondition = Runtime::merge_events(nullptr, copy_precondition,
               src_indirect_precondition, dst_indirect_precondition);
 #endif
       }
       if (has_empty_preimages)
       {
 #ifdef LEGION_SPY
-        ApUserEvent new_last_copy = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_last_copy = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_last_copy);
         last_copy = new_last_copy;
         LegionSpy::log_indirect_events(op->get_unique_op_id(), expr->expr_id,
@@ -312,7 +312,7 @@ namespace Legion {
       ApEvent copy_pre;
       if (pred_guard.exists())
         copy_pre =
-          Runtime::merge_events(NULL, copy_precondition, ApEvent(pred_guard));
+          Runtime::merge_events(nullptr, copy_precondition, ApEvent(pred_guard));
       else
         copy_pre = copy_precondition;
       if (!reservations.empty())
@@ -343,10 +343,10 @@ namespace Legion {
           // Note this code will need to change once we start handling
           // reservations correctly for indirection copies since we'll need
           // to merge these before acquiring the reservations
-          copy_pre = Runtime::merge_events(NULL, copy_pre,
+          copy_pre = Runtime::merge_events(nullptr, copy_pre,
               src_indirect_precondition, dst_indirect_precondition);
         }
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_copy_request(requests, this, op,
               copy_pre, total_copies);
         last_copy = ApEvent(copy_domain.copy(src_fields, dst_fields,
@@ -368,7 +368,7 @@ namespace Legion {
         if (copy_precondition.exists())
         {
           if (last_copy.exists())
-            last_copy = Runtime::merge_events(NULL,last_copy,copy_precondition);
+            last_copy = Runtime::merge_events(nullptr,last_copy,copy_precondition);
           else
             last_copy = copy_precondition;
         }
@@ -376,13 +376,13 @@ namespace Legion {
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!last_copy.exists())
       {
-        ApUserEvent new_last_copy = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_last_copy = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_last_copy);
         last_copy = new_last_copy;
       }
 #endif
 #ifdef LEGION_SPY
-      assert(op != NULL);
+      assert(op != nullptr);
       if (src_indirections.empty() && dst_indirections.empty())
       {
         LegionSpy::log_copy_events(op->get_unique_op_id(), expr->expr_id, 
@@ -485,12 +485,12 @@ namespace Legion {
         {
           if (pre.exists())
             pre =
-              Runtime::merge_events(NULL, pre, indirection_preconditions[idx]);
+              Runtime::merge_events(nullptr, pre, indirection_preconditions[idx]);
           else
             pre = indirection_preconditions[idx];
         }
         Realm::ProfilingRequestSet preimage_requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
         {
           preimage_requests = requests;
           runtime->profiler->add_copy_request(preimage_requests, this, op, pre);
@@ -502,7 +502,7 @@ namespace Legion {
       }
       if (postconditions.empty())
         return ApEvent::NO_AP_EVENT;
-      return Runtime::merge_events(NULL, postconditions);
+      return Runtime::merge_events(nullptr, postconditions);
     }
 
     //--------------------------------------------------------------------------
@@ -550,7 +550,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         const Realm::InstanceLayout<DIM,T> *typed_layout =
           dynamic_cast<const Realm::InstanceLayout<DIM,T>*>(layout);
-        assert(typed_layout != NULL);
+        assert(typed_layout != nullptr);
         assert(((size_t)finder->second.list_idx) < 
             typed_layout->piece_lists.size());
         assert(
@@ -558,7 +558,7 @@ namespace Legion {
         const Realm::AffineLayoutPiece<DIM,T> *piece =
           dynamic_cast<const Realm::AffineLayoutPiece<DIM,T>*>(
              typed_layout->piece_lists[finder->second.list_idx].pieces.front());
-        assert(piece != NULL);
+        assert(piece != nullptr);
 #else
         const Realm::InstanceLayout<DIM,T> *typed_layout =
           static_cast<const Realm::InstanceLayout<DIM,T>*>(layout);
@@ -596,7 +596,7 @@ namespace Legion {
         Memory memory, UniqueID creator_uid, bool source, LgEvent &unique_event)
     //--------------------------------------------------------------------------
     {
-      if (shadow_layout == NULL)
+      if (shadow_layout == nullptr)
         shadow_layout = select_shadow_layout(source);
       // See if we can allocate this in the target memory. If the instance
       // is not immediately available then we return a NO_INST since it is
@@ -606,7 +606,7 @@ namespace Legion {
       // Note that we're technically by-passing unbounded pool allocations
       // here which is not strictly safe, but since we're only going to hold
       // onto the memory if we allocation it immediately makes it safe.
-      if (!unique_event.exists() && (runtime->profiler != NULL))
+      if (!unique_event.exists() && (runtime->profiler != nullptr))
       {
         const Realm::UserEvent unique = Realm::UserEvent::create_user_event();
         unique.trigger();
@@ -620,7 +620,7 @@ namespace Legion {
           &base, sizeof(base), LG_RESOURCE_PRIORITY);
       req.add_measurement<
         Realm::ProfilingMeasurements::InstanceAllocResult>();
-      if (runtime->profiler != NULL)
+      if (runtime->profiler != nullptr)
         runtime->profiler->add_inst_request(requests, creator_uid, 
                                             unique_event);
       PhysicalInstance result;
@@ -639,7 +639,7 @@ namespace Legion {
             return PhysicalInstance::NO_INST;
           }
         }
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
         {
           AutoLock p_lock(preimage_lock);
           profiling_shadow_instances[result] = unique_event;
@@ -659,7 +659,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // No need for a trace info here since we should never be recording
-      const PhysicalTraceInfo dummy_trace_info(NULL, 0);
+      const PhysicalTraceInfo dummy_trace_info(nullptr, 0);
       const std::vector<Reservation> no_reservations;
       std::vector<CopySrcDstField> src_fields, dst_fields;
       CopySrcDstField &src_field = src_fields.emplace_back(CopySrcDstField());
@@ -730,20 +730,20 @@ namespace Legion {
         {
           // No need for tracing to know about this merge
           indirect_spaces_precondition = 
-            Runtime::merge_events(NULL, preconditions);
+            Runtime::merge_events(nullptr, preconditions);
           need_src_indirect_precondition = false;
         }
         else
         {
           indirect_spaces_precondition = 
-            Runtime::merge_events(NULL, preconditions);
+            Runtime::merge_events(nullptr, preconditions);
           need_dst_indirect_precondition = false;
         }
       }
       if (indirect_spaces_precondition.exists())
       {
         if (precondition.exists())
-          precondition = Runtime::merge_events(NULL, precondition, 
+          precondition = Runtime::merge_events(nullptr, precondition, 
               indirect_spaces_precondition);
         else
           precondition = indirect_spaces_precondition; 
@@ -762,7 +762,7 @@ namespace Legion {
           source ? src_indirect_field : dst_indirect_field;
         descriptor.index_space = copy_domain;
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests, op, 
                                     DEP_PART_BY_PREIMAGE_RANGE, precondition);
         result = ApEvent(copy_domain.create_subspaces_by_preimage(
@@ -781,7 +781,7 @@ namespace Legion {
           source ? src_indirect_field : dst_indirect_field;
         descriptor.index_space = copy_domain;
         Realm::ProfilingRequestSet requests;
-        if (runtime->profiler != NULL)
+        if (runtime->profiler != nullptr)
           runtime->profiler->add_partition_request(requests, op, 
                                           DEP_PART_BY_PREIMAGE, precondition);
         result = ApEvent(copy_domain.create_subspaces_by_preimage(
@@ -800,12 +800,12 @@ namespace Legion {
       {
         if (result.exists())
           valid_events.push_back(result);
-        result = Runtime::merge_events(NULL, valid_events);
+        result = Runtime::merge_events(nullptr, valid_events);
       }
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists() || (result == precondition))
       {
-        ApUserEvent new_result = Runtime::create_ap_user_event(NULL);
+        ApUserEvent new_result = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(new_result);
         result = new_result;
       }
@@ -883,7 +883,7 @@ namespace Legion {
         {
           if (indirection_event.exists())
             indirection_event =
-              Runtime::merge_events(NULL, indirection_event, last_copy);
+              Runtime::merge_events(nullptr, indirection_event, last_copy);
           else
             indirection_event = last_copy;
         }
@@ -1057,7 +1057,7 @@ namespace Legion {
               unstructured->spaces.back() =
                 indirect_records[nonempty_index].domain;
               // No next indirections yet...
-              unstructured->next_indirection = NULL;
+              unstructured->next_indirection = nullptr;
               indirect_index = indirections.size();
               indirections.push_back(unstructured);
             }
@@ -1065,7 +1065,7 @@ namespace Legion {
           }
           if (!shadow_preconditions.empty())
             indirection_preconditions[idx] =
-              Runtime::merge_events(NULL, shadow_preconditions);
+              Runtime::merge_events(nullptr, shadow_preconditions);
         }
         // Now we can swap in the new preimages
         preimages.swap(new_preimages);
@@ -1146,7 +1146,7 @@ namespace Legion {
               unstructured->spaces[idx] =
                 indirect_records[nonempty_indexes[idx]].domain;
             // No next indirections yet...
-            unstructured->next_indirection = NULL;
+            unstructured->next_indirection = nullptr;
             indirect_index = indirections.size();
             indirections.push_back(unstructured);
 #ifdef LEGION_SPY

@@ -46,7 +46,7 @@ namespace Legion {
     FRIEND_ALL_RUNTIME_CLASSES
     explicit FutureMap(Internal::FutureMapImpl *impl);
   public:
-    inline bool exists(void) const { return (impl != NULL); }
+    inline bool exists(void) const { return (impl != nullptr); }
     inline bool operator==(const FutureMap &f) const
       { return impl == f.impl; }
     inline bool operator<(const FutureMap &f) const
@@ -68,7 +68,7 @@ namespace Legion {
     template<typename T>
       inline T get_result(const DomainPoint &point,
                           bool silence_warnings = false,
-                          const char *warning_string = NULL) const;
+                          const char *warning_string = nullptr) const;
     /**
      * Non-blocking call that will return a future that
      * will contain the value from the given index task
@@ -86,7 +86,7 @@ namespace Legion {
      */
     void get_void_result(const DomainPoint &point,
                          bool silence_warnings = false,
-                         const char *warning_string = NULL) const;
+                         const char *warning_string = nullptr) const;
   public:
     /**
      * An older method for getting the result of
@@ -122,7 +122,7 @@ namespace Legion {
      * @param warning_string a string to be reported with any warnings
      */
     void wait_all_results(bool silence_warnings = false,
-                          const char *warning_string = NULL) const; 
+                          const char *warning_string = nullptr) const; 
   public:
     /**
      * This method will return the domain of points that can be 

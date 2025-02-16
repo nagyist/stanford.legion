@@ -34,7 +34,7 @@ namespace Legion {
    */
   class UntypedBuffer : public Unserializable {
     public:
-    UntypedBuffer(void) : args(NULL), arglen(0) { }
+    UntypedBuffer(void) : args(nullptr), arglen(0) { }
     UntypedBuffer(const void *arg, size_t argsize)
       : args(const_cast<void*>(arg)), arglen(argsize) { }
     UntypedBuffer(const UntypedBuffer &rhs)
@@ -86,7 +86,7 @@ namespace Legion {
       { return (impl == rhs.impl); }
     inline bool operator<(const ArgumentMap &rhs) const
       { return (impl < rhs.impl); }
-    inline bool exists(void) const { return (impl != NULL); }
+    inline bool exists(void) const { return (impl != nullptr); }
   public:
     /**
      * Check to see if a point has an argument set

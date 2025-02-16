@@ -63,7 +63,7 @@ namespace Legion {
       public HeapifyMixin<RemoteContext,InnerContext,CONTEXT_LIFETIME> {
     public:
       RemoteContext(DistributedID did,
-                    CollectiveMapping *mapping = NULL);
+                    CollectiveMapping *mapping = nullptr);
       RemoteContext(const RemoteContext &rhs) = delete;
       virtual ~RemoteContext(void);
     public:
@@ -79,7 +79,7 @@ namespace Legion {
       void unpack_remote_context(Deserializer &derez);
       virtual InnerContext* find_parent_context(void);
     public:
-      virtual InnerContext* find_top_context(InnerContext *previous = NULL);
+      virtual InnerContext* find_top_context(InnerContext *previous = nullptr);
     public:
       virtual RtEvent compute_equivalence_sets(unsigned req_index,
                       const std::vector<EqSetTracker*> &targets,
@@ -99,19 +99,19 @@ namespace Legion {
                                        const FieldMask &refinement_mask,
                                        std::vector<RtEvent> &applied_events,
                                        bool sharded = false, bool first = true,
-                                       const CollectiveMapping *mapping = NULL);
+                                       const CollectiveMapping *mapping = nullptr);
       virtual RtEvent find_pointwise_dependence(uint64_t context_index,
           const DomainPoint &point, ShardID shard,
           RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
       virtual void find_trace_local_sets(unsigned req_index,
                             const FieldMask &mask,
                             std::map<EquivalenceSet*,unsigned> &current_sets,
-                            IndexSpaceNode *node = NULL,
-                            const CollectiveMapping *mapping = NULL);
+                            IndexSpaceNode *node = nullptr,
+                            const CollectiveMapping *mapping = nullptr);
       virtual void invalidate_logical_context(void);
       virtual void invalidate_region_tree_contexts(const bool is_top_level_task,
                           std::set<RtEvent> &applied,
-                          const ShardMapping *shard_mapping = NULL,
+                          const ShardMapping *shard_mapping = nullptr,
                           ShardID source_shard = 0);
       virtual void receive_created_region_contexts(
                           const std::vector<RegionNode*> &created_regions,

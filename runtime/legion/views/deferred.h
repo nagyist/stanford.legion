@@ -40,7 +40,7 @@ namespace Legion {
     class DeferredView : public LogicalView {
     public:
       DeferredView(DistributedID did,
-                   bool register_now, CollectiveMapping *mapping = NULL);
+                   bool register_now, CollectiveMapping *mapping = nullptr);
       virtual ~DeferredView(void);
     public:
       virtual void send_view(AddressSpaceID target) = 0; 

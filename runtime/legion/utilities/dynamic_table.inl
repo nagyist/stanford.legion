@@ -26,7 +26,7 @@ namespace Legion {
     DynamicTable<ALLOCATOR>::DynamicTable(void)
     //-------------------------------------------------------------------------
     {
-      root.store(NULL);
+      root.store(nullptr);
     }
 
     //-------------------------------------------------------------------------
@@ -35,10 +35,10 @@ namespace Legion {
     //-------------------------------------------------------------------------
     {
       NodeBase *r = root.load();
-      if (r != NULL)
+      if (r != nullptr)
       {
         delete r;
-        root.store(NULL);
+        root.store(nullptr);
       }
     }
 
@@ -65,7 +65,7 @@ namespace Legion {
     //-------------------------------------------------------------------------
     {
       NodeBase *r = root.load();
-      if (r == NULL)
+      if (r == nullptr)
         return 0;
       size_t elems_addressable = 1 << ALLOCATOR::LEAF_BITS;
       for (int i = 0; i < r->level; i++)
@@ -133,12 +133,12 @@ namespace Legion {
         static_cast<typename ALLOCATOR::LEAF_TYPE*>(n);
       int offset = (index & ((((IT)1) << ALLOCATOR::LEAF_BITS) - 1));
       ET *result = leaf->elems[offset].load();
-      if (result == NULL)
+      if (result == nullptr)
       {
         AutoLock l(leaf->lock);
         // Now that we have the lock, check to see if we lost the race
         result = leaf->elems[offset].load();
-        if (result == NULL)
+        if (result == nullptr)
         {
           result = new ET();
           leaf->elems[offset].store(result);
@@ -162,12 +162,12 @@ namespace Legion {
         static_cast<typename ALLOCATOR::LEAF_TYPE*>(n);
       int offset = (index & ((((IT)1) << ALLOCATOR::LEAF_BITS) - 1));
       ET *result = leaf->elems[offset].load();
-      if (result == NULL)
+      if (result == nullptr)
       {
         AutoLock l(leaf->lock);
         // Now that we have the lock, check to see if we lost the race
         result = leaf->elems[offset].load();
-        if (result == NULL)
+        if (result == nullptr)
         {
           result = new ET(arg);
           leaf->elems[offset].store(result);
@@ -192,12 +192,12 @@ namespace Legion {
         static_cast<typename ALLOCATOR::LEAF_TYPE*>(n);
       int offset = (index & ((((IT)1) << ALLOCATOR::LEAF_BITS) - 1));
       ET *result = leaf->elems[offset].load();
-      if (result == NULL)
+      if (result == nullptr)
       {
         AutoLock l(leaf->lock);
         // Now that we have the lock, check to see if we lost the race
         result = leaf->elems[offset].load();
-        if (result == NULL)
+        if (result == nullptr)
         {
           result = new ET(arg1, arg2);
           leaf->elems[offset].store(result);
@@ -271,12 +271,12 @@ namespace Legion {
         assert((i >= 0) && (((size_t)i) < ALLOCATOR::INNER_TYPE::SIZE));
 #endif
         NodeBase *child = inner->elems[i].load();
-        if (child == NULL)
+        if (child == nullptr)
         {
           AutoLock l(inner->lock);
           // Now that the lock is held, check to see if we lost the race
           child = inner->elems[i].load();
-          if (child == NULL)
+          if (child == nullptr)
           {
             int child_level = inner->level - 1;
             int child_shift = 

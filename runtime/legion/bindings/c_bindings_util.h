@@ -715,7 +715,7 @@ namespace Legion {
       }
       virtual const Task* get_parent_task(void) const {
         assert(false);
-        return NULL;
+        return nullptr;
       }
       virtual const std::string_view& get_provenance_string(
           bool human=true) const {
@@ -728,7 +728,7 @@ namespace Legion {
       }
       virtual const char* get_task_name(void) const {
         assert(false);
-        return NULL;
+        return nullptr;
       }
       virtual Domain get_slice_domain(void) const {
         assert(false);

@@ -52,7 +52,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       MultiTask::activate();
-      serdez_redop_fns = NULL;
+      serdez_redop_fns = nullptr;
       total_points = 0;
       mapped_points = 0;
       completed_points = 0;
@@ -68,7 +68,7 @@ namespace Legion {
     void IndexTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      reduction_instance = NULL; // we don't own this so clear it
+      reduction_instance = nullptr; // we don't own this so clear it
       for (std::map<Color,ConcurrentGroup>::iterator it =
             concurrent_groups.begin(); it != concurrent_groups.end(); it++)
         if (it->second.task_barrier.exists())
@@ -381,7 +381,7 @@ namespace Legion {
                                          IndexSpace launch_sp,
                                          Provenance *provenance,
                                          bool track /*= true*/,
-                             std::vector<OutputRequirement> *outputs /*= NULL*/)
+                             std::vector<OutputRequirement> *outputs /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
       parent_ctx = ctx;
@@ -391,7 +391,7 @@ namespace Legion {
       futures = launcher.futures;
       // If the task has any output requirements, we create fresh region and
       // partition names and return them back to the user
-      if (outputs != NULL)
+      if (outputs != nullptr)
         create_output_regions(*outputs, launch_sp);
       update_grants(launcher.grants);
       wait_barriers = launcher.wait_barriers;
@@ -423,7 +423,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
@@ -431,7 +431,7 @@ namespace Legion {
       is_index_space = true;
 #ifdef DEBUG_LEGION
       assert(launch_sp.exists());
-      assert(launch_space == NULL);
+      assert(launch_space == nullptr);
 #endif
       launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
@@ -442,7 +442,7 @@ namespace Legion {
       internal_space = launch_space->handle;
       sharding_space = launcher.sharding_space;
       initialize_base_task(ctx, launcher.predicate, task_id, provenance);
-      if (outputs != NULL)
+      if (outputs != nullptr)
       {
         if (launcher.predicate != Predicate::TRUE_PRED)
           REPORT_LEGION_ERROR(ERROR_OUTPUT_REGIONS_IN_PREDICATED_TASK,
@@ -451,7 +451,7 @@ namespace Legion {
               "parent task %s (UID %lld) is used with output requirements.",
               get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
               parent_ctx->get_unique_id())
-        if (get_trace() != NULL)
+        if (get_trace() != nullptr)
           REPORT_LEGION_ERROR(ERROR_OUTPUT_REGIONS_IN_TRACE,
               "Output requirements are disallowed for tasks launched inside "
               "traces. Task %s (UID %lld) in parent task %s (UID %lld) has "
@@ -504,7 +504,7 @@ namespace Legion {
                                       ReductionOpID redop_id, 
                                       bool deterministic,
                                       bool track /*= true*/,
-                             std::vector<OutputRequirement> *outputs /*= NULL*/)
+                             std::vector<OutputRequirement> *outputs /*= nullptr*/)
     //--------------------------------------------------------------------------
     {
       if (launcher.elide_future_return)
@@ -519,7 +519,7 @@ namespace Legion {
       futures = launcher.futures;
       // If the task has any output requirements, we create fresh region and
       // partition names and return them back to the user
-      if (outputs != NULL)
+      if (outputs != nullptr)
         create_output_regions(*outputs, launch_sp);
       update_grants(launcher.grants);
       wait_barriers = launcher.wait_barriers;
@@ -551,7 +551,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
@@ -559,7 +559,7 @@ namespace Legion {
       is_index_space = true;
 #ifdef DEBUG_LEGION
       assert(launch_sp.exists());
-      assert(launch_space == NULL);
+      assert(launch_space == nullptr);
 #endif
       launch_space = runtime->get_node(launch_sp);
       add_launch_space_reference(launch_space);
@@ -580,7 +580,7 @@ namespace Legion {
                       "(ID %lld) is not foldable.",
                       redop, get_task_name(), get_unique_id())
       initialize_base_task(ctx, launcher.predicate, task_id, provenance);
-      if (outputs != NULL)
+      if (outputs != nullptr)
       {
         if (launcher.predicate != Predicate::TRUE_PRED)
           REPORT_LEGION_ERROR(ERROR_OUTPUT_REGIONS_IN_PREDICATED_TASK,
@@ -589,7 +589,7 @@ namespace Legion {
               "parent task %s (UID %lld) is used with output requirements.",
               get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
               parent_ctx->get_unique_id())
-        if (get_trace() != NULL)
+        if (get_trace() != nullptr)
           REPORT_LEGION_ERROR(ERROR_OUTPUT_REGIONS_IN_TRACE,
               "Output requirements are disallowed for tasks launched inside "
               "traces. Task %s (UID %lld) in parent task %s (UID %lld) has "
@@ -603,7 +603,7 @@ namespace Legion {
       reduction_future = Future(new FutureImpl(parent_ctx,
           true/*register*/, runtime->get_available_distributed_id(),
           provenance, this));
-      if (serdez_redop_fns == NULL)
+      if (serdez_redop_fns == nullptr)
       {
         reduction_future_size = reduction_op->sizeof_rhs;
         reduction_future.impl->set_future_result_size(
@@ -695,7 +695,7 @@ namespace Legion {
                                          const UntypedBuffer &pred_arg)
     //--------------------------------------------------------------------------
     {
-      if (pred_future.impl != NULL)
+      if (pred_future.impl != nullptr)
         predicate_false_future = pred_future;
       else if (pred_arg.get_size() > 0)
         predicate_false_result.save_buffer(pred_arg.get_ptr(),
@@ -707,7 +707,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(must_epoch != NULL);
+      assert(must_epoch != nullptr);
 #endif
       set_origin_mapped(true);
       total_points = launch_space->get_volume();
@@ -894,13 +894,13 @@ namespace Legion {
       // register mapping dependences on futures
       for (std::vector<Future>::const_iterator it = futures.begin();
             it != futures.end(); it++)
-        if (it->impl != NULL)
+        if (it->impl != nullptr)
           it->impl->register_dependence(this);
-      if (predicate_false_future.impl != NULL)
+      if (predicate_false_future.impl != nullptr)
         predicate_false_future.impl->register_dependence(this);
       // Always have to register a full dependence on this since we need
       // to have the producer mapped by the time we're enumerating points
-      if (point_arguments.impl != NULL)
+      if (point_arguments.impl != nullptr)
         point_arguments.impl->register_dependence(this);
       // Register mapping dependences on any future maps also
       // if we're not pointwise analyzable. If we are then we'll
@@ -1048,7 +1048,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(!elide_future_return);
-      assert(future_handles == NULL);
+      assert(future_handles == nullptr);
 #endif
       future_handles = new FutureHandles;
       future_handles->add_reference();
@@ -1326,7 +1326,7 @@ namespace Legion {
             Domain local_domain;
             runtime->find_domain(internal_space, local_domain);
             // Handling the future map case
-            if (predicate_false_future.impl != NULL)
+            if (predicate_false_future.impl != nullptr)
             {
               for (Domain::DomainPointIterator itr(local_domain);
                     itr; itr++)
@@ -1335,7 +1335,7 @@ namespace Legion {
                                             true/*internal*/);
                 // Safe to block indefinitely waiting for unbounded pools
                 f.impl->set_result(this, predicate_false_future.impl,
-                                   NULL/*safe_for_unbounded_pools*/);
+                                   nullptr/*safe_for_unbounded_pools*/);
               }
             }
             else
@@ -1347,7 +1347,7 @@ namespace Legion {
                   f.impl->set_local(predicate_false_result.get_buffer(),
                       predicate_false_result.get_size(), false/*own*/);
                 else
-                  f.impl->set_result(ApEvent::NO_AP_EVENT, NULL);
+                  f.impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
               }
             }
           }
@@ -1355,11 +1355,11 @@ namespace Legion {
         else
         {
           // Handling a reduction case
-          if (redop_initial_value.impl != NULL)
+          if (redop_initial_value.impl != nullptr)
           {
             // Safe to block here indefinitely waiting for unbounded pools
             reduction_future.impl->set_result(this, redop_initial_value.impl,
-                                              NULL/*safe_for_unbounded_pools*/);
+                                              nullptr/*safe_for_unbounded_pools*/);
           }
           else
             reduction_future.impl->set_local(&reduction_op->identity,
@@ -1397,7 +1397,7 @@ namespace Legion {
       // Initialize this to not have a new target processor
       output.new_target_proc = Processor::NO_PROC;
       // Now invoke the mapper call
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id);
       mapper->invoke_premap_task(this, input, output);
       // See if we need to update the new target processor
@@ -1408,7 +1408,7 @@ namespace Legion {
       if (is_recording())
       {
 #ifdef DEBUG_LEGION
-        assert((tpl != NULL) && tpl->is_recording());
+        assert((tpl != nullptr) && tpl->is_recording());
 #endif
         tpl->record_premap_output(this, output, map_applied_conditions);
       }
@@ -1458,7 +1458,7 @@ namespace Legion {
       // If we've got a serdez redop function then we don't know how big
       // the output is going to be until later, otherwise we know the
       // output size from the reduction operator
-      if (serdez_redop_fns == NULL) 
+      if (serdez_redop_fns == nullptr) 
       {
         reduction_instances.reserve(target_mems.size());
         TaskTreeCoordinates coordinates;
@@ -1474,7 +1474,7 @@ namespace Legion {
           // Safe to block here indefinitely waiting for unbounded pools
           reduction_instances.push_back(manager->create_future_instance(
                 unique_op_id, coordinates, reduction_op->sizeof_rhs,
-                NULL/*safe_for_unbounded_pools*/));
+                nullptr/*safe_for_unbounded_pools*/));
         }
         // This is an important optimization: if we're doing a small
         // reduction value we always want the reduction instance to
@@ -1489,17 +1489,17 @@ namespace Legion {
           // Safe to block here indefinitely waiting for unbounded pools
           reduction_instances.push_back(manager->create_future_instance(
                 unique_op_id, coordinates, reduction_op->sizeof_rhs,
-                NULL/*safe_for_unbounded_pools*/));
+                nullptr/*safe_for_unbounded_pools*/));
         }
         if (runtime_visible_index > 0)
           std::swap(reduction_instances.front(), 
               reduction_instances[runtime_visible_index]);
 #ifdef DEBUG_LEGION
-        assert(reduction_instance == NULL);
+        assert(reduction_instance == nullptr);
 #endif
         reduction_instance = reduction_instances.front();
         // Need to initialize this with the reduction value
-        if ((redop_initial_value.impl != NULL) &&
+        if ((redop_initial_value.impl != nullptr) &&
             (parent_ctx->get_task()->get_shard_id() == 0))
           reduction_instance_precondition =
             redop_initial_value.impl->copy_to(reduction_instance, 
@@ -1511,7 +1511,7 @@ namespace Legion {
       }
       else
       {
-        if ((redop_initial_value.impl != NULL) &&
+        if ((redop_initial_value.impl != nullptr) &&
             (parent_ctx->get_task()->get_shard_id() == 0))
         {
           redop_initial_value.impl->request_runtime_instance(this);
@@ -1559,15 +1559,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool IndexTask::perform_mapping(MustEpochOp *owner/*=NULL*/,
-                                    const DeferMappingArgs *args/*=NULL*/)
+    bool IndexTask::perform_mapping(MustEpochOp *owner/*=nullptr*/,
+                                    const DeferMappingArgs *args/*=nullptr*/)
     //--------------------------------------------------------------------------
     {
       // This will only get called if we had slices that failed to origin map 
 #ifdef DEBUG_LEGION
       assert(!slices.empty());
       // Should never get duplicate invocations here
-      assert(args == NULL);
+      assert(args == nullptr);
 #endif
       while (!slices.empty())
       {
@@ -1620,10 +1620,10 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           // This failure mode should only happen with serdez redops fns
           // since we should do the other reductions correctly ourself
-          assert(serdez_redop_fns != NULL);
+          assert(serdez_redop_fns != nullptr);
 #endif
           Provenance *provenance = get_provenance();
-          if (provenance != NULL)
+          if (provenance != nullptr)
             REPORT_LEGION_ERROR(ERROR_FUTURE_SIZE_BOUNDS_EXCEEDED,
                 "Index Task %s (UID %lld, provenance: %.*s) produced a "
                 "reduced future value of %zd bytes which is larger than "
@@ -1642,10 +1642,10 @@ namespace Legion {
         reduction_future.impl->set_results(effects,
             reduction_instances, reduction_metadata, reduction_metasize);
         // Clear this since we no longer own the buffer
-        reduction_metadata = NULL;
+        reduction_metadata = nullptr;
         reduction_instances.clear();
       }
-      if (must_epoch != NULL)
+      if (must_epoch != nullptr)
       {
         must_epoch->notify_subop_complete(this, effects);
         complete_operation(effects);
@@ -1675,7 +1675,7 @@ namespace Legion {
         else
           commit_preconditions.insert(profiling_reported);
       }
-      if (must_epoch != NULL)
+      if (must_epoch != nullptr)
       {
         RtEvent commit_precondition;
         if (!commit_preconditions.empty())
@@ -1740,7 +1740,7 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
         LegionSpy::log_index_slice(get_unique_id(), 
                                    result->get_unique_id());
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->register_slice_owner(get_unique_op_id(),
                                                 result->get_unique_op_id());
       return result;
@@ -1752,7 +1752,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(reduction_op != NULL);
+      assert(reduction_op != nullptr);
 #endif
       // If we're doing a deterministic reduction then we need to 
       // buffer up these future values until we get all of them so
@@ -1827,7 +1827,7 @@ namespace Legion {
       }
       // Need thetimeline for the operation to know how to profile this
       // profiling response
-      if (!has_finish && (runtime->profiler != NULL))
+      if (!has_finish && (runtime->profiler != nullptr))
         request.add_measurement(Realm::PMID_OP_FINISH_EVENT);
       handle_profiling_update(count);
       return copy_fill_priority;
@@ -1996,7 +1996,7 @@ namespace Legion {
           // we still need to map the output future instance before we
           // can consider ourselves mapped and we can't do that until we
           // get the final future value
-          if (serdez_redop_fns == NULL)
+          if (serdez_redop_fns == nullptr)
             need_trigger = true;
           if ((committed_points == total_points) &&
               !children_commit_invoked)
@@ -2025,7 +2025,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void IndexTask::return_slice_complete(unsigned points, ApEvent slice_effect,
-                               void *metadata/*= NULL*/, size_t metasize/*= 0*/)
+                               void *metadata/*= nullptr*/, size_t metasize/*= 0*/)
     //--------------------------------------------------------------------------
     {
       if (slice_effect.exists())
@@ -2038,16 +2038,16 @@ namespace Legion {
         assert(completed_points <= total_points);
 #endif
         need_trigger = (completed_points == total_points);
-        if (metadata != NULL)
+        if (metadata != nullptr)
         {
 #ifdef DEBUG_LEGION
           assert(redop > 0);
 #endif
-          if (reduction_metadata == NULL)
+          if (reduction_metadata == nullptr)
           {
             reduction_metadata = metadata;
             reduction_metasize = metasize;
-            metadata = NULL; // mark that we grabbed it
+            metadata = nullptr; // mark that we grabbed it
           }
         }
       }
@@ -2057,8 +2057,8 @@ namespace Legion {
         if ((redop > 0) && (predication_state != PREDICATED_FALSE_STATE))
         {
 #ifdef DEBUG_LEGION
-          assert((serdez_redop_fns != NULL) || !reduction_instances.empty());
-          assert((serdez_redop_fns != NULL) ||
+          assert((serdez_redop_fns != nullptr) || !reduction_instances.empty());
+          assert((serdez_redop_fns != nullptr) ||
                   (reduction_instance == reduction_instances.front()));
 #endif
           // First finish applying any deterministic reductions
@@ -2082,7 +2082,7 @@ namespace Legion {
                 it++;
             }
           }
-          else if (serdez_redop_fns == NULL)
+          else if (serdez_redop_fns == nullptr)
           {
             // Merge any reduction fold events back into the 
             // reduction_instance_precondition to know when the
@@ -2092,7 +2092,7 @@ namespace Legion {
             if (!reduction_fold_effects.empty())
             {
               reduction_instance_precondition =
-                Runtime::merge_events(NULL, reduction_fold_effects);
+                Runtime::merge_events(nullptr, reduction_fold_effects);
               reduction_fold_effects.clear();
             }
           }
@@ -2110,7 +2110,7 @@ namespace Legion {
         complete_execution();
       }
       // If we didn't grab ownership then free this now
-      if (metadata != NULL)
+      if (metadata != nullptr)
         free(metadata);
     }
 
@@ -2120,7 +2120,7 @@ namespace Legion {
     {
       // If we have serdez redop fns, we now know how big the output
       // is so we can make our target instances and complete the mapping
-      if (serdez_redop_fns != NULL)
+      if (serdez_redop_fns != nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(reduction_instances.empty());
@@ -2149,7 +2149,7 @@ namespace Legion {
             // Safe to block here indefinitely waiting for unbounded pools
             reduction_instances.push_back(manager->create_future_instance(
                   unique_op_id, coordinates, serdez_redop_state_size,
-                  NULL/*safe_for_unbounded_pools*/));
+                  nullptr/*safe_for_unbounded_pools*/));
           }
         }
         if (runtime_visible_index < 0)
@@ -2258,7 +2258,7 @@ namespace Legion {
       if (redop > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(reduction_op != NULL);
+        assert(reduction_op != nullptr);
 #endif
         if (deterministic_redop)
         {
@@ -2277,7 +2277,7 @@ namespace Legion {
         }
         else
         {
-          if (serdez_redop_fns != NULL)
+          if (serdez_redop_fns != nullptr)
           {
             size_t reduc_size;
             derez.deserialize(reduc_size);
@@ -2310,7 +2310,7 @@ namespace Legion {
         if (metasize > 0)
         {
           AutoLock o_lock(op_lock);
-          if (reduction_metadata == NULL)
+          if (reduction_metadata == nullptr)
           {
             reduction_metadata = malloc(metasize);
             memcpy(reduction_metadata, derez.get_current_pointer(), metasize);
@@ -2331,7 +2331,7 @@ namespace Legion {
       derez.deserialize(points);
       RtEvent commit_precondition;
       derez.deserialize(commit_precondition);
-      const RtEvent resources_returned = (must_epoch == NULL) ?
+      const RtEvent resources_returned = (must_epoch == nullptr) ?
         ResourceTracker::unpack_resources_return(derez, parent_ctx) :
         ResourceTracker::unpack_resources_return(derez, must_epoch);
       if (resources_returned.exists())
@@ -2562,12 +2562,12 @@ namespace Legion {
           continue;
         domains.reserve(internal_domain.get_volume());
         const RegionRequirement &req = regions[rit->first];
-        ProjectionFunction *function = NULL;
+        ProjectionFunction *function = nullptr;
         if (req.handle_type != LEGION_SINGULAR_PROJECTION)
           function = runtime->find_projection_function(req.projection);
         for (Domain::DomainPointIterator itr(internal_domain); itr; itr++)
         {
-          LogicalRegion point_region = (function == NULL) ? req.region :
+          LogicalRegion point_region = (function == nullptr) ? req.region :
             function->project_point(this, rit->first, launch_domain, *itr);
           if (!point_region.exists())
             continue;
@@ -2600,12 +2600,12 @@ namespace Legion {
         assert(finder != point_domains.end());
 #endif
         const RegionRequirement &req = get_requirement(rit->second);
-        ProjectionFunction *function = NULL;
+        ProjectionFunction *function = nullptr;
         if (req.handle_type != LEGION_SINGULAR_PROJECTION)
           function = runtime->find_projection_function(req.projection);
         for (Domain::DomainPointIterator itr(internal_domain); itr; itr++)
         {
-          LogicalRegion point_region = (function == NULL) ? req.region :
+          LogicalRegion point_region = (function == nullptr) ? req.region :
             function->project_point(this, rit->second, launch_domain, *itr);
           IndexSpaceNode *node = runtime->get_node(point_region.get_index_space());
           DomainPoint interfering;
@@ -3048,23 +3048,23 @@ namespace Legion {
     {
       ReplCollectiveViewCreator<IndexTask>::activate();
       sharding_functor = UINT_MAX;
-      sharding_function = NULL;
-      serdez_redop_collective = NULL;
-      all_reduce_collective = NULL;
-      reduction_collective = NULL;
-      broadcast_collective = NULL;
-      output_size_collective = NULL;
+      sharding_function = nullptr;
+      serdez_redop_collective = nullptr;
+      all_reduce_collective = nullptr;
+      reduction_collective = nullptr;
+      broadcast_collective = nullptr;
+      output_size_collective = nullptr;
       collective_check_id = 0;
       interfering_check_id = 0;
       slice_sharding_output = false;
       output_bar = RtBarrier::NO_RT_BARRIER;
-      concurrent_mapping_rendezvous = NULL;
+      concurrent_mapping_rendezvous = nullptr;
       interfering_check_id = 0;
-      interfering_exchange = NULL;
+      interfering_exchange = nullptr;
       collective_exchange_id = 0;
-      collective_exchange = NULL;
+      collective_exchange = nullptr;
 #ifdef DEBUG_LEGION
-      sharding_collective = NULL;
+      sharding_collective = nullptr;
 #endif
     }
 
@@ -3074,28 +3074,28 @@ namespace Legion {
     {
       for (std::map<Color,ConcurrentGroup>::iterator it =
             concurrent_groups.begin(); it != concurrent_groups.end(); it++)
-        if (it->second.exchange == NULL)
+        if (it->second.exchange == nullptr)
           delete it->second.exchange;
       ReplCollectiveViewCreator<IndexTask>::deactivate(false/*free*/);
-      if (serdez_redop_collective != NULL)
+      if (serdez_redop_collective != nullptr)
         delete serdez_redop_collective;
-      if (all_reduce_collective != NULL)
+      if (all_reduce_collective != nullptr)
         delete all_reduce_collective;
-      if (reduction_collective != NULL)
+      if (reduction_collective != nullptr)
         delete reduction_collective;
-      if (broadcast_collective != NULL)
+      if (broadcast_collective != nullptr)
         delete broadcast_collective;
-      if (output_size_collective != NULL)
+      if (output_size_collective != nullptr)
         delete output_size_collective;
-      if (concurrent_mapping_rendezvous != NULL)
+      if (concurrent_mapping_rendezvous != nullptr)
         delete concurrent_mapping_rendezvous;
-      if (interfering_exchange != NULL)
+      if (interfering_exchange != nullptr)
         delete interfering_exchange;
       concurrent_exchange_ids.clear();
-      if (collective_exchange != NULL)
+      if (collective_exchange != nullptr)
         delete collective_exchange;
 #ifdef DEBUG_LEGION
-      if (sharding_collective != NULL)
+      if (sharding_collective != nullptr)
         delete sharding_collective;
 #endif
       unique_intra_space_deps.clear();
@@ -3109,9 +3109,9 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
-      assert(must_epoch != NULL);
-      assert(sharding_function != NULL);
+      assert(repl_ctx != nullptr);
+      assert(must_epoch != nullptr);
+      assert(sharding_function != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -3140,18 +3140,18 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
 
       // We might be able to skip this if the sharding function was already
       // picked for us which occurs when we're part of a must-epoch launch
-      if (sharding_function == NULL)
+      if (sharding_function == nullptr)
         select_sharding_function(repl_ctx);
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
-      assert(sharding_collective != NULL);
+      assert(sharding_function != nullptr);
+      assert(sharding_collective != nullptr);
       sharding_collective->contribute(this->sharding_functor);
       if (sharding_collective->is_target() &&
           !sharding_collective->validate(this->sharding_functor))
@@ -3224,7 +3224,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Do the mapper call to get the sharding function to use
-      if (mapper == NULL)
+      if (mapper == nullptr)
         mapper = runtime->find_mapper(current_proc, map_id); 
       Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
       Mapper::SelectShardingFunctorOutput output =
@@ -3247,13 +3247,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // See if this is the first time through or not
-      if (interfering_exchange == NULL)
+      if (interfering_exchange == nullptr)
       {
         // First time through, make the exchange and kick it off
 #ifdef DEBUG_LEGION
         assert(interfering_check_id > 0);
         ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -3274,18 +3274,18 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // If we have a future map then set the sharding function
-      if ((redop == 0) && !elide_future_return && (must_epoch == NULL))
+      if ((redop == 0) && !elide_future_return && (must_epoch == nullptr))
       {
 #ifdef DEBUG_LEGION
-        assert(future_map.impl != NULL);
+        assert(future_map.impl != nullptr);
         ReplFutureMapImpl *impl = 
           dynamic_cast<ReplFutureMapImpl*>(future_map.impl);
-        assert(impl != NULL);
+        assert(impl != nullptr);
 #else
         ReplFutureMapImpl *impl = 
           static_cast<ReplFutureMapImpl*>(future_map.impl);
@@ -3308,7 +3308,7 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION
         assert(!is_remote());
-        assert((tpl != NULL) && tpl->is_recording());
+        assert((tpl != nullptr) && tpl->is_recording());
 #endif
         tpl->record_local_space(trace_local_id, internal_space);
         // Record the sharding function if needed for the future map
@@ -3319,7 +3319,7 @@ namespace Legion {
       if (!internal_space.exists())
       {
         // Check to see if we still need to participate in the premap_task call
-        if (must_epoch == NULL)
+        if (must_epoch == nullptr)
           premap_task();
         // Still need to participate in any collective mappings
         if (concurrent_task || !check_collective_regions.empty())
@@ -3341,13 +3341,13 @@ namespace Legion {
             ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
 #endif
         // Finalize any output regions
-        if (output_size_collective != NULL)
+        if (output_size_collective != nullptr)
         {
           finalize_output_regions(true/*first invocation*/);
           record_output_registered(RtEvent::NO_RT_EVENT);
         }
         // We have no local points, so we can just trigger
-        if (serdez_redop_fns == NULL)
+        if (serdez_redop_fns == nullptr)
         {
           if (!map_applied_conditions.empty())
             complete_mapping(Runtime::merge_events(map_applied_conditions));
@@ -3409,7 +3409,7 @@ namespace Legion {
         // the slice task for these points and put it in the queue
         if (!slice_sharding_output)
         {
-          if (must_epoch == NULL)
+          if (must_epoch == nullptr)
             premap_task();
           SliceTask *new_slice = this->clone_as_slice_task(internal_space,
               target_proc, false/*recurse*/, !runtime->stealing_disabled); 
@@ -3426,7 +3426,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(tpl != NULL);
+      assert(tpl != nullptr);
 #endif
       elide_collective_rendezvous();
       internal_space = tpl->find_local_space(trace_local_id);
@@ -3434,10 +3434,10 @@ namespace Legion {
       {
         sharding_function = tpl->find_sharding_function(trace_local_id);
 #ifdef DEBUG_LEGION
-        assert(future_map.impl != NULL);
+        assert(future_map.impl != nullptr);
         ReplFutureMapImpl *impl = 
           dynamic_cast<ReplFutureMapImpl*>(future_map.impl);
-        assert(impl != NULL);
+        assert(impl != nullptr);
 #else
         ReplFutureMapImpl *impl = 
           static_cast<ReplFutureMapImpl*>(future_map.impl);
@@ -3445,7 +3445,7 @@ namespace Legion {
         impl->set_sharding_function(sharding_function);
       }
       // We know all the points are going to be issues so no need for this
-      if (concurrent_mapping_rendezvous != NULL)
+      if (concurrent_mapping_rendezvous != nullptr)
         concurrent_mapping_rendezvous->elide_collective();
       // If it's empty we're done, otherwise we do the replay
       if (!internal_space.exists())
@@ -3456,7 +3456,7 @@ namespace Legion {
             ApEvent::NO_AP_EVENT, ApEvent::NO_AP_EVENT);
 #endif
         // We have no local points, so we can just trigger
-        if (serdez_redop_fns == NULL)
+        if (serdez_redop_fns == nullptr)
         {
           if (!map_applied_conditions.empty())
             complete_mapping(Runtime::merge_events(map_applied_conditions));
@@ -3483,7 +3483,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -3520,7 +3520,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx = 
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -3547,7 +3547,7 @@ namespace Legion {
           {
             // If we have a trace we can try to look these up
             bool found = false;
-            if (trace != NULL)
+            if (trace != nullptr)
               found = trace->find_concurrent_colors(this,
                   concurrent_exchange_ids);
             if (!found)
@@ -3564,7 +3564,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert(!concurrent_exchange_ids.empty());
 #endif
-              if (trace != NULL)
+              if (trace != nullptr)
                 trace->record_concurrent_colors(this, concurrent_exchange_ids);
             }
             for (std::map<Color,CollectiveID>::iterator it =
@@ -3594,11 +3594,11 @@ namespace Legion {
       IndexTask::create_future_instances(target_memories);
       // Now check to see if we need to make a shadow instance for our
       // future all reduce collective
-      if (all_reduce_collective != NULL)
+      if (all_reduce_collective != nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(!reduction_instances.empty());
-        assert(reduction_instance != NULL);
+        assert(reduction_instance != nullptr);
 #endif
         // If the instance is in a memory we cannot see or is "too big"
         // then we need to make the shadow instance for the future
@@ -3613,7 +3613,7 @@ namespace Legion {
           // Safe to block indefinitely here waiting for unbounded pools
           FutureInstance *shadow_instance = manager->create_future_instance(
               unique_op_id, coordinates, reduction_op->sizeof_rhs,
-              NULL/*safe_for_unbounded_pools*/);
+              nullptr/*safe_for_unbounded_pools*/);
           all_reduce_collective->set_shadow_instance(shadow_instance);
         }
       }
@@ -3629,10 +3629,10 @@ namespace Legion {
       // Set the future if we actually ran the task or we speculated
       if (predication_state == PREDICATED_FALSE_STATE)
         return;
-      if (serdez_redop_fns != NULL)
+      if (serdez_redop_fns != nullptr)
       {
 #ifdef DEBUG_LEGION
-        assert(serdez_redop_collective != NULL);
+        assert(serdez_redop_collective != nullptr);
 #endif
         const std::map<ShardID,std::pair<void*,size_t> > &remote_buffers =
           serdez_redop_collective->exchange_buffers(serdez_redop_state, 
@@ -3642,11 +3642,11 @@ namespace Legion {
           // Reset this back to empty so we can reduce in order across shards
           // Note the serdez_redop_collective took ownership of deleting
           // the buffer in this case so we know that it is not leaking
-          serdez_redop_state = NULL;
+          serdez_redop_state = nullptr;
           for (std::map<ShardID,std::pair<void*,size_t> >::const_iterator it =
                 remote_buffers.begin(); it != remote_buffers.end(); it++)
           {
-            if (serdez_redop_state == NULL)
+            if (serdez_redop_state == nullptr)
             {
               serdez_redop_state_size = it->second.second;
               serdez_redop_state = malloc(serdez_redop_state_size);
@@ -3674,13 +3674,13 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        assert((all_reduce_collective != NULL) ||
-            ((reduction_collective != NULL) && (broadcast_collective != NULL)));
+        assert((all_reduce_collective != nullptr) ||
+            ((reduction_collective != nullptr) && (broadcast_collective != nullptr)));
         assert(!reduction_instances.empty());
         assert(reduction_instance == reduction_instances.front());
 #endif
         RtEvent collective_done;
-        if (all_reduce_collective == NULL)
+        if (all_reduce_collective == nullptr)
         {
           reduction_collective->async_reduce(reduction_instance, 
               reduction_instance_precondition);
@@ -3722,17 +3722,17 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           ReplicateContext *repl_ctx = 
             dynamic_cast<ReplicateContext*>(parent_ctx);
-          assert(repl_ctx != NULL);
+          assert(repl_ctx != nullptr);
 #else
           ReplicateContext *repl_ctx = 
             static_cast<ReplicateContext*>(parent_ctx);
 #endif
 #ifdef DEBUG_LEGION
-          assert(sharding_function != NULL);
-          assert(future_map.impl != NULL);
+          assert(sharding_function != nullptr);
+          assert(future_map.impl != nullptr);
           ReplFutureMapImpl *impl =
             dynamic_cast<ReplFutureMapImpl*>(future_map.impl);
-          assert(impl != NULL);
+          assert(impl != nullptr);
 #else
           ReplFutureMapImpl *impl =
             static_cast<ReplFutureMapImpl*>(future_map.impl);
@@ -3750,17 +3750,17 @@ namespace Legion {
         }
         else
         {
-          if (serdez_redop_collective != NULL)
+          if (serdez_redop_collective != nullptr)
             serdez_redop_collective->elide_collective();
-          if (all_reduce_collective != NULL)
+          if (all_reduce_collective != nullptr)
             all_reduce_collective->elide_collective();
-          if (reduction_collective != NULL)
+          if (reduction_collective != nullptr)
             reduction_collective->elide_collective();
-          if (broadcast_collective != NULL)
+          if (broadcast_collective != nullptr)
             broadcast_collective->elide_collective();
         }
       }
-      if (output_size_collective != NULL)
+      if (output_size_collective != nullptr)
       {
         output_size_collective->elide_collective();
         runtime->phase_barrier_arrive(output_bar, 1/*count*/);
@@ -3775,15 +3775,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(serdez_redop_collective == NULL);
-      assert(all_reduce_collective == NULL);
-      assert(reduction_collective == NULL);
-      assert(broadcast_collective == NULL);
+      assert(serdez_redop_collective == nullptr);
+      assert(all_reduce_collective == nullptr);
+      assert(reduction_collective == nullptr);
+      assert(broadcast_collective == nullptr);
 #endif
       // If we have a reduction op then we need an exchange
       if (!elide_future_return && (redop > 0))
       {
-        if (serdez_redop_fns == NULL)
+        if (serdez_redop_fns == nullptr)
         {
           if (deterministic_redop)
           {
@@ -3835,8 +3835,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(must_epoch != NULL);
-      assert(sharding_function == NULL); 
+      assert(must_epoch != nullptr);
+      assert(sharding_function == nullptr); 
 #endif
       sharding_functor = functor;
       sharding_function = function;
@@ -3849,7 +3849,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(ctx);
 #endif
@@ -3870,9 +3870,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(concurrent_task);
       assert(!must_epoch_task);
-      assert(concurrent_mapping_rendezvous != NULL);
+      assert(concurrent_mapping_rendezvous != nullptr);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -3968,7 +3968,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -3980,7 +3980,7 @@ namespace Legion {
           continue;
 #ifdef DEBUG_LEGION
         assert(it->second.precondition.interpreted.exists());
-        assert(it->second.exchange == NULL);
+        assert(it->second.exchange == nullptr);
 #endif
         if (is_recording())
         {
@@ -4023,10 +4023,10 @@ namespace Legion {
         concurrent_exchange_ids.find(color);
 #ifdef DEBUG_LEGION
       assert(finder != concurrent_groups.end());
-      assert(finder->second.exchange == NULL);
+      assert(finder->second.exchange == nullptr);
       assert(id_finder != concurrent_exchange_ids.end());
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -4085,7 +4085,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             ReplicateContext *repl_ctx =
               dynamic_cast<ReplicateContext*>(parent_ctx);
-            assert(repl_ctx != NULL);
+            assert(repl_ctx != nullptr);
             assert(!finder->second.shards.empty());
 #else
             ReplicateContext *repl_ctx =
@@ -4108,7 +4108,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -4124,7 +4124,7 @@ namespace Legion {
         {
           if (need_result)
           {
-            if (collective_exchange == NULL)
+            if (collective_exchange == nullptr)
               collective_exchange =
                 new AllReduceCollective<MaxReduction<uint64_t>,false>(
                     repl_ctx, collective_exchange_id);
@@ -4136,7 +4136,7 @@ namespace Legion {
             return collective_lamport_clock; 
         }
         // Otherwise we're going to fall through and do the allreduce
-        if (collective_exchange == NULL)
+        if (collective_exchange == nullptr)
           collective_exchange =
               new AllReduceCollective<MaxReduction<uint64_t>,false>(
                   repl_ctx, collective_exchange_id);
@@ -4160,9 +4160,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -4253,7 +4253,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Check to see if we have an exchange to perform
-      if (first_invocation && (output_size_collective != NULL))
+      if (first_invocation && (output_size_collective != nullptr))
       {
         local_output_extents = output_region_extents;
         // We need to gather output region sizes from all the other shards
@@ -4276,7 +4276,7 @@ namespace Legion {
       }
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -4332,7 +4332,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
 #endif
       if (sharding_space.exists())
         return sharding_function->find_shard_participants(launch_space,

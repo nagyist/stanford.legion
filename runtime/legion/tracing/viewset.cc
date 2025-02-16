@@ -72,7 +72,7 @@ namespace Legion {
             {
               if (fit != fields.begin())
                 ss << ", ";
-              const void *name = NULL;
+              const void *name = nullptr;
               size_t name_size = 0;
               if (field_space->retrieve_semantic_information(
                     LEGION_NAME_SEMANTIC_TAG, name, name_size,
@@ -121,7 +121,7 @@ namespace Legion {
         {
           if (it != fields.begin())
             ss << ", ";
-          const void *name = NULL;
+          const void *name = nullptr;
           size_t name_size = 0;
           if (field_space->retrieve_semantic_information(
                 LEGION_NAME_SEMANTIC_TAG, name, name_size,
@@ -352,7 +352,7 @@ namespace Legion {
           for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
                 finder->second.begin(); it != finder->second.end(); it++)
           {
-            if (expr_refs_to_remove != NULL)
+            if (expr_refs_to_remove != nullptr)
             {
               std::map<IndexSpaceExpression*,unsigned>::iterator finder =
                 expr_refs_to_remove->find(it->first);
@@ -364,7 +364,7 @@ namespace Legion {
             else if (it->first->remove_nested_expression_reference(owner_did))
               delete it->first;
           }
-          if (view_refs_to_remove != NULL)
+          if (view_refs_to_remove != nullptr)
           {
             std::map<LogicalView*,unsigned>::iterator finder = 
               view_refs_to_remove->find(view);
@@ -392,7 +392,7 @@ namespace Legion {
                 to_delete.begin(); it != to_delete.end(); it++)
           {
             finder->second.erase(*it);
-            if (expr_refs_to_remove != NULL)
+            if (expr_refs_to_remove != nullptr)
             {
               std::map<IndexSpaceExpression*,unsigned>::iterator finder =
                 expr_refs_to_remove->find(*it);
@@ -406,7 +406,7 @@ namespace Legion {
           }
           if (finder->second.empty())
           {
-            if (view_refs_to_remove != NULL)
+            if (view_refs_to_remove != nullptr)
             {
               std::map<LogicalView*,unsigned>::iterator finder = 
                 view_refs_to_remove->find(view);
@@ -468,7 +468,7 @@ namespace Legion {
           if (to_add.find(*it) != to_add.end())
             continue;
           finder->second.erase(*it);
-          if (expr_refs_to_remove != NULL)
+          if (expr_refs_to_remove != nullptr)
           {
             std::map<IndexSpaceExpression*,unsigned>::iterator finder =
               expr_refs_to_remove->find(*it);
@@ -482,7 +482,7 @@ namespace Legion {
         }
         if (finder->second.empty())
         {
-          if (view_refs_to_remove != NULL)
+          if (view_refs_to_remove != nullptr)
           {
             std::map<LogicalView*,unsigned>::iterator finder = 
               view_refs_to_remove->find(view);
@@ -507,7 +507,7 @@ namespace Legion {
          std::map<LogicalView*,unsigned> *view_refs_to_remove, bool antialiased)
     //--------------------------------------------------------------------------
     {
-      if (!antialiased && (except != NULL))
+      if (!antialiased && (except != nullptr))
       {
         if (except->is_collective_view())
         {
@@ -947,7 +947,7 @@ namespace Legion {
                   continue;
                 // These are dirty expr-fields which are not subsumed
                 subsumed = false;
-                if (condition != NULL)
+                if (condition != nullptr)
                 {
                   condition->view = vit->first;
                   condition->expr = expr_overlap;
@@ -1101,7 +1101,7 @@ namespace Legion {
           runtime->intersect_index_spaces(it->first.first, it->first.second);
         if (!overlap->is_empty())
         {
-          if (condition != NULL)
+          if (condition != nullptr)
           {
             condition->view = view;
             condition->expr = overlap;
@@ -1221,7 +1221,7 @@ namespace Legion {
               }
               else // Congruent so we are done
                 disjoint_components[idx].push_back(*isit);
-              current = NULL;
+              current = nullptr;
               break;
             }
             else if (volume == expr->get_volume())
@@ -1252,7 +1252,7 @@ namespace Legion {
 #endif
             }
           }
-          if (current != NULL)
+          if (current != nullptr)
           {
             disjoint_expressions.push_back(current);
             disjoint_components.resize(disjoint_components.size() + 1);
@@ -1575,7 +1575,7 @@ namespace Legion {
             to_refine.begin(); rit != to_refine.end(); rit++)
       {
         RtEvent ready;
-        InstanceView *view = NULL;
+        InstanceView *view = nullptr;
         std::map<CollectiveView*,PhysicalManager*>::const_iterator
           individual_finder = individual_results.find(rit->first);
         if (individual_finder == individual_results.end())
@@ -1705,7 +1705,7 @@ namespace Legion {
           // Don't care about expressions for this analysis
           // but we're reusing an exisint alias so we have to
           // conform to get the linker to work
-          IndexSpaceExpression *null_expr = NULL;
+          IndexSpaceExpression *null_expr = nullptr;
           alias_analysis.traverse(current, view_overlap, null_expr);
           if (intersection.size() == current->instances.size())
           {
@@ -1781,7 +1781,7 @@ namespace Legion {
             // Don't care about expressions for this analysis
             // but we're reusing an exisint alias so we have to
             // conform to get the linker to work
-            IndexSpaceExpression *null_expr = NULL;
+            IndexSpaceExpression *null_expr = nullptr;
             alias_analysis.traverse(individual, view_overlap, null_expr);
           }
           vit++;

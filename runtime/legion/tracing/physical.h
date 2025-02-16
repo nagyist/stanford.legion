@@ -53,7 +53,7 @@ namespace Legion {
       PhysicalTrace& operator=(const PhysicalTrace &rhs) = delete;
     public:
       inline bool has_current_template(void) const
-        { return (current_template != NULL); }
+        { return (current_template != nullptr); }
       inline PhysicalTemplate* get_current_template(void) const
         { return current_template; }
       inline const std::vector<Processor> &get_replay_targets(void)

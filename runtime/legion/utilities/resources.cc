@@ -25,7 +25,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedRegion::DeletedRegion(void)
-      : provenance(NULL)
+      : provenance(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -36,7 +36,7 @@ namespace Legion {
       : region(r), provenance(p)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -45,7 +45,7 @@ namespace Legion {
       : region(rhs.region), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -54,14 +54,14 @@ namespace Legion {
       : region(rhs.region), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
     }
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedRegion::~DeletedRegion(void)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -70,11 +70,11 @@ namespace Legion {
                                                        const DeletedRegion &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       region = rhs.region;
       provenance = rhs.provenance;
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
       return *this;
     }
@@ -84,11 +84,11 @@ namespace Legion {
                                                             DeletedRegion &&rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       region = rhs.region;
       provenance = rhs.provenance;
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
       return *this;
     }
 
@@ -97,7 +97,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize(region);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -107,17 +107,17 @@ namespace Legion {
     void ResourceTracker::DeletedRegion::deserialize(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       derez.deserialize(region);
       provenance = Provenance::deserialize(derez);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedField::DeletedField(void)
-      : fid(0), provenance(NULL)
+      : fid(0), provenance(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -128,7 +128,7 @@ namespace Legion {
       : space(sp), fid(f), provenance(p)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -137,7 +137,7 @@ namespace Legion {
       : space(rhs.space), fid(rhs.fid), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -146,14 +146,14 @@ namespace Legion {
       : space(rhs.space), fid(rhs.fid), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
     }
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedField::~DeletedField(void)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -162,12 +162,12 @@ namespace Legion {
                                                         const DeletedField &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       space = rhs.space;
       fid = rhs.fid;
       provenance = rhs.provenance;
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
       return *this;
     }
@@ -177,12 +177,12 @@ namespace Legion {
                                                              DeletedField &&rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       space = rhs.space;
       fid = rhs.fid;
       provenance = rhs.provenance;
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
       return *this;
     }
 
@@ -192,7 +192,7 @@ namespace Legion {
     {
       rez.serialize(space);
       rez.serialize(fid);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -202,18 +202,18 @@ namespace Legion {
     void ResourceTracker::DeletedField::deserialize(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       derez.deserialize(space);
       derez.deserialize(fid);
       provenance = Provenance::deserialize(derez);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedFieldSpace::DeletedFieldSpace(void)
-      : provenance(NULL)
+      : provenance(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -224,7 +224,7 @@ namespace Legion {
       : space(sp), provenance(p)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -234,7 +234,7 @@ namespace Legion {
       : space(rhs.space), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -244,14 +244,14 @@ namespace Legion {
       : space(rhs.space), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
     }
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedFieldSpace::~DeletedFieldSpace(void)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -261,11 +261,11 @@ namespace Legion {
                                                    const DeletedFieldSpace &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       space = rhs.space;
       provenance = rhs.provenance;
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
       return *this;
     }
@@ -275,11 +275,11 @@ namespace Legion {
       ResourceTracker::DeletedFieldSpace::operator=(DeletedFieldSpace &&rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       space = rhs.space;
       provenance = rhs.provenance;
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
       return *this;
     }
 
@@ -288,7 +288,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       rez.serialize(space);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -298,17 +298,17 @@ namespace Legion {
     void ResourceTracker::DeletedFieldSpace::deserialize(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       derez.deserialize(space);
       provenance = Provenance::deserialize(derez);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedIndexSpace::DeletedIndexSpace(void)
-      : provenance(NULL), recurse(false)
+      : provenance(nullptr), recurse(false)
     //--------------------------------------------------------------------------
     {
     }
@@ -319,7 +319,7 @@ namespace Legion {
       : space(sp), provenance(p), recurse(r)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -329,7 +329,7 @@ namespace Legion {
       : space(rhs.space), provenance(rhs.provenance), recurse(rhs.recurse)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -339,14 +339,14 @@ namespace Legion {
       : space(rhs.space), provenance(rhs.provenance), recurse(rhs.recurse)
     //--------------------------------------------------------------------------
     {
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
     }
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedIndexSpace::~DeletedIndexSpace(void)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -356,12 +356,12 @@ namespace Legion {
                                                    const DeletedIndexSpace &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       space = rhs.space;
       recurse = rhs.recurse;
       provenance = rhs.provenance;
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
       return *this;
     }
@@ -371,12 +371,12 @@ namespace Legion {
           ResourceTracker::DeletedIndexSpace::operator=(DeletedIndexSpace &&rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       space = rhs.space;
       recurse = rhs.recurse;
       provenance = rhs.provenance;
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
       return *this;
     }
 
@@ -386,7 +386,7 @@ namespace Legion {
     {
       rez.serialize(space);
       rez.serialize<bool>(recurse);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -396,18 +396,18 @@ namespace Legion {
     void ResourceTracker::DeletedIndexSpace::deserialize(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       derez.deserialize(space);
       derez.deserialize<bool>(recurse);
       provenance = Provenance::deserialize(derez);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedPartition::DeletedPartition(void)
-      : provenance(NULL), recurse(false)
+      : provenance(nullptr), recurse(false)
     //--------------------------------------------------------------------------
     {
     }
@@ -418,7 +418,7 @@ namespace Legion {
       : partition(ip), provenance(p), recurse(r)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -428,7 +428,7 @@ namespace Legion {
       : partition(rhs.partition),provenance(rhs.provenance),recurse(rhs.recurse)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -437,14 +437,14 @@ namespace Legion {
       : partition(rhs.partition),provenance(rhs.provenance),recurse(rhs.recurse)
     //--------------------------------------------------------------------------
     {
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
     }
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedPartition::~DeletedPartition(void)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -453,12 +453,12 @@ namespace Legion {
       ResourceTracker::DeletedPartition::operator=(const DeletedPartition &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       partition = rhs.partition;
       recurse = rhs.recurse;
       provenance = rhs.provenance;
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
       return *this;
     }
@@ -468,12 +468,12 @@ namespace Legion {
             ResourceTracker::DeletedPartition::operator=(DeletedPartition &&rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       partition = rhs.partition;
       recurse = rhs.recurse;
       provenance = rhs.provenance;
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
       return *this;
     }
 
@@ -483,7 +483,7 @@ namespace Legion {
     {
       rez.serialize(partition);
       rez.serialize<bool>(recurse);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -493,12 +493,12 @@ namespace Legion {
     void ResourceTracker::DeletedPartition::deserialize(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       derez.deserialize(partition);
       derez.deserialize<bool>(recurse);
       provenance = Provenance::deserialize(derez);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 

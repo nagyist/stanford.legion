@@ -36,11 +36,11 @@ namespace Legion {
         analysis_expr(e), op(o), index(idx),
         owns_op(false), on_heap(h), exclusive(ex), immutable(im),
         collective_first_local(first), parallel_traversals(false),
-        restricted(false), recorded_instances(NULL), collective_mapping(m)
+        restricted(false), recorded_instances(nullptr), collective_mapping(m)
     //--------------------------------------------------------------------------
     {
       analysis_expr->add_base_expression_reference(PHYSICAL_ANALYSIS_REF);
-      if (collective_mapping != NULL)
+      if (collective_mapping != nullptr)
         collective_mapping->add_reference();
     }
 
@@ -52,12 +52,12 @@ namespace Legion {
       : previous(prev), original_source(source), analysis_expr(e),
         op(o), index(idx), owns_op(true), on_heap(h), exclusive(ex),
         immutable(im), collective_first_local(first), 
-        parallel_traversals(false), restricted(false), recorded_instances(NULL),
+        parallel_traversals(false), restricted(false), recorded_instances(nullptr),
         collective_mapping(mapping)
     //--------------------------------------------------------------------------
     {
       analysis_expr->add_base_expression_reference(PHYSICAL_ANALYSIS_REF);
-      if (collective_mapping != NULL)
+      if (collective_mapping != nullptr)
         collective_mapping->add_reference();
     }
 
@@ -84,12 +84,12 @@ namespace Legion {
       if (analysis_expr->remove_base_expression_reference(
                                     PHYSICAL_ANALYSIS_REF))
         delete analysis_expr;
-      if ((collective_mapping != NULL) && 
+      if ((collective_mapping != nullptr) && 
           collective_mapping->remove_reference())
         delete collective_mapping;
-      if (recorded_instances != NULL)
+      if (recorded_instances != nullptr)
         delete recorded_instances;
-      if (owns_op && (op != NULL))
+      if (owns_op && (op != nullptr))
         delete op;
     } 
 
@@ -338,7 +338,7 @@ namespace Legion {
       size_t num_views;
       derez.deserialize(num_views);
       AutoLock a_lock(*this);
-      if (recorded_instances == NULL)
+      if (recorded_instances == nullptr)
         recorded_instances = new FieldMaskSet<LogicalView>();
       for (unsigned idx = 0; idx < num_views; idx++)
       {
@@ -365,7 +365,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock a_lock(*this);
-      if (recorded_instances == NULL)
+      if (recorded_instances == nullptr)
         recorded_instances = new FieldMaskSet<LogicalView>();
       for (FieldMaskSet<LogicalView>::const_iterator it = 
             views.begin(); it != views.end(); it++)
@@ -458,7 +458,7 @@ namespace Legion {
     {
       // No need for the lock since we shouldn't be mutating anything at 
       // this point anyway
-      if (recorded_instances != NULL)
+      if (recorded_instances != nullptr)
         recorded_instances->swap(insts);
       return restricted;
     }
@@ -485,7 +485,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Lock held from caller
-      if (recorded_instances == NULL)
+      if (recorded_instances == nullptr)
         recorded_instances = new FieldMaskSet<LogicalView>();
       recorded_instances->insert(view, mask);
     }

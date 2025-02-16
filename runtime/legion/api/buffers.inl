@@ -150,7 +150,7 @@ namespace Legion {
     template<typename FT, int N, typename T, bool CB>
     inline DeferredBuffer<FT,N,T,CB>::DeferredBuffer(
                              Memory::Kind kind, const Domain &space,
-                             const FT *initial_value/* = NULL*/,
+                             const FT *initial_value/* = nullptr*/,
                              size_t alignment/* = alignof(FT)*/,
                              bool fortran_order_dims/* = false*/)
     //--------------------------------------------------------------------------
@@ -167,7 +167,7 @@ namespace Legion {
     template<typename FT, int N, typename T, bool CB>
     inline DeferredBuffer<FT,N,T,CB>::DeferredBuffer(
                              const Rect<N,T> &rect, Memory::Kind kind,
-                             const FT *initial_value /*= NULL*/,
+                             const FT *initial_value /*= nullptr*/,
                              size_t alignment/* = alignof(FT)*/,
                              bool fortran_order_dims /*= false*/)
     //--------------------------------------------------------------------------
@@ -182,7 +182,7 @@ namespace Legion {
     template<typename FT, int N, typename T, bool CB>
     inline DeferredBuffer<FT,N,T,CB>::DeferredBuffer(
                              Memory memory, const Domain &space,
-                             const FT *initial_value/* = NULL*/,
+                             const FT *initial_value/* = nullptr*/,
                              size_t alignment/* = alignof(FT)*/,
                              bool fortran_order_dims/* = false*/)
     //--------------------------------------------------------------------------
@@ -197,7 +197,7 @@ namespace Legion {
     template<typename FT, int N, typename T, bool CB>
     inline DeferredBuffer<FT,N,T,CB>::DeferredBuffer(
                              const Rect<N,T> &rect, Memory memory,
-                             const FT *initial_value /*= NULL*/,
+                             const FT *initial_value /*= nullptr*/,
                              size_t alignment/* = alignof(FT)*/,
                              bool fortran_order_dims /*= false*/)
     //--------------------------------------------------------------------------
@@ -211,7 +211,7 @@ namespace Legion {
     inline DeferredBuffer<FT,N,T,CB>::DeferredBuffer(
                              Memory::Kind kind, const Domain &space,
                              std::array<DimensionKind,N> _ordering,
-                             const FT *initial_value/* = NULL*/,
+                             const FT *initial_value/* = nullptr*/,
                              size_t _alignment/* = alignof(FT)*/)
       : ordering(_ordering), alignment(_alignment)
     //--------------------------------------------------------------------------
@@ -228,7 +228,7 @@ namespace Legion {
     inline DeferredBuffer<FT,N,T,CB>::DeferredBuffer(
                              const Rect<N,T> &rect, Memory::Kind kind,
                              std::array<DimensionKind,N> _ordering,
-                             const FT *initial_value /*= NULL*/,
+                             const FT *initial_value /*= nullptr*/,
                              size_t _alignment/* = alignof(FT)*/)
       : ordering(_ordering), alignment(_alignment)
     //--------------------------------------------------------------------------
@@ -243,7 +243,7 @@ namespace Legion {
     inline DeferredBuffer<FT,N,T,CB>::DeferredBuffer(
                              Memory memory, const Domain &space,
                              std::array<DimensionKind,N> _ordering,
-                             const FT *initial_value/* = NULL*/,
+                             const FT *initial_value/* = nullptr*/,
                              size_t _alignment/* = alignof(FT)*/)
       : ordering(_ordering), alignment(_alignment)
     //--------------------------------------------------------------------------
@@ -258,7 +258,7 @@ namespace Legion {
     inline DeferredBuffer<FT,N,T,CB>::DeferredBuffer(
                              const Rect<N,T> &rect, Memory memory,
                              std::array<DimensionKind,N> _ordering,
-                             const FT *initial_value /*= NULL*/,
+                             const FT *initial_value /*= nullptr*/,
                              size_t _alignment/* = alignof(FT)*/)
       : ordering(_ordering), alignment(_alignment)
     //--------------------------------------------------------------------------
@@ -311,7 +311,7 @@ namespace Legion {
       layout->alignment_reqd = alignment;
       instance = UntypedDeferredValue::allocate_instance(memory, layout);
       bounds = space.bounds;
-      if (initial_value != NULL)
+      if (initial_value != nullptr)
       {
         Realm::ProfilingRequestSet no_requests;
         std::vector<Realm::CopySrcDstField> dsts(1);
@@ -451,7 +451,7 @@ namespace Legion {
         UntypedDeferredValue::find_memory_by_kind(memkind, false);
       const std::vector<size_t> field_sizes(1, field_size);
       Realm::InstanceLayoutConstraints constraints(field_sizes, 0/*blocking*/);
-      Realm::InstanceLayoutGeneric *layout = NULL;
+      Realm::InstanceLayoutGeneric *layout = nullptr;
       const Domain domain = UntypedDeferredValue::get_index_space_bounds(space);
       switch (dims)
       {
@@ -486,7 +486,7 @@ namespace Legion {
       }
       layout->alignment_reqd = alignment;
       instance = UntypedDeferredValue::allocate_instance(memory, layout);
-      if (initial_value != NULL)
+      if (initial_value != nullptr)
       {
         Realm::ProfilingRequestSet no_requests; 
         std::vector<Realm::CopySrcDstField> dsts(1);
@@ -534,7 +534,7 @@ namespace Legion {
         UntypedDeferredValue::find_memory_by_kind(memkind, false);
       const std::vector<size_t> field_sizes(1, field_size);
       Realm::InstanceLayoutConstraints constraints(field_sizes, 0/*blocking*/);
-      Realm::InstanceLayoutGeneric *layout = NULL;
+      Realm::InstanceLayoutGeneric *layout = nullptr;
       switch (dims)
       {
 #define DIMFUNC(DIM)                                                        \
@@ -563,7 +563,7 @@ namespace Legion {
       }
       layout->alignment_reqd = alignment;
       instance = UntypedDeferredValue::allocate_instance(memory, layout);
-      if (initial_value != NULL)
+      if (initial_value != nullptr)
       {
         Realm::ProfilingRequestSet no_requests; 
         std::vector<Realm::CopySrcDstField> dsts(1);
@@ -604,7 +604,7 @@ namespace Legion {
       assert(dims <= LEGION_MAX_DIM);
       const std::vector<size_t> field_sizes(1, field_size);
       Realm::InstanceLayoutConstraints constraints(field_sizes, 0/*blocking*/);
-      Realm::InstanceLayoutGeneric *layout = NULL;
+      Realm::InstanceLayoutGeneric *layout = nullptr;
       const Domain domain = UntypedDeferredValue::get_index_space_bounds(space);
       switch (dims)
       {
@@ -639,7 +639,7 @@ namespace Legion {
       }
       layout->alignment_reqd = alignment;
       instance = UntypedDeferredValue::allocate_instance(memory, layout);
-      if (initial_value != NULL)
+      if (initial_value != nullptr)
       {
         Realm::ProfilingRequestSet no_requests; 
         std::vector<Realm::CopySrcDstField> dsts(1);
@@ -685,7 +685,7 @@ namespace Legion {
       }
       const std::vector<size_t> field_sizes(1, field_size);
       Realm::InstanceLayoutConstraints constraints(field_sizes, 0/*blocking*/);
-      Realm::InstanceLayoutGeneric *layout = NULL;
+      Realm::InstanceLayoutGeneric *layout = nullptr;
       switch (dims)
       {
 #define DIMFUNC(DIM)                                                        \
@@ -714,7 +714,7 @@ namespace Legion {
       }
       layout->alignment_reqd = alignment;
       instance = UntypedDeferredValue::allocate_instance(memory, layout);
-      if (initial_value != NULL)
+      if (initial_value != nullptr)
       {
         Realm::ProfilingRequestSet no_requests; 
         std::vector<Realm::CopySrcDstField> dsts(1);

@@ -51,7 +51,7 @@ namespace Legion {
       UpdateAnalysis& operator=(const UpdateAnalysis &rhs) = delete;
     public:
       bool has_output_updates(void) const 
-        { return (output_aggregator != NULL); }
+        { return (output_aggregator != nullptr); }
     public:
       void record_uninitialized(const FieldMask &uninit,
                                 std::set<RtEvent> &applied_events);

@@ -95,7 +95,7 @@ namespace Legion {
       ApEvent pre = inst_view->register_user(usage, user_mask, user_expr,
                                              op_id, op_ctx_index, index,
                                              match_space, term_event,
-                                             target, NULL/*no mapping*/,
+                                             target, nullptr/*no mapping*/,
                                              local_collective_arrivals,
                                              registered_events, applied_events,
                                              trace_info, source);

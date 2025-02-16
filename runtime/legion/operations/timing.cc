@@ -168,7 +168,7 @@ namespace Legion {
     {
       ReplFenceOp::activate();
       measured = RtEvent::NO_RT_EVENT;
-      timing_collective = NULL;
+      timing_collective = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -176,10 +176,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ReplFenceOp::deactivate(false/*freeop*/);
-      if (timing_collective != NULL)
+      if (timing_collective != nullptr)
       {
         delete timing_collective;
-        timing_collective = NULL;
+        timing_collective = nullptr;
       }
       if (freeop)
         runtime->free_operation(this);
@@ -210,7 +210,7 @@ namespace Legion {
                                     1/*count*/, complete);
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -235,7 +235,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif

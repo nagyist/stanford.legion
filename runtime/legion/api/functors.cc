@@ -33,7 +33,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ProjectionFunctor::ProjectionFunctor(void)
-      : runtime(NULL)
+      : runtime(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -577,7 +577,7 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
         {
           LogicalRegion result = !is_functional ?
-            functor->project(task, idx, req.partition, point) : (args == NULL) ?
+            functor->project(task, idx, req.partition, point) : (args == nullptr) ?
             functor->project(req.partition, point, launch_domain) :
             functor->project(req.partition, point, launch_domain, args, arglen);
           check_projection_partition_result(req.partition, task, idx,result);
@@ -586,7 +586,7 @@ namespace Legion {
         else
         {
           LogicalRegion result = !is_functional ?
-            functor->project(task, idx, req.region, point) : (args == NULL) ?
+            functor->project(task, idx, req.region, point) : (args == nullptr) ?
             functor->project(req.region, point, launch_domain) :
             functor->project(req.region, point, launch_domain, args, arglen);
           check_projection_region_result(req.region, task, idx, result);
@@ -598,7 +598,7 @@ namespace Legion {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
         {
           LogicalRegion result = !is_functional ?
-            functor->project(task, idx, req.partition, point) : (args == NULL) ?
+            functor->project(task, idx, req.partition, point) : (args == nullptr) ?
             functor->project(req.partition, point, launch_domain) :
             functor->project(req.partition, point, launch_domain, args, arglen);
           check_projection_partition_result(req.partition, task, idx, result);
@@ -607,7 +607,7 @@ namespace Legion {
         else
         {
           LogicalRegion result = !is_functional ?
-            functor->project(task, idx, req.region, point) : (args == NULL) ?
+            functor->project(task, idx, req.region, point) : (args == nullptr) ?
             functor->project(req.region, point, launch_domain) :
             functor->project(req.region, point, launch_domain, args, arglen);
           check_projection_region_result(req.region, task, idx, result);
@@ -642,8 +642,8 @@ namespace Legion {
                            (req.handle_type == LEGION_REGION_PROJECTION)));
       // Can skip pointwise analysis if we're replaying
       if (replaying)
-        pointwise_dependences = NULL;
-      if (find_dependences || (pointwise_dependences != NULL))
+        pointwise_dependences = nullptr;
+      if (find_dependences || (pointwise_dependences != nullptr))
         pointwise_regions.reserve(point_tasks.size());
       if (!is_exclusive)
       {
@@ -655,7 +655,7 @@ namespace Legion {
           {
             LogicalRegion result = !is_functional ?
               functor->project(*it, index, req.partition, 
-                               (*it)->get_domain_point()) : (args == NULL) ?
+                               (*it)->get_domain_point()) : (args == nullptr) ?
               functor->project(req.partition,
                   (*it)->get_domain_point(), launch_domain) :
               functor->project(req.partition,
@@ -675,7 +675,7 @@ namespace Legion {
               }
               check_containment((*it), index, region_deps);
             }
-            else if (pointwise_dependences != NULL)
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -686,7 +686,7 @@ namespace Legion {
           {
             LogicalRegion result = !is_functional ?
               functor->project(*it, index, req.region,(*it)->get_domain_point())
-                : (args == NULL) ? functor->project(req.region, 
+                : (args == nullptr) ? functor->project(req.region, 
                   (*it)->get_domain_point(), launch_domain) :
               functor->project(req.region, (*it)->get_domain_point(),
                   launch_domain, args, arglen);
@@ -705,7 +705,7 @@ namespace Legion {
               }
               check_containment((*it), index, region_deps);
             }
-            else if (pointwise_dependences != NULL)
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -719,7 +719,7 @@ namespace Legion {
           {
             LogicalRegion result = !is_functional ?
               functor->project(*it, index, req.partition, 
-                              (*it)->get_domain_point()) : (args == NULL) ?
+                              (*it)->get_domain_point()) : (args == nullptr) ?
               functor->project(req.partition, 
                   (*it)->get_domain_point(), launch_domain) :
               functor->project(req.partition,
@@ -739,7 +739,7 @@ namespace Legion {
               }
               check_containment((*it), index, region_deps);
             }
-            else if (pointwise_dependences != NULL)
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -750,7 +750,7 @@ namespace Legion {
           {
             LogicalRegion result = !is_functional ? 
               functor->project(*it, index, req.region,(*it)->get_domain_point())
-                : (args == NULL) ? functor->project(req.region, 
+                : (args == nullptr) ? functor->project(req.region, 
                   (*it)->get_domain_point(), launch_domain) :
               functor->project(req.region, (*it)->get_domain_point(),
                   launch_domain, args, arglen);
@@ -758,7 +758,7 @@ namespace Legion {
                                            index, result);
             (*it)->set_projection_result(index, result);
 
-            if (pointwise_dependences != NULL)
+            if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
 
             if (find_dependences)
@@ -772,7 +772,7 @@ namespace Legion {
               }
               check_containment((*it), index, region_deps);
             }
-            else if (pointwise_dependences != NULL)
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -793,7 +793,7 @@ namespace Legion {
                 index, finder->second);
           }
         }
-        if (pointwise_dependences != NULL)
+        if (pointwise_dependences != nullptr)
         {
           for (std::vector<PointwiseDependence>::const_iterator pit =
                 pointwise_dependences->begin(); pit !=
@@ -812,7 +812,7 @@ namespace Legion {
                 continue;
               if (total_shards > 1)
               {
-                const Domain shard_domain = (pit->sharding_domain == NULL) ?
+                const Domain shard_domain = (pit->sharding_domain == nullptr) ?
                   launch_domain : pit->sharding_domain->get_tight_domain();
                 for (std::vector<DomainPoint>::const_iterator it =
                       finder->second.begin(); it != finder->second.end(); it++)
@@ -848,7 +848,7 @@ namespace Legion {
       Mappable *mappable = op->get_mappable();
 #ifdef DEBUG_LEGION
       assert(req.handle_type != LEGION_SINGULAR_PROJECTION);
-      assert(mappable != NULL);
+      assert(mappable != nullptr);
 #endif
       size_t arglen = 0;
       const void *args = req.get_projection_args(&arglen);
@@ -858,8 +858,8 @@ namespace Legion {
       std::vector<LogicalRegion> pointwise_regions;
       // Can skip pointwise analysis if we're replaying
       if (replaying)
-        pointwise_dependences = NULL;
-      if (find_dependences || (pointwise_dependences != NULL))
+        pointwise_dependences = nullptr;
+      if (find_dependences || (pointwise_dependences != nullptr))
         pointwise_regions.reserve(points.size());
       if (!is_exclusive)
       {
@@ -871,7 +871,7 @@ namespace Legion {
           {
             LogicalRegion result = !is_functional ?
               functor->project(mappable, index, req.partition, 
-                                (*it)->get_domain_point()) : (args == NULL) ?
+                                (*it)->get_domain_point()) : (args == nullptr) ?
               functor->project(req.partition, 
                   (*it)->get_domain_point(), launch_domain) :
               functor->project(req.partition,
@@ -890,7 +890,7 @@ namespace Legion {
               }
               check_containment(*it, index, region_deps);
             }
-            else if (pointwise_dependences != NULL)
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -901,7 +901,7 @@ namespace Legion {
           {
             LogicalRegion result = !is_functional ?
               functor->project(mappable, index, req.region,
-                               (*it)->get_domain_point()) : (args == NULL) ?
+                               (*it)->get_domain_point()) : (args == nullptr) ?
               functor->project(req.region, 
                   (*it)->get_domain_point(), launch_domain) :
               functor->project(req.region,
@@ -920,7 +920,7 @@ namespace Legion {
               }
               check_containment(*it, index, region_deps);
             }
-            else if (pointwise_dependences != NULL)
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -934,7 +934,7 @@ namespace Legion {
           {
             LogicalRegion result = !is_functional ?
               functor->project(mappable, index, req.partition, 
-                               (*it)->get_domain_point()) : (args == NULL) ?
+                               (*it)->get_domain_point()) : (args == nullptr) ?
               functor->project(req.partition, 
                   (*it)->get_domain_point(), launch_domain) :
               functor->project(req.partition,
@@ -953,7 +953,7 @@ namespace Legion {
               }
               check_containment(*it, index, region_deps);
             }
-            else if (pointwise_dependences != NULL)
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -964,7 +964,7 @@ namespace Legion {
           {
             LogicalRegion result = !is_functional ?
               functor->project(mappable, index, req.region,
-                               (*it)->get_domain_point()) : (args == NULL) ?
+                               (*it)->get_domain_point()) : (args == nullptr) ?
               functor->project(req.region, 
                   (*it)->get_domain_point(), launch_domain) :
               functor->project(req.region,
@@ -983,7 +983,7 @@ namespace Legion {
               }
               check_containment(*it, index, region_deps);
             }
-            else if (pointwise_dependences != NULL)
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -1004,7 +1004,7 @@ namespace Legion {
                 index, finder->second);
           }
         }
-        if (pointwise_dependences != NULL)
+        if (pointwise_dependences != nullptr)
         {
           for (std::vector<PointwiseDependence>::const_iterator pit =
                 pointwise_dependences->begin(); pit !=
@@ -1024,7 +1024,7 @@ namespace Legion {
 #endif
               if (total_shards > 1)
               {
-                const Domain shard_domain = (pit->sharding_domain == NULL) ?
+                const Domain shard_domain = (pit->sharding_domain == nullptr) ?
                   launch_domain : pit->sharding_domain->get_tight_domain();
                 for (std::vector<DomainPoint>::const_iterator it =
                       finder->second.begin(); it != finder->second.end(); it++)
@@ -1454,13 +1454,13 @@ namespace Legion {
           ShardID local_shard, RegionTreeNode *root, const ProjectionInfo &info)
     //--------------------------------------------------------------------------
     {
-      ProjectionNode *result = NULL;
+      ProjectionNode *result = nullptr;
       if (root->is_region())
         result = new ProjectionRegion(root->as_region_node());
       else
         result = new ProjectionPartition(root->as_partition_node());
       IndexSpaceNode *launch_space = info.projection_space;
-      IndexSpace local_space = (info.sharding_function == NULL) ? 
+      IndexSpace local_space = (info.sharding_function == nullptr) ? 
         IndexSpace::NO_SPACE : info.sharding_function->find_shard_space(
                   local_shard, launch_space, info.sharding_space->handle,
                   op->get_provenance());
@@ -1471,7 +1471,7 @@ namespace Legion {
       Domain launch_domain = launch_space->get_tight_domain();
       std::map<RegionTreeNode*,ProjectionNode*> node_map;
       node_map[root] = result;
-      Mappable *mappable = is_functional ? NULL : op->get_mappable();
+      Mappable *mappable = is_functional ? nullptr : op->get_mappable();
       size_t arglen = 0;
       const void *args = req.get_projection_args(&arglen);
       if (root->is_region())
@@ -1485,7 +1485,7 @@ namespace Legion {
             AutoLock p_lock(projection_reservation);
             result = !is_functional ?
               functor->project(mappable, index, region->handle, itr.p) : 
-              (args == NULL) ?
+              (args == nullptr) ?
                 functor->project(region->handle, itr.p, launch_domain) :
                 functor->project(region->handle, itr.p, launch_domain, 
                                  args, arglen);
@@ -1493,7 +1493,7 @@ namespace Legion {
           else
             result = !is_functional ?
               functor->project(mappable, index, region->handle, itr.p) :
-              (args == NULL) ?
+              (args == nullptr) ?
                 functor->project(region->handle, itr.p, launch_domain) :
                 functor->project(region->handle, itr.p, launch_domain,
                                  args, arglen);
@@ -1515,7 +1515,7 @@ namespace Legion {
             AutoLock p_lock(projection_reservation);
             result = !is_functional ?
               functor->project(mappable, index, partition->handle, itr.p) :
-              (args == NULL) ?
+              (args == nullptr) ?
                 functor->project(partition->handle, itr.p, launch_domain) :
                 functor->project(partition->handle, itr.p, launch_domain,
                                  args, arglen);
@@ -1523,7 +1523,7 @@ namespace Legion {
           else
             result = !is_functional ?
               functor->project(mappable, index, partition->handle, itr.p) :
-              (args == NULL) ?
+              (args == nullptr) ?
                 functor->project(partition->handle, itr.p, launch_domain) :
                 functor->project(partition->handle, itr.p, launch_domain,
                                  args, arglen);
@@ -1547,7 +1547,7 @@ namespace Legion {
       RegionNode *child = runtime->get_node(r);
       std::map<RegionTreeNode*,ProjectionNode*>::const_iterator finder = 
         node_map.find(child);
-      ProjectionRegion *current = NULL;
+      ProjectionRegion *current = nullptr;
       if (finder == node_map.end())
       {
         current = new ProjectionRegion(child);
@@ -1560,7 +1560,7 @@ namespace Legion {
       {
         // Do the next partition
         finder = node_map.find(child->parent);
-        ProjectionPartition *parent = NULL;
+        ProjectionPartition *parent = nullptr;
         if (finder == node_map.end())
         {
           parent = new ProjectionPartition(child->parent);
@@ -1573,7 +1573,7 @@ namespace Legion {
           break;
         // Do the next region
         finder = node_map.find(child->parent->parent);
-        ProjectionRegion *next = NULL;
+        ProjectionRegion *next = nullptr;
         if (finder == node_map.end())
         {
           next = new ProjectionRegion(child->parent->parent);

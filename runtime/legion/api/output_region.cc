@@ -29,7 +29,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     OutputRegion::OutputRegion(void)
-      : impl(NULL)
+      : impl(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -39,7 +39,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -48,7 +48,7 @@ namespace Legion {
       : impl(i)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -56,11 +56,11 @@ namespace Legion {
     OutputRegion::~OutputRegion(void)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
-        impl = NULL;
+        impl = nullptr;
       }
     }
 
@@ -68,13 +68,13 @@ namespace Legion {
     OutputRegion& OutputRegion::operator=(const OutputRegion &rhs)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
       }
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
       return *this;
     }
@@ -104,7 +104,7 @@ namespace Legion {
     void OutputRegion::check_type_tag(TypeTag type_tag) const
     //--------------------------------------------------------------------------
     {
-      assert(impl != NULL);
+      assert(impl != nullptr);
       impl->check_type_tag(type_tag);
     }
 
@@ -113,7 +113,7 @@ namespace Legion {
                                       FieldID field_id, size_t field_size) const
     //--------------------------------------------------------------------------
     {
-      assert(impl != NULL);
+      assert(impl != nullptr);
       impl->check_field_size(field_id, field_size);
     }
 
@@ -124,7 +124,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->get_layout(field_id, ordering, alignment);
     }
@@ -136,7 +136,7 @@ namespace Legion {
                                    bool check_constraints /*= true */)
     //--------------------------------------------------------------------------
     {
-      return_data(extents, field_id, instance, NULL, check_constraints);
+      return_data(extents, field_id, instance, nullptr, check_constraints);
     }
 
     //--------------------------------------------------------------------------
@@ -148,7 +148,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->return_data(
           extents, field_id, instance, constraints, check_constraints);
@@ -178,7 +178,7 @@ namespace Legion {
       region->add_base_gc_ref(OUTPUT_REGION_REF);
       context->add_base_gc_ref(OUTPUT_REGION_REF);
       
-      managers.resize(req.instance_fields.size(), NULL);
+      managers.resize(req.instance_fields.size(), nullptr);
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
         const InstanceRef &ref = instances[idx];
@@ -199,7 +199,7 @@ namespace Legion {
             std::distance(req.instance_fields.begin(), finder);
 #ifdef DEBUG_LEGION
           assert(offset < managers.size());
-          assert(managers[offset] == NULL);
+          assert(managers[offset] == nullptr);
 #endif
           managers[offset] = manager;
           manager->add_base_gc_ref(OUTPUT_REGION_REF);
@@ -363,7 +363,7 @@ namespace Legion {
           context->owner_task->get_unique_op_id());
       PhysicalManager *manager = get_manager(field_id);
       const LayoutConstraints *manager_cons = manager->layout->constraints;
-      if (check_constraints && (constraints != NULL))
+      if (check_constraints && (constraints != nullptr))
       {
         bool has_conflict = false;
         if (!req.global_indexing && context->owner_task->is_index_space)
@@ -420,7 +420,7 @@ namespace Legion {
         {
           // We now know the extent so we can report it back
           // Set the result if we're not doing global indexing with a parent
-          if (region->parent == NULL)
+          if (region->parent == nullptr)
           {
             DomainPoint lo; lo.dim = extents.dim;
             Domain domain(lo, extents - 1);
@@ -507,7 +507,7 @@ namespace Legion {
             pit = instance_fields.begin(); pit != instance_fields.end(); pit++)
       {
         const Realm::InstanceLayoutGeneric *current = pit->first.exists() ?
-          pit->first.get_layout() : NULL;
+          pit->first.get_layout() : nullptr;
         if (grouped_fields)
         {
           // Redistricting to just one layout for all the fields
@@ -520,17 +520,17 @@ namespace Legion {
 
           Realm::InstanceLayoutGeneric *layout =
             region->row_source->create_layout(*constraints, pit->second,
-                sizes, false/*compact*/, NULL, NULL, NULL, 
-                (current != NULL) ? current->alignment_reqd : 1);
+                sizes, false/*compact*/, nullptr, nullptr, nullptr, 
+                (current != nullptr) ? current->alignment_reqd : 1);
 #ifdef DEBUG_LEGION
-          assert((current == NULL) || 
+          assert((current == nullptr) || 
               (layout->bytes_used <= current->bytes_used));
-          assert((current == NULL) ||
+          assert((current == nullptr) ||
               (layout->alignment_reqd == current->alignment_reqd));
 #endif
           // Create an external Realm instance
           Realm::ProfilingRequestSet requests;
-          if (runtime->profiler != NULL)
+          if (runtime->profiler != nullptr)
           {
             const LgEvent unique_event = manager->get_unique_event();
 #ifdef DEBUG_LEGION
@@ -557,7 +557,7 @@ namespace Legion {
             const RtEvent ready(
                 Realm::RegionInstance::create_instance(instance,
                   manager->memory_manager->memory, layout, requests));
-            if (ready.exists() && (implicit_profiler != NULL))
+            if (ready.exists() && (implicit_profiler != nullptr))
               implicit_profiler->record_instance_ready(ready,
                   manager->get_unique_event());
             if (manager->update_physical_instance(instance, ready, footprint))
@@ -599,7 +599,7 @@ namespace Legion {
               alignment = constraint.alignment;
             }
             layouts[idx] = region->row_source->create_layout(*constraints,
-                fields, sizes, false/*compact*/, NULL, NULL, NULL, alignment);
+                fields, sizes, false/*compact*/, nullptr, nullptr, nullptr, alignment);
             unique_events[idx] = manager->get_unique_event();
           }
           std::vector<PhysicalInstance> instances(layouts.size());
@@ -631,7 +631,7 @@ namespace Legion {
               region->row_source->create_layout(*constraints, fields,
                   sizes, false/*compact*/);
             Realm::ProfilingRequestSet requests;
-            if (runtime->profiler != NULL)
+            if (runtime->profiler != nullptr)
             {
               const LgEvent unique_event = manager->get_unique_event();
 #ifdef DEBUG_LEGION
@@ -644,7 +644,7 @@ namespace Legion {
             const RtEvent ready(
               Realm::RegionInstance::create_instance(instance,
                 manager->memory_manager->memory, layout, requests));
-            if (ready.exists() && (implicit_profiler != NULL))
+            if (ready.exists() && (implicit_profiler != nullptr))
               implicit_profiler->record_instance_ready(ready,
                   manager->get_unique_event());
             if (manager->update_physical_instance(instance, ready,

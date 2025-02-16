@@ -28,7 +28,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     Predicate::Predicate(void)
-      : impl(NULL), const_value(true)
+      : impl(nullptr), const_value(true)
     //--------------------------------------------------------------------------
     {
     }
@@ -39,7 +39,7 @@ namespace Legion {
     {
       const_value = p.const_value;
       impl = p.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -49,12 +49,12 @@ namespace Legion {
     {
       const_value = p.const_value;
       impl = p.impl;
-      p.impl = NULL;
+      p.impl = nullptr;
     }
 
     //--------------------------------------------------------------------------
     Predicate::Predicate(bool value)
-      : impl(NULL), const_value(value)
+      : impl(nullptr), const_value(value)
     //--------------------------------------------------------------------------
     {
     }
@@ -64,7 +64,7 @@ namespace Legion {
       : impl(i)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -72,7 +72,7 @@ namespace Legion {
     Predicate::~Predicate(void)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
     }
 
@@ -80,11 +80,11 @@ namespace Legion {
     Predicate& Predicate::operator=(const Predicate &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
       const_value = rhs.const_value;
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
       return *this;
     }
@@ -93,11 +93,11 @@ namespace Legion {
     Predicate& Predicate::operator=(Predicate &&rhs) noexcept
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
       const_value = rhs.const_value;
       impl = rhs.impl;
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
       return *this;
     }
 
@@ -223,7 +223,7 @@ namespace Legion {
     ReplPredicateImpl::ReplPredicateImpl(Operation *op, uint64_t coordinate,
                                          CollectiveID id)
       : PredicateImpl(op), predicate_coordinate(coordinate), collective_id(id),
-        max_observed_index(0), collective(NULL)
+        max_observed_index(0), collective(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -232,7 +232,7 @@ namespace Legion {
     ReplPredicateImpl::~ReplPredicateImpl(void)
     //--------------------------------------------------------------------------
     {
-      if (collective != NULL)
+      if (collective != nullptr)
         delete collective;
     }
 
@@ -250,7 +250,7 @@ namespace Legion {
       {
         // For the false case, check to see if we already got the
         // maximum observed false case
-        if (collective != NULL)
+        if (collective != nullptr)
           max_observed_index = collective->get_result(); 
         // Can safely return false here since it's later than the 
         // maximum observed index across all the shards so all shards
@@ -301,7 +301,7 @@ namespace Legion {
         {
 #ifdef DEBUG_LEGION
           ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(context);
-          assert(repl_ctx != NULL);
+          assert(repl_ctx != nullptr);
 #else
           ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(context);
 #endif

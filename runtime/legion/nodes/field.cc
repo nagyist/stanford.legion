@@ -33,7 +33,7 @@ namespace Legion {
       : DistributedCollectable(sp.did,
           false/*register with runtime*/, map),
         handle(sp), provenance(prov), initialized(init), 
-        allocation_state((map != NULL) ? FIELD_ALLOC_COLLECTIVE :
+        allocation_state((map != nullptr) ? FIELD_ALLOC_COLLECTIVE :
             is_owner() ? FIELD_ALLOC_READ_ONLY : FIELD_ALLOC_INVALID), 
         outstanding_allocators(0), outstanding_invalidations(0)
     //--------------------------------------------------------------------------
@@ -43,7 +43,7 @@ namespace Legion {
         unallocated_indexes = FieldMask(LEGION_FIELD_MASK_FIELD_ALL_ONES);
         local_index_infos.resize(runtime->max_local_fields, 
             std::pair<size_t,CustomSerdezID>(0, 0));
-        if (collective_mapping != NULL)
+        if (collective_mapping != nullptr)
         {
           const CollectiveMapping &mapping = *collective_mapping;
           for (unsigned idx = 0; idx < mapping.size(); idx++)
@@ -59,7 +59,7 @@ namespace Legion {
       }
       else if (allocation_state == FIELD_ALLOC_COLLECTIVE)
         unallocated_indexes = FieldMask(LEGION_FIELD_MASK_FIELD_ALL_ONES);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
 #ifdef LEGION_GC
       log_garbage.info("GC Field Space %lld %d %lld",
@@ -93,7 +93,7 @@ namespace Legion {
           field_infos[fid].deserialize(derez);
         }
       }
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
 #ifdef LEGION_GC
       log_garbage.info("GC Field Space %lld %d %lld",
@@ -120,7 +120,7 @@ namespace Legion {
         }
       }
       layouts.clear();
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       // Unregister ourselves from the context
       if (registered_with_runtime)
@@ -129,7 +129,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldSpaceNode::FieldInfo::FieldInfo(void)
-      : field_size(0), idx(0), serdez_id(0), provenance(NULL), 
+      : field_size(0), idx(0), serdez_id(0), provenance(nullptr), 
         collective(false), local(false)
     //--------------------------------------------------------------------------
     {
@@ -142,7 +142,7 @@ namespace Legion {
         collective(col), local(loc)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -153,7 +153,7 @@ namespace Legion {
         provenance(prov), collective(col), local(loc)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -164,7 +164,7 @@ namespace Legion {
         collective(rhs.collective), local(rhs.local)
     //--------------------------------------------------------------------------
     {
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -175,14 +175,14 @@ namespace Legion {
         collective(rhs.collective), local(rhs.local)
     //--------------------------------------------------------------------------
     {
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
     }
 
     //--------------------------------------------------------------------------
     FieldSpaceNode::FieldInfo::~FieldInfo(void)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
 
@@ -191,7 +191,7 @@ namespace Legion {
                                                            const FieldInfo &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       field_size = rhs.field_size;
       size_ready = rhs.size_ready;
@@ -200,7 +200,7 @@ namespace Legion {
       provenance = rhs.provenance;
       collective = rhs.collective;
       local = rhs.local;
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
       return *this;
     }
@@ -210,7 +210,7 @@ namespace Legion {
                                                                 FieldInfo &&rhs)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       field_size = rhs.field_size;
       size_ready = rhs.size_ready;
@@ -219,7 +219,7 @@ namespace Legion {
       provenance = rhs.provenance;
       collective = rhs.collective;
       local = rhs.local;
-      rhs.provenance = NULL;
+      rhs.provenance = nullptr;
       return *this;
     }
 
@@ -232,7 +232,7 @@ namespace Legion {
       rez.serialize(idx);
       rez.serialize<bool>(collective);
       rez.serialize<bool>(local);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -242,7 +242,7 @@ namespace Legion {
     void FieldSpaceNode::FieldInfo::deserialize(Deserializer &derez)
     //--------------------------------------------------------------------------
     {
-      if ((provenance != NULL) && provenance->remove_reference())
+      if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
       derez.deserialize(field_size);
       derez.deserialize(size_ready);
@@ -250,7 +250,7 @@ namespace Legion {
       derez.deserialize<bool>(collective);
       derez.deserialize<bool>(local);
       provenance = Provenance::deserialize(derez);
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->add_reference();
     }
 
@@ -679,7 +679,7 @@ namespace Legion {
       assert(get_owner_space() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = NULL;
+      void *result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
@@ -706,7 +706,7 @@ namespace Legion {
           semantic_info[tag] = SemanticInfo(ready_event);
         }
       }
-      if (result == NULL)
+      if (result == nullptr)
       {
         if (can_fail || !wait_until)
           Runtime::trigger_event(ready);
@@ -732,7 +732,7 @@ namespace Legion {
       assert(get_owner_space() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = NULL;
+      void *result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
@@ -760,7 +760,7 @@ namespace Legion {
           semantic_field_info[key] = SemanticInfo(ready_event);
         }
       }
-      if (result == NULL)
+      if (result == nullptr)
       {
         if (can_fail || !wait_until)
           Runtime::trigger_event(ready);
@@ -1329,7 +1329,7 @@ namespace Legion {
           rez.serialize(allocated_event);
           rez.serialize(serdez_id);
           rez.serialize(ApEvent::NO_AP_EVENT);
-          if (prov != NULL)
+          if (prov != nullptr)
             prov->serialize(rez);
           else
             Provenance::serialize_null(rez);
@@ -1405,7 +1405,7 @@ namespace Legion {
           rez.serialize(allocated_event);
           rez.serialize(serdez_id);
           rez.serialize(size_ready); // size ready
-          if (prov != NULL)
+          if (prov != nullptr)
             prov->serialize(rez);
           else
             Provenance::serialize_null(rez);
@@ -1482,7 +1482,7 @@ namespace Legion {
           rez.serialize(allocated_event);
           rez.serialize(serdez_id);
           rez.serialize(ApEvent::NO_AP_EVENT);
-          if (prov != NULL)
+          if (prov != nullptr)
             prov->serialize(rez);
           else
             Provenance::serialize_null(rez);
@@ -1569,7 +1569,7 @@ namespace Legion {
           rez.serialize(allocated_event);
           rez.serialize(serdez_id);
           rez.serialize(sizes_ready);
-          if (prov != NULL)
+          if (prov != nullptr)
             prov->serialize(rez);
           else
             Provenance::serialize_null(rez);
@@ -1879,7 +1879,7 @@ namespace Legion {
           rez.serialize(handle);
           rez.serialize(allocated_event);
           rez.serialize(serdez_id);
-          if (prov != NULL)
+          if (prov != nullptr)
             prov->serialize(rez);
           else
             Provenance::serialize_null(rez);
@@ -1945,7 +1945,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(to_free.size() == indexes.size());
 #endif
-      if (mapping != NULL)
+      if (mapping != nullptr)
       {
         if (mapping->contains(owner_space))
         {
@@ -2835,7 +2835,7 @@ namespace Legion {
       }
 
       FieldSpaceNode *node = runtime->get_node(handle);
-      node->free_local_fields(fields, indexes, NULL/*no collective*/); 
+      node->free_local_fields(fields, indexes, nullptr/*no collective*/); 
     }
 
     //--------------------------------------------------------------------------
@@ -2936,7 +2936,7 @@ namespace Legion {
       RegionNode *region_node = runtime->get_node(region_handle);
       size_t collective_mapping_size;
       derez.deserialize(collective_mapping_size);
-      CollectiveMapping *collective_mapping = NULL;
+      CollectiveMapping *collective_mapping = nullptr;
       if (collective_mapping_size > 0)
       {
         collective_mapping =
@@ -2962,7 +2962,7 @@ namespace Legion {
       }
       runtime->send_external_create_response(source, rez);
 
-      if ((collective_mapping != NULL) &&
+      if ((collective_mapping != nullptr) &&
           collective_mapping->remove_reference())
         delete collective_mapping;
     }
@@ -3002,7 +3002,7 @@ namespace Legion {
       // Get the layout
       LayoutDescription *layout = 
         find_layout_description(external_mask, total_dims, constraints);
-      if (layout == NULL)
+      if (layout == nullptr)
       {
         LayoutConstraints *layout_constraints = 
           runtime->register_layout(handle, 
@@ -3013,13 +3013,13 @@ namespace Legion {
                                            field_sizes, serdez);
       }
 #ifdef DEBUG_LEGION
-      assert(layout != NULL);
+      assert(layout != nullptr);
 #endif
       MemoryManager *memory = 
         runtime->find_memory_manager(inst.get_location());
       PhysicalManager *result = new PhysicalManager(did, 
                                          memory, inst, node->row_source, 
-                                         NULL/*piece list*/, 
+                                         nullptr/*piece list*/, 
                                          0/*piece list size*/,
                                          node->column_source,
                                          node->handle.get_tree_id(),
@@ -3028,14 +3028,14 @@ namespace Legion {
                                          instance_footprint, 
                                          ready_event, unique_event,
                               PhysicalManager::EXTERNAL_ATTACHED_INSTANCE_KIND,
-                                         NULL/*redop*/,
+                                         nullptr/*redop*/,
                                          collective_mapping);
       // Remove the reference that was returned to us from either finding
       // or creating the layout
       if (layout->remove_reference())
         delete layout;
 #ifdef DEBUG_LEGION
-      assert(result != NULL);
+      assert(result != nullptr);
 #endif
       return result;
     }
@@ -3054,7 +3054,7 @@ namespace Legion {
           LONG_BOUNDED_LIFETIME>>::const_iterator finder = 
                                                       layouts.find(hash_key);
         if (finder == layouts.end())
-          return NULL;
+          return nullptr;
         // Get the ones with a matching mask
         for (std::list<LayoutDescription*>::const_iterator it = 
               finder->second.begin(); it != finder->second.end(); it++)
@@ -3066,7 +3066,7 @@ namespace Legion {
         }
       }
       if (candidates.empty())
-        return NULL;
+        return nullptr;
       // First go through the existing descriptions and see if we find
       // one that matches the existing layout
       for (std::deque<LayoutDescription*>::const_iterator it = 
@@ -3078,7 +3078,7 @@ namespace Legion {
           return (*it);
         }
       }
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -3106,7 +3106,7 @@ namespace Legion {
         return (*it);
       }
       assert(false);
-      return NULL;
+      return nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -3167,8 +3167,8 @@ namespace Legion {
       // Only send it if we're the owner without a collective mapping
       // or the target is not in the collective mapping and we're the
       // closest node in the collective mapping to the target
-      assert((is_owner() && (collective_mapping == NULL)) ||
-            ((collective_mapping != NULL) && 
+      assert((is_owner() && (collective_mapping == nullptr)) ||
+            ((collective_mapping != nullptr) && 
              !collective_mapping->contains(target) &&
              collective_mapping->contains(local_space) && 
              (local_space == collective_mapping->find_nearest(target))));
@@ -3183,11 +3183,11 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(handle);
           rez.serialize(initialized);
-          if (provenance != NULL)
+          if (provenance != nullptr)
             provenance->serialize(rez);
           else
             Provenance::serialize_null(rez);
-          if (collective_mapping != NULL)
+          if (collective_mapping != nullptr)
             collective_mapping->pack(rez);
           else
             CollectiveMapping::pack_null(rez);
@@ -3247,13 +3247,13 @@ namespace Legion {
       AutoProvenance provenance(Provenance::deserialize(derez));
       size_t num_spaces;
       derez.deserialize(num_spaces);
-      CollectiveMapping *mapping = NULL;
+      CollectiveMapping *mapping = nullptr;
       if (num_spaces > 0)
         mapping = new CollectiveMapping(derez, num_spaces);
       FieldSpaceNode *node =
         runtime->create_node(handle, initialized, provenance, mapping, derez);
 #ifdef DEBUG_LEGION
-      assert(node != NULL);
+      assert(node != nullptr);
 #endif
       size_t num_semantic;
       derez.deserialize(num_semantic);
@@ -3303,7 +3303,7 @@ namespace Legion {
       FieldSpaceNode *target = runtime->get_node(handle);
       // If there is a collective mapping, check to see if we're on the
       // right node and if not forward it on to the right node
-      if (target->collective_mapping != NULL)
+      if (target->collective_mapping != nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(!target->collective_mapping->contains(source));
@@ -3736,7 +3736,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(copy != NULL);
+      assert(copy != nullptr);
 #endif
       if (is_owner())
       {

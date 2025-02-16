@@ -79,7 +79,7 @@ namespace Legion {
                                            Provenance *provenance,
                                            bool top_level /*=false*/,
                                            bool must_epoch_launch /*=false*/,
-                              std::vector<OutputRequirement> *outputs /*=NULL*/)
+                              std::vector<OutputRequirement> *outputs /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
       parent_ctx = ctx;
@@ -101,7 +101,7 @@ namespace Legion {
       if (mapper_data_size > 0)
       {
 #ifdef DEBUG_LEGION
-        assert(mapper_data == NULL);
+        assert(mapper_data == nullptr);
 #endif
         mapper_data = malloc(mapper_data_size);
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
@@ -113,7 +113,7 @@ namespace Legion {
       initialize_base_task(ctx, launcher.predicate, task_id, provenance);
       // If the task has any output requirements, we create fresh region names
       // return them back to the user
-      if (outputs != NULL)
+      if (outputs != nullptr)
       {
         create_output_regions(*outputs);
         if (launcher.predicate != Predicate::TRUE_PRED)
@@ -123,7 +123,7 @@ namespace Legion {
               "parent task %s (UID %lld) is used with output requirements.",
               get_task_name(), get_unique_id(), parent_ctx->get_task_name(),
               parent_ctx->get_unique_id())
-        if (get_trace() != NULL)
+        if (get_trace() != nullptr)
           REPORT_LEGION_ERROR(ERROR_OUTPUT_REGIONS_IN_TRACE,
               "Output requirements are disallowed for tasks launched inside "
               "traces. Task %s (UID %lld) in parent task %s (UID %lld) has "
@@ -134,7 +134,7 @@ namespace Legion {
       if (launcher.predicate != Predicate::TRUE_PRED &&
           !launcher.elide_future_return)
       {
-        if (launcher.predicate_false_future.impl != NULL)
+        if (launcher.predicate_false_future.impl != nullptr)
           predicate_false_future = launcher.predicate_false_future;
         else if (launcher.predicate_false_result.get_size() > 0)
           predicate_false_result.save_buffer(
@@ -204,7 +204,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(must_epoch != NULL);
+      assert(must_epoch != nullptr);
 #endif
       set_origin_mapped(true);
       if (!elide_future_return)
@@ -294,9 +294,9 @@ namespace Legion {
       // register mapping dependences on futures
       for (std::vector<Future>::const_iterator it = futures.begin();
             it != futures.end(); it++)
-        if (it->impl != NULL)
+        if (it->impl != nullptr)
           it->impl->register_dependence(this);
-      if (predicate_false_future.impl != NULL)
+      if (predicate_false_future.impl != nullptr)
         predicate_false_future.impl->register_dependence(this);
       if (!wait_barriers.empty() || !arrive_barriers.empty())
         parent_ctx->perform_barrier_dependence_analysis(this, 
@@ -315,7 +315,7 @@ namespace Legion {
         compute_parent_indexes(true/*force*/);
       // Dumb case for must epoch operations, we need these to 
       // be mapped immediately, mapper be damned
-      if (must_epoch != NULL)
+      if (must_epoch != nullptr)
       {
         TriggerTaskArgs trigger_args(this);
         runtime->issue_runtime_meta_task(trigger_args, 
@@ -395,19 +395,19 @@ namespace Legion {
       if (!elide_future_return)
       {
         // Set the future to the false result
-        if (predicate_false_future.impl == NULL)
+        if (predicate_false_future.impl == nullptr)
         {
           if (predicate_false_result.get_size() > 0)
             result.impl->set_local(predicate_false_result.get_buffer(),
                 predicate_false_result.get_size(), false/*own*/);
           else
-            result.impl->set_result(ApEvent::NO_AP_EVENT, NULL);
+            result.impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
         }
         else
         {
           // Safe to block here indefinitely waiting for unbounded pools
           result.impl->set_result(this, predicate_false_future.impl,
-                                  NULL/*safe_for_unbounded_pools*/);
+                                  nullptr/*safe_for_unbounded_pools*/);
         }
       }
       complete_mapping();
@@ -441,8 +441,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool IndividualTask::perform_mapping(MustEpochOp *must_epoch_owner/*=NULL*/,
-                                         const DeferMappingArgs *args/* =NULL*/)
+    bool IndividualTask::perform_mapping(MustEpochOp *must_epoch_owner/*=nullptr*/,
+                                         const DeferMappingArgs *args/* =nullptr*/)
     //--------------------------------------------------------------------------
     {
       if (!map_all_regions(must_epoch_owner, args))
@@ -659,7 +659,7 @@ namespace Legion {
     {
       // Invalidate the logical context so child operations that still have
       // mapping references can begin committing
-      if (execution_context != NULL)
+      if (execution_context != nullptr)
         execution_context->invalidate_logical_context();
       if (is_remote())
       {
@@ -668,7 +668,7 @@ namespace Legion {
         runtime->send_individual_remote_complete(orig_proc,rez);
         complete_operation(effects);
       }
-      else if (must_epoch != NULL)
+      else if (must_epoch != nullptr)
       {
         must_epoch->notify_subop_complete(this, effects);
         complete_operation(effects);
@@ -686,7 +686,7 @@ namespace Legion {
       // race condition in the remote case where the top-level
       // context cleans on the owner node while we still need it
       std::set<RtEvent> commit_preconditions;
-      if (execution_context != NULL)
+      if (execution_context != nullptr)
       {
         execution_context->invalidate_region_tree_contexts(is_top_level_task(),
                                                       commit_preconditions);
@@ -707,12 +707,12 @@ namespace Legion {
       // it is returned or we might prematurely release the references
       // that we hold on the version state objects
       // Pass back our created and deleted operations
-      if ((execution_context != NULL) && !is_remote())
+      if ((execution_context != nullptr) && !is_remote())
       {
         if (top_level_task)
           execution_context->report_leaks_and_duplicates(
                                 commit_preconditions);
-        else if (must_epoch != NULL)
+        else if (must_epoch != nullptr)
           execution_context->return_resources(must_epoch,
                  context_index, commit_preconditions);
         else
@@ -728,7 +728,7 @@ namespace Legion {
         pack_remote_commit(rez, commit_precondition);
         runtime->send_individual_remote_commit(orig_proc, rez);
       }
-      if (must_epoch != NULL)
+      if (must_epoch != nullptr)
       {
         must_epoch->notify_subop_commit(this, commit_precondition);
         commit_operation(true/*deactivate*/, commit_precondition);
@@ -744,11 +744,11 @@ namespace Legion {
                                        Processor future_proc, bool own_functor)
     //--------------------------------------------------------------------------
     {
-      if (functor != NULL)
+      if (functor != nullptr)
       {
 #ifdef DEBUG_LEGION
-        assert(instance == NULL);
-        assert(metadata == NULL);
+        assert(instance == nullptr);
+        assert(metadata == nullptr);
 #endif
         if (elide_future_return)
         {
@@ -761,19 +761,19 @@ namespace Legion {
       }
       else
       {
-        if ((instance != NULL) && (instance->size > 0) && 
-            (shard_manager == NULL))
+        if ((instance != nullptr) && (instance->size > 0) && 
+            (shard_manager == nullptr))
           check_future_return_bounds(instance);
         if (elide_future_return)
         {
-          if ((instance != NULL) && 
+          if ((instance != nullptr) && 
               !instance->defer_deletion(effects))
             delete instance;
         }
         else
         {
-          if ((instance != NULL) && (instance->size > 0) && 
-              (shard_manager == NULL))
+          if ((instance != nullptr) && (instance->size > 0) && 
+              (shard_manager == nullptr))
             check_future_return_bounds(instance);
           result.impl->set_result(effects, instance, metadata, metasize);
         }
@@ -798,13 +798,13 @@ namespace Legion {
       if (!elide_future_return)
       {
         // Set the future to the false result
-        if (predicate_false_future.impl == NULL)
+        if (predicate_false_future.impl == nullptr)
         {
           if (predicate_false_result.get_size() > 0)
             result.impl->set_local(predicate_false_result.get_buffer(),
                 predicate_false_result.get_size(), false/*own*/);
           else
-            result.impl->set_result(ApEvent::NO_AP_EVENT, NULL);
+            result.impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
         }
         else
           result.impl->set_result(execution_context,
@@ -941,7 +941,7 @@ namespace Legion {
       if (!elide_future_return)
       {
         result.impl->pack_future(rez, target);
-        if (predicate_false_future.impl != NULL)
+        if (predicate_false_future.impl != nullptr)
           predicate_false_future.impl->pack_future(rez, target);
         else
           rez.serialize<DistributedID>(0);
@@ -956,7 +956,7 @@ namespace Legion {
         rez.serialize(concurrent_postcondition);
       }
       Provenance *provenance = get_provenance();
-      if (provenance != NULL)
+      if (provenance != nullptr)
         provenance->serialize(rez);
       else
         Provenance::serialize_null(rez);
@@ -1046,7 +1046,7 @@ namespace Legion {
       // we get cleaned up after the resolve speculation call
       if (runtime->legion_spy_enabled)
         LegionSpy::log_point_point(remote_unique_id, get_unique_id());
-      if (implicit_profiler != NULL)
+      if (implicit_profiler != nullptr)
         implicit_profiler->register_operation(this);
       // Return true to add ourselves to the ready queue
       return true;
@@ -1082,7 +1082,7 @@ namespace Legion {
       RezCheck z(rez);
       rez.serialize(pre);
       // Pack the privilege state
-      if (execution_context != NULL)
+      if (execution_context != nullptr)
       {
         rez.serialize<bool>(true);
         execution_context->pack_return_resources(rez, context_index);
@@ -1103,7 +1103,7 @@ namespace Legion {
       derez.deserialize(has_privilege_state);
       if (has_privilege_state)
       {
-        const RtEvent resources_returned = (must_epoch == NULL) ? 
+        const RtEvent resources_returned = (must_epoch == nullptr) ? 
           ResourceTracker::unpack_resources_return(derez, parent_ctx) :
           ResourceTracker::unpack_resources_return(derez, must_epoch);
         if (resources_returned.exists())
@@ -1236,12 +1236,12 @@ namespace Legion {
     {
       IndividualTask::activate();
       owner_shard = 0;
-      launch_space = NULL;
+      launch_space = nullptr;
       sharding_functor = UINT_MAX;
-      sharding_function = NULL;
+      sharding_function = nullptr;
       output_bar = RtBarrier::NO_RT_BARRIER;
 #ifdef DEBUG_LEGION
-      sharding_collective = NULL; 
+      sharding_collective = nullptr; 
 #endif
     }
 
@@ -1251,7 +1251,7 @@ namespace Legion {
     {
       IndividualTask::deactivate(false/*free*/);
 #ifdef DEBUG_LEGION
-      if (sharding_collective != NULL)
+      if (sharding_collective != nullptr)
         delete sharding_collective;
 #endif
       if (freeop)
@@ -1264,16 +1264,16 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // We might be able to skip this if the sharding function was already
       // picked for us which occurs when we're part of a must-epoch launch
-      if (sharding_function == NULL)
+      if (sharding_function == nullptr)
       {
         // Do the mapper call to get the sharding function to use
-        if (mapper == NULL)
+        if (mapper == nullptr)
           mapper = runtime->find_mapper(current_proc, map_id); 
         Mapper::SelectShardingFunctorInput* input = repl_ctx->shard_manager;
         Mapper::SelectShardingFunctorOutput output =
@@ -1289,10 +1289,10 @@ namespace Legion {
           repl_ctx->shard_manager->find_sharding_function(sharding_functor);
       }
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
       // In debug mode we check to make sure that all the mappers
       // picked the same sharding function
-      assert(sharding_collective != NULL);
+      assert(sharding_collective != nullptr);
       // Contribute the result
       sharding_collective->contribute(this->sharding_functor);
       if (sharding_collective->is_target() && 
@@ -1325,7 +1325,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         ReplicateContext *repl_ctx = 
           dynamic_cast<ReplicateContext*>(parent_ctx);
-        assert(repl_ctx != NULL);
+        assert(repl_ctx != nullptr);
 #else
         ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1343,9 +1343,9 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(sharding_function != NULL);
+      assert(sharding_function != nullptr);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1363,7 +1363,7 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION
         assert(!is_remote());
-        assert((tpl != NULL) && tpl->is_recording());
+        assert((tpl != nullptr) && tpl->is_recording());
 #endif
         tpl->record_owner_shard(trace_local_id, owner_shard);
       }
@@ -1397,9 +1397,9 @@ namespace Legion {
       // Figure out if we're the one to do the replay
 #ifdef DEBUG_LEGION
       assert(!is_remote());
-      assert(tpl != NULL);
+      assert(tpl != nullptr);
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1423,7 +1423,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1459,9 +1459,9 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
-      assert(must_epoch != NULL);
-      assert(sharding_function != NULL);
+      assert(repl_ctx != nullptr);
+      assert(must_epoch != nullptr);
+      assert(sharding_function != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -1505,8 +1505,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(must_epoch != NULL);
-      assert(sharding_function == NULL);
+      assert(must_epoch != nullptr);
+      assert(sharding_function == nullptr);
 #endif
       sharding_functor = functor;
       sharding_function = function;
@@ -1518,7 +1518,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif

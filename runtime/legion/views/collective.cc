@@ -167,7 +167,7 @@ namespace Legion {
         // a valid reference
         Serializer rez;
         rez.serialize(did);
-        if ((collective_mapping != NULL) &&
+        if ((collective_mapping != nullptr) &&
             collective_mapping->contains(local_space))
           runtime->send_collective_view_add_remote_reference(
               collective_mapping->get_parent(owner_space, local_space), rez);
@@ -191,7 +191,7 @@ namespace Legion {
         if (valid_state == FULL_VALID_STATE)
           return;
         // Send the messages to the children to get them in flight
-        if ((collective_mapping != NULL) && 
+        if ((collective_mapping != nullptr) && 
             collective_mapping->contains(local_space))
         {
           std::vector<AddressSpaceID> children;
@@ -256,7 +256,7 @@ namespace Legion {
           return false;
         }
         // Send it upstream to any children 
-        if (collective_mapping != NULL)
+        if (collective_mapping != nullptr)
         {
           std::vector<AddressSpaceID> children;
           collective_mapping->get_children(owner_space, local_space, children);
@@ -315,7 +315,7 @@ namespace Legion {
             rez.serialize(generation);
             rez.serialize<bool>(true/*fail*/);
           }
-          if ((collective_mapping != NULL) && 
+          if ((collective_mapping != nullptr) && 
               collective_mapping->contains(local_space))
             runtime->send_collective_view_invalidate_response(
                 collective_mapping->get_parent(owner_space, local_space), rez);
@@ -330,7 +330,7 @@ namespace Legion {
         remaining_invalidation_responses = 1;
         // Send out messages to all our copies to check if there are still
         // valid references anywhere that we need to be aware of
-        if ((collective_mapping != NULL) && 
+        if ((collective_mapping != nullptr) && 
             collective_mapping->contains(local_space))
         {
           std::vector<AddressSpaceID> children;
@@ -435,7 +435,7 @@ namespace Legion {
                 rez.serialize(total_valid_received);
               }
             }
-            if ((collective_mapping != NULL) && 
+            if ((collective_mapping != nullptr) && 
                 collective_mapping->contains(local_space))
               runtime->send_collective_view_invalidate_response(
                   collective_mapping->get_parent(owner_space, local_space),rez);
@@ -521,7 +521,7 @@ namespace Legion {
         // valid reference that we added when we became valid
         Serializer rez;
         rez.serialize(did);
-        if ((collective_mapping != NULL) &&
+        if ((collective_mapping != nullptr) &&
             collective_mapping->contains(local_space))
           runtime->send_collective_view_remove_remote_reference(
               collective_mapping->get_parent(owner_space, local_space), rez);
@@ -530,7 +530,7 @@ namespace Legion {
                                                                 rez);
         // Nodes which aren't part of the collective won't be getting a
         // make_invalid call so they can remove their reference now
-        if ((collective_mapping == NULL) || 
+        if ((collective_mapping == nullptr) || 
             !collective_mapping->contains(local_space))
         {
           valid_state = NOT_VALID_STATE;
@@ -633,7 +633,7 @@ namespace Legion {
         {
           InnerContext *context = static_cast<InnerContext*>(
               runtime->weak_find_distributed_collectable(context_did));
-          if (context != NULL)
+          if (context != nullptr)
           {
             context->notify_collective_deletion(tid, did);
             if (context->remove_base_resource_ref(RUNTIME_REF))
@@ -644,7 +644,7 @@ namespace Legion {
       else
       {
 #ifdef DEBUG_LEGION
-        assert(collective_mapping != NULL);
+        assert(collective_mapping != nullptr);
         assert(collective_mapping->contains(local_space));
 #endif
         // Send the notification down to the parent
@@ -677,7 +677,7 @@ namespace Legion {
       derez.deserialize(tid);
       DistributedCollectable *dc = 
         runtime->weak_find_distributed_collectable(did);
-      if (dc != NULL)
+      if (dc != nullptr)
       {
         CollectiveView *view = static_cast<CollectiveView*>(dc);
         view->notify_instance_deletion(tid);
@@ -706,8 +706,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       // Should never have a copy-across with a collective manager as the target
       assert(manage_dst_events);
-      assert(across_helper == NULL);
-      assert(collective_mapping != NULL);
+      assert(across_helper == nullptr);
+      assert(collective_mapping != nullptr);
 #endif
       // This one is easy, just tree broadcast out to all the nodes and 
       // perform the fill operation on each one of them
@@ -807,8 +807,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       // Should never have a copy-across with a collective manager as the target
       assert(manage_dst_events);
-      assert(across_helper == NULL);
-      assert(collective_mapping != NULL);
+      assert(across_helper == nullptr);
+      assert(collective_mapping != nullptr);
       assert(reduction_op_id == src_view->get_redop());
 #endif
       // Several cases here:
@@ -990,7 +990,7 @@ namespace Legion {
             perform_collective_hourglass(collective->as_allreduce_view(),
                 precondition, predicate_guard, copy_expression, op, index, 
                 collective_match_space, copy_mask, 
-                (src_point != NULL) ? src_point->did : 0, trace_info,
+                (src_point != nullptr) ? src_point->did : 0, trace_info,
                 recorded_events, applied_events, 
                 all_done, origin, copy_restricted);
             return all_done;
@@ -1033,7 +1033,7 @@ namespace Legion {
             rez.serialize(collective_match_space);
             rez.serialize(op->get_context_index());
             rez.serialize(copy_mask);
-            if (src_point != NULL)
+            if (src_point != nullptr)
               rez.serialize(src_point->did);
             else
               rez.serialize<DistributedID>(0);
@@ -1060,7 +1060,7 @@ namespace Legion {
           perform_collective_pointwise(collective, precondition,
               predicate_guard, copy_expression, op, index, 
               collective_match_space, op->get_context_index(),
-              copy_mask, (src_point != NULL) ? src_point->did : 0, 
+              copy_mask, (src_point != nullptr) ? src_point->did : 0, 
               op->get_unique_op_id(), trace_info, recorded_events, 
               applied_events, all_done, all_bar, owner_shard, origin, 
               allreduce_tag, copy_restricted);
@@ -1128,13 +1128,13 @@ namespace Legion {
         // one of the local instances and then either broadcast or reduce
 #ifdef DEBUG_LEGION
         assert(!local_views.empty());
-        assert(collective_mapping != NULL);
+        assert(collective_mapping != nullptr);
         assert(collective_mapping->contains(local_space));
-        assert((op != NULL) || !copy_restricted);
+        assert((op != nullptr) || !copy_restricted);
 #endif
         const size_t op_ctx_index = op->get_context_index();
-        CollectiveAnalysis *first_local_analysis = NULL;
-        if (!copy_restricted && ((op == NULL) || trace_info.recording))
+        CollectiveAnalysis *first_local_analysis = nullptr;
+        if (!copy_restricted && ((op == nullptr) || trace_info.recording))
         {
           // If this is not a copy-out to a restricted collective instance 
           // then we should be able to find our local analyses to use for 
@@ -1142,21 +1142,21 @@ namespace Legion {
           first_local_analysis = local_views.front()->find_collective_analysis(
                                   op_ctx_index, index, collective_match_space);
 #ifdef DEBUG_LEGION
-          assert(first_local_analysis != NULL);
+          assert(first_local_analysis != nullptr);
 #endif
-          if (op == NULL)
+          if (op == nullptr)
           {
             op = first_local_analysis->get_operation();
             // Don't need the analysis anymore if we're not tracing
             if (!trace_info.recording)
-              first_local_analysis = NULL;
+              first_local_analysis = nullptr;
           }
         }
 #ifdef DEBUG_LEGION
-        assert(op != NULL);
+        assert(op != nullptr);
 #endif
         const PhysicalTraceInfo &local_info = 
-          (first_local_analysis == NULL) ? trace_info :
+          (first_local_analysis == nullptr) ? trace_info :
           first_local_analysis->get_trace_info();
         const UniqueID op_id = op->get_unique_op_id();
         // Do the copies to our local instance first
@@ -1312,7 +1312,7 @@ namespace Legion {
         Runtime::trigger_event(applied, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(applied);
-      if (op != NULL)
+      if (op != nullptr)
         delete op;
     }
 
@@ -1375,7 +1375,7 @@ namespace Legion {
       }
 #ifdef DEBUG_LEGION
       assert(target->is_owner());
-      assert(analysis_mapping == NULL);
+      assert(analysis_mapping == nullptr);
 #endif
       // Iterate through our local views and find the view for the target
       for (unsigned idx = 0; idx < local_views.size(); idx++)
@@ -1396,7 +1396,7 @@ namespace Legion {
       const AddressSpaceID manager_space = get_analysis_space(manager);
       if (manager_space != local_space)
       {
-        if ((collective_mapping == NULL) || 
+        if ((collective_mapping == nullptr) || 
             !collective_mapping->contains(manager_space))
           return false;
         // Check all the current 
@@ -1443,18 +1443,18 @@ namespace Legion {
         return local_views.front()->get_manager()->meets_regions(regions,
                                                                  tight_bounds);
 #ifdef DEBUG_LEGION
-      assert((collective_mapping == NULL) ||
+      assert((collective_mapping == nullptr) ||
               !collective_mapping->contains(local_space));
 #endif
-      PhysicalManager *manager = NULL;
+      PhysicalManager *manager = nullptr;
       {
         AutoLock v_lock(view_lock,1,false/*exclusive*/);
         if (!remote_instances.empty())
           manager = remote_instances.begin()->first;
       }
-      if (manager == NULL)
+      if (manager == nullptr)
       {
-        const AddressSpaceID target_space = (collective_mapping == NULL) ?
+        const AddressSpaceID target_space = (collective_mapping == nullptr) ?
           owner_space : collective_mapping->find_nearest(local_space);
         const RtUserEvent ready_event = Runtime::create_rt_user_event();
         Serializer rez;
@@ -1484,7 +1484,7 @@ namespace Legion {
       if (memory_space != local_space)
       {
         // No point checking if we know that it won't have it
-        if ((collective_mapping == NULL) ||
+        if ((collective_mapping == nullptr) ||
             !collective_mapping->contains(memory_space))
           return;
         {
@@ -1636,7 +1636,7 @@ namespace Legion {
     {
       constexpr size_t size_max = std::numeric_limits<size_t>::max();
       size_t best = bandwidth ? 0 : size_max;
-      if (collective_mapping != NULL)
+      if (collective_mapping != nullptr)
       {
         std::atomic<size_t> atomic_best(best);
         const AddressSpaceID origin = select_origin_space();
@@ -1747,7 +1747,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
 #endif
       const AddressSpaceID space = memory.address_space();
       if ((space != local_space) || !collective_mapping->contains(local_space))
@@ -2095,7 +2095,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
 #endif
       // 1. If the collective manager has instances on the same node
       //    as the destination then we'll use one of them
@@ -2333,7 +2333,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(!local_views.empty());
-      assert(((collective_mapping != NULL) && 
+      assert(((collective_mapping != nullptr) && 
             collective_mapping->contains(local_space)) || is_owner());
 #endif
       const unsigned target_index = find_local_index(target);
@@ -2384,7 +2384,7 @@ namespace Legion {
           rendezvous.remaining_local_arrivals = local_collective_arrivals;
           rendezvous.local_initialized = true;
           rendezvous.remaining_remote_arrivals =
-            (collective_mapping == NULL) ? 0 :
+            (collective_mapping == nullptr) ? 0 :
             collective_mapping->count_children(owner_space, local_space);
           rendezvous.local_term_events.resize(local_views.size());
           rendezvous.ready_events.resize(local_views.size());
@@ -2423,7 +2423,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(finder->second.ready_events.empty());
           assert(finder->second.local_term_events.empty());
-          assert(finder->second.trace_info == NULL);
+          assert(finder->second.trace_info == nullptr);
 #endif
           finder->second.local_term_events.resize(local_views.size());
           finder->second.ready_events.resize(local_views.size());
@@ -2806,7 +2806,7 @@ namespace Legion {
           Runtime::merge_events(trace_info, term_events[idx]);
         const ApEvent ready = local_views[idx]->register_user(usage, user_mask,
             expr, op_id, op_ctx_index, index, match_space, term_event,
-            local_views[idx]->get_manager(), NULL/*analysis mapping*/,
+            local_views[idx]->get_manager(), nullptr/*analysis mapping*/,
             0/*no collective arrivals*/, registered_events, applied_events,
             *trace_info, runtime->address_space, symbolic);
         Runtime::trigger_event(ready_events[idx], ready,
@@ -2859,12 +2859,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
       assert(collective_mapping->contains(local_space));
-      assert((op != NULL) || !fill_restricted);
+      assert((op != nullptr) || !fill_restricted);
 #endif
-      CollectiveAnalysis *first_local_analysis = NULL;
-      if (!fill_restricted && ((op == NULL) || trace_info.recording))
+      CollectiveAnalysis *first_local_analysis = nullptr;
+      if (!fill_restricted && ((op == nullptr) || trace_info.recording))
       {
         // If this is not a fill-out to a restricted collective instance 
         // then we should be able to find our local analyses to use for 
@@ -2872,21 +2872,21 @@ namespace Legion {
         first_local_analysis = local_views.front()->find_collective_analysis(
                                         op_context_index, index, match_space);
 #ifdef DEBUG_LEGION
-        assert(first_local_analysis != NULL);
+        assert(first_local_analysis != nullptr);
 #endif
-        if (op == NULL)
+        if (op == nullptr)
         {
           op = first_local_analysis->get_operation();
           // Don't need the analysis anymore if we're not tracing
           if (!trace_info.recording)
-            first_local_analysis = NULL;
+            first_local_analysis = nullptr;
         }
       }
 #ifdef DEBUG_LEGION
-      assert(op != NULL);
+      assert(op != nullptr);
 #endif
       const PhysicalTraceInfo &local_info = 
-        (first_local_analysis == NULL) ? trace_info :
+        (first_local_analysis == nullptr) ? trace_info :
         first_local_analysis->get_trace_info();
 #ifdef DEBUG_LEGION
       assert(local_info.recording == trace_info.recording);
@@ -2953,7 +2953,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < local_views.size(); idx++)
       {
         const PhysicalTraceInfo &inst_info = 
-          (first_local_analysis == NULL) ? trace_info :
+          (first_local_analysis == nullptr) ? trace_info :
           local_views[idx]->find_collective_analysis(op_context_index,
                                 index, match_space)->get_trace_info();
         IndividualView *local_view = local_views[idx];
@@ -3026,7 +3026,7 @@ namespace Legion {
         IndexSpaceExpression::unpack_expression(derez, source);
       bool fill_restricted;
       derez.deserialize<bool>(fill_restricted);
-      Operation *op = NULL;
+      Operation *op = nullptr;
       std::set<RtEvent> ready_events;
       if (fill_restricted)
         op = RemoteOp::unpack_remote_operation(derez);
@@ -3092,7 +3092,7 @@ namespace Legion {
         Runtime::trigger_event(applied, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(applied);
-      if (op != NULL)
+      if (op != nullptr)
         delete op;
     }
 
@@ -3118,7 +3118,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(!local_views.empty());
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
       assert(collective_mapping->contains(local_space));
 #endif 
       // Figure out which instance we're going to use for the copy
@@ -3307,12 +3307,12 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(copy_done.exists());
       assert(!local_views.empty());
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
       assert(collective_mapping->contains(local_space));
-      assert((op != NULL) || !copy_restricted);
+      assert((op != nullptr) || !copy_restricted);
 #endif
-      CollectiveAnalysis *first_local_analysis = NULL;
-      if (!copy_restricted && ((op == NULL) || trace_info.recording))
+      CollectiveAnalysis *first_local_analysis = nullptr;
+      if (!copy_restricted && ((op == nullptr) || trace_info.recording))
       {
         // If this is not a copy-out to a restricted collective instance 
         // then we should be able to find our local analyses to use for 
@@ -3320,21 +3320,21 @@ namespace Legion {
         first_local_analysis = local_views.front()->find_collective_analysis(
                                             op_ctx_index, index, match_space);
 #ifdef DEBUG_LEGION
-        assert(first_local_analysis != NULL);
+        assert(first_local_analysis != nullptr);
 #endif
-        if (op == NULL)
+        if (op == nullptr)
         {
           op = first_local_analysis->get_operation();
           // Don't need the analysis anymore if we're not tracing
           if (!trace_info.recording)
-            first_local_analysis = NULL;
+            first_local_analysis = nullptr;
         }
       }
 #ifdef DEBUG_LEGION
-      assert(op != NULL);
+      assert(op != nullptr);
 #endif
       const PhysicalTraceInfo &local_info = 
-        (first_local_analysis == NULL) ? trace_info :
+        (first_local_analysis == nullptr) ? trace_info :
         first_local_analysis->get_trace_info();
       const UniqueID op_id = op->get_unique_op_id();
       // Do the copy to our local instance first
@@ -3488,7 +3488,7 @@ namespace Legion {
       broadcast_local(local_manager, 0, op, index, copy_expression, copy_mask,
           local_pre, predicate_guard, local_fields, local_inst, local_info,
           collective_kind, read_events, recorded_events, applied_events,
-          false/*has preconditions*/, (first_local_analysis != NULL),
+          false/*has preconditions*/, (first_local_analysis != nullptr),
           op_ctx_index, match_space);
       if (!read_events.empty())
       {
@@ -4167,7 +4167,7 @@ namespace Legion {
         IndexSpaceExpression::unpack_expression(derez, source);
       bool copy_restricted;
       derez.deserialize(copy_restricted);
-      Operation *op = NULL;
+      Operation *op = nullptr;
       if (copy_restricted)
         op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
@@ -4235,7 +4235,7 @@ namespace Legion {
         Runtime::trigger_event(applied, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(applied);
-      if (op != NULL)
+      if (op != nullptr)
         delete op;
     }
 
@@ -4263,9 +4263,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(src_redop > 0);
       assert(!local_views.empty());
-      assert(collective_mapping != NULL);
+      assert(collective_mapping != nullptr);
       assert(collective_mapping->contains(local_space));
-      assert((op != NULL) || !copy_restricted);
+      assert((op != nullptr) || !copy_restricted);
       // Only one of these should be valid
       assert(reduce_done.exists() != all_bar.exists());
 #endif
@@ -4328,8 +4328,8 @@ namespace Legion {
         recorded_events.insert(recorded);
         applied_events.insert(applied);
       }
-      CollectiveAnalysis *first_local_analysis = NULL;
-      if (!copy_restricted && ((op == NULL) || trace_info.recording))
+      CollectiveAnalysis *first_local_analysis = nullptr;
+      if (!copy_restricted && ((op == nullptr) || trace_info.recording))
       {
         // If this is not a copy-out to a restricted collective instance 
         // then we should be able to find our local analyses to use for 
@@ -4337,21 +4337,21 @@ namespace Legion {
         first_local_analysis = local_views.front()->find_collective_analysis(
                                             op_ctx_index, index, match_space);
 #ifdef DEBUG_LEGION
-        assert(first_local_analysis != NULL);
+        assert(first_local_analysis != nullptr);
 #endif
-        if (op == NULL)
+        if (op == nullptr)
         {
           op = first_local_analysis->get_operation();
           // Don't need the analysis anymore if we're not tracing
           if (!trace_info.recording)
-            first_local_analysis = NULL;
+            first_local_analysis = nullptr;
         }
       }
 #ifdef DEBUG_LEGION
-      assert(op != NULL);
+      assert(op != nullptr);
 #endif
       const PhysicalTraceInfo &local_info =
-        (first_local_analysis == NULL) ? trace_info :
+        (first_local_analysis == nullptr) ? trace_info :
         first_local_analysis->get_trace_info();
       const UniqueID op_id = op->get_unique_op_id();
       std::vector<ApEvent> local_done_events; 
@@ -4361,7 +4361,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < local_views.size(); idx++)
       {
         const PhysicalTraceInfo &inst_info =
-          (first_local_analysis == NULL) ? trace_info : 
+          (first_local_analysis == nullptr) ? trace_info : 
           local_views[idx]->find_collective_analysis(op_ctx_index, 
               index, match_space)->get_trace_info();
         IndividualView *dst_view = local_views[idx];
@@ -4458,7 +4458,7 @@ namespace Legion {
         IndexSpaceExpression::unpack_expression(derez, source);
       bool copy_restricted;
       derez.deserialize(copy_restricted);
-      Operation *op = NULL;
+      Operation *op = nullptr;
       if (copy_restricted)
         op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
@@ -4513,7 +4513,7 @@ namespace Legion {
         Runtime::trigger_event(applied, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(applied);
-      if (op != NULL)
+      if (op != nullptr)
         delete op;
     }
 
@@ -4536,8 +4536,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(op != NULL);
-      assert(collective_mapping != NULL);
+      assert(op != nullptr);
+      assert(collective_mapping != nullptr);
       assert(collective_mapping->contains(target));
 #endif
       if (target != local_space)
@@ -4898,10 +4898,10 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!local_views.empty());
       assert(collective_mapping->contains(local_space));
-      assert((op != NULL) || !copy_restricted);
+      assert((op != nullptr) || !copy_restricted);
 #endif
-      CollectiveAnalysis *first_local_analysis = NULL;
-      if (!copy_restricted && ((op == NULL) || trace_info.recording))
+      CollectiveAnalysis *first_local_analysis = nullptr;
+      if (!copy_restricted && ((op == nullptr) || trace_info.recording))
       {
         // If this is not a copy-out to a restricted collective instance 
         // then we should be able to find our local analyses to use for 
@@ -4909,21 +4909,21 @@ namespace Legion {
         first_local_analysis = local_views.front()->find_collective_analysis(
                                             op_ctx_index, index, match_space);
 #ifdef DEBUG_LEGION
-        assert(first_local_analysis != NULL);
+        assert(first_local_analysis != nullptr);
 #endif
-        if (op == NULL)
+        if (op == nullptr)
         {
           op = first_local_analysis->get_operation();
           // Don't need the analysis anymore if we're not tracing
           if (!trace_info.recording)
-            first_local_analysis = NULL;
+            first_local_analysis = nullptr;
         }
       }
 #ifdef DEBUG_LEGION
-      assert(op != NULL);
+      assert(op != nullptr);
 #endif
       const PhysicalTraceInfo &local_info = 
-        (first_local_analysis == NULL) ? trace_info : 
+        (first_local_analysis == nullptr) ? trace_info : 
         first_local_analysis->get_trace_info();
       // First distribute this off to all the child nodes
       std::vector<ApEvent> done_events;
@@ -4998,7 +4998,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < local_views.size(); idx++)
       {
         const PhysicalTraceInfo &inst_info =
-          (first_local_analysis == NULL) ? trace_info : 
+          (first_local_analysis == nullptr) ? trace_info : 
           local_views[idx]->find_collective_analysis(op_ctx_index, 
               index, match_space)->get_trace_info();
         IndividualView *local_view = local_views[idx];
@@ -5153,7 +5153,7 @@ namespace Legion {
         IndexSpaceExpression::unpack_expression(derez, source);
       bool copy_restricted;
       derez.deserialize(copy_restricted);
-      Operation *op = NULL;
+      Operation *op = nullptr;
       std::set<RtEvent> ready_events;
       if (copy_restricted)
         op = RemoteOp::unpack_remote_operation(derez);
@@ -5223,7 +5223,7 @@ namespace Legion {
         Runtime::trigger_event(applied, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(applied);
-      if (op != NULL)
+      if (op != nullptr)
         delete op;
     }
 

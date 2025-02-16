@@ -29,7 +29,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalRegion::PhysicalRegion(void)
-      : impl(NULL)
+      : impl(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -39,7 +39,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -48,7 +48,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -56,7 +56,7 @@ namespace Legion {
       : impl(i)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -64,11 +64,11 @@ namespace Legion {
     PhysicalRegion::~PhysicalRegion(void)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
-        impl = NULL;
+        impl = nullptr;
       }
     }
 
@@ -76,13 +76,13 @@ namespace Legion {
     PhysicalRegion& PhysicalRegion::operator=(const PhysicalRegion &rhs)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
       {
         if (impl->remove_reference())
           delete impl;
       }
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
       return *this;
     }
@@ -91,10 +91,10 @@ namespace Legion {
     PhysicalRegion& PhysicalRegion::operator=(PhysicalRegion &&rhs) noexcept
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
       impl = rhs.impl;
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
       return *this;
     }
 
@@ -109,7 +109,7 @@ namespace Legion {
     bool PhysicalRegion::is_mapped(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return false;
       return impl->is_mapped();
     }
@@ -120,7 +120,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(impl != NULL);
+      assert(impl != nullptr);
 #endif
       impl->wait_until_valid(silence_warnings, warning_string);
     }
@@ -129,7 +129,7 @@ namespace Legion {
     bool PhysicalRegion::is_valid(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         return impl->is_valid();
       else
         return false;
@@ -139,7 +139,7 @@ namespace Legion {
     LogicalRegion PhysicalRegion::get_logical_region(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         return impl->get_logical_region();
       else
         return LogicalRegion::NO_REGION;
@@ -149,7 +149,7 @@ namespace Legion {
     PrivilegeMode PhysicalRegion::get_privilege(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         return impl->get_privilege();
       else
         return LEGION_NO_ACCESS;
@@ -185,7 +185,7 @@ namespace Legion {
                               bool check_field_size, ReductionOpID redop) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Illegal request to create an accessor on null physical region";
       return impl->get_instance_info(mode, fid, field_size, realm_is, type_tag, 
@@ -200,7 +200,7 @@ namespace Legion {
                             bool generic_accessor, bool check_field_size) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Illegal request to create a padded accessor on null physical region";
       return impl->get_padding_info(fid, field_size, inner, outer,
@@ -307,7 +307,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ExternalResources::ExternalResources(void)
-      : impl(NULL)
+      : impl(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -316,7 +316,7 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -325,7 +325,7 @@ namespace Legion {
       : impl(i)
     //--------------------------------------------------------------------------
     {
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
     }
 
@@ -334,14 +334,14 @@ namespace Legion {
       : impl(rhs.impl)
     //--------------------------------------------------------------------------
     {
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
     }
 
     //--------------------------------------------------------------------------
     ExternalResources::~ExternalResources(void)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
     }
 
@@ -350,10 +350,10 @@ namespace Legion {
                                                    const ExternalResources &rhs)
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
       impl = rhs.impl;
-      if (impl != NULL)
+      if (impl != nullptr)
         impl->add_reference();
       return *this;
     }
@@ -363,10 +363,10 @@ namespace Legion {
                                                ExternalResources &&rhs) noexcept
     //--------------------------------------------------------------------------
     {
-      if ((impl != NULL) && impl->remove_reference())
+      if ((impl != nullptr) && impl->remove_reference())
         delete impl;
       impl = rhs.impl;
-      rhs.impl = NULL;
+      rhs.impl = nullptr;
       return *this;
     }
 
@@ -374,7 +374,7 @@ namespace Legion {
     size_t ExternalResources::size(void) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return 0;
       return impl->size();
     }
@@ -383,7 +383,7 @@ namespace Legion {
     PhysicalRegion ExternalResources::operator[](unsigned index) const
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return PhysicalRegion();
       return impl->get_region(index);
     }
@@ -401,7 +401,7 @@ namespace Legion {
       uint64_t blocking)
       : Collectable(), context(ctx), map_id(mid), tag(t),
         leaf_region(leaf), virtual_mapped(virt), collective(col),
-        replaying((ctx != NULL) ? ctx->owner_task->is_replaying() : false),
+        replaying((ctx != nullptr) ? ctx->owner_task->is_replaying() : false),
         req(r),mapped_event(mapped),ready_event(ready),termination_event(term),
         blocking_index(blocking), mapped(m), valid(false), made_accessor(false)
     //--------------------------------------------------------------------------
@@ -431,21 +431,21 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(implicit_context != NULL);
+      assert(implicit_context != nullptr);
       assert(implicit_context == context);
 #endif
       context->record_blocking_call(blocking_index);
       if (runtime->runtime_warnings && !silence_warnings &&
-          (context != NULL) && !context->is_leaf_context())
+          (context != nullptr) && !context->is_leaf_context())
       {
-        if (source != NULL)
+        if (source != nullptr)
           REPORT_LEGION_WARNING(LEGION_WARNING_WAITING_REGION, 
               "Waiting for a physical region to be valid "
               "for call %s in non-leaf task %s (UID %lld) is a violation of "
               "Legion's deferred execution model best practices. You may "
               "notice a severe performance degradation. Warning string: %s", 
               source, context->get_task_name(), context->get_unique_id(),
-              (warning_string == NULL) ? "" : warning_string)
+              (warning_string == nullptr) ? "" : warning_string)
         else
           REPORT_LEGION_WARNING(LEGION_WARNING_WAITING_REGION, 
               "Waiting for a physical region to be valid "
@@ -453,18 +453,18 @@ namespace Legion {
               "deferred execution model best practices. You may notice a "
               "severe performance degradation. Warning string: %s", 
               context->get_task_name(), context->get_unique_id(),
-              (warning_string == NULL) ? "" : warning_string)
+              (warning_string == nullptr) ? "" : warning_string)
       }
       if (mapped_event.exists() && !mapped_event.has_triggered())
       {
-        if (warn && !silence_warnings && (source != NULL))
+        if (warn && !silence_warnings && (source != nullptr))
           REPORT_LEGION_WARNING(LEGION_WARNING_MISSING_REGION_WAIT, 
               "Request for %s was performed on a "
               "physical region in task %s (ID %lld) without first waiting "
               "for the physical region to be valid. Legion is performing "
               "the wait for you. Warning string: %s", source, 
               context->get_task_name(), context->get_unique_id(),
-              (warning_string == NULL) ? "" : warning_string)
+              (warning_string == nullptr) ? "" : warning_string)
         mapped_event.wait();
       }
       // If we've already gone through this process we're good
@@ -575,7 +575,7 @@ namespace Legion {
       assert(!termination_event.exists());
 #endif
       blocking_index = blocking;
-      termination_event = Runtime::create_ap_user_event(NULL);
+      termination_event = Runtime::create_ap_user_event(nullptr);
       ready_event = new_ready;
       mapped = true;
       return termination_event;
@@ -664,7 +664,7 @@ namespace Legion {
               "physical region in task %s (ID %lld) without first waiting "
               "for the physical region to be valid. Legion is performing "
               "the wait for you. Warning string: %s", context->get_task_name(), 
-              context->get_unique_id(), (warning_string == NULL) ? 
+              context->get_unique_id(), (warning_string == nullptr) ? 
               "" : warning_string)
         mapped_event.wait();
       }
@@ -708,7 +708,7 @@ namespace Legion {
               "physical region in task %s (ID %lld) without first waiting "
               "for the physical region to be valid. Legion is performing "
               "the wait for you. Warning string: %s", context->get_task_name(), 
-              context->get_unique_id(), (warning_string == NULL) ? 
+              context->get_unique_id(), (warning_string == nullptr) ? 
               "" : warning_string)
         mapped_event.wait();
       }
@@ -726,11 +726,11 @@ namespace Legion {
             return manager->create_piece_iterator(privilege_node);
           }
           else
-            return manager->create_piece_iterator(NULL);
+            return manager->create_piece_iterator(nullptr);
         }
       }
       assert(false);
-      return NULL;
+      return nullptr;
     }
     
     //--------------------------------------------------------------------------
@@ -768,7 +768,7 @@ namespace Legion {
                                 "accessing uninitialized data. "
                                 "Warning string: %s",
                                 fid, context->get_task_name(),
-                                (warning_string == NULL) ? "" : warning_string)
+                                (warning_string == nullptr) ? "" : warning_string)
             }
             else if (req.privilege != LEGION_READ_WRITE)
               REPORT_LEGION_ERROR(ERROR_ACCESSOR_PRIVILEGE_CHECK, 
@@ -812,7 +812,7 @@ namespace Legion {
         default: // rest of the privileges don't matter
           break;
       }
-      if (context != NULL)
+      if (context != nullptr)
       {
         if (context->is_inner_context())
           REPORT_LEGION_ERROR(ERROR_INNER_TASK_VIOLATION, 
@@ -827,7 +827,7 @@ namespace Legion {
               "Legion's deferred execution model best practices. You may "
               "notice a severe performance degradation. Warning string: %s",
               context->get_task_name(), context->get_unique_id(),
-              (warning_string == NULL) ? "" : warning_string)
+              (warning_string == nullptr) ? "" : warning_string)
       }
       // If this physical region isn't mapped, then we have to
       // map it before we can return an accessor
@@ -845,8 +845,8 @@ namespace Legion {
                           "(UID %lld). Legion is mapping it for you. "
                           "Please try to be more careful. Warning string: %s",
                           context->get_task_name(), context->get_unique_id(),
-                          (warning_string == NULL) ? "" : warning_string)
-        context->remap_region(PhysicalRegion(this), NULL/*prov*/,
+                          (warning_string == nullptr) ? "" : warning_string)
+        context->remap_region(PhysicalRegion(this), nullptr/*prov*/,
                               true/*internal*/);
         // At this point we should have a new ready event
         // and be mapped
@@ -867,7 +867,7 @@ namespace Legion {
                               "performance code. Warning string: %s", 
                               context->get_task_name(),
                               context->get_unique_id(),
-                              (warning_string == NULL) ? "" : warning_string)
+                              (warning_string == nullptr) ? "" : warning_string)
       // Get the index space to use for the accessor
       IndexSpaceNode *bounds = 
         runtime->get_node(req.region.get_index_space());
@@ -962,7 +962,7 @@ namespace Legion {
             "constraint when registering this task variant in order to be able "
             "to access the padded space on this instance.",
             fid, context->get_task_name(), context->get_unique_id())
-      if (context != NULL)
+      if (context != nullptr)
       {
         if (context->is_inner_context())
           REPORT_LEGION_ERROR(ERROR_INNER_TASK_VIOLATION, 
@@ -977,7 +977,7 @@ namespace Legion {
               "Legion's deferred execution model best practices. You may "
               "notice a severe performance degradation. Warning string: %s",
               context->get_task_name(), context->get_unique_id(),
-              (warning_string == NULL) ? "" : warning_string)
+              (warning_string == nullptr) ? "" : warning_string)
       }
       if (req.privilege_fields.find(fid) == req.privilege_fields.end())
         REPORT_LEGION_ERROR(ERROR_INVALID_FIELD_PRIVILEGES, 
@@ -992,7 +992,7 @@ namespace Legion {
                               "performance code. Warning string: %s", 
                               context->get_task_name(),
                               context->get_unique_id(),
-                              (warning_string == NULL) ? "" : warning_string)
+                              (warning_string == nullptr) ? "" : warning_string)
       const InstanceSet &instances = references;
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
@@ -1020,7 +1020,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(bounds.dense());
 #endif
-          if (inner != NULL)
+          if (inner != nullptr)
             *inner = bounds;
           if (!bounds.empty())
           {
@@ -1377,7 +1377,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(index < regions.size());
-      assert(regions[index].impl == NULL);
+      assert(regions[index].impl == nullptr);
 #endif
       regions[index] = PhysicalRegion(region);
     }

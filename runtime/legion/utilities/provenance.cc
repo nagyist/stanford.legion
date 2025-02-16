@@ -182,7 +182,7 @@ namespace Legion {
         return result;
       }
       else
-        return NULL;
+        return nullptr;
     }
 
   } // namespace Internal

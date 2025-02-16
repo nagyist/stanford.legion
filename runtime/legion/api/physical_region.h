@@ -44,7 +44,7 @@ namespace Legion {
   public:
     PhysicalRegion& operator=(const PhysicalRegion &rhs);
     PhysicalRegion& operator=(PhysicalRegion &&rhs) noexcept;
-    inline bool exists(void) const { return (impl != NULL); }
+    inline bool exists(void) const { return (impl != nullptr); }
     inline bool operator==(const PhysicalRegion &reg) const
       { return (impl == reg.impl); }
     inline bool operator<(const PhysicalRegion &reg) const
@@ -63,7 +63,7 @@ namespace Legion {
      * 'silence_warnings' parameter.
      */
     void wait_until_valid(bool silence_warnings = false,
-                          const char *warning_string = NULL);
+                          const char *warning_string = nullptr);
     /**
      * For physical regions returned from inline mappings,
      * this call will query if the instance contains valid
@@ -84,7 +84,7 @@ namespace Legion {
      */
     void get_memories(std::set<Memory>& memories,
                       bool silence_warnings = false,
-                      const char *warning_string = NULL) const;
+                      const char *warning_string = nullptr) const;
     /**
      * Return a list of fields that the physical region contains.
      */
@@ -193,7 +193,7 @@ namespace Legion {
   public:
     ExternalResources& operator=(const ExternalResources &rhs);
     ExternalResources& operator=(ExternalResources &&rhs) noexcept;
-    inline bool exists(void) const { return (impl != NULL); }
+    inline bool exists(void) const { return (impl != nullptr); }
     inline bool operator==(const ExternalResources &reg) const
       { return (impl == reg.impl); }
     inline bool operator<(const ExternalResources &reg) const
@@ -234,7 +234,7 @@ namespace Legion {
     PieceIterator(const PhysicalRegion &region, FieldID fid,
                   bool privilege_only = true,
                   bool silence_warnings = false,
-                  const char *warning_string = NULL);
+                  const char *warning_string = nullptr);
     ~PieceIterator(void);
   public:
     PieceIterator& operator=(const PieceIterator &rhs);
@@ -278,7 +278,7 @@ namespace Legion {
     PieceIteratorT(const PhysicalRegion &region, FieldID fid,
                    bool privilege_only,
                    bool silence_warnings = false,
-                   const char *warning_string = NULL);
+                   const char *warning_string = nullptr);
   public:
     PieceIteratorT<DIM,COORD_T>& operator=(const PieceIteratorT &rhs);
     PieceIteratorT<DIM,COORD_T>& operator=(PieceIteratorT &&rhs) noexcept;
@@ -312,7 +312,7 @@ namespace Legion {
       typedef FT *pointer;
       typedef FT& reference;
 
-      iterator(void) : ptr(NULL), stride(0) { } 
+      iterator(void) : ptr(nullptr), stride(0) { } 
     private:
       iterator(uint8_t *p, size_t s) : ptr(p), stride(s) { }
     public:
@@ -322,21 +322,21 @@ namespace Legion {
       inline iterator& operator-=(int rhs) { ptr -= stride; return *this; }
       inline FT& operator*(void) const 
         { 
-          FT *result = NULL;
+          FT *result = nullptr;
           static_assert(sizeof(result) == sizeof(ptr));
           memcpy(&result, &ptr, sizeof(result));
           return *result;
         }
       inline FT* operator->(void) const
         { 
-          FT *result = NULL;
+          FT *result = nullptr;
           static_assert(sizeof(result) == sizeof(ptr));
           memcpy(&result, &ptr, sizeof(result));
           return result;
         }
       inline FT& operator[](int rhs) const
         { 
-          FT *result = NULL;
+          FT *result = nullptr;
           uint8_t *ptr2 = ptr + rhs * stride;
           static_assert(sizeof(result) == sizeof(ptr2));
           memcpy(&result, &ptr2, sizeof(result));
@@ -379,7 +379,7 @@ namespace Legion {
       typedef FT *pointer;
       typedef FT& reference;
 
-      reverse_iterator(void) : ptr(NULL), stride(0) { } 
+      reverse_iterator(void) : ptr(nullptr), stride(0) { } 
     private:
       reverse_iterator(uint8_t *p, size_t s) : ptr(p), stride(s) { }
     public:
@@ -391,21 +391,21 @@ namespace Legion {
         { ptr += stride; return *this; }
       inline FT& operator*(void) const 
         { 
-          FT *result = NULL;
+          FT *result = nullptr;
           static_assert(sizeof(result) == sizeof(ptr));
           memcpy(&result, &ptr, sizeof(result));
           return *result;
         }
       inline FT* operator->(void) const
         { 
-          FT *result = NULL;
+          FT *result = nullptr;
           static_assert(sizeof(result) == sizeof(ptr));
           memcpy(&result, &ptr, sizeof(result));
           return result;
         }
       inline FT& operator[](int rhs) const
         { 
-          FT *result = NULL;
+          FT *result = nullptr;
           uint8_t *ptr2 = ptr - rhs * stride;
           static_assert(sizeof(result) == sizeof(ptr2));
           memcpy(&result, &ptr2, sizeof(result));
@@ -442,9 +442,9 @@ namespace Legion {
       size_t stride;
     };
   public:
-    Span(void) : base(NULL), extent(0), stride(0) { }
+    Span(void) : base(nullptr), extent(0), stride(0) { }
     Span(FT *b, size_t e, size_t s = sizeof(FT))
-      : base(NULL), extent(e), stride(s)
+      : base(nullptr), extent(e), stride(s)
       {
         static_assert(sizeof(base) == sizeof(b));
         memcpy(&base, &b, sizeof(base));
@@ -460,14 +460,14 @@ namespace Legion {
   public:
     inline FT& front(void) const 
       { 
-        FT *result = NULL;
+        FT *result = nullptr;
         static_assert(sizeof(result) == sizeof(base));
         memcpy(&result, &base, sizeof(result));
         return *result;
       }
     inline FT& back(void) const
       {
-        FT *result = NULL;
+        FT *result = nullptr;
         uint8_t *ptr = base + (extent-1)*stride;
         static_assert(sizeof(result) == sizeof(ptr));
         memcpy(&result, &ptr, sizeof(result));
@@ -475,7 +475,7 @@ namespace Legion {
       }
     inline FT& operator[](int index) const
       { 
-        FT *result = NULL;
+        FT *result = nullptr;
         uint8_t *ptr = base + index * stride;
         static_assert(sizeof(result) == sizeof(ptr));
         memcpy(&result, &ptr, sizeof(result));
@@ -483,7 +483,7 @@ namespace Legion {
       }
     inline FT* data(void) const
       {
-        FT *result = NULL;
+        FT *result = nullptr;
         static_assert(sizeof(result) == sizeof(base));
         memcpy(&result, &base, sizeof(result));
         return result;
@@ -528,7 +528,7 @@ namespace Legion {
                  // Iterate only the spans that we have privileges on
                  bool privileges_only = true,
                  bool silence_warnings = false,
-                 const char *warning_string = NULL);
+                 const char *warning_string = nullptr);
   public:
     inline bool valid(void) const;
     inline bool step(void);

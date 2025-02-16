@@ -138,7 +138,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(node == region_node);
 #endif
-      if (output_region_ready != NULL)
+      if (output_region_ready != nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(!collective_rendezvous);
@@ -181,7 +181,7 @@ namespace Legion {
         // Check to see if any computations of equivalence sets are in progress
         // If so we'll skip out early and go down the slow path which should
         // be a fairly rare thing to do
-        if (equivalence_sets_ready != NULL)
+        if (equivalence_sets_ready != nullptr)
         {
           for (LegionMap<RtUserEvent,FieldMask>::const_iterator it =
                 equivalence_sets_ready->begin(); it != 
@@ -199,7 +199,7 @@ namespace Legion {
         if (!has_waiter)
         {
           // Get any fields that are already ready
-          if ((version_info != NULL) &&
+          if ((version_info != nullptr) &&
               !(version_mask * equivalence_sets.get_valid_mask()))
             record_equivalence_sets(version_info, version_mask);
           remaining_mask -= equivalence_sets.get_valid_mask();
@@ -214,7 +214,7 @@ namespace Legion {
       {
         FieldMask waiting_mask;
         AutoLock m_lock(manager_lock);
-        if (equivalence_sets_ready != NULL)
+        if (equivalence_sets_ready != nullptr)
         {
           for (LegionMap<RtUserEvent,FieldMask>::const_iterator it =
                 equivalence_sets_ready->begin(); it != 
@@ -234,7 +234,7 @@ namespace Legion {
         // to make sure we don't have pending outstanding requests
         if (!(remaining_mask * equivalence_sets.get_valid_mask()))
         {
-          if (version_info != NULL)
+          if (version_info != nullptr)
             record_equivalence_sets(version_info, remaining_mask);
           remaining_mask -= equivalence_sets.get_valid_mask();
           // If we got all our fields here and we're not waiting 
@@ -247,7 +247,7 @@ namespace Legion {
         if (!!remaining_mask)
         {
           compute_event = Runtime::create_rt_user_event();
-          if (equivalence_sets_ready == NULL)
+          if (equivalence_sets_ready == nullptr)
             equivalence_sets_ready = new LegionMap<RtUserEvent,FieldMask>();
           equivalence_sets_ready->insert(
               std::make_pair(compute_event,remaining_mask));
@@ -258,9 +258,9 @@ namespace Legion {
         assert(!!waiting_mask);
 #endif
         // Record that our version info is waiting for these fields
-        if (version_info != NULL)
+        if (version_info != nullptr)
         {
-          if (waiting_infos == NULL)
+          if (waiting_infos == nullptr)
             waiting_infos = new FieldMaskSet<VersionInfo>();
           waiting_infos->insert(version_info, waiting_mask);
         }
@@ -374,10 +374,10 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         // All these other resource should already be empty by the time
         // we are being finalized
-        assert(pending_equivalence_sets == NULL);
-        assert(created_equivalence_sets == NULL);
-        assert(waiting_infos == NULL);
-        assert(equivalence_sets_ready == NULL);
+        assert(pending_equivalence_sets == nullptr);
+        assert(created_equivalence_sets == nullptr);
+        assert(waiting_infos == nullptr);
+        assert(equivalence_sets_ready == nullptr);
 #endif
         if (!equivalence_sets.empty())
           to_remove.swap(equivalence_sets);

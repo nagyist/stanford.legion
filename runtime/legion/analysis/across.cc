@@ -55,7 +55,7 @@ namespace Legion {
               std::vector<CopyAcrossHelper*>() :
               create_across_helpers(src_mask, dst_mask, target_instances,
                                     src_indexes, dst_indexes)),
-        trace_info(t_info), perfect(perf), across_aggregator(NULL)
+        trace_info(t_info), perfect(perf), across_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
     } 
@@ -85,7 +85,7 @@ namespace Legion {
               std::vector<CopyAcrossHelper*>() :
               create_across_helpers(src_mask, dst_mask, target_instances,
                                     src_indexes, dst_indexes)),
-        trace_info(t_info), perfect(perf), across_aggregator(NULL)
+        trace_info(t_info), perfect(perf), across_aggregator(nullptr)
     //--------------------------------------------------------------------------
     {
     }
@@ -122,14 +122,14 @@ namespace Legion {
     CopyFillAggregator* CopyAcrossAnalysis::get_across_aggregator(void)
     //--------------------------------------------------------------------------
     {
-      if (across_aggregator == NULL)
+      if (across_aggregator == nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(!aggregator_guard.exists());
 #endif
         aggregator_guard = Runtime::create_rt_user_event();
         across_aggregator = new CopyFillAggregator(this,
-            src_index, dst_index, NULL/*no previous guard*/, true/*track*/,
+            src_index, dst_index, nullptr/*no previous guard*/, true/*track*/,
             pred_guard, aggregator_guard);
       }
       return across_aggregator;
@@ -255,7 +255,7 @@ namespace Legion {
         src_node->report_uninitialized_usage(op, src_index, uninitialized,
                                              uninitialized_reported);
       }
-      if (across_aggregator != NULL)
+      if (across_aggregator != nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(aggregator_guard.exists());
@@ -327,7 +327,7 @@ namespace Legion {
       size_t num_eq_sets;
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
-      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, NULL);
+      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
       LegionVector<FieldMask> eq_masks(num_eq_sets);
       FieldMask src_mask;
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
@@ -378,7 +378,7 @@ namespace Legion {
       }
       size_t num_srcs;
       derez.deserialize(num_srcs);
-      std::vector<IndividualView*> src_views(num_srcs, NULL);
+      std::vector<IndividualView*> src_views(num_srcs, nullptr);
       for (unsigned idx = 0; idx < num_srcs; idx++)
       {
         DistributedID did;

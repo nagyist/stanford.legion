@@ -737,7 +737,7 @@ namespace Legion {
       struct PartialMessage {
       public:
         PartialMessage(void)
-          : buffer(NULL), size(0), index(0), messages(0), total(0) { }
+          : buffer(nullptr), size(0), index(0), messages(0), total(0) { }
       public:
         uint8_t *buffer;
         size_t size;

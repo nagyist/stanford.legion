@@ -70,7 +70,7 @@ namespace Legion {
         }
         if (this->has_execution_fence_event())
           sync_preconditions.push_back(this->get_execution_fence_event());
-        ApEvent result = Runtime::merge_events(NULL, sync_preconditions);
+        ApEvent result = Runtime::merge_events(nullptr, sync_preconditions);
         if (this->is_recording())
           trace_info.record_op_sync_event(result);
         return result;

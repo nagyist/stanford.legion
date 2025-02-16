@@ -148,9 +148,9 @@ namespace Legion {
     {
       OP::activate();
       replayable_collective_id = 0;
-      replayable_collective = NULL;
+      replayable_collective = nullptr;
       idempotent_collective_id = 0;
-      idempotent_collective = NULL;
+      idempotent_collective = nullptr;
       sync_compute_frontiers_collective_id = 0;
       deduplication_collective_id = 0;
     }
@@ -164,9 +164,9 @@ namespace Legion {
       assert(!free);
 #endif
       OP::deactivate(free);
-      if (replayable_collective != NULL)
+      if (replayable_collective != nullptr)
         delete replayable_collective;
-      if (idempotent_collective != NULL)
+      if (idempotent_collective != nullptr)
         delete idempotent_collective;
     }
 
@@ -177,10 +177,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(replayable_collective == NULL);
+      assert(replayable_collective == nullptr);
       ReplicateContext *repl_ctx =
         dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = 
         static_cast<ReplicateContext*>(this->parent_ctx);
@@ -201,7 +201,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(replayable_collective != NULL);
+      assert(replayable_collective != nullptr);
 #endif
       if (!replayable_collective->get_result() && (status == REPLAYABLE))
         status = NOT_REPLAYABLE_REMOTE_SHARD;
@@ -214,10 +214,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(idempotent_collective == NULL);
+      assert(idempotent_collective == nullptr);
       ReplicateContext *repl_ctx =
         dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = 
         static_cast<ReplicateContext*>(this->parent_ctx);
@@ -238,7 +238,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(idempotent_collective != NULL);
+      assert(idempotent_collective != nullptr);
 #endif
       if (!idempotent_collective->get_result() && (status == IDEMPOTENT))
         status = NOT_IDEMPOTENT_REMOTE_SHARD;
@@ -252,7 +252,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx =
         dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx =
         static_cast<ReplicateContext*>(this->parent_ctx);
@@ -271,13 +271,13 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       ReplicateContext *repl_ctx =
         dynamic_cast<ReplicateContext*>(this->parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx =
         static_cast<ReplicateContext*>(this->parent_ctx);
 #endif
       // If this replication doesn't span multiple nodes we don't care
-      if (repl_ctx->shard_manager->collective_mapping == NULL)
+      if (repl_ctx->shard_manager->collective_mapping == nullptr)
         return;
       // If the equivalence set doesn't have a collective map then we know
       // that by definition we're the only ones who can know about it so we
@@ -292,7 +292,7 @@ namespace Legion {
       for (std::map<EquivalenceSet*,unsigned>::iterator it =
             condition_sets.begin(); it != condition_sets.end(); /*nothing*/)
       {
-        if (it->first->collective_mapping != NULL)
+        if (it->first->collective_mapping != nullptr)
         {
           exchange.record_set(it->first->did, it->second);
           std::map<EquivalenceSet*,unsigned>::iterator delete_it = it++;
@@ -318,11 +318,11 @@ namespace Legion {
           // See if we can find the equivalence set on this node
           EquivalenceSet *set = static_cast<EquivalenceSet*>(
               runtime->weak_find_distributed_collectable(it->first));
-          if (set == NULL)
+          if (set == nullptr)
             continue;
           // If we don't have a collective mapping then this equivalence set
           // was migrated here after it was initially created somewhere else
-          if ((set->collective_mapping != NULL) &&
+          if ((set->collective_mapping != nullptr) &&
               set->collective_mapping->contains(local_space))
           {
             // All the nodes in the collective mapping will be represented

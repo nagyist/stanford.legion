@@ -2723,7 +2723,7 @@ extern "C" {
   void
   legion_future_wait(legion_future_t handle, 
                      bool silence_warnings /* = false */,
-                     const char *warning_string /* = NULL */);
+                     const char *warning_string /* = nullptr */);
 
   /**
    * @see Legion::Future::is_empty()
@@ -2760,7 +2760,7 @@ extern "C" {
    * @see Legion::Future::get_metadata(size_t *size)
    */
   const void *
-  legion_future_get_metadata(legion_future_t handle, size_t *size/*=NULL*/);
+  legion_future_get_metadata(legion_future_t handle, size_t *size/*=nullptr*/);
 
   // -----------------------------------------------------------------------
   // Future Map Operations
@@ -5650,7 +5650,7 @@ extern "C" {
     legion_runtime_t runtime,
     legion_field_space_t fspace,
     legion_layout_constraint_set_t handle,
-    const char *layout_name /* = NULL */);
+    const char *layout_name /* = nullptr */);
 
   /**
    * @return Caller takes ownership of return value
@@ -5660,7 +5660,7 @@ extern "C" {
   legion_layout_constraint_id_t
   legion_layout_constraint_set_preregister(
     legion_layout_constraint_set_t handle,
-    const char *layout_name /* = NULL */);
+    const char *layout_name /* = nullptr */);
 
   /**
    * @param handle Caller must have ownership of parameter 'handle'
@@ -6075,8 +6075,8 @@ extern "C" {
   legion_runtime_register_task_variant_fnptr(
     legion_runtime_t runtime,
     legion_task_id_t id /* = AUTO_GENERATE_ID */,
-    const char *task_name /* = NULL*/,
-    const char *variant_name /* = NULL*/,
+    const char *task_name /* = nullptr*/,
+    const char *variant_name /* = nullptr*/,
     bool global,
     legion_execution_constraint_set_t execution_constraints,
     legion_task_layout_constraint_set_t layout_constraints,
@@ -6092,8 +6092,8 @@ extern "C" {
   legion_runtime_preregister_task_variant_fnptr(
     legion_task_id_t id /* = AUTO_GENERATE_ID */,
     legion_variant_id_t variant_id /* = AUTO_GENERATE_ID */,
-    const char *task_name /* = NULL*/,
-    const char *variant_name /* = NULL*/,
+    const char *task_name /* = nullptr*/,
+    const char *variant_name /* = nullptr*/,
     legion_execution_constraint_set_t execution_constraints,
     legion_task_layout_constraint_set_t layout_constraints,
     legion_task_config_options_t options,
@@ -6109,7 +6109,7 @@ extern "C" {
   legion_runtime_register_task_variant_llvmir(
     legion_runtime_t runtime,
     legion_task_id_t id /* = AUTO_GENERATE_ID */,
-    const char *task_name /* = NULL*/,
+    const char *task_name /* = nullptr*/,
     bool global,
     legion_execution_constraint_set_t execution_constraints,
     legion_task_layout_constraint_set_t layout_constraints,
@@ -6126,7 +6126,7 @@ extern "C" {
   legion_runtime_preregister_task_variant_llvmir(
     legion_task_id_t id /* = AUTO_GENERATE_ID */,
     legion_variant_id_t variant_id /* = AUTO_GENERATE_ID */,
-    const char *task_name /* = NULL*/,
+    const char *task_name /* = nullptr*/,
     legion_execution_constraint_set_t execution_constraints,
     legion_task_layout_constraint_set_t layout_constraints,
     legion_task_config_options_t options,
@@ -6144,7 +6144,7 @@ extern "C" {
   legion_runtime_register_task_variant_python_source(
     legion_runtime_t runtime,
     legion_task_id_t id /* = AUTO_GENERATE_ID */,
-    const char *task_name /* = NULL*/,
+    const char *task_name /* = nullptr*/,
     bool global,
     legion_execution_constraint_set_t execution_constraints,
     legion_task_layout_constraint_set_t layout_constraints,
@@ -6161,7 +6161,7 @@ extern "C" {
   legion_runtime_register_task_variant_python_source_qualname(
     legion_runtime_t runtime,
     legion_task_id_t id /* = AUTO_GENERATE_ID */,
-    const char *task_name /* = NULL*/,
+    const char *task_name /* = nullptr*/,
     bool global,
     legion_execution_constraint_set_t execution_constraints,
     legion_task_layout_constraint_set_t layout_constraints,

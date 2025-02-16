@@ -493,7 +493,7 @@ namespace Legion {
       mutable LocalLock collection_lock;
       // We maintain several sets of instances here
       // This is a generic list that tracks all the allocated instances
-      // For collectable instances they have non-NULL GCHole that 
+      // For collectable instances they have non-nullptr GCHole that 
       // represents a range of memory that can be collected
       // This data structure is protected by the manager_lock
       typedef LegionMap<PhysicalManager*,GCPriority,

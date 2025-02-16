@@ -207,7 +207,7 @@ namespace Legion {
       };
       struct CompletionEntry {
       public:
-        CompletionEntry(void) : op(NULL) { }
+        CompletionEntry(void) : op(nullptr) { }
         CompletionEntry(Operation *o, ApEvent e) : op(o), effects(e) { }
       public:
         Operation *op;
@@ -262,7 +262,7 @@ namespace Legion {
                    ApEvent execution_fence, DistributedID did = 0,
                    bool inline_task = false, bool implicit_task = false,
                    bool concurrent_task = false,
-                   CollectiveMapping *mapping = NULL);
+                   CollectiveMapping *mapping = nullptr);
       InnerContext(const InnerContext &rhs) = delete;
       virtual ~InnerContext(void);
     public:
@@ -457,7 +457,7 @@ namespace Legion {
                                        LegionColor &partition_color,
                                        PartitionKind part_kind,
                                        Provenance *provenance,
-                                       CollectiveMapping *mapping = NULL,
+                                       CollectiveMapping *mapping = nullptr,
                                        RtEvent initialized =
                                                    RtEvent::NO_RT_EVENT);
       void create_pending_cross_product_internal(IndexPartition handle1,
@@ -468,8 +468,8 @@ namespace Legion {
                                         LegionColor &part_color,
                                         std::set<RtEvent> &safe_events,
                                         ShardID shard = 0,
-                                        const ShardMapping *mapping = NULL,
-                          ValueBroadcast<LegionColor> *color_broadcast = NULL);
+                                        const ShardMapping *mapping = nullptr,
+                          ValueBroadcast<LegionColor> *color_broadcast = nullptr);
       IndexSpace instantiate_subspace(IndexPartition parent, 
                                       const void *realm_color,
                                       TypeTag type_tag);
@@ -847,7 +847,7 @@ namespace Legion {
                                         const bool can_use_identity = false);
       virtual Future detach_resource(PhysicalRegion region, const bool flush,
                                      const bool unordered,
-                                     Provenance *provenance = NULL);
+                                     Provenance *provenance = nullptr);
       virtual Future detach_resources(ExternalResources resources,
                                       const bool flush, const bool unordered,
                                       Provenance *provenance);
@@ -882,7 +882,7 @@ namespace Legion {
       bool process_prepipeline_stage(void);
     public:
       virtual bool add_to_dependence_queue(Operation *op, 
-          const std::vector<StaticDependence> *dependences = NULL,
+          const std::vector<StaticDependence> *dependences = nullptr,
           bool unordered = false, bool outermost = true);
       virtual FenceOp* initialize_trace_completion(Provenance *prov);
       void process_dependence_stage(void);
@@ -984,7 +984,7 @@ namespace Legion {
       virtual InnerContext* find_parent_physical_context(unsigned index);
     public:
       // Override by RemoteTask and TopLevelTask
-      virtual InnerContext* find_top_context(InnerContext *previous = NULL);
+      virtual InnerContext* find_top_context(InnerContext *previous = nullptr);
     public:
       virtual void initialize_region_tree_contexts(
           const std::vector<RegionRequirement> &clone_requirements,
@@ -997,16 +997,16 @@ namespace Legion {
                                        const FieldMask &refinement_mask,
                                        std::vector<RtEvent> &applied_events,
                                        bool sharded = false, bool first = true,
-                                       const CollectiveMapping *mapping = NULL);
+                                       const CollectiveMapping *mapping = nullptr);
       virtual void find_trace_local_sets(unsigned req_index,
                             const FieldMask &mask,
                             std::map<EquivalenceSet*,unsigned> &current_sets,
-                            IndexSpaceNode *node = NULL,
-                            const CollectiveMapping *mapping = NULL);
+                            IndexSpaceNode *node = nullptr,
+                            const CollectiveMapping *mapping = nullptr);
       virtual void invalidate_logical_context(void);
       virtual void invalidate_region_tree_contexts(const bool is_top_level_task,
                             std::set<RtEvent> &applied,
-                            const ShardMapping *mapping = NULL,
+                            const ShardMapping *mapping = nullptr,
                             ShardID source_shard = 0);
       void invalidate_created_requirement_contexts(const bool is_top_level_task,
                             std::set<RtEvent> &applied,
@@ -1052,7 +1052,7 @@ namespace Legion {
     public:
       virtual FutureInstance* create_task_local_future(Memory memory, 
           size_t size, bool silence_warnings = false,
-          const char *warning_string = NULL);
+          const char *warning_string = nullptr);
       virtual PhysicalInstance create_task_local_instance(Memory memory,
                                         Realm::InstanceLayoutGeneric *layout);
       virtual void destroy_task_local_instance(PhysicalInstance instance,
@@ -1078,7 +1078,7 @@ namespace Legion {
       void perform_barrier_dependence_analysis(Operation *op,
             const std::vector<PhaseBarrier> &wait_barriers,
             const std::vector<PhaseBarrier> &arrive_barriers,
-            MustEpochOp *must_epoch = NULL);
+            MustEpochOp *must_epoch = nullptr);
     protected:
       void analyze_barrier_dependences(Operation *op,
             const std::vector<PhaseBarrier> &barriers,
@@ -1134,15 +1134,15 @@ namespace Legion {
       // for virtual mappings
       void convert_individual_views(const std::vector<PhysicalManager*> &srcs,
                                     std::vector<IndividualView*> &views,
-                                    CollectiveMapping *mapping = NULL);
+                                    CollectiveMapping *mapping = nullptr);
       void convert_individual_views(const InstanceSet &sources,
                                     std::vector<IndividualView*> &views,
-                                    CollectiveMapping *mapping = NULL);
+                                    CollectiveMapping *mapping = nullptr);
       void convert_analysis_views(const InstanceSet &targets,
                        LegionVector<FieldMaskSet<InstanceView> > &target_views);
       IndividualView* create_instance_top_view(PhysicalManager *manager,
                                 AddressSpaceID source,
-                                CollectiveMapping *mapping = NULL);
+                                CollectiveMapping *mapping = nullptr);
       virtual CollectiveResult* find_or_create_collective_view(RegionTreeID tid,
           const std::vector<DistributedID> &instances, RtEvent &ready);
       void notify_collective_deletion(RegionTreeID tid, DistributedID did);
@@ -1371,7 +1371,7 @@ namespace Legion {
       mutable LocalLock                                   phase_barrier_lock;
       struct BarrierContribution {
       public:
-        BarrierContribution(void) : op(NULL), gen(0), uid(0), muid(0) { }
+        BarrierContribution(void) : op(nullptr), gen(0), uid(0), muid(0) { }
         BarrierContribution(Operation *o, GenerationID g, 
                             UniqueID u, UniqueID m, size_t bg)
           : op(o), gen(g), uid(u), muid(m), bargen(bg) { }

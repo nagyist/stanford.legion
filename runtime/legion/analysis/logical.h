@@ -33,7 +33,7 @@ namespace Legion {
     struct LogicalUser : public Collectable {
     public:
       LogicalUser(Operation *o, unsigned id, const RegionUsage &u,
-          ProjectionSummary *proj = NULL, unsigned internal_idx = UINT_MAX);
+          ProjectionSummary *proj = nullptr, unsigned internal_idx = UINT_MAX);
       LogicalUser(const LogicalUser &rhs) = delete;
       ~LogicalUser(void);
     public:

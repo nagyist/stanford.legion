@@ -55,11 +55,11 @@ namespace Legion {
       DistributedCollectable *dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
       LogicalView *view = dynamic_cast<LogicalView*>(dc);
-      assert(view != NULL);
+      assert(view != nullptr);
 #else
       LogicalView *view = static_cast<LogicalView*>(dc);
 #endif
-      if (view->collective_mapping != NULL)
+      if (view->collective_mapping != nullptr)
       {
         // Check to see if this is a collective view, if the target
         // is in the replicated set, then there's nothing we need to do

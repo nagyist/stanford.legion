@@ -46,7 +46,7 @@ namespace Legion {
         : pointer(convert(p)) { }
       static inline T* convert(void *p)
       {
-        T *ptr = NULL;
+        T *ptr = nullptr;
         static_assert(sizeof(ptr) == sizeof(p));
         memcpy(&ptr, &p, sizeof(p));
         return ptr;
@@ -64,11 +64,11 @@ namespace Legion {
         : off(align(p)), pointer(convert(p, off)) { }
       static inline T* convert(void *p, size_t off)
       {
-        uint8_t *p1 = NULL;
+        uint8_t *p1 = nullptr;
         static_assert(sizeof(p1) == sizeof(p));
         memcpy(&p1, &p, sizeof(p));
         p1 = p1 - off;
-        T *p2 = NULL;
+        T *p2 = nullptr;
         static_assert(sizeof(p1) == sizeof(p2));
         memcpy(&p2, &p1, sizeof(p1));
         return p2;

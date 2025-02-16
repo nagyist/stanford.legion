@@ -84,7 +84,7 @@ namespace Legion {
 #define REGISTER_BUILTIN_REDOP_CUDA(id, type)                           \
   runtime_register_reduction_op(id, \
       Realm::ReductionOpUntyped::create_reduction_op< AddCudaReductions<type> \
-      >(), NULL, NULL, false);
+      >(), nullptr, nullptr, false);
 
     void register_builtin_reduction_operators_cuda(void)
     {
@@ -97,7 +97,7 @@ namespace Legion {
 #define REGISTER_BUILTIN_REDOP_HIP(id, type)                           \
   runtime_register_reduction_op(id, \
       Realm::ReductionOpUntyped::create_reduction_op< AddHipReductions<type> \
-      >(), NULL, NULL, false);
+      >(), nullptr, nullptr, false);
 
     void register_builtin_reduction_operators_hip(void)
     {

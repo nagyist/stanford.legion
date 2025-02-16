@@ -114,7 +114,7 @@ namespace Legion {
           // We only need to pack the collective mapping once when going
           // from the origin space to the next space
           CollectiveMapping *mapping = get_replicated_mapping();
-          if ((mapping != NULL) && (original_source == runtime->address_space))
+          if ((mapping != nullptr) && (original_source == runtime->address_space))
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
@@ -138,7 +138,7 @@ namespace Legion {
       if (perform_precondition.exists() && 
           !perform_precondition.has_triggered())
         return defer_updates(perform_precondition, applied_events);
-      if (recorded_instances != NULL)
+      if (recorded_instances != nullptr)
       {
         if (original_source != runtime->address_space)
         {
@@ -179,7 +179,7 @@ namespace Legion {
       size_t num_eq_sets;
       derez.deserialize(num_eq_sets);
       std::set<RtEvent> ready_events;
-      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, NULL);
+      std::vector<EquivalenceSet*> eq_sets(num_eq_sets, nullptr);
       LegionVector<FieldMask> eq_masks(num_eq_sets);
       for (unsigned idx = 0; idx < num_eq_sets; idx++)
       {
@@ -209,9 +209,9 @@ namespace Legion {
       size_t collective_mapping_size;
       derez.deserialize(collective_mapping_size);
       CollectiveMapping *mapping = ((collective_mapping_size) > 0) ?
-        new CollectiveMapping(derez, collective_mapping_size) : NULL;
+        new CollectiveMapping(derez, collective_mapping_size) : nullptr;
       bool first_local = true;
-      if (mapping != NULL)
+      if (mapping != nullptr)
         derez.deserialize<bool>(first_local);
 
       // This takes ownership of the operation

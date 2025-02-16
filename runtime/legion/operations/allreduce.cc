@@ -55,7 +55,7 @@ namespace Legion {
       serdez_redop_fns = Runtime::get_serdez_redop_fns(redop_id);
       result = Future(new FutureImpl(parent_ctx, true/*register*/,
               runtime->get_available_distributed_id(), get_provenance(), this));
-      if (serdez_redop_fns == NULL)
+      if (serdez_redop_fns == nullptr)
         result.impl->set_future_result_size(redop->sizeof_rhs, 
                                             runtime->address_space);
       this->initial_value = initial_value;
@@ -80,9 +80,9 @@ namespace Legion {
       MemoizableOp::activate();
       redop_id = 0;
       future_result_size = 0;
-      serdez_redop_buffer = NULL;
+      serdez_redop_buffer = nullptr;
       serdez_upper_bound = SIZE_MAX;
-      serdez_redop_instance = NULL;
+      serdez_redop_instance = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -97,9 +97,9 @@ namespace Legion {
       targets.clear();
       target_memories.clear();
       map_applied_conditions.clear();
-      if (serdez_redop_buffer != NULL)
+      if (serdez_redop_buffer != nullptr)
         free(serdez_redop_buffer);
-      if (serdez_redop_instance != NULL)
+      if (serdez_redop_instance != nullptr)
         delete serdez_redop_instance;
       if (freeop)
         runtime->free_operation(this);
@@ -123,7 +123,7 @@ namespace Legion {
     void AllReduceOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      if (initial_value.impl != NULL)
+      if (initial_value.impl != nullptr)
         initial_value.impl->register_dependence(this);
       future_map.impl->register_dependence(this);
     } 
@@ -150,7 +150,7 @@ namespace Legion {
     void AllReduceOp::fold_serdez(FutureImpl *impl)
     //--------------------------------------------------------------------------
     {
-      if (impl == NULL)
+      if (impl == nullptr)
         return;
       size_t src_size = 0;
       const void *source = impl->find_runtime_buffer(parent_ctx, src_size);
@@ -165,7 +165,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(serdez_redop_fns != NULL);
+      assert(serdez_redop_fns != nullptr);
 #endif 
       // Initialize here so that we can set the initial value future
       future_result_size = 0;
@@ -198,7 +198,7 @@ namespace Legion {
           done_events.push_back(done);
       }
       if (!done_events.empty())
-        return Runtime::merge_events(NULL, done_events);
+        return Runtime::merge_events(nullptr, done_events);
       else
         return ApEvent::NO_AP_EVENT;
     }
@@ -256,7 +256,7 @@ namespace Legion {
       for (std::map<DomainPoint,FutureImpl*>::const_iterator it =
             sources.begin(); it != sources.end(); it++)
         prepare_future(map_applied_conditions, it->second);
-      if (initial_value.impl != NULL)
+      if (initial_value.impl != nullptr)
         prepare_future(map_applied_conditions, initial_value.impl);
       if (future_result_size < SIZE_MAX)
       {
@@ -275,10 +275,10 @@ namespace Legion {
       for (std::map<DomainPoint,FutureImpl*>::const_iterator it = 
           sources.begin(); it != sources.end(); it++)
         subscribe_to_future(ready_events, it->second);
-      if (initial_value.impl != NULL)
+      if (initial_value.impl != nullptr)
         subscribe_to_future(ready_events, initial_value.impl);
       // Also make sure we wait for any execution fences that we have
-      if ((serdez_redop_fns != NULL) && execution_fence_event.exists())
+      if ((serdez_redop_fns != nullptr) && execution_fence_event.exists())
         ready_events.push_back(Runtime::protect_event(execution_fence_event));
       if (!ready_events.empty())
       {
@@ -299,7 +299,7 @@ namespace Legion {
     {
       ApEvent done;
       RtEvent executed;
-      if (serdez_redop_fns != NULL)
+      if (serdez_redop_fns != nullptr)
       {
         all_reduce_serdez();
         if (serdez_upper_bound == SIZE_MAX)
@@ -384,7 +384,7 @@ namespace Legion {
       else
         target_memories.push_back(runtime->runtime_system_memory);
       // Compute the future reduction size
-      if (serdez_redop_fns == NULL)
+      if (serdez_redop_fns == nullptr)
         future_result_size = redop->sizeof_rhs;
       else
         future_result_size = serdez_upper_bound;
@@ -418,7 +418,7 @@ namespace Legion {
       // right size for the futures, otherwise we need to trust the 
       // serdez_upper_bound size as the size of these futures.
       const size_t result_size = 
-        ((serdez_redop_fns == NULL) || (serdez_upper_bound == SIZE_MAX)) ?
+        ((serdez_redop_fns == nullptr) || (serdez_upper_bound == SIZE_MAX)) ?
         future_result_size : serdez_upper_bound;
       TaskTreeCoordinates coordinates;
       compute_task_tree_coordinates(coordinates);
@@ -433,14 +433,14 @@ namespace Legion {
         // Safe to block here indefinitely waiting for unbounded pools
         FutureInstance *instance = manager->create_future_instance(
             unique_op_id, coordinates, result_size,
-            NULL/*safe for unbounded pools*/);
+            nullptr/*safe for unbounded pools*/);
         targets.push_back(instance);
       }
       // This is an important optimization: if we're doing a small
       // reduction value we always want the reduction instance to
       // be somewhere meta visible for performance reasons, so we
       // make a meta-visible instance if we don't have one
-      if ((runtime_visible < 0) && (serdez_redop_fns == NULL) &&
+      if ((runtime_visible < 0) && (serdez_redop_fns == nullptr) &&
           (redop->sizeof_rhs <= LEGION_MAX_RETURN_SIZE))
       {
         runtime_visible = targets.size();
@@ -459,7 +459,7 @@ namespace Legion {
       if (parent_ctx->get_task()->get_shard_id() == 0)
       {
         FutureImpl *init = initial_value.impl;
-        if (init != NULL)
+        if (init != nullptr)
           return init->copy_to(target, this, execution_fence_event);
       }
       return target->initialize(redop, this, execution_fence_event);
@@ -506,7 +506,7 @@ namespace Legion {
         }
       }
       if (!postconditions.empty())
-        return Runtime::merge_events(NULL, postconditions);
+        return Runtime::merge_events(nullptr, postconditions);
       else
         return ApEvent::NO_AP_EVENT;
     }
@@ -533,13 +533,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(redop != NULL);
-      assert(serdez_redop_collective == NULL);
-      assert(all_reduce_collective == NULL);
-      assert(reduction_collective == NULL);
-      assert(broadcast_collective == NULL);
+      assert(redop != nullptr);
+      assert(serdez_redop_collective == nullptr);
+      assert(all_reduce_collective == nullptr);
+      assert(reduction_collective == nullptr);
+      assert(broadcast_collective == nullptr);
 #endif
-      if (serdez_redop_fns == NULL)
+      if (serdez_redop_fns == nullptr)
       {
         if (deterministic)
         {
@@ -562,10 +562,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AllReduceOp::activate();
-      serdez_redop_collective = NULL;
-      all_reduce_collective = NULL;
-      reduction_collective = NULL;
-      broadcast_collective = NULL;
+      serdez_redop_collective = nullptr;
+      all_reduce_collective = nullptr;
+      reduction_collective = nullptr;
+      broadcast_collective = nullptr;
     }
 
     //--------------------------------------------------------------------------
@@ -573,13 +573,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AllReduceOp::deactivate(false/*free*/);
-      if (serdez_redop_collective != NULL)
+      if (serdez_redop_collective != nullptr)
         delete serdez_redop_collective;
-      if (all_reduce_collective != NULL)
+      if (all_reduce_collective != nullptr)
         delete all_reduce_collective;
-      if (reduction_collective != NULL)
+      if (reduction_collective != nullptr)
         delete reduction_collective;
-      if (broadcast_collective != NULL)
+      if (broadcast_collective != nullptr)
         delete broadcast_collective;
       if (freeop)
         runtime->free_operation(this);
@@ -592,7 +592,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(sources.empty());
       ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
-      assert(repl_ctx != NULL);
+      assert(repl_ctx != nullptr);
 #else
       ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
@@ -608,11 +608,11 @@ namespace Legion {
       AllReduceOp::create_future_instances();
       // Now check to see if we need to make a shadow instance for
       // the all-reduce future collective
-      if (all_reduce_collective != NULL)
+      if (all_reduce_collective != nullptr)
       {
 #ifdef DEBUG_LEGION
         assert(!targets.empty());
-        assert(serdez_redop_fns == NULL);
+        assert(serdez_redop_fns == nullptr);
 #endif
         FutureInstance *target = targets.front();
         // If the instance is in a memory we cannot see or is "too big"
@@ -627,7 +627,7 @@ namespace Legion {
           // Safe to block here indefinitely waiting for unbounded pools
           FutureInstance *shadow_instance = manager->create_future_instance(
               unique_op_id, coordinates, redop->sizeof_rhs,
-              NULL/*safe_for_unbounded_pools*/);
+              nullptr/*safe_for_unbounded_pools*/);
           all_reduce_collective->set_shadow_instance(shadow_instance);
         }
       }
@@ -638,7 +638,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(serdez_redop_fns != NULL);
+      assert(serdez_redop_fns != nullptr);
 #endif
       future_result_size = 0;
       serdez_redop_fns->init_fn(redop,
@@ -660,11 +660,11 @@ namespace Legion {
         // Reset this back to empty so we can reduce in order across shards
         // Note the serdez_redop_collective took ownership of deleting
         // the buffer in this case so we know that it is not leaking
-        serdez_redop_buffer = NULL;
+        serdez_redop_buffer = nullptr;
         for (std::map<ShardID,std::pair<void*,size_t> >::const_iterator it =
               remote_buffers.begin(); it != remote_buffers.end(); it++)
         {
-          if (serdez_redop_buffer == NULL)
+          if (serdez_redop_buffer == nullptr)
           {
             future_result_size = it->second.second;
             serdez_redop_buffer = malloc(future_result_size);
@@ -742,9 +742,9 @@ namespace Legion {
             LegionSpy::log_future_use(unique_op_id, it->second->did);
         }
         if (!postconditions.empty())
-          local_precondition = Runtime::merge_events(NULL, postconditions);
+          local_precondition = Runtime::merge_events(nullptr, postconditions);
       }
-      if (all_reduce_collective == NULL)
+      if (all_reduce_collective == nullptr)
       {
         reduction_collective->async_reduce(targets.front(), 
                                            local_precondition);
@@ -783,7 +783,7 @@ namespace Legion {
             need_merge = true;
         }
         if (need_merge)
-          local_precondition = Runtime::merge_events(NULL, broadcast_events);
+          local_precondition = Runtime::merge_events(nullptr, broadcast_events);
       }
       return local_precondition;
     }
