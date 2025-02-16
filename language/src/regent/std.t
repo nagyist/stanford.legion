@@ -4880,7 +4880,7 @@ local function generate_header(header_filename, registration_name, has_main_task
 #include "legion.h"
 
 #ifdef __cplusplus
-#include "legion/legion_c_util.h"
+#include "legion/bindings/c_bindings_util.h"
 #endif
 
 // C API bindings
