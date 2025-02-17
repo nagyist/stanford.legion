@@ -39,6 +39,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
+    TraceRecognizer::~TraceRecognizer(void)
+    //--------------------------------------------------------------------------
+    {
+      // Wait for any repeat result meta-tasks to finish to avoid cleanup races
+      for (std::deque<FindRepeatsResult>::const_iterator it =
+            repeat_results.begin(); it != repeat_results.end(); it++)
+        it->finish_event.wait();
+    }
+
+    //--------------------------------------------------------------------------
     bool TraceRecognizer::record_operation_hash(Operation *op,
                                           Murmur3Hasher &hasher, uint64_t opidx)
     //--------------------------------------------------------------------------

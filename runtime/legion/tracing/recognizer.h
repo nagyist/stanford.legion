@@ -58,6 +58,10 @@ namespace Legion {
     public:
       TraceRecognizer(InnerContext *context,
           const Mapper::ContextConfigOutput &config);
+      TraceRecognizer(const TraceRecognizer &rhs) = delete;
+      ~TraceRecognizer(void);
+    public:
+      TraceRecognizer& operator=(const TraceRecognizer &rhs) = delete;
     public:
       bool record_operation_hash(Operation *op, 
           Murmur3Hasher &hasher, uint64_t opidx);
