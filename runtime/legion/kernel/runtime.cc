@@ -86,15 +86,6 @@ namespace Legion {
     Realm::Logger log_auto_trace("auto_trace");
     Realm::Logger log_spy("legion_spy");
 
-    Runtime *runtime = nullptr;
-    thread_local TaskContext *implicit_context = nullptr;
-    thread_local MappingCallInfo *implicit_mapper_call = nullptr;
-    thread_local LegionProfInstance *implicit_profiler = nullptr;
-    thread_local AutoLock *local_lock_list = nullptr;
-    thread_local UniqueID implicit_provenance = 0;
-    thread_local LgEvent implicit_fevent = LgEvent::NO_LG_EVENT;
-    thread_local RegistrationCallbackMode inside_registration_callback=NO_REGISTRATION_CALLBACK;
-    thread_local ImplicitReferenceTracker *implicit_reference_tracker = nullptr;
 #ifdef DEBUG_LEGION_CALLERS
     thread_local LgTaskID implicit_task_kind = LG_SCHEDULER_ID;
     thread_local LgTaskID implicit_task_caller = LG_SCHEDULER_ID;

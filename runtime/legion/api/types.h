@@ -711,67 +711,7 @@ namespace Legion {
     typedef Mapping::MapperEvent MapperEvent;
     typedef Mapping::PhysicalInstance MappingInstance;
     typedef Mapping::CollectiveView MappingCollective;
-    typedef Mapping::ProfilingMeasurementID ProfilingMeasurementID;
-
-    // External global variable references
-    // With the exception fo the runtime singleton all of these should
-    // only be thread-local or logggers
-    // This is the pointer to the runtime singleton
-    extern Runtime *runtime;
-    // Nasty global variable for TLS support of figuring out
-    // our context implicitly
-    extern thread_local TaskContext *implicit_context;
-    // Mapper context if we're inside of a mapper call
-    extern thread_local MappingCallInfo *implicit_mapper_call;
-    // Implicit thread-local profiler
-    extern thread_local LegionProfInstance *implicit_profiler;
-    // Another nasty global variable for tracking the fast
-    // reservations that we are holding
-    extern thread_local AutoLock *local_lock_list;
-    // One more nasty global variable that we use for tracking
-    // the provenance of meta-task operations for profiling
-    // purposes, this has no bearing on correctness
-    extern thread_local ::legion_unique_id_t implicit_provenance;
-    // Use this global variable to track name of the "finish event"
-    // for whatever (meta-)task we're running on at the moment.
-    // It should always be the case that the owner node of the
-    // "finish" event" is the same as the node we're on.
-    extern thread_local LgEvent implicit_fevent;
-    // Use this to track if we're inside of a registration 
-    // callback function which we know to be deduplicated
-    enum RegistrationCallbackMode {
-      NO_REGISTRATION_CALLBACK = 0,
-      LOCAL_REGISTRATION_CALLBACK = 1,
-      GLOBAL_REGISTRATION_CALLBACK = 2,
-    };
-    extern thread_local RegistrationCallbackMode inside_registration_callback;
-    // This data structure tracks references to any live
-    // temporary index space expressions that have been
-    // handed back by the region tree inside the execution
-    // of a meta-task or a runtime API call. It also tracks
-    // changes to remote distributed collectable that can be
-    // delayed and batched together.
-    extern thread_local ImplicitReferenceTracker *implicit_reference_tracker; 
-#ifdef DEBUG_LEGION_CALLERS
-    extern thread_local LgTaskID implicit_task_kind;
-    extern thread_local LgTaskID implicit_task_caller;
-#endif
-    extern Realm::Logger log_run;
-    extern Realm::Logger log_task;
-    extern Realm::Logger log_index;
-    extern Realm::Logger log_field;
-    extern Realm::Logger log_region;
-    extern Realm::Logger log_inst;
-    extern Realm::Logger log_variant;
-    extern Realm::Logger log_allocation;
-    extern Realm::Logger log_migration;
-    extern Realm::Logger log_prof;
-    extern Realm::Logger log_garbage;
-    extern Realm::Logger log_spy;
-    extern Realm::Logger log_shutdown;
-    extern Realm::Logger log_tracing;
-    extern Realm::Logger log_auto_trace;
-    extern Realm::Logger log_legion;
+    typedef Mapping::ProfilingMeasurementID ProfilingMeasurementID; 
   } // namespace Internal
 
   // Magical typedefs 
@@ -983,6 +923,66 @@ namespace Legion {
     protected:
       Realm::FastReservation reservation;
     };
+
+    // External global variable references
+    // With the exception fo the runtime singleton all of these should
+    // only be thread-local or logggers
+    // This is the pointer to the runtime singleton
+    inline Runtime *runtime = nullptr;
+    // Nasty global variable for TLS support of figuring out
+    // our context implicitly
+    inline thread_local TaskContext *implicit_context = nullptr;
+    // Mapper context if we're inside of a mapper call
+    inline thread_local MappingCallInfo *implicit_mapper_call = nullptr;
+    // Implicit thread-local profiler
+    inline thread_local LegionProfInstance *implicit_profiler = nullptr;
+    // Another nasty global variable for tracking the fast
+    // reservations that we are holding
+    inline thread_local AutoLock *local_lock_list = nullptr;
+    // One more nasty global variable that we use for tracking
+    // the provenance of meta-task operations for profiling
+    // purposes, this has no bearing on correctness
+    inline thread_local ::legion_unique_id_t implicit_provenance = 0;
+    // Use this global variable to track name of the "finish event"
+    // for whatever (meta-)task we're running on at the moment.
+    // It should always be the case that the owner node of the
+    // "finish" event" is the same as the node we're on.
+    inline thread_local LgEvent implicit_fevent = {};
+    // Use this to track if we're inside of a registration 
+    // callback function which we know to be deduplicated
+    enum RegistrationCallbackMode {
+      NO_REGISTRATION_CALLBACK = 0,
+      LOCAL_REGISTRATION_CALLBACK = 1,
+      GLOBAL_REGISTRATION_CALLBACK = 2,
+    };
+    inline thread_local RegistrationCallbackMode inside_registration_callback = NO_REGISTRATION_CALLBACK;
+    // This data structure tracks references to any live
+    // temporary index space expressions that have been
+    // handed back by the region tree inside the execution
+    // of a meta-task or a runtime API call. It also tracks
+    // changes to remote distributed collectable that can be
+    // delayed and batched together.
+    inline thread_local ImplicitReferenceTracker *implicit_reference_tracker = nullptr; 
+#ifdef DEBUG_LEGION_CALLERS
+    thread_local LgTaskID implicit_task_kind;
+    thread_local LgTaskID implicit_task_caller;
+#endif
+    extern Realm::Logger log_run;
+    extern Realm::Logger log_task;
+    extern Realm::Logger log_index;
+    extern Realm::Logger log_field;
+    extern Realm::Logger log_region;
+    extern Realm::Logger log_inst;
+    extern Realm::Logger log_variant;
+    extern Realm::Logger log_allocation;
+    extern Realm::Logger log_migration;
+    extern Realm::Logger log_prof;
+    extern Realm::Logger log_garbage;
+    extern Realm::Logger log_spy;
+    extern Realm::Logger log_shutdown;
+    extern Realm::Logger log_tracing;
+    extern Realm::Logger log_auto_trace;
+    extern Realm::Logger log_legion;
 
     /////////////////////////////////////////////////////////////
     // AutoLock 
