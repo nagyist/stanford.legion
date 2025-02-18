@@ -24,21 +24,143 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
+    // Remote Task 
+    /////////////////////////////////////////////////////////////
+
+    //--------------------------------------------------------------------------
+    RemoteTask::RemoteTask(RemoteContext *own)
+      : owner(own), context_index(0)
+    //--------------------------------------------------------------------------
+    {
+    }
+
+    //--------------------------------------------------------------------------
+    RemoteTask::~RemoteTask(void)
+    //--------------------------------------------------------------------------
+    {
+    }
+
+    //--------------------------------------------------------------------------
+    UniqueID RemoteTask::get_unique_id(void) const
+    //--------------------------------------------------------------------------
+    {
+      return owner->get_unique_id();
+    }
+
+    //--------------------------------------------------------------------------
+    Domain RemoteTask::get_slice_domain(void) const
+    //--------------------------------------------------------------------------
+    {
+      return Domain(index_point, index_point);
+    }
+
+    //--------------------------------------------------------------------------
+    ShardID RemoteTask::get_shard_id(void) const
+    //--------------------------------------------------------------------------
+    {
+      return owner->shard_id;
+    }
+
+    //--------------------------------------------------------------------------
+    size_t RemoteTask::get_total_shards(void) const
+    //--------------------------------------------------------------------------
+    {
+      return owner->total_shards;
+    }
+
+    //--------------------------------------------------------------------------
+    DomainPoint RemoteTask::get_shard_point(void) const
+    //--------------------------------------------------------------------------
+    {
+      return owner->shard_point;
+    }
+
+    //--------------------------------------------------------------------------
+    Domain RemoteTask::get_shard_domain(void) const
+    //--------------------------------------------------------------------------
+    {
+      return owner->shard_domain;
+    }
+
+    //--------------------------------------------------------------------------
+    uint64_t RemoteTask::get_context_index(void) const
+    //--------------------------------------------------------------------------
+    {
+      return context_index;
+    }
+
+    //--------------------------------------------------------------------------
+    void RemoteTask::set_context_index(uint64_t index)
+    //--------------------------------------------------------------------------
+    {
+      context_index = index;
+    }
+
+    //--------------------------------------------------------------------------
+    bool RemoteTask::has_parent_task(void) const
+    //--------------------------------------------------------------------------
+    {
+      return (get_depth() > 0);
+    }
+
+    //--------------------------------------------------------------------------
+    const Task* RemoteTask::get_parent_task(void) const
+    //--------------------------------------------------------------------------
+    {
+      if ((parent_task == nullptr) && has_parent_task())
+        parent_task = owner->get_parent_task();
+      return parent_task;
+    }
+
+    //--------------------------------------------------------------------------
+    const std::string_view& RemoteTask::get_provenance_string(bool human) const
+    //--------------------------------------------------------------------------
+    {
+      Provenance *provenance = owner->get_provenance();
+      if (provenance != nullptr)
+        return human ? provenance->human : provenance->machine;
+      else
+        return Provenance::no_provenance;
+    }
+    
+    //--------------------------------------------------------------------------
+    int RemoteTask::get_depth(void) const
+    //--------------------------------------------------------------------------
+    {
+      return owner->get_depth();
+    }
+
+    //--------------------------------------------------------------------------
+    const char* RemoteTask::get_task_name(void) const
+    //--------------------------------------------------------------------------
+    {
+      TaskImpl *task_impl = runtime->find_task_impl(task_id);
+      return task_impl->get_name();
+    }
+
+    //--------------------------------------------------------------------------
+    bool RemoteTask::has_trace(void) const
+    //--------------------------------------------------------------------------
+    {
+      return false;
+    }
+
+    /////////////////////////////////////////////////////////////
     // Remote Context 
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
     RemoteContext::RemoteContext(DistributedID id,
                                  CollectiveMapping *mapping)
-      : ExternalTask(), 
-        HeapifyMixin<RemoteContext,InnerContext,CONTEXT_LIFETIME>(
+      : HeapifyMixin<RemoteContext,InnerContext,CONTEXT_LIFETIME>(
           configure_remote_context(),
-          (SingleTask*)nullptr, -1, false/*full inner*/, ExternalTask::regions,
-                     ExternalTask::output_regions, local_parent_req_indexes,
+          (SingleTask*)nullptr, -1, false/*full inner*/, remote_task.regions,
+                     remote_task.output_regions, local_parent_req_indexes,
                      local_virtual_mapped, 0/*priority*/, ApEvent::NO_AP_EVENT,
                      id, false, false, false, mapping),
         parent_ctx(nullptr), shard_manager(nullptr), provenance(nullptr),
-        context_index(0), remote_uid(0), top_level_context(false), repl_id(0)
+        top_level_context(false), remote_task(RemoteTask(this)),
+        remote_uid(0), repl_id(0)
     //--------------------------------------------------------------------------
     {
     }
@@ -104,77 +226,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    uint64_t RemoteContext::get_context_index(void) const
-    //--------------------------------------------------------------------------
-    {
-      return context_index;
-    }
-
-    //--------------------------------------------------------------------------
-    void RemoteContext::set_context_index(uint64_t index)
-    //--------------------------------------------------------------------------
-    {
-      context_index = index;
-    }
-
-    //--------------------------------------------------------------------------
-    int RemoteContext::get_depth(void) const
-    //--------------------------------------------------------------------------
-    {
-      return InnerContext::get_depth();
-    }
-
-    //--------------------------------------------------------------------------
-    Domain RemoteContext::get_slice_domain(void) const
-    //--------------------------------------------------------------------------
-    {
-      return Domain(index_point, index_point);
-    }
-
-    //--------------------------------------------------------------------------
-    DomainPoint RemoteContext::get_shard_point(void) const
-    //--------------------------------------------------------------------------
-    {
-      return shard_point;
-    }
-
-    //--------------------------------------------------------------------------
-    Domain RemoteContext::get_shard_domain(void) const
-    //--------------------------------------------------------------------------
-    {
-      return shard_domain;
-    }
-
-    //--------------------------------------------------------------------------
-    bool RemoteContext::has_parent_task(void) const
-    //--------------------------------------------------------------------------
-    {
-      return (InnerContext::get_depth() > 0);
-    }
-
-    //--------------------------------------------------------------------------
-    const std::string_view& RemoteContext::get_provenance_string(bool human) const
-    //--------------------------------------------------------------------------
-    {
-      if (provenance != nullptr)
-        return human ? provenance->human : provenance->machine;
-      else
-        return Provenance::no_provenance;
-    }
-    
-    //--------------------------------------------------------------------------
-    const char* RemoteContext::get_task_name(void) const
-    //--------------------------------------------------------------------------
-    {
-      TaskImpl *task_impl = runtime->find_task_impl(task_id);
-      return task_impl->get_name();
-    }
-
-    //--------------------------------------------------------------------------
     Task* RemoteContext::get_task(void)
     //--------------------------------------------------------------------------
     {
-      return this;
+      return &remote_task;
     }
 
     //--------------------------------------------------------------------------
@@ -216,7 +271,7 @@ namespace Legion {
       assert(result != nullptr);
 #endif
       if (parent_ctx.exchange(result) == nullptr)
-        parent_task = result->get_task();
+        remote_task.parent_task = result->get_task();
       return result;
     }
 
@@ -233,7 +288,7 @@ namespace Legion {
       assert(targets.size() == target_spaces.size());
 #endif
       // If this is virtual mapped, then continue up to the parent
-      if ((req_index < ExternalTask::regions.size()) && virtual_mapped[req_index])
+      if ((req_index < regions.size()) && virtual_mapped[req_index])
         return find_parent_context()->compute_equivalence_sets(
             parent_req_indexes[req_index], targets, target_spaces,
             creation_target_space, expr, mask);
@@ -267,7 +322,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(ExternalTask::regions.size() <= req_index);
+      assert(regions.size() <= req_index);
 #endif
       const RtUserEvent recorded = Runtime::create_rt_user_event();
       Serializer rez;
@@ -291,10 +346,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(ExternalTask::regions.size() <= virtual_mapped.size());
-      assert(ExternalTask::regions.size() <= parent_req_indexes.size());
+      assert(regions.size() <= virtual_mapped.size());
+      assert(regions.size() <= parent_req_indexes.size());
 #endif     
-      if (index < ExternalTask::regions.size())
+      if (index < regions.size())
       {
         // See if it is virtual mapped
         if (virtual_mapped[index])
@@ -399,7 +454,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!sharded);
 #endif
-      if ((req_index < ExternalTask::regions.size()) && virtual_mapped[req_index])
+      if ((req_index < regions.size()) && virtual_mapped[req_index])
       {
         find_parent_context()->refine_equivalence_sets(
             parent_req_indexes[req_index], node, refinement_mask,
@@ -450,10 +505,10 @@ namespace Legion {
         IndexSpaceNode *node, const CollectiveMapping *mapping)
     //--------------------------------------------------------------------------
     {
-      if ((req_index < ExternalTask::regions.size()) && virtual_mapped[req_index])
+      if ((req_index < regions.size()) && virtual_mapped[req_index])
       {
         if (node == nullptr)
-          node = runtime->get_node(ExternalTask::regions[req_index].region.get_index_space());
+          node = runtime->get_node(regions[req_index].region.get_index_space());
         find_parent_context()->find_trace_local_sets(req_index, mask,
             current_sets, node, mapping);
         return;
@@ -620,13 +675,13 @@ namespace Legion {
       // If we're the top-level context then we're already done
       if (top_level_context)
         return;
-      unpack_external_task(derez);
-      local_parent_req_indexes.resize(ExternalTask::regions.size()); 
+      remote_task.unpack_external_task(derez);
+      local_parent_req_indexes.resize(remote_task.regions.size()); 
       for (unsigned idx = 0; idx < local_parent_req_indexes.size(); idx++)
         derez.deserialize(local_parent_req_indexes[idx]);
       size_t num_virtual;
       derez.deserialize(num_virtual);
-      local_virtual_mapped.resize(ExternalTask::regions.size(), false);
+      local_virtual_mapped.resize(regions.size(), false);
       for (unsigned idx = 0; idx < num_virtual; idx++)
       {
         unsigned index;
@@ -662,14 +717,14 @@ namespace Legion {
       if (parent != nullptr)
       {
         parent_ctx.store(parent);
-        parent_task = parent->get_task();
+        remote_task.parent_task = parent->get_task();
         if (parent->remove_base_resource_ref(RUNTIME_REF))
           delete parent;
       }
     }
 
     //--------------------------------------------------------------------------
-    const Task* RemoteContext::get_parent_task(void) const
+    const Task* RemoteContext::get_parent_task(void)
     //--------------------------------------------------------------------------
     {
       // Note that it safe to actually perform the find_context call here
@@ -681,7 +736,7 @@ namespace Legion {
         parent = runtime->find_or_request_inner_context(parent_context_did);
         const Task *result = parent->get_task();
         if (parent_ctx.exchange(parent) == nullptr)
-          parent_task = result;
+          remote_task.parent_task = result;
         return result;
       }
       else

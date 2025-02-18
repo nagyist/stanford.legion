@@ -22,11 +22,44 @@ namespace Legion {
   namespace Internal {
 
     /**
+     * \class RemoteTask
+     * A small helper class for giving application
+     * visibility to this remote context
+     */
+    class RemoteTask : public ExternalTask {
+    public:
+      RemoteTask(RemoteContext *owner);
+      RemoteTask(const RemoteTask &rhs) = delete;
+      virtual ~RemoteTask(void);
+    public:
+      RemoteTask& operator=(const RemoteTask &rhs) = delete;
+    public:
+      virtual int get_depth(void) const;
+      virtual UniqueID get_unique_id(void) const;
+      virtual Domain get_slice_domain(void) const;
+      virtual uint64_t get_context_index(void) const; 
+      virtual void set_context_index(uint64_t index);
+      virtual bool has_parent_task(void) const;
+      virtual const Task* get_parent_task(void) const;
+      virtual const char* get_task_name(void) const;
+      virtual ShardID get_shard_id(void) const;
+      virtual size_t get_total_shards(void) const;
+      virtual DomainPoint get_shard_point(void) const;
+      virtual Domain get_shard_domain(void) const;
+      virtual bool has_trace(void) const;
+      virtual const std::string_view& get_provenance_string(
+          bool human = true) const;
+    public:
+      RemoteContext *const owner;
+      uint64_t context_index;
+    };
+
+    /**
      * \class RemoteContext
      * A remote copy of a TaskContext for the 
      * execution of sub-tasks on remote notes.
      */
-    class RemoteContext : public ExternalTask, 
+    class RemoteContext : 
       public HeapifyMixin<RemoteContext,InnerContext,CONTEXT_LIFETIME> {
     public:
       RemoteContext(DistributedID did,
@@ -37,18 +70,6 @@ namespace Legion {
       RemoteContext& operator=(const RemoteContext &rhs) = delete;
     public:
       static Mapper::ContextConfigOutput configure_remote_context(void);
-    public:
-      // From ExternalTask
-      virtual uint64_t get_context_index(void) const;
-      virtual void set_context_index(uint64_t index);
-      virtual int get_depth(void) const;
-      virtual Domain get_slice_domain(void) const;
-      virtual bool has_parent_task(void) const;
-      virtual const Task* get_parent_task(void) const;
-      virtual const char* get_task_name(void) const;
-      virtual DomainPoint get_shard_point(void) const;
-      virtual Domain get_shard_domain(void) const;
-      virtual const std::string_view& get_provenance_string(bool human = true) const;
     public:
       virtual Task* get_task(void);
       virtual UniqueID get_unique_id(void) const;
@@ -99,6 +120,9 @@ namespace Legion {
                           const ShardMapping *mapping, ShardID source_shard);
       static void handle_created_region_contexts(Deserializer &derez);
     public:
+      const Task* get_parent_task(void);
+      inline Provenance* get_provenance(void) { return provenance; }
+    public:
       void unpack_local_field_update(Deserializer &derez);
       static void handle_local_field_update(Deserializer &derez); 
     public:
@@ -119,13 +143,13 @@ namespace Legion {
       static void handle_find_trace_local_sets_response(Deserializer &derez);
     protected:
       DistributedID parent_context_did;
-      mutable std::atomic<InnerContext*> parent_ctx;
+      std::atomic<InnerContext*> parent_ctx;
       ShardManager *shard_manager; // if we're lucky and one is already here
       Provenance *provenance;
     protected:
-      uint64_t context_index;
-      UniqueID remote_uid;
       bool top_level_context;
+      RemoteTask remote_task;
+      UniqueID remote_uid;
     protected:
       std::vector<unsigned> local_parent_req_indexes;
       std::vector<bool> local_virtual_mapped;
@@ -136,6 +160,7 @@ namespace Legion {
       std::map<unsigned,RtEvent> pending_physical_contexts;
     protected:
       // For remote replicate contexts
+      friend class RemoteTask;
       ShardID shard_id;
       size_t total_shards;
       DomainPoint shard_point;
