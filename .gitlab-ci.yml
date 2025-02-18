@@ -676,7 +676,7 @@ before_script:
   script:
     - |
       find runtime/legion \( -name "*.cc" -o -name "*.inl" -o -name "*.h" \) -print0 | while IFS= read -r -d '' file; do
-        if ! clang-format -style=file:runtime/legion/.clang-format "$file" | diff -u "$file" -; then
+        if ! clang-format-14 -style=file:runtime/legion/.clang-format --Wno-error=unknown "$file" | diff -u "$file" -; then
           echo "Legion file $file does not comply with clang-format rules"
           exit 1
         fi
