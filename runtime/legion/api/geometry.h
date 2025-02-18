@@ -292,6 +292,9 @@ namespace Legion {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     // Work around an internal nvcc bug by marking this volatile
     int volatile dim;
+#else
+    int dim;
+#endif
     coord_t rect_data[2 * MAX_RECT_DIM];
   private:
     // Helper functor classes for demux-ing templates when we have
