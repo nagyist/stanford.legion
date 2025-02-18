@@ -24,18 +24,16 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Layout Description 
+    // Layout Description
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    LayoutDescription::LayoutDescription(FieldSpaceNode *own,
-                                         const FieldMask &mask,
-                                         const unsigned dims,
-                                         LayoutConstraints *con,
-                                   const std::vector<unsigned> &mask_index_map,
-                                   const std::vector<FieldID> &field_ids,
-                                   const std::vector<size_t> &field_sizes,
-                                   const std::vector<CustomSerdezID> &serdez)
+    LayoutDescription::LayoutDescription(
+        FieldSpaceNode* own, const FieldMask& mask, const unsigned dims,
+        LayoutConstraints* con, const std::vector<unsigned>& mask_index_map,
+        const std::vector<FieldID>& field_ids,
+        const std::vector<size_t>& field_sizes,
+        const std::vector<CustomSerdezID>& serdez)
       : allocated_fields(mask), constraints(con), owner(own), total_dims(dims)
     //--------------------------------------------------------------------------
     {
@@ -47,8 +45,9 @@ namespace Legion {
       // Greater than or equal because local fields can alias onto the
       // same index for the allocated instances, note that the fields
       // themselves still get allocated their own space in the instance
-      assert(mask_index_map.size() >= 
-                size_t(FieldMask::pop_count(allocated_fields)));
+      assert(
+          mask_index_map.size() >=
+          size_t(FieldMask::pop_count(allocated_fields)));
 #endif
       for (unsigned idx = 0; idx < mask_index_map.size(); idx++)
       {
@@ -56,7 +55,7 @@ namespace Legion {
         unsigned index = mask_index_map[idx];
         FieldID fid = field_ids[index];
         field_indexes[fid] = idx;
-        CopySrcDstField &info = field_infos[idx];
+        CopySrcDstField& info = field_infos[idx];
         info.size = field_sizes[index];
         info.field_id = fid;
         info.serdez_id = serdez[index];
@@ -64,8 +63,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LayoutDescription::LayoutDescription(const FieldMask &mask,
-                                         LayoutConstraints *con)
+    LayoutDescription::LayoutDescription(
+        const FieldMask& mask, LayoutConstraints* con)
       : allocated_fields(mask), constraints(con), owner(nullptr), total_dims(0)
     //--------------------------------------------------------------------------
     {
@@ -88,30 +87,33 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(runtime->legion_spy_enabled);
 #endif
-      for (std::map<FieldID,unsigned>::const_iterator it = 
-            field_indexes.begin(); it != field_indexes.end(); it++)
+      for (std::map<FieldID, unsigned>::const_iterator it =
+               field_indexes.begin();
+           it != field_indexes.end(); it++)
         LegionSpy::log_physical_instance_field(inst_event, it->first);
     }
 
     //--------------------------------------------------------------------------
-    void LayoutDescription::compute_copy_offsets(const FieldMask &copy_mask,
-                                           const PhysicalInstance instance,
-                                           std::vector<CopySrcDstField> &fields)
+    void LayoutDescription::compute_copy_offsets(
+        const FieldMask& copy_mask, const PhysicalInstance instance,
+        std::vector<CopySrcDstField>& fields)
     //--------------------------------------------------------------------------
     {
       uint64_t hash_key = copy_mask.get_hash_key();
       bool found_in_cache = false;
       FieldMask compressed;
-      // First check to see if we've memoized this result 
+      // First check to see if we've memoized this result
       {
-        AutoLock o_lock(layout_lock,1,false/*exclusive*/);
-        std::map<LEGION_FIELD_MASK_FIELD_TYPE,
-                 LegionList<std::pair<FieldMask,FieldMask> > >::const_iterator
-                   finder = comp_cache.find(hash_key);
+        AutoLock o_lock(layout_lock, 1, false /*exclusive*/);
+        std::map<
+            LEGION_FIELD_MASK_FIELD_TYPE,
+            LegionList<std::pair<FieldMask, FieldMask> > >::const_iterator
+            finder = comp_cache.find(hash_key);
         if (finder != comp_cache.end())
         {
-          for (LegionList<std::pair<FieldMask,FieldMask> >::const_iterator it =
-                finder->second.begin(); it != finder->second.end(); it++)
+          for (LegionList<std::pair<FieldMask, FieldMask> >::const_iterator it =
+                   finder->second.begin();
+               it != finder->second.end(); it++)
           {
             if (it->first == copy_mask)
             {
@@ -125,15 +127,15 @@ namespace Legion {
       if (!found_in_cache)
       {
         compressed = copy_mask;
-        compress_mask<STATIC_LOG2(LEGION_MAX_FIELDS)>(compressed, 
-                                                      allocated_fields);
+        compress_mask<STATIC_LOG2(LEGION_MAX_FIELDS)>(
+            compressed, allocated_fields);
         // Save the result in the cache, duplicates from races here are benign
         AutoLock o_lock(layout_lock);
         comp_cache[hash_key].push_back(
-            std::pair<FieldMask,FieldMask>(copy_mask,compressed));
+            std::pair<FieldMask, FieldMask>(copy_mask, compressed));
       }
       // It is absolutely imperative that these infos be added in
-      // the order in which they appear in the field mask so that 
+      // the order in which they appear in the field mask so that
       // they line up in the same order with the source/destination infos
       // (depending on the calling context of this function
       const unsigned pop_count = FieldMask::pop_count(compressed);
@@ -146,32 +148,31 @@ namespace Legion {
       for (unsigned idx = 0; idx < pop_count; idx++)
       {
         int index = compressed.find_next_set(next_start);
-        CopySrcDstField &field = fields[offset+idx];
+        CopySrcDstField& field = fields[offset + idx];
         field = field_infos[index];
         // Our field infos are annonymous so specify the instance now
         field.inst = instance;
         // We'll start looking again at the next index after this one
         next_start = index + 1;
       }
-    } 
+    }
 
     //--------------------------------------------------------------------------
     void LayoutDescription::compute_copy_offsets(
-                                   const std::vector<FieldID> &copy_fields, 
-                                   const PhysicalInstance instance,
-                                   std::vector<CopySrcDstField> &fields)
+        const std::vector<FieldID>& copy_fields,
+        const PhysicalInstance instance, std::vector<CopySrcDstField>& fields)
     //--------------------------------------------------------------------------
     {
       unsigned offset = fields.size();
       fields.resize(offset + copy_fields.size());
       for (unsigned idx = 0; idx < copy_fields.size(); idx++)
       {
-        std::map<FieldID,unsigned>::const_iterator
-          finder = field_indexes.find(copy_fields[idx]);
+        std::map<FieldID, unsigned>::const_iterator finder =
+            field_indexes.find(copy_fields[idx]);
 #ifdef DEBUG_LEGION
         assert(finder != field_indexes.end());
 #endif
-        CopySrcDstField &info = fields[offset+idx];
+        CopySrcDstField& info = fields[offset + idx];
         info = field_infos[finder->second];
         // Since instances are annonymous in layout descriptions we
         // have to fill them in when we add the field info
@@ -180,12 +181,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LayoutDescription::get_fields(std::set<FieldID> &fields) const
+    void LayoutDescription::get_fields(std::set<FieldID>& fields) const
     //--------------------------------------------------------------------------
     {
-      for (std::map<FieldID,unsigned>::const_iterator 
-	     it = field_indexes.begin(); it != field_indexes.end(); ++it)
-	fields.insert(it->first);
+      for (std::map<FieldID, unsigned>::const_iterator it =
+               field_indexes.begin();
+           it != field_indexes.end(); ++it)
+        fields.insert(it->first);
     }
 
     //--------------------------------------------------------------------------
@@ -196,11 +198,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LayoutDescription::has_fields(std::map<FieldID,bool> &to_test) const
+    void LayoutDescription::has_fields(std::map<FieldID, bool>& to_test) const
     //--------------------------------------------------------------------------
     {
-      for (std::map<FieldID,bool>::iterator it = to_test.begin();
-            it != to_test.end(); it++)
+      for (std::map<FieldID, bool>::iterator it = to_test.begin();
+           it != to_test.end(); it++)
       {
         if (field_indexes.find(it->first) != field_indexes.end())
           it->second = true;
@@ -210,12 +212,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LayoutDescription::remove_space_fields(std::set<FieldID> &filter) const
+    void LayoutDescription::remove_space_fields(std::set<FieldID>& filter) const
     //--------------------------------------------------------------------------
     {
       std::vector<FieldID> to_remove;
       for (std::set<FieldID>::const_iterator it = filter.begin();
-            it != filter.end(); it++)
+           it != filter.end(); it++)
       {
         if (field_indexes.find(*it) != field_indexes.end())
           to_remove.push_back(*it);
@@ -223,7 +225,7 @@ namespace Legion {
       if (!to_remove.empty())
       {
         for (std::vector<FieldID>::const_iterator it = to_remove.begin();
-              it != to_remove.end(); it++)
+             it != to_remove.end(); it++)
           filter.erase(*it);
       }
     }
@@ -232,8 +234,8 @@ namespace Legion {
     const CopySrcDstField& LayoutDescription::find_field_info(FieldID fid) const
     //--------------------------------------------------------------------------
     {
-      std::map<FieldID,unsigned>::const_iterator finder = 
-        field_indexes.find(fid);
+      std::map<FieldID, unsigned>::const_iterator finder =
+          field_indexes.find(fid);
 #ifdef DEBUG_LEGION
       assert(finder != field_indexes.end());
 #endif
@@ -246,8 +248,9 @@ namespace Legion {
     {
       size_t result = 0;
       // Add up all the field sizes
-      for (std::vector<CopySrcDstField>::const_iterator it = 
-            field_infos.begin(); it != field_infos.end(); it++)
+      for (std::vector<CopySrcDstField>::const_iterator it =
+               field_infos.begin();
+           it != field_infos.end(); it++)
       {
         result += it->size;
       }
@@ -263,22 +266,24 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LayoutDescription::compute_destroyed_fields(
-             std::vector<PhysicalInstance::DestroyedField> &serdez_fields) const
+        std::vector<PhysicalInstance::DestroyedField>& serdez_fields) const
     //--------------------------------------------------------------------------
     {
       // See if we have any special fields which need serdez deletion
-      for (std::vector<CopySrcDstField>::const_iterator it = 
-            field_infos.begin(); it != field_infos.end(); it++)
+      for (std::vector<CopySrcDstField>::const_iterator it =
+               field_infos.begin();
+           it != field_infos.end(); it++)
       {
         if (it->serdez_id > 0)
-          serdez_fields.push_back(PhysicalInstance::DestroyedField(it->field_id, 
-                                                    it->size, it->serdez_id));
+          serdez_fields.push_back(PhysicalInstance::DestroyedField(
+              it->field_id, it->size, it->serdez_id));
       }
     }
 
     //--------------------------------------------------------------------------
     bool LayoutDescription::match_layout(
-      const LayoutConstraintSet &candidate_constraints, unsigned num_dims) const
+        const LayoutConstraintSet& candidate_constraints,
+        unsigned num_dims) const
     //--------------------------------------------------------------------------
     {
       if (num_dims != total_dims)
@@ -288,8 +293,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool LayoutDescription::match_layout(const LayoutDescription *layout,
-                                         unsigned num_dims) const
+    bool LayoutDescription::match_layout(
+        const LayoutDescription* layout, unsigned num_dims) const
     //--------------------------------------------------------------------------
     {
       if (num_dims != total_dims)
@@ -307,33 +312,34 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LayoutDescription::pack_layout_description(Serializer &rez,
-                                                    AddressSpaceID target)
+    void LayoutDescription::pack_layout_description(
+        Serializer& rez, AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
       rez.serialize(constraints->layout_id);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ LayoutDescription* LayoutDescription::
-      handle_unpack_layout_description(LayoutConstraints *constraints,
-                            FieldSpaceNode *field_space_node, size_t total_dims)
+    /*static*/ LayoutDescription*
+        LayoutDescription::handle_unpack_layout_description(
+            LayoutConstraints* constraints, FieldSpaceNode* field_space_node,
+            size_t total_dims)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(constraints != nullptr);
 #endif
       FieldMask instance_mask;
-      const std::vector<FieldID> &field_set = 
-        constraints->field_constraint.get_field_set(); 
+      const std::vector<FieldID>& field_set =
+          constraints->field_constraint.get_field_set();
       std::vector<size_t> field_sizes(field_set.size());
       std::vector<unsigned> mask_index_map(field_set.size());
       std::vector<CustomSerdezID> serdez(field_set.size());
-      field_space_node->compute_field_layout(field_set, field_sizes,
-                               mask_index_map, serdez, instance_mask);
-      LayoutDescription *result = 
-        field_space_node->create_layout_description(instance_mask, total_dims,
-                  constraints, mask_index_map, field_set, field_sizes, serdez);
+      field_space_node->compute_field_layout(
+          field_set, field_sizes, mask_index_map, serdez, instance_mask);
+      LayoutDescription* result = field_space_node->create_layout_description(
+          instance_mask, total_dims, constraints, mask_index_map, field_set,
+          field_sizes, serdez);
 #ifdef DEBUG_LEGION
       assert(result != nullptr);
 #endif
@@ -341,65 +347,72 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Layout Constraints 
+    // Layout Constraints
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    LayoutConstraints::LayoutConstraints(LayoutConstraintID lay_id,FieldSpace h,
-                                         bool inter, DistributedID did)
-      : LayoutConstraintSet(), DistributedCollectable(
-          LEGION_DISTRIBUTED_HELP_ENCODE((did > 0) ? did : 
-            runtime->get_available_distributed_id(), CONSTRAINT_SET_DC),
-          false/*register*/),
+    LayoutConstraints::LayoutConstraints(
+        LayoutConstraintID lay_id, FieldSpace h, bool inter, DistributedID did)
+      : LayoutConstraintSet(),
+        DistributedCollectable(
+            LEGION_DISTRIBUTED_HELP_ENCODE(
+                (did > 0) ? did : runtime->get_available_distributed_id(),
+                CONSTRAINT_SET_DC),
+            false /*register*/),
         layout_id(lay_id), handle(h), internal(inter), constraints_name(nullptr)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_GC
-      log_garbage.info("GC Constraints %lld %d", 
-          LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space);
+      log_garbage.info(
+          "GC Constraints %lld %d", LEGION_DISTRIBUTED_ID_FILTER(this->did),
+          local_space);
 #endif
     }
 
     //--------------------------------------------------------------------------
-    LayoutConstraints::LayoutConstraints(LayoutConstraintID lay_id,
-                                     const LayoutConstraintRegistrar &registrar,
-                                     bool inter, DistributedID did,
-                                     CollectiveMapping *collective_mapping)
-      : LayoutConstraintSet(registrar.layout_constraints), 
-        DistributedCollectable(LEGION_DISTRIBUTED_HELP_ENCODE((did > 0) 
-            ? did : runtime->get_available_distributed_id(), CONSTRAINT_SET_DC),
-            false/*register with runtime*/, collective_mapping),
+    LayoutConstraints::LayoutConstraints(
+        LayoutConstraintID lay_id, const LayoutConstraintRegistrar& registrar,
+        bool inter, DistributedID did, CollectiveMapping* collective_mapping)
+      : LayoutConstraintSet(registrar.layout_constraints),
+        DistributedCollectable(
+            LEGION_DISTRIBUTED_HELP_ENCODE(
+                (did > 0) ? did : runtime->get_available_distributed_id(),
+                CONSTRAINT_SET_DC),
+            false /*register with runtime*/, collective_mapping),
         layout_id(lay_id), handle(registrar.handle), internal(inter)
     //--------------------------------------------------------------------------
     {
       if (registrar.layout_name == nullptr)
       {
-        constraints_name = (char*)malloc(64*sizeof(char));
-        snprintf(constraints_name,64,"layout constraints %ld", layout_id);
-      }
-      else
+        constraints_name = (char*)malloc(64 * sizeof(char));
+        snprintf(constraints_name, 64, "layout constraints %ld", layout_id);
+      } else
         constraints_name = strdup(registrar.layout_name);
 #ifdef LEGION_GC
-      log_garbage.info("GC Constraints %lld %d", 
-          LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space);
+      log_garbage.info(
+          "GC Constraints %lld %d", LEGION_DISTRIBUTED_ID_FILTER(this->did),
+          local_space);
 #endif
     }
 
     //--------------------------------------------------------------------------
-    LayoutConstraints::LayoutConstraints(LayoutConstraintID lay_id,
-                                         const LayoutConstraintSet &cons,
-                                         FieldSpace h, bool inter)
-      : LayoutConstraintSet(cons), DistributedCollectable(
-         LEGION_DISTRIBUTED_HELP_ENCODE(runtime->get_available_distributed_id(),
-            CONSTRAINT_SET_DC), false/*register with runtime*/),
+    LayoutConstraints::LayoutConstraints(
+        LayoutConstraintID lay_id, const LayoutConstraintSet& cons,
+        FieldSpace h, bool inter)
+      : LayoutConstraintSet(cons),
+        DistributedCollectable(
+            LEGION_DISTRIBUTED_HELP_ENCODE(
+                runtime->get_available_distributed_id(), CONSTRAINT_SET_DC),
+            false /*register with runtime*/),
         layout_id(lay_id), handle(h), internal(inter)
     //--------------------------------------------------------------------------
     {
-      constraints_name = (char*)malloc(64*sizeof(char));
-      snprintf(constraints_name,64,"layout constraints %ld", layout_id);
+      constraints_name = (char*)malloc(64 * sizeof(char));
+      snprintf(constraints_name, 64, "layout constraints %ld", layout_id);
 #ifdef LEGION_GC
-      log_garbage.info("GC Constraints %lld %d", 
-          LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space);
+      log_garbage.info(
+          "GC Constraints %lld %d", LEGION_DISTRIBUTED_ID_FILTER(this->did),
+          local_space);
 #endif
     }
 
@@ -412,7 +425,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool LayoutConstraints::operator==(const LayoutConstraints &rhs) const
+    bool LayoutConstraints::operator==(const LayoutConstraints& rhs) const
     //--------------------------------------------------------------------------
     {
       // We check equalities only on the members of LayoutConstraintSet
@@ -420,7 +433,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool LayoutConstraints::operator==(const LayoutConstraintSet &rhs) const
+    bool LayoutConstraints::operator==(const LayoutConstraintSet& rhs) const
     //--------------------------------------------------------------------------
     {
       // We check equalities only on the members of LayoutConstraintSet
@@ -435,8 +448,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LayoutConstraints::send_constraint_response(AddressSpaceID target,
-                                                     RtUserEvent done_event)
+    void LayoutConstraints::send_constraint_response(
+        AddressSpaceID target, RtUserEvent done_event)
     //--------------------------------------------------------------------------
     {
       Serializer rez;
@@ -446,11 +459,11 @@ namespace Legion {
         rez.serialize(did);
         rez.serialize(handle);
         rez.serialize<bool>(internal);
-        size_t name_len = strlen(constraints_name)+1;
+        size_t name_len = strlen(constraints_name) + 1;
         rez.serialize(name_len);
         rez.serialize(constraints_name, name_len);
         // pack the constraints
-        serialize(rez);   
+        serialize(rez);
         // pack the done events
         rez.serialize(done_event);
       }
@@ -459,7 +472,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LayoutConstraints::update_constraints(Deserializer &derez)
+    void LayoutConstraints::update_constraints(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -470,23 +483,24 @@ namespace Legion {
       constraints_name = (char*)malloc(name_len);
       derez.deserialize(constraints_name, name_len);
       // unpack the constraints
-      deserialize(derez); 
+      deserialize(derez);
     }
 
     //--------------------------------------------------------------------------
-    bool LayoutConstraints::entails(LayoutConstraints *constraints,
-                unsigned total_dims, const LayoutConstraint **failed_constraint,
-                bool test_pointer)
+    bool LayoutConstraints::entails(
+        LayoutConstraints* constraints, unsigned total_dims,
+        const LayoutConstraint** failed_constraint, bool test_pointer)
     //--------------------------------------------------------------------------
     {
-      const std::pair<LayoutConstraintID,unsigned> 
-        key(constraints->layout_id, total_dims);
+      const std::pair<LayoutConstraintID, unsigned> key(
+          constraints->layout_id, total_dims);
       // Check to see if the result is in the cache
       if (test_pointer)
       {
-        AutoLock lay(layout_lock,1,false/*exclusive*/);
-        std::map<std::pair<LayoutConstraintID,unsigned>,
-                  const LayoutConstraint*>::const_iterator finder = 
+        AutoLock lay(layout_lock, 1, false /*exclusive*/);
+        std::map<
+            std::pair<LayoutConstraintID, unsigned>,
+            const LayoutConstraint*>::const_iterator finder =
             entailment_cache.find(key);
         if (finder != entailment_cache.end())
         {
@@ -495,16 +509,15 @@ namespace Legion {
             if (failed_constraint != nullptr)
               *failed_constraint = finder->second;
             return false;
-          }
-          else
+          } else
             return true;
         }
-      }
-      else
+      } else
       {
-        AutoLock lay(layout_lock,1,false/*exclusive*/);
-        std::map<std::pair<LayoutConstraintID,unsigned>,
-                  const LayoutConstraint*>::const_iterator finder = 
+        AutoLock lay(layout_lock, 1, false /*exclusive*/);
+        std::map<
+            std::pair<LayoutConstraintID, unsigned>,
+            const LayoutConstraint*>::const_iterator finder =
             no_pointer_entailment_cache.find(key);
         if (finder != no_pointer_entailment_cache.end())
         {
@@ -513,17 +526,16 @@ namespace Legion {
             if (failed_constraint != nullptr)
               *failed_constraint = finder->second;
             return false;
-          }
-          else
+          } else
             return true;
         }
       }
       // Didn't find it, so do the test for real
-      const LayoutConstraint *result = nullptr;
+      const LayoutConstraint* result = nullptr;
       const bool entailment =
-        entails(*constraints, total_dims, &result, test_pointer);
+          entails(*constraints, total_dims, &result, test_pointer);
 #ifdef DEBUG_LEGION
-      assert(entailment ^ (result != nullptr)); // only one should be true
+      assert(entailment ^ (result != nullptr));  // only one should be true
 #endif
       if (!entailment && (failed_constraint != nullptr))
         *failed_constraint = result;
@@ -537,28 +549,30 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool LayoutConstraints::entails(const LayoutConstraintSet &other,
-          unsigned total_dims, const LayoutConstraint **failed_constraint,
-          bool test_pointer) const
+    bool LayoutConstraints::entails(
+        const LayoutConstraintSet& other, unsigned total_dims,
+        const LayoutConstraint** failed_constraint, bool test_pointer) const
     //--------------------------------------------------------------------------
     {
-      return LayoutConstraintSet::entails(other, total_dims,
-                                          failed_constraint, test_pointer);
+      return LayoutConstraintSet::entails(
+          other, total_dims, failed_constraint, test_pointer);
     }
 
     //--------------------------------------------------------------------------
-    bool LayoutConstraints::conflicts(LayoutConstraints *constraints,
-              unsigned total_dims, const LayoutConstraint **conflict_constraint)
+    bool LayoutConstraints::conflicts(
+        LayoutConstraints* constraints, unsigned total_dims,
+        const LayoutConstraint** conflict_constraint)
     //--------------------------------------------------------------------------
     {
-      const std::pair<LayoutConstraintID,unsigned> 
-        key(constraints->layout_id, total_dims);
+      const std::pair<LayoutConstraintID, unsigned> key(
+          constraints->layout_id, total_dims);
       // Check to see if the result is in the cache
       {
-        AutoLock lay(layout_lock,1,false/*exclusive*/);
-        std::map<std::pair<LayoutConstraintID,unsigned>,
-                  const LayoutConstraint*>::const_iterator finder = 
-          conflict_cache.find(key);
+        AutoLock lay(layout_lock, 1, false /*exclusive*/);
+        std::map<
+            std::pair<LayoutConstraintID, unsigned>,
+            const LayoutConstraint*>::const_iterator finder =
+            conflict_cache.find(key);
         if (finder != conflict_cache.end())
         {
           if (finder->second != nullptr)
@@ -566,16 +580,15 @@ namespace Legion {
             if (conflict_constraint != nullptr)
               *conflict_constraint = finder->second;
             return true;
-          }
-          else
+          } else
             return false;
         }
       }
       // Didn't find it, so do the test for real
-      const LayoutConstraint *result = nullptr;
+      const LayoutConstraint* result = nullptr;
       const bool conflicted = conflicts(*constraints, total_dims, &result);
 #ifdef DEBUG_LEGION
-      assert(conflicted ^ (result == nullptr)); // only one should be true
+      assert(conflicted ^ (result == nullptr));  // only one should be true
 #endif
       // Save the result in the cache
       AutoLock lay(layout_lock);
@@ -586,17 +599,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool LayoutConstraints::conflicts(const LayoutConstraintSet &other,
-        unsigned total_dims, const LayoutConstraint **conflict_constraint) const
+    bool LayoutConstraints::conflicts(
+        const LayoutConstraintSet& other, unsigned total_dims,
+        const LayoutConstraint** conflict_constraint) const
     //--------------------------------------------------------------------------
     {
-      return LayoutConstraintSet::conflicts(other, total_dims, 
-                                            conflict_constraint);
+      return LayoutConstraintSet::conflicts(
+          other, total_dims, conflict_constraint);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ AddressSpaceID LayoutConstraints::get_owner_space(
-                            LayoutConstraintID layout_id)
+        LayoutConstraintID layout_id)
     //--------------------------------------------------------------------------
     {
       return (layout_id % runtime->total_address_spaces);
@@ -604,7 +618,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void LayoutConstraints::process_request(
-                                     Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -614,8 +628,8 @@ namespace Legion {
       derez.deserialize(done_event);
       bool can_fail;
       derez.deserialize(can_fail);
-      LayoutConstraints *constraints = 
-        runtime->find_layout_constraints(lay_id, can_fail);
+      LayoutConstraints* constraints =
+          runtime->find_layout_constraints(lay_id, can_fail);
       if (can_fail && (constraints == nullptr))
         Runtime::trigger_event(done_event);
       else
@@ -624,7 +638,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void LayoutConstraints::process_response(
-                   Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -636,9 +650,9 @@ namespace Legion {
       derez.deserialize(handle);
       bool internal;
       derez.deserialize(internal);
-      // Make it an unpack it, then try to register it 
-      LayoutConstraints *new_constraints = 
-        new LayoutConstraints(lay_id, handle, internal, did);
+      // Make it an unpack it, then try to register it
+      LayoutConstraints* new_constraints =
+          new LayoutConstraints(lay_id, handle, internal, did);
       new_constraints->update_constraints(derez);
       // Now try to register this with the runtime
       if (!runtime->register_layout(new_constraints))
@@ -649,5 +663,5 @@ namespace Legion {
       Runtime::trigger_event(done_event);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

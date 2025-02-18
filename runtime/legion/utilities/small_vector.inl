@@ -23,16 +23,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline SmallPointerVector<T,SORTED>::SmallPointerVector(void)
-      : ptr(0)
+    inline SmallPointerVector<T, SORTED>::SmallPointerVector(void) : ptr(0)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline SmallPointerVector<T,SORTED>::SmallPointerVector(
-                                                       SmallPointerVector &&rhs)
+    inline SmallPointerVector<T, SORTED>::SmallPointerVector(
+        SmallPointerVector&& rhs)
       : ptr(rhs.ptr)
     //--------------------------------------------------------------------------
     {
@@ -41,7 +39,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline SmallPointerVector<T,SORTED>::~SmallPointerVector(void)
+    inline SmallPointerVector<T, SORTED>::~SmallPointerVector(void)
     //--------------------------------------------------------------------------
     {
       if (ptr & 0x1)
@@ -50,8 +48,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline SmallPointerVector<T,SORTED>& 
-               SmallPointerVector<T,SORTED>::operator=(SmallPointerVector &&rhs)
+    inline SmallPointerVector<T, SORTED>&
+        SmallPointerVector<T, SORTED>::operator=(SmallPointerVector&& rhs)
     //--------------------------------------------------------------------------
     {
       if (ptr & 0x1)
@@ -63,7 +61,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline bool SmallPointerVector<T,SORTED>::empty(void) const
+    inline bool SmallPointerVector<T, SORTED>::empty(void) const
     //--------------------------------------------------------------------------
     {
       return (ptr == 0);
@@ -71,7 +69,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline size_t SmallPointerVector<T,SORTED>::size(void) const
+    inline size_t SmallPointerVector<T, SORTED>::size(void) const
     //--------------------------------------------------------------------------
     {
       if (ptr == 0)
@@ -84,51 +82,47 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline bool SmallPointerVector<T,SORTED>::contains(T *value) const
+    inline bool SmallPointerVector<T, SORTED>::contains(T* value) const
     //--------------------------------------------------------------------------
     {
       if (ptr == 0)
         return false;
       else if (ptr & 0x1)
       {
-        const std::vector<T*> &vector = get_vector();
+        const std::vector<T*>& vector = get_vector();
         if (!SORTED)
         {
-          for (typename std::vector<T*>::const_iterator it =
-                vector.begin(); it != vector.end(); it++)
+          for (typename std::vector<T*>::const_iterator it = vector.begin();
+               it != vector.end(); it++)
             if ((*it) == value)
               return true;
           return false;
-        }
-        else
+        } else
           return std::binary_search(vector.begin(), vector.end(), value);
-      }
-      else
+      } else
         return (ptr == reinterpret_cast<uintptr_t>(value));
     }
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline void SmallPointerVector<T,SORTED>::insert(T *value)
+    inline void SmallPointerVector<T, SORTED>::insert(T* value)
     //--------------------------------------------------------------------------
     {
       if (ptr == 0)
       {
         ptr = reinterpret_cast<uintptr_t>(value);
 #ifdef DEBUG_LEGION
-        assert(!(ptr & 0x1)); 
+        assert(!(ptr & 0x1));
 #endif
-      }
-      else if (ptr & 0x1)
+      } else if (ptr & 0x1)
       {
-        std::vector<T*> &vector = get_vector();
+        std::vector<T*>& vector = get_vector();
         vector.push_back(value);
         if (SORTED)
           std::sort(vector.begin(), vector.end());
-      }
-      else
+      } else
       {
-        std::vector<T*> *new_vector = new std::vector<T*>(2);
+        std::vector<T*>* new_vector = new std::vector<T*>(2);
         new_vector->at(0) = reinterpret_cast<T*>(ptr);
         new_vector->at(1) = value;
         if (SORTED)
@@ -140,18 +134,18 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline bool SmallPointerVector<T,SORTED>::erase(T *value)
+    inline bool SmallPointerVector<T, SORTED>::erase(T* value)
     //--------------------------------------------------------------------------
     {
       if (ptr == 0)
         return false;
       else if (ptr & 0x1)
       {
-        std::vector<T*> &vector = get_vector();
+        std::vector<T*>& vector = get_vector();
         if (SORTED)
         {
           typename std::vector<T*>::iterator finder =
-            std::lower_bound(vector.begin(), vector.end(), value);
+              std::lower_bound(vector.begin(), vector.end(), value);
           if ((finder != vector.end()) && (*finder == value))
           {
             vector.erase(finder);
@@ -164,14 +158,12 @@ namespace Legion {
               delete &vector;
             }
             return true;
-          }
-          else
+          } else
             return false;
-        }
-        else
+        } else
         {
-          for (typename std::vector<T*>::iterator it =
-                vector.begin(); it != vector.end(); it++)
+          for (typename std::vector<T*>::iterator it = vector.begin();
+               it != vector.end(); it++)
           {
             if ((*it) != value)
               continue;
@@ -188,35 +180,33 @@ namespace Legion {
           }
           return false;
         }
-      }
-      else
+      } else
       {
         if (ptr == reinterpret_cast<uintptr_t>(value))
         {
           ptr = 0;
           return true;
-        }
-        else
+        } else
           return false;
       }
     }
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline T* SmallPointerVector<T,SORTED>::operator[](unsigned idx) const
+    inline T* SmallPointerVector<T, SORTED>::operator[](unsigned idx) const
     //--------------------------------------------------------------------------
     {
       if (ptr & 0x1)
         return get_vector().at(idx);
       else if ((idx == 0) && (ptr != 0))
-        return reinterpret_cast<T*>(ptr); 
+        return reinterpret_cast<T*>(ptr);
       else
         std::abort();
     }
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline std::vector<T*>& SmallPointerVector<T,SORTED>::get_vector(void)
+    inline std::vector<T*>& SmallPointerVector<T, SORTED>::get_vector(void)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -227,8 +217,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, bool SORTED>
-    inline const std::vector<T*>& 
-                            SmallPointerVector<T,SORTED>::get_vector(void) const
+    inline const std::vector<T*>& SmallPointerVector<T, SORTED>::get_vector(
+        void) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -237,5 +227,5 @@ namespace Legion {
       return *reinterpret_cast<const std::vector<T*>*>(ptr ^ 0x1);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

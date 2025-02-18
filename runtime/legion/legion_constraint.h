@@ -16,8 +16,9 @@
 #ifndef __LEGION_DEPRECATED_CONSTRAINT_H__
 #define __LEGION_DEPRECATED_CONSTRAINT_H__
 
-#warning "Including legion_constraint.h is not required. Including legion.h should be sufficient. This header file will be removed in a future release."
+#warning \
+    "Including legion_constraint.h is not required. Including legion.h should be sufficient. This header file will be removed in a future release."
 
 #include "legion.h"
 
-#endif // __LEGION_DEPRECATED_CONSTRAINT_H__
+#endif  // __LEGION_DEPRECATED_CONSTRAINT_H__

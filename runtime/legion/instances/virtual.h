@@ -28,17 +28,18 @@ namespace Legion {
      * represent all the virtual instances.
      */
     class VirtualManager : public InstanceManager,
-      public Heapify<VirtualManager,RUNTIME_LIFETIME> {
+                           public Heapify<VirtualManager, RUNTIME_LIFETIME> {
     public:
-      VirtualManager(DistributedID did, 
-                     LayoutDescription *layout, CollectiveMapping *mapping);
-      VirtualManager(const VirtualManager &rhs) = delete;
+      VirtualManager(
+          DistributedID did, LayoutDescription* layout,
+          CollectiveMapping* mapping);
+      VirtualManager(const VirtualManager& rhs) = delete;
       virtual ~VirtualManager(void);
     public:
-      VirtualManager& operator=(const VirtualManager &rhs) = delete;
+      VirtualManager& operator=(const VirtualManager& rhs) = delete;
     public:
       virtual void notify_local(void) { }
-    public: 
+    public:
       virtual PointerConstraint get_pointer_constraint(void) const;
       virtual void send_manager(AddressSpaceID target);
     };
@@ -53,7 +54,7 @@ namespace Legion {
       return static_cast<VirtualManager*>(const_cast<InstanceManager*>(this));
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_VIRTUAL_INSTANCE_H__
+#endif  // __LEGION_VIRTUAL_INSTANCE_H__

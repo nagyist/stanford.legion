@@ -30,71 +30,66 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReleaseAnalysis::ReleaseAnalysis(Operation *o, unsigned idx, 
-                               ApEvent pre, RegionNode *node,
-                               const PhysicalTraceInfo &t_info)
-      : CollectiveCopyFillAnalysis(o, idx, node, true/*on heap*/,
-                                   t_info, true/*exclusive*/),
+    ReleaseAnalysis::ReleaseAnalysis(
+        Operation* o, unsigned idx, ApEvent pre, RegionNode* node,
+        const PhysicalTraceInfo& t_info)
+      : CollectiveCopyFillAnalysis(
+            o, idx, node, true /*on heap*/, t_info, true /*exclusive*/),
         precondition(pre), target_analysis(this), release_aggregator(nullptr)
     //--------------------------------------------------------------------------
-    {
-    }
-    
+    { }
+
     //--------------------------------------------------------------------------
-    ReleaseAnalysis::ReleaseAnalysis(AddressSpaceID src, 
-          AddressSpaceID prev, Operation *o, unsigned idx, 
-          RegionNode *node, ApEvent pre, ReleaseAnalysis *t, 
-          std::vector<PhysicalManager*> &&target_insts,
-          LegionVector<FieldMaskSet<InstanceView> > &&target_vws,
-          std::vector<IndividualView*> &&source_vws,
-          const PhysicalTraceInfo &info,
-          CollectiveMapping *mapping, const bool first)
-      : CollectiveCopyFillAnalysis(src, prev, o, idx, node, true/*on heap*/,
-                                   std::move(target_insts),
-                                   std::move(target_vws), std::move(source_vws),
-                                   info, mapping, first, true/*exclusive*/),
+    ReleaseAnalysis::ReleaseAnalysis(
+        AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
+        RegionNode* node, ApEvent pre, ReleaseAnalysis* t,
+        std::vector<PhysicalManager*>&& target_insts,
+        LegionVector<FieldMaskSet<InstanceView> >&& target_vws,
+        std::vector<IndividualView*>&& source_vws,
+        const PhysicalTraceInfo& info, CollectiveMapping* mapping,
+        const bool first)
+      : CollectiveCopyFillAnalysis(
+            src, prev, o, idx, node, true /*on heap*/, std::move(target_insts),
+            std::move(target_vws), std::move(source_vws), info, mapping, first,
+            true /*exclusive*/),
         precondition(pre), target_analysis(t), release_aggregator(nullptr)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReleaseAnalysis::~ReleaseAnalysis(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    bool ReleaseAnalysis::perform_analysis(EquivalenceSet *set,
-                                           IndexSpaceExpression *expr,
-                                           const bool expr_covers,
-                                           const FieldMask &mask,
-                                           std::set<RtEvent> &applied_events,
-                                           const bool already_deferred)
+    bool ReleaseAnalysis::perform_analysis(
+        EquivalenceSet* set, IndexSpaceExpression* expr, const bool expr_covers,
+        const FieldMask& mask, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //--------------------------------------------------------------------------
     {
-      set->release_restrictions(*this, expr, expr_covers, mask,
-                                applied_events, already_deferred);
+      set->release_restrictions(
+          *this, expr, expr_covers, mask, applied_events, already_deferred);
       // Perform a check for migration after this
       return true;
     }
 
     //--------------------------------------------------------------------------
-    RtEvent ReleaseAnalysis::perform_remote(RtEvent perform_precondition, 
-                                            std::set<RtEvent> &applied_events,
-                                            const bool already_deferred)
+    RtEvent ReleaseAnalysis::perform_remote(
+        RtEvent perform_precondition, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //--------------------------------------------------------------------------
     {
-      if (perform_precondition.exists() && 
+      if (perform_precondition.exists() &&
           !perform_precondition.has_triggered())
         return defer_remote(perform_precondition, applied_events);
       // Easy out if there is nothing to do
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> remote_events;
-      for (LegionMap<AddressSpaceID,
-                     FieldMaskSet<EquivalenceSet> >::const_iterator 
-            rit = remote_sets.begin(); rit != remote_sets.end(); rit++)
+      for (LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+               const_iterator rit = remote_sets.begin();
+           rit != remote_sets.end(); rit++)
       {
 #ifdef DEBUG_LEGION
         assert(!rit->second.empty());
@@ -107,8 +102,9 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it = 
-                rit->second.begin(); it != rit->second.end(); it++)
+          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+                   rit->second.begin();
+               it != rit->second.end(); it++)
           {
             rez.serialize(it->first->did);
             rez.serialize(it->second);
@@ -119,7 +115,8 @@ namespace Legion {
             rez.serialize(target_instances[idx]->did);
             rez.serialize<size_t>(target_views[idx].size());
             for (FieldMaskSet<InstanceView>::const_iterator it =
-                 target_views[idx].begin(); it != target_views[idx].end(); it++)
+                     target_views[idx].begin();
+                 it != target_views[idx].end(); it++)
             {
               rez.serialize(it->first->did);
               rez.serialize(it->second);
@@ -127,7 +124,8 @@ namespace Legion {
           }
           rez.serialize<size_t>(source_views.size());
           for (std::vector<IndividualView*>::const_iterator it =
-                source_views.begin(); it != source_views.end(); it++)
+                   source_views.begin();
+               it != source_views.end(); it++)
             rez.serialize((*it)->did);
           rez.serialize(region->handle);
           op->pack_remote_operation(rez, target, applied_events);
@@ -139,13 +137,13 @@ namespace Legion {
           trace_info.pack_trace_info(rez);
           // We only need to pack the collective mapping once when going
           // from the origin space to the next space
-          CollectiveMapping *mapping = get_replicated_mapping();
-          if ((mapping != nullptr) && (original_source == runtime->address_space))
+          CollectiveMapping* mapping = get_replicated_mapping();
+          if ((mapping != nullptr) &&
+              (original_source == runtime->address_space))
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
-          }
-          else
+          } else
             rez.serialize<size_t>(0);
         }
         runtime->send_equivalence_set_remote_releases(target, rez);
@@ -156,13 +154,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent ReleaseAnalysis::perform_updates(RtEvent perform_precondition, 
-                                            std::set<RtEvent> &applied_events,
-                                            const bool already_deferred)
+    RtEvent ReleaseAnalysis::perform_updates(
+        RtEvent perform_precondition, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //--------------------------------------------------------------------------
     {
       // Defer this if necessary
-      if (perform_precondition.exists() && 
+      if (perform_precondition.exists() &&
           !perform_precondition.has_triggered())
         return defer_remote(perform_precondition, applied_events);
       // See if we have any instance names to send back
@@ -177,9 +175,9 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (FieldMaskSet<LogicalView>::const_iterator it = 
-                  recorded_instances->begin(); it != 
-                  recorded_instances->end(); it++)
+            for (FieldMaskSet<LogicalView>::const_iterator it =
+                     recorded_instances->begin();
+                 it != recorded_instances->end(); it++)
             {
               rez.serialize(it->first->did);
               rez.serialize(it->second);
@@ -188,10 +186,9 @@ namespace Legion {
           }
           runtime->send_equivalence_set_remote_instances(original_source, rez);
           applied_events.insert(response_event);
-        }
-        else
-          target_analysis->process_local_instances(*recorded_instances, 
-                                                   restricted);
+        } else
+          target_analysis->process_local_instances(
+              *recorded_instances, restricted);
       }
       if (release_aggregator != nullptr)
       {
@@ -208,8 +205,7 @@ namespace Legion {
             if (!release_aggregator->guard_postcondition.has_triggered())
               guard_events.insert(release_aggregator->guard_postcondition);
             applied_events.insert(release_aggregator->effects_applied);
-          }
-          else
+          } else
             guard_events.insert(release_aggregator->effects_applied);
         }
 #endif
@@ -222,8 +218,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ReleaseAnalysis::handle_remote_releases(Deserializer &derez,
-                                      AddressSpaceID previous)
+    /*static*/ void ReleaseAnalysis::handle_remote_releases(
+        Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -239,7 +235,7 @@ namespace Legion {
         DistributedID did;
         derez.deserialize(did);
         RtEvent ready;
-        eq_sets[idx] = runtime->find_or_request_equivalence_set(did, ready); 
+        eq_sets[idx] = runtime->find_or_request_equivalence_set(did, ready);
         if (ready.exists())
           ready_events.insert(ready);
         derez.deserialize(eq_masks[idx]);
@@ -261,7 +257,7 @@ namespace Legion {
         for (unsigned idx2 = 0; idx2 < num_views; idx2++)
         {
           derez.deserialize(did);
-          LogicalView *view = runtime->find_or_request_logical_view(did, ready);
+          LogicalView* view = runtime->find_or_request_logical_view(did, ready);
           if (ready.exists())
             ready_events.insert(ready);
           FieldMask mask;
@@ -284,8 +280,8 @@ namespace Legion {
       }
       LogicalRegion handle;
       derez.deserialize(handle);
-      RegionNode *region = runtime->get_node(handle);
-      RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
+      RegionNode* region = runtime->get_node(handle);
+      RemoteOp* op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
       ApEvent precondition;
@@ -294,47 +290,51 @@ namespace Legion {
       derez.deserialize(returned);
       RtUserEvent applied;
       derez.deserialize(applied);
-      ReleaseAnalysis *target;
+      ReleaseAnalysis* target;
       derez.deserialize(target);
       std::set<RtEvent> deferral_events, applied_events;
-      const PhysicalTraceInfo trace_info = 
-        PhysicalTraceInfo::unpack_trace_info(derez);
+      const PhysicalTraceInfo trace_info =
+          PhysicalTraceInfo::unpack_trace_info(derez);
       size_t collective_mapping_size;
       derez.deserialize(collective_mapping_size);
-      CollectiveMapping *mapping = ((collective_mapping_size) > 0) ?
-        new CollectiveMapping(derez, collective_mapping_size) : nullptr;
+      CollectiveMapping* mapping =
+          ((collective_mapping_size) > 0) ?
+              new CollectiveMapping(derez, collective_mapping_size) :
+              nullptr;
       bool first_local = true;
       if (mapping != nullptr)
         derez.deserialize<bool>(first_local);
 
-      ReleaseAnalysis *analysis = new ReleaseAnalysis(original_source,
-          previous, op, index, region, precondition, target, std::move(targets),
-          std::move(target_views), std::move(source_views), trace_info, 
-          mapping, first_local);
+      ReleaseAnalysis* analysis = new ReleaseAnalysis(
+          original_source, previous, op, index, region, precondition, target,
+          std::move(targets), std::move(target_views), std::move(source_views),
+          trace_info, mapping, first_local);
       analysis->add_reference();
       RtEvent ready_event;
       // Make sure that all our pointers are ready
       if (!ready_events.empty())
         ready_event = Runtime::merge_events(ready_events);
       for (unsigned idx = 0; idx < eq_sets.size(); idx++)
-        analysis->analyze(eq_sets[idx], eq_masks[idx], deferral_events, 
-                          applied_events, ready_event);
+        analysis->analyze(
+            eq_sets[idx], eq_masks[idx], deferral_events, applied_events,
+            ready_event);
       const RtEvent traversal_done = deferral_events.empty() ?
-        RtEvent::NO_RT_EVENT : Runtime::merge_events(deferral_events);
+                                         RtEvent::NO_RT_EVENT :
+                                         Runtime::merge_events(deferral_events);
       if (traversal_done.exists() || analysis->has_remote_sets())
       {
-        const RtEvent remote_ready = 
-          analysis->perform_remote(traversal_done, applied_events);
+        const RtEvent remote_ready =
+            analysis->perform_remote(traversal_done, applied_events);
         if (remote_ready.exists())
           ready_events.insert(remote_ready);
       }
       // Note that we use the ready events here for applied so that
       // we can know that all our updates are done before we tell
       // the original source node that we've returned
-      const RtEvent local_ready = 
-        analysis->perform_updates(traversal_done, 
-            (original_source == runtime->address_space) ?
-              applied_events : ready_events);
+      const RtEvent local_ready = analysis->perform_updates(
+          traversal_done, (original_source == runtime->address_space) ?
+                              applied_events :
+                              ready_events);
       if (local_ready.exists())
         ready_events.insert(local_ready);
       if (!ready_events.empty())
@@ -349,5 +349,5 @@ namespace Legion {
         delete analysis;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

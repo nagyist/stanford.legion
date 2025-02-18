@@ -34,37 +34,38 @@ namespace Legion {
      * a single backing store to de-duplicate domain
      * points and values.
      */
-    class ArgumentMapImpl : public Collectable,
-                            public Heapify<ArgumentMapImpl,SHORT_BOUNDED_LIFETIME> {
+    class ArgumentMapImpl
+      : public Collectable,
+        public Heapify<ArgumentMapImpl, SHORT_BOUNDED_LIFETIME> {
     public:
       ArgumentMapImpl(void);
-      ArgumentMapImpl(const FutureMap &rhs);
-      ArgumentMapImpl(const ArgumentMapImpl &impl) = delete;
+      ArgumentMapImpl(const FutureMap& rhs);
+      ArgumentMapImpl(const ArgumentMapImpl& impl) = delete;
       ~ArgumentMapImpl(void);
     public:
-      ArgumentMapImpl& operator=(const ArgumentMapImpl &rhs) = delete;
+      ArgumentMapImpl& operator=(const ArgumentMapImpl& rhs) = delete;
     public:
-      bool has_point(const DomainPoint &point);
-      void set_point(const DomainPoint &point, const UntypedBuffer &arg,
-                     bool replace);
-      void set_point(const DomainPoint &point, const Future &f, bool replace);
-      bool remove_point(const DomainPoint &point);
-      UntypedBuffer get_point(const DomainPoint &point);
+      bool has_point(const DomainPoint& point);
+      void set_point(
+          const DomainPoint& point, const UntypedBuffer& arg, bool replace);
+      void set_point(const DomainPoint& point, const Future& f, bool replace);
+      bool remove_point(const DomainPoint& point);
+      UntypedBuffer get_point(const DomainPoint& point);
     public:
-      FutureMap freeze(InnerContext *ctx, Provenance *provenance);
+      FutureMap freeze(InnerContext* ctx, Provenance* provenance);
       void unfreeze(void);
     private:
       FutureMap future_map;
-      std::map<DomainPoint,Future> arguments;
+      std::map<DomainPoint, Future> arguments;
       std::set<RtEvent> point_set_deletion_preconditions;
-      IndexSpaceNode *point_set;
+      IndexSpaceNode* point_set;
       unsigned dimensionality;
-      unsigned dependent_futures; // number of futures with producer ops
+      unsigned dependent_futures;  // number of futures with producer ops
       bool update_point_set;
-      bool equivalent; // argument and future_map the same
+      bool equivalent;  // argument and future_map the same
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_ARGUMENT_MAP_IMPL_H__
+#endif  // __LEGION_ARGUMENT_MAP_IMPL_H__

@@ -33,28 +33,42 @@ namespace Legion {
    * an untyped buffer is live throughout the duration of its lifetime.
    */
   class UntypedBuffer : public Unserializable {
-    public:
+  public:
     UntypedBuffer(void) : args(nullptr), arglen(0) { }
-    UntypedBuffer(const void *arg, size_t argsize)
-      : args(const_cast<void*>(arg)), arglen(argsize) { }
-    UntypedBuffer(const UntypedBuffer &rhs)
-      : args(rhs.args), arglen(rhs.arglen) { }
-    UntypedBuffer(UntypedBuffer &&rhs) noexcept
-      : args(rhs.args), arglen(rhs.arglen) { }
+    UntypedBuffer(const void* arg, size_t argsize)
+      : args(const_cast<void*>(arg)), arglen(argsize)
+    { }
+    UntypedBuffer(const UntypedBuffer& rhs) : args(rhs.args), arglen(rhs.arglen)
+    { }
+    UntypedBuffer(UntypedBuffer&& rhs) noexcept
+      : args(rhs.args), arglen(rhs.arglen)
+    { }
   public:
     inline size_t get_size(void) const { return arglen; }
-    inline void*  get_ptr(void) const { return args; }
+    inline void* get_ptr(void) const { return args; }
   public:
-    inline bool operator==(const UntypedBuffer &arg) const
-      { return (args == arg.args) && (arglen == arg.arglen); }
-    inline bool operator<(const UntypedBuffer &arg) const
-      { return (args < arg.args) && (arglen < arg.arglen); }
-    inline UntypedBuffer& operator=(const UntypedBuffer &rhs)
-      { args = rhs.args; arglen = rhs.arglen; return *this; }
-    inline UntypedBuffer& operator=(UntypedBuffer &&rhs) noexcept
-      { args = rhs.args; arglen = rhs.arglen; return *this; }
+    inline bool operator==(const UntypedBuffer& arg) const
+    {
+      return (args == arg.args) && (arglen == arg.arglen);
+    }
+    inline bool operator<(const UntypedBuffer& arg) const
+    {
+      return (args < arg.args) && (arglen < arg.arglen);
+    }
+    inline UntypedBuffer& operator=(const UntypedBuffer& rhs)
+    {
+      args = rhs.args;
+      arglen = rhs.arglen;
+      return *this;
+    }
+    inline UntypedBuffer& operator=(UntypedBuffer&& rhs) noexcept
+    {
+      args = rhs.args;
+      arglen = rhs.arglen;
+      return *this;
+    }
   private:
-    void *args;
+    void* args;
     size_t arglen;
   };
   // This typedef is here for backwards compatibility since we
@@ -74,18 +88,22 @@ namespace Legion {
   class ArgumentMap : public Unserializable {
   public:
     ArgumentMap(void);
-    ArgumentMap(const FutureMap &rhs);
-    ArgumentMap(const ArgumentMap &rhs);
-    ArgumentMap(ArgumentMap &&rhs) noexcept;
+    ArgumentMap(const FutureMap& rhs);
+    ArgumentMap(const ArgumentMap& rhs);
+    ArgumentMap(ArgumentMap&& rhs) noexcept;
     ~ArgumentMap(void);
   public:
-    ArgumentMap& operator=(const FutureMap &rhs);
-    ArgumentMap& operator=(const ArgumentMap &rhs);
-    ArgumentMap& operator=(ArgumentMap &&rhs) noexcept;
-    inline bool operator==(const ArgumentMap &rhs) const
-      { return (impl == rhs.impl); }
-    inline bool operator<(const ArgumentMap &rhs) const
-      { return (impl < rhs.impl); }
+    ArgumentMap& operator=(const FutureMap& rhs);
+    ArgumentMap& operator=(const ArgumentMap& rhs);
+    ArgumentMap& operator=(ArgumentMap&& rhs) noexcept;
+    inline bool operator==(const ArgumentMap& rhs) const
+    {
+      return (impl == rhs.impl);
+    }
+    inline bool operator<(const ArgumentMap& rhs) const
+    {
+      return (impl < rhs.impl);
+    }
     inline bool exists(void) const { return (impl != nullptr); }
   public:
     /**
@@ -93,29 +111,30 @@ namespace Legion {
      * @param point the point to check
      * @return true if the point has a value already set
      */
-    bool has_point(const DomainPoint &point);
+    bool has_point(const DomainPoint& point);
     /**
      * Associate an argument with a domain point
      * @param point the point to associate with the untyped buffer
      * @param arg the untyped buffer
      * @param replace specify whether to overwrite an existing value
      */
-    void set_point(const DomainPoint &point, const UntypedBuffer &arg,
-                   bool replace = true);
+    void set_point(
+        const DomainPoint& point, const UntypedBuffer& arg,
+        bool replace = true);
     /**
      * Associate a future with a domain point
      * @param point the point to associate with the untyped buffer
      * @param future the future argument
      * @param replace specify whether to overwrite an existing value
      */
-    void set_point(const DomainPoint &point, const Future &f,
-                   bool replace = true);
+    void set_point(
+        const DomainPoint& point, const Future& f, bool replace = true);
     /**
      * Remove a point from the argument map
      * @param point the point to be removed
      * @return true if the point was removed
      */
-    bool remove_point(const DomainPoint &point);
+    bool remove_point(const DomainPoint& point);
     /**
      * Get the untyped buffer for a point if it exists, otherwise
      * return an empty untyped buffer.
@@ -123,7 +142,7 @@ namespace Legion {
      * @return a untyped buffer if the point exists otherwise
      *    an empty untyped buffer
      */
-    UntypedBuffer get_point(const DomainPoint &point) const;
+    UntypedBuffer get_point(const DomainPoint& point) const;
   public:
     /**
      * An older method for setting the point argument in
@@ -134,8 +153,8 @@ namespace Legion {
      *    the existing value if it already exists
      */
     template<typename PT, unsigned DIM>
-    inline void set_point_arg(const PT point[DIM], const UntypedBuffer &arg,
-                              bool replace = false);
+    inline void set_point_arg(
+        const PT point[DIM], const UntypedBuffer& arg, bool replace = false);
     /**
      * An older method for removing a point argument from
      * an argument map.
@@ -145,13 +164,13 @@ namespace Legion {
     inline bool remove_point(const PT point[DIM]);
   private:
     FRIEND_ALL_RUNTIME_CLASSES
-    Internal::ArgumentMapImpl *impl;
+    Internal::ArgumentMapImpl* impl;
   private:
-    explicit ArgumentMap(Internal::ArgumentMapImpl *i);
+    explicit ArgumentMap(Internal::ArgumentMapImpl* i);
   };
 
-} // namespace Legion
-  
+}  // namespace Legion
+
 #include "legion/api/argument_map.inl"
 
-#endif // __LEGION_ARGUMENT_MAP_H__
+#endif  // __LEGION_ARGUMENT_MAP_H__

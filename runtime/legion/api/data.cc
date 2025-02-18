@@ -21,431 +21,441 @@
 
 namespace Legion {
 
-    // Make sure all the handle types are trivially copyable.
-    static_assert(std::is_trivially_copyable<IndexSpace>::value,
-                  "IndexSpace is not trivially copyable");
-    static_assert(std::is_trivially_copyable<IndexPartition>::value,
-                  "IndexPartition is not trivially copyable");
-    static_assert(std::is_trivially_copyable<FieldSpace>::value,
-                  "FieldSpace is not trivially copyable");
-    static_assert(std::is_trivially_copyable<LogicalRegion>::value,
-                  "LogicalRegion is not trivially copyable");
-    static_assert(std::is_trivially_copyable<LogicalPartition>::value,
-                  "LogicalPartition is not trivially copyable");
-#define DIMFUNC(DIM) \
-    static_assert(std::is_trivially_copyable<IndexSpaceT<DIM> >::value, \
-                  "IndexSpaceT is not trivially copyable"); \
-    static_assert(std::is_trivially_copyable<IndexPartitionT<DIM> >::value, \
-                  "IndexPartitionT is not trivially copyable"); \
-    static_assert(std::is_trivially_copyable<LogicalRegionT<DIM> >::value, \
-                  "LogicalRegionT is not trivially copyable"); \
-    static_assert(std::is_trivially_copyable<LogicalPartitionT<DIM> >::value, \
-                  "LogicalPartitionT is not trivially copyable");
-    LEGION_FOREACH_N(DIMFUNC)
+  // Make sure all the handle types are trivially copyable.
+  static_assert(
+      std::is_trivially_copyable<IndexSpace>::value,
+      "IndexSpace is not trivially copyable");
+  static_assert(
+      std::is_trivially_copyable<IndexPartition>::value,
+      "IndexPartition is not trivially copyable");
+  static_assert(
+      std::is_trivially_copyable<FieldSpace>::value,
+      "FieldSpace is not trivially copyable");
+  static_assert(
+      std::is_trivially_copyable<LogicalRegion>::value,
+      "LogicalRegion is not trivially copyable");
+  static_assert(
+      std::is_trivially_copyable<LogicalPartition>::value,
+      "LogicalPartition is not trivially copyable");
+#define DIMFUNC(DIM)                                              \
+  static_assert(                                                  \
+      std::is_trivially_copyable<IndexSpaceT<DIM> >::value,       \
+      "IndexSpaceT is not trivially copyable");                   \
+  static_assert(                                                  \
+      std::is_trivially_copyable<IndexPartitionT<DIM> >::value,   \
+      "IndexPartitionT is not trivially copyable");               \
+  static_assert(                                                  \
+      std::is_trivially_copyable<LogicalRegionT<DIM> >::value,    \
+      "LogicalRegionT is not trivially copyable");                \
+  static_assert(                                                  \
+      std::is_trivially_copyable<LogicalPartitionT<DIM> >::value, \
+      "LogicalPartitionT is not trivially copyable");
+  LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
 
-    const LogicalRegion LogicalRegion::NO_REGION = LogicalRegion();
-    const LogicalPartition LogicalPartition::NO_PART = LogicalPartition();  
-    const Domain Domain::NO_DOMAIN = Domain();
+  const LogicalRegion LogicalRegion::NO_REGION = LogicalRegion();
+  const LogicalPartition LogicalPartition::NO_PART = LogicalPartition();
+  const Domain Domain::NO_DOMAIN = Domain();
 
-    /////////////////////////////////////////////////////////////
-    // IndexSpace 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // IndexSpace
+  /////////////////////////////////////////////////////////////
 
-    /*static*/ const IndexSpace IndexSpace::NO_SPACE = IndexSpace();
+  /*static*/ const IndexSpace IndexSpace::NO_SPACE = IndexSpace();
 
-    //--------------------------------------------------------------------------
-    IndexSpace::IndexSpace(DistributedID _id, IndexTreeID _tid, TypeTag _tag)
-      : did(_id), tid(_tid), type_tag(_tag)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  IndexSpace::IndexSpace(DistributedID _id, IndexTreeID _tid, TypeTag _tag)
+    : did(_id), tid(_tid), type_tag(_tag)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert((LEGION_DISTRIBUTED_HELP_DECODE(did) ==
-          Internal::INDEX_SPACE_NODE_DC) || (did == 0));
+    assert(
+        (LEGION_DISTRIBUTED_HELP_DECODE(did) ==
+         Internal::INDEX_SPACE_NODE_DC) ||
+        (did == 0));
 #endif
-    }
+  }
 
-    //--------------------------------------------------------------------------
-    IndexSpace::IndexSpace(void)
-      : did(0), tid(0), type_tag(0)
-    //--------------------------------------------------------------------------
-    {
-      // Should be able to be densely packed
-      static_assert((sizeof(did) + sizeof(tid) +
-            sizeof(type_tag)) == sizeof(*this));
-    }
+  //--------------------------------------------------------------------------
+  IndexSpace::IndexSpace(void) : did(0), tid(0), type_tag(0)
+  //--------------------------------------------------------------------------
+  {
+    // Should be able to be densely packed
+    static_assert(
+        (sizeof(did) + sizeof(tid) + sizeof(type_tag)) == sizeof(*this));
+  }
 
-    //--------------------------------------------------------------------------
-    bool IndexSpace::valid(void) const
-    //--------------------------------------------------------------------------
-    {
-      return (!exists() || (LEGION_DISTRIBUTED_HELP_DECODE(did) == 
-            Internal::INDEX_SPACE_NODE_DC));
-    }
+  //--------------------------------------------------------------------------
+  bool IndexSpace::valid(void) const
+  //--------------------------------------------------------------------------
+  {
+    return (
+        !exists() ||
+        (LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::INDEX_SPACE_NODE_DC));
+  }
 
-    /////////////////////////////////////////////////////////////
-    // IndexPartition 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // IndexPartition
+  /////////////////////////////////////////////////////////////
 
-    /*static*/ const IndexPartition IndexPartition::NO_PART = IndexPartition();
+  /*static*/ const IndexPartition IndexPartition::NO_PART = IndexPartition();
 
-    //--------------------------------------------------------------------------
-    IndexPartition::IndexPartition(DistributedID _id, 
-                                   IndexTreeID _tid, TypeTag _tag)
-      : did(_id), tid(_tid), type_tag(_tag)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  IndexPartition::IndexPartition(
+      DistributedID _id, IndexTreeID _tid, TypeTag _tag)
+    : did(_id), tid(_tid), type_tag(_tag)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert((LEGION_DISTRIBUTED_HELP_DECODE(did) ==
-          Internal::INDEX_PART_NODE_DC) || (did == 0));
+    assert(
+        (LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::INDEX_PART_NODE_DC) ||
+        (did == 0));
 #endif
-    }
+  }
 
-    //--------------------------------------------------------------------------
-    IndexPartition::IndexPartition(void)
-      : did(0), tid(0), type_tag(0)
-    //--------------------------------------------------------------------------
-    {
-      // Should be able to be densely packed
-      static_assert((sizeof(did) + sizeof(tid) +
-            sizeof(type_tag)) == sizeof(*this));
-    }
+  //--------------------------------------------------------------------------
+  IndexPartition::IndexPartition(void) : did(0), tid(0), type_tag(0)
+  //--------------------------------------------------------------------------
+  {
+    // Should be able to be densely packed
+    static_assert(
+        (sizeof(did) + sizeof(tid) + sizeof(type_tag)) == sizeof(*this));
+  }
 
-    //--------------------------------------------------------------------------
-    bool IndexPartition::valid(void) const
-    //--------------------------------------------------------------------------
-    {
-      return (!exists() || (LEGION_DISTRIBUTED_HELP_DECODE(did) ==
-            Internal::INDEX_PART_NODE_DC));
-    }
+  //--------------------------------------------------------------------------
+  bool IndexPartition::valid(void) const
+  //--------------------------------------------------------------------------
+  {
+    return (
+        !exists() ||
+        (LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::INDEX_PART_NODE_DC));
+  }
 
-    /////////////////////////////////////////////////////////////
-    // FieldSpace 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // FieldSpace
+  /////////////////////////////////////////////////////////////
 
-    /*static*/ const FieldSpace FieldSpace::NO_SPACE = FieldSpace();
+  /*static*/ const FieldSpace FieldSpace::NO_SPACE = FieldSpace();
 
-    //--------------------------------------------------------------------------
-    FieldSpace::FieldSpace(DistributedID _id)
-      : did(_id)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  FieldSpace::FieldSpace(DistributedID _id) : did(_id)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::FIELD_SPACE_DC);
+    assert(LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::FIELD_SPACE_DC);
 #endif
-    }
+  }
 
-    //--------------------------------------------------------------------------
-    FieldSpace::FieldSpace(void)
-      : did(0)
-    //--------------------------------------------------------------------------
-    {
-      // Make sure field spaces can be densely packed
-      static_assert(sizeof(did) == sizeof(*this));
-    }
+  //--------------------------------------------------------------------------
+  FieldSpace::FieldSpace(void) : did(0)
+  //--------------------------------------------------------------------------
+  {
+    // Make sure field spaces can be densely packed
+    static_assert(sizeof(did) == sizeof(*this));
+  }
 
-    //--------------------------------------------------------------------------
-    bool FieldSpace::valid(void) const
-    //--------------------------------------------------------------------------
-    {
-      return (!exists() || (LEGION_DISTRIBUTED_HELP_DECODE(did) == 
-            Internal::FIELD_SPACE_DC));
-    }
-    
-    /////////////////////////////////////////////////////////////
-    // Logical Region  
-    /////////////////////////////////////////////////////////////
+  //--------------------------------------------------------------------------
+  bool FieldSpace::valid(void) const
+  //--------------------------------------------------------------------------
+  {
+    return (
+        !exists() ||
+        (LEGION_DISTRIBUTED_HELP_DECODE(did) == Internal::FIELD_SPACE_DC));
+  }
 
-    //--------------------------------------------------------------------------
-    LogicalRegion::LogicalRegion(DistributedID tid, IndexSpace index, 
-                                 FieldSpace field)
-      : tree_did(tid), index_space(index), field_space(field)
-    //--------------------------------------------------------------------------
-    {
+  /////////////////////////////////////////////////////////////
+  // Logical Region
+  /////////////////////////////////////////////////////////////
+
+  //--------------------------------------------------------------------------
+  LogicalRegion::LogicalRegion(
+      DistributedID tid, IndexSpace index, FieldSpace field)
+    : tree_did(tid), index_space(index), field_space(field)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert((LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
-          Internal::REGION_TREE_NODE_DC) || (tid == 0));
+    assert(
+        (LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
+         Internal::REGION_TREE_NODE_DC) ||
+        (tid == 0));
 #endif
-    }
+  }
 
-    //--------------------------------------------------------------------------
-    LogicalRegion::LogicalRegion(void)
-      : tree_did(0), index_space(IndexSpace::NO_SPACE), 
-        field_space(FieldSpace::NO_SPACE)
-    //--------------------------------------------------------------------------
-    {
-      // Make sure this can be densely packed
-      static_assert((sizeof(tree_did) + sizeof(index_space) +
-            sizeof(field_space)) == sizeof(*this));
-    }
+  //--------------------------------------------------------------------------
+  LogicalRegion::LogicalRegion(void)
+    : tree_did(0), index_space(IndexSpace::NO_SPACE),
+      field_space(FieldSpace::NO_SPACE)
+  //--------------------------------------------------------------------------
+  {
+    // Make sure this can be densely packed
+    static_assert(
+        (sizeof(tree_did) + sizeof(index_space) + sizeof(field_space)) ==
+        sizeof(*this));
+  }
 
-    //--------------------------------------------------------------------------
-    std::size_t LogicalRegion::hash(void) const
-    //--------------------------------------------------------------------------
-    {
-      Internal::Murmur3Hasher hasher;
-      hasher.hash(tree_did);
-      hasher.hash(index_space.hash());
-      hasher.hash(field_space.hash());
-      uint64_t result[2];
-      hasher.finalize(result);
-      return result[0] ^ result[1];
-    }
+  //--------------------------------------------------------------------------
+  std::size_t LogicalRegion::hash(void) const
+  //--------------------------------------------------------------------------
+  {
+    Internal::Murmur3Hasher hasher;
+    hasher.hash(tree_did);
+    hasher.hash(index_space.hash());
+    hasher.hash(field_space.hash());
+    uint64_t result[2];
+    hasher.finalize(result);
+    return result[0] ^ result[1];
+  }
 
-    //--------------------------------------------------------------------------
-    bool LogicalRegion::valid(void) const
-    //--------------------------------------------------------------------------
-    {
-      return (!exists() || ((LEGION_DISTRIBUTED_HELP_DECODE(tree_did) == 
-            Internal::REGION_TREE_NODE_DC) && 
-            index_space.valid() && field_space.valid()));
-    }
+  //--------------------------------------------------------------------------
+  bool LogicalRegion::valid(void) const
+  //--------------------------------------------------------------------------
+  {
+    return (
+        !exists() || ((LEGION_DISTRIBUTED_HELP_DECODE(tree_did) ==
+                       Internal::REGION_TREE_NODE_DC) &&
+                      index_space.valid() && field_space.valid()));
+  }
 
-    /////////////////////////////////////////////////////////////
-    // Logical Partition 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // Logical Partition
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    LogicalPartition::LogicalPartition(DistributedID tid, IndexPartition pid, 
-                                       FieldSpace field)
-      : tree_did(tid), index_partition(pid), field_space(field)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  LogicalPartition::LogicalPartition(
+      DistributedID tid, IndexPartition pid, FieldSpace field)
+    : tree_did(tid), index_partition(pid), field_space(field)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert((LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
-          Internal::REGION_TREE_NODE_DC) || (tid == 0));
+    assert(
+        (LEGION_DISTRIBUTED_HELP_DECODE(tid) ==
+         Internal::REGION_TREE_NODE_DC) ||
+        (tid == 0));
 #endif
-    }
+  }
 
-    //--------------------------------------------------------------------------
-    LogicalPartition::LogicalPartition(void)
-      : tree_did(0), index_partition(IndexPartition::NO_PART), 
-        field_space(FieldSpace::NO_SPACE)
-    //--------------------------------------------------------------------------
-    {
-      // Make sure this can be densely packed
-      static_assert((sizeof(tree_did) + sizeof(index_partition) +
-            sizeof(field_space)) == sizeof(*this));
-    }
+  //--------------------------------------------------------------------------
+  LogicalPartition::LogicalPartition(void)
+    : tree_did(0), index_partition(IndexPartition::NO_PART),
+      field_space(FieldSpace::NO_SPACE)
+  //--------------------------------------------------------------------------
+  {
+    // Make sure this can be densely packed
+    static_assert(
+        (sizeof(tree_did) + sizeof(index_partition) + sizeof(field_space)) ==
+        sizeof(*this));
+  }
 
-    //--------------------------------------------------------------------------
-    std::size_t LogicalPartition::hash(void) const
-    //--------------------------------------------------------------------------
-    {
-      Internal::Murmur3Hasher hasher;
-      hasher.hash(tree_did);
-      hasher.hash(index_partition.hash());
-      hasher.hash(field_space.hash());
-      uint64_t result[2];
-      hasher.finalize(result);
-      return result[0] ^ result[1];
-    }
+  //--------------------------------------------------------------------------
+  std::size_t LogicalPartition::hash(void) const
+  //--------------------------------------------------------------------------
+  {
+    Internal::Murmur3Hasher hasher;
+    hasher.hash(tree_did);
+    hasher.hash(index_partition.hash());
+    hasher.hash(field_space.hash());
+    uint64_t result[2];
+    hasher.finalize(result);
+    return result[0] ^ result[1];
+  }
 
-    //--------------------------------------------------------------------------
-    bool LogicalPartition::valid(void) const
-    //--------------------------------------------------------------------------
-    {
-      return (!exists() || ((LEGION_DISTRIBUTED_HELP_DECODE(tree_did) == 
-            Internal::REGION_TREE_NODE_DC) && 
-            index_partition.valid() && field_space.valid()));
-    }
+  //--------------------------------------------------------------------------
+  bool LogicalPartition::valid(void) const
+  //--------------------------------------------------------------------------
+  {
+    return (
+        !exists() || ((LEGION_DISTRIBUTED_HELP_DECODE(tree_did) ==
+                       Internal::REGION_TREE_NODE_DC) &&
+                      index_partition.valid() && field_space.valid()));
+  }
 
-    /////////////////////////////////////////////////////////////
-    // Field Allocator
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // Field Allocator
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    FieldAllocator::FieldAllocator(void)
-      : impl(nullptr)
-    //--------------------------------------------------------------------------
-    {
-    }
-    
-    //--------------------------------------------------------------------------
-    FieldAllocator::FieldAllocator(const FieldAllocator &rhs)
-      : impl(rhs.impl)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        impl->add_reference();
-    }
+  //--------------------------------------------------------------------------
+  FieldAllocator::FieldAllocator(void) : impl(nullptr)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    FieldAllocator::FieldAllocator(FieldAllocator &&rhs) noexcept
-      : impl(rhs.impl)
-    //--------------------------------------------------------------------------
-    {
-      rhs.impl = nullptr;
-    }
+  //--------------------------------------------------------------------------
+  FieldAllocator::FieldAllocator(const FieldAllocator& rhs) : impl(rhs.impl)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->add_reference();
+  }
 
-    //--------------------------------------------------------------------------
-    FieldAllocator::~FieldAllocator(void)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-      {
-        if (impl->remove_reference())
-          delete impl;
-        impl = nullptr;
-      }
-    }
+  //--------------------------------------------------------------------------
+  FieldAllocator::FieldAllocator(FieldAllocator&& rhs) noexcept : impl(rhs.impl)
+  //--------------------------------------------------------------------------
+  {
+    rhs.impl = nullptr;
+  }
 
-    //--------------------------------------------------------------------------
-    FieldAllocator::FieldAllocator(Internal::FieldAllocatorImpl *i)
-      : impl(i)
-    //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  FieldAllocator::~FieldAllocator(void)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
     {
-      if (impl != nullptr)
-        impl->add_reference();
-    }
-
-    //--------------------------------------------------------------------------
-    FieldAllocator& FieldAllocator::operator=(const FieldAllocator &rhs)
-    //--------------------------------------------------------------------------
-    {
-      if ((impl != nullptr) && impl->remove_reference())
+      if (impl->remove_reference())
         delete impl;
-      impl = rhs.impl;
-      if (impl != nullptr)
-        impl->add_reference();
-      return *this;
+      impl = nullptr;
     }
+  }
 
-    //--------------------------------------------------------------------------
-    FieldAllocator& FieldAllocator::operator=(FieldAllocator &&rhs) noexcept
-    //--------------------------------------------------------------------------
-    {
-      if ((impl != nullptr) && impl->remove_reference())
-        delete impl;
-      impl = rhs.impl;
-      rhs.impl = nullptr;
-      return *this;
-    }
+  //--------------------------------------------------------------------------
+  FieldAllocator::FieldAllocator(Internal::FieldAllocatorImpl* i) : impl(i)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->add_reference();
+  }
 
-    //--------------------------------------------------------------------------
-    FieldID FieldAllocator::allocate_field(size_t field_size,
-                                           FieldID desired_fieldid,
-                                           CustomSerdezID serdez_id, bool local,
-                                           const char *prov)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  FieldAllocator& FieldAllocator::operator=(const FieldAllocator& rhs)
+  //--------------------------------------------------------------------------
+  {
+    if ((impl != nullptr) && impl->remove_reference())
+      delete impl;
+    impl = rhs.impl;
+    if (impl != nullptr)
+      impl->add_reference();
+    return *this;
+  }
+
+  //--------------------------------------------------------------------------
+  FieldAllocator& FieldAllocator::operator=(FieldAllocator&& rhs) noexcept
+  //--------------------------------------------------------------------------
+  {
+    if ((impl != nullptr) && impl->remove_reference())
+      delete impl;
+    impl = rhs.impl;
+    rhs.impl = nullptr;
+    return *this;
+  }
+
+  //--------------------------------------------------------------------------
+  FieldID FieldAllocator::allocate_field(
+      size_t field_size, FieldID desired_fieldid, CustomSerdezID serdez_id,
+      bool local, const char* prov)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      Internal::AutoProvenance provenance(prov);
-      return impl->allocate_field(field_size, desired_fieldid, serdez_id,
-                                  local, provenance);
-    }
+    Internal::AutoProvenance provenance(prov);
+    return impl->allocate_field(
+        field_size, desired_fieldid, serdez_id, local, provenance);
+  }
 
-    //--------------------------------------------------------------------------
-    FieldID FieldAllocator::allocate_field(const Future &field_size,
-                                           FieldID desired_fieldid,
-                                           CustomSerdezID serdez_id, bool local,
-                                           const char *prov)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  FieldID FieldAllocator::allocate_field(
+      const Future& field_size, FieldID desired_fieldid,
+      CustomSerdezID serdez_id, bool local, const char* prov)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      Internal::AutoProvenance provenance(prov);
-      return impl->allocate_field(field_size, desired_fieldid, serdez_id,
-                                  local, provenance);
-    }
+    Internal::AutoProvenance provenance(prov);
+    return impl->allocate_field(
+        field_size, desired_fieldid, serdez_id, local, provenance);
+  }
 
-    //--------------------------------------------------------------------------
-    void FieldAllocator::free_field(FieldID fid, const bool unordered,
-                                    const char *prov)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void FieldAllocator::free_field(
+      FieldID fid, const bool unordered, const char* prov)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
-#endif     
-      Internal::AutoProvenance provenance(prov);
-      impl->free_field(fid, unordered, provenance);
-    }
-
-    //--------------------------------------------------------------------------
-    FieldID FieldAllocator::allocate_local_field(size_t field_size,
-                                                 FieldID desired_fieldid,
-                                                 CustomSerdezID serdez_id,
-                                                 const char *prov)
-    //--------------------------------------------------------------------------
-    {
-#ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      Internal::AutoProvenance provenance(prov);
-      return impl->allocate_field(field_size, desired_fieldid, 
-                                  serdez_id, true/*local*/, provenance);
-    }
+    Internal::AutoProvenance provenance(prov);
+    impl->free_field(fid, unordered, provenance);
+  }
 
-    //--------------------------------------------------------------------------
-    void FieldAllocator::allocate_fields(const std::vector<size_t> &field_sizes,
-                                         std::vector<FieldID> &resulting_fields,
-                                         CustomSerdezID serdez_id, bool local,
-                                         const char *prov)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  FieldID FieldAllocator::allocate_local_field(
+      size_t field_size, FieldID desired_fieldid, CustomSerdezID serdez_id,
+      const char* prov)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      Internal::AutoProvenance provenance(prov);
-      impl->allocate_fields(field_sizes, resulting_fields, serdez_id,
-                            local, provenance);
-    }
+    Internal::AutoProvenance provenance(prov);
+    return impl->allocate_field(
+        field_size, desired_fieldid, serdez_id, true /*local*/, provenance);
+  }
 
-    //--------------------------------------------------------------------------
-    void FieldAllocator::allocate_fields(const std::vector<Future> &field_sizes,
-                                         std::vector<FieldID> &resulting_fields,
-                                         CustomSerdezID serdez_id, bool local,
-                                         const char *prov)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void FieldAllocator::allocate_fields(
+      const std::vector<size_t>& field_sizes,
+      std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id,
+      bool local, const char* prov)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      Internal::AutoProvenance provenance(prov);
-      impl->allocate_fields(field_sizes, resulting_fields,
-                            serdez_id, local, provenance);
-    }
+    Internal::AutoProvenance provenance(prov);
+    impl->allocate_fields(
+        field_sizes, resulting_fields, serdez_id, local, provenance);
+  }
 
-    //--------------------------------------------------------------------------
-    void FieldAllocator::free_fields(const std::set<FieldID> &to_free,
-                                     const bool unordered, const char *prov)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void FieldAllocator::allocate_fields(
+      const std::vector<Future>& field_sizes,
+      std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id,
+      bool local, const char* prov)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      Internal::AutoProvenance provenance(prov);
-      impl->free_fields(to_free, unordered, provenance);
-    }
+    Internal::AutoProvenance provenance(prov);
+    impl->allocate_fields(
+        field_sizes, resulting_fields, serdez_id, local, provenance);
+  }
 
-    //--------------------------------------------------------------------------
-    void FieldAllocator::allocate_local_fields(
-                                        const std::vector<size_t> &field_sizes,
-                                        std::vector<FieldID> &resulting_fields,
-                                        CustomSerdezID serdez_id,
-                                        const char *prov)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void FieldAllocator::free_fields(
+      const std::set<FieldID>& to_free, const bool unordered, const char* prov)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      Internal::AutoProvenance provenance(prov);
-      impl->allocate_fields(field_sizes, resulting_fields, 
-                            serdez_id, true/*local*/, provenance);
-    }
+    Internal::AutoProvenance provenance(prov);
+    impl->free_fields(to_free, unordered, provenance);
+  }
 
-    //--------------------------------------------------------------------------
-    FieldSpace FieldAllocator::get_field_space(void) const
-    //--------------------------------------------------------------------------
-    {
-      if (impl == nullptr)
-        return FieldSpace::NO_SPACE;
-      else
-        return impl->get_field_space();
-    }
+  //--------------------------------------------------------------------------
+  void FieldAllocator::allocate_local_fields(
+      const std::vector<size_t>& field_sizes,
+      std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id,
+      const char* prov)
+  //--------------------------------------------------------------------------
+  {
+#ifdef DEBUG_LEGION
+    assert(impl != nullptr);
+#endif
+    Internal::AutoProvenance provenance(prov);
+    impl->allocate_fields(
+        field_sizes, resulting_fields, serdez_id, true /*local*/, provenance);
+  }
+
+  //--------------------------------------------------------------------------
+  FieldSpace FieldAllocator::get_field_space(void) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl == nullptr)
+      return FieldSpace::NO_SPACE;
+    else
+      return impl->get_field_space();
+  }
 
   namespace Internal {
 
@@ -454,8 +464,8 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    FieldAllocatorImpl::FieldAllocatorImpl(FieldSpaceNode *n, TaskContext *ctx,
-                                           RtEvent ready)
+    FieldAllocatorImpl::FieldAllocatorImpl(
+        FieldSpaceNode* n, TaskContext* ctx, RtEvent ready)
       : field_space(n->handle), node(n), context(ctx), ready_event(ready)
     //--------------------------------------------------------------------------
     {
@@ -479,36 +489,34 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FieldID FieldAllocatorImpl::allocate_field(size_t field_size,
-                                               FieldID desired_fieldid,
-                                               CustomSerdezID serdez_id, 
-                                               bool local, Provenance *prov)
+    FieldID FieldAllocatorImpl::allocate_field(
+        size_t field_size, FieldID desired_fieldid, CustomSerdezID serdez_id,
+        bool local, Provenance* prov)
     //--------------------------------------------------------------------------
     {
       // Need to wait for this allocator to be ready
       if (ready_event.exists() && !ready_event.has_triggered())
         ready_event.wait();
-      return context->allocate_field(field_space, field_size, desired_fieldid,
-                                     local, serdez_id, prov);
+      return context->allocate_field(
+          field_space, field_size, desired_fieldid, local, serdez_id, prov);
     }
 
     //--------------------------------------------------------------------------
-    FieldID FieldAllocatorImpl::allocate_field(const Future &field_size,
-                                               FieldID desired_fieldid,
-                                               CustomSerdezID serdez_id, 
-                                               bool local, Provenance *prov)
+    FieldID FieldAllocatorImpl::allocate_field(
+        const Future& field_size, FieldID desired_fieldid,
+        CustomSerdezID serdez_id, bool local, Provenance* prov)
     //--------------------------------------------------------------------------
     {
       // Need to wait for this allocator to be ready
       if (ready_event.exists() && !ready_event.has_triggered())
         ready_event.wait();
-      return context->allocate_field(field_space, field_size, desired_fieldid, 
-                                     local, serdez_id, prov);
+      return context->allocate_field(
+          field_space, field_size, desired_fieldid, local, serdez_id, prov);
     }
 
     //--------------------------------------------------------------------------
-    void FieldAllocatorImpl::free_field(FieldID fid, const bool unordered,
-                                        Provenance *provenance)
+    void FieldAllocatorImpl::free_field(
+        FieldID fid, const bool unordered, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       // Don't need to wait here since deletion operations catch
@@ -518,37 +526,38 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void FieldAllocatorImpl::allocate_fields(
-                                        const std::vector<size_t> &field_sizes,
-                                        std::vector<FieldID> &resulting_fields,
-                                        CustomSerdezID serdez_id, bool local,
-                                        Provenance *provenance)
+        const std::vector<size_t>& field_sizes,
+        std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id,
+        bool local, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       // Need to wait for this allocator to be ready
       if (ready_event.exists() && !ready_event.has_triggered())
         ready_event.wait();
-      context->allocate_fields(field_space, field_sizes, resulting_fields,
-                               local, serdez_id, provenance);
+      context->allocate_fields(
+          field_space, field_sizes, resulting_fields, local, serdez_id,
+          provenance);
     }
 
     //--------------------------------------------------------------------------
     void FieldAllocatorImpl::allocate_fields(
-                                        const std::vector<Future> &field_sizes,
-                                        std::vector<FieldID> &resulting_fields,
-                                        CustomSerdezID serdez_id, bool local,
-                                        Provenance *provenance)
+        const std::vector<Future>& field_sizes,
+        std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id,
+        bool local, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       // Need to wait for this allocator to be ready
       if (ready_event.exists() && !ready_event.has_triggered())
         ready_event.wait();
-      context->allocate_fields(field_space, field_sizes, resulting_fields, 
-                               local, serdez_id, provenance);
+      context->allocate_fields(
+          field_space, field_sizes, resulting_fields, local, serdez_id,
+          provenance);
     }
 
     //--------------------------------------------------------------------------
-    void FieldAllocatorImpl::free_fields(const std::set<FieldID> &to_free,
-                                   const bool unordered, Provenance *provenance)
+    void FieldAllocatorImpl::free_fields(
+        const std::set<FieldID>& to_free, const bool unordered,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       // Don't need to wait here since deletion operations catch
@@ -556,5 +565,5 @@ namespace Legion {
       context->free_fields(this, field_space, to_free, unordered, provenance);
     }
 
-  } // namespace Internal 
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

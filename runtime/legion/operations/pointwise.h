@@ -29,21 +29,23 @@ namespace Legion {
     struct PointwiseDependence {
     public:
       PointwiseDependence(void);
-      PointwiseDependence(const LogicalUser &previous);
-      PointwiseDependence(const PointwiseDependence &rhs);
-      PointwiseDependence(PointwiseDependence &&rhs);
+      PointwiseDependence(const LogicalUser& previous);
+      PointwiseDependence(const PointwiseDependence& rhs);
+      PointwiseDependence(PointwiseDependence&& rhs);
       ~PointwiseDependence(void);
     public:
-      PointwiseDependence& operator=(const PointwiseDependence &rhs);
-      PointwiseDependence& operator=(PointwiseDependence &&rhs);
+      PointwiseDependence& operator=(const PointwiseDependence& rhs);
+      PointwiseDependence& operator=(PointwiseDependence&& rhs);
     public:
-      bool matches(const LogicalUser &user) const;
-      void find_dependences(const RegionRequirement &req,
-          const std::vector<LogicalRegion> &point_regions,
-          std::map<LogicalRegion,std::vector<DomainPoint> > &dependences) const;
+      bool matches(const LogicalUser& user) const;
+      void find_dependences(
+          const RegionRequirement& req,
+          const std::vector<LogicalRegion>& point_regions,
+          std::map<LogicalRegion, std::vector<DomainPoint> >& dependences)
+          const;
     public:
-      void serialize(Serializer &rez) const;
-      void deserialize(Deserializer &derez);
+      void serialize(Serializer& rez) const;
+      void deserialize(Deserializer& derez);
     public:
       // Previous operation context index
       uint64_t context_index;
@@ -54,11 +56,11 @@ namespace Legion {
       // Previous operation region index
       unsigned region_index;
       // Projection information of previous point-wise operation
-      IndexSpaceNode *domain;
-      ProjectionFunction *projection;
-      ShardingFunctor *sharding;
+      IndexSpaceNode* domain;
+      ProjectionFunction* projection;
+      ShardingFunctor* sharding;
       ShardingID sharding_id;
-      IndexSpaceNode *sharding_domain;
+      IndexSpaceNode* sharding_domain;
     };
 
     /**
@@ -67,25 +69,26 @@ namespace Legion {
     template<typename OP>
     class PointwiseAnalyzable : public OP {
     public:
-      template<typename ... Args>
-      PointwiseAnalyzable(Args&& ... args)
-        : OP(std::forward<Args>(args) ...) { }
+      template<typename... Args>
+      PointwiseAnalyzable(Args&&... args) : OP(std::forward<Args>(args)...)
+      { }
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
     public:
       virtual bool is_pointwise_analyzable(void) const;
-      virtual void register_pointwise_dependence(unsigned idx, 
-          const LogicalUser &previous);
+      virtual void register_pointwise_dependence(
+          unsigned idx, const LogicalUser& previous);
       virtual void replay_pointwise_dependences(
-          std::map<unsigned,std::vector<PointwiseDependence> > &dependences);
+          std::map<unsigned, std::vector<PointwiseDependence> >& dependences);
     protected:
       // Map from region requirement indexes to the point-wise dependences
       // we'll need to compute for that region requirement
-      std::map<unsigned,std::vector<PointwiseDependence> > pointwise_dependences;
+      std::map<unsigned, std::vector<PointwiseDependence> >
+          pointwise_dependences;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_POINTWISE_H__
+#endif  // __LEGION_POINTWISE_H__

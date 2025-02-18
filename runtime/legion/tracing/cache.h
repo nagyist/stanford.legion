@@ -25,18 +25,18 @@ namespace Legion {
     /**
      * \class TraceCache
      * The trace cache maintains a trie corresponding to traces that have
-     * been observed the minimum number of times required for replay at 
+     * been observed the minimum number of times required for replay at
      * which point once we see them we can start to replay them.
      */
     class TraceCache {
     public:
-      TraceCache(InnerContext *context);
+      TraceCache(InnerContext* context);
     public:
-      bool record_operation(Operation *op,
-          Murmur3Hasher::Hash hash, uint64_t opidx);
-      bool record_noop(Operation *op);
-      bool has_prefix(const std::vector<Murmur3Hasher::Hash> &hashes) const;
-      void insert(std::vector<Murmur3Hasher::Hash> &hashes, uint64_t opidx);
+      bool record_operation(
+          Operation* op, Murmur3Hasher::Hash hash, uint64_t opidx);
+      bool record_noop(Operation* op);
+      bool has_prefix(const std::vector<Murmur3Hasher::Hash>& hashes) const;
+      void insert(std::vector<Murmur3Hasher::Hash>& hashes, uint64_t opidx);
       void flush(uint64_t opidx);
     private:
       bool is_operation_ignorable_in_traces(Operation* op);
@@ -48,7 +48,7 @@ namespace Legion {
       // until opidx, after which it inserts an end trace.
       void replay_trace(uint64_t opidx, TraceID tid);
     public:
-      InnerContext *const context;
+      InnerContext* const context;
     private:
       std::queue<Operation*> operations;
       uint64_t operation_start_idx;
@@ -57,9 +57,9 @@ namespace Legion {
         TraceInfo(void) = default;
         TraceInfo(uint64_t opidx_, uint64_t length_)
           : opidx(opidx_), length(length_), last_visited_opidx(0),
-            decaying_visits(0), replays(0),
-            last_idempotent_visit_opidx(0),
-            decaying_idempotent_visits(0.0), tid(0) { }
+            decaying_visits(0), replays(0), last_idempotent_visit_opidx(0),
+            decaying_idempotent_visits(0.0), tid(0)
+        { }
         // opidx that this trace was inserted at.
         uint64_t opidx;
         // length of the trace. This is used for scoring only.
@@ -98,9 +98,10 @@ namespace Legion {
       // of pointers for scoring.
       class WatchPointer {
       public:
-        WatchPointer(TrieNode<Murmur3Hasher::Hash, TraceInfo>* node_,
-                     uint64_t opidx_)
-            : node(node_), opidx(opidx_) { }
+        WatchPointer(
+            TrieNode<Murmur3Hasher::Hash, TraceInfo>* node_, uint64_t opidx_)
+          : node(node_), opidx(opidx_)
+        { }
         // This pointer only has an advance function, as there's nothing
         // to do on commit.
         bool advance(Murmur3Hasher::Hash token);
@@ -114,13 +115,14 @@ namespace Legion {
       // For the actual committed trie.
       class CommitPointer {
       public:
-        CommitPointer(TrieNode<Murmur3Hasher::Hash, TraceInfo>* node_,
-                      uint64_t opidx_)
-          : node(node_), opidx(opidx_), depth(0) { }
+        CommitPointer(
+            TrieNode<Murmur3Hasher::Hash, TraceInfo>* node_, uint64_t opidx_)
+          : node(node_), opidx(opidx_), depth(0)
+        { }
         bool advance(Murmur3Hasher::Hash token);
         void advance_for_trace_noop() { depth++; }
         bool complete(void) const;
-        TraceID replay(InnerContext *context);
+        TraceID replay(InnerContext* context);
         double score(uint64_t opidx);
         uint64_t get_opidx(void) const { return opidx; }
         uint64_t get_length(void) const { return depth; }
@@ -142,12 +144,14 @@ namespace Legion {
         // We make these sort keys (score, -opidx) so that the highest
         // scoring, earliest opidx is the first entry in the ordering.
         FrozenCommitPointer(CommitPointer& p, uint64_t opidx)
-          : CommitPointer(p),
-            score(p.score(opidx), -int64_t(p.get_opidx())) { }
-        friend bool operator<(const FrozenCommitPointer& a,
-                              const FrozenCommitPointer& b) 
-          // Use > instead of < so that we get descending order.
-          { return a.score > b.score; }
+          : CommitPointer(p), score(p.score(opidx), -int64_t(p.get_opidx()))
+        { }
+        friend bool operator<(
+            const FrozenCommitPointer& a, const FrozenCommitPointer& b)
+        // Use > instead of < so that we get descending order.
+        {
+          return a.score > b.score;
+        }
       private:
         std::pair<double, int64_t> score;
       };
@@ -156,7 +160,7 @@ namespace Legion {
       std::vector<FrozenCommitPointer> completed_commit_pointers;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_TRACE_CACHE_H__
+#endif  // __LEGION_TRACE_CACHE_H__

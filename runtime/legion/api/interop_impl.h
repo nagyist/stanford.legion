@@ -23,13 +23,13 @@ namespace Legion {
   namespace Internal {
 
     class HandshakeImpl : public Collectable,
-                       public Heapify<HandshakeImpl,LONG_BOUNDED_LIFETIME> {
+                          public Heapify<HandshakeImpl, LONG_BOUNDED_LIFETIME> {
     public:
       HandshakeImpl(bool init_in_ext);
-      HandshakeImpl(const HandshakeImpl &rhs) = delete;
+      HandshakeImpl(const HandshakeImpl& rhs) = delete;
       ~HandshakeImpl(void);
     public:
-      HandshakeImpl& operator=(const HandshakeImpl &rhs) = delete;
+      HandshakeImpl& operator=(const HandshakeImpl& rhs) = delete;
     public:
       void initialize(void);
     public:
@@ -50,32 +50,32 @@ namespace Legion {
       ApBarrier ext_wait_barrier;
       ApBarrier ext_arrive_barrier;
       ApBarrier legion_wait_barrier;
-      ApBarrier legion_next_barrier; // one gen ahead of wait
+      ApBarrier legion_next_barrier;  // one gen ahead of wait
       ApBarrier legion_arrive_barrier;
     };
 
     class MPIRankTable {
     public:
-      MPIRankTable(int radix, AddressSpaceID address_space,
-                   size_t total_address_spaces);
-      MPIRankTable(const MPIRankTable &rhs) = delete;
+      MPIRankTable(
+          int radix, AddressSpaceID address_space, size_t total_address_spaces);
+      MPIRankTable(const MPIRankTable& rhs) = delete;
       ~MPIRankTable(void);
     public:
-      MPIRankTable& operator=(const MPIRankTable &rhs) = delete;
+      MPIRankTable& operator=(const MPIRankTable& rhs) = delete;
     public:
       void perform_rank_exchange(void);
-      void handle_mpi_rank_exchange(Deserializer &derez);
+      void handle_mpi_rank_exchange(Deserializer& derez);
     protected:
       bool initiate_exchange(void);
       void send_remainder_stage(void);
-      bool send_ready_stages(const int start_stage=1);
-      void unpack_exchange(int stage, Deserializer &derez);
+      bool send_ready_stages(const int start_stage = 1);
+      void unpack_exchange(int stage, Deserializer& derez);
       void complete_exchange(void);
     public:
       bool participating;
     public:
-      std::map<int,AddressSpace> forward_mapping;
-      std::map<AddressSpace,int> reverse_mapping;
+      std::map<int, AddressSpace> forward_mapping;
+      std::map<AddressSpace, int> reverse_mapping;
     protected:
       mutable LocalLock reservation;
       RtUserEvent done_event;
@@ -92,7 +92,7 @@ namespace Legion {
       bool done_triggered;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_INTEROP_IMPL_H__
+#endif  // __LEGION_INTEROP_IMPL_H__

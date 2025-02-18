@@ -22,17 +22,15 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // LogicalView 
+    // LogicalView
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    LogicalView::LogicalView(DistributedID did,
-                             bool register_now, CollectiveMapping *map)
-      : DistributedCollectable(did, register_now, map),
-        valid_references(0)
+    LogicalView::LogicalView(
+        DistributedID did, bool register_now, CollectiveMapping* map)
+      : DistributedCollectable(did, register_now, map), valid_references(0)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     LogicalView::~LogicalView(void)
@@ -44,7 +42,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void LogicalView::handle_view_request(Deserializer &derez)
+    /*static*/ void LogicalView::handle_view_request(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -52,12 +50,12 @@ namespace Legion {
       derez.deserialize(did);
       AddressSpaceID source;
       derez.deserialize(source);
-      DistributedCollectable *dc = runtime->find_distributed_collectable(did);
+      DistributedCollectable* dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
-      LogicalView *view = dynamic_cast<LogicalView*>(dc);
+      LogicalView* view = dynamic_cast<LogicalView*>(dc);
       assert(view != nullptr);
 #else
-      LogicalView *view = static_cast<LogicalView*>(dc);
+      LogicalView* view = static_cast<LogicalView*>(dc);
 #endif
       if (view->collective_mapping != nullptr)
       {
@@ -86,13 +84,13 @@ namespace Legion {
 #ifdef DEBUG_LEGION_GC
     //--------------------------------------------------------------------------
     void LogicalView::add_base_valid_ref_internal(
-                                                ReferenceSource source, int cnt)
+        ReferenceSource source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
       valid_references += cnt;
-      std::map<ReferenceSource,int>::iterator finder = 
-        detailed_base_valid_references.find(source);
+      std::map<ReferenceSource, int>::iterator finder =
+          detailed_base_valid_references.find(source);
       if (finder == detailed_base_valid_references.end())
         detailed_base_valid_references[source] = cnt;
       else
@@ -103,13 +101,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LogicalView::add_nested_valid_ref_internal(
-                                                  DistributedID source, int cnt)
+        DistributedID source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
       valid_references += cnt;
-      std::map<DistributedID,int>::iterator finder = 
-        detailed_nested_valid_references.find(source);
+      std::map<DistributedID, int>::iterator finder =
+          detailed_nested_valid_references.find(source);
       if (finder == detailed_nested_valid_references.end())
         detailed_nested_valid_references[source] = cnt;
       else
@@ -120,7 +118,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool LogicalView::remove_base_valid_ref_internal(
-                                                ReferenceSource source, int cnt)
+        ReferenceSource source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
@@ -128,8 +126,8 @@ namespace Legion {
       assert(valid_references >= cnt);
 #endif
       valid_references -= cnt;
-      std::map<ReferenceSource,int>::iterator finder = 
-        detailed_base_valid_references.find(source);
+      std::map<ReferenceSource, int>::iterator finder =
+          detailed_base_valid_references.find(source);
       assert(finder != detailed_base_valid_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
@@ -143,7 +141,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool LogicalView::remove_nested_valid_ref_internal(
-                                                  DistributedID source, int cnt)
+        DistributedID source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock v_lock(view_lock);
@@ -151,8 +149,8 @@ namespace Legion {
       assert(valid_references >= cnt);
 #endif
       valid_references -= cnt;
-      std::map<DistributedID,int>::iterator finder = 
-        detailed_nested_valid_references.find(source);
+      std::map<DistributedID, int>::iterator finder =
+          detailed_nested_valid_references.find(source);
       assert(finder != detailed_nested_valid_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
@@ -163,7 +161,7 @@ namespace Legion {
       else
         return false;
     }
-#else // DEBUG_LEGION_GC
+#else  // DEBUG_LEGION_GC
     //--------------------------------------------------------------------------
     void LogicalView::add_valid_reference(int cnt)
     //--------------------------------------------------------------------------
@@ -186,7 +184,7 @@ namespace Legion {
       else
         return false;
     }
-#endif // DEBUG_LEGION_GC
+#endif  // DEBUG_LEGION_GC
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

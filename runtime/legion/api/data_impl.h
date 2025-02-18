@@ -32,44 +32,43 @@ namespace Legion {
      */
     class FieldAllocatorImpl : public Collectable {
     public:
-      FieldAllocatorImpl(FieldSpaceNode *node, 
-                         TaskContext *context, RtEvent ready);
-      FieldAllocatorImpl(const FieldAllocatorImpl &rhs) = delete;
+      FieldAllocatorImpl(
+          FieldSpaceNode* node, TaskContext* context, RtEvent ready);
+      FieldAllocatorImpl(const FieldAllocatorImpl& rhs) = delete;
       ~FieldAllocatorImpl(void);
     public:
-      FieldAllocatorImpl& operator=(const FieldAllocatorImpl &rhs) = delete;
+      FieldAllocatorImpl& operator=(const FieldAllocatorImpl& rhs) = delete;
     public:
       inline FieldSpace get_field_space(void) const { return field_space; }
     public:
-      FieldID allocate_field(size_t field_size, 
-                             FieldID desired_fieldid,
-                             CustomSerdezID serdez_id, bool local,
-                             Provenance *provenance);
-      FieldID allocate_field(const Future &field_size, 
-                             FieldID desired_fieldid,
-                             CustomSerdezID serdez_id, bool local,
-                             Provenance *provenance);
-      void free_field(FieldID fid, const bool unordered,
-                      Provenance *provenance);
+      FieldID allocate_field(
+          size_t field_size, FieldID desired_fieldid, CustomSerdezID serdez_id,
+          bool local, Provenance* provenance);
+      FieldID allocate_field(
+          const Future& field_size, FieldID desired_fieldid,
+          CustomSerdezID serdez_id, bool local, Provenance* provenance);
+      void free_field(
+          FieldID fid, const bool unordered, Provenance* provenance);
     public:
-      void allocate_fields(const std::vector<size_t> &field_sizes,
-                           std::vector<FieldID> &resulting_fields,
-                           CustomSerdezID serdez_id, bool local,
-                           Provenance *provenance);
-      void allocate_fields(const std::vector<Future> &field_sizes,
-                           std::vector<FieldID> &resulting_fields,
-                           CustomSerdezID serdez_id, bool local,
-                           Provenance *provenance);
-      void free_fields(const std::set<FieldID> &to_free, const bool unordered,
-                       Provenance *provenance = nullptr);
+      void allocate_fields(
+          const std::vector<size_t>& field_sizes,
+          std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id,
+          bool local, Provenance* provenance);
+      void allocate_fields(
+          const std::vector<Future>& field_sizes,
+          std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id,
+          bool local, Provenance* provenance);
+      void free_fields(
+          const std::set<FieldID>& to_free, const bool unordered,
+          Provenance* provenance = nullptr);
     public:
       FieldSpace field_space;
-      FieldSpaceNode *const node;
-      TaskContext *const context;
+      FieldSpaceNode* const node;
+      TaskContext* const context;
       const RtEvent ready_event;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_DATA_IMPL_H__
+#endif  // __LEGION_DATA_IMPL_H__

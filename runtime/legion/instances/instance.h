@@ -35,10 +35,10 @@ namespace Legion {
         REDUCTION_CODE = 0x40,
       };
     public:
-      InstanceManager(DistributedID did, LayoutDescription *layout,
-                      FieldSpaceNode *node, IndexSpaceExpression *domain,
-                      RegionTreeID tree_id, bool register_now,
-                      CollectiveMapping *mapping = nullptr);
+      InstanceManager(
+          DistributedID did, LayoutDescription* layout, FieldSpaceNode* node,
+          IndexSpaceExpression* domain, RegionTreeID tree_id, bool register_now,
+          CollectiveMapping* mapping = nullptr);
       virtual ~InstanceManager(void);
     public:
       virtual PointerConstraint get_pointer_constraint(void) const = 0;
@@ -50,37 +50,57 @@ namespace Legion {
       inline PhysicalManager* as_physical_manager(void) const;
       inline VirtualManager* as_virtual_manager(void) const;
     public:
-      static inline DistributedID encode_instance_did(DistributedID did,
-                                          bool external, bool reduction);
+      static inline DistributedID encode_instance_did(
+          DistributedID did, bool external, bool reduction);
       static inline bool is_physical_did(DistributedID did);
       static inline bool is_reduction_did(DistributedID did);
       static inline bool is_external_did(DistributedID did);
     public:
       // Interface to the mapper for layouts
-      inline void get_fields(std::set<FieldID> &fields) const
-        { if (layout != nullptr) layout->get_fields(fields); }
+      inline void get_fields(std::set<FieldID>& fields) const
+      {
+        if (layout != nullptr)
+          layout->get_fields(fields);
+      }
       inline bool has_field(FieldID fid) const
-        { if (layout != nullptr) return layout->has_field(fid); return false; }
-      inline void has_fields(std::map<FieldID,bool> &fields) const
-        { if (layout != nullptr) layout->has_fields(fields); 
-          else for (std::map<FieldID,bool>::iterator it = fields.begin();
-                    it != fields.end(); it++) it->second = false; } 
-      inline void remove_space_fields(std::set<FieldID> &fields) const
-        { if (layout != nullptr) layout->remove_space_fields(fields);
-          else fields.clear(); } 
+      {
+        if (layout != nullptr)
+          return layout->has_field(fid);
+        return false;
+      }
+      inline void has_fields(std::map<FieldID, bool>& fields) const
+      {
+        if (layout != nullptr)
+          layout->has_fields(fields);
+        else
+          for (std::map<FieldID, bool>::iterator it = fields.begin();
+               it != fields.end(); it++)
+            it->second = false;
+      }
+      inline void remove_space_fields(std::set<FieldID>& fields) const
+      {
+        if (layout != nullptr)
+          layout->remove_space_fields(fields);
+        else
+          fields.clear();
+      }
     public:
-      bool entails(LayoutConstraints *constraints,
-                   const LayoutConstraint **failed_constraint) const;
-      bool entails(const LayoutConstraintSet &constraints, 
-                   const LayoutConstraint **failed_constraint) const;
-      bool conflicts(LayoutConstraints *constraints,
-                     const LayoutConstraint **conflict_constraint) const;
-      bool conflicts(const LayoutConstraintSet &constraints,
-                     const LayoutConstraint **conflict_constraint) const;
+      bool entails(
+          LayoutConstraints* constraints,
+          const LayoutConstraint** failed_constraint) const;
+      bool entails(
+          const LayoutConstraintSet& constraints,
+          const LayoutConstraint** failed_constraint) const;
+      bool conflicts(
+          LayoutConstraints* constraints,
+          const LayoutConstraint** conflict_constraint) const;
+      bool conflicts(
+          const LayoutConstraintSet& constraints,
+          const LayoutConstraint** conflict_constraint) const;
     public:
-      LayoutDescription *const layout;
-      FieldSpaceNode *const field_space_node;
-      IndexSpaceExpression *instance_domain;
+      LayoutDescription* const layout;
+      FieldSpaceNode* const field_space_node;
+      IndexSpaceExpression* instance_domain;
       const RegionTreeID tree_id;
     };
 
@@ -91,14 +111,14 @@ namespace Legion {
     class InstanceDeletionSubscriber {
     public:
       virtual ~InstanceDeletionSubscriber(void) { }
-      virtual void notify_instance_deletion(PhysicalManager *manager) = 0;
-      virtual void add_subscriber_reference(PhysicalManager *manager) = 0;
-      virtual bool remove_subscriber_reference(PhysicalManager *manager) = 0;
+      virtual void notify_instance_deletion(PhysicalManager* manager) = 0;
+      virtual void add_subscriber_reference(PhysicalManager* manager) = 0;
+      virtual bool remove_subscriber_reference(PhysicalManager* manager) = 0;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
 #include "legion/instances/instance.inl"
 
-#endif // __LEGION_INSTANCE_H__
+#endif  // __LEGION_INSTANCE_H__

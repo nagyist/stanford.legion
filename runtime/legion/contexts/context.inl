@@ -22,8 +22,8 @@ namespace Legion {
   namespace Internal {
 
     //--------------------------------------------------------------------------
-    inline bool TaskContext::begin_runtime_call(RuntimeCallKind kind,
-                                                Provenance *provenance)
+    inline bool TaskContext::begin_runtime_call(
+        RuntimeCallKind kind, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -32,8 +32,8 @@ namespace Legion {
       if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
-        const long long diff = current - 
-          overhead_profiler->previous_profiling_time;
+        const long long diff =
+            current - overhead_profiler->previous_profiling_time;
         overhead_profiler->application_time += diff;
         overhead_profiler->previous_profiling_time = current;
         overhead_profiler->inside_runtime_call = true;
@@ -42,8 +42,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    inline void TaskContext::end_runtime_call(RuntimeCallKind kind,
-        Provenance *provenance, unsigned long long start,
+    inline void TaskContext::end_runtime_call(
+        RuntimeCallKind kind, Provenance* provenance, unsigned long long start,
         unsigned long long stop)
     //--------------------------------------------------------------------------
     {
@@ -55,14 +55,14 @@ namespace Legion {
       if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
-        const long long diff = current - 
-          overhead_profiler->previous_profiling_time;
+        const long long diff =
+            current - overhead_profiler->previous_profiling_time;
         overhead_profiler->runtime_time += diff;
         overhead_profiler->previous_profiling_time = current;
         overhead_profiler->inside_runtime_call = false;
       }
       if (implicit_profiler != nullptr)
-        implicit_profiler->record_runtime_call(kind, start, stop); 
+        implicit_profiler->record_runtime_call(kind, start, stop);
     }
 
     //--------------------------------------------------------------------------
@@ -72,8 +72,8 @@ namespace Legion {
       if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
-        const long long diff = current - 
-          overhead_profiler->previous_profiling_time;
+        const long long diff =
+            current - overhead_profiler->previous_profiling_time;
         if (overhead_profiler->inside_runtime_call)
           overhead_profiler->runtime_time += diff;
         else
@@ -84,7 +84,7 @@ namespace Legion {
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
         implicit_task_profiler->waits.emplace_back(
-            LegionProfInstance::WaitInfo{ current, current, current, event });
+            LegionProfInstance::WaitInfo{current, current, current, event});
       }
     }
 
@@ -95,8 +95,8 @@ namespace Legion {
       if (overhead_profiler != nullptr)
       {
         const long long current = Realm::Clock::current_time_in_nanoseconds();
-        const long long diff = current - 
-          overhead_profiler->previous_profiling_time;
+        const long long diff =
+            current - overhead_profiler->previous_profiling_time;
         overhead_profiler->wait_time += diff;
         overhead_profiler->previous_profiling_time = current;
       }
@@ -106,8 +106,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(!implicit_task_profiler->waits.empty());
 #endif
-        LegionProfInstance::WaitInfo &info = 
-          implicit_task_profiler->waits.back();
+        LegionProfInstance::WaitInfo& info =
+            implicit_task_profiler->waits.back();
 #ifdef DEBUG_LEGION
         assert(info.wait_event == event);
 #endif
@@ -117,5 +117,5 @@ namespace Legion {
       }
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

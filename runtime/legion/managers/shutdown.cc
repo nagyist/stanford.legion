@@ -22,24 +22,21 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Shutdown Manager 
+    // Shutdown Manager
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ShutdownManager::ShutdownManager(ShutdownPhase p,
-                                     AddressSpaceID s, unsigned r, 
-                                     ShutdownManager *own)
-      : phase(p), source(s), radix(r), owner(own),
-        needed_responses(0), return_code(runtime->return_code), result(true)
+    ShutdownManager::ShutdownManager(
+        ShutdownPhase p, AddressSpaceID s, unsigned r, ShutdownManager* own)
+      : phase(p), source(s), radix(r), owner(own), needed_responses(0),
+        return_code(runtime->return_code), result(true)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ShutdownManager::~ShutdownManager(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     bool ShutdownManager::attempt_shutdown(void)
@@ -52,13 +49,13 @@ namespace Legion {
       const AddressSpaceID start = local_space * radix + 1;
       for (unsigned idx = 0; idx < radix; idx++)
       {
-        AddressSpaceID next = start+idx;
+        AddressSpaceID next = start + idx;
         if (next < runtime->total_address_spaces)
           targets.push_back(next);
         else
           break;
       }
-      
+
       if (!targets.empty())
       {
         // Set the number of needed_responses
@@ -66,12 +63,11 @@ namespace Legion {
         Serializer rez;
         rez.serialize(this);
         rez.serialize(phase);
-        for (std::vector<AddressSpaceID>::const_iterator it = 
-              targets.begin(); it != targets.end(); it++)
-          runtime->send_shutdown_notification(*it, rez); 
+        for (std::vector<AddressSpaceID>::const_iterator it = targets.begin();
+             it != targets.end(); it++)
+          runtime->send_shutdown_notification(*it, rez);
         return false;
-      }
-      else // no messages means we can finalize right now
+      } else  // no messages means we can finalize right now
       {
         finalize();
         return true;
@@ -79,8 +75,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool ShutdownManager::handle_response(int code, bool success,
-                                          const std::set<RtEvent> &to_add)
+    bool ShutdownManager::handle_response(
+        int code, bool success, const std::set<RtEvent>& to_add)
     //--------------------------------------------------------------------------
     {
       bool done = false;
@@ -90,7 +86,7 @@ namespace Legion {
           return_code = code;
         if (result && !success)
           result = false;
-        wait_for.insert(to_add.begin(), to_add.end()); 
+        wait_for.insert(to_add.begin(), to_add.end());
 #ifdef DEBUG_LEGION
         assert(needed_responses > 0);
 #endif
@@ -110,19 +106,20 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Do our local check
-      runtime->confirm_runtime_shutdown(this, 
-          (phase == CHECK_TERMINATION) || (phase == CHECK_SHUTDOWN));
+      runtime->confirm_runtime_shutdown(
+          this, (phase == CHECK_TERMINATION) || (phase == CHECK_SHUTDOWN));
 #ifdef DEBUG_SHUTDOWN_HANG
       if (!result)
       {
         LG_TASK_DESCRIPTIONS(task_descs);
-        // Only need to see tasks less than this 
+        // Only need to see tasks less than this
         for (unsigned idx = 0; idx < LG_BEGIN_SHUTDOWN_TASK_IDS; idx++)
         {
           if (runtime->outstanding_counts[idx].load() == 0)
             continue;
-          log_shutdown.info("Meta-Task %s: %d outstanding",
-                task_descs[idx], runtime->outstanding_counts[idx].load());
+          log_shutdown.info(
+              "Meta-Task %s: %d outstanding", task_descs[idx],
+              runtime->outstanding_counts[idx].load());
         }
       }
 #endif
@@ -134,16 +131,16 @@ namespace Legion {
           if (phase == CONFIRM_TERMINATION)
             runtime->prepare_runtime_shutdown();
           // Do the next phase
-          runtime->initiate_runtime_shutdown(source, (ShutdownPhase)(phase+1));
-        }
-        else
+          runtime->initiate_runtime_shutdown(
+              source, (ShutdownPhase)(phase + 1));
+        } else
         {
           log_shutdown.info("SHUTDOWN SUCCEEDED!");
           std::vector<RtEvent> shutdown_events;
           Realm::ProfilingRequestSet empty_requests;
           const Processor utility_group = runtime->find_utility_group();
           shutdown_events.push_back(RtEvent(utility_group.spawn(
-                  LG_SHUTDOWN_TASK_ID, nullptr, 0, empty_requests)));
+              LG_SHUTDOWN_TASK_ID, nullptr, 0, empty_requests)));
           // One last really crazy precondition on shutdown, we actually need to
           // make sure that this task itself is done executing before trying to
           // shutdown so add our own completion event as a precondition
@@ -153,8 +150,7 @@ namespace Legion {
           RealmRuntime realm = RealmRuntime::get_runtime();
           realm.shutdown(Runtime::merge_events(shutdown_events), return_code);
         }
-      }
-      else if (runtime->address_space != source)
+      } else if (runtime->address_space != source)
       {
 #ifdef DEBUG_LEGION
         assert(owner != nullptr);
@@ -165,12 +161,11 @@ namespace Legion {
         rez.serialize(return_code);
         rez.serialize<bool>(result);
         rez.serialize<size_t>(wait_for.size());
-        for (std::set<RtEvent>::const_iterator it = 
-              wait_for.begin(); it != wait_for.end(); it++)
+        for (std::set<RtEvent>::const_iterator it = wait_for.begin();
+             it != wait_for.end(); it++)
           rez.serialize(*it);
         runtime->send_shutdown_response(source, rez);
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
         assert(!result);
@@ -180,66 +175,65 @@ namespace Legion {
         if (!wait_for.empty())
           precondition = Runtime::merge_events(wait_for);
         // If we failed an even phase we go back to the one before it
-        RetryShutdownArgs args(((phase % 2) == 0) ?
-            (ShutdownPhase)(phase-1) : phase);
-        runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY,
-                                         precondition);
+        RetryShutdownArgs args(
+            ((phase % 2) == 0) ? (ShutdownPhase)(phase - 1) : phase);
+        runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY, precondition);
       }
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_remote_tracing_update(Deserializer &derez,
-                                               AddressSpaceID source)
+    void Runtime::handle_remote_tracing_update(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       RemoteTraceRecorder::handle_remote_update(derez, source);
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_remote_tracing_response(Deserializer &derez)
+    void Runtime::handle_remote_tracing_response(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       RemoteTraceRecorder::handle_remote_response(derez);
     }
-  
+
     //--------------------------------------------------------------------------
-    void Runtime::handle_free_external_allocation(Deserializer &derez)
+    void Runtime::handle_free_external_allocation(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       FutureInstance::handle_free_external(derez);
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_notify_collected_instances(Deserializer &derez)
+    void Runtime::handle_notify_collected_instances(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       MemoryManager::handle_notify_collected_instances(derez);
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_create_memory_pool_request(Deserializer &derez,
-                                                    AddressSpaceID source)
+    void Runtime::handle_create_memory_pool_request(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       MemoryManager::handle_create_memory_pool_request(derez, source);
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_create_memory_pool_response(Deserializer &derez)
+    void Runtime::handle_create_memory_pool_response(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       MemoryManager::handle_create_memory_pool_response(derez);
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_create_future_instance_request(Deserializer &derez,
-                                                        AddressSpaceID source)
+    void Runtime::handle_create_future_instance_request(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       Memory memory;
       derez.deserialize(memory);
-      std::atomic<FutureInstance*> *target;
+      std::atomic<FutureInstance*>* target;
       derez.deserialize(target);
       RtUserEvent done;
       derez.deserialize(done);
@@ -249,24 +243,28 @@ namespace Legion {
       coordinates.deserialize(derez);
       size_t size;
       derez.deserialize(size);
-      RtEvent *remote_safe_for_unbounded_pools;
+      RtEvent* remote_safe_for_unbounded_pools;
       derez.deserialize(remote_safe_for_unbounded_pools);
 
-      MemoryManager *manager = find_memory_manager(memory);
+      MemoryManager* manager = find_memory_manager(memory);
       RtEvent safe_for_unbounded_pools;
-      FutureInstance *result = manager->create_future_instance(uid,
-          coordinates, size, (remote_safe_for_unbounded_pools == nullptr) ?
-          nullptr : &safe_for_unbounded_pools);
-      if ((result != nullptr) || ((remote_safe_for_unbounded_pools != nullptr) &&
-            safe_for_unbounded_pools.exists()))
+      FutureInstance* result = manager->create_future_instance(
+          uid, coordinates, size,
+          (remote_safe_for_unbounded_pools == nullptr) ?
+              nullptr :
+              &safe_for_unbounded_pools);
+      if ((result != nullptr) ||
+          ((remote_safe_for_unbounded_pools != nullptr) &&
+           safe_for_unbounded_pools.exists()))
       {
         Serializer rez;
         {
           RezCheck z(rez);
           rez.serialize(target);
           if (result != nullptr)
-            result->pack_instance(rez, ApEvent::NO_AP_EVENT,
-                true/*pack ownership*/, false/*allow by value*/);
+            result->pack_instance(
+                rez, ApEvent::NO_AP_EVENT, true /*pack ownership*/,
+                false /*allow by value*/);
           else
             FutureInstance::pack_null(rez);
           rez.serialize(remote_safe_for_unbounded_pools);
@@ -276,20 +274,19 @@ namespace Legion {
         }
         send_create_future_instance_response(source, rez);
         delete result;
-      }
-      else
+      } else
         Runtime::trigger_event(done);
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_create_future_instance_response(Deserializer &derez)
+    void Runtime::handle_create_future_instance_response(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      std::atomic<FutureInstance*> *target;
+      std::atomic<FutureInstance*>* target;
       derez.deserialize(target);
       target->store(FutureInstance::unpack_instance(derez));
-      RtEvent *safe_for_unbounded_pools;
+      RtEvent* safe_for_unbounded_pools;
       derez.deserialize(safe_for_unbounded_pools);
       if (safe_for_unbounded_pools != nullptr)
         derez.deserialize(*safe_for_unbounded_pools);
@@ -299,7 +296,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Runtime::handle_free_future_instance(Deserializer &derez)
+    void Runtime::handle_free_future_instance(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -311,16 +308,16 @@ namespace Legion {
       derez.deserialize(size);
       RtEvent free_event;
       derez.deserialize(free_event);
-      MemoryManager *manager = find_memory_manager(memory);
+      MemoryManager* manager = find_memory_manager(memory);
       manager->free_future_instance(instance, size, free_event);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void ShutdownManager::handle_shutdown_notification(
-                   Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
-      ShutdownManager *owner;
+      ShutdownManager* owner;
       derez.deserialize(owner);
       ShutdownPhase phase;
       derez.deserialize(phase);
@@ -329,10 +326,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ShutdownManager::handle_shutdown_response(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-      ShutdownManager *shutdown_manager;
+      ShutdownManager* shutdown_manager;
       derez.deserialize(shutdown_manager);
       int return_code;
       derez.deserialize(return_code);
@@ -366,8 +363,8 @@ namespace Legion {
     {
       // Instant death
       result = false;
-      log_shutdown.info("Outstanding message on node %d", 
-                        runtime->address_space);
+      log_shutdown.info(
+          "Outstanding message on node %d", runtime->address_space);
     }
 
     //--------------------------------------------------------------------------
@@ -380,5 +377,5 @@ namespace Legion {
       log_shutdown.info("Pending message on node %d", runtime->address_space);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

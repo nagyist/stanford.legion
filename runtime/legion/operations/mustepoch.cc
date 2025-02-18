@@ -29,21 +29,18 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Must Epoch Operation 
+    // Must Epoch Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MustEpochOp::MustEpochOp(void)
-      : Operation(), MustEpoch()
+    MustEpochOp::MustEpochOp(void) : Operation(), MustEpoch()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     MustEpochOp::~MustEpochOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UniqueID MustEpochOp::get_unique_id(void) const
@@ -63,7 +60,7 @@ namespace Legion {
     int MustEpochOp::get_depth(void) const
     //--------------------------------------------------------------------------
     {
-      return (parent_ctx->get_depth() + 1); 
+      return (parent_ctx->get_depth() + 1);
     }
 
     //--------------------------------------------------------------------------
@@ -79,7 +76,7 @@ namespace Legion {
     const std::string_view& MustEpochOp::get_provenance_string(bool human) const
     //--------------------------------------------------------------------------
     {
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
@@ -87,8 +84,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FutureMap MustEpochOp::initialize(InnerContext *ctx,
-                      const MustEpochLauncher &launcher, Provenance *provenance)
+    FutureMap MustEpochOp::initialize(
+        InnerContext* ctx, const MustEpochLauncher& launcher,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       // Initialize this operation
@@ -101,7 +99,8 @@ namespace Legion {
         if (!launch_domain.exists())
           launch_space = compute_launch_space(launcher, provenance);
         else
-          launch_space = ctx->find_index_launch_space(launch_domain,provenance);
+          launch_space =
+              ctx->find_index_launch_space(launch_domain, provenance);
       }
       if (!launch_domain.exists())
       {
@@ -114,33 +113,34 @@ namespace Legion {
       // We'll fill it in later
       sharding_space = launcher.sharding_space;
       result_map = create_future_map(ctx, launch_space, sharding_space);
-      instantiate_tasks(ctx, launcher); 
+      instantiate_tasks(ctx, launcher);
       map_id = launcher.map_id;
       tag = launcher.mapping_tag;
       parent_task = ctx->get_task();
       if (ctx->is_concurrent_context())
         Exception(FATAL_EXCEPTION, this)
-          << "Illegal nested must epoch launch which has a concurrent "
-          << "ancesstor (must epoch or concurrent index task). Nested "
-          << "concurrency is not currently supported.";
+            << "Illegal nested must epoch launch which has a concurrent "
+            << "ancesstor (must epoch or concurrent index task). Nested "
+            << "concurrency is not currently supported.";
       if (runtime->legion_spy_enabled)
         LegionSpy::log_must_epoch_operation(ctx->get_unique_id(), unique_op_id);
       return result_map;
     }
 
     //--------------------------------------------------------------------------
-    FutureMap MustEpochOp::create_future_map(TaskContext *ctx,
-              IndexSpace domain, IndexSpace shard_space)
+    FutureMap MustEpochOp::create_future_map(
+        TaskContext* ctx, IndexSpace domain, IndexSpace shard_space)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode *launch_node = runtime->get_node(domain);
-      return FutureMap(new FutureMapImpl(ctx, this, launch_node,
-              runtime->get_available_distributed_id(), get_provenance()));
+      IndexSpaceNode* launch_node = runtime->get_node(domain);
+      return FutureMap(new FutureMapImpl(
+          ctx, this, launch_node, runtime->get_available_distributed_id(),
+          get_provenance()));
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::instantiate_tasks(InnerContext *ctx,
-                                        const MustEpochLauncher &launcher)
+    void MustEpochOp::instantiate_tasks(
+        InnerContext* ctx, const MustEpochLauncher& launcher)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -152,15 +152,14 @@ namespace Legion {
       // appear as a single operation to the parent context in order to
       // avoid deadlock with the maximum window size.
       indiv_tasks.resize(launcher.single_tasks.size());
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       for (unsigned idx = 0; idx < launcher.single_tasks.size(); idx++)
       {
         indiv_tasks[idx] = runtime->get_operation<IndividualTask>();
-        indiv_tasks[idx]->initialize_task(ctx, launcher.single_tasks[idx],
-                                          provenance,
-                                          false/*top level*/,
-                                          true/*must epoch*/);
-        indiv_tasks[idx]->set_must_epoch(this, idx, true/*register*/);
+        indiv_tasks[idx]->initialize_task(
+            ctx, launcher.single_tasks[idx], provenance, false /*top level*/,
+            true /*must epoch*/);
+        indiv_tasks[idx]->set_must_epoch(this, idx, true /*register*/);
         indiv_tasks[idx]->set_concurrent_postcondition(concurrent_mapped);
         // If we have a trace, set it for this operation as well
         if (trace != nullptr)
@@ -170,7 +169,8 @@ namespace Legion {
       for (unsigned idx = 0; idx < launcher.index_tasks.size(); idx++)
       {
         if (launcher.index_tasks[idx].concurrent_functor != 0)
-          REPORT_LEGION_ERROR(ERROR_INVALID_CONCURRENT_ID,
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_CONCURRENT_ID,
               "All index space task launches in must epoch operations "
               "are required to use default concurrent functor (ID=0).")
         IndexSpace launch_space = launcher.index_tasks[idx].launch_space;
@@ -178,12 +178,13 @@ namespace Legion {
           launch_space = ctx->find_index_launch_space(
               launcher.index_tasks[idx].launch_domain, get_provenance());
         index_tasks[idx] = runtime->get_operation<IndexTask>();
-        index_tasks[idx]->initialize_task(ctx, launcher.index_tasks[idx],
-                                launch_space, provenance, false/*track*/);
-        index_tasks[idx]->set_must_epoch(this, 
-            indiv_tasks.size() + idx, true/*register*/);
-        index_tasks[idx]->initialize_must_epoch_concurrent_group(0/*color*/,
-            concurrent_mapped);
+        index_tasks[idx]->initialize_task(
+            ctx, launcher.index_tasks[idx], launch_space, provenance,
+            false /*track*/);
+        index_tasks[idx]->set_must_epoch(
+            this, indiv_tasks.size() + idx, true /*register*/);
+        index_tasks[idx]->initialize_must_epoch_concurrent_group(
+            0 /*color*/, concurrent_mapped);
         if (trace != nullptr)
           index_tasks[idx]->set_trace(trace, nullptr);
       }
@@ -191,7 +192,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MustEpochOp::find_conflicted_regions(
-                                 std::vector<PhysicalRegion> &conflicts)
+        std::vector<PhysicalRegion>& conflicts)
     //--------------------------------------------------------------------------
     {
       // Dump them all into a set when they are done to deduplicate them
@@ -201,16 +202,16 @@ namespace Legion {
       {
         std::vector<PhysicalRegion> temp;
         parent_ctx->find_conflicting_regions(indiv_tasks[idx], temp);
-        temp_conflicts.insert(temp.begin(),temp.end());
+        temp_conflicts.insert(temp.begin(), temp.end());
       }
       for (unsigned idx = 0; idx < index_tasks.size(); idx++)
       {
         std::vector<PhysicalRegion> temp;
         parent_ctx->find_conflicting_regions(index_tasks[idx], temp);
-        temp_conflicts.insert(temp.begin(),temp.end());
+        temp_conflicts.insert(temp.begin(), temp.end());
       }
-      conflicts.insert(conflicts.end(),
-                       temp_conflicts.begin(),temp_conflicts.end());
+      conflicts.insert(
+          conflicts.end(), temp_conflicts.begin(), temp_conflicts.end());
     }
 
     //--------------------------------------------------------------------------
@@ -245,7 +246,7 @@ namespace Legion {
     void MustEpochOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       // All the sub-operations we have will deactivate themselves
       indiv_tasks.clear();
       index_tasks.clear();
@@ -261,7 +262,7 @@ namespace Legion {
         release_acquired_instances(acquired_instances);
       dependence_map.clear();
       for (std::vector<DependenceRecord*>::iterator it = dependences.begin();
-            it != dependences.end(); it++)
+           it != dependences.end(); it++)
       {
         delete (*it);
       }
@@ -299,13 +300,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       size_t result = 0;
-      for (std::vector<IndividualTask*>::const_iterator it = 
-            indiv_tasks.begin(); it != indiv_tasks.end(); it++)
+      for (std::vector<IndividualTask*>::const_iterator it =
+               indiv_tasks.begin();
+           it != indiv_tasks.end(); it++)
       {
         result += (*it)->get_region_count();
       }
-      for (std::vector<IndexTask*>::const_iterator it = 
-            index_tasks.begin(); it != index_tasks.end(); it++)
+      for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
+           it != index_tasks.end(); it++)
       {
         result += (*it)->get_region_count();
       }
@@ -318,14 +320,17 @@ namespace Legion {
     {
       if (runtime->legion_spy_enabled)
       {
-        for (std::vector<IndividualTask*>::const_iterator it = 
-              indiv_tasks.begin(); it != indiv_tasks.end(); it++)
-          LegionSpy::log_child_operation_index(parent_ctx->get_unique_id(),
-              context_index, (*it)->get_unique_op_id());
-        for (std::vector<IndexTask*>::const_iterator it = 
-              index_tasks.begin(); it != index_tasks.end(); it++)
-          LegionSpy::log_child_operation_index(parent_ctx->get_unique_id(),
-              context_index, (*it)->get_unique_op_id());
+        for (std::vector<IndividualTask*>::const_iterator it =
+                 indiv_tasks.begin();
+             it != indiv_tasks.end(); it++)
+          LegionSpy::log_child_operation_index(
+              parent_ctx->get_unique_id(), context_index,
+              (*it)->get_unique_op_id());
+        for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
+             it != index_tasks.end(); it++)
+          LegionSpy::log_child_operation_index(
+              parent_ctx->get_unique_id(), context_index,
+              (*it)->get_unique_op_id());
       }
     }
 
@@ -336,7 +341,7 @@ namespace Legion {
       // Record how many mapping dependences we expect to be notified of
       remaining_mapping_dependences.fetch_add(
           indiv_tasks.size() + index_tasks.size());
-      // For every one of our sub-operations, add an additional mapping 
+      // For every one of our sub-operations, add an additional mapping
       // dependence.  When our sub-operations map, they will trigger these
       // mapping dependences which guarantees that we will not be able to
       // map until all of the sub-operations are ready to map.
@@ -347,8 +352,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ bool MustEpochOp::single_task_sorter(const Task *t1, 
-                                                    const Task *t2)
+    /*static*/ bool MustEpochOp::single_task_sorter(
+        const Task* t1, const Task* t2)
     //--------------------------------------------------------------------------
     {
       return (t1->index_point < t2->index_point);
@@ -365,20 +370,21 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!single_tasks_ready.exists());
 #endif
-      task_sets.resize(indiv_tasks.size()+index_tasks.size());
+      task_sets.resize(indiv_tasks.size() + index_tasks.size());
       // Add a guard on the single tasks being ready
       remaining_single_tasks.store(1);
       const Processor current = parent_ctx->get_executing_processor();
       for (std::vector<IndividualTask*>::const_iterator it =
-            indiv_tasks.begin(); it != indiv_tasks.end(); it++)
+               indiv_tasks.begin();
+           it != indiv_tasks.end(); it++)
       {
         (*it)->prepare_map_must_epoch();
         (*it)->set_target_proc(current);
         remaining_single_tasks.fetch_add(1);
         (*it)->enqueue_ready_operation();
       }
-      for (std::vector<IndexTask*>::const_iterator it =
-            index_tasks.begin(); it != index_tasks.end(); it++)
+      for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
+           it != index_tasks.end(); it++)
       {
         (*it)->prepare_map_must_epoch();
         (*it)->set_target_proc(current);
@@ -386,7 +392,7 @@ namespace Legion {
         (*it)->enqueue_ready_operation();
       }
       // Remove the guard that we added
-      const unsigned remaining = remaining_single_tasks.fetch_sub(1); 
+      const unsigned remaining = remaining_single_tasks.fetch_sub(1);
       if (remaining > 1)
       {
         AutoLock o_lock(op_lock);
@@ -405,7 +411,7 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(!single_tasks.empty());
-#endif 
+#endif
       // Sort the points so that they are in order for determinism
       // across runs and for control replication
       std::sort(single_tasks.begin(), single_tasks.end(), single_task_sorter);
@@ -414,18 +420,18 @@ namespace Legion {
         single_task_map[single_tasks[idx]] = idx;
       // Next build the set of single tasks and all their constraints.
       // Iterate over all the recorded dependences
-      std::vector<Mapper::MappingConstraint> &constraints = input.constraints;
+      std::vector<Mapper::MappingConstraint>& constraints = input.constraints;
       constraints.resize(dependences.size());
       mapping_dependences.resize(single_tasks.size());
       // Clear the dependence map now, we'll fill it in again
       // with a different set of points
       dependence_map.clear();
       unsigned constraint_idx = 0;
-      for (std::vector<DependenceRecord*>::const_iterator it = 
-            dependences.begin(); it != dependences.end(); 
-            it++, constraint_idx++)
+      for (std::vector<DependenceRecord*>::const_iterator it =
+               dependences.begin();
+           it != dependences.end(); it++, constraint_idx++)
       {
-        Mapper::MappingConstraint &constraint = constraints[constraint_idx];
+        Mapper::MappingConstraint& constraint = constraints[constraint_idx];
 #ifdef DEBUG_LEGION
         assert((*it)->op_indexes.size() == (*it)->req_indexes.size());
 #endif
@@ -434,10 +440,10 @@ namespace Legion {
         for (unsigned idx = 0; idx < (*it)->op_indexes.size(); idx++)
         {
           unsigned req_index = (*it)->req_indexes[idx];
-          const std::set<SingleTask*> &task_set = 
-                      task_sets[(*it)->op_indexes[idx]];
+          const std::set<SingleTask*>& task_set =
+              task_sets[(*it)->op_indexes[idx]];
           for (std::set<SingleTask*>::const_iterator sit = task_set.begin();
-                sit != task_set.end(); sit++)
+               sit != task_set.end(); sit++)
           {
             constraint.constrained_tasks.push_back(*sit);
             constraint.requirement_indexes.push_back(req_index);
@@ -445,60 +451,65 @@ namespace Legion {
             assert(single_task_map.find(*sit) != single_task_map.end());
 #endif
             // Update the dependence map
-            std::pair<unsigned,unsigned> key(single_task_map[*sit],req_index);
+            std::pair<unsigned, unsigned> key(single_task_map[*sit], req_index);
             dependence_map[key] = constraint_idx;
             single_indexes.insert(key.first);
           }
         }
         // Record the mapping dependences
-        for (std::set<unsigned>::const_iterator it1 = 
-              single_indexes.begin(); it1 != single_indexes.end(); it1++)
+        for (std::set<unsigned>::const_iterator it1 = single_indexes.begin();
+             it1 != single_indexes.end(); it1++)
         {
-          for (std::set<unsigned>::const_iterator it2 = 
-                single_indexes.begin(); it2 != it1; it2++)
+          for (std::set<unsigned>::const_iterator it2 = single_indexes.begin();
+               it2 != it1; it2++)
           {
             mapping_dependences[*it1].insert(*it2);
           }
         }
       }
       // Clear this eagerly to save space
-      for (std::vector<DependenceRecord*>::const_iterator it = 
-            dependences.begin(); it != dependences.end(); it++)
+      for (std::vector<DependenceRecord*>::const_iterator it =
+               dependences.begin();
+           it != dependences.end(); it++)
       {
         delete (*it);
       }
       dependences.clear();
       // Fill in the rest of the inputs to the mapper call
       input.mapping_tag = tag;
-      input.tasks.insert(input.tasks.end(), single_tasks.begin(),
-                                            single_tasks.end());
+      input.tasks.insert(
+          input.tasks.end(), single_tasks.begin(), single_tasks.end());
       // Also resize the outputs so the mapper knows what it is doing
       output.constraint_mappings.resize(input.constraints.size());
       output.task_processors.resize(single_tasks.size(), Processor::NO_PROC);
       // Now we can invoke the mapper
-      MapperManager *mapper = invoke_mapper(); 
+      MapperManager* mapper = invoke_mapper();
       // Check that all the tasks have been assigned to different processors
-      // and perform the concurrent analysis on each of them so that they 
+      // and perform the concurrent analysis on each of them so that they
       // all know what their starting preconditions are
       {
-        std::map<Processor,SingleTask*> target_procs;
+        std::map<Processor, SingleTask*> target_procs;
         for (unsigned idx = 0; idx < single_tasks.size(); idx++)
         {
           Processor proc = output.task_processors[idx];
-          SingleTask *task = single_tasks[idx];
+          SingleTask* task = single_tasks[idx];
           if (!proc.exists())
             Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_must_epoch' on mapper "
-              << *mapper << ". Mapper failed to specify "
-              << "a valid processor for " << *this << " at index " << idx << ".";
+                << "Invalid mapper output from invocation of 'map_must_epoch' "
+                   "on mapper "
+                << *mapper << ". Mapper failed to specify "
+                << "a valid processor for " << *this << " at index " << idx
+                << ".";
           if (target_procs.find(proc) != target_procs.end())
           {
-            SingleTask *other = target_procs[proc];
+            SingleTask* other = target_procs[proc];
             Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_must_epoch' on mapper "
-              << *mapper << ". Mapper requests both tasks "
-              << *other << " and " << *task << " be mapped to the same "
-              << "processor (" << proc << ") which is illegal in a must epoch launch.";
+                << "Invalid mapper output from invocation of 'map_must_epoch' "
+                   "on mapper "
+                << *mapper << ". Mapper requests both tasks " << *other
+                << " and " << *task << " be mapped to the same "
+                << "processor (" << proc
+                << ") which is illegal in a must epoch launch.";
           }
           target_procs[proc] = task;
           task->target_proc = proc;
@@ -516,24 +527,25 @@ namespace Legion {
       tasks_all_mapped.reserve(indiv_tasks.size() + index_tasks.size());
       // Once all the tasks have been initialized we can defer
       // our all mapped event on all their all mapped events
-      for (std::vector<IndividualTask*>::const_iterator it = 
-            indiv_tasks.begin(); it != indiv_tasks.end(); it++)
+      for (std::vector<IndividualTask*>::const_iterator it =
+               indiv_tasks.begin();
+           it != indiv_tasks.end(); it++)
       {
         tasks_all_mapped.push_back((*it)->get_mapped_event());
         record_completion_effect((*it)->get_completion_event());
       }
-      for (std::vector<IndexTask*>::const_iterator it = 
-            index_tasks.begin(); it != index_tasks.end(); it++)
+      for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
+           it != index_tasks.end(); it++)
       {
         tasks_all_mapped.push_back((*it)->get_mapped_event());
         record_completion_effect((*it)->get_completion_event());
       }
       // For correctness we still have to abide by the mapping dependences
       // computed on the individual tasks while we are mapping them
-      for (std::vector<SingleTask*>::const_iterator it =
-            single_tasks.begin(); it != single_tasks.end(); it++)
-        mapped_events.emplace(std::make_pair((*it)->index_point,
-              Runtime::create_rt_user_event()));
+      for (std::vector<SingleTask*>::const_iterator it = single_tasks.begin();
+           it != single_tasks.end(); it++)
+        mapped_events.emplace(std::make_pair(
+            (*it)->index_point, Runtime::create_rt_user_event()));
       remaining_mapped_events.store(single_tasks.size());
       remaining_collective_unbound_points = single_tasks.size();
       remaining_concurrent_mapped = single_tasks.size();
@@ -543,9 +555,9 @@ namespace Legion {
       {
         // Figure out our preconditions
         std::vector<RtEvent> preconditions;
-        for (std::set<unsigned>::const_iterator it = 
-              mapping_dependences[idx].begin(); it != 
-              mapping_dependences[idx].end(); it++)
+        for (std::set<unsigned>::const_iterator it =
+                 mapping_dependences[idx].begin();
+             it != mapping_dependences[idx].end(); it++)
         {
 #ifdef DEBUG_LEGION
           assert((*it) < idx);
@@ -558,7 +570,8 @@ namespace Legion {
           precondition = Runtime::merge_events(preconditions);
         if (precondition.exists() && !precondition.has_triggered())
           single_tasks[idx]->defer_perform_mapping(precondition, this);
-        else if (single_tasks[idx]->perform_mapping(this) &&
+        else if (
+            single_tasks[idx]->perform_mapping(this) &&
             single_tasks[idx]->distribute_task())
           single_tasks[idx]->launch_task();
       }
@@ -566,8 +579,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::record_mapped_event(const DomainPoint &point,
-                                          RtEvent mapped)
+    void MustEpochOp::record_mapped_event(
+        const DomainPoint& point, RtEvent mapped)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -583,8 +596,9 @@ namespace Legion {
       {
         std::vector<RtEvent> preconditions;
         preconditions.reserve(mapped_events.size());
-        for (std::map<DomainPoint,RtUserEvent>::const_iterator it =
-              mapped_events.begin(); it != mapped_events.end(); it++)
+        for (std::map<DomainPoint, RtUserEvent>::const_iterator it =
+                 mapped_events.begin();
+             it != mapped_events.end(); it++)
           preconditions.push_back(it->second);
         release_nonempty_acquired_instances(
             Runtime::merge_events(preconditions), acquired_instances);
@@ -596,35 +610,36 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Processor mapper_proc = parent_ctx->get_executing_processor();
-      MapperManager *mapper = runtime->find_mapper(mapper_proc, map_id);
+      MapperManager* mapper = runtime->find_mapper(mapper_proc, map_id);
       // We've got all our meta-data set up so go ahead and issue the call
       mapper->invoke_map_must_epoch(this, input, output);
       return mapper;
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::receive_resources(uint64_t return_index,
-              std::map<LogicalRegion,unsigned> &created_regs,
-              std::vector<DeletedRegion> &deleted_regs,
-              std::set<std::pair<FieldSpace,FieldID> > &created_fids,
-              std::vector<DeletedField> &deleted_fids,
-              std::map<FieldSpace,unsigned> &created_fs,
-              std::map<FieldSpace,std::set<LogicalRegion> > &latent_fs,
-              std::vector<DeletedFieldSpace> &deleted_fs,
-              std::map<IndexSpace,unsigned> &created_is,
-              std::vector<DeletedIndexSpace> &deleted_is,
-              std::map<IndexPartition,unsigned> &created_partitions,
-              std::vector<DeletedPartition> &deleted_partitions,
-              std::set<RtEvent> &preconditions)
+    void MustEpochOp::receive_resources(
+        uint64_t return_index, std::map<LogicalRegion, unsigned>& created_regs,
+        std::vector<DeletedRegion>& deleted_regs,
+        std::set<std::pair<FieldSpace, FieldID> >& created_fids,
+        std::vector<DeletedField>& deleted_fids,
+        std::map<FieldSpace, unsigned>& created_fs,
+        std::map<FieldSpace, std::set<LogicalRegion> >& latent_fs,
+        std::vector<DeletedFieldSpace>& deleted_fs,
+        std::map<IndexSpace, unsigned>& created_is,
+        std::vector<DeletedIndexSpace>& deleted_is,
+        std::map<IndexPartition, unsigned>& created_partitions,
+        std::vector<DeletedPartition>& deleted_partitions,
+        std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
       // Wait until we've received all the resources before handing them
       // back to the enclosing parent context
       {
         AutoLock o_lock(op_lock);
-        merge_received_resources(created_regs, deleted_regs, created_fids, 
-            deleted_fids, created_fs, latent_fs, deleted_fs, created_is,
-            deleted_is, created_partitions, deleted_partitions);
+        merge_received_resources(
+            created_regs, deleted_regs, created_fids, deleted_fids, created_fs,
+            latent_fs, deleted_fs, created_is, deleted_is, created_partitions,
+            deleted_partitions);
 #ifdef DEBUG_LEGION
         assert(remaining_resource_returns > 0);
 #endif
@@ -656,8 +671,7 @@ namespace Legion {
           o_lock.release();
           collective_lamport_clock_ready.wait();
         }
-      }
-      else if (collective_lamport_clock_ready.exists())
+      } else if (collective_lamport_clock_ready.exists())
         Runtime::trigger_event(collective_lamport_clock_ready);
       return collective_lamport_clock;
     }
@@ -687,14 +701,14 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(concurrent_mapped.exists());
 #endif
-      Runtime::trigger_event(concurrent_mapped,
-          Runtime::merge_events(concurrent_preconditions));
+      Runtime::trigger_event(
+          concurrent_mapped, Runtime::merge_events(concurrent_preconditions));
     }
 
     //--------------------------------------------------------------------------
     void MustEpochOp::concurrent_allreduce(
-          IndividualTask *task, AddressSpaceID space,
-          uint64_t lamport_clock, bool poisoned)
+        IndividualTask* task, AddressSpaceID space, uint64_t lamport_clock,
+        bool poisoned)
     //--------------------------------------------------------------------------
     {
       bool done;
@@ -716,8 +730,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MustEpochOp::concurrent_allreduce(
-          SliceTask *slice, AddressSpaceID source,
-          size_t total_points, uint64_t lamport_clock, bool poisoned)
+        SliceTask* slice, AddressSpaceID source, size_t total_points,
+        uint64_t lamport_clock, bool poisoned)
     //--------------------------------------------------------------------------
     {
       bool done;
@@ -742,15 +756,16 @@ namespace Legion {
     void MustEpochOp::finish_concurrent_allreduce(void)
     //--------------------------------------------------------------------------
     {
-      // Swap vectors onto the stack in case when we kick things off they 
+      // Swap vectors onto the stack in case when we kick things off they
       // end up reclaiming the resources
-      std::vector<std::pair<IndividualTask*,AddressSpaceID> > local_tasks;
+      std::vector<std::pair<IndividualTask*, AddressSpaceID> > local_tasks;
       local_tasks.swap(concurrent_tasks);
-      std::vector<std::pair<SliceTask*,AddressSpaceID> > local_slices;
+      std::vector<std::pair<SliceTask*, AddressSpaceID> > local_slices;
       local_slices.swap(concurrent_slices);
-      for (std::vector<std::pair<IndividualTask*,
-            AddressSpaceID> >::const_iterator it =
-            local_tasks.begin(); it != local_tasks.end(); it++)
+      for (std::vector<
+               std::pair<IndividualTask*, AddressSpaceID> >::const_iterator it =
+               local_tasks.begin();
+           it != local_tasks.end(); it++)
       {
         if (it->second != runtime->address_space)
         {
@@ -763,15 +778,15 @@ namespace Legion {
           }
           runtime->send_individual_concurrent_allreduce_response(
               it->second, rez);
-        }
-        else
+        } else
           it->first->finish_concurrent_allreduce(
               concurrent_lamport_clock, concurrent_poisoned);
       }
-      const Color color = 0; // everything is color zero here
-      const VariantID vid = 0; // dummy variant since it's only for checking
-      for (std::vector<std::pair<SliceTask*,AddressSpaceID> >::const_iterator
-            it = local_slices.begin(); it != local_slices.end(); it++)
+      const Color color = 0;    // everything is color zero here
+      const VariantID vid = 0;  // dummy variant since it's only for checking
+      for (std::vector<std::pair<SliceTask*, AddressSpaceID> >::const_iterator
+               it = local_slices.begin();
+           it != local_slices.end(); it++)
       {
         if (it->second != runtime->address_space)
         {
@@ -786,17 +801,16 @@ namespace Legion {
             rez.serialize(concurrent_poisoned);
           }
           runtime->send_slice_concurrent_allreduce_response(it->second, rez);
-        }
-        else
-          it->first->finish_concurrent_allreduce(color,
-              concurrent_lamport_clock, concurrent_poisoned,
-              vid, RtBarrier::NO_RT_BARRIER);
+        } else
+          it->first->finish_concurrent_allreduce(
+              color, concurrent_lamport_clock, concurrent_poisoned, vid,
+              RtBarrier::NO_RT_BARRIER);
       }
     }
 
     //--------------------------------------------------------------------------
     IndexSpace MustEpochOp::compute_launch_space(
-                      const MustEpochLauncher &launcher, Provenance *provenance)
+        const MustEpochLauncher& launcher, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       const size_t single_tasks = launcher.single_tasks.size();
@@ -813,55 +827,50 @@ namespace Legion {
           // Need to compute the index tasks
           switch (launcher.index_tasks[0].launch_domain.get_dim())
           {
-#define DIMFUNC(DIM) \
-            case DIM: \
-              { \
-                std::vector<Realm::IndexSpace<DIM,coord_t> > \
-                    subspaces(single_tasks + multi_tasks); \
-                for (unsigned idx = 0; idx < multi_tasks; idx++) \
-                { \
-                  if (launcher.index_tasks[idx].launch_domain.exists()) \
-                  { \
-                    const Rect<DIM,coord_t> rect = \
-                      launcher.index_tasks[idx].launch_domain; \
-                    subspaces[idx] = rect; \
-                  } \
-                  else \
-                  { \
-                    Domain domain; \
-                    runtime->find_domain( \
-                        launcher.index_tasks[idx].launch_space, domain); \
-                    const DomainT<DIM,coord_t> domaint = domain; \
-                    subspaces[idx] = domaint; \
-                  } \
-                } \
-                for (unsigned idx = 0; idx < single_tasks; idx++) \
-                { \
-                  const Point<DIM,coord_t> p = \
-                    launcher.single_tasks[idx].point; \
-                  const Rect<DIM,coord_t> rect(p,p); \
-                  subspaces[multi_tasks + idx] = \
-                    Realm::IndexSpace<DIM,coord_t>(rect); \
-                } \
-                Realm::IndexSpace<DIM,coord_t> space; \
-                const RtEvent wait_on(\
-                    Realm::IndexSpace<DIM,coord_t>::compute_union( \
-                      subspaces, space, no_reqs)); \
-                const DomainT<DIM,coord_t> domaint(space); \
-                launch_domain = domaint; \
-                if (wait_on.exists()) \
-                  wait_on.wait(); \
-                break; \
-              }
+#define DIMFUNC(DIM)                                                          \
+  case DIM:                                                                   \
+    {                                                                         \
+      std::vector<Realm::IndexSpace<DIM, coord_t> > subspaces(                \
+          single_tasks + multi_tasks);                                        \
+      for (unsigned idx = 0; idx < multi_tasks; idx++)                        \
+      {                                                                       \
+        if (launcher.index_tasks[idx].launch_domain.exists())                 \
+        {                                                                     \
+          const Rect<DIM, coord_t> rect =                                     \
+              launcher.index_tasks[idx].launch_domain;                        \
+          subspaces[idx] = rect;                                              \
+        } else                                                                \
+        {                                                                     \
+          Domain domain;                                                      \
+          runtime->find_domain(                                               \
+              launcher.index_tasks[idx].launch_space, domain);                \
+          const DomainT<DIM, coord_t> domaint = domain;                       \
+          subspaces[idx] = domaint;                                           \
+        }                                                                     \
+      }                                                                       \
+      for (unsigned idx = 0; idx < single_tasks; idx++)                       \
+      {                                                                       \
+        const Point<DIM, coord_t> p = launcher.single_tasks[idx].point;       \
+        const Rect<DIM, coord_t> rect(p, p);                                  \
+        subspaces[multi_tasks + idx] = Realm::IndexSpace<DIM, coord_t>(rect); \
+      }                                                                       \
+      Realm::IndexSpace<DIM, coord_t> space;                                  \
+      const RtEvent wait_on(Realm::IndexSpace<DIM, coord_t>::compute_union(   \
+          subspaces, space, no_reqs));                                        \
+      const DomainT<DIM, coord_t> domaint(space);                             \
+      launch_domain = domaint;                                                \
+      if (wait_on.exists())                                                   \
+        wait_on.wait();                                                       \
+      break;                                                                  \
+    }
             LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
             default:
               std::abort();
           }
-          return parent_ctx->find_index_launch_space(launch_domain,
-              provenance, true/*take ownership*/);
-        }
-        else // Easy case of a single index task
+          return parent_ctx->find_index_launch_space(
+              launch_domain, provenance, true /*take ownership*/);
+        } else  // Easy case of a single index task
         {
           launch_domain = launcher.index_tasks[0].launch_domain;
           if (!launch_domain.exists())
@@ -869,38 +878,35 @@ namespace Legion {
                 launcher.index_tasks[0].launch_space, launch_domain);
           return parent_ctx->find_index_launch_space(launch_domain, provenance);
         }
-      }
-      else
+      } else
       {
         // These are just point tasks
         if (single_tasks > 1)
         {
           switch (launcher.single_tasks[0].point.get_dim())
           {
-#define DIMFUNC(DIM) \
-            case DIM: \
-              { \
-                std::vector<Realm::Point<DIM,coord_t> > points(single_tasks); \
-                for (unsigned idx = 0; idx < single_tasks; idx++) \
-                { \
-                  const Point<DIM,coord_t> point = \
-                    launcher.single_tasks[idx].point; \
-                  points[idx] = point; \
-                } \
-                Realm::IndexSpace<DIM,coord_t> space(points); \
-                const DomainT<DIM,coord_t> domaint(space); \
-                launch_domain = domaint; \
-                break; \
-              }
-            LEGION_FOREACH_N(DIMFUNC) 
+#define DIMFUNC(DIM)                                                        \
+  case DIM:                                                                 \
+    {                                                                       \
+      std::vector<Realm::Point<DIM, coord_t> > points(single_tasks);        \
+      for (unsigned idx = 0; idx < single_tasks; idx++)                     \
+      {                                                                     \
+        const Point<DIM, coord_t> point = launcher.single_tasks[idx].point; \
+        points[idx] = point;                                                \
+      }                                                                     \
+      Realm::IndexSpace<DIM, coord_t> space(points);                        \
+      const DomainT<DIM, coord_t> domaint(space);                           \
+      launch_domain = domaint;                                              \
+      break;                                                                \
+    }
+            LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
             default:
               std::abort();
           }
-          return parent_ctx->find_index_launch_space(launch_domain,
-              provenance, true/*take ownership*/);
-        }
-        else // Easy case of a single point task
+          return parent_ctx->find_index_launch_space(
+              launch_domain, provenance, true /*take ownership*/);
+        } else  // Easy case of a single point task
         {
           DomainPoint point = launcher.single_tasks[0].point;
           launch_domain = Domain(point, point);
@@ -927,13 +933,14 @@ namespace Legion {
         RtEvent commit_precondition;
         if (!commit_preconditions.empty())
           commit_precondition = Runtime::merge_events(commit_preconditions);
-        commit_operation(true/*deactivate*/, commit_precondition);
+        commit_operation(true /*deactivate*/, commit_precondition);
       }
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::verify_dependence(Operation *src_op, GenerationID src_gen,
-                                        Operation *dst_op, GenerationID dst_gen)
+    void MustEpochOp::verify_dependence(
+        Operation* src_op, GenerationID src_gen, Operation* dst_op,
+        GenerationID dst_gen)
     //--------------------------------------------------------------------------
     {
       // If they are the same, then we can ignore them
@@ -947,24 +954,24 @@ namespace Legion {
         int dst_index = find_operation_index(dst_op, dst_gen);
         if (dst_index >= 0)
         {
-          TaskOp *src_task = find_task_by_index(src_index);
-          TaskOp *dst_task = find_task_by_index(dst_index);
+          TaskOp* src_task = find_task_by_index(src_index);
+          TaskOp* dst_task = find_task_by_index(dst_index);
           Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-            << "Detected dependence between two tasks " << *src_task
-            << " and " << *dst_task << ". Non-simulataneous dependences "
-            << "between two tasks in a must-epoch launch are not permitted.";
+              << "Detected dependence between two tasks " << *src_task
+              << " and " << *dst_task << ". Non-simulataneous dependences "
+              << "between two tasks in a must-epoch launch are not permitted.";
         }
       }
     }
-    
+
     //--------------------------------------------------------------------------
-    bool MustEpochOp::record_dependence(Operation *src_op, GenerationID src_gen,
-                                        Operation *dst_op, GenerationID dst_gen,
-                                        unsigned src_idx, unsigned dst_idx,
-                                        DependenceType dtype) 
+    bool MustEpochOp::record_dependence(
+        Operation* src_op, GenerationID src_gen, Operation* dst_op,
+        GenerationID dst_gen, unsigned src_idx, unsigned dst_idx,
+        DependenceType dtype)
     //--------------------------------------------------------------------------
     {
-      // If they are the same we can ignore them 
+      // If they are the same we can ignore them
       if ((src_op == dst_op) && (src_gen == dst_gen))
         return true;
       // Check to see if the source is one of our operations
@@ -975,10 +982,11 @@ namespace Legion {
         if (!internal_dependences.empty())
         {
           // Check to see if the destination is one of our internal ops
-          std::pair<Operation*,GenerationID> internal_key(dst_op, dst_gen);
-          std::map<std::pair<Operation*,GenerationID>,std::vector<std::pair<
-            unsigned,unsigned> > >::const_iterator finder = 
-            internal_dependences.find(internal_key);
+          std::pair<Operation*, GenerationID> internal_key(dst_op, dst_gen);
+          std::map<
+              std::pair<Operation*, GenerationID>,
+              std::vector<std::pair<unsigned, unsigned> > >::const_iterator
+              finder = internal_dependences.find(internal_key);
           if (finder != internal_dependences.end())
           {
 #ifdef DEBUG_LEGION
@@ -989,31 +997,31 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             assert(src_index >= 0);
 #endif
-            TaskOp *src_task = find_task_by_index(src_index);
-            const RegionRequirement &src_req = src_task->regions[src_idx];
-            IndexSpaceNode *src_node = 
-              runtime->get_node(src_req.region.get_index_space());
+            TaskOp* src_task = find_task_by_index(src_index);
+            const RegionRequirement& src_req = src_task->regions[src_idx];
+            IndexSpaceNode* src_node =
+                runtime->get_node(src_req.region.get_index_space());
             // Scan through all the dependences this internal operation
             // had on other tasks inside the must epoch launch and see
             // which ones we actually interfere with so we can record
             // the appropriate constraints
-            for (std::vector<std::pair<unsigned,unsigned> >::const_iterator it =
-                  finder->second.begin(); it != finder->second.end(); it++)
+            for (std::vector<std::pair<unsigned, unsigned> >::const_iterator
+                     it = finder->second.begin();
+                 it != finder->second.end(); it++)
             {
-              TaskOp *dst_task = find_task_by_index(it->first);
-              const RegionRequirement &dst_req = dst_task->regions[it->second];
-              IndexSpaceNode *dst_node =
-                runtime->get_node(dst_req.region.get_index_space());
-              IndexTreeNode *dummy = nullptr;
-              if (runtime->are_disjoint_tree_only(src_node, 
-                                                  dst_node, dummy))
+              TaskOp* dst_task = find_task_by_index(it->first);
+              const RegionRequirement& dst_req = dst_task->regions[it->second];
+              IndexSpaceNode* dst_node =
+                  runtime->get_node(dst_req.region.get_index_space());
+              IndexTreeNode* dummy = nullptr;
+              if (runtime->are_disjoint_tree_only(src_node, dst_node, dummy))
                 continue;
               // Update the dependence type
-              DependenceType internal_dtype = 
-                check_dependence_type<true,true/*reductions interfere*/>(
-                                RegionUsage(src_req), RegionUsage(dst_req));
-              record_intra_must_epoch_dependence(src_index, src_idx, it->first,
-                                                 it->second, internal_dtype);
+              DependenceType internal_dtype =
+                  check_dependence_type<true, true /*reductions interfere*/>(
+                      RegionUsage(src_req), RegionUsage(dst_req));
+              record_intra_must_epoch_dependence(
+                  src_index, src_idx, it->first, it->second, internal_dtype);
             }
           }
         }
@@ -1025,126 +1033,121 @@ namespace Legion {
         // operations in the same must epoch operation
 #ifdef DEBUG_LEGION
         assert(src_op->get_operation_kind() == REFINEMENT_OP_KIND);
-        InternalOp *internal_op = dynamic_cast<InternalOp*>(src_op);
+        InternalOp* internal_op = dynamic_cast<InternalOp*>(src_op);
         assert(internal_op != nullptr);
 #else
-        InternalOp *internal_op = static_cast<InternalOp*>(src_op);
+        InternalOp* internal_op = static_cast<InternalOp*>(src_op);
 #endif
         // Record the destination as a potential target for anything
         // that comes later and depends on the internal operation
-        std::pair<Operation*,GenerationID> internal_key(src_op, src_gen);
+        std::pair<Operation*, GenerationID> internal_key(src_op, src_gen);
         internal_dependences[internal_key].push_back(
-            std::pair<unsigned,unsigned>(dst_index,dst_idx));
+            std::pair<unsigned, unsigned>(dst_index, dst_idx));
         // Use the source of the internal operation here since we still
         // need to record constraints properly between these operations
-        src_index = find_operation_index(internal_op->get_creator_op(),
-                                         internal_op->get_creator_gen());
+        src_index = find_operation_index(
+            internal_op->get_creator_op(), internal_op->get_creator_gen());
 #ifdef DEBUG_LEGION
-        assert(src_index >= 0); // better be able to find it
+        assert(src_index >= 0);  // better be able to find it
 #endif
         src_idx = internal_op->get_internal_index();
-        TaskOp *src_task = find_task_by_index(src_index);
-        TaskOp *dst_task = find_task_by_index(dst_index);
-        const RegionRequirement &src_req = src_task->regions[src_idx];
-        const RegionRequirement &dst_req = dst_task->regions[dst_idx];
+        TaskOp* src_task = find_task_by_index(src_index);
+        TaskOp* dst_task = find_task_by_index(dst_index);
+        const RegionRequirement& src_req = src_task->regions[src_idx];
+        const RegionRequirement& dst_req = dst_task->regions[dst_idx];
 #ifdef DEBUG_LEGION
         assert(src_req.handle_type == LEGION_SINGULAR_PROJECTION);
         assert(dst_req.handle_type == LEGION_SINGULAR_PROJECTION);
 #endif
         // Check to see if the regions actually do interfere
-        IndexSpaceNode *src_node = 
-          runtime->get_node(src_req.region.get_index_space());
-        IndexSpaceNode *dst_node = 
-          runtime->get_node(dst_req.region.get_index_space());
-        IndexTreeNode *dummy = nullptr;
+        IndexSpaceNode* src_node =
+            runtime->get_node(src_req.region.get_index_space());
+        IndexSpaceNode* dst_node =
+            runtime->get_node(dst_req.region.get_index_space());
+        IndexTreeNode* dummy = nullptr;
         if (runtime->are_disjoint_tree_only(src_node, dst_node, dummy))
           return false;
         // Update the dependence type
-        dtype = check_dependence_type<true,true/*reductions interfere*/>(
-                          RegionUsage(src_req), RegionUsage(dst_req));
-      }
-      else
+        dtype = check_dependence_type<true, true /*reductions interfere*/>(
+            RegionUsage(src_req), RegionUsage(dst_req));
+      } else
         src_index = find_operation_index(src_op, src_gen);
 #ifdef DEBUG_LEGION
       assert(src_index >= 0);
 #endif
-      return record_intra_must_epoch_dependence(src_index, src_idx, 
-                                                dst_index, dst_idx, dtype); 
+      return record_intra_must_epoch_dependence(
+          src_index, src_idx, dst_index, dst_idx, dtype);
     }
 
     //--------------------------------------------------------------------------
     bool MustEpochOp::record_intra_must_epoch_dependence(
-                                           unsigned src_index, unsigned src_idx,
-                                           unsigned dst_index, unsigned dst_idx,
-                                           DependenceType dtype)
+        unsigned src_index, unsigned src_idx, unsigned dst_index,
+        unsigned dst_idx, DependenceType dtype)
     //--------------------------------------------------------------------------
     {
       // If it is, see what kind of dependence we have
-      if ((dtype == LEGION_TRUE_DEPENDENCE) || 
+      if ((dtype == LEGION_TRUE_DEPENDENCE) ||
           (dtype == LEGION_ANTI_DEPENDENCE) ||
           (dtype == LEGION_ATOMIC_DEPENDENCE))
       {
-        TaskOp *src_task = find_task_by_index(src_index);
-        TaskOp *dst_task = find_task_by_index(dst_index);
+        TaskOp* src_task = find_task_by_index(src_index);
+        TaskOp* dst_task = find_task_by_index(dst_index);
         Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-          << "Detected dependence between region " << src_idx 
-          << " of " << *src_task << " and " << dst_idx << " of " 
-          << *dst_task << " of type " <<
-            ((dtype == LEGION_TRUE_DEPENDENCE) ? "TRUE DEPENDENCE" :
-            (dtype == LEGION_ANTI_DEPENDENCE) ? "ANTI DEPENDENCE" :
-              "ATOMIC DEPENDENCE")
-          << ". Non-simultaneous dependences between two tasks in a "
-          << "must epoch_launch are not permitted.";
-      }
-      else if (dtype == LEGION_SIMULTANEOUS_DEPENDENCE)
+            << "Detected dependence between region " << src_idx << " of "
+            << *src_task << " and " << dst_idx << " of " << *dst_task
+            << " of type "
+            << ((dtype == LEGION_TRUE_DEPENDENCE) ? "TRUE DEPENDENCE" :
+                (dtype == LEGION_ANTI_DEPENDENCE) ? "ANTI DEPENDENCE" :
+                                                    "ATOMIC DEPENDENCE")
+            << ". Non-simultaneous dependences between two tasks in a "
+            << "must epoch_launch are not permitted.";
+      } else if (dtype == LEGION_SIMULTANEOUS_DEPENDENCE)
       {
         // See if the dependence record already exists
-        const std::pair<unsigned,unsigned> src_key(src_index,src_idx);
-        const std::pair<unsigned,unsigned> dst_key(dst_index,dst_idx);
-        std::map<std::pair<unsigned,unsigned>,unsigned>::iterator
-          src_record_finder = dependence_map.find(src_key);
+        const std::pair<unsigned, unsigned> src_key(src_index, src_idx);
+        const std::pair<unsigned, unsigned> dst_key(dst_index, dst_idx);
+        std::map<std::pair<unsigned, unsigned>, unsigned>::iterator
+            src_record_finder = dependence_map.find(src_key);
         if (src_record_finder != dependence_map.end())
         {
-          // Already have a source record, see if we have 
+          // Already have a source record, see if we have
           // a destination record too
-          std::map<std::pair<unsigned,unsigned>,unsigned>::iterator
-            dst_record_finder = dependence_map.find(dst_key); 
+          std::map<std::pair<unsigned, unsigned>, unsigned>::iterator
+              dst_record_finder = dependence_map.find(dst_key);
           if (dst_record_finder == dependence_map.end())
           {
             // Update the destination record entry
             dependence_map[dst_key] = src_record_finder->second;
-            dependences[src_record_finder->second]->add_entry(dst_index, 
-                                                              dst_idx);
+            dependences[src_record_finder->second]->add_entry(
+                dst_index, dst_idx);
           }
 #ifdef DEBUG_LEGION
-          else // both already there so just assert they are the same
+          else  // both already there so just assert they are the same
             assert(src_record_finder->second == dst_record_finder->second);
 #endif
-        }
-        else
+        } else
         {
           // No source record
           // See if we have a destination record entry
-          std::map<std::pair<unsigned,unsigned>,unsigned>::iterator
-            dst_record_finder = dependence_map.find(dst_key);
+          std::map<std::pair<unsigned, unsigned>, unsigned>::iterator
+              dst_record_finder = dependence_map.find(dst_key);
           if (dst_record_finder == dependence_map.end())
           {
             // Neither source nor destination have an entry so
             // make a new record
-            DependenceRecord *new_record = new DependenceRecord();
+            DependenceRecord* new_record = new DependenceRecord();
             new_record->add_entry(src_index, src_idx);
             new_record->add_entry(dst_index, dst_idx);
             unsigned record_index = dependences.size();
             dependence_map[src_key] = record_index;
             dependence_map[dst_key] = record_index;
             dependences.push_back(new_record);
-          }
-          else
+          } else
           {
             // Have a destination but no source, so update the source
             dependence_map[src_key] = dst_record_finder->second;
-            dependences[dst_record_finder->second]->add_entry(src_index,
-                                                              src_idx);
+            dependences[dst_record_finder->second]->add_entry(
+                src_index, src_idx);
           }
         }
         return false;
@@ -1155,9 +1158,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::must_epoch_map_task_callback(SingleTask *task,
-                                              Mapper::MapTaskInput &map_input,
-                                              Mapper::MapTaskOutput &map_output)
+    void MustEpochOp::must_epoch_map_task_callback(
+        SingleTask* task, Mapper::MapTaskInput& map_input,
+        Mapper::MapTaskOutput& map_output)
     //--------------------------------------------------------------------------
     {
       // We have to do three things here
@@ -1170,22 +1173,22 @@ namespace Legion {
       assert(single_task_map.find(task) != single_task_map.end());
 #endif
       unsigned index = single_task_map[task];
-      // Set the target processor by the index 
-      task->target_proc = output.task_processors[index]; 
+      // Set the target processor by the index
+      task->target_proc = output.task_processors[index];
       // Now iterate over the constraints figure out which ones
       // apply to this task
-      std::pair<unsigned,unsigned> key(index,0);
+      std::pair<unsigned, unsigned> key(index, 0);
       for (unsigned idx = 0; idx < task->regions.size(); idx++)
       {
         key.second = idx;
-        std::map<std::pair<unsigned,unsigned>,unsigned>::const_iterator
-          record_finder = dependence_map.find(key);
+        std::map<std::pair<unsigned, unsigned>, unsigned>::const_iterator
+            record_finder = dependence_map.find(key);
         if (record_finder != dependence_map.end())
         {
-          map_input.valid_instances[idx] = 
-            output.constraint_mappings[record_finder->second];
-          map_output.chosen_instances[idx] = 
-            output.constraint_mappings[record_finder->second];
+          map_input.valid_instances[idx] =
+              output.constraint_mappings[record_finder->second];
+          map_output.chosen_instances[idx] =
+              output.constraint_mappings[record_finder->second];
           // Also record that we premapped this
           map_input.premapped_regions.push_back(idx);
         }
@@ -1193,18 +1196,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    std::map<PhysicalManager*,unsigned>*
-                                   MustEpochOp::get_acquired_instances_ref(void)
+    std::map<PhysicalManager*, unsigned>*
+        MustEpochOp::get_acquired_instances_ref(void)
     //--------------------------------------------------------------------------
     {
-      return &acquired_instances; 
+      return &acquired_instances;
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::register_single_task(SingleTask *single, unsigned index)
+    void MustEpochOp::register_single_task(SingleTask* single, unsigned index)
     //--------------------------------------------------------------------------
     {
-      // Can do the first part without the lock 
+      // Can do the first part without the lock
 #ifdef DEBUG_LEGION
       assert(index < task_sets.size());
 #endif
@@ -1220,7 +1223,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::register_slice_task(SliceTask *slice)
+    void MustEpochOp::register_slice_task(SliceTask* slice)
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
@@ -1228,7 +1231,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::register_subop(Operation *op)
+    void MustEpochOp::register_subop(Operation* op)
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
@@ -1237,7 +1240,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::notify_subop_complete(Operation *op, ApEvent effect)
+    void MustEpochOp::notify_subop_complete(Operation* op, ApEvent effect)
     //--------------------------------------------------------------------------
     {
       if (effect.exists())
@@ -1256,7 +1259,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochOp::notify_subop_commit(Operation *op, RtEvent precondition)
+    void MustEpochOp::notify_subop_commit(Operation* op, RtEvent precondition)
     //--------------------------------------------------------------------------
     {
       bool need_commit;
@@ -1275,26 +1278,25 @@ namespace Legion {
         RtEvent commit_precondition;
         if (!commit_preconditions.empty())
           commit_precondition = Runtime::merge_events(commit_preconditions);
-        commit_operation(true/*deactivate*/, commit_precondition);
+        commit_operation(true /*deactivate*/, commit_precondition);
       }
     }
 
     //--------------------------------------------------------------------------
-    RtUserEvent MustEpochOp::find_slice_versioning_event(UniqueID slice_id,
-                                                         bool &first)
+    RtUserEvent MustEpochOp::find_slice_versioning_event(
+        UniqueID slice_id, bool& first)
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
-      std::map<UniqueID,RtUserEvent>::const_iterator finder = 
-        slice_version_events.find(slice_id);
+      std::map<UniqueID, RtUserEvent>::const_iterator finder =
+          slice_version_events.find(slice_id);
       if (finder == slice_version_events.end())
       {
-        first = true; 
+        first = true;
         RtUserEvent result = Runtime::create_rt_user_event();
         slice_version_events[slice_id] = result;
         return result;
-      }
-      else
+      } else
       {
         first = false;
         return finder->second;
@@ -1302,14 +1304,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    int MustEpochOp::find_operation_index(Operation *op, GenerationID op_gen)
+    int MustEpochOp::find_operation_index(Operation* op, GenerationID op_gen)
     //--------------------------------------------------------------------------
     {
       if (op->get_operation_kind() != TASK_OP_KIND)
         return -1;
       for (unsigned idx = 0; idx < indiv_tasks.size(); idx++)
       {
-        if ((indiv_tasks[idx] == op) && 
+        if ((indiv_tasks[idx] == op) &&
             (indiv_tasks[idx]->get_generation() == op_gen))
           return idx;
       }
@@ -1317,7 +1319,7 @@ namespace Legion {
       {
         if ((index_tasks[idx] == op) &&
             (index_tasks[idx]->get_generation() == op_gen))
-          return (idx+indiv_tasks.size());
+          return (idx + indiv_tasks.size());
       }
       return -1;
     }
@@ -1336,16 +1338,15 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Must Epoch Mapping Broadcast 
+    // Must Epoch Mapping Broadcast
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
     MustEpochMappingBroadcast::MustEpochMappingBroadcast(
-            ReplicateContext *ctx, ShardID origin, CollectiveID collective_id)
+        ReplicateContext* ctx, ShardID origin, CollectiveID collective_id)
       : BroadcastCollective(ctx, collective_id, origin)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     MustEpochMappingBroadcast::~MustEpochMappingBroadcast(void)
@@ -1355,8 +1356,8 @@ namespace Legion {
       assert(local_done_event.exists());
 #endif
       if (!done_events.empty())
-        Runtime::trigger_event(local_done_event,
-            Runtime::merge_events(done_events));
+        Runtime::trigger_event(
+            local_done_event, Runtime::merge_events(done_events));
       else
         Runtime::trigger_event(local_done_event);
       // This should only happen on the owner node
@@ -1365,15 +1366,16 @@ namespace Legion {
         // Wait for all the other shards to be done
         local_done_event.wait();
         // Now we can remove our held references
-        for (std::set<PhysicalManager*>::const_iterator it = 
-              held_references.begin(); it != held_references.end(); it++)
+        for (std::set<PhysicalManager*>::const_iterator it =
+                 held_references.begin();
+             it != held_references.end(); it++)
           if ((*it)->remove_base_valid_ref(REPLICATION_REF))
             delete (*it);
       }
     }
-    
+
     //--------------------------------------------------------------------------
-    void MustEpochMappingBroadcast::pack_collective(Serializer &rez) const
+    void MustEpochMappingBroadcast::pack_collective(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       RtUserEvent next_done = Runtime::create_rt_user_event();
@@ -1385,16 +1387,16 @@ namespace Legion {
       rez.serialize<size_t>(instances.size());
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
-        const std::vector<DistributedID> &dids = instances[idx];
+        const std::vector<DistributedID>& dids = instances[idx];
         rez.serialize<size_t>(dids.size());
-        for (std::vector<DistributedID>::const_iterator it = 
-              dids.begin(); it != dids.end(); it++)
+        for (std::vector<DistributedID>::const_iterator it = dids.begin();
+             it != dids.end(); it++)
           rez.serialize(*it);
       }
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochMappingBroadcast::unpack_collective(Deserializer &derez)
+    void MustEpochMappingBroadcast::unpack_collective(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       derez.deserialize(local_done_event);
@@ -1410,7 +1412,7 @@ namespace Legion {
       {
         size_t num_dids;
         derez.deserialize(num_dids);
-        std::vector<DistributedID> &dids = instances[idx1];
+        std::vector<DistributedID>& dids = instances[idx1];
         dids.resize(num_dids);
         for (unsigned idx2 = 0; idx2 < num_dids; idx2++)
           derez.deserialize(dids[idx2]);
@@ -1419,8 +1421,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MustEpochMappingBroadcast::broadcast(
-           const std::vector<Processor> &processor_mapping,
-           const std::vector<std::vector<Mapping::PhysicalInstance> > &mappings)
+        const std::vector<Processor>& processor_mapping,
+        const std::vector<std::vector<Mapping::PhysicalInstance> >& mappings)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1433,12 +1435,12 @@ namespace Legion {
       // hold until all the must epoch operations are done with the exchange
       for (unsigned idx1 = 0; idx1 < mappings.size(); idx1++)
       {
-        std::vector<DistributedID> &dids = instances[idx1];
+        std::vector<DistributedID>& dids = instances[idx1];
         dids.resize(mappings[idx1].size());
         for (unsigned idx2 = 0; idx2 < dids.size(); idx2++)
         {
-          const Mapping::PhysicalInstance &inst = mappings[idx1][idx2];
-          PhysicalManager *manager = inst.impl->as_physical_manager();
+          const Mapping::PhysicalInstance& inst = mappings[idx1][idx2];
+          PhysicalManager* manager = inst.impl->as_physical_manager();
           dids[idx2] = manager->did;
           if (held_references.find(manager) != held_references.end())
             continue;
@@ -1451,10 +1453,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MustEpochMappingBroadcast::receive_results(
-                std::vector<Processor> &processor_mapping,
-                const std::vector<unsigned> &constraint_indexes,
-                std::vector<std::vector<Mapping::PhysicalInstance> > &mappings,
-                std::map<PhysicalManager*,unsigned> &acquired)
+        std::vector<Processor>& processor_mapping,
+        const std::vector<unsigned>& constraint_indexes,
+        std::vector<std::vector<Mapping::PhysicalInstance> >& mappings,
+        std::map<PhysicalManager*, unsigned>& acquired)
     //--------------------------------------------------------------------------
     {
       perform_collective_wait();
@@ -1463,23 +1465,24 @@ namespace Legion {
       // We are a little smarter with the mappings since we know exactly
       // which ones we are actually going to need for our local points
       std::set<RtEvent> ready_events;
-      for (std::vector<unsigned>::const_iterator it = 
-            constraint_indexes.begin(); it != constraint_indexes.end(); it++)
+      for (std::vector<unsigned>::const_iterator it =
+               constraint_indexes.begin();
+           it != constraint_indexes.end(); it++)
       {
 #ifdef DEBUG_LEGION
         assert((*it) < instances.size());
         assert((*it) < mappings.size());
 #endif
-        const std::vector<DistributedID> &dids = instances[*it];
-        std::vector<Mapping::PhysicalInstance> &mapping = mappings[*it];
+        const std::vector<DistributedID>& dids = instances[*it];
+        std::vector<Mapping::PhysicalInstance>& mapping = mappings[*it];
         mapping.resize(dids.size());
         for (unsigned idx = 0; idx < dids.size(); idx++)
         {
           RtEvent ready;
-          mapping[idx].impl = 
-            runtime->find_or_request_instance_manager(dids[idx], ready);
+          mapping[idx].impl =
+              runtime->find_or_request_instance_manager(dids[idx], ready);
           if (!ready.has_triggered())
-            ready_events.insert(ready);   
+            ready_events.insert(ready);
         }
       }
       // Have to wait for the ready events to trigger before we can add
@@ -1494,13 +1497,14 @@ namespace Legion {
       for (unsigned idx = 0; idx < constraint_indexes.size(); idx++)
       {
         const unsigned constraint_index = constraint_indexes[idx];
-        const std::vector<Mapping::PhysicalInstance> &mapping = 
-          mappings[constraint_index];
+        const std::vector<Mapping::PhysicalInstance>& mapping =
+            mappings[constraint_index];
         // Also grab an acquired reference to these instances
-        for (std::vector<Mapping::PhysicalInstance>::const_iterator it = 
-              mapping.begin(); it != mapping.end(); it++)
+        for (std::vector<Mapping::PhysicalInstance>::const_iterator it =
+                 mapping.begin();
+             it != mapping.end(); it++)
         {
-          PhysicalManager *manager = it->impl->as_physical_manager();
+          PhysicalManager* manager = it->impl->as_physical_manager();
           // If we already had a reference to this instance
           // then we don't need to add any additional ones
           if (acquired.find(manager) != acquired.end())
@@ -1508,14 +1512,14 @@ namespace Legion {
           manager->add_base_gc_ref(MAPPER_REF);
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
-          bool result = 
+          bool result =
 #endif
 #endif
-          manager->acquire_instance(MAPPING_ACQUIRE_REF);
+              manager->acquire_instance(MAPPING_ACQUIRE_REF);
 #ifdef DEBUG_LEGION
           assert(result);
 #endif
-          acquired[manager] = 1/*count*/; 
+          acquired[manager] = 1 /*count*/;
         }
       }
     }
@@ -1525,19 +1529,18 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MustEpochMappingExchange::MustEpochMappingExchange(ReplicateContext *ctx,
-                                                 CollectiveID collective_id)
+    MustEpochMappingExchange::MustEpochMappingExchange(
+        ReplicateContext* ctx, CollectiveID collective_id)
       : AllGatherCollective(ctx, collective_id)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     MustEpochMappingExchange::~MustEpochMappingExchange(void)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(local_done_event.exists()); // better have one of these
+      assert(local_done_event.exists());  // better have one of these
 #endif
       Runtime::trigger_event(local_done_event);
       // See if we need to wait for others to be done before we can
@@ -1549,27 +1552,30 @@ namespace Legion {
           done.wait();
       }
       // Now we can remove our held references
-      for (std::set<PhysicalManager*>::const_iterator it = 
-            held_references.begin(); it != held_references.end(); it++)
+      for (std::set<PhysicalManager*>::const_iterator it =
+               held_references.begin();
+           it != held_references.end(); it++)
         if ((*it)->remove_base_valid_ref(REPLICATION_REF))
           delete (*it);
     }
-    
+
     //--------------------------------------------------------------------------
-    void MustEpochMappingExchange::pack_collective_stage(ShardID target,
-                                                     Serializer &rez, int stage)
+    void MustEpochMappingExchange::pack_collective_stage(
+        ShardID target, Serializer& rez, int stage)
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(processors.size());
-      for (std::map<DomainPoint,Processor>::const_iterator it = 
-            processors.begin(); it != processors.end(); it++)
+      for (std::map<DomainPoint, Processor>::const_iterator it =
+               processors.begin();
+           it != processors.end(); it++)
       {
         rez.serialize(it->first);
         rez.serialize(it->second);
       }
       rez.serialize<size_t>(constraints.size());
-      for (std::map<unsigned,ConstraintInfo>::const_iterator it = 
-            constraints.begin(); it != constraints.end(); it++)
+      for (std::map<unsigned, ConstraintInfo>::const_iterator it =
+               constraints.begin();
+           it != constraints.end(); it++)
       {
         rez.serialize(it->first);
         rez.serialize<size_t>(it->second.instances.size());
@@ -1579,14 +1585,14 @@ namespace Legion {
         rez.serialize(it->second.weight);
       }
       rez.serialize<size_t>(done_events.size());
-      for (std::set<RtEvent>::const_iterator it = 
-            done_events.begin(); it != done_events.end(); it++)
+      for (std::set<RtEvent>::const_iterator it = done_events.begin();
+           it != done_events.end(); it++)
         rez.serialize(*it);
     }
 
     //--------------------------------------------------------------------------
-    void MustEpochMappingExchange::unpack_collective_stage(Deserializer &derez,
-                                                           int stage)
+    void MustEpochMappingExchange::unpack_collective_stage(
+        Deserializer& derez, int stage)
     //--------------------------------------------------------------------------
     {
       size_t num_procs;
@@ -1603,12 +1609,12 @@ namespace Legion {
       {
         unsigned constraint_index;
         derez.deserialize(constraint_index);
-        std::map<unsigned,ConstraintInfo>::iterator
-          finder = constraints.find(constraint_index);
+        std::map<unsigned, ConstraintInfo>::iterator finder =
+            constraints.find(constraint_index);
         if (finder == constraints.end())
         {
           // Can unpack directly since we're first
-          ConstraintInfo &info = constraints[constraint_index];
+          ConstraintInfo& info = constraints[constraint_index];
           size_t num_dids;
           derez.deserialize(num_dids);
           info.instances.resize(num_dids);
@@ -1616,8 +1622,7 @@ namespace Legion {
             derez.deserialize(info.instances[idx2]);
           derez.deserialize(info.origin_shard);
           derez.deserialize(info.weight);
-        }
-        else
+        } else
         {
           // Unpack into a temporary
           ConstraintInfo info;
@@ -1648,14 +1653,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MustEpochMappingExchange::exchange_must_epoch_mappings(
-                ShardID shard_id, size_t total_shards, size_t total_constraints,
-                const std::vector<const Task*> &local_tasks,
-                const std::vector<const Task*> &all_tasks,
-                      std::vector<Processor> &processor_mapping,
-                const std::vector<unsigned> &constraint_indexes,
-                std::vector<std::vector<Mapping::PhysicalInstance> > &mappings,
-                const std::vector<int> &mapping_weights,
-                std::map<PhysicalManager*,unsigned> &acquired)
+        ShardID shard_id, size_t total_shards, size_t total_constraints,
+        const std::vector<const Task*>& local_tasks,
+        const std::vector<const Task*>& all_tasks,
+        std::vector<Processor>& processor_mapping,
+        const std::vector<unsigned>& constraint_indexes,
+        std::vector<std::vector<Mapping::PhysicalInstance> >& mappings,
+        const std::vector<int>& mapping_weights,
+        std::map<PhysicalManager*, unsigned>& acquired)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1666,10 +1671,11 @@ namespace Legion {
       // hold until all the must epoch operations are done with the exchange
       for (unsigned idx = 0; idx < mappings.size(); idx++)
       {
-        for (std::vector<Mapping::PhysicalInstance>::const_iterator it = 
-              mappings[idx].begin(); it != mappings[idx].end(); it++)
+        for (std::vector<Mapping::PhysicalInstance>::const_iterator it =
+                 mappings[idx].begin();
+             it != mappings[idx].end(); it++)
         {
-          PhysicalManager *manager = it->impl->as_physical_manager();
+          PhysicalManager* manager = it->impl->as_physical_manager();
           if (held_references.find(manager) != held_references.end())
             continue;
           manager->add_base_valid_ref(REPLICATION_REF);
@@ -1685,7 +1691,7 @@ namespace Legion {
         AutoLock c_lock(collective_lock);
         for (unsigned idx = 0; idx < local_tasks.size(); idx++)
         {
-          const Task *task = local_tasks[idx];
+          const Task* task = local_tasks[idx];
 #ifdef DEBUG_LEGION
           assert(processors.find(task->index_point) == processors.end());
 #endif
@@ -1693,20 +1699,20 @@ namespace Legion {
         }
         for (unsigned idx1 = 0; idx1 < mappings.size(); idx1++)
         {
-          const unsigned constraint_index = constraint_indexes[idx1]; 
+          const unsigned constraint_index = constraint_indexes[idx1];
 #ifdef DEBUG_LEGION
           assert(constraint_index < total_constraints);
 #endif
-          std::map<unsigned,ConstraintInfo>::iterator
-            finder = constraints.find(constraint_index);
+          std::map<unsigned, ConstraintInfo>::iterator finder =
+              constraints.find(constraint_index);
           // Only add it if it doesn't exist or it has a lower weight
           // or it has the same weight and is a lower shard
-          if ((finder == constraints.end()) || 
+          if ((finder == constraints.end()) ||
               (mapping_weights[idx1] > finder->second.weight) ||
               ((mapping_weights[idx1] == finder->second.weight) &&
                (shard_id < finder->second.origin_shard)))
           {
-            ConstraintInfo &info = constraints[constraint_index];
+            ConstraintInfo& info = constraints[constraint_index];
             info.instances.resize(mappings[idx1].size());
             for (unsigned idx2 = 0; idx2 < mappings[idx1].size(); idx2++)
               info.instances[idx2] = mappings[idx1][idx2].impl->did;
@@ -1722,32 +1728,32 @@ namespace Legion {
       mappings.clear();
       mappings.resize(total_constraints);
       std::set<RtEvent> ready_events;
-      // We only need to get the results for local constraints as we 
+      // We only need to get the results for local constraints as we
       // know that we aren't going to care about any of the rest
       for (unsigned idx1 = 0; idx1 < constraint_indexes.size(); idx1++)
       {
         const unsigned constraint_index = constraint_indexes[idx1];
-        const std::vector<DistributedID> &dids = 
-          constraints[constraint_index].instances;
-        std::vector<Mapping::PhysicalInstance> &mapping = 
-          mappings[constraint_index];
+        const std::vector<DistributedID>& dids =
+            constraints[constraint_index].instances;
+        std::vector<Mapping::PhysicalInstance>& mapping =
+            mappings[constraint_index];
         mapping.resize(dids.size());
         for (unsigned idx2 = 0; idx2 < dids.size(); idx2++)
         {
           RtEvent ready;
-          mapping[idx2].impl = 
-            runtime->find_or_request_instance_manager(dids[idx2], ready);
+          mapping[idx2].impl =
+              runtime->find_or_request_instance_manager(dids[idx2], ready);
           if (!ready.has_triggered())
-            ready_events.insert(ready);   
+            ready_events.insert(ready);
         }
       }
       // Update the processor mapping
       processor_mapping.resize(all_tasks.size());
       for (unsigned idx = 0; idx < all_tasks.size(); idx++)
       {
-        const Task *task = all_tasks[idx];
-        std::map<DomainPoint,Processor>::const_iterator finder = 
-          processors.find(task->index_point);
+        const Task* task = all_tasks[idx];
+        std::map<DomainPoint, Processor>::const_iterator finder =
+            processors.find(task->index_point);
 #ifdef DEBUG_LEGION
         assert(finder != processors.end());
 #endif
@@ -1764,20 +1770,21 @@ namespace Legion {
       for (unsigned idx = 0; idx < constraint_indexes.size(); idx++)
       {
         const unsigned constraint_index = constraint_indexes[idx];
-        const std::vector<Mapping::PhysicalInstance> &mapping = 
-          mappings[constraint_index];
+        const std::vector<Mapping::PhysicalInstance>& mapping =
+            mappings[constraint_index];
         // Also grab an acquired reference to these instances
-        for (std::vector<Mapping::PhysicalInstance>::const_iterator it = 
-              mapping.begin(); it != mapping.end(); it++)
+        for (std::vector<Mapping::PhysicalInstance>::const_iterator it =
+                 mapping.begin();
+             it != mapping.end(); it++)
         {
-          PhysicalManager *manager = it->impl->as_physical_manager();
+          PhysicalManager* manager = it->impl->as_physical_manager();
           // If we already had a reference to this instance
           // then we don't need to add any additional ones
           if (acquired.find(manager) != acquired.end())
             continue;
           manager->add_base_gc_ref(MAPPER_REF);
           manager->add_base_valid_ref(MAPPING_ACQUIRE_REF);
-          acquired[manager] = 1/*count*/;
+          acquired[manager] = 1 /*count*/;
         }
       }
     }
@@ -1788,27 +1795,26 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     MustEpochDependenceExchange::MustEpochDependenceExchange(
-        CollectiveID id, ReplicateContext *ctx, 
-        std::map<DomainPoint,RtUserEvent> &events)
+        CollectiveID id, ReplicateContext* ctx,
+        std::map<DomainPoint, RtUserEvent>& events)
       : AllGatherCollective(ctx, id), mapped_events(events)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     MustEpochDependenceExchange::~MustEpochDependenceExchange(void)
     //--------------------------------------------------------------------------
-    {
-    }
-    
+    { }
+
     //--------------------------------------------------------------------------
-    void MustEpochDependenceExchange::pack_collective_stage(ShardID target,
-                                                     Serializer &rez, int stage)
+    void MustEpochDependenceExchange::pack_collective_stage(
+        ShardID target, Serializer& rez, int stage)
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(mapped_events.size());
-      for (std::map<DomainPoint,RtUserEvent>::const_iterator it = 
-            mapped_events.begin(); it != mapped_events.end(); it++)
+      for (std::map<DomainPoint, RtUserEvent>::const_iterator it =
+               mapped_events.begin();
+           it != mapped_events.end(); it++)
       {
         rez.serialize(it->first);
         rez.serialize(it->second);
@@ -1817,7 +1823,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MustEpochDependenceExchange::unpack_collective_stage(
-                                                 Deserializer &derez, int stage)
+        Deserializer& derez, int stage)
     //--------------------------------------------------------------------------
     {
       size_t num_deps;
@@ -1836,23 +1842,22 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     MustEpochCompletionExchange::MustEpochCompletionExchange(
-        CollectiveID id, ReplicateContext *ctx,
-        std::vector<RtEvent> &local_mapped,std::vector<ApEvent> &local_complete)
+        CollectiveID id, ReplicateContext* ctx,
+        std::vector<RtEvent>& local_mapped,
+        std::vector<ApEvent>& local_complete)
       : AllGatherCollective(ctx, id), local_mapped_events(local_mapped),
         local_complete_events(local_complete)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     MustEpochCompletionExchange::~MustEpochCompletionExchange(void)
     //--------------------------------------------------------------------------
-    {
-    }
-    
+    { }
+
     //--------------------------------------------------------------------------
-    void MustEpochCompletionExchange::pack_collective_stage(ShardID target,
-                                                     Serializer &rez, int stage)
+    void MustEpochCompletionExchange::pack_collective_stage(
+        ShardID target, Serializer& rez, int stage)
     //--------------------------------------------------------------------------
     {
       if (local_mapped_events.size() > 1)
@@ -1864,7 +1869,8 @@ namespace Legion {
       }
       if (local_complete_events.size() > 1)
       {
-        ApEvent next_local = Runtime::merge_events(nullptr, local_complete_events);
+        ApEvent next_local =
+            Runtime::merge_events(nullptr, local_complete_events);
         local_complete_events.clear();
         if (next_local.exists())
           local_complete_events.push_back(next_local);
@@ -1881,7 +1887,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MustEpochCompletionExchange::unpack_collective_stage(
-                                                 Deserializer &derez, int stage)
+        Deserializer& derez, int stage)
     //--------------------------------------------------------------------------
     {
       RtEvent remote_mapped;
@@ -1895,7 +1901,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent MustEpochCompletionExchange::finish_exchange(ReplMustEpochOp *op)
+    RtEvent MustEpochCompletionExchange::finish_exchange(ReplMustEpochOp* op)
     //--------------------------------------------------------------------------
     {
       perform_collective_wait();
@@ -1905,21 +1911,18 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Repl Must Epoch Op 
+    // Repl Must Epoch Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplMustEpochOp::ReplMustEpochOp(void)
-      : MustEpochOp()
+    ReplMustEpochOp::ReplMustEpochOp(void) : MustEpochOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplMustEpochOp::~ReplMustEpochOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void ReplMustEpochOp::activate(void)
@@ -1948,7 +1951,7 @@ namespace Legion {
     void ReplMustEpochOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MustEpochOp::deactivate(false/*free*/);
+      MustEpochOp::deactivate(false /*free*/);
       shard_single_tasks.clear();
       if (mapping_broadcast != nullptr)
         delete mapping_broadcast;
@@ -1967,24 +1970,24 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplMustEpochOp::instantiate_tasks(InnerContext *ctx, 
-                                            const MustEpochLauncher &launcher)
+    void ReplMustEpochOp::instantiate_tasks(
+        InnerContext* ctx, const MustEpochLauncher& launcher)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(ctx);
       assert(repl_ctx != nullptr);
       assert(!concurrent_mapped.exists());
       assert(!concurrent_mapped_barrier.exists());
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(ctx);
 #endif
       // This is a bit dumb, but we do it to make the types work out
       concurrent_mapped = Runtime::create_rt_user_event();
       concurrent_mapped_barrier =
-        repl_ctx->get_next_must_epoch_mapped_barrier();
+          repl_ctx->get_next_must_epoch_mapped_barrier();
       Runtime::trigger_event(concurrent_mapped, concurrent_mapped_barrier);
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       // Initialize operations for everything in the launcher
       // Note that we do not track these operations as we want them all to
       // appear as a single operation to the parent context in order to
@@ -1992,12 +1995,11 @@ namespace Legion {
       indiv_tasks.resize(launcher.single_tasks.size());
       for (unsigned idx = 0; idx < launcher.single_tasks.size(); idx++)
       {
-        ReplIndividualTask *task = 
-          runtime->get_operation<ReplIndividualTask>();
-        task->initialize_task(ctx, launcher.single_tasks[idx],
-                              provenance, false/*top level*/,
-                              true/*must epoch*/);
-        task->set_must_epoch(this, idx, true/*register*/);
+        ReplIndividualTask* task = runtime->get_operation<ReplIndividualTask>();
+        task->initialize_task(
+            ctx, launcher.single_tasks[idx], provenance, false /*top level*/,
+            true /*must epoch*/);
+        task->set_must_epoch(this, idx, true /*register*/);
         // If we have a trace, set it for this operation as well
         if (trace != nullptr)
           task->set_trace(trace, nullptr);
@@ -2006,8 +2008,8 @@ namespace Legion {
         task->index_domain = this->launch_domain;
         task->sharding_space = launcher.sharding_space;
 #ifdef DEBUG_LEGION
-        task->set_sharding_collective(new ShardingGatherCollective(repl_ctx,
-                                      0/*owner shard*/, COLLECTIVE_LOC_59));
+        task->set_sharding_collective(new ShardingGatherCollective(
+            repl_ctx, 0 /*owner shard*/, COLLECTIVE_LOC_59));
 #endif
         indiv_tasks[idx] = task;
         indiv_tasks[idx]->set_concurrent_postcondition(concurrent_mapped);
@@ -2018,44 +2020,47 @@ namespace Legion {
         IndexSpace launch_space = launcher.index_tasks[idx].launch_space;
         if (!launch_space.exists())
           launch_space = ctx->find_index_launch_space(
-                          launcher.index_tasks[idx].launch_domain, provenance);
-        ReplIndexTask *task = runtime->get_operation<ReplIndexTask>();
-        task->initialize_task(ctx, launcher.index_tasks[idx],
-                              launch_space, provenance, false/*track*/);
-        task->set_must_epoch(this, indiv_tasks.size()+idx, true/*register*/);
+              launcher.index_tasks[idx].launch_domain, provenance);
+        ReplIndexTask* task = runtime->get_operation<ReplIndexTask>();
+        task->initialize_task(
+            ctx, launcher.index_tasks[idx], launch_space, provenance,
+            false /*track*/);
+        task->set_must_epoch(this, indiv_tasks.size() + idx, true /*register*/);
         if (trace != nullptr)
           task->set_trace(trace, nullptr);
         task->must_epoch_task = true;
         task->initialize_replication(repl_ctx);
         task->sharding_space = launcher.sharding_space;
 #ifdef DEBUG_LEGION
-        task->set_sharding_collective(new ShardingGatherCollective(repl_ctx,
-                                      0/*owner shard*/, COLLECTIVE_LOC_59));
+        task->set_sharding_collective(new ShardingGatherCollective(
+            repl_ctx, 0 /*owner shard*/, COLLECTIVE_LOC_59));
 #endif
         index_tasks[idx] = task;
-        index_tasks[idx]->initialize_must_epoch_concurrent_group(0/*color*/,
-            concurrent_mapped);
+        index_tasks[idx]->initialize_must_epoch_concurrent_group(
+            0 /*color*/, concurrent_mapped);
       }
     }
 
     //--------------------------------------------------------------------------
-    FutureMap ReplMustEpochOp::create_future_map(TaskContext *ctx,
-                                IndexSpace launch_space, IndexSpace shard_space)
+    FutureMap ReplMustEpochOp::create_future_map(
+        TaskContext* ctx, IndexSpace launch_space, IndexSpace shard_space)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(ctx);
 #endif
-      IndexSpaceNode *launch_node = runtime->get_node(launch_space);
-      IndexSpaceNode *shard_node = 
-        ((launch_space == shard_space) || !shard_space.exists()) ?
-        launch_node : runtime->get_node(shard_space);
+      IndexSpaceNode* launch_node = runtime->get_node(launch_space);
+      IndexSpaceNode* shard_node =
+          ((launch_space == shard_space) || !shard_space.exists()) ?
+              launch_node :
+              runtime->get_node(shard_space);
       const DistributedID future_map_did = repl_ctx->get_next_distributed_id();
-      return repl_ctx->shard_manager->deduplicate_future_map_creation(repl_ctx,
-          this, launch_node, shard_node, future_map_did, get_provenance());
+      return repl_ctx->shard_manager->deduplicate_future_map_creation(
+          repl_ctx, this, launch_node, shard_node, future_map_did,
+          get_provenance());
     }
 
     //--------------------------------------------------------------------------
@@ -2063,23 +2068,23 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Processor mapper_proc = parent_ctx->get_executing_processor();
-      MapperManager *mapper = runtime->find_mapper(mapper_proc, map_id);
+      MapperManager* mapper = runtime->find_mapper(mapper_proc, map_id);
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // We want to do the map must epoch call
       // First find all the tasks that we own on this shard
       Domain shard_domain = launch_domain;
       if (sharding_space.exists())
         runtime->find_domain(sharding_space, shard_domain);
-      for (std::vector<SingleTask*>::const_iterator it = 
-            single_tasks.begin(); it != single_tasks.end(); it++)
+      for (std::vector<SingleTask*>::const_iterator it = single_tasks.begin();
+           it != single_tasks.end(); it++)
       {
-        const ShardID shard = 
-          sharding_function->find_owner((*it)->index_point, shard_domain);
+        const ShardID shard =
+            sharding_function->find_owner((*it)->index_point, shard_domain);
         if (runtime->legion_spy_enabled)
           LegionSpy::log_owner_shard((*it)->get_unique_id(), shard);
         // If it is not our shard then we don't own it
@@ -2093,11 +2098,11 @@ namespace Legion {
       for (unsigned idx = 0; idx < input.constraints.size(); idx++)
       {
         bool is_local = false;
-        for (std::vector<const Task*>::const_iterator it = 
-              input.constraints[idx].constrained_tasks.begin(); it !=
-              input.constraints[idx].constrained_tasks.end(); it++)
+        for (std::vector<const Task*>::const_iterator it =
+                 input.constraints[idx].constrained_tasks.begin();
+             it != input.constraints[idx].constrained_tasks.end(); it++)
         {
-          SingleTask *single = static_cast<SingleTask*>(const_cast<Task*>(*it));
+          SingleTask* single = static_cast<SingleTask*>(const_cast<Task*>(*it));
           if (shard_single_tasks.find(single) == shard_single_tasks.end())
             continue;
           is_local = true;
@@ -2112,8 +2117,8 @@ namespace Legion {
       if (collective_map_must_epoch_call)
       {
         // Update the input tasks for our subset
-        std::vector<const Task*> all_tasks(shard_single_tasks.begin(),
-                                           shard_single_tasks.end());
+        std::vector<const Task*> all_tasks(
+            shard_single_tasks.begin(), shard_single_tasks.end());
         input.tasks.swap(all_tasks);
         // Sort them again by their index points to for determinism
         std::sort(input.tasks.begin(), input.tasks.end(), single_task_sorter);
@@ -2134,34 +2139,32 @@ namespace Legion {
         assert(mapping_exchange == nullptr);
         assert(mapping_collective_id > 0);
 #endif
-        mapping_exchange = 
-          new MustEpochMappingExchange(repl_ctx, mapping_collective_id);
+        mapping_exchange =
+            new MustEpochMappingExchange(repl_ctx, mapping_collective_id);
         mapping_exchange->exchange_must_epoch_mappings(
-                  repl_ctx->owner_shard->shard_id,
-                  repl_ctx->shard_manager->total_shards, total_constraints,
-                  input.tasks, all_tasks, output.task_processors,
-                  original_constraint_indexes, output.constraint_mappings,
-                  output.weights, *get_acquired_instances_ref());
-      }
-      else
+            repl_ctx->owner_shard->shard_id,
+            repl_ctx->shard_manager->total_shards, total_constraints,
+            input.tasks, all_tasks, output.task_processors,
+            original_constraint_indexes, output.constraint_mappings,
+            output.weights, *get_acquired_instances_ref());
+      } else
       {
 #ifdef DEBUG_LEGION
         assert(mapping_broadcast == nullptr);
         assert(mapping_collective_id > 0);
 #endif
-        mapping_broadcast = new MustEpochMappingBroadcast(repl_ctx, 
-                                  0/*owner shard*/, mapping_collective_id);
+        mapping_broadcast = new MustEpochMappingBroadcast(
+            repl_ctx, 0 /*owner shard*/, mapping_collective_id);
         // Do the mapper call on shard 0 and then broadcast the results
         if (repl_ctx->owner_shard->shard_id == 0)
         {
           mapper->invoke_map_must_epoch(this, input, output);
-          mapping_broadcast->broadcast(output.task_processors,
-                                       output.constraint_mappings);
-        }
-        else
-          mapping_broadcast->receive_results(output.task_processors,
-              original_constraint_indexes, output.constraint_mappings,
-              *get_acquired_instances_ref());
+          mapping_broadcast->broadcast(
+              output.task_processors, output.constraint_mappings);
+        } else
+          mapping_broadcast->receive_results(
+              output.task_processors, original_constraint_indexes,
+              output.constraint_mappings, *get_acquired_instances_ref());
       }
       // No need to do any checks, the base class handles that
       return mapper;
@@ -2173,15 +2176,16 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(single_tasks.size() == mapping_dependences.size());
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
-      for (std::set<SingleTask*>::const_iterator it = 
-            shard_single_tasks.begin(); it != shard_single_tasks.end(); it++)
-        mapped_events.emplace(std::make_pair((*it)->index_point,
-              Runtime::create_rt_user_event()));
+      for (std::set<SingleTask*>::const_iterator it =
+               shard_single_tasks.begin();
+           it != shard_single_tasks.end(); it++)
+        mapped_events.emplace(std::make_pair(
+            (*it)->index_point, Runtime::create_rt_user_event()));
       // Exchange these to get them in flight
       MustEpochDependenceExchange dependence_exchange(
           dependence_exchange_id, repl_ctx, mapped_events);
@@ -2193,28 +2197,29 @@ namespace Legion {
       tasks_all_complete.reserve(indiv_tasks.size() + index_tasks.size());
       // Once all the tasks have been initialized we can defer
       // our all mapped event on all their all mapped events
-      for (std::vector<IndividualTask*>::const_iterator it = 
-            indiv_tasks.begin(); it != indiv_tasks.end(); it++)
+      for (std::vector<IndividualTask*>::const_iterator it =
+               indiv_tasks.begin();
+           it != indiv_tasks.end(); it++)
       {
         tasks_all_mapped.push_back((*it)->get_mapped_event());
         tasks_all_complete.push_back((*it)->get_completion_event());
         if (shard_single_tasks.find(*it) != shard_single_tasks.end())
           remaining_resource_returns++;
       }
-      for (std::vector<IndexTask*>::const_iterator it = 
-            index_tasks.begin(); it != index_tasks.end(); it++)
+      for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
+           it != index_tasks.end(); it++)
       {
         tasks_all_mapped.push_back((*it)->get_mapped_event());
         tasks_all_complete.push_back((*it)->get_completion_event());
       }
       // Start the exchange for the mapped and completion events
       MustEpochCompletionExchange completion_exchange(
-          completion_exchange_id, repl_ctx, 
-          tasks_all_mapped, tasks_all_complete);
-      completion_exchange.perform_collective_async(); 
+          completion_exchange_id, repl_ctx, tasks_all_mapped,
+          tasks_all_complete);
+      completion_exchange.perform_collective_async();
       // Need to count remaining resource returns for slices too
-      for (std::set<SliceTask*>::const_iterator it =
-            slice_tasks.begin(); it != slice_tasks.end(); it++)
+      for (std::set<SliceTask*>::const_iterator it = slice_tasks.begin();
+           it != slice_tasks.end(); it++)
       {
         // Check to see if we either do or not own this slice
         // We currently do not support mixed slices for which
@@ -2222,14 +2227,15 @@ namespace Legion {
         bool contains_any = false;
         bool contains_all = true;
         for (std::vector<PointTask*>::const_iterator pit =
-              (*it)->points.begin(); pit != (*it)->points.end(); pit++)
+                 (*it)->points.begin();
+             pit != (*it)->points.end(); pit++)
         {
           if (shard_single_tasks.find(*pit) != shard_single_tasks.end())
             contains_any = true;
           else if (contains_all)
           {
             contains_all = false;
-            if (contains_any) // At this point we have all the answers
+            if (contains_any)  // At this point we have all the answers
               break;
           }
         }
@@ -2238,25 +2244,25 @@ namespace Legion {
         if (!contains_all)
         {
           Processor mapper_proc = parent_ctx->get_executing_processor();
-          MapperManager *mapper = runtime->find_mapper(mapper_proc, map_id);
-          REPORT_LEGION_FATAL(ERROR_INVALID_MAPPER_OUTPUT,
-                              "Mapper %s specified a slice for a must epoch "
-                              "launch in control replicated task %s "
-                              "(UID %lld) for which not all the points "
-                              "mapped to the same shard. Legion does not "
-                              "currently support this use case. Please "
-                              "specify slices and a sharding function to "
-                              "ensure that all the points in a slice are "
-                              "owned by the same shard",
-                              mapper->get_mapper_name(),
-                              parent_ctx->get_task_name(),
-                              parent_ctx->get_unique_id())
+          MapperManager* mapper = runtime->find_mapper(mapper_proc, map_id);
+          REPORT_LEGION_FATAL(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Mapper %s specified a slice for a must epoch "
+              "launch in control replicated task %s "
+              "(UID %lld) for which not all the points "
+              "mapped to the same shard. Legion does not "
+              "currently support this use case. Please "
+              "specify slices and a sharding function to "
+              "ensure that all the points in a slice are "
+              "owned by the same shard",
+              mapper->get_mapper_name(), parent_ctx->get_task_name(),
+              parent_ctx->get_unique_id())
         }
         remaining_resource_returns++;
       }
       // Trigger this if we're not expecting to see any returns
       if (remaining_resource_returns == 0)
-        runtime->phase_barrier_arrive(resource_return_barrier, 1/*count*/);
+        runtime->phase_barrier_arrive(resource_return_barrier, 1 /*count*/);
       // Update the remaining concurrent points
       if (shard_single_tasks.empty())
       {
@@ -2264,13 +2270,12 @@ namespace Legion {
         finalize_concurrent_mapped();
         finish_concurrent_allreduce();
         collective_exchange =
-            new AllReduceCollective<MaxReduction<uint64_t>,false>(
+            new AllReduceCollective<MaxReduction<uint64_t>, false>(
                 repl_ctx, collective_exchange_id);
         collective_exchange->async_all_reduce(collective_lamport_clock);
         AutoLock o_lock(op_lock);
         commit_preconditions.insert(collective_exchange->get_done_event());
-      }
-      else
+      } else
       {
         remaining_mapped_events.store(shard_single_tasks.size());
         remaining_collective_unbound_points = shard_single_tasks.size();
@@ -2285,22 +2290,22 @@ namespace Legion {
       for (unsigned idx = 0; idx < single_tasks.size(); idx++)
       {
         // Check to see if it is one of the ones that we own
-        if (shard_single_tasks.find(single_tasks[idx]) == 
+        if (shard_single_tasks.find(single_tasks[idx]) ==
             shard_single_tasks.end())
         {
           // We don't own this point
           // We still need to do some work for individual tasks
-          // to exchange versioning information, but no such 
+          // to exchange versioning information, but no such
           // work is necessary for point tasks
-          SingleTask *task = single_tasks[idx];
+          SingleTask* task = single_tasks[idx];
           task->shard_off(mapped_events[task->index_point]);
           continue;
         }
         // Figure out our preconditions
         std::set<RtEvent> preconditions;
-        for (std::set<unsigned>::const_iterator it = 
-              mapping_dependences[idx].begin(); it != 
-              mapping_dependences[idx].end(); it++)
+        for (std::set<unsigned>::const_iterator it =
+                 mapping_dependences[idx].begin();
+             it != mapping_dependences[idx].end(); it++)
         {
 #ifdef DEBUG_LEGION
           assert((*it) < idx);
@@ -2312,7 +2317,8 @@ namespace Legion {
           precondition = Runtime::merge_events(preconditions);
         if (precondition.exists() && !precondition.has_triggered())
           single_tasks[idx]->defer_perform_mapping(precondition, this);
-        else if (single_tasks[idx]->perform_mapping(this) &&
+        else if (
+            single_tasks[idx]->perform_mapping(this) &&
             single_tasks[idx]->distribute_task())
           single_tasks[idx]->launch_task();
       }
@@ -2324,12 +2330,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Processor mapper_proc = parent_ctx->get_executing_processor();
-      MapperManager *mapper = runtime->find_mapper(mapper_proc, map_id);
+      MapperManager* mapper = runtime->find_mapper(mapper_proc, map_id);
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // Select our sharding functor and then do the base call
       this->individual_tasks.resize(indiv_tasks.size());
@@ -2343,14 +2349,15 @@ namespace Legion {
       Mapper::MustEpochShardingFunctorOutput sharding_output;
       sharding_output.chosen_functor = UINT_MAX;
       sharding_output.collective_map_must_epoch_call = false;
-      mapper->invoke_must_epoch_select_sharding_functor(this,
-                                    sharding_input, sharding_output);
+      mapper->invoke_must_epoch_select_sharding_functor(
+          this, sharding_input, sharding_output);
       // We can clear these now that we don't need them anymore
       individual_tasks.clear();
       index_space_tasks.clear();
       // Check that we have a sharding ID
       if (sharding_output.chosen_functor == UINT_MAX)
-        REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_MAPPER_OUTPUT,
             "Invalid mapper output from invocation of "
             "'map_must_epoch' on mapper %s. Mapper failed to specify "
             "a valid sharding ID for a must epoch operation in control "
@@ -2358,44 +2365,45 @@ namespace Legion {
             mapper->get_mapper_name(), repl_ctx->get_task_name(),
             repl_ctx->get_unique_id())
       this->sharding_functor = sharding_output.chosen_functor;
-      this->collective_map_must_epoch_call = 
-        sharding_output.collective_map_must_epoch_call;
+      this->collective_map_must_epoch_call =
+          sharding_output.collective_map_must_epoch_call;
 #ifdef DEBUG_LEGION
       assert(sharding_function == nullptr);
       // Check that the sharding IDs are all the same
       assert(sharding_collective != nullptr);
       // Contribute the result
       sharding_collective->contribute(this->sharding_functor);
-      if (sharding_collective->is_target() && 
+      if (sharding_collective->is_target() &&
           !sharding_collective->validate(this->sharding_functor))
       {
-        log_run.error("ERROR: Mapper %s chose different sharding functions "
-                      "for must epoch launch in %s (UID %lld)", 
-                      mapper->get_mapper_name(), parent_ctx->get_task_name(),
-                      parent_ctx->get_unique_id());
+        log_run.error(
+            "ERROR: Mapper %s chose different sharding functions "
+            "for must epoch launch in %s (UID %lld)",
+            mapper->get_mapper_name(), parent_ctx->get_task_name(),
+            parent_ctx->get_unique_id());
         std::abort();
       }
-      ReplFutureMapImpl *impl = 
+      ReplFutureMapImpl* impl =
           dynamic_cast<ReplFutureMapImpl*>(result_map.impl);
       assert(impl != nullptr);
 #else
-      ReplFutureMapImpl *impl = 
+      ReplFutureMapImpl* impl =
           static_cast<ReplFutureMapImpl*>(result_map.impl);
 #endif
       // Set the future map sharding functor
-      sharding_function = 
-        repl_ctx->shard_manager->find_sharding_function(sharding_functor);
+      sharding_function =
+          repl_ctx->shard_manager->find_sharding_function(sharding_functor);
       impl->set_sharding_function(sharding_function);
       // Set the sharding functor for all the point and index tasks too
       for (unsigned idx = 0; idx < indiv_tasks.size(); idx++)
       {
-        ReplIndividualTask *task = 
-          static_cast<ReplIndividualTask*>(indiv_tasks[idx]);
+        ReplIndividualTask* task =
+            static_cast<ReplIndividualTask*>(indiv_tasks[idx]);
         task->set_sharding_function(sharding_functor, sharding_function);
       }
       for (unsigned idx = 0; idx < index_tasks.size(); idx++)
       {
-        ReplIndexTask *task = static_cast<ReplIndexTask*>(index_tasks[idx]);
+        ReplIndexTask* task = static_cast<ReplIndexTask*>(index_tasks[idx]);
         task->set_sharding_function(sharding_functor, sharding_function);
       }
       MustEpochOp::trigger_prepipeline_stage();
@@ -2407,10 +2415,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       {
         AutoLock o_lock(op_lock);
@@ -2425,31 +2433,28 @@ namespace Legion {
           {
             if (collective_exchange == nullptr)
               collective_exchange =
-                new AllReduceCollective<MaxReduction<uint64_t>,false>(
-                    repl_ctx, collective_exchange_id);
+                  new AllReduceCollective<MaxReduction<uint64_t>, false>(
+                      repl_ctx, collective_exchange_id);
             o_lock.release();
             collective_exchange->get_done_event().wait();
             return collective_exchange->get_result();
-          }
-          else
-            return collective_lamport_clock; 
+          } else
+            return collective_lamport_clock;
         }
         // Otherwise we're going to fall through and do the allreduce
         if (collective_exchange == nullptr)
           collective_exchange =
-              new AllReduceCollective<MaxReduction<uint64_t>,false>(
+              new AllReduceCollective<MaxReduction<uint64_t>, false>(
                   repl_ctx, collective_exchange_id);
         if (!need_result)
-          commit_preconditions.insert(
-                collective_exchange->get_done_event());
+          commit_preconditions.insert(collective_exchange->get_done_event());
       }
       collective_exchange->async_all_reduce(collective_lamport_clock);
       if (need_result)
       {
         collective_exchange->get_done_event().wait();
         return collective_exchange->get_result();
-      }
-      else
+      } else
         return collective_lamport_clock;
     }
 
@@ -2460,24 +2465,27 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(concurrent_mapped_barrier.exists());
 #endif
-      runtime->phase_barrier_arrive(concurrent_mapped_barrier,
-          1/*count*/, Runtime::merge_events(concurrent_preconditions));
+      runtime->phase_barrier_arrive(
+          concurrent_mapped_barrier, 1 /*count*/,
+          Runtime::merge_events(concurrent_preconditions));
     }
 
     //--------------------------------------------------------------------------
     void ReplMustEpochOp::finish_concurrent_allreduce(void)
     //--------------------------------------------------------------------------
     {
-      concurrent_exchange->perform_concurrent_allreduce(concurrent_tasks,
-          concurrent_slices, concurrent_lamport_clock, concurrent_poisoned);
+      concurrent_exchange->perform_concurrent_allreduce(
+          concurrent_tasks, concurrent_slices, concurrent_lamport_clock,
+          concurrent_poisoned);
     }
 
     //--------------------------------------------------------------------------
     bool ReplMustEpochOp::has_return_resources(void) const
     //--------------------------------------------------------------------------
     {
-      return !(created_regions.empty() && local_regions.empty() && 
-          created_fields.empty() && local_fields.empty() && 
+      return !(
+          created_regions.empty() && local_regions.empty() &&
+          created_fields.empty() && local_fields.empty() &&
           created_field_spaces.empty() && created_index_spaces.empty() &&
           created_index_partitions.empty() && deleted_regions.empty() &&
           deleted_fields.empty() && deleted_field_spaces.empty() &&
@@ -2486,28 +2494,29 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplMustEpochOp::receive_resources(uint64_t return_index,
-              std::map<LogicalRegion,unsigned> &created_regs,
-              std::vector<DeletedRegion> &deleted_regs,
-              std::set<std::pair<FieldSpace,FieldID> > &created_fids,
-              std::vector<DeletedField> &deleted_fids,
-              std::map<FieldSpace,unsigned> &created_fs,
-              std::map<FieldSpace,std::set<LogicalRegion> > &latent_fs,
-              std::vector<DeletedFieldSpace> &deleted_fs,
-              std::map<IndexSpace,unsigned> &created_is,
-              std::vector<DeletedIndexSpace> &deleted_is,
-              std::map<IndexPartition,unsigned> &created_partitions,
-              std::vector<DeletedPartition> &deleted_partitions,
-              std::set<RtEvent> &preconditions)
+    void ReplMustEpochOp::receive_resources(
+        uint64_t return_index, std::map<LogicalRegion, unsigned>& created_regs,
+        std::vector<DeletedRegion>& deleted_regs,
+        std::set<std::pair<FieldSpace, FieldID> >& created_fids,
+        std::vector<DeletedField>& deleted_fids,
+        std::map<FieldSpace, unsigned>& created_fs,
+        std::map<FieldSpace, std::set<LogicalRegion> >& latent_fs,
+        std::vector<DeletedFieldSpace>& deleted_fs,
+        std::map<IndexSpace, unsigned>& created_is,
+        std::vector<DeletedIndexSpace>& deleted_is,
+        std::map<IndexPartition, unsigned>& created_partitions,
+        std::vector<DeletedPartition>& deleted_partitions,
+        std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
       // Wait until we've received all the resources before handing them
       // back to the enclosing parent context
       {
         AutoLock o_lock(op_lock);
-        merge_received_resources(created_regs, deleted_regs, created_fids, 
-            deleted_fids, created_fs, latent_fs, deleted_fs, created_is,
-            deleted_is, created_partitions, deleted_partitions);
+        merge_received_resources(
+            created_regs, deleted_regs, created_fids, deleted_fids, created_fs,
+            latent_fs, deleted_fs, created_is, deleted_is, created_partitions,
+            deleted_partitions);
 #ifdef DEBUG_LEGION
         assert(remaining_resource_returns > 0);
 #endif
@@ -2515,14 +2524,14 @@ namespace Legion {
           return;
       }
       // Make sure the other shards have received all their returns too
-      runtime->phase_barrier_arrive(resource_return_barrier, 1/*count*/);
+      runtime->phase_barrier_arrive(resource_return_barrier, 1 /*count*/);
       if (!has_return_resources())
         return;
       if (!resource_return_barrier.has_triggered())
       {
         DeferMustEpochReturnResourcesArgs args(this);
-        runtime->issue_runtime_meta_task(args,
-            LG_THROUGHPUT_DEFERRED_PRIORITY, resource_return_barrier);
+        runtime->issue_runtime_meta_task(
+            args, LG_THROUGHPUT_DEFERRED_PRIORITY, resource_return_barrier);
         preconditions.insert(args.done);
         return;
       }
@@ -2533,23 +2542,24 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ReplMustEpochOp::handle_defer_return_resources(
-                                                               const void *args)
+        const void* args)
     //--------------------------------------------------------------------------
     {
-      const DeferMustEpochReturnResourcesArgs *dargs =
-        (const DeferMustEpochReturnResourcesArgs*)args;
+      const DeferMustEpochReturnResourcesArgs* dargs =
+          (const DeferMustEpochReturnResourcesArgs*)args;
       std::set<RtEvent> preconditions;
-      dargs->op->return_resources(dargs->op->get_context(),
-          dargs->op->get_context_index(), preconditions);
+      dargs->op->return_resources(
+          dargs->op->get_context(), dargs->op->get_context_index(),
+          preconditions);
       if (!preconditions.empty())
-        Runtime::trigger_event(dargs->done,
-            Runtime::merge_events(preconditions));
+        Runtime::trigger_event(
+            dargs->done, Runtime::merge_events(preconditions));
       else
         Runtime::trigger_event(dargs->done);
     }
 
     //--------------------------------------------------------------------------
-    void ReplMustEpochOp::initialize_replication(ReplicateContext *ctx)
+    void ReplMustEpochOp::initialize_replication(ReplicateContext* ctx)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2558,17 +2568,17 @@ namespace Legion {
       assert(mapping_broadcast == nullptr);
       assert(mapping_exchange == nullptr);
 #endif
-      // We can't actually make a collective for the mapping yet because we 
+      // We can't actually make a collective for the mapping yet because we
       // don't know if we are going to broadcast or exchange so we just get
-      // a collective ID that we will use later 
+      // a collective ID that we will use later
       mapping_collective_id = ctx->get_next_collective_index(COLLECTIVE_LOC_58);
-      dependence_exchange_id = 
-        ctx->get_next_collective_index(COLLECTIVE_LOC_70);
+      dependence_exchange_id =
+          ctx->get_next_collective_index(COLLECTIVE_LOC_70);
       completion_exchange_id =
-        ctx->get_next_collective_index(COLLECTIVE_LOC_73);
+          ctx->get_next_collective_index(COLLECTIVE_LOC_73);
       collective_exchange_id =
-        ctx->get_next_collective_index(COLLECTIVE_LOC_107);
-      concurrent_exchange = new ConcurrentAllreduce(COLLECTIVE_LOC_69, ctx); 
+          ctx->get_next_collective_index(COLLECTIVE_LOC_107);
+      concurrent_exchange = new ConcurrentAllreduce(COLLECTIVE_LOC_69, ctx);
       resource_return_barrier = ctx->get_next_resource_return_barrier();
     }
 
@@ -2581,10 +2591,9 @@ namespace Legion {
         Domain shard_domain;
         runtime->find_domain(sharding_space, shard_domain);
         return shard_domain;
-      }
-      else
+      } else
         return launch_domain;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -23,16 +23,15 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    OccurrenceWatcher::OccurrenceWatcher(InnerContext *context,
-                                      const Mapper::ContextConfigOutput &config)
+    OccurrenceWatcher::OccurrenceWatcher(
+        InnerContext* context, const Mapper::ContextConfigOutput& config)
       : cache(context), visit_threshold(config.auto_tracing_visit_threshold)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    bool OccurrenceWatcher::record_operation(Operation *op,
-                                       Murmur3Hasher::Hash hash, uint64_t opidx)
+    bool OccurrenceWatcher::record_operation(
+        Operation* op, Murmur3Hasher::Hash hash, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       // Every new hash chould be the start of a new trace
@@ -41,7 +40,7 @@ namespace Legion {
       unsigned current_index = 0;
       for (unsigned idx = 0; idx < active_pointers.size(); idx++)
       {
-        TriePointer &pointer = active_pointers[idx];
+        TriePointer& pointer = active_pointers[idx];
         if (!pointer.advance(hash))
           continue;
         active_pointers[current_index++] = pointer;
@@ -51,7 +50,7 @@ namespace Legion {
           // If this pointer corresponds to a completed trace, then we have
           // some work to do. First, increment the number of visits on the node.
           TrieNode<Murmur3Hasher::Hash, TraceCandidate>* node = pointer.node;
-          TraceCandidate &candidate = node->get_value();
+          TraceCandidate& candidate = node->get_value();
           // Visits only count if they occur at least len(trace) operations
           // after the previous visit. This avoids overcounting traces that
           // look like ABCABC with a count at each repetition of ABC rather
@@ -65,7 +64,7 @@ namespace Legion {
           {
             candidate.completed = true;
             std::vector<Murmur3Hasher::Hash> hashes(pointer.depth);
-            for (unsigned j = 0; j < pointer.depth; j++) 
+            for (unsigned j = 0; j < pointer.depth; j++)
             {
 #ifdef DEBUG_LEGION
               assert(node != nullptr);
@@ -77,9 +76,8 @@ namespace Legion {
             // TODO (rohany): Do we need to think about superstrings here?
             if (!cache.has_prefix(hashes))
             {
-              log_auto_trace.debug() << "Committing trace: "
-                                     << candidate.opidx  << " of length: "
-                                     << pointer.depth;
+              log_auto_trace.debug() << "Committing trace: " << candidate.opidx
+                                     << " of length: " << pointer.depth;
               cache.insert(hashes, opidx);
             }
           }
@@ -87,7 +85,7 @@ namespace Legion {
       }
       // At this point we can shrink down the vector to the remaining size
       active_pointers.erase(
-          active_pointers.begin()+current_index, active_pointers.end());
+          active_pointers.begin() + current_index, active_pointers.end());
       // Now tell the trace cache to reocrd the operation too
       return cache.record_operation(op, hash, opidx);
     }
@@ -115,7 +113,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool OccurrenceWatcher::record_noop(Operation *op)
+    bool OccurrenceWatcher::record_noop(Operation* op)
     //--------------------------------------------------------------------------
     {
       return cache.record_noop(op);
@@ -127,23 +125,23 @@ namespace Legion {
     {
       active_pointers.clear();
       cache.flush(opidx);
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    void OccurrenceWatcher::insert(const Murmur3Hasher::Hash *hashes,
-                                                    size_t size, uint64_t opidx)
+    void OccurrenceWatcher::insert(
+        const Murmur3Hasher::Hash* hashes, size_t size, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       trie.insert(hashes, size, TraceCandidate(opidx));
     }
 
     //--------------------------------------------------------------------------
-    TrieQueryResult OccurrenceWatcher::query(const Murmur3Hasher::Hash *hashes,
-                                             size_t size) const
+    TrieQueryResult OccurrenceWatcher::query(
+        const Murmur3Hasher::Hash* hashes, size_t size) const
     //--------------------------------------------------------------------------
     {
       return trie.query(hashes, size);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

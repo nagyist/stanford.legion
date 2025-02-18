@@ -23,33 +23,37 @@ namespace Legion {
   namespace Internal {
 
     /**
-     * \class AllReduceOp 
+     * \class AllReduceOp
      * Operation for reducing future maps down to futures
      */
     class AllReduceOp : public MemoizableOp {
     public:
       AllReduceOp(void);
-      AllReduceOp(const AllReduceOp &rhs) = delete;
+      AllReduceOp(const AllReduceOp& rhs) = delete;
       virtual ~AllReduceOp(void);
     public:
-      AllReduceOp& operator=(const AllReduceOp &rhs) = delete;
+      AllReduceOp& operator=(const AllReduceOp& rhs) = delete;
     public:
-      Future initialize(InnerContext *ctx, const FutureMap &future_map,
-                        ReductionOpID redop, bool deterministic,
-                        MapperID mapper_id, MappingTagID tag,
-                        Provenance *provenance,
-                        Future initial_value);
+      Future initialize(
+          InnerContext* ctx, const FutureMap& future_map, ReductionOpID redop,
+          bool deterministic, MapperID mapper_id, MappingTagID tag,
+          Provenance* provenance, Future initial_value);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
       // AllReduceOps should never actually need this but it might get
       // called in the process of doing a mapping call
-      virtual std::map<PhysicalManager*,unsigned>*
-                   get_acquired_instances_ref(void) { return nullptr; }
+      virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
+          void)
+      {
+        return nullptr;
+      }
     protected:
       void invoke_mapper(void);
       ApEvent finalize_serdez_targets(void);
@@ -58,35 +62,35 @@ namespace Legion {
       virtual void trigger_mapping(void);
       virtual void trigger_execution(void);
       virtual void trigger_replay(void);
-      virtual bool record_trace_hash(TraceRecognizer &recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
     protected:
       // These are virtual methods to override for control replication
       virtual void populate_sources(void);
       virtual void create_future_instances(void);
       virtual void all_reduce_serdez(void);
-      virtual ApEvent all_reduce_redop(RtEvent &executed);
+      virtual ApEvent all_reduce_redop(RtEvent& executed);
     protected:
-      ApEvent init_redop_target(FutureInstance *target);
-      void fold_serdez(FutureImpl *impl);
+      ApEvent init_redop_target(FutureInstance* target);
+      void fold_serdez(FutureImpl* impl);
     private:
-      void prepare_future(std::vector<RtEvent> &preconditions,
-                          FutureImpl *future);
-      void subscribe_to_future(std::vector<RtEvent> &ready_events,
-                               FutureImpl *future);
+      void prepare_future(
+          std::vector<RtEvent>& preconditions, FutureImpl* future);
+      void subscribe_to_future(
+          std::vector<RtEvent>& ready_events, FutureImpl* future);
       void perform_allreduce(void);
     protected:
       FutureMap future_map;
       ReductionOpID redop_id;
-      const ReductionOp *redop; 
-      const SerdezRedopFns *serdez_redop_fns;
+      const ReductionOp* redop;
+      const SerdezRedopFns* serdez_redop_fns;
       Future result;
-      std::map<DomainPoint,FutureImpl*> sources;
+      std::map<DomainPoint, FutureImpl*> sources;
       std::vector<FutureInstance*> targets;
       std::vector<Memory> target_memories;
       std::vector<RtEvent> map_applied_conditions;
       size_t future_result_size;
-      FutureInstance *serdez_redop_instance;
-      void *serdez_redop_buffer;
+      FutureInstance* serdez_redop_instance;
+      void* serdez_redop_buffer;
       size_t serdez_upper_bound;
       MapperID mapper_id;
       MappingTagID tag;
@@ -102,12 +106,12 @@ namespace Legion {
     class ReplAllReduceOp : public AllReduceOp {
     public:
       ReplAllReduceOp(void);
-      ReplAllReduceOp(const ReplAllReduceOp &rhs) = delete;
+      ReplAllReduceOp(const ReplAllReduceOp& rhs) = delete;
       virtual ~ReplAllReduceOp(void);
     public:
-      ReplAllReduceOp& operator=(const ReplAllReduceOp &rhs) = delete;
+      ReplAllReduceOp& operator=(const ReplAllReduceOp& rhs) = delete;
     public:
-      void initialize_replication(ReplicateContext *ctx);
+      void initialize_replication(ReplicateContext* ctx);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -115,15 +119,15 @@ namespace Legion {
       virtual void populate_sources(void);
       virtual void create_future_instances(void);
       virtual void all_reduce_serdez(void);
-      virtual ApEvent all_reduce_redop(RtEvent &executed);
+      virtual ApEvent all_reduce_redop(RtEvent& executed);
     protected:
-      BufferExchange *serdez_redop_collective;
-      FutureAllReduceCollective *all_reduce_collective;
-      FutureReductionCollective *reduction_collective;
-      FutureBroadcastCollective *broadcast_collective;
+      BufferExchange* serdez_redop_collective;
+      FutureAllReduceCollective* all_reduce_collective;
+      FutureReductionCollective* reduction_collective;
+      FutureBroadcastCollective* broadcast_collective;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_ALLREDUCE_H__
+#endif  // __LEGION_ALLREDUCE_H__

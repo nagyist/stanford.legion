@@ -25,42 +25,42 @@ namespace Legion {
      * \class AcquireAnalysis
      * For performing acquires on equivalence set trees
      */
-    class AcquireAnalysis : public RegistrationAnalysis,
-      public Heapify<AcquireAnalysis,OPERATION_LIFETIME> {
-    public: 
-      AcquireAnalysis(Operation *op, unsigned index,
-                      RegionNode *node, const PhysicalTraceInfo &t_info);
-      AcquireAnalysis(AddressSpaceID src, AddressSpaceID prev,
-                      Operation *op, unsigned index, RegionNode *node,
-                      AcquireAnalysis *target,
-                      const PhysicalTraceInfo &trace_info,
-                      CollectiveMapping *collective_mapping,
-                      bool first_local);
-      AcquireAnalysis(const AcquireAnalysis &rhs) = delete;
+    class AcquireAnalysis
+      : public RegistrationAnalysis,
+        public Heapify<AcquireAnalysis, OPERATION_LIFETIME> {
+    public:
+      AcquireAnalysis(
+          Operation* op, unsigned index, RegionNode* node,
+          const PhysicalTraceInfo& t_info);
+      AcquireAnalysis(
+          AddressSpaceID src, AddressSpaceID prev, Operation* op,
+          unsigned index, RegionNode* node, AcquireAnalysis* target,
+          const PhysicalTraceInfo& trace_info,
+          CollectiveMapping* collective_mapping, bool first_local);
+      AcquireAnalysis(const AcquireAnalysis& rhs) = delete;
       virtual ~AcquireAnalysis(void);
     public:
-      AcquireAnalysis& operator=(const AcquireAnalysis &rhs) = delete;
+      AcquireAnalysis& operator=(const AcquireAnalysis& rhs) = delete;
     public:
-      virtual bool perform_analysis(EquivalenceSet *set,
-                                    IndexSpaceExpression *expr,
-                                    const bool expr_covers,
-                                    const FieldMask &mask,
-                                    std::set<RtEvent> &applied_events,
-                                    const bool already_deferred = false);
-      virtual RtEvent perform_remote(RtEvent precondition, 
-                                     std::set<RtEvent> &applied_events,
-                                     const bool already_deferred = false);
-      virtual RtEvent perform_updates(RtEvent precondition, 
-                                      std::set<RtEvent> &applied_events,
-                                      const bool already_deferred = false);
+      virtual bool perform_analysis(
+          EquivalenceSet* set, IndexSpaceExpression* expr,
+          const bool expr_covers, const FieldMask& mask,
+          std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_remote(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_updates(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
     public:
-      static void handle_remote_acquires(Deserializer &derez,
-                                         AddressSpaceID previous); 
+      static void handle_remote_acquires(
+          Deserializer& derez, AddressSpaceID previous);
     public:
-      AcquireAnalysis *const target_analysis;
+      AcquireAnalysis* const target_analysis;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_ACQUIRE_ANALYSIS_H__
+#endif  // __LEGION_ACQUIRE_ANALYSIS_H__

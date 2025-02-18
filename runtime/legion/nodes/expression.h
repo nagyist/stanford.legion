@@ -28,7 +28,7 @@
 #include "legion/utilities/small_vector.h"
 
 namespace Legion {
-  namespace Internal { 
+  namespace Internal {
 
     /**
      * \class IndexSpaceExpression
@@ -42,49 +42,52 @@ namespace Legion {
     public:
       struct TightenIndexSpaceArgs : public LgTaskArgs<TightenIndexSpaceArgs> {
       public:
-        static const LgTaskID TASK_ID = 
-          LG_TIGHTEN_INDEX_SPACE_TASK_ID;
+        static const LgTaskID TASK_ID = LG_TIGHTEN_INDEX_SPACE_TASK_ID;
       public:
-        TightenIndexSpaceArgs(IndexSpaceExpression *proxy, 
-                              DistributedCollectable *dc)
+        TightenIndexSpaceArgs(
+            IndexSpaceExpression* proxy, DistributedCollectable* dc)
           : LgTaskArgs<TightenIndexSpaceArgs>(implicit_provenance),
             proxy_this(proxy), proxy_dc(dc)
-          { proxy_dc->add_base_resource_ref(META_TASK_REF); }
+        {
+          proxy_dc->add_base_resource_ref(META_TASK_REF);
+        }
       public:
-        IndexSpaceExpression *const proxy_this;
-        DistributedCollectable *const proxy_dc;
+        IndexSpaceExpression* const proxy_this;
+        DistributedCollectable* const proxy_dc;
       };
     public:
-      IndexSpaceExpression(LocalLock &lock);
-      IndexSpaceExpression(TypeTag tag, LocalLock &lock); 
-      IndexSpaceExpression(TypeTag tag, IndexSpaceExprID id, LocalLock &lock);
+      IndexSpaceExpression(LocalLock& lock);
+      IndexSpaceExpression(TypeTag tag, LocalLock& lock);
+      IndexSpaceExpression(TypeTag tag, IndexSpaceExprID id, LocalLock& lock);
       virtual ~IndexSpaceExpression(void);
     public:
-      inline bool deterministic_pointer_less(const IndexSpaceExpression *rhs) 
-        const { return (expr_id < rhs->expr_id); }
+      inline bool deterministic_pointer_less(
+          const IndexSpaceExpression* rhs) const
+      {
+        return (expr_id < rhs->expr_id);
+      }
     public:
       virtual bool is_sparse(void) = 0;
       virtual Domain get_tight_domain(void) = 0;
-      [[nodiscard]] virtual ApEvent get_loose_domain(Domain &domain,
-          ApUserEvent &done_event) = 0;
+      [[nodiscard]] virtual ApEvent get_loose_domain(
+          Domain& domain, ApUserEvent& done_event) = 0;
       virtual void record_index_space_user(ApEvent user) = 0;
       virtual void tighten_index_space(void) = 0;
       virtual bool is_set(void) const { return true; }
       virtual bool check_empty(void) = 0;
       virtual size_t get_volume(void) = 0;
-      virtual void pack_expression(Serializer &rez, AddressSpaceID target) = 0;
-      virtual void skip_unpack_expression(Deserializer &derez) const = 0; 
+      virtual void pack_expression(Serializer& rez, AddressSpaceID target) = 0;
+      virtual void skip_unpack_expression(Deserializer& derez) const = 0;
     public:
+      virtual IndexSpaceExpression* inline_union(IndexSpaceExpression* rhs) = 0;
       virtual IndexSpaceExpression* inline_union(
-          IndexSpaceExpression *rhs) = 0;
-      virtual IndexSpaceExpression* inline_union(
-          const std::set<IndexSpaceExpression*> &exprs) = 0;
+          const std::set<IndexSpaceExpression*>& exprs) = 0;
       virtual IndexSpaceExpression* inline_intersection(
-          IndexSpaceExpression *rhs) = 0;
+          IndexSpaceExpression* rhs) = 0;
       virtual IndexSpaceExpression* inline_intersection(
-          const std::set<IndexSpaceExpression*> &exprs) = 0;
+          const std::set<IndexSpaceExpression*>& exprs) = 0;
       virtual IndexSpaceExpression* inline_subtraction(
-          IndexSpaceExpression *rhs) = 0;
+          IndexSpaceExpression* rhs) = 0;
     public:
 #ifdef DEBUG_LEGION
       virtual bool is_valid(void) = 0;
@@ -93,110 +96,105 @@ namespace Legion {
       virtual void add_canonical_reference(DistributedID source) = 0;
       virtual bool remove_canonical_reference(DistributedID source) = 0;
       virtual bool try_add_live_reference(void) = 0;
-      virtual void add_base_expression_reference(ReferenceSource source,
-                                                 unsigned count = 1) = 0;
-      virtual void add_nested_expression_reference(DistributedID source,
-                                                   unsigned count = 1) = 0;
-      virtual bool remove_base_expression_reference(ReferenceSource source,
-                                                    unsigned count = 1) = 0;
-      virtual bool remove_nested_expression_reference(DistributedID source,
-                                                      unsigned count = 1) = 0;
-      virtual void add_tree_expression_reference(DistributedID source,
-                                                 unsigned count = 1) = 0;
-      virtual bool remove_tree_expression_reference(DistributedID source,
-                                                    unsigned count = 1) = 0;
-      virtual bool test_intersection_nonblocking(IndexSpaceExpression *expr,
-         ApEvent &precondition, bool second = false);
+      virtual void add_base_expression_reference(
+          ReferenceSource source, unsigned count = 1) = 0;
+      virtual void add_nested_expression_reference(
+          DistributedID source, unsigned count = 1) = 0;
+      virtual bool remove_base_expression_reference(
+          ReferenceSource source, unsigned count = 1) = 0;
+      virtual bool remove_nested_expression_reference(
+          DistributedID source, unsigned count = 1) = 0;
+      virtual void add_tree_expression_reference(
+          DistributedID source, unsigned count = 1) = 0;
+      virtual bool remove_tree_expression_reference(
+          DistributedID source, unsigned count = 1) = 0;
+      virtual bool test_intersection_nonblocking(
+          IndexSpaceExpression* expr, ApEvent& precondition,
+          bool second = false);
     public:
-      virtual IndexSpaceNode* create_node(IndexSpace handle,
-          RtEvent initialized, Provenance *provenance,
-          CollectiveMapping *mapping, IndexSpaceExprID expr_id = 0) = 0;
+      virtual IndexSpaceNode* create_node(
+          IndexSpace handle, RtEvent initialized, Provenance* provenance,
+          CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0) = 0;
       virtual IndexSpaceExpression* create_from_rectangles(
-                                const std::set<Domain> &rectangles) = 0;
-      virtual PieceIteratorImpl* create_piece_iterator(const void *piece_list,
-                    size_t piece_list_size, IndexSpaceNode *privilege_node) = 0;
-      virtual bool is_below_in_tree(IndexPartNode *p, LegionColor &child) const
-        { return false; }
+          const std::set<Domain>& rectangles) = 0;
+      virtual PieceIteratorImpl* create_piece_iterator(
+          const void* piece_list, size_t piece_list_size,
+          IndexSpaceNode* privilege_node) = 0;
+      virtual bool is_below_in_tree(IndexPartNode* p, LegionColor& child) const
+      {
+        return false;
+      }
     public:
-      virtual ApEvent issue_fill(Operation *op,
-                           const PhysicalTraceInfo &trace_info,
-                           const std::vector<CopySrcDstField> &dst_fields,
-                           const void *fill_value, size_t fill_size,
+      virtual ApEvent issue_fill(
+          Operation* op, const PhysicalTraceInfo& trace_info,
+          const std::vector<CopySrcDstField>& dst_fields,
+          const void* fill_value, size_t fill_size,
 #ifdef LEGION_SPY
-                           UniqueID fill_uid,
-                           FieldSpace handle,
-                           RegionTreeID tree_id,
+          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
 #endif
-                           ApEvent precondition, PredEvent pred_guard,
-                           LgEvent unique_event,
-                           CollectiveKind collective, bool record_effect,
-                           int priority = 0, bool replay = false) = 0;
-      virtual ApEvent issue_copy(Operation *op,
-                           const PhysicalTraceInfo &trace_info,
-                           const std::vector<CopySrcDstField> &dst_fields,
-                           const std::vector<CopySrcDstField> &src_fields,
-                           const std::vector<Reservation> &reservations,
+          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
+          CollectiveKind collective, bool record_effect, int priority = 0,
+          bool replay = false) = 0;
+      virtual ApEvent issue_copy(
+          Operation* op, const PhysicalTraceInfo& trace_info,
+          const std::vector<CopySrcDstField>& dst_fields,
+          const std::vector<CopySrcDstField>& src_fields,
+          const std::vector<Reservation>& reservations,
 #ifdef LEGION_SPY
-                           RegionTreeID src_tree_id,
-                           RegionTreeID dst_tree_id,
+          RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
 #endif
-                           ApEvent precondition, PredEvent pred_guard,
-                           LgEvent src_unique, LgEvent dst_unique,
-                           CollectiveKind collective, bool record_effect,
-                           int priority = 0, bool replay = false) = 0;
+          ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
+          LgEvent dst_unique, CollectiveKind collective, bool record_effect,
+          int priority = 0, bool replay = false) = 0;
       virtual CopyAcrossUnstructured* create_across_unstructured(
-                           const std::map<Reservation,bool> &reservations,
-                           const bool compute_preimages,
-                           const bool shadow_indirections) = 0;
+          const std::map<Reservation, bool>& reservations,
+          const bool compute_preimages, const bool shadow_indirections) = 0;
       virtual Realm::InstanceLayoutGeneric* create_layout(
-                           const LayoutConstraintSet &constraints,
-                           const std::vector<FieldID> &field_ids,
-                           const std::vector<size_t> &field_sizes,
-                           bool compact, void **piece_list = nullptr,
-                           size_t *piece_list_size = nullptr,
-                           size_t *num_pieces = nullptr,
-                           size_t base_alignment = 32) = 0;
+          const LayoutConstraintSet& constraints,
+          const std::vector<FieldID>& field_ids,
+          const std::vector<size_t>& field_sizes, bool compact,
+          void** piece_list = nullptr, size_t* piece_list_size = nullptr,
+          size_t* num_pieces = nullptr, size_t base_alignment = 32) = 0;
       // Return the expression with a resource ref on the expression
       virtual IndexSpaceExpression* create_layout_expression(
-                           const void *piece_list, size_t piece_list_size) = 0;
-      virtual bool meets_layout_expression(IndexSpaceExpression *expr,
-         bool tight_bounds, const void *piece_list, size_t piece_list_size,
-         const Domain *padding_delta) = 0;
+          const void* piece_list, size_t piece_list_size) = 0;
+      virtual bool meets_layout_expression(
+          IndexSpaceExpression* expr, bool tight_bounds, const void* piece_list,
+          size_t piece_list_size, const Domain* padding_delta) = 0;
     public:
       virtual IndexSpaceExpression* find_congruent_expression(
-          SmallPointerVector<IndexSpaceExpression,true> &expressions) = 0;
+          SmallPointerVector<IndexSpaceExpression, true>& expressions) = 0;
       virtual KDTree* get_sparsity_map_kd_tree(void) = 0;
     public:
-      virtual void initialize_equivalence_set_kd_tree(EqKDTree *tree,
-                                        EquivalenceSet *set,
-                                        const FieldMask &mask,
-                                        ShardID local_shard,
-                                        bool current) = 0;
+      virtual void initialize_equivalence_set_kd_tree(
+          EqKDTree* tree, EquivalenceSet* set, const FieldMask& mask,
+          ShardID local_shard, bool current) = 0;
       virtual void compute_equivalence_sets(
-          EqKDTree *tree, LocalLock *tree_lock, const FieldMask &mask, 
-          const std::vector<EqSetTracker*> &trackers,
-          const std::vector<AddressSpaceID> &tracker_spaces,
-          std::vector<unsigned> &new_tracker_references,
-          FieldMaskSet<EquivalenceSet> &eq_sets,
-          std::vector<RtEvent> &pending_sets,
-          FieldMaskSet<EqKDTree> &subscriptions,
-          FieldMaskSet<EqKDTree> &to_create,
-          std::map<EqKDTree*,Domain> &creation_rects,
-          std::map<EquivalenceSet*,LegionMap<Domain,FieldMask> > &creation_srcs,
-          std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
+          EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
+          const std::vector<EqSetTracker*>& trackers,
+          const std::vector<AddressSpaceID>& tracker_spaces,
+          std::vector<unsigned>& new_tracker_references,
+          FieldMaskSet<EquivalenceSet>& eq_sets,
+          std::vector<RtEvent>& pending_sets,
+          FieldMaskSet<EqKDTree>& subscriptions,
+          FieldMaskSet<EqKDTree>& to_create,
+          std::map<EqKDTree*, Domain>& creation_rects,
+          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
+              creation_srcs,
+          std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0) = 0;
-      virtual unsigned record_output_equivalence_set(EqKDTree *tree,
-          LocalLock *tree_lock, EquivalenceSet *set, const FieldMask &mask,
-          EqSetTracker *tracker, AddressSpaceID tracker_space,
-          FieldMaskSet<EqKDTree> &subscriptions,
-          std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
+      virtual unsigned record_output_equivalence_set(
+          EqKDTree* tree, LocalLock* tree_lock, EquivalenceSet* set,
+          const FieldMask& mask, EqSetTracker* tracker,
+          AddressSpaceID tracker_space, FieldMaskSet<EqKDTree>& subscriptions,
+          std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0) = 0;
     public:
-      static void handle_tighten_index_space(const void *args);
+      static void handle_tighten_index_space(const void* args);
       static AddressSpaceID get_owner_space(IndexSpaceExprID id);
     public:
-      void add_derived_operation(IndexSpaceOperation *op);
-      void remove_derived_operation(IndexSpaceOperation *op);
+      void add_derived_operation(IndexSpaceOperation* op);
+      void remove_derived_operation(IndexSpaceOperation* op);
       void invalidate_derived_operations(DistributedID did);
     public:
       inline bool is_empty(void)
@@ -209,7 +207,9 @@ namespace Legion {
         return empty;
       }
       inline size_t get_num_dims(void) const
-        { return NT_TemplateHelper::get_dim(type_tag); }
+      {
+        return NT_TemplateHelper::get_dim(type_tag);
+      }
     public:
       // Convert this index space expression to the canonical one that
       // represents all expressions that are all congruent
@@ -217,96 +217,89 @@ namespace Legion {
       virtual uint64_t get_canonical_hash(void) = 0;
     protected:
       template<int DIM, typename T>
-      IndexSpaceExpression* inline_union_internal(
-          IndexSpaceExpression *rhs);
+      IndexSpaceExpression* inline_union_internal(IndexSpaceExpression* rhs);
       template<int DIM, typename T>
       IndexSpaceExpression* inline_union_internal(
-          const std::set<IndexSpaceExpression*> &exprs);
+          const std::set<IndexSpaceExpression*>& exprs);
       template<int DIM, typename T>
       IndexSpaceExpression* inline_intersection_internal(
-          IndexSpaceExpression *rhs);
+          IndexSpaceExpression* rhs);
       template<int DIM, typename T>
       IndexSpaceExpression* inline_intersection_internal(
-          const std::set<IndexSpaceExpression*> &exprs);
+          const std::set<IndexSpaceExpression*>& exprs);
       template<int DIM, typename T>
       IndexSpaceExpression* inline_subtraction_internal(
-          IndexSpaceExpression *rhs);
+          IndexSpaceExpression* rhs);
       template<int DIM, typename T>
-      uint64_t get_canonical_hash_internal(const DomainT<DIM,T> &domain) const;
+      uint64_t get_canonical_hash_internal(const DomainT<DIM, T>& domain) const;
     protected:
       template<int DIM, typename T>
-      inline ApEvent issue_fill_internal(Operation *op,
-                               const Realm::IndexSpace<DIM,T> &space,
-                               const PhysicalTraceInfo &trace_info,
-                               const std::vector<CopySrcDstField> &dst_fields,
-                               const void *fill_value, size_t fill_size,
+      inline ApEvent issue_fill_internal(
+          Operation* op, const Realm::IndexSpace<DIM, T>& space,
+          const PhysicalTraceInfo& trace_info,
+          const std::vector<CopySrcDstField>& dst_fields,
+          const void* fill_value, size_t fill_size,
 #ifdef LEGION_SPY
-                               UniqueID fill_uid,
-                               FieldSpace handle,
-                               RegionTreeID tree_id,
+          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
 #endif
-                               ApEvent precondition, PredEvent pred_guard,
-                               LgEvent unique_event, CollectiveKind collective,
-                               bool record_effect, int priority, bool replay);
+          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
+          CollectiveKind collective, bool record_effect, int priority,
+          bool replay);
     public:
       // Make this one public so it can be accessed by CopyUnstructuredT
       // Be careful using this directly
       template<int DIM, typename T>
-      inline ApEvent issue_copy_internal(Operation*op,
-                               const Realm::IndexSpace<DIM,T> &space,
-                               const PhysicalTraceInfo &trace_info,
-                               const std::vector<CopySrcDstField> &dst_fields,
-                               const std::vector<CopySrcDstField> &src_fields,
-                               const std::vector<Reservation> &reservations,
+      inline ApEvent issue_copy_internal(
+          Operation* op, const Realm::IndexSpace<DIM, T>& space,
+          const PhysicalTraceInfo& trace_info,
+          const std::vector<CopySrcDstField>& dst_fields,
+          const std::vector<CopySrcDstField>& src_fields,
+          const std::vector<Reservation>& reservations,
 #ifdef LEGION_SPY
-                               RegionTreeID src_tree_id,
-                               RegionTreeID dst_tree_id,
+          RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
 #endif
-                               ApEvent precondition, PredEvent pred_guard,
-                               LgEvent src_unique, LgEvent dst_unique,
-                               CollectiveKind collective, bool record_effect,
-                               int priority, bool replay);
+          ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
+          LgEvent dst_unique, CollectiveKind collective, bool record_effect,
+          int priority, bool replay);
     protected:
       template<int DIM, typename T>
       inline Realm::InstanceLayoutGeneric* create_layout_internal(
-                               const Realm::IndexSpace<DIM,T> &space,
-                               const LayoutConstraintSet &constraints,
-                               const std::vector<FieldID> &field_ids,
-                               const std::vector<size_t> &field_sizes,
-                               bool compact, void **piece_list = nullptr,
-                               size_t *piece_list_size = nullptr,
-                               size_t *num_pieces = nullptr,
-                               size_t base_alignment = 32) const;
+          const Realm::IndexSpace<DIM, T>& space,
+          const LayoutConstraintSet& constraints,
+          const std::vector<FieldID>& field_ids,
+          const std::vector<size_t>& field_sizes, bool compact,
+          void** piece_list = nullptr, size_t* piece_list_size = nullptr,
+          size_t* num_pieces = nullptr, size_t base_alignment = 32) const;
       template<int DIM, typename T>
       inline IndexSpaceExpression* create_layout_expression_internal(
-                               const Realm::IndexSpace<DIM,T> &space,
-                               const Rect<DIM,T> *rects, size_t num_rects);
+          const Realm::IndexSpace<DIM, T>& space, const Rect<DIM, T>* rects,
+          size_t num_rects);
       template<int DIM, typename T>
       inline bool meets_layout_expression_internal(
-                         IndexSpaceExpression *space_expr, bool tight_bounds,
-                         const Rect<DIM,T> *piece_list, size_t piece_list_size,
-                         const Domain *padding_delta);
+          IndexSpaceExpression* space_expr, bool tight_bounds,
+          const Rect<DIM, T>* piece_list, size_t piece_list_size,
+          const Domain* padding_delta);
       template<int DIM, typename T>
       inline IndexSpaceExpression* create_from_rectangles_internal(
-                       const std::set<Domain> &rects);
+          const std::set<Domain>& rects);
     public:
       template<int DIM, typename T>
       inline IndexSpaceExpression* find_congruent_expression_internal(
-          SmallPointerVector<IndexSpaceExpression,true> &expressions);
+          SmallPointerVector<IndexSpaceExpression, true>& expressions);
       template<int DIM, typename T>
       inline KDTree* get_sparsity_map_kd_tree_internal(void);
     public:
-      static IndexSpaceExpression* unpack_expression(Deserializer &derez,
-                                                     AddressSpaceID source); 
+      static IndexSpaceExpression* unpack_expression(
+          Deserializer& derez, AddressSpaceID source);
     public:
       const TypeTag type_tag;
       const IndexSpaceExprID expr_id;
     private:
-      LocalLock &expr_lock;
+      LocalLock& expr_lock;
     protected:
       std::set<IndexSpaceOperation*> derived_operations;
       std::atomic<IndexSpaceExpression*> canonical;
-      KDTree *sparsity_map_kd_tree;
+      KDTree* sparsity_map_kd_tree;
       size_t volume;
       std::atomic<bool> has_volume;
       bool empty;
@@ -320,28 +313,26 @@ namespace Legion {
     class IndexSpaceExprRef {
     public:
       IndexSpaceExprRef(void) : expr(nullptr) { }
-      IndexSpaceExprRef(IndexSpaceExpression *e)
-        : expr(e)
-      { 
+      IndexSpaceExprRef(IndexSpaceExpression* e) : expr(e)
+      {
         if (expr != nullptr)
           expr->add_base_expression_reference(LIVE_EXPR_REF);
       }
-      IndexSpaceExprRef(const IndexSpaceExprRef &rhs) = delete;
-      IndexSpaceExprRef(IndexSpaceExprRef &&rhs)
-        : expr(rhs.expr)
+      IndexSpaceExprRef(const IndexSpaceExprRef& rhs) = delete;
+      IndexSpaceExprRef(IndexSpaceExprRef&& rhs) : expr(rhs.expr)
       {
         rhs.expr = nullptr;
       }
       ~IndexSpaceExprRef(void)
       {
-        if ((expr != nullptr) && 
+        if ((expr != nullptr) &&
             expr->remove_base_expression_reference(LIVE_EXPR_REF))
           delete expr;
       }
-      IndexSpaceExprRef& operator=(const IndexSpaceExprRef &rhs) = delete;
-      inline IndexSpaceExprRef& operator=(IndexSpaceExprRef &&rhs)
+      IndexSpaceExprRef& operator=(const IndexSpaceExprRef& rhs) = delete;
+      inline IndexSpaceExprRef& operator=(IndexSpaceExprRef&& rhs)
       {
-        if ((expr != nullptr) && 
+        if ((expr != nullptr) &&
             expr->remove_base_expression_reference(LIVE_EXPR_REF))
           delete expr;
         expr = rhs.expr;
@@ -349,7 +340,7 @@ namespace Legion {
         return *this;
       }
     public:
-      inline bool operator==(const IndexSpaceExprRef &rhs) const
+      inline bool operator==(const IndexSpaceExprRef& rhs) const
       {
         if (expr == nullptr)
           return (rhs.expr == nullptr);
@@ -357,7 +348,7 @@ namespace Legion {
           return false;
         return (expr->expr_id == rhs.expr->expr_id);
       }
-      inline bool operator<(const IndexSpaceExprRef &rhs) const
+      inline bool operator<(const IndexSpaceExprRef& rhs) const
       {
         if (expr == nullptr)
           return (rhs.expr != nullptr);
@@ -368,7 +359,7 @@ namespace Legion {
       inline IndexSpaceExpression* operator->(void) { return expr; }
       inline IndexSpaceExpression* operator&(void) { return expr; }
     protected:
-      IndexSpaceExpression *expr;
+      IndexSpaceExpression* expr;
     };
 
     class IndexSpaceOperation : public IndexSpaceExpression,
@@ -383,50 +374,53 @@ namespace Legion {
       };
     public:
       IndexSpaceOperation(TypeTag tag, OperationKind kind);
-      IndexSpaceOperation(TypeTag tag,
-          IndexSpaceExprID eid, DistributedID did, IndexSpaceOperation *origin);
+      IndexSpaceOperation(
+          TypeTag tag, IndexSpaceExprID eid, DistributedID did,
+          IndexSpaceOperation* origin);
       virtual ~IndexSpaceOperation(void);
     public:
       virtual void notify_local(void);
     public:
       virtual Domain get_tight_domain(void) = 0;
-      [[nodiscard]] virtual ApEvent get_loose_domain(Domain &domain,
-          ApUserEvent &done_event) = 0;
+      [[nodiscard]] virtual ApEvent get_loose_domain(
+          Domain& domain, ApUserEvent& done_event) = 0;
       virtual void record_index_space_user(ApEvent user) = 0;
       virtual void tighten_index_space(void) = 0;
       virtual bool check_empty(void) = 0;
       virtual size_t get_volume(void) = 0;
-      virtual void pack_expression(Serializer &rez, AddressSpaceID target) = 0;
-      virtual void skip_unpack_expression(Deserializer &derez) const = 0;
+      virtual void pack_expression(Serializer& rez, AddressSpaceID target) = 0;
+      virtual void skip_unpack_expression(Deserializer& derez) const = 0;
     public:
 #ifdef DEBUG_LEGION
-      virtual bool is_valid(void) 
-        { return DistributedCollectable::is_global(); }
+      virtual bool is_valid(void)
+      {
+        return DistributedCollectable::is_global();
+      }
 #endif
       virtual DistributedID get_distributed_id(void) const { return did; }
       virtual void add_canonical_reference(DistributedID source);
       virtual bool remove_canonical_reference(DistributedID source);
       virtual bool try_add_live_reference(void);
-      virtual void add_base_expression_reference(ReferenceSource source,
-                                                 unsigned count = 1);
-      virtual void add_nested_expression_reference(DistributedID source,
-                                                   unsigned count = 1);
-      virtual bool remove_base_expression_reference(ReferenceSource source,
-                                                    unsigned count = 1);
-      virtual bool remove_nested_expression_reference(DistributedID source,
-                                                      unsigned count = 1);
-      virtual void add_tree_expression_reference(DistributedID source,
-                                                 unsigned count = 1);
-      virtual bool remove_tree_expression_reference(DistributedID source,
-                                                    unsigned count = 1);
+      virtual void add_base_expression_reference(
+          ReferenceSource source, unsigned count = 1);
+      virtual void add_nested_expression_reference(
+          DistributedID source, unsigned count = 1);
+      virtual bool remove_base_expression_reference(
+          ReferenceSource source, unsigned count = 1);
+      virtual bool remove_nested_expression_reference(
+          DistributedID source, unsigned count = 1);
+      virtual void add_tree_expression_reference(
+          DistributedID source, unsigned count = 1);
+      virtual bool remove_tree_expression_reference(
+          DistributedID source, unsigned count = 1);
     public:
       virtual bool invalidate_operation(void) = 0;
       virtual void remove_operation(void) = 0;
-      virtual IndexSpaceNode* create_node(IndexSpace handle,
-          RtEvent initialized, Provenance *provenance,
-          CollectiveMapping *mapping, IndexSpaceExprID expr_id = 0) = 0;
+      virtual IndexSpaceNode* create_node(
+          IndexSpace handle, RtEvent initialized, Provenance* provenance,
+          CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0) = 0;
     public:
-      IndexSpaceOperation *const origin_expr;
+      IndexSpaceOperation* const origin_expr;
       const OperationKind op_kind;
     protected:
       mutable LocalLock inter_lock;
@@ -438,177 +432,172 @@ namespace Legion {
     class IndexSpaceOperationT : public IndexSpaceOperation {
     public:
       IndexSpaceOperationT(OperationKind kind);
-      IndexSpaceOperationT(IndexSpaceExprID eid,
-          DistributedID did, IndexSpaceOperation *op,
-          TypeTag tag, Deserializer &derez);
+      IndexSpaceOperationT(
+          IndexSpaceExprID eid, DistributedID did, IndexSpaceOperation* op,
+          TypeTag tag, Deserializer& derez);
       virtual ~IndexSpaceOperationT(void);
     public:
       virtual bool is_sparse(void);
       virtual Domain get_tight_domain(void);
-      [[nodiscard]] virtual ApEvent get_loose_domain(Domain &domain,
-          ApUserEvent &done_event);
+      [[nodiscard]] virtual ApEvent get_loose_domain(
+          Domain& domain, ApUserEvent& done_event);
       virtual void record_index_space_user(ApEvent user);
       virtual void tighten_index_space(void);
       virtual bool check_empty(void);
       virtual size_t get_volume(void);
-      virtual void pack_expression(Serializer &rez, AddressSpaceID target);
-      virtual void skip_unpack_expression(Deserializer &derez) const;
+      virtual void pack_expression(Serializer& rez, AddressSpaceID target);
+      virtual void skip_unpack_expression(Deserializer& derez) const;
       virtual bool invalidate_operation(void) = 0;
       virtual void remove_operation(void) = 0;
-      virtual IndexSpaceNode* create_node(IndexSpace handle,
-          RtEvent initialized, Provenance *provenance,
-          CollectiveMapping *mapping, IndexSpaceExprID expr_id = 0);
+      virtual IndexSpaceNode* create_node(
+          IndexSpace handle, RtEvent initialized, Provenance* provenance,
+          CollectiveMapping* mapping, IndexSpaceExprID expr_id = 0);
       virtual IndexSpaceExpression* create_from_rectangles(
-                                const std::set<Domain> &rectangles);
-      virtual PieceIteratorImpl* create_piece_iterator(const void *piece_list,
-                      size_t piece_list_size, IndexSpaceNode *privilege_node);
+          const std::set<Domain>& rectangles);
+      virtual PieceIteratorImpl* create_piece_iterator(
+          const void* piece_list, size_t piece_list_size,
+          IndexSpaceNode* privilege_node);
     public:
+      virtual IndexSpaceExpression* inline_union(IndexSpaceExpression* rhs);
       virtual IndexSpaceExpression* inline_union(
-          IndexSpaceExpression *rhs);
-      virtual IndexSpaceExpression* inline_union(
-          const std::set<IndexSpaceExpression*> &exprs);
+          const std::set<IndexSpaceExpression*>& exprs);
       virtual IndexSpaceExpression* inline_intersection(
-          IndexSpaceExpression *rhs);
+          IndexSpaceExpression* rhs);
       virtual IndexSpaceExpression* inline_intersection(
-          const std::set<IndexSpaceExpression*> &exprs);
+          const std::set<IndexSpaceExpression*>& exprs);
       virtual IndexSpaceExpression* inline_subtraction(
-          IndexSpaceExpression *rhs);
+          IndexSpaceExpression* rhs);
       virtual uint64_t get_canonical_hash(void);
     public:
-      virtual ApEvent issue_fill(Operation *op,
-                           const PhysicalTraceInfo &trace_info,
-                           const std::vector<CopySrcDstField> &dst_fields,
-                           const void *fill_value, size_t fill_size,
+      virtual ApEvent issue_fill(
+          Operation* op, const PhysicalTraceInfo& trace_info,
+          const std::vector<CopySrcDstField>& dst_fields,
+          const void* fill_value, size_t fill_size,
 #ifdef LEGION_SPY
-                           UniqueID fill_uid,
-                           FieldSpace handle,
-                           RegionTreeID tree_id,
+          UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
 #endif
-                           ApEvent precondition, PredEvent pred_guard,
-                           LgEvent unique_event,
-                           CollectiveKind collective, bool record_effect,
-                           int priority = 0, bool replay = false);
-      virtual ApEvent issue_copy(Operation *op,
-                           const PhysicalTraceInfo &trace_info,
-                           const std::vector<CopySrcDstField> &dst_fields,
-                           const std::vector<CopySrcDstField> &src_fields,
-                           const std::vector<Reservation> &reservations,
+          ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
+          CollectiveKind collective, bool record_effect, int priority = 0,
+          bool replay = false);
+      virtual ApEvent issue_copy(
+          Operation* op, const PhysicalTraceInfo& trace_info,
+          const std::vector<CopySrcDstField>& dst_fields,
+          const std::vector<CopySrcDstField>& src_fields,
+          const std::vector<Reservation>& reservations,
 #ifdef LEGION_SPY
-                           RegionTreeID src_tree_id,
-                           RegionTreeID dst_tree_id,
+          RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
 #endif
-                           ApEvent precondition, PredEvent pred_guard,
-                           LgEvent src_unique, LgEvent dst_unique,
-                           CollectiveKind collective, bool record_effect,
-                           int priority = 0, bool replay = false);
+          ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
+          LgEvent dst_unique, CollectiveKind collective, bool record_effect,
+          int priority = 0, bool replay = false);
       virtual CopyAcrossUnstructured* create_across_unstructured(
-                           const std::map<Reservation,bool> &reservations,
-                           const bool compute_preimages,
-                           const bool shadow_indirections);
+          const std::map<Reservation, bool>& reservations,
+          const bool compute_preimages, const bool shadow_indirections);
       virtual Realm::InstanceLayoutGeneric* create_layout(
-                           const LayoutConstraintSet &constraints,
-                           const std::vector<FieldID> &field_ids,
-                           const std::vector<size_t> &field_sizes,
-                           bool compact, void **piece_list = nullptr, 
-                           size_t *piece_list_size = nullptr,
-                           size_t *num_pieces = nullptr,
-                           size_t base_alignment = 32);
+          const LayoutConstraintSet& constraints,
+          const std::vector<FieldID>& field_ids,
+          const std::vector<size_t>& field_sizes, bool compact,
+          void** piece_list = nullptr, size_t* piece_list_size = nullptr,
+          size_t* num_pieces = nullptr, size_t base_alignment = 32);
       virtual IndexSpaceExpression* create_layout_expression(
-                           const void *piece_list, size_t piece_list_size);
-      virtual bool meets_layout_expression(IndexSpaceExpression *expr,
-         bool tight_bounds, const void *piece_list, size_t piece_list_size,
-         const Domain *padding_delta);
+          const void* piece_list, size_t piece_list_size);
+      virtual bool meets_layout_expression(
+          IndexSpaceExpression* expr, bool tight_bounds, const void* piece_list,
+          size_t piece_list_size, const Domain* padding_delta);
     public:
       virtual IndexSpaceExpression* find_congruent_expression(
-          SmallPointerVector<IndexSpaceExpression,true> &expressions);
+          SmallPointerVector<IndexSpaceExpression, true>& expressions);
       virtual KDTree* get_sparsity_map_kd_tree(void);
     public:
-      virtual void initialize_equivalence_set_kd_tree(EqKDTree *tree,
-                                        EquivalenceSet *set,
-                                        const FieldMask &mask,
-                                        ShardID local_shard,
-                                        bool current);
+      virtual void initialize_equivalence_set_kd_tree(
+          EqKDTree* tree, EquivalenceSet* set, const FieldMask& mask,
+          ShardID local_shard, bool current);
       virtual void compute_equivalence_sets(
-          EqKDTree *tree, LocalLock *tree_lock, const FieldMask &mask, 
-          const std::vector<EqSetTracker*> &trackers,
-          const std::vector<AddressSpaceID> &tracker_spaces,
-          std::vector<unsigned> &new_tracker_references,
-          FieldMaskSet<EquivalenceSet> &eq_sets,
-          std::vector<RtEvent> &pending_sets,
-          FieldMaskSet<EqKDTree> &subscriptions,
-          FieldMaskSet<EqKDTree> &to_create,
-          std::map<EqKDTree*,Domain> &creation_rects,
-          std::map<EquivalenceSet*,LegionMap<Domain,FieldMask> > &creation_srcs,
-          std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
+          EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
+          const std::vector<EqSetTracker*>& trackers,
+          const std::vector<AddressSpaceID>& tracker_spaces,
+          std::vector<unsigned>& new_tracker_references,
+          FieldMaskSet<EquivalenceSet>& eq_sets,
+          std::vector<RtEvent>& pending_sets,
+          FieldMaskSet<EqKDTree>& subscriptions,
+          FieldMaskSet<EqKDTree>& to_create,
+          std::map<EqKDTree*, Domain>& creation_rects,
+          std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >&
+              creation_srcs,
+          std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0);
-      virtual unsigned record_output_equivalence_set(EqKDTree *tree,
-          LocalLock *tree_lock, EquivalenceSet *set, const FieldMask &mask,
-          EqSetTracker *tracker, AddressSpaceID tracker_space,
-          FieldMaskSet<EqKDTree> &subscriptions,
-          std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
+      virtual unsigned record_output_equivalence_set(
+          EqKDTree* tree, LocalLock* tree_lock, EquivalenceSet* set,
+          const FieldMask& mask, EqSetTracker* tracker,
+          AddressSpaceID tracker_space, FieldMaskSet<EqKDTree>& subscriptions,
+          std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
           ShardID local_shard = 0);
     public:
-      DomainT<DIM,T> get_tight_index_space(void);
+      DomainT<DIM, T> get_tight_index_space(void);
       // Return event is when the result index space is safe to use
       // The done event must be triggered after the index space is
       // done being used if it is not a no-event
       [[nodiscard]] ApEvent get_loose_index_space(
-          DomainT<DIM,T> &result, ApUserEvent &done_event);
+          DomainT<DIM, T>& result, ApUserEvent& done_event);
     protected:
-      Realm::IndexSpace<DIM,T> realm_index_space, tight_index_space;
-      ApEvent realm_index_space_ready; 
+      Realm::IndexSpace<DIM, T> realm_index_space, tight_index_space;
+      ApEvent realm_index_space_ready;
       RtEvent tight_index_space_ready;
       std::atomic<bool> is_index_space_tight;
     };
 
     template<int DIM, typename T>
-    class IndexSpaceUnion : public IndexSpaceOperationT<DIM,T>,
-        public Heapify<IndexSpaceUnion<DIM,T>,LONG_BOUNDED_LIFETIME> {
+    class IndexSpaceUnion
+      : public IndexSpaceOperationT<DIM, T>,
+        public Heapify<IndexSpaceUnion<DIM, T>, LONG_BOUNDED_LIFETIME> {
     public:
-      IndexSpaceUnion(const std::vector<IndexSpaceExpression*> &to_union);
-      IndexSpaceUnion(const Rect<DIM,T> &bounds);
-      IndexSpaceUnion(const IndexSpaceUnion<DIM,T> &rhs) = delete;
+      IndexSpaceUnion(const std::vector<IndexSpaceExpression*>& to_union);
+      IndexSpaceUnion(const Rect<DIM, T>& bounds);
+      IndexSpaceUnion(const IndexSpaceUnion<DIM, T>& rhs) = delete;
       virtual ~IndexSpaceUnion(void);
     public:
-      IndexSpaceUnion& operator=(const IndexSpaceUnion &rhs) = delete;
+      IndexSpaceUnion& operator=(const IndexSpaceUnion& rhs) = delete;
     public:
       virtual bool invalidate_operation(void);
       virtual void remove_operation(void);
     protected:
       const std::vector<IndexSpaceExpression*> sub_expressions;
-    }; 
+    };
 
     class UnionOpCreator : public OperationCreator {
     public:
-      UnionOpCreator(TypeTag t,
-                     const std::vector<IndexSpaceExpression*> &e)
-        : OperationCreator(), type_tag(t), exprs(e) { }
+      UnionOpCreator(TypeTag t, const std::vector<IndexSpaceExpression*>& e)
+        : OperationCreator(), type_tag(t), exprs(e)
+      { }
     public:
       template<typename N, typename T>
-      static inline void demux(UnionOpCreator *creator)
+      static inline void demux(UnionOpCreator* creator)
       {
-        creator->produce(new IndexSpaceUnion<N::N,T>(creator->exprs));
+        creator->produce(new IndexSpaceUnion<N::N, T>(creator->exprs));
       }
     public:
       virtual void create_operation(void)
-        { NT_TemplateHelper::demux<UnionOpCreator>(type_tag, this); }
+      {
+        NT_TemplateHelper::demux<UnionOpCreator>(type_tag, this);
+      }
     public:
       const TypeTag type_tag;
-      const std::vector<IndexSpaceExpression*> &exprs;
+      const std::vector<IndexSpaceExpression*>& exprs;
     };
 
     template<int DIM, typename T>
-    class IndexSpaceIntersection : public IndexSpaceOperationT<DIM,T>,
-        public Heapify<IndexSpaceIntersection<DIM,T>,LONG_BOUNDED_LIFETIME> {
+    class IndexSpaceIntersection
+      : public IndexSpaceOperationT<DIM, T>,
+        public Heapify<IndexSpaceIntersection<DIM, T>, LONG_BOUNDED_LIFETIME> {
     public:
       IndexSpaceIntersection(
-          const std::vector<IndexSpaceExpression*> &to_inter);
-      IndexSpaceIntersection(const Rect<DIM,T> &bounds); 
-      IndexSpaceIntersection(const IndexSpaceIntersection &rhs) = delete;
+          const std::vector<IndexSpaceExpression*>& to_inter);
+      IndexSpaceIntersection(const Rect<DIM, T>& bounds);
+      IndexSpaceIntersection(const IndexSpaceIntersection& rhs) = delete;
       virtual ~IndexSpaceIntersection(void);
     public:
-      IndexSpaceIntersection& operator=(
-          const IndexSpaceIntersection &rhs) = delete;
+      IndexSpaceIntersection& operator=(const IndexSpaceIntersection& rhs) =
+          delete;
     public:
       virtual bool invalidate_operation(void);
       virtual void remove_operation(void);
@@ -618,64 +607,72 @@ namespace Legion {
 
     class IntersectionOpCreator : public OperationCreator {
     public:
-      IntersectionOpCreator(TypeTag t,
-                            const std::vector<IndexSpaceExpression*> &e)
-        : OperationCreator(), type_tag(t), exprs(e) { }
+      IntersectionOpCreator(
+          TypeTag t, const std::vector<IndexSpaceExpression*>& e)
+        : OperationCreator(), type_tag(t), exprs(e)
+      { }
     public:
       template<typename N, typename T>
-      static inline void demux(IntersectionOpCreator *creator)
+      static inline void demux(IntersectionOpCreator* creator)
       {
-        creator->produce(new IndexSpaceIntersection<N::N,T>(creator->exprs));
+        creator->produce(new IndexSpaceIntersection<N::N, T>(creator->exprs));
       }
     public:
       virtual void create_operation(void)
-        { NT_TemplateHelper::demux<IntersectionOpCreator>(type_tag, this); }
+      {
+        NT_TemplateHelper::demux<IntersectionOpCreator>(type_tag, this);
+      }
     public:
       const TypeTag type_tag;
-      const std::vector<IndexSpaceExpression*> &exprs;
+      const std::vector<IndexSpaceExpression*>& exprs;
     };
 
     template<int DIM, typename T>
-    class IndexSpaceDifference : public IndexSpaceOperationT<DIM,T>,
-        public Heapify<IndexSpaceDifference<DIM,T>,LONG_BOUNDED_LIFETIME> {
+    class IndexSpaceDifference
+      : public IndexSpaceOperationT<DIM, T>,
+        public Heapify<IndexSpaceDifference<DIM, T>, LONG_BOUNDED_LIFETIME> {
     public:
-      IndexSpaceDifference(IndexSpaceExpression *lhs,IndexSpaceExpression *rhs);
-      IndexSpaceDifference(const Rect<DIM,T> &bounds);
-      IndexSpaceDifference(const IndexSpaceDifference &rhs) = delete;
+      IndexSpaceDifference(
+          IndexSpaceExpression* lhs, IndexSpaceExpression* rhs);
+      IndexSpaceDifference(const Rect<DIM, T>& bounds);
+      IndexSpaceDifference(const IndexSpaceDifference& rhs) = delete;
       virtual ~IndexSpaceDifference(void);
     public:
-      IndexSpaceDifference& operator=(const IndexSpaceDifference &rhs) = delete;
+      IndexSpaceDifference& operator=(const IndexSpaceDifference& rhs) = delete;
     public:
       virtual bool invalidate_operation(void);
       virtual void remove_operation(void);
     protected:
-      IndexSpaceExpression *const lhs;
-      IndexSpaceExpression *const rhs;
+      IndexSpaceExpression* const lhs;
+      IndexSpaceExpression* const rhs;
     };
 
     class DifferenceOpCreator : public OperationCreator {
     public:
-      DifferenceOpCreator(TypeTag t,
-                          IndexSpaceExpression *l, IndexSpaceExpression *r)
-        : OperationCreator(), type_tag(t), lhs(l), rhs(r) { }
+      DifferenceOpCreator(
+          TypeTag t, IndexSpaceExpression* l, IndexSpaceExpression* r)
+        : OperationCreator(), type_tag(t), lhs(l), rhs(r)
+      { }
     public:
       template<typename N, typename T>
-      static inline void demux(DifferenceOpCreator *creator)
+      static inline void demux(DifferenceOpCreator* creator)
       {
-        creator->produce(new IndexSpaceDifference<N::N,T>(creator->lhs,
-                                          creator->rhs));
+        creator->produce(
+            new IndexSpaceDifference<N::N, T>(creator->lhs, creator->rhs));
       }
     public:
       virtual void create_operation(void)
-        { NT_TemplateHelper::demux<DifferenceOpCreator>(type_tag, this); }
+      {
+        NT_TemplateHelper::demux<DifferenceOpCreator>(type_tag, this);
+      }
     public:
       const TypeTag type_tag;
-      IndexSpaceExpression *const lhs;
-      IndexSpaceExpression *const rhs;
+      IndexSpaceExpression* const lhs;
+      IndexSpaceExpression* const rhs;
     };
 
     /**
-     * \class InternalExpression 
+     * \class InternalExpression
      * This class stores an internal expression corresponding to a
      * group of rectangles that the runtime had to compute and not
      * derived from any other expressions. This can occur when creating
@@ -683,24 +680,25 @@ namespace Legion {
      * computing equivalence sets.
      */
     template<int DIM, typename T>
-    class InternalExpression : public IndexSpaceOperationT<DIM,T>,
-        public Heapify<InternalExpression<DIM,T>,LONG_BOUNDED_LIFETIME> {
+    class InternalExpression
+      : public IndexSpaceOperationT<DIM, T>,
+        public Heapify<InternalExpression<DIM, T>, LONG_BOUNDED_LIFETIME> {
     public:
-      InternalExpression(const Rect<DIM,T> *rects, size_t num_rects);
-      InternalExpression(const InternalExpression<DIM,T> &rhs) = delete;
+      InternalExpression(const Rect<DIM, T>* rects, size_t num_rects);
+      InternalExpression(const InternalExpression<DIM, T>& rhs) = delete;
       virtual ~InternalExpression(void);
     public:
-      InternalExpression& operator=(const InternalExpression &rhs) = delete;
+      InternalExpression& operator=(const InternalExpression& rhs) = delete;
     public:
       virtual bool invalidate_operation(void);
       virtual void remove_operation(void);
     };
 
-    class InternalExpressionCreator
-    {
+    class InternalExpressionCreator {
     public:
-      InternalExpressionCreator(TypeTag t, const Domain &d)
-        : type_tag(t), dom(d) { }
+      InternalExpressionCreator(TypeTag t, const Domain& d)
+        : type_tag(t), dom(d)
+      { }
 
       virtual void create_operation()
       {
@@ -708,18 +706,18 @@ namespace Legion {
       }
 
       template<typename N, typename T>
-      static inline void demux(InternalExpressionCreator *creator)
+      static inline void demux(InternalExpressionCreator* creator)
       {
         Rect<N::N, T> rect = creator->dom;
         creator->result = new InternalExpression<N::N, T>(&rect, 1);
       }
 
-      static IndexSpaceOperation *create_with_domain(TypeTag tag,
-                                                     const Domain &dom);
+      static IndexSpaceOperation* create_with_domain(
+          TypeTag tag, const Domain& dom);
     public:
       const TypeTag type_tag;
       const Domain dom;
-      IndexSpaceOperation *result;
+      IndexSpaceOperation* result;
     };
 
     /**
@@ -727,16 +725,17 @@ namespace Legion {
      * A copy of an expression that lives on a remote node.
      */
     template<int DIM, typename T>
-    class RemoteExpression : public IndexSpaceOperationT<DIM,T>,
-        public Heapify<RemoteExpression<DIM,T>,LONG_BOUNDED_LIFETIME> {
+    class RemoteExpression
+      : public IndexSpaceOperationT<DIM, T>,
+        public Heapify<RemoteExpression<DIM, T>, LONG_BOUNDED_LIFETIME> {
     public:
-      RemoteExpression(IndexSpaceExprID eid,
-          DistributedID did, IndexSpaceOperation *op,
-          TypeTag type_tag, Deserializer &derez);
-      RemoteExpression(const RemoteExpression<DIM,T> &rhs) = delete;
+      RemoteExpression(
+          IndexSpaceExprID eid, DistributedID did, IndexSpaceOperation* op,
+          TypeTag type_tag, Deserializer& derez);
+      RemoteExpression(const RemoteExpression<DIM, T>& rhs) = delete;
       virtual ~RemoteExpression(void);
     public:
-      RemoteExpression& operator=(const RemoteExpression &op) = delete;
+      RemoteExpression& operator=(const RemoteExpression& op) = delete;
     public:
       virtual bool invalidate_operation(void);
       virtual void remove_operation(void);
@@ -744,28 +743,28 @@ namespace Legion {
 
     class RemoteExpressionCreator {
     public:
-      RemoteExpressionCreator(IndexSpaceExprID e, TypeTag t, Deserializer &d)
-        : expr_id(e), type_tag(t), derez(d), operation(nullptr) { }
+      RemoteExpressionCreator(IndexSpaceExprID e, TypeTag t, Deserializer& d)
+        : expr_id(e), type_tag(t), derez(d), operation(nullptr)
+      { }
     public:
       template<typename N, typename T>
-      static inline void demux(RemoteExpressionCreator *creator)
+      static inline void demux(RemoteExpressionCreator* creator)
       {
-        IndexSpaceOperation *origin;
+        IndexSpaceOperation* origin;
         creator->derez.deserialize(origin);
         DistributedID did;
         creator->derez.deserialize(did);
 #ifdef DEBUG_LEGION
         assert(creator->operation == nullptr);
 #endif
-        creator->operation =
-            new RemoteExpression<N::N,T>(creator->expr_id,
-                did, origin, creator->type_tag, creator->derez);
+        creator->operation = new RemoteExpression<N::N, T>(
+            creator->expr_id, did, origin, creator->type_tag, creator->derez);
       }
     public:
       const IndexSpaceExprID expr_id;
       const TypeTag type_tag;
-      Deserializer &derez;
-      IndexSpaceOperation *operation;
+      Deserializer& derez;
+      IndexSpaceOperation* operation;
     };
 
     /**
@@ -777,34 +776,35 @@ namespace Legion {
      */
     class ExpressionTrieNode {
     public:
-      ExpressionTrieNode(unsigned depth, IndexSpaceExprID expr_id, 
-                         IndexSpaceExpression *op = nullptr);
-      ExpressionTrieNode(const ExpressionTrieNode &rhs) = delete;
+      ExpressionTrieNode(
+          unsigned depth, IndexSpaceExprID expr_id,
+          IndexSpaceExpression* op = nullptr);
+      ExpressionTrieNode(const ExpressionTrieNode& rhs) = delete;
       ~ExpressionTrieNode(void);
     public:
-      ExpressionTrieNode& operator=(const ExpressionTrieNode &rhs) = delete;
+      ExpressionTrieNode& operator=(const ExpressionTrieNode& rhs) = delete;
     public:
       bool find_operation(
-          const std::vector<IndexSpaceExpression*> &expressions,
-          IndexSpaceExpression *&result, ExpressionTrieNode *&last);
-      IndexSpaceExpression* find_or_create_operation( 
-          const std::vector<IndexSpaceExpression*> &expressions,
-          OperationCreator &creator);
-      bool remove_operation(const std::vector<IndexSpaceExpression*> &exprs);
+          const std::vector<IndexSpaceExpression*>& expressions,
+          IndexSpaceExpression*& result, ExpressionTrieNode*& last);
+      IndexSpaceExpression* find_or_create_operation(
+          const std::vector<IndexSpaceExpression*>& expressions,
+          OperationCreator& creator);
+      bool remove_operation(const std::vector<IndexSpaceExpression*>& exprs);
     public:
       const unsigned depth;
       const IndexSpaceExprID expr;
     protected:
-      IndexSpaceExpression *local_operation;
-      std::map<IndexSpaceExprID,IndexSpaceExpression*> operations;
-      std::map<IndexSpaceExprID,ExpressionTrieNode*> nodes;
+      IndexSpaceExpression* local_operation;
+      std::map<IndexSpaceExprID, IndexSpaceExpression*> operations;
+      std::map<IndexSpaceExprID, ExpressionTrieNode*> nodes;
     protected:
       mutable LocalLock trie_lock;
     };
 
-  } // namespace Internal
-} // namespace Legion
-  
+  }  // namespace Internal
+}  // namespace Legion
+
 #include "legion/nodes/expression.inl"
 
-#endif // __LEGION_EXPRESSION_H__
+#endif  // __LEGION_EXPRESSION_H__

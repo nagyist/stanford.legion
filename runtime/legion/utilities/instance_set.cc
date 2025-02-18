@@ -23,38 +23,33 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // InstanceRef 
+    // InstanceRef
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    InstanceRef::InstanceRef(bool comp)
-      : manager(nullptr), local(true)
+    InstanceRef::InstanceRef(bool comp) : manager(nullptr), local(true)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    InstanceRef::InstanceRef(const InstanceRef &rhs)
+    InstanceRef::InstanceRef(const InstanceRef& rhs)
       : valid_fields(rhs.valid_fields), manager(rhs.manager), local(rhs.local)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    InstanceRef::InstanceRef(InstanceManager *man, const FieldMask &m)
+    InstanceRef::InstanceRef(InstanceManager* man, const FieldMask& m)
       : valid_fields(m), manager(man), local(true)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     InstanceRef::~InstanceRef(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    InstanceRef& InstanceRef::operator=(const InstanceRef &rhs)
+    InstanceRef& InstanceRef::operator=(const InstanceRef& rhs)
     //--------------------------------------------------------------------------
     {
       valid_fields = rhs.valid_fields;
@@ -64,7 +59,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool InstanceRef::operator==(const InstanceRef &rhs) const
+    bool InstanceRef::operator==(const InstanceRef& rhs) const
     //--------------------------------------------------------------------------
     {
       if (valid_fields != rhs.valid_fields)
@@ -75,7 +70,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool InstanceRef::operator!=(const InstanceRef &rhs) const
+    bool InstanceRef::operator!=(const InstanceRef& rhs) const
     //--------------------------------------------------------------------------
     {
       return !(*this == rhs);
@@ -94,7 +89,7 @@ namespace Legion {
     {
       if (manager == nullptr)
         return true;
-      return manager->is_virtual_manager(); 
+      return manager->is_virtual_manager();
     }
 
     //--------------------------------------------------------------------------
@@ -184,7 +179,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InstanceRef::pack_reference(Serializer &rez) const
+    void InstanceRef::pack_reference(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(valid_fields);
@@ -195,7 +190,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InstanceRef::unpack_reference(Deserializer &derez, RtEvent &ready)
+    void InstanceRef::unpack_reference(Deserializer& derez, RtEvent& ready)
     //--------------------------------------------------------------------------
     {
       derez.deserialize(valid_fields);
@@ -205,15 +200,15 @@ namespace Legion {
         return;
       manager = runtime->find_or_request_instance_manager(did, ready);
       local = false;
-    } 
+    }
 
     /////////////////////////////////////////////////////////////
-    // InstanceSet 
+    // InstanceSet
     /////////////////////////////////////////////////////////////
-    
+
     //--------------------------------------------------------------------------
     InstanceSet::CollectableRef& InstanceSet::CollectableRef::operator=(
-                                         const InstanceSet::CollectableRef &rhs)
+        const InstanceSet::CollectableRef& rhs)
     //--------------------------------------------------------------------------
     {
       valid_fields = rhs.valid_fields;
@@ -233,8 +228,7 @@ namespace Legion {
       {
         refs.single = new CollectableRef();
         refs.single->add_reference();
-      }
-      else
+      } else
       {
         refs.multi = new InternalSet(init_size);
         refs.multi->add_reference();
@@ -242,8 +236,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    InstanceSet::InstanceSet(const InstanceSet &rhs)
-      : single(rhs.single)
+    InstanceSet::InstanceSet(const InstanceSet& rhs) : single(rhs.single)
     //--------------------------------------------------------------------------
     {
       // Mark that the other one is sharing too
@@ -258,8 +251,7 @@ namespace Legion {
         shared = true;
         rhs.shared = true;
         refs.single->add_reference();
-      }
-      else
+      } else
       {
         refs.multi = rhs.refs.multi;
         shared = true;
@@ -276,8 +268,7 @@ namespace Legion {
       {
         if ((refs.single != nullptr) && refs.single->remove_reference())
           delete (refs.single);
-      }
-      else
+      } else
       {
         if (refs.multi->remove_reference())
           delete refs.multi;
@@ -285,7 +276,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    InstanceSet& InstanceSet::operator=(const InstanceSet &rhs)
+    InstanceSet& InstanceSet::operator=(const InstanceSet& rhs)
     //--------------------------------------------------------------------------
     {
       // See if we need to delete our current one
@@ -293,14 +284,13 @@ namespace Legion {
       {
         if ((refs.single != nullptr) && refs.single->remove_reference())
           delete (refs.single);
-      }
-      else
+      } else
       {
         if (refs.multi->remove_reference())
           delete refs.multi;
       }
       // Now copy over the other one
-      single = rhs.single; 
+      single = rhs.single;
       if (single)
       {
         refs.single = rhs.refs.single;
@@ -309,11 +299,9 @@ namespace Legion {
           shared = true;
           rhs.shared = true;
           refs.single->add_reference();
-        }
-        else
+        } else
           shared = false;
-      }
-      else
+      } else
       {
         refs.multi = rhs.refs.multi;
         shared = true;
@@ -334,17 +322,15 @@ namespace Legion {
       {
         if (refs.single != nullptr)
         {
-          CollectableRef *next = 
-            new CollectableRef(*refs.single);
+          CollectableRef* next = new CollectableRef(*refs.single);
           next->add_reference();
           if (refs.single->remove_reference())
             delete (refs.single);
           refs.single = next;
         }
-      }
-      else
+      } else
       {
-        InternalSet *next = new InternalSet(*refs.multi);
+        InternalSet* next = new InternalSet(*refs.multi);
         next->add_reference();
         if (refs.multi->remove_reference())
           delete refs.multi;
@@ -354,7 +340,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool InstanceSet::operator==(const InstanceSet &rhs) const
+    bool InstanceSet::operator==(const InstanceSet& rhs) const
     //--------------------------------------------------------------------------
     {
       if (single != rhs.single)
@@ -367,8 +353,7 @@ namespace Legion {
             ((refs.single != nullptr) && (rhs.refs.single == nullptr)))
           return false;
         return ((*refs.single) == (*rhs.refs.single));
-      }
-      else
+      } else
       {
         if (refs.multi->vector.size() != rhs.refs.multi->vector.size())
           return false;
@@ -382,7 +367,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool InstanceSet::operator!=(const InstanceSet &rhs) const
+    bool InstanceSet::operator!=(const InstanceSet& rhs) const
     //--------------------------------------------------------------------------
     {
       return !((*this) == rhs);
@@ -465,11 +450,10 @@ namespace Legion {
             delete (refs.single);
           refs.single = nullptr;
           shared = false;
-        }
-        else if (new_size > 1)
+        } else if (new_size > 1)
         {
           // Switch to multi
-          InternalSet *next = new InternalSet(new_size);
+          InternalSet* next = new InternalSet(new_size);
           if (refs.single != nullptr)
           {
             next->vector[0] = *(refs.single);
@@ -480,18 +464,16 @@ namespace Legion {
           refs.multi = next;
           single = false;
           shared = false;
-        }
-        else if (refs.single == nullptr)
+        } else if (refs.single == nullptr)
         {
           // New size is 1 but we were empty before
-          CollectableRef *next = new CollectableRef();
+          CollectableRef* next = new CollectableRef();
           next->add_reference();
           refs.single = next;
           single = true;
           shared = false;
         }
-      }
-      else
+      } else
       {
         if (new_size == 0)
         {
@@ -500,19 +482,16 @@ namespace Legion {
           refs.single = nullptr;
           single = true;
           shared = false;
-        }
-        else if (new_size == 1)
+        } else if (new_size == 1)
         {
-          CollectableRef *next = 
-            new CollectableRef(refs.multi->vector[0]);
+          CollectableRef* next = new CollectableRef(refs.multi->vector[0]);
           if (refs.multi->remove_reference())
             delete (refs.multi);
           next->add_reference();
           refs.single = next;
           single = true;
           shared = false;
-        }
-        else
+        } else
         {
           size_t current_size = refs.multi->vector.size();
           if (current_size != new_size)
@@ -520,18 +499,18 @@ namespace Legion {
             if (shared)
             {
               // Make a copy
-              InternalSet *next = new InternalSet(new_size);
+              InternalSet* next = new InternalSet(new_size);
               // Copy over the elements
-              for (unsigned idx = 0; idx < 
-                   ((current_size < new_size) ? current_size : new_size); idx++)
+              for (unsigned idx = 0;
+                   idx < ((current_size < new_size) ? current_size : new_size);
+                   idx++)
                 next->vector[idx] = refs.multi->vector[idx];
               if (refs.multi->remove_reference())
                 delete refs.multi;
               next->add_reference();
               refs.multi = next;
               shared = false;
-            }
-            else
+            } else
             {
               // Resize our existing vector
               refs.multi->vector.resize(new_size);
@@ -552,8 +531,7 @@ namespace Legion {
         if ((refs.single != nullptr) && refs.single->remove_reference())
           delete (refs.single);
         refs.single = nullptr;
-      }
-      else
+      } else
       {
         if (shared)
         {
@@ -564,27 +542,25 @@ namespace Legion {
             // Put a reference back on it since we're reusing it
             refs.multi->add_reference();
             refs.multi->vector.clear();
-          }
-          else
+          } else
           {
             // Go back to single
             refs.multi = nullptr;
             single = true;
           }
-        }
-        else
+        } else
           refs.multi->vector.clear();
       }
       shared = false;
     }
 
     //--------------------------------------------------------------------------
-    void InstanceSet::swap(InstanceSet &rhs)
+    void InstanceSet::swap(InstanceSet& rhs)
     //--------------------------------------------------------------------------
     {
       // Swap references
       {
-        InternalSet *other = rhs.refs.multi;
+        InternalSet* other = rhs.refs.multi;
         rhs.refs.multi = refs.multi;
         refs.multi = other;
       }
@@ -603,7 +579,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InstanceSet::add_instance(const InstanceRef &ref)
+    void InstanceSet::add_instance(const InstanceRef& ref)
     //--------------------------------------------------------------------------
     {
       if (single)
@@ -612,7 +588,7 @@ namespace Legion {
         if (refs.single != nullptr)
         {
           // Make the new multi version
-          InternalSet *next = new InternalSet(2);
+          InternalSet* next = new InternalSet(2);
           next->vector[0] = *(refs.single);
           next->vector[1] = ref;
           if (refs.single->remove_reference())
@@ -621,14 +597,12 @@ namespace Legion {
           refs.multi = next;
           single = false;
           shared = false;
-        }
-        else
+        } else
         {
           refs.single = new CollectableRef(ref);
           refs.single->add_reference();
         }
-      }
-      else
+      } else
       {
         if (shared)
           make_copy();
@@ -648,7 +622,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InstanceSet::pack_references(Serializer &rez) const
+    void InstanceSet::pack_references(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       if (single)
@@ -660,8 +634,7 @@ namespace Legion {
         }
         rez.serialize<size_t>(1);
         refs.single->pack_reference(rez);
-      }
-      else
+      } else
       {
         rez.serialize<size_t>(refs.multi->vector.size());
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
@@ -670,8 +643,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InstanceSet::unpack_references(Deserializer &derez, 
-                                        std::set<RtEvent> &ready_events)
+    void InstanceSet::unpack_references(
+        Deserializer& derez, std::set<RtEvent>& ready_events)
     //--------------------------------------------------------------------------
     {
       size_t num_refs;
@@ -684,15 +657,13 @@ namespace Legion {
           if ((refs.single != nullptr) && refs.single->remove_reference())
             delete (refs.single);
           refs.single = nullptr;
-        }
-        else
+        } else
         {
           if (refs.multi->remove_reference())
             delete refs.multi;
           single = true;
         }
-      }
-      else if (num_refs == 1)
+      } else if (num_refs == 1)
       {
         // If we're in multi, go back to single
         if (!single)
@@ -712,8 +683,7 @@ namespace Legion {
         refs.single->unpack_reference(derez, ready);
         if (ready.exists())
           ready_events.insert(ready);
-      }
-      else
+      } else
       {
         // If we're in single, go to multi
         // otherwise resize our multi for the appropriate number of references
@@ -724,8 +694,7 @@ namespace Legion {
           refs.multi = new InternalSet(num_refs);
           refs.multi->add_reference();
           single = false;
-        }
-        else
+        } else
           refs.multi->vector.resize(num_refs);
         // Now do the unpacking
         for (unsigned idx = 0; idx < num_refs; idx++)
@@ -748,8 +717,7 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           refs.single->add_resource_reference(source);
-      }
-      else
+      } else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           refs.multi->vector[idx].add_resource_reference(source);
@@ -764,8 +732,7 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           refs.single->remove_resource_reference(source);
-      }
-      else
+      } else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           refs.multi->vector[idx].remove_resource_reference(source);
@@ -780,8 +747,7 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           return refs.single->acquire_valid_reference(source);
-      }
-      else
+      } else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           if (!refs.multi->vector[idx].acquire_valid_reference(source))
@@ -798,8 +764,7 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           refs.single->add_valid_reference(source);
-      }
-      else
+      } else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           refs.multi->vector[idx].add_valid_reference(source);
@@ -814,13 +779,12 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           refs.single->remove_valid_reference(source);
-      }
-      else
+      } else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           refs.multi->vector[idx].remove_valid_reference(source);
       }
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -35,94 +35,92 @@ namespace Legion {
    * set of constructors.
    */
   struct RegionRequirement {
-  public: 
+  public:
     RegionRequirement(void);
     /**
      * Standard region requirement constructor for logical region
      */
-    RegionRequirement(LogicalRegion _handle,
-                      const std::set<FieldID> &privilege_fields,
-                      const std::vector<FieldID> &instance_fields,
-                      PrivilegeMode _priv, CoherenceProperty _prop, 
-                      LogicalRegion _parent, MappingTagID _tag = 0, 
-                      bool _verified = false);
+    RegionRequirement(
+        LogicalRegion _handle, const std::set<FieldID>& privilege_fields,
+        const std::vector<FieldID>& instance_fields, PrivilegeMode _priv,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
     /**
      * Partition region requirement with projection function
      */
-    RegionRequirement(LogicalPartition pid, ProjectionID _proj,
-                      const std::set<FieldID> &privilege_fields,
-                      const std::vector<FieldID> &instance_fields,
-                      PrivilegeMode _priv, CoherenceProperty _prop,
-                      LogicalRegion _parent, MappingTagID _tag = 0, 
-                      bool _verified = false);
+    RegionRequirement(
+        LogicalPartition pid, ProjectionID _proj,
+        const std::set<FieldID>& privilege_fields,
+        const std::vector<FieldID>& instance_fields, PrivilegeMode _priv,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
     /**
      * Region requirement with projection function
      */
-    RegionRequirement(LogicalRegion _handle, ProjectionID _proj,
-                      const std::set<FieldID> &privilege_fields,
-                      const std::vector<FieldID> &instance_fields,
-                      PrivilegeMode _priv, CoherenceProperty _prop,
-                      LogicalRegion _parent, MappingTagID _tag = 0,
-                      bool _verified = false);
+    RegionRequirement(
+        LogicalRegion _handle, ProjectionID _proj,
+        const std::set<FieldID>& privilege_fields,
+        const std::vector<FieldID>& instance_fields, PrivilegeMode _priv,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
     /**
      * Standard reduction region requirement.  Note no privilege
      * is passed, but instead a reduction operation ID is specified.
      */
-    RegionRequirement(LogicalRegion _handle,
-                      const std::set<FieldID> &privilege_fields,
-                      const std::vector<FieldID> &instance_fields,
-                      ReductionOpID op, CoherenceProperty _prop, 
-                      LogicalRegion _parent, MappingTagID _tag = 0, 
-                      bool _verified = false);
+    RegionRequirement(
+        LogicalRegion _handle, const std::set<FieldID>& privilege_fields,
+        const std::vector<FieldID>& instance_fields, ReductionOpID op,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
     /**
      * Partition region requirement for reduction.
      */
-    RegionRequirement(LogicalPartition pid, ProjectionID _proj, 
-                      const std::set<FieldID> &privilege_fields,
-                      const std::vector<FieldID> &instance_fields,
-                      ReductionOpID op, CoherenceProperty _prop,
-                      LogicalRegion _parent, MappingTagID _tag = 0, 
-                      bool _verified = false);
+    RegionRequirement(
+        LogicalPartition pid, ProjectionID _proj,
+        const std::set<FieldID>& privilege_fields,
+        const std::vector<FieldID>& instance_fields, ReductionOpID op,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
     /**
      * Projection logical region requirement for reduction
      */
-    RegionRequirement(LogicalRegion _handle, ProjectionID _proj,
-                      const std::set<FieldID> &privilege_fields,
-                      const std::vector<FieldID> &instance_fields,
-                      ReductionOpID op, CoherenceProperty _prop, 
-                      LogicalRegion _parent, MappingTagID _tag = 0, 
-                      bool _verified = false);
+    RegionRequirement(
+        LogicalRegion _handle, ProjectionID _proj,
+        const std::set<FieldID>& privilege_fields,
+        const std::vector<FieldID>& instance_fields, ReductionOpID op,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
   public:
     // Analogous constructors without the privilege and instance fields
-    RegionRequirement(LogicalRegion _handle, PrivilegeMode _priv, 
-                      CoherenceProperty _prop, LogicalRegion _parent,
-                      MappingTagID _tag = 0, bool _verified = false);
-    RegionRequirement(LogicalPartition pid, ProjectionID _proj,
-                      PrivilegeMode _priv, CoherenceProperty _prop,
-                      LogicalRegion _parent, MappingTagID _tag = 0, 
-                      bool _verified = false);
-    RegionRequirement(LogicalRegion _handle, ProjectionID _proj,
-                      PrivilegeMode _priv, CoherenceProperty _prop, 
-                      LogicalRegion _parent, MappingTagID _tag = 0, 
-                      bool _verified = false);
-    RegionRequirement(LogicalRegion _handle, ReductionOpID op, 
-                      CoherenceProperty _prop, LogicalRegion _parent,
-                      MappingTagID _tag = 0, bool _verified = false);
-    RegionRequirement(LogicalPartition pid, ProjectionID _proj, 
-                      ReductionOpID op, CoherenceProperty _prop,
-                      LogicalRegion _parent, MappingTagID _tag = 0, 
-                      bool _verified = false);
-    RegionRequirement(LogicalRegion _handle, ProjectionID _proj,
-                      ReductionOpID op, CoherenceProperty _prop, 
-                      LogicalRegion _parent, MappingTagID _tag = 0, 
-                      bool _verified = false);
+    RegionRequirement(
+        LogicalRegion _handle, PrivilegeMode _priv, CoherenceProperty _prop,
+        LogicalRegion _parent, MappingTagID _tag = 0, bool _verified = false);
+    RegionRequirement(
+        LogicalPartition pid, ProjectionID _proj, PrivilegeMode _priv,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
+    RegionRequirement(
+        LogicalRegion _handle, ProjectionID _proj, PrivilegeMode _priv,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
+    RegionRequirement(
+        LogicalRegion _handle, ReductionOpID op, CoherenceProperty _prop,
+        LogicalRegion _parent, MappingTagID _tag = 0, bool _verified = false);
+    RegionRequirement(
+        LogicalPartition pid, ProjectionID _proj, ReductionOpID op,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
+    RegionRequirement(
+        LogicalRegion _handle, ProjectionID _proj, ReductionOpID op,
+        CoherenceProperty _prop, LogicalRegion _parent, MappingTagID _tag = 0,
+        bool _verified = false);
   public:
-    RegionRequirement(const RegionRequirement &rhs);
+    RegionRequirement(const RegionRequirement& rhs);
     ~RegionRequirement(void);
-    RegionRequirement& operator=(const RegionRequirement &req);
+    RegionRequirement& operator=(const RegionRequirement& req);
   public:
-    bool operator==(const RegionRequirement &req) const;
-    bool operator<(const RegionRequirement &req) const;
+    bool operator==(const RegionRequirement& req) const;
+    bool operator<(const RegionRequirement& req) const;
   public:
     /**
      * Method for adding a field to region requirements
@@ -130,42 +128,47 @@ namespace Legion {
      * @param instance indicate whether to add to instance fields
      */
     inline RegionRequirement& add_field(FieldID fid, bool instance = true);
-    inline RegionRequirement& add_fields(const std::vector<FieldID>& fids, 
-                                         bool instance = true);
+    inline RegionRequirement& add_fields(
+        const std::vector<FieldID>& fids, bool instance = true);
 
     inline RegionRequirement& add_flags(RegionFlags new_flags);
   public:
-    inline bool is_verified(void) const 
-      { return (flags & LEGION_VERIFIED_FLAG); }
-    inline bool is_no_access(void) const 
-      { return (flags & LEGION_NO_ACCESS_FLAG); }
-    inline bool is_restricted(void) const 
-      { return (flags & LEGION_RESTRICTED_FLAG); }
-    LEGION_DEPRECATED("Premapping regions is no longer supported.") 
-    inline bool must_premap(void) const
-      { return false; }
+    inline bool is_verified(void) const
+    {
+      return (flags & LEGION_VERIFIED_FLAG);
+    }
+    inline bool is_no_access(void) const
+    {
+      return (flags & LEGION_NO_ACCESS_FLAG);
+    }
+    inline bool is_restricted(void) const
+    {
+      return (flags & LEGION_RESTRICTED_FLAG);
+    }
+    LEGION_DEPRECATED("Premapping regions is no longer supported.")
+    inline bool must_premap(void) const { return false; }
   public:
-    const void* get_projection_args(size_t *size) const;
-    void set_projection_args(const void *args, size_t size, bool own = false);
+    const void* get_projection_args(size_t* size) const;
+    void set_projection_args(const void* args, size_t size, bool own = false);
   public:
     bool has_field_privilege(FieldID fid) const;
   public:
     // Fields used for controlling task launches
-    LogicalRegion region; /**< mutually exclusive with partition*/
-    LogicalPartition partition; /**< mutually exclusive with region*/
+    LogicalRegion region;               /**< mutually exclusive with partition*/
+    LogicalPartition partition;         /**< mutually exclusive with region*/
     std::set<FieldID> privilege_fields; /**< unique set of privilege fields*/
     std::vector<FieldID> instance_fields; /**< physical instance fields*/
-    PrivilegeMode privilege; /**< region privilege mode*/
-    CoherenceProperty prop; /**< region coherence mode*/
+    PrivilegeMode privilege;              /**< region privilege mode*/
+    CoherenceProperty prop;               /**< region coherence mode*/
     LogicalRegion parent; /**< parent region to derive privileges from*/
-    ReductionOpID redop; /**<reduction operation (default 0)*/
-    MappingTagID tag; /**< mapping tag for this region requirement*/
-    RegionFlags flags; /**< optional flags set for region requirements*/
+    ReductionOpID redop;  /**<reduction operation (default 0)*/
+    MappingTagID tag;     /**< mapping tag for this region requirement*/
+    RegionFlags flags;    /**< optional flags set for region requirements*/
   public:
     ProjectionType handle_type; /**< region or partition requirement*/
-    ProjectionID projection; /**< projection function for index space tasks*/
+    ProjectionID projection;    /**< projection function for index space tasks*/
   public:
-    void *projection_args; /**< projection arguments buffer*/
+    void* projection_args;       /**< projection arguments buffer*/
     size_t projection_args_size; /**< projection arguments buffer size*/
   };
 
@@ -240,21 +243,20 @@ namespace Legion {
   struct OutputRequirement : public RegionRequirement {
   public:
     OutputRequirement(bool valid_requirement = false);
-    OutputRequirement(const RegionRequirement &req);
-    OutputRequirement(FieldSpace field_space,
-                      const std::set<FieldID> &fields,
-                      int dim = 1,
-                      bool global_indexing = false);
+    OutputRequirement(const RegionRequirement& req);
+    OutputRequirement(
+        FieldSpace field_space, const std::set<FieldID>& fields, int dim = 1,
+        bool global_indexing = false);
   public:
-    OutputRequirement(const OutputRequirement &rhs);
+    OutputRequirement(const OutputRequirement& rhs);
     ~OutputRequirement(void);
-    OutputRequirement& operator=(const RegionRequirement &req);
-    OutputRequirement& operator=(const OutputRequirement &req);
+    OutputRequirement& operator=(const RegionRequirement& req);
+    OutputRequirement& operator=(const OutputRequirement& req);
   public:
-    bool operator==(const OutputRequirement &req) const;
-    bool operator<(const OutputRequirement &req) const;
+    bool operator==(const OutputRequirement& req) const;
+    bool operator<(const OutputRequirement& req) const;
   public:
-    template <int DIM, typename COORD_T>
+    template<int DIM, typename COORD_T>
     void set_type_tag();
     // Specifies a projection functor id for this requirement.
     // For a projection output requirement, a color space must be specified.
@@ -265,7 +267,7 @@ namespace Legion {
   public:
     TypeTag type_tag;
     FieldSpace field_space; /**< field space for the output region */
-    bool global_indexing; /**< global indexing is used when true */
+    bool global_indexing;   /**< global indexing is used when true */
     bool valid_requirement; /**< indicate requirement is valid */
     IndexSpace color_space; /**< color space for the output partition */
   };
@@ -279,19 +281,18 @@ namespace Legion {
    */
   struct IndexSpaceRequirement {
   public:
-    IndexSpace    handle;
-    AllocateMode  privilege;
-    IndexSpace    parent;
-    bool          verified;
+    IndexSpace handle;
+    AllocateMode privilege;
+    IndexSpace parent;
+    bool verified;
   public:
     IndexSpaceRequirement(void);
-    IndexSpaceRequirement(IndexSpace _handle,
-                          AllocateMode _priv,
-                          IndexSpace _parent,
-                          bool _verified = false);
+    IndexSpaceRequirement(
+        IndexSpace _handle, AllocateMode _priv, IndexSpace _parent,
+        bool _verified = false);
   public:
-    bool operator<(const IndexSpaceRequirement &req) const;
-    bool operator==(const IndexSpaceRequirement &req) const;
+    bool operator<(const IndexSpaceRequirement& req) const;
+    bool operator==(const IndexSpaceRequirement& req) const;
   };
 
   /**
@@ -307,21 +308,20 @@ namespace Legion {
    */
   struct FieldSpaceRequirement {
   public:
-    FieldSpace   handle;
+    FieldSpace handle;
     AllocateMode privilege;
-    bool         verified;
+    bool verified;
   public:
     FieldSpaceRequirement(void);
-    FieldSpaceRequirement(FieldSpace _handle,
-                          AllocateMode _priv,
-                          bool _verified = false);
+    FieldSpaceRequirement(
+        FieldSpace _handle, AllocateMode _priv, bool _verified = false);
   public:
-    bool operator<(const FieldSpaceRequirement &req) const;
-    bool operator==(const FieldSpaceRequirement &req) const;
+    bool operator<(const FieldSpaceRequirement& req) const;
+    bool operator==(const FieldSpaceRequirement& req) const;
   };
 
-} // namespace Legion
+}  // namespace Legion
 
 #include "legion/api/requirements.inl"
 
-#endif // __LEGION_REQUIREMENTS_H__
+#endif  // __LEGION_REQUIREMENTS_H__

@@ -25,21 +25,24 @@ namespace Legion {
 
     /**
      * \class DiscardOp
-     * Operation for reseting the state of fields back to an 
+     * Operation for reseting the state of fields back to an
      * uninitialized state like they were just created
      */
     class DiscardOp : public Operation {
     public:
       DiscardOp(void);
-      DiscardOp(const DiscardOp &rhs) = delete;
+      DiscardOp(const DiscardOp& rhs) = delete;
       virtual ~DiscardOp(void);
     public:
-      DiscardOp& operator=(const DiscardOp &rhs) = delete;
+      DiscardOp& operator=(const DiscardOp& rhs) = delete;
     public:
-      void initialize(InnerContext *ctx, const DiscardLauncher &launcher,
-                      Provenance *provenance);
+      void initialize(
+          InnerContext* ctx, const DiscardLauncher& launcher,
+          Provenance* provenance);
       virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
-        { return requirement; }
+      {
+        return requirement;
+      }
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -54,12 +57,13 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual bool record_trace_hash(TraceRecognizer &recognizer, uint64_t idx);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
     protected:
       void log_requirement(void);
-      void discard_fields(const PhysicalTraceInfo &trace_info);
+      void discard_fields(const PhysicalTraceInfo& trace_info);
     public:
       RegionRequirement requirement;
       VersionInfo version_info;
@@ -72,27 +76,27 @@ namespace Legion {
      * A discard operation that is aware that it is being
      * exected in a control replication context.
      */
-    class ReplDiscardOp : 
-      public ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> > {
+    class ReplDiscardOp
+      : public ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> > {
     public:
       ReplDiscardOp(void);
-      ReplDiscardOp(const ReplDiscardOp &rhs) = delete;
+      ReplDiscardOp(const ReplDiscardOp& rhs) = delete;
       virtual ~ReplDiscardOp(void);
     public:
-      ReplDiscardOp& operator=(const ReplDiscardOp &rhs) = delete;
+      ReplDiscardOp& operator=(const ReplDiscardOp& rhs) = delete;
     public:
-      void initialize_replication(ReplicateContext *ctx, bool is_first_local);
+      void initialize_replication(ReplicateContext* ctx, bool is_first_local);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual RtEvent finalize_complete_mapping(RtEvent event);
-      virtual bool perform_collective_analysis(CollectiveMapping *&mapping,
-                                               bool &first_local);
-      virtual RtEvent perform_collective_versioning_analysis(unsigned index,
-                       LogicalRegion handle, EqSetTracker *tracker,
-                       const FieldMask &mask, unsigned parent_req_index);
+      virtual bool perform_collective_analysis(
+          CollectiveMapping*& mapping, bool& first_local);
+      virtual RtEvent perform_collective_versioning_analysis(
+          unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+          const FieldMask& mask, unsigned parent_req_index);
     protected:
       RtBarrier collective_map_barrier;
       bool is_first_local_shard;
@@ -100,17 +104,18 @@ namespace Legion {
 
     /**
      * \class RemoteDiscardOp
-     * This is a remote copy of a AttachOp to be used for 
+     * This is a remote copy of a AttachOp to be used for
      * mapper calls and other operations
      */
-    class RemoteDiscardOp : public RemoteOp,
-      public Heapify<RemoteDiscardOp,OPERATION_LIFETIME> {
+    class RemoteDiscardOp
+      : public RemoteOp,
+        public Heapify<RemoteDiscardOp, OPERATION_LIFETIME> {
     public:
-      RemoteDiscardOp(Operation *ptr, AddressSpaceID src);
-      RemoteDiscardOp(const RemoteDiscardOp &rhs) = delete;
+      RemoteDiscardOp(Operation* ptr, AddressSpaceID src);
+      RemoteDiscardOp(const RemoteDiscardOp& rhs) = delete;
       virtual ~RemoteDiscardOp(void);
     public:
-      RemoteDiscardOp& operator=(const RemoteDiscardOp &rhs) = delete;
+      RemoteDiscardOp& operator=(const RemoteDiscardOp& rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -119,12 +124,13 @@ namespace Legion {
     public:
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual void unpack(Deserializer &derez);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual void unpack(Deserializer& derez);
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_DISCARD_H__
+#endif  // __LEGION_DISCARD_H__

@@ -26,7 +26,7 @@ namespace Legion {
      * \class PredicatedOp
      * A predicated operation is an abstract class
      * that serves as the basis for operation which
-     * will be executed with a predicate value. 
+     * will be executed with a predicate value.
      * Note that all speculative operations are also memoizable operations.
      */
     class PredicatedOp : public MemoizableOp {
@@ -42,8 +42,8 @@ namespace Legion {
       virtual void activate(void);
       virtual void deactivate(bool free = true);
     public:
-      void initialize_predication(InnerContext *ctx,
-          const Predicate &p, Provenance *provenance);
+      void initialize_predication(
+          InnerContext* ctx, const Predicate& p, Provenance* provenance);
       virtual bool is_predicated_op(void) const;
       // Wait until the predicate is valid and then return
       // its value.  Give it the current processor in case it
@@ -51,11 +51,11 @@ namespace Legion {
       bool get_predicate_value(size_t index);
     public:
       // This method gets invoked if a predicate for a predicated
-      // operation resolves to false before we try to map the operation 
+      // operation resolves to false before we try to map the operation
       virtual void predicate_false(void) = 0;
     protected:
-      PredState     predication_state;
-      PredicateImpl *predicate;
+      PredState predication_state;
+      PredicateImpl* predicate;
     public:
       // For managing predication
       PredEvent true_guard;
@@ -63,25 +63,25 @@ namespace Legion {
     };
 
     /**
-     * \class Predicated 
+     * \class Predicated
      * Override the logical dependence analysis to handle any kind
      * of predicated analysis or speculation
      */
     template<typename OP>
     class Predicated : public Memoizable<OP> {
     public:
-      Predicated(void) : Memoizable<OP>() {}
+      Predicated(void) : Memoizable<OP>() { }
       virtual ~Predicated(void) { }
     public:
       virtual void trigger_dependence_analysis(void) override;
       virtual void trigger_ready(void) override;
-      virtual bool record_trace_hash(TraceRecognizer &recognizer,
-                                     uint64_t opidx) override;
+      virtual bool record_trace_hash(
+          TraceRecognizer& recognizer, uint64_t opidx) override;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
 #include "legion/operations/predicate.inl"
 
-#endif // __LEGION_PREDICATE_OPERATION_H__
+#endif  // __LEGION_PREDICATE_OPERATION_H__

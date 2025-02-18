@@ -23,7 +23,7 @@ namespace Legion {
 
     /**
      * \class ShutdownManager
-     * A class for helping to manage the shutdown of the 
+     * A class for helping to manage the shutdown of the
      * runtime after the application has finished
      */
     class ShutdownManager {
@@ -40,36 +40,38 @@ namespace Legion {
         static const LgTaskID TASK_ID = LG_RETRY_SHUTDOWN_TASK_ID;
       public:
         RetryShutdownArgs(ShutdownPhase p)
-          : LgTaskArgs<RetryShutdownArgs>(0), phase(p) { }
+          : LgTaskArgs<RetryShutdownArgs>(0), phase(p)
+        { }
       public:
         const ShutdownPhase phase;
       };
     public:
-      ShutdownManager(ShutdownPhase phase, AddressSpaceID source,
-                      unsigned radix, ShutdownManager *owner = nullptr);
-      ShutdownManager(const ShutdownManager &rhs) = delete;
+      ShutdownManager(
+          ShutdownPhase phase, AddressSpaceID source, unsigned radix,
+          ShutdownManager* owner = nullptr);
+      ShutdownManager(const ShutdownManager& rhs) = delete;
       ~ShutdownManager(void);
     public:
-      ShutdownManager& operator=(const ShutdownManager &rhs) = delete;
+      ShutdownManager& operator=(const ShutdownManager& rhs) = delete;
     public:
       bool attempt_shutdown(void);
-      bool handle_response(int code, bool success, 
-                           const std::set<RtEvent> &to_add);
+      bool handle_response(
+          int code, bool success, const std::set<RtEvent>& to_add);
     protected:
       void finalize(void);
     public:
-      static void handle_shutdown_notification(Deserializer &derez, 
-                          AddressSpaceID source);
-      static void handle_shutdown_response(Deserializer &derez);
+      static void handle_shutdown_notification(
+          Deserializer& derez, AddressSpaceID source);
+      static void handle_shutdown_response(Deserializer& derez);
     public:
       void record_outstanding_tasks(void);
       void record_recent_message(void);
       void record_pending_message(RtEvent pending_event);
     public:
       const ShutdownPhase phase;
-      const AddressSpaceID source; 
+      const AddressSpaceID source;
       const unsigned radix;
-      ShutdownManager *const owner;
+      ShutdownManager* const owner;
     protected:
       mutable LocalLock shutdown_lock;
       unsigned needed_responses;
@@ -78,7 +80,7 @@ namespace Legion {
       bool result;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_SHUTDOWN_MANAGER_H__
+#endif  // __LEGION_SHUTDOWN_MANAGER_H__

@@ -23,7 +23,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ inline VirtualChannelKind MessageManager::find_message_vc(
-                                                               MessageKind kind)
+        MessageKind kind)
     //--------------------------------------------------------------------------
     {
       switch (kind)
@@ -191,7 +191,7 @@ namespace Legion {
         case DISTRIBUTED_DOWNGRADE_SUCCESS:
           break;
         // Put downgrade updates and acquire requests
-        // on same ordered virtual channel so that 
+        // on same ordered virtual channel so that
         // acquire requests cannot starve out an owner
         // update while it is in flight by circling
         // around and around
@@ -238,16 +238,16 @@ namespace Legion {
         // Only collective operations apply to destinations need to be
         // on the ordered virtual channel since they need to be ordered
         // with respect to the same CopyFillAggregator, there's no need
-        // to do the same thing read-only collectives since they can 
+        // to do the same thing read-only collectives since they can
         // never be read more than once by each CopyFillAggregator
         case SEND_COLLECTIVE_DISTRIBUTE_FILL:
           return COLLECTIVE_VIRTUAL_CHANNEL;
         case SEND_COLLECTIVE_DISTRIBUTE_POINT:
-          break; // read-only
+          break;  // read-only
         case SEND_COLLECTIVE_DISTRIBUTE_POINTWISE:
           return COLLECTIVE_VIRTUAL_CHANNEL;
         case SEND_COLLECTIVE_DISTRIBUTE_REDUCTION:
-          break; // read-only
+          break;  // read-only
         case SEND_COLLECTIVE_DISTRIBUTE_BROADCAST:
           return COLLECTIVE_VIRTUAL_CHANNEL;
         case SEND_COLLECTIVE_DISTRIBUTE_REDUCECAST:
@@ -255,9 +255,9 @@ namespace Legion {
         case SEND_COLLECTIVE_DISTRIBUTE_HOURGLASS:
           return COLLECTIVE_VIRTUAL_CHANNEL;
         case SEND_COLLECTIVE_DISTRIBUTE_ALLREDUCE:
-          break; // no views involved so effectively read-only
+          break;  // no views involved so effectively read-only
         case SEND_COLLECTIVE_HAMMER_REDUCTION:
-          break; // read-only
+          break;  // read-only
         case SEND_COLLECTIVE_FUSE_GATHER:
           return COLLECTIVE_VIRTUAL_CHANNEL;
         case SEND_COLLECTIVE_USER_REQUEST:
@@ -289,7 +289,7 @@ namespace Legion {
         case SEND_COLLECTIVE_VIEW_NOTIFICATION:
           break;
         // All these collective messages need to go on the same
-        // virtual channel since they all need to be ordered 
+        // virtual channel since they all need to be ordered
         // with respect to each other
         case SEND_COLLECTIVE_VIEW_MAKE_VALID:
           return REFERENCE_VIRTUAL_CHANNEL;
@@ -672,5 +672,5 @@ namespace Legion {
       return DEFAULT_VIRTUAL_CHANNEL;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -41,21 +41,24 @@ namespace Legion {
   namespace Internal {
 
     enum AllocationLifetime {
-      TASK_LOCAL_LIFETIME, // limited to the life of this Realm task
-      OPERATION_LIFETIME, // lifetime of the operation but across multiple tasks
-      CONTEXT_LIFETIME, // lifetime of the enclosing task context
-      SHORT_BOUNDED_LIFETIME, // lives for a few operations but not many
-      LONG_BOUNDED_LIFETIME, // lives for potentially a long set of operations
-      RUNTIME_LIFETIME, // lives for the duration of the Legion runtime
-      TODO_LIFETIME, // still need to figure out the lifetime
+      TASK_LOCAL_LIFETIME,     // limited to the life of this Realm task
+      OPERATION_LIFETIME,      // lifetime of the operation but across multiple
+                               // tasks
+      CONTEXT_LIFETIME,        // lifetime of the enclosing task context
+      SHORT_BOUNDED_LIFETIME,  // lives for a few operations but not many
+      LONG_BOUNDED_LIFETIME,   // lives for potentially a long set of operations
+      RUNTIME_LIFETIME,        // lives for the duration of the Legion runtime
+      TODO_LIFETIME,           // still need to figure out the lifetime
     };
 
 #ifdef LEGION_TRACE_ALLOCATION
     // Implementations in runtime.cc
     struct LegionAllocation {
     public:
-      static void trace_allocation(const std::type_info &info, size_t size, int elems=1);
-      static void trace_free(const std::type_info &info, size_t size, int elems=1);
+      static void trace_allocation(
+          const std::type_info& info, size_t size, int elems = 1);
+      static void trace_free(
+          const std::type_info& info, size_t size, int elems = 1);
     };
 #endif
 
@@ -82,14 +85,17 @@ namespace Legion {
         return nullptr;
       constexpr std::size_t SIZE = sizeof(T);
       constexpr std::size_t ALIGNMENT = alignof(T);
-      if (num == 1) {
+      if (num == 1)
+      {
         // Need to zero-initialize this to comply with semantics of calloc
-        void *ptr = static_cast<void*>(legion_malloc<T,LIFETIME>(SIZE, ALIGNMENT));
-        std::memset(ptr, 0/*value*/, SIZE);
+        void* ptr =
+            static_cast<void*>(legion_malloc<T, LIFETIME>(SIZE, ALIGNMENT));
+        std::memset(ptr, 0 /*value*/, SIZE);
         return static_cast<T*>(ptr);
       }
       // Compute the padding required between the elements
-      constexpr std::size_t PADDING = (ALIGNMENT - (SIZE % ALIGNMENT)) % ALIGNMENT;
+      constexpr std::size_t PADDING =
+          (ALIGNMENT - (SIZE % ALIGNMENT)) % ALIGNMENT;
       // Has to hold for aligned alloc to work
       static_assert(((SIZE + PADDING) % ALIGNMENT) == 0);
       // Can subtract any padding off the last element
@@ -97,19 +103,19 @@ namespace Legion {
 #ifdef LEGION_TRACE_ALLOCATION
       LegionAllocation::trace_allocation(typeid(T), bytes);
 #endif
-      void *ptr = std::aligned_alloc(ALIGNMENT, bytes);
+      void* ptr = std::aligned_alloc(ALIGNMENT, bytes);
       // Need to zero-initialize this to comply with semantics of calloc
-      std::memset(ptr, 0/*value*/, bytes);
+      std::memset(ptr, 0 /*value*/, bytes);
       return static_cast<T*>(ptr);
     }
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime LIFETIME>
-    inline T* legion_realloc(T *ptr, std::size_t old_size, std::size_t new_size)
+    inline T* legion_realloc(T* ptr, std::size_t old_size, std::size_t new_size)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_TRACE_ALLOCATION
-      const std::type_info &info = typeid(T);
+      const std::type_info& info = typeid(T);
       LegionAllocation::trace_free(info, old_size);
       LegionAllocation::trace_allocation(info, new_size);
 #endif
@@ -118,7 +124,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T>
-    inline void legion_free(T *ptr, std::size_t size)
+    inline void legion_free(T* ptr, std::size_t size)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_TRACE_ALLOCATION
@@ -134,73 +140,82 @@ namespace Legion {
     public:
       static inline void* operator new(std::size_t size);
       static inline void* operator new[](std::size_t size);
-      static inline void* operator new(std::size_t size, std::align_val_t alignment);
-      static inline void* operator new[](std::size_t size, std::align_val_t alignment);
+      static inline void* operator new(
+          std::size_t size, std::align_val_t alignment);
+      static inline void* operator new[](
+          std::size_t size, std::align_val_t alignment);
     public:
-      static inline void* operator new(std::size_t size, void *ptr);
-      static inline void* operator new[](std::size_t size, void *ptr);
+      static inline void* operator new(std::size_t size, void* ptr);
+      static inline void* operator new[](std::size_t size, void* ptr);
     public:
-      static inline void operator delete(void *ptr, std::size_t size);
-      static inline void operator delete[](void *ptr, std::size_t size);
-      static inline void operator delete(void *ptr, void *place);
-      static inline void operator delete[](void *ptr, void *place);
+      static inline void operator delete(void* ptr, std::size_t size);
+      static inline void operator delete[](void* ptr, std::size_t size);
+      static inline void operator delete(void* ptr, void* place);
+      static inline void operator delete[](void* ptr, void* place);
     };
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L>
-    /*static*/ inline void* Heapify<T,L>::operator new(std::size_t size)
+    /*static*/ inline void* Heapify<T, L>::operator new(std::size_t size)
     //--------------------------------------------------------------------------
     {
-      return static_cast<void*>(legion_malloc<T,L>(size, alignof(T)));
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T,  AllocationLifetime L>
-    /*static*/ inline void* Heapify<T,L>::operator new[](std::size_t size)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<void*>(legion_malloc<T,L>(size, alignof(T)));
+      return static_cast<void*>(legion_malloc<T, L>(size, alignof(T)));
     }
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L>
-    /*static*/ inline void* Heapify<T,L>::operator new(std::size_t size, std::align_val_t alignment)
+    /*static*/ inline void* Heapify<T, L>::operator new[](std::size_t size)
     //--------------------------------------------------------------------------
     {
-      return static_cast<void*>(legion_malloc<T,L>(size, static_cast<std::size_t>(alignment)));
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T,  AllocationLifetime L>
-    /*static*/ inline void* Heapify<T,L>::operator new[](std::size_t size, std::align_val_t alignment)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<void*>(legion_malloc<T,L>(size, static_cast<std::size_t>(alignment)));
+      return static_cast<void*>(legion_malloc<T, L>(size, alignof(T)));
     }
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L>
-    /*static*/ inline void* Heapify<T,L>::operator new(std::size_t size, void *ptr)
+    /*static*/ inline void* Heapify<T, L>::operator new(
+        std::size_t size, std::align_val_t alignment)
     //--------------------------------------------------------------------------
     {
-      // No need to do tracing of allocations, that is handled when 
+      return static_cast<void*>(
+          legion_malloc<T, L>(size, static_cast<std::size_t>(alignment)));
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void* Heapify<T, L>::operator new[](
+        std::size_t size, std::align_val_t alignment)
+    //--------------------------------------------------------------------------
+    {
+      return static_cast<void*>(
+          legion_malloc<T, L>(size, static_cast<std::size_t>(alignment)));
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void* Heapify<T, L>::operator new(
+        std::size_t size, void* ptr)
+    //--------------------------------------------------------------------------
+    {
+      // No need to do tracing of allocations, that is handled when
       // legion_malloc is called for the type
       return ptr;
     }
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L>
-    /*static*/ inline void* Heapify<T,L>::operator new[](std::size_t size, void *ptr)
+    /*static*/ inline void* Heapify<T, L>::operator new[](
+        std::size_t size, void* ptr)
     //--------------------------------------------------------------------------
     {
-      // No need to do tracing of allocations, that is handled when 
+      // No need to do tracing of allocations, that is handled when
       // legion_malloc is called for the type
       return ptr;
     }
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L>
-    /*static*/ inline void Heapify<T,L>::operator delete(void *ptr, std::size_t size)
+    /*static*/ inline void Heapify<T, L>::operator delete(
+        void* ptr, std::size_t size)
     //--------------------------------------------------------------------------
     {
       legion_free<T>(static_cast<T*>(ptr), size);
@@ -208,7 +223,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L>
-    /*static*/ inline void Heapify<T,L>::operator delete[](void *ptr, std::size_t size)
+    /*static*/ inline void Heapify<T, L>::operator delete[](
+        void* ptr, std::size_t size)
     //--------------------------------------------------------------------------
     {
       legion_free<T>(static_cast<T*>(ptr), size);
@@ -216,7 +232,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L>
-    /*static*/ inline void Heapify<T,L>::operator delete(void *ptr, void *place)
+    /*static*/ inline void Heapify<T, L>::operator delete(
+        void* ptr, void* place)
     //--------------------------------------------------------------------------
     {
       std::abort();
@@ -224,7 +241,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, AllocationLifetime L>
-    /*static*/ inline void Heapify<T,L>::operator delete[](void *ptr, void *place)
+    /*static*/ inline void Heapify<T, L>::operator delete[](
+        void* ptr, void* place)
     //--------------------------------------------------------------------------
     {
       std::abort();
@@ -236,78 +254,90 @@ namespace Legion {
     template<typename T, typename B, AllocationLifetime L>
     class HeapifyMixin : public B {
     public:
-      template<typename ... Args>
-      HeapifyMixin(Args&& ... args) : B(std::forward<Args>(args) ...) { }
+      template<typename... Args>
+      HeapifyMixin(Args&&... args) : B(std::forward<Args>(args)...)
+      { }
     public:
       static inline void* operator new(std::size_t size);
       static inline void* operator new[](std::size_t size);
-      static inline void* operator new(std::size_t size, std::align_val_t alignment);
-      static inline void* operator new[](std::size_t size, std::align_val_t alignment);
+      static inline void* operator new(
+          std::size_t size, std::align_val_t alignment);
+      static inline void* operator new[](
+          std::size_t size, std::align_val_t alignment);
     public:
-      static inline void* operator new(std::size_t size, void *ptr);
-      static inline void* operator new[](std::size_t size, void *ptr);
+      static inline void* operator new(std::size_t size, void* ptr);
+      static inline void* operator new[](std::size_t size, void* ptr);
     public:
-      static inline void operator delete(void *ptr, std::size_t size);
-      static inline void operator delete[](void *ptr, std::size_t size);
-      static inline void operator delete(void *ptr, void *place);
-      static inline void operator delete[](void *ptr, void *place);
+      static inline void operator delete(void* ptr, std::size_t size);
+      static inline void operator delete[](void* ptr, std::size_t size);
+      static inline void operator delete(void* ptr, void* place);
+      static inline void operator delete[](void* ptr, void* place);
     };
 
     //--------------------------------------------------------------------------
     template<typename T, typename B, AllocationLifetime L>
-    /*static*/ inline void* HeapifyMixin<T,B,L>::operator new(std::size_t size)
+    /*static*/ inline void* HeapifyMixin<T, B, L>::operator new(
+        std::size_t size)
     //--------------------------------------------------------------------------
     {
-      return static_cast<void*>(legion_malloc<T,L>(size, alignof(T)));
+      return static_cast<void*>(legion_malloc<T, L>(size, alignof(T)));
     }
 
     //--------------------------------------------------------------------------
     template<typename T, typename B, AllocationLifetime L>
-    /*static*/ inline void* HeapifyMixin<T,B,L>::operator new[](std::size_t size)
+    /*static*/ inline void* HeapifyMixin<T, B, L>::operator new[](
+        std::size_t size)
     //--------------------------------------------------------------------------
     {
-      return static_cast<void*>(legion_malloc<T,L>(size, alignof(T)));
+      return static_cast<void*>(legion_malloc<T, L>(size, alignof(T)));
     }
 
     //--------------------------------------------------------------------------
     template<typename T, typename B, AllocationLifetime L>
-    /*static*/ inline void* HeapifyMixin<T,B,L>::operator new(std::size_t size, std::align_val_t alignment)
+    /*static*/ inline void* HeapifyMixin<T, B, L>::operator new(
+        std::size_t size, std::align_val_t alignment)
     //--------------------------------------------------------------------------
     {
-      return static_cast<void*>(legion_malloc<T,L>(size, static_cast<std::size_t>(alignment)));
-    }
-
-    //--------------------------------------------------------------------------
-    template<typename T,  typename B, AllocationLifetime L>
-    /*static*/ inline void* HeapifyMixin<T,B,L>::operator new[](std::size_t size, std::align_val_t alignment)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<void*>(legion_malloc<T,L>(size, static_cast<std::size_t>(alignment)));
+      return static_cast<void*>(
+          legion_malloc<T, L>(size, static_cast<std::size_t>(alignment)));
     }
 
     //--------------------------------------------------------------------------
     template<typename T, typename B, AllocationLifetime L>
-    /*static*/ inline void* HeapifyMixin<T,B,L>::operator new(std::size_t size, void *ptr)
+    /*static*/ inline void* HeapifyMixin<T, B, L>::operator new[](
+        std::size_t size, std::align_val_t alignment)
     //--------------------------------------------------------------------------
     {
-      // No need to do tracing of allocations, that is handled when 
+      return static_cast<void*>(
+          legion_malloc<T, L>(size, static_cast<std::size_t>(alignment)));
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, typename B, AllocationLifetime L>
+    /*static*/ inline void* HeapifyMixin<T, B, L>::operator new(
+        std::size_t size, void* ptr)
+    //--------------------------------------------------------------------------
+    {
+      // No need to do tracing of allocations, that is handled when
       // legion_malloc is called for the type
       return ptr;
     }
 
     //--------------------------------------------------------------------------
     template<typename T, typename B, AllocationLifetime L>
-    /*static*/ inline void* HeapifyMixin<T,B,L>::operator new[](std::size_t size, void *ptr)
+    /*static*/ inline void* HeapifyMixin<T, B, L>::operator new[](
+        std::size_t size, void* ptr)
     //--------------------------------------------------------------------------
     {
-      // No need to do tracing of allocations, that is handled when 
+      // No need to do tracing of allocations, that is handled when
       // legion_malloc is called for the type
       return ptr;
     }
 
     //--------------------------------------------------------------------------
     template<typename T, typename B, AllocationLifetime L>
-    /*static*/ inline void HeapifyMixin<T,B,L>::operator delete(void *ptr, std::size_t size)
+    /*static*/ inline void HeapifyMixin<T, B, L>::operator delete(
+        void* ptr, std::size_t size)
     //--------------------------------------------------------------------------
     {
       legion_free<T>(static_cast<T*>(ptr), size);
@@ -315,7 +345,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, typename B, AllocationLifetime L>
-    /*static*/ inline void HeapifyMixin<T,B,L>::operator delete[](void *ptr, std::size_t size)
+    /*static*/ inline void HeapifyMixin<T, B, L>::operator delete[](
+        void* ptr, std::size_t size)
     //--------------------------------------------------------------------------
     {
       legion_free<T>(static_cast<T*>(ptr), size);
@@ -323,7 +354,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, typename B, AllocationLifetime L>
-    /*static*/ inline void HeapifyMixin<T,B,L>::operator delete(void *ptr, void *place)
+    /*static*/ inline void HeapifyMixin<T, B, L>::operator delete(
+        void* ptr, void* place)
     //--------------------------------------------------------------------------
     {
       std::abort();
@@ -331,7 +363,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T, typename B, AllocationLifetime L>
-    /*static*/ inline void HeapifyMixin<T,B,L>::operator delete[](void *ptr, void *place)
+    /*static*/ inline void HeapifyMixin<T, B, L>::operator delete[](
+        void* ptr, void* place)
     //--------------------------------------------------------------------------
     {
       std::abort();
@@ -343,12 +376,15 @@ namespace Legion {
       static inline void* operator new(std::size_t) = delete;
       static inline void* operator new[](std::size_t) = delete;
       static inline void* operator new(std::size_t, std::align_val_t) = delete;
-      static inline void* operator new[](std::size_t, std::align_val_t) = delete;
+      static inline void* operator new[](std::size_t, std::align_val_t) =
+          delete;
     public:
       static inline void* operator new(std::size_t, void*) = delete;
       static inline void* operator new[](std::size_t, void*) = delete;
-      static inline void* operator new(std::size_t, std::align_val_t, void*) = delete;
-      static inline void* operator new[](std::size_t, std::align_val_t, void*) = delete;
+      static inline void* operator new(std::size_t, std::align_val_t, void*) =
+          delete;
+      static inline void* operator new[](std::size_t, std::align_val_t, void*) =
+          delete;
     };
 
     /**
@@ -360,13 +396,13 @@ namespace Legion {
     template<typename T, AllocationLifetime L>
     class LegionAllocator {
     public:
-      typedef size_t          size_type;
+      typedef size_t size_type;
       typedef ptrdiff_t difference_type;
-      typedef T*                pointer;
-      typedef const T*    const_pointer;
-      typedef T&              reference;
-      typedef const T&  const_reference;
-      typedef T              value_type;
+      typedef T* pointer;
+      typedef const T* const_pointer;
+      typedef T& reference;
+      typedef const T& const_reference;
+      typedef T value_type;
     public:
       template<typename U>
       struct rebind {
@@ -375,80 +411,101 @@ namespace Legion {
     public:
       inline explicit LegionAllocator(void) { }
       inline ~LegionAllocator(void) { }
-      inline LegionAllocator(const LegionAllocator<T, L> &rhs) { }
+      inline LegionAllocator(const LegionAllocator<T, L>& rhs) { }
       template<typename U>
-      inline LegionAllocator(const LegionAllocator<U, L> &rhs) { }
+      inline LegionAllocator(const LegionAllocator<U, L>& rhs)
+      { }
     public:
       inline pointer address(reference r) { return &r; }
       inline const_pointer address(const_reference r) { return &r; }
     public:
-      inline T* allocate(std::size_t num) { 
-        return static_cast<T*>(legion_calloc<T,L>(num));
+      inline T* allocate(std::size_t num)
+      {
+        return static_cast<T*>(legion_calloc<T, L>(num));
       }
-      inline void deallocate(T *ptr, std::size_t num) { 
+      inline void deallocate(T* ptr, std::size_t num)
+      {
 #ifdef LEGION_TRACE_ALLOCATION
         constexpr std::size_t SIZE = sizeof(T);
-        if (num == 1) {
+        if (num == 1)
+        {
           legion_free<T>(ptr, SIZE);
-        } else if (num > 1) {
+        } else if (num > 1)
+        {
           constexpr std::size_t ALIGNMENT = alignof(T);
           // Compute the padding required between the elements
-          constexpr std::size_t PADDING = (ALIGNMENT - (SIZE % ALIGNMENT)) % ALIGNMENT;
+          constexpr std::size_t PADDING =
+              (ALIGNMENT - (SIZE % ALIGNMENT)) % ALIGNMENT;
           // Can subtract any padding off the last element
           const std::size_t bytes = num * (SIZE + PADDING);
           legion_free<T>(ptr, bytes);
         }
 #else
-        legion_free<T>(ptr, 0/*bogus size*/);
+        legion_free<T>(ptr, 0 /*bogus size*/);
 #endif
       }
     public:
-      inline size_type max_size(void) const {
+      inline size_type max_size(void) const
+      {
         return std::numeric_limits<size_type>::max() / sizeof(T);
       }
     public:
 #if __cplusplus > 201703L
       template<class U, class... Args>
-      inline constexpr U* construct_at( U* p, Args&&... args ) 
-        { return ::new (const_cast<void*>(static_cast<const volatile void*>(p)))
-                        U(std::forward<Args>(args)...); } 
+      inline constexpr U* construct_at(U* p, Args&&... args)
+      {
+        return ::new (const_cast<void*>(static_cast<const void volatile *>(p)))
+            U(std::forward<Args>(args)...);
+      }
 
 #else
       template<class U, class... Args>
-      inline void construct(U* p, Args&&... args) 
-        { ::new((void*)p) U(std::forward<Args>(args)...); }
+      inline void construct(U* p, Args&&... args)
+      {
+        ::new ((void*)p) U(std::forward<Args>(args)...);
+      }
 #endif
 #if __cplusplus > 201703L
       template<class U>
-      inline constexpr void destroy_at(U* p) { p->~U(); }
+      inline constexpr void destroy_at(U* p)
+      {
+        p->~U();
+      }
 #else
       template<class U>
-      inline void destroy_at(U* p) { p->~U(); }
+      inline void destroy_at(U* p)
+      {
+        p->~U();
+      }
 #endif
     public:
-      inline bool operator==(LegionAllocator const&) const { return true; }
-      inline bool operator!=(LegionAllocator const& a) const
-                                           { return !operator==(a); }
+      inline bool operator==(const LegionAllocator&) const { return true; }
+      inline bool operator!=(const LegionAllocator& a) const
+      {
+        return !operator==(a);
+      }
     };
 
-    template<typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME,
-      typename COMPARATOR = std::less<T> >
-    using LegionSet = std::set<T, COMPARATOR, LegionAllocator<T,L> >;
+    template<
+        typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME,
+        typename COMPARATOR = std::less<T> >
+    using LegionSet = std::set<T, COMPARATOR, LegionAllocator<T, L> >;
 
     template<typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME>
-    using LegionList = std::list<T, LegionAllocator<T,L> >;
+    using LegionList = std::list<T, LegionAllocator<T, L> >;
 
     template<typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME>
-    using LegionDeque = std::deque<T, LegionAllocator<T,L> >;
+    using LegionDeque = std::deque<T, LegionAllocator<T, L> >;
 
     template<typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME>
-    using LegionVector = std::vector<T, LegionAllocator<T,L> >;
+    using LegionVector = std::vector<T, LegionAllocator<T, L> >;
 
-    template<typename T1, typename T2, AllocationLifetime L = TASK_LOCAL_LIFETIME,
-      typename COMPARATOR = std::less<T1> >
-    using LegionMap = std::map<T1, T2, COMPARATOR,
-            LegionAllocator<std::pair<const T1,T2>,L> >;
-  }; // namespace Internal
-}; // namespace Legion
+    template<
+        typename T1, typename T2, AllocationLifetime L = TASK_LOCAL_LIFETIME,
+        typename COMPARATOR = std::less<T1> >
+    using LegionMap = std::map<
+        T1, T2, COMPARATOR, LegionAllocator<std::pair<const T1, T2>, L> >;
+  };  // namespace Internal
+};    // namespace Legion
 
-#endif // __LEGION_ALLOCATION__
+#endif  // __LEGION_ALLOCATION__

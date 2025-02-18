@@ -27,14 +27,18 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    Exception::Exception(ExceptionType t, const Operation *o)
-      : Realm::LoggerMessage((t == APPLICATION_EXCEPTION) ? log_legion.print() :
-          ((t == WARNING_EXCEPTION) && ((runtime == nullptr) ||
-            !runtime->warnings_are_errors)) ? log_legion.warning() :
-          log_legion.error()), op(o), type(t)
+    Exception::Exception(ExceptionType t, const Operation* o)
+      : Realm::LoggerMessage(
+            (t == APPLICATION_EXCEPTION) ? log_legion.print() :
+            ((t == WARNING_EXCEPTION) &&
+             ((runtime == nullptr) || !runtime->warnings_are_errors)) ?
+                                           log_legion.warning() :
+                                           log_legion.error()),
+        op(o), type(t)
     //--------------------------------------------------------------------------
     {
-      (*this) << "\n------------------------------------------------------------\n";
+      (*this)
+          << "\n------------------------------------------------------------\n";
       switch (type)
       {
         case APPLICATION_EXCEPTION:
@@ -77,7 +81,8 @@ namespace Legion {
             if ((runtime == nullptr) || !runtime->warnings_are_errors)
               (*this) << "LEGION_ENCOUNTERED A WARNING";
             else
-              (*this) << "LEGION ENCOUNTERED A WARNING BEING TREATED AS AN ERROR";
+              (*this)
+                  << "LEGION ENCOUNTERED A WARNING BEING TREATED AS AN ERROR";
             break;
           }
         default:
@@ -85,14 +90,14 @@ namespace Legion {
       }
       // Check to see if we can report where this error occurred
       if (op != nullptr)
-        (*this) << " IN " << op->get_logging_name()
-                << " (" << op->get_unique_op_id() << "):\n";
+        (*this) << " IN " << op->get_logging_name() << " ("
+                << op->get_unique_op_id() << "):\n";
       else if (implicit_context != nullptr)
         (*this) << " IN " << implicit_context->get_task_name() << "("
                 << implicit_context->get_unique_id() << "):\n";
       else if (implicit_provenance > 0)
-        (*this) << " IN META-TASK FOR UKNOWN OPERATION " 
-                << implicit_provenance << ":\n";
+        (*this) << " IN META-TASK FOR UKNOWN OPERATION " << implicit_provenance
+                << ":\n";
       else
         (*this) << ":\n";
     }
@@ -101,9 +106,9 @@ namespace Legion {
     Exception::~Exception(void)
     //--------------------------------------------------------------------------
     {
-      // If this is a warning, check to see if we're just going to report 
+      // If this is a warning, check to see if we're just going to report
       // that and be done with it, otherwise we do extra work
-      if ((type == WARNING_EXCEPTION) && 
+      if ((type == WARNING_EXCEPTION) &&
           ((runtime == nullptr) || !runtime->warnings_are_errors))
       {
         if (runtime->warnings_backtrace)
@@ -114,14 +119,15 @@ namespace Legion {
           bt.capture_backtrace();
           (*this) << bt;
         }
-        (*this) << "\n------------------------------------------------------------";
+        (*this)
+            << "\n------------------------------------------------------------";
         // Return which will just result in the message being printed
         // when the base class destructor is called
         return;
       }
       if (op != nullptr)
       {
-        Provenance *prov = op->get_provenance();
+        Provenance* prov = op->get_provenance();
         if (prov != nullptr)
         {
           (*this) << "\n-----------------------------------\n";
@@ -129,18 +135,19 @@ namespace Legion {
         }
         (*this) << "\n-----------------------------------\n";
         (*this) << "Task Tree Trace:\n\n";
-        (*this) << op->get_logging_name() << "(" << op->get_unique_op_id() << ")";
-        InnerContext *context = op->get_context();
+        (*this) << op->get_logging_name() << "(" << op->get_unique_op_id()
+                << ")";
+        InnerContext* context = op->get_context();
         while (context->owner_task != nullptr)
         {
-          (*this) << "\n" << context->get_task_name() << "("
-                  << context->get_unique_id() << ")";
+          (*this) << "\n"
+                  << context->get_task_name() << "(" << context->get_unique_id()
+                  << ")";
           context = context->owner_task->get_context();
         }
-      }
-      else if (implicit_context != nullptr)
+      } else if (implicit_context != nullptr)
       {
-        Provenance *prov = implicit_context->owner_task->get_provenance();
+        Provenance* prov = implicit_context->owner_task->get_provenance();
         if (prov != nullptr)
         {
           (*this) << "\n-----------------------------------\n";
@@ -148,11 +155,12 @@ namespace Legion {
         }
         (*this) << "\n-----------------------------------\n";
         (*this) << "Task Tree Trace:\n";
-        TaskContext *context = implicit_context;
+        TaskContext* context = implicit_context;
         while (context->owner_task != nullptr)
         {
-          (*this) << "\n" << context->get_task_name() << "("
-                  << context->get_unique_id() << ")";
+          (*this) << "\n"
+                  << context->get_task_name() << "(" << context->get_unique_id()
+                  << ")";
           context = context->owner_task->get_context();
         }
       }
@@ -161,7 +169,8 @@ namespace Legion {
       Realm::Backtrace bt;
       bt.capture_backtrace();
       (*this) << bt;
-      (*this) << "\n------------------------------------------------------------";
+      (*this)
+          << "\n------------------------------------------------------------";
       // Now flush the message by explicitly calling the base destructor
       // which is safe because we're about to abort
       this->Realm::LoggerMessage::~LoggerMessage();
@@ -188,9 +197,9 @@ namespace Legion {
     Exception& Exception::operator<<(Memory::Kind kind)
     //--------------------------------------------------------------------------
     {
-      static const char *memory_names[] = {
+      static const char* memory_names[] = {
 #define MEMORY_NAMES(name, desc) #name,
-        REALM_MEMORY_KINDS(MEMORY_NAMES)
+          REALM_MEMORY_KINDS(MEMORY_NAMES)
 #undef MEMORY_NAMES
       };
       (*this) << memory_names[kind];
@@ -201,9 +210,9 @@ namespace Legion {
     Exception& Exception::operator<<(Processor::Kind kind)
     //--------------------------------------------------------------------------
     {
-      static const char *proc_names[] = {
+      static const char* proc_names[] = {
 #define PROCESSOR_NAMES(name, desc) #name,
-        REALM_PROCESSOR_KINDS(PROCESSOR_NAMES)
+          REALM_PROCESSOR_KINDS(PROCESSOR_NAMES)
 #undef PROCESSOR_NAMES
       };
       (*this) << proc_names[kind];
@@ -222,14 +231,14 @@ namespace Legion {
     Exception& Exception::operator<<(LayoutConstraintKind kind)
     //--------------------------------------------------------------------------
     {
-      static const char *constraint_names[] = {
+      static const char* constraint_names[] = {
 #define CONSTRAINT_NAMES(name, desc) desc,
-        LEGION_LAYOUT_CONSTRAINT_KINDS(CONSTRAINT_NAMES)
+          LEGION_LAYOUT_CONSTRAINT_KINDS(CONSTRAINT_NAMES)
 #undef CONSTRAINT_NAMES
       };
       (*this) << constraint_names[kind];
       return *this;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -23,7 +23,7 @@ namespace Legion {
 
     /**
      * \class FrameOp
-     * Frame operations provide a mechanism for grouping 
+     * Frame operations provide a mechanism for grouping
      * operations within the same context into frames. Frames
      * provide an application directed way of controlling the
      * number of outstanding operations in flight in a context
@@ -32,12 +32,12 @@ namespace Legion {
     class FrameOp : public FenceOp {
     public:
       FrameOp(void);
-      FrameOp(const FrameOp &rhs) = delete;
+      FrameOp(const FrameOp& rhs) = delete;
       virtual ~FrameOp(void);
     public:
-      FrameOp& operator=(const FrameOp &rhs) = delete;
+      FrameOp& operator=(const FrameOp& rhs) = delete;
     public:
-      void initialize(InnerContext *ctx, Provenance *provenance);
+      void initialize(InnerContext* ctx, Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -48,7 +48,7 @@ namespace Legion {
       virtual void trigger_commit(void);
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_FRAME_H__
+#endif  // __LEGION_FRAME_H__

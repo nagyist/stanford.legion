@@ -20,41 +20,39 @@
 
 namespace Legion {
 
-    //--------------------------------------------------------------------------
-    inline bool Predicate::operator==(const Predicate &p) const
-    //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  inline bool Predicate::operator==(const Predicate& p) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl == nullptr)
     {
-      if (impl == nullptr)
-      {
-        if (p.impl == nullptr)
-          return (const_value == p.const_value);
-        else
-          return false;
-      }
+      if (p.impl == nullptr)
+        return (const_value == p.const_value);
       else
-        return (impl == p.impl);
-    }
+        return false;
+    } else
+      return (impl == p.impl);
+  }
 
-    //--------------------------------------------------------------------------
-    inline bool Predicate::operator<(const Predicate &p) const
-    //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  inline bool Predicate::operator<(const Predicate& p) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl == nullptr)
     {
-      if (impl == nullptr)
-      {
-        if (p.impl == nullptr)
-          return (const_value < p.const_value);
-        else
-          return true;
-      }
+      if (p.impl == nullptr)
+        return (const_value < p.const_value);
       else
-        return (impl < p.impl);
-    }
+        return true;
+    } else
+      return (impl < p.impl);
+  }
 
-    //--------------------------------------------------------------------------
-    inline bool Predicate::operator!=(const Predicate &p) const
-    //--------------------------------------------------------------------------
-    {
-      return !(*this == p);
-    }
+  //--------------------------------------------------------------------------
+  inline bool Predicate::operator!=(const Predicate& p) const
+  //--------------------------------------------------------------------------
+  {
+    return !(*this == p);
+  }
 
-} // namespace Legion
+}  // namespace Legion

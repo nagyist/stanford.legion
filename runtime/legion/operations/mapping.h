@@ -27,17 +27,18 @@ namespace Legion {
 
     /**
      * \class ExternalMapping
-     * An extension of the external-facing InlineMapping to help 
+     * An extension of the external-facing InlineMapping to help
      * with packing and unpacking them
      */
-    class ExternalMapping : public InlineMapping, public ExternalMappable {
+    class ExternalMapping : public InlineMapping,
+                            public ExternalMappable {
     public:
       ExternalMapping(void);
     public:
       virtual void set_context_index(uint64_t index) = 0;
     public:
-      void pack_external_mapping(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_mapping(Deserializer &derez);
+      void pack_external_mapping(Serializer& rez, AddressSpaceID target) const;
+      void unpack_external_mapping(Deserializer& derez);
     };
 
     /**
@@ -55,21 +56,25 @@ namespace Legion {
      * will result in the entire enclosing task context
      * being restarted.
      */
-    class MapOp : public ExternalMapping, public Operation {
+    class MapOp : public ExternalMapping,
+                  public Operation {
     public:
       MapOp(void);
-      MapOp(const MapOp &rhs) = delete;
+      MapOp(const MapOp& rhs) = delete;
       virtual ~MapOp(void);
     public:
-      MapOp& operator=(const MapOp &rhs) = delete;
+      MapOp& operator=(const MapOp& rhs) = delete;
     public:
-      PhysicalRegion initialize(InnerContext *ctx,
-                                const InlineLauncher &launcher,
-                                Provenance *provenance);
-      void initialize(InnerContext *ctx, const PhysicalRegion &region,
-                      Provenance *provenance);
+      PhysicalRegion initialize(
+          InnerContext* ctx, const InlineLauncher& launcher,
+          Provenance* provenance);
+      void initialize(
+          InnerContext* ctx, const PhysicalRegion& region,
+          Provenance* provenance);
       virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
-        { return requirement; }
+      {
+        return requirement;
+      }
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -85,14 +90,15 @@ namespace Legion {
       virtual void trigger_mapping(void);
       virtual void trigger_commit(void);
       virtual unsigned find_parent_index(unsigned idx);
-      virtual void select_sources(const unsigned index, PhysicalManager *target,
-                                  const std::vector<InstanceView*> &sources,
-                                  std::vector<unsigned> &ranking,
-                                  std::map<unsigned,PhysicalManager*> &points);
-      virtual std::map<PhysicalManager*,unsigned>*
-                   get_acquired_instances_ref(void);
-      virtual void update_atomic_locks(const unsigned index,
-                                       Reservation lock, bool exclusive);
+      virtual void select_sources(
+          const unsigned index, PhysicalManager* target,
+          const std::vector<InstanceView*>& sources,
+          std::vector<unsigned>& ranking,
+          std::map<unsigned, PhysicalManager*>& points);
+      virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
+          void);
+      virtual void update_atomic_locks(
+          const unsigned index, Reservation lock, bool exclusive);
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -102,17 +108,19 @@ namespace Legion {
       virtual const std::string_view& get_provenance_string(
           bool human = true) const;
     protected:
-      virtual bool invoke_mapper(InstanceSet &mapped_instances,
-                               std::vector<PhysicalManager*> &source_instances);
-      virtual int add_copy_profiling_request(const PhysicalTraceInfo &info,
-                               Realm::ProfilingRequestSet &requests,
-                               bool fill, unsigned count = 1);
+      virtual bool invoke_mapper(
+          InstanceSet& mapped_instances,
+          std::vector<PhysicalManager*>& source_instances);
+      virtual int add_copy_profiling_request(
+          const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
+          bool fill, unsigned count = 1);
       virtual bool handle_profiling_response(
-          const Realm::ProfilingResponse &response, const void *orig,
-          size_t orig_length, LgEvent &fevent, bool &failed_alloc);
+          const Realm::ProfilingResponse& response, const void* orig,
+          size_t orig_length, LgEvent& fevent, bool& failed_alloc);
       virtual void handle_profiling_update(int count);
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }
     protected:
       bool remap_region;
@@ -121,18 +129,18 @@ namespace Legion {
       PhysicalRegion region;
       unsigned parent_req_index;
       VersionInfo version_info;
-      std::map<PhysicalManager*,unsigned> acquired_instances;
-      std::map<Reservation,bool> atomic_locks;
+      std::map<PhysicalManager*, unsigned> acquired_instances;
+      std::map<Reservation, bool> atomic_locks;
       std::set<RtEvent> map_applied_conditions;
     protected:
-      MapperManager *mapper;
+      MapperManager* mapper;
     protected:
-      std::vector<ProfilingMeasurementID>           profiling_requests;
-      RtUserEvent                                   profiling_reported;
-      int                                           profiling_priority;
-      int                                           copy_fill_priority;
-      std::atomic<int>                  outstanding_profiling_requests;
-      std::atomic<int>                  outstanding_profiling_reported;
+      std::vector<ProfilingMeasurementID> profiling_requests;
+      RtUserEvent profiling_reported;
+      int profiling_priority;
+      int copy_fill_priority;
+      std::atomic<int> outstanding_profiling_requests;
+      std::atomic<int> outstanding_profiling_reported;
     };
 
     /**
@@ -144,58 +152,62 @@ namespace Legion {
      * mappings can act like a kind of communication between shards
      * where they are all reading/writing to the same logical region.
      */
-    class ReplMapOp : 
-      public ReplCollectiveViewCreator<CollectiveViewCreator<MapOp> > {
+    class ReplMapOp
+      : public ReplCollectiveViewCreator<CollectiveViewCreator<MapOp> > {
     public:
       ReplMapOp(void);
-      ReplMapOp(const ReplMapOp &rhs) = delete;
+      ReplMapOp(const ReplMapOp& rhs) = delete;
       virtual ~ReplMapOp(void);
     public:
-      ReplMapOp& operator=(const ReplMapOp &rhs) = delete;
+      ReplMapOp& operator=(const ReplMapOp& rhs) = delete;
     public:
-      void initialize_replication(ReplicateContext *ctx);
+      void initialize_replication(ReplicateContext* ctx);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
-      virtual bool invoke_mapper(InstanceSet &mapped_instances,
-              std::vector<PhysicalManager*> &source_instances);
+      virtual bool invoke_mapper(
+          InstanceSet& mapped_instances,
+          std::vector<PhysicalManager*>& source_instances);
       virtual bool supports_collective_instances(void) const { return true; }
       virtual RtEvent finalize_complete_mapping(RtEvent precondition);
-      virtual bool perform_collective_analysis(CollectiveMapping *&mapping,
-                                               bool &first_local);
-      virtual RtEvent perform_collective_versioning_analysis(unsigned index,
-                       LogicalRegion handle, EqSetTracker *tracker,
-                       const FieldMask &mask, unsigned parent_req_index);
-      virtual bool find_shard_participants(std::vector<ShardID> &shards);
+      virtual bool perform_collective_analysis(
+          CollectiveMapping*& mapping, bool& first_local);
+      virtual RtEvent perform_collective_versioning_analysis(
+          unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+          const FieldMask& mask, unsigned parent_req_index);
+      virtual bool find_shard_participants(std::vector<ShardID>& shards);
     protected:
       CollectiveID mapping_check, sources_check;
-      RtBarrier collective_map_barrier; 
+      RtBarrier collective_map_barrier;
     };
 
     /**
      * \class CheckCollectiveMapping
      * A class for exchanging the names of instances used for collective mapping
      */
-    class CheckCollectiveMapping : public AllGatherCollective<true/*inorder*/> {
+    class CheckCollectiveMapping
+      : public AllGatherCollective<true /*inorder*/> {
     public:
-      CheckCollectiveMapping(ReplicateContext *ctx, CollectiveID id);
+      CheckCollectiveMapping(ReplicateContext* ctx, CollectiveID id);
       CheckCollectiveMapping(const CheckCollectiveMapping&) = delete;
       virtual ~CheckCollectiveMapping(void);
     public:
       CheckCollectiveMapping& operator=(const CheckCollectiveMapping&) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_CHECK_COLLECTIVE_MAPPING; }
-      virtual void pack_collective_stage(ShardID target,
-                                         Serializer &rez, int stage);
-      virtual void unpack_collective_stage(Deserializer &derez, int stage);
+      {
+        return SEND_CONTROL_REPLICATION_CHECK_COLLECTIVE_MAPPING;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage);
+      virtual void unpack_collective_stage(Deserializer& derez, int stage);
     public:
-      void verify(const InstanceSet &instances, MapperManager *mapper);
+      void verify(const InstanceSet& instances, MapperManager* mapper);
     protected:
-      typedef LegionVector<std::pair<ShardID,FieldMask > > ShardFields;
-      std::map<PhysicalInstance,ShardFields> mapped_instances;
+      typedef LegionVector<std::pair<ShardID, FieldMask> > ShardFields;
+      std::map<PhysicalInstance, ShardFields> mapped_instances;
     };
 
     /**
@@ -205,18 +217,20 @@ namespace Legion {
      */
     class CheckCollectiveSources : public BroadcastCollective {
     public:
-      CheckCollectiveSources(ReplicateContext *ctx, CollectiveID id);
+      CheckCollectiveSources(ReplicateContext* ctx, CollectiveID id);
       CheckCollectiveSources(const CheckCollectiveSources&) = delete;
       virtual ~CheckCollectiveSources(void);
     public:
       CheckCollectiveSources& operator=(const CheckCollectiveSources&) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_CHECK_COLLECTIVE_SOURCES; }
-      virtual void pack_collective(Serializer &rez) const;
-      virtual void unpack_collective(Deserializer &derez);
+      {
+        return SEND_CONTROL_REPLICATION_CHECK_COLLECTIVE_SOURCES;
+      }
+      virtual void pack_collective(Serializer& rez) const;
+      virtual void unpack_collective(Deserializer& derez);
     public:
-      bool verify(const std::vector<PhysicalManager*> &instances);
+      bool verify(const std::vector<PhysicalManager*>& instances);
     protected:
       std::vector<DistributedID> source_instances;
     };
@@ -226,14 +240,15 @@ namespace Legion {
      * This is a remote copy of a MapOp to be used
      * for mapper calls and other operations
      */
-    class RemoteMapOp : public ExternalMapping, public RemoteOp,
-      public Heapify<RemoteMapOp,OPERATION_LIFETIME> {
+    class RemoteMapOp : public ExternalMapping,
+                        public RemoteOp,
+                        public Heapify<RemoteMapOp, OPERATION_LIFETIME> {
     public:
-      RemoteMapOp(Operation *ptr, AddressSpaceID src);
-      RemoteMapOp(const RemoteMapOp &rhs) = delete;
+      RemoteMapOp(Operation* ptr, AddressSpaceID src);
+      RemoteMapOp(const RemoteMapOp& rhs) = delete;
       virtual ~RemoteMapOp(void);
     public:
-      RemoteMapOp& operator=(const RemoteMapOp &rhs) = delete; 
+      RemoteMapOp& operator=(const RemoteMapOp& rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -245,16 +260,18 @@ namespace Legion {
     public:
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual void select_sources(const unsigned index, PhysicalManager *target,
-                                  const std::vector<InstanceView*> &sources,
-                                  std::vector<unsigned> &ranking,
-                                  std::map<unsigned,PhysicalManager*> &points);
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual void unpack(Deserializer &derez);
+      virtual void select_sources(
+          const unsigned index, PhysicalManager* target,
+          const std::vector<InstanceView*>& sources,
+          std::vector<unsigned>& ranking,
+          std::map<unsigned, PhysicalManager*>& points);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual void unpack(Deserializer& derez);
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_INLINE_MAPPING_H__
+#endif  // __LEGION_INLINE_MAPPING_H__

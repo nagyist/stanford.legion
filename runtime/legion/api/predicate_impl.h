@@ -27,33 +27,34 @@ namespace Legion {
     /**
      * \class PredicateImpl
      * This class provides the base support for a predicate and
-     * any state needed to manage the mapping of things that 
+     * any state needed to manage the mapping of things that
      * depend on a predicate value
      */
     class PredicateImpl : public Collectable {
     public:
-      PredicateImpl(Operation *creator);
-      PredicateImpl(const PredicateImpl &rhs) = delete;
+      PredicateImpl(Operation* creator);
+      PredicateImpl(const PredicateImpl& rhs) = delete;
       virtual ~PredicateImpl(void);
     public:
-      PredicateImpl& operator=(const PredicateImpl &rhs) = delete;
+      PredicateImpl& operator=(const PredicateImpl& rhs) = delete;
     public:
       // This returns the predicate value if it is set or returns the
       // names of the guards to use if has not been set
-      virtual bool get_predicate(uint64_t context_index,
-          PredEvent &true_guard, PredEvent &false_guard);
-      bool get_predicate(RtEvent &ready);
+      virtual bool get_predicate(
+          uint64_t context_index, PredEvent& true_guard,
+          PredEvent& false_guard);
+      bool get_predicate(RtEvent& ready);
       virtual void set_predicate(bool value);
     public:
-      InnerContext *const context;
-      Operation *const creator;
+      InnerContext* const context;
+      Operation* const creator;
       const GenerationID creator_gen;
       const UniqueID creator_uid;
     protected:
       mutable LocalLock predicate_lock;
       PredUserEvent true_guard, false_guard;
       RtUserEvent ready_event;
-      int value; // <0 is unset, 0 is false, >0 is true
+      int value;  // <0 is unset, 0 is false, >0 is true
     };
 
     /**
@@ -61,21 +62,23 @@ namespace Legion {
      * A class for performing all-reduce of the maximum observed indexes
      * for a replicated predicate impl
      */
-    class PredicateCollective : 
-      public AllReduceCollective<MaxReduction<uint64_t>,false> {
+    class PredicateCollective
+      : public AllReduceCollective<MaxReduction<uint64_t>, false> {
     public:
-      PredicateCollective(ReplPredicateImpl *predicate, 
-          ReplicateContext *ctx, CollectiveID id);
-      PredicateCollective(const PredicateCollective &rhs) = delete;
+      PredicateCollective(
+          ReplPredicateImpl* predicate, ReplicateContext* ctx, CollectiveID id);
+      PredicateCollective(const PredicateCollective& rhs) = delete;
       virtual ~PredicateCollective(void) { }
     public:
-      PredicateCollective& operator=(const PredicateCollective &rhs) = delete;
+      PredicateCollective& operator=(const PredicateCollective& rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_PREDICATE_EXCHANGE; }
+      {
+        return SEND_CONTROL_REPLICATION_PREDICATE_EXCHANGE;
+      }
       virtual RtEvent post_complete_exchange(void);
     public:
-      ReplPredicateImpl *const predicate;
+      ReplPredicateImpl* const predicate;
     };
 
     /**
@@ -89,25 +92,26 @@ namespace Legion {
      */
     class ReplPredicateImpl : public PredicateImpl {
     public:
-      ReplPredicateImpl(Operation *creator, uint64_t coordinate,
-                        CollectiveID id);
-      ReplPredicateImpl(const ReplPredicateImpl &rhs) = delete;
+      ReplPredicateImpl(
+          Operation* creator, uint64_t coordinate, CollectiveID id);
+      ReplPredicateImpl(const ReplPredicateImpl& rhs) = delete;
       virtual ~ReplPredicateImpl(void);
     public:
-      ReplPredicateImpl& operator=(const ReplPredicateImpl &rhs) = delete;
+      ReplPredicateImpl& operator=(const ReplPredicateImpl& rhs) = delete;
     public:
-      virtual bool get_predicate(uint64_t context_index,
-          PredEvent &true_guard, PredEvent &false_guard);
+      virtual bool get_predicate(
+          uint64_t context_index, PredEvent& true_guard,
+          PredEvent& false_guard);
       virtual void set_predicate(bool value);
     public:
       const uint64_t predicate_coordinate;
     protected:
       const CollectiveID collective_id;
       size_t max_observed_index;
-      PredicateCollective *collective;
+      PredicateCollective* collective;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_PREDICATE_IMPL_H__
+#endif  // __LEGION_PREDICATE_IMPL_H__

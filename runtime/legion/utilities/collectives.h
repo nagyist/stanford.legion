@@ -26,24 +26,19 @@ namespace Legion {
   namespace Internal {
 
     //--------------------------------------------------------------------------
-    static inline bool configure_collective_settings(const int participants,
-                                                     const int local_space,
-                                                     int &collective_radix,
-                                                     int &collective_log_radix,
-                                                     int &collective_stages,
-                                                     int &participating_spaces,
-                                                     int &collective_last_radix)
+    static inline bool configure_collective_settings(
+        const int participants, const int local_space, int& collective_radix,
+        int& collective_log_radix, int& collective_stages,
+        int& participating_spaces, int& collective_last_radix)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(participants > 0);
       assert(collective_radix > 1);
 #endif
-      const int MultiplyDeBruijnBitPosition[32] = 
-      {
-        0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
-          8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-      };
+      const int MultiplyDeBruijnBitPosition[32] = {
+          0, 9,  1,  10, 13, 21, 2,  29, 11, 14, 16, 18, 22, 25, 3, 30,
+          8, 12, 20, 28, 15, 17, 24, 7,  19, 27, 23, 6,  26, 5,  4, 31};
       // First adjust the radix based on the number of nodes if necessary
       if (collective_radix > participants)
       {
@@ -56,41 +51,38 @@ namespace Legion {
           participating_spaces = 1;
           collective_last_radix = 0;
           return (local_space == 0);
-        }
-        else
+        } else
           collective_radix = participants;
       }
       // Adjust the radix to the next smallest power of 2
       uint32_t radix_copy = collective_radix;
-      for (int i = 0; i < 5; i++)
-        radix_copy |= radix_copy >> (1 << i);
-      collective_log_radix = 
-        MultiplyDeBruijnBitPosition[(uint32_t)(radix_copy * 0x07C4ACDDU) >> 27];
+      for (int i = 0; i < 5; i++) radix_copy |= radix_copy >> (1 << i);
+      collective_log_radix = MultiplyDeBruijnBitPosition
+          [(uint32_t)(radix_copy * 0x07C4ACDDU) >> 27];
       if (collective_radix != (1 << collective_log_radix))
         collective_radix = (1 << collective_log_radix);
 
       // Compute the number of stages
       uint32_t node_copy = participants;
-      for (int i = 0; i < 5; i++)
-        node_copy |= node_copy >> (1 << i);
+      for (int i = 0; i < 5; i++) node_copy |= node_copy >> (1 << i);
       // Now we have it log 2
-      int log_nodes = 
-        MultiplyDeBruijnBitPosition[(uint32_t)(node_copy * 0x07C4ACDDU) >> 27];
+      int log_nodes = MultiplyDeBruijnBitPosition
+          [(uint32_t)(node_copy * 0x07C4ACDDU) >> 27];
 
       // Stages round up in case of incomplete stages
-      collective_stages = 
-        (log_nodes + collective_log_radix - 1) / collective_log_radix;
+      collective_stages =
+          (log_nodes + collective_log_radix - 1) / collective_log_radix;
       int log_remainder = log_nodes % collective_log_radix;
       if (log_remainder > 0)
       {
         // We have an incomplete last stage
         collective_last_radix = 1 << log_remainder;
         // Now we can compute the number of participating stages
-        participating_spaces = 
-          1 << ((collective_stages - 1) * collective_log_radix +
-                 log_remainder);
-      }
-      else
+        participating_spaces = 1
+                               << ((collective_stages - 1) *
+                                       collective_log_radix +
+                                   log_remainder);
+      } else
       {
         collective_last_radix = collective_radix;
         participating_spaces = 1 << (collective_stages * collective_log_radix);
@@ -107,45 +99,45 @@ namespace Legion {
     // with at most one logical static collective kind
     // Ones that have been commented out are free to be reused
     enum CollectiveIndexLocation {
-      //COLLECTIVE_LOC_0 = 0, 
+      // COLLECTIVE_LOC_0 = 0,
       COLLECTIVE_LOC_1 = 1,
       COLLECTIVE_LOC_2 = 2,
       COLLECTIVE_LOC_3 = 3,
-      COLLECTIVE_LOC_4 = 4, 
+      COLLECTIVE_LOC_4 = 4,
       COLLECTIVE_LOC_5 = 5,
       COLLECTIVE_LOC_6 = 6,
       COLLECTIVE_LOC_7 = 7,
-      COLLECTIVE_LOC_8 = 8, 
+      COLLECTIVE_LOC_8 = 8,
       COLLECTIVE_LOC_9 = 9,
       COLLECTIVE_LOC_10 = 10,
-      COLLECTIVE_LOC_11 = 11, 
-      COLLECTIVE_LOC_12 = 12, 
+      COLLECTIVE_LOC_11 = 11,
+      COLLECTIVE_LOC_12 = 12,
       COLLECTIVE_LOC_13 = 13,
       COLLECTIVE_LOC_14 = 14,
       COLLECTIVE_LOC_15 = 15,
       COLLECTIVE_LOC_16 = 16,
-      COLLECTIVE_LOC_17 = 17, 
-      COLLECTIVE_LOC_18 = 18, 
+      COLLECTIVE_LOC_17 = 17,
+      COLLECTIVE_LOC_18 = 18,
       COLLECTIVE_LOC_19 = 19,
       COLLECTIVE_LOC_20 = 20,
-      COLLECTIVE_LOC_21 = 21, 
-      COLLECTIVE_LOC_22 = 22, 
+      COLLECTIVE_LOC_21 = 21,
+      COLLECTIVE_LOC_22 = 22,
       COLLECTIVE_LOC_23 = 23,
       COLLECTIVE_LOC_24 = 24,
       COLLECTIVE_LOC_25 = 25,
       COLLECTIVE_LOC_26 = 26,
-      COLLECTIVE_LOC_27 = 27, 
-      COLLECTIVE_LOC_28 = 28, 
+      COLLECTIVE_LOC_27 = 27,
+      COLLECTIVE_LOC_28 = 28,
       COLLECTIVE_LOC_29 = 29,
       COLLECTIVE_LOC_30 = 30,
-      COLLECTIVE_LOC_31 = 31, 
+      COLLECTIVE_LOC_31 = 31,
       COLLECTIVE_LOC_32 = 32,
       COLLECTIVE_LOC_33 = 33,
       COLLECTIVE_LOC_34 = 34,
       COLLECTIVE_LOC_35 = 35,
       COLLECTIVE_LOC_36 = 36,
-      COLLECTIVE_LOC_37 = 37, 
-      COLLECTIVE_LOC_38 = 38, 
+      COLLECTIVE_LOC_37 = 37,
+      COLLECTIVE_LOC_38 = 38,
       COLLECTIVE_LOC_39 = 39,
       COLLECTIVE_LOC_40 = 40,
       COLLECTIVE_LOC_41 = 41,
@@ -222,7 +214,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION_COLLECTIVES
     /**
      * \class CollectiveCheckReduction
-     * A small helper reduction for use with checking that 
+     * A small helper reduction for use with checking that
      * Legion collectives are properly aligned across all shards
      */
     class CollectiveCheckReduction {
@@ -234,9 +226,11 @@ namespace Legion {
       static const long BAD;
       static const ReductionOpID REDOP;
 
-      template<bool EXCLUSIVE> static void apply(LHS &lhs, RHS rhs);
-      template<bool EXCLUSIVE> static void fold(RHS &rhs1, RHS rhs2);
-    }; 
+      template<bool EXCLUSIVE>
+      static void apply(LHS& lhs, RHS rhs);
+      template<bool EXCLUSIVE>
+      static void fold(RHS& rhs1, RHS rhs2);
+    };
 
     /**
      * \class CloseCheckReduction
@@ -248,10 +242,11 @@ namespace Legion {
       struct CloseCheckValue {
       public:
         CloseCheckValue(void);
-        CloseCheckValue(Operation *op, RtBarrier barrier,
-                        RegionTreeNode *node, bool read_only);
+        CloseCheckValue(
+            Operation* op, RtBarrier barrier, RegionTreeNode* node,
+            bool read_only);
       public:
-        bool operator==(const CloseCheckValue &rhs) const;
+        bool operator==(const CloseCheckValue& rhs) const;
       public:
         unsigned operation_index;
         RtBarrier barrier;
@@ -267,10 +262,12 @@ namespace Legion {
       static const CloseCheckValue identity;
       static const ReductionOpID REDOP;
 
-      template<bool EXCLUSIVE> static void apply(LHS &lhs, RHS rhs);
-      template<bool EXCLUSIVE> static void fold(RHS &rhs1, RHS rhs2);
+      template<bool EXCLUSIVE>
+      static void apply(LHS& lhs, RHS rhs);
+      template<bool EXCLUSIVE>
+      static void fold(RHS& rhs1, RHS rhs2);
     };
-#endif 
+#endif
 
     /**
      * \class ShardCollective
@@ -283,29 +280,30 @@ namespace Legion {
       public:
         static const LgTaskID TASK_ID = LG_DEFER_COLLECTIVE_TASK_ID;
       public:
-        DeferCollectiveArgs(ShardCollective *c)
-          : LgTaskArgs(implicit_provenance), collective(c) { }
+        DeferCollectiveArgs(ShardCollective* c)
+          : LgTaskArgs(implicit_provenance), collective(c)
+        { }
       public:
-        ShardCollective *const collective;
+        ShardCollective* const collective;
       };
     public:
-      ShardCollective(CollectiveIndexLocation loc, ReplicateContext *ctx);
-      ShardCollective(ReplicateContext *ctx, CollectiveID id);
+      ShardCollective(CollectiveIndexLocation loc, ReplicateContext* ctx);
+      ShardCollective(ReplicateContext* ctx, CollectiveID id);
       virtual ~ShardCollective(void);
     public:
       virtual void perform_collective_async(
-                     RtEvent precondition = RtEvent::NO_RT_EVENT) = 0;
+          RtEvent precondition = RtEvent::NO_RT_EVENT) = 0;
       virtual RtEvent perform_collective_wait(bool block = false) = 0;
-      virtual void handle_collective_message(Deserializer &derez) = 0;
+      virtual void handle_collective_message(Deserializer& derez) = 0;
       void perform_collective_sync(RtEvent pre = RtEvent::NO_RT_EVENT);
-      static void handle_deferred_collective(const void *args);
+      static void handle_deferred_collective(const void* args);
     protected:
       bool defer_collective_async(RtEvent precondition);
       int convert_to_index(ShardID id, ShardID origin) const;
       ShardID convert_to_shard(int index, ShardID origin) const;
     public:
-      ShardManager *const manager;
-      ReplicateContext *const context;
+      ShardManager* const manager;
+      ReplicateContext* const context;
       const ShardID local_shard;
       const CollectiveID collective_index;
     protected:
@@ -314,40 +312,39 @@ namespace Legion {
 
     /**
      * \class BroadcastCollective
-     * This shard collective has equivalent functionality to 
+     * This shard collective has equivalent functionality to
      * MPI Broadcast in that it will transmit some data on one
      * shard to all the other shards.
      */
     class BroadcastCollective : public ShardCollective {
     public:
-      BroadcastCollective(CollectiveIndexLocation loc,
-                          ReplicateContext *ctx, ShardID origin);
-      BroadcastCollective(ReplicateContext *ctx, 
-                          CollectiveID id, ShardID origin); 
+      BroadcastCollective(
+          CollectiveIndexLocation loc, ReplicateContext* ctx, ShardID origin);
+      BroadcastCollective(
+          ReplicateContext* ctx, CollectiveID id, ShardID origin);
       virtual ~BroadcastCollective(void);
     public:
       virtual MessageKind get_message_kind(void) const = 0;
       // We guarantee that these methods will be called atomically
-      virtual void pack_collective(Serializer &rez) const = 0;
-      virtual void unpack_collective(Deserializer &derez) = 0;
+      virtual void pack_collective(Serializer& rez) const = 0;
+      virtual void unpack_collective(Deserializer& derez) = 0;
     public:
       virtual void perform_collective_async(RtEvent pre = RtEvent::NO_RT_EVENT);
       virtual RtEvent perform_collective_wait(bool block = true);
-      virtual void handle_collective_message(Deserializer &derez);
+      virtual void handle_collective_message(Deserializer& derez);
       virtual RtEvent post_broadcast(void) { return RtEvent::NO_RT_EVENT; }
       // Use this method in case we don't actually end up using the collective
       virtual void elide_collective(void);
     public:
       RtEvent get_done_event(void) const;
-      inline bool is_origin(void) const
-        { return (origin == local_shard); }
+      inline bool is_origin(void) const { return (origin == local_shard); }
     protected:
       void send_messages(void) const;
     public:
       const ShardID origin;
       const int shard_collective_radix;
     private:
-      RtUserEvent done_event; // valid on all shards except origin
+      RtUserEvent done_event;  // valid on all shards except origin
     };
 
     /**
@@ -358,21 +355,20 @@ namespace Legion {
      */
     class GatherCollective : public ShardCollective {
     public:
-      GatherCollective(CollectiveIndexLocation loc,
-                       ReplicateContext *ctx, ShardID target);
-      GatherCollective(ReplicateContext *ctx, 
-                       CollectiveID id, ShardID origin);
+      GatherCollective(
+          CollectiveIndexLocation loc, ReplicateContext* ctx, ShardID target);
+      GatherCollective(ReplicateContext* ctx, CollectiveID id, ShardID origin);
       virtual ~GatherCollective(void);
     public:
       virtual MessageKind get_message_kind(void) const = 0;
       // We guarantee that these methods will be called atomically
-      virtual void pack_collective(Serializer &rez) const = 0;
-      virtual void unpack_collective(Deserializer &derez) = 0;
+      virtual void pack_collective(Serializer& rez) const = 0;
+      virtual void unpack_collective(Deserializer& derez) = 0;
     public:
       virtual void perform_collective_async(RtEvent pre = RtEvent::NO_RT_EVENT);
       // Make sure to call this in the destructor of anything not the target
       virtual RtEvent perform_collective_wait(bool block = true);
-      virtual void handle_collective_message(Deserializer &derez);
+      virtual void handle_collective_message(Deserializer& derez);
       virtual RtEvent post_gather(void) { return RtEvent::NO_RT_EVENT; }
       inline bool is_target(void) const { return (target == local_shard); }
       RtEvent get_done_event(void);
@@ -405,36 +401,39 @@ namespace Legion {
     public:
       // Inorder says whether we need to see messages for stages inorder,
       // e.g. do we need to see all stage 0 messages before stage 1
-      AllGatherCollective(CollectiveIndexLocation loc, ReplicateContext *ctx);
-      AllGatherCollective(ReplicateContext *ctx, CollectiveID id);
-      AllGatherCollective(ReplicateContext *ctx, CollectiveID id,
-                          const std::vector<ShardID> &participants);
+      AllGatherCollective(CollectiveIndexLocation loc, ReplicateContext* ctx);
+      AllGatherCollective(ReplicateContext* ctx, CollectiveID id);
+      AllGatherCollective(
+          ReplicateContext* ctx, CollectiveID id,
+          const std::vector<ShardID>& participants);
       virtual ~AllGatherCollective(void);
     public:
       virtual MessageKind get_message_kind(void) const = 0;
       // We guarantee that these methods will be called atomically
-      virtual void pack_collective_stage(ShardID target,
-                                         Serializer &rez, int stage) = 0;
-      virtual void unpack_collective_stage(Deserializer &derez, int stage) = 0;
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage) = 0;
+      virtual void unpack_collective_stage(Deserializer& derez, int stage) = 0;
     public:
       virtual void perform_collective_async(RtEvent pre = RtEvent::NO_RT_EVENT);
       virtual RtEvent perform_collective_wait(bool block = true);
-      virtual void handle_collective_message(Deserializer &derez);
+      virtual void handle_collective_message(Deserializer& derez);
       // Use this method in case we don't actually end up using the collective
       virtual void elide_collective(void);
       inline RtEvent get_done_event(void) const { return done_event; }
     protected:
       void initialize_collective(void);
-      void construct_message(ShardID target, int stage, Serializer &rez);
+      void construct_message(ShardID target, int stage, Serializer& rez);
       bool initiate_collective(void);
       void send_remainder_stage(void);
-      bool send_ready_stages(const int start_stage=1);
-      void unpack_stage(int stage, Deserializer &derez);
+      bool send_ready_stages(const int start_stage = 1);
+      void unpack_stage(int stage, Deserializer& derez);
       void complete_exchange(void);
-      virtual RtEvent post_complete_exchange(void) 
-        { return RtEvent::NO_RT_EVENT; }
+      virtual RtEvent post_complete_exchange(void)
+      {
+        return RtEvent::NO_RT_EVENT;
+      }
     protected:
-      const std::vector<ShardID> *const participants; // can be nullptr
+      const std::vector<ShardID>* const participants;  // can be nullptr
       const size_t total_shards;
       int local_index;
       int shard_collective_radix;
@@ -442,12 +441,12 @@ namespace Legion {
       int shard_collective_stages;
       int shard_collective_participating_shards;
       int shard_collective_last_radix;
-      bool participating; 
+      bool participating;
     private:
       RtUserEvent done_event;
       std::vector<int> stage_notifications;
       std::vector<bool> sent_stages;
-      std::map<int,std::vector<std::pair<void*,size_t> > > *reorder_stages;
+      std::map<int, std::vector<std::pair<void*, size_t> > >* reorder_stages;
       // Handle a small race on deciding who gets to
       // trigger the done event, only the last one of these
       // will get to do the trigger to avoid any races
@@ -459,24 +458,26 @@ namespace Legion {
 
     /**
      * \class AllReduceCollective
-     * This shard collective has equivalent functionality to 
+     * This shard collective has equivalent functionality to
      * MPI All Reduce in that it will take a value from each
-     * shard and reduce it down to a final value using a 
+     * shard and reduce it down to a final value using a
      * Legion reduction operator. We'll build this on top
      * of the AllGatherCollective
      */
     template<typename REDOP, bool INORDER>
     class AllReduceCollective : public AllGatherCollective<INORDER> {
     public:
-      AllReduceCollective(CollectiveIndexLocation loc, ReplicateContext *ctx);
-      AllReduceCollective(ReplicateContext *ctx, CollectiveID id);
+      AllReduceCollective(CollectiveIndexLocation loc, ReplicateContext* ctx);
+      AllReduceCollective(ReplicateContext* ctx, CollectiveID id);
       virtual ~AllReduceCollective(void);
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_VALUE_ALLREDUCE; }
-      virtual void pack_collective_stage(ShardID target,
-                                         Serializer &rez, int stage);
-      virtual void unpack_collective_stage(Deserializer &derez, int stage);
+      {
+        return SEND_CONTROL_REPLICATION_VALUE_ALLREDUCE;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage);
+      virtual void unpack_collective_stage(Deserializer& derez, int stage);
     public:
       void async_all_reduce(typename REDOP::RHS value);
       RtEvent wait_all_reduce(bool block = true);
@@ -492,29 +493,36 @@ namespace Legion {
      */
     class BufferBroadcast : public BroadcastCollective {
     public:
-      BufferBroadcast(ReplicateContext *ctx, CollectiveIndexLocation loc);
-      BufferBroadcast(ReplicateContext *ctx, ShardID origin,
-                     CollectiveIndexLocation loc)
-        : BroadcastCollective(loc, ctx, origin),
-          buffer(nullptr), size(0), own(false) { }
-      BufferBroadcast(CollectiveID id, ReplicateContext *ctx);
-      BufferBroadcast(CollectiveID id, ShardID origin,
-                      ReplicateContext *ctx)
-        : BroadcastCollective(ctx, id, origin),
-          buffer(nullptr), size(0), own(false) { }
-      BufferBroadcast(const BufferBroadcast &rhs) = delete;
-      virtual ~BufferBroadcast(void) { if (own) free(buffer); }
+      BufferBroadcast(ReplicateContext* ctx, CollectiveIndexLocation loc);
+      BufferBroadcast(
+          ReplicateContext* ctx, ShardID origin, CollectiveIndexLocation loc)
+        : BroadcastCollective(loc, ctx, origin), buffer(nullptr), size(0),
+          own(false)
+      { }
+      BufferBroadcast(CollectiveID id, ReplicateContext* ctx);
+      BufferBroadcast(CollectiveID id, ShardID origin, ReplicateContext* ctx)
+        : BroadcastCollective(ctx, id, origin), buffer(nullptr), size(0),
+          own(false)
+      { }
+      BufferBroadcast(const BufferBroadcast& rhs) = delete;
+      virtual ~BufferBroadcast(void)
+      {
+        if (own)
+          free(buffer);
+      }
     public:
-      BufferBroadcast& operator=(const BufferBroadcast &rhs) = delete;
-      void broadcast(void *buffer, size_t size, bool copy = true);
-      const void* get_buffer(size_t &size, bool wait = true);
+      BufferBroadcast& operator=(const BufferBroadcast& rhs) = delete;
+      void broadcast(void* buffer, size_t size, bool copy = true);
+      const void* get_buffer(size_t& size, bool wait = true);
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_BUFFER_BROADCAST; }
-      virtual void pack_collective(Serializer &rez) const; 
-      virtual void unpack_collective(Deserializer &derez);
+      {
+        return SEND_CONTROL_REPLICATION_BUFFER_BROADCAST;
+      }
+      virtual void pack_collective(Serializer& rez) const;
+      virtual void unpack_collective(Deserializer& derez);
     protected:
-      void *buffer;
+      void* buffer;
       size_t size;
       bool own;
     };
@@ -525,26 +533,28 @@ namespace Legion {
      */
     class BufferExchange : public AllGatherCollective<false> {
     public:
-      BufferExchange(ReplicateContext *ctx,
-                     CollectiveIndexLocation loc);
-      BufferExchange(const BufferExchange &rhs) = delete;
+      BufferExchange(ReplicateContext* ctx, CollectiveIndexLocation loc);
+      BufferExchange(const BufferExchange& rhs) = delete;
       virtual ~BufferExchange(void);
     public:
-      BufferExchange& operator=(const BufferExchange &rhs) = delete;
+      BufferExchange& operator=(const BufferExchange& rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_BUFFER_EXCHANGE; }
-      virtual void pack_collective_stage(ShardID target,
-                                         Serializer &rez, int stage);
-      virtual void unpack_collective_stage(Deserializer &derez, int stage);
+      {
+        return SEND_CONTROL_REPLICATION_BUFFER_EXCHANGE;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage);
+      virtual void unpack_collective_stage(Deserializer& derez, int stage);
     public:
-      const std::map<ShardID,std::pair<void*,size_t> >&
-        exchange_buffers(void *value, size_t size, bool keep_self = false);
-      RtEvent exchange_buffers_async(void *value, size_t size, 
-                                     bool keep_self = false);
-      const std::map<ShardID,std::pair<void*,size_t> >& sync_buffers(bool keep);
+      const std::map<ShardID, std::pair<void*, size_t> >& exchange_buffers(
+          void* value, size_t size, bool keep_self = false);
+      RtEvent exchange_buffers_async(
+          void* value, size_t size, bool keep_self = false);
+      const std::map<ShardID, std::pair<void*, size_t> >& sync_buffers(
+          bool keep);
     protected:
-      std::map<ShardID,std::pair<void*,size_t> > results;
+      std::map<ShardID, std::pair<void*, size_t> > results;
     };
 
     /**
@@ -558,40 +568,44 @@ namespace Legion {
     class FutureAllReduceCollective : public AllGatherCollective<false> {
     protected:
       struct PendingReduction {
-        FutureInstance *instance;
+        FutureInstance* instance;
         ApEvent precondition;
         ApUserEvent postcondition;
       };
     public:
-      FutureAllReduceCollective(Operation *op, CollectiveIndexLocation loc, 
-          ReplicateContext *ctx, ReductionOpID redop_id,
-          const ReductionOp *redop);
-      FutureAllReduceCollective(Operation *op, ReplicateContext *ctx, 
-          CollectiveID id, ReductionOpID redop_id, const ReductionOp *redop);
+      FutureAllReduceCollective(
+          Operation* op, CollectiveIndexLocation loc, ReplicateContext* ctx,
+          ReductionOpID redop_id, const ReductionOp* redop);
+      FutureAllReduceCollective(
+          Operation* op, ReplicateContext* ctx, CollectiveID id,
+          ReductionOpID redop_id, const ReductionOp* redop);
       virtual ~FutureAllReduceCollective(void);
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_FUTURE_ALLREDUCE; }
-      virtual void pack_collective_stage(ShardID target,
-                                         Serializer &rez, int stage);
-      virtual void unpack_collective_stage(Deserializer &derez, int stage);
+      {
+        return SEND_CONTROL_REPLICATION_FUTURE_ALLREDUCE;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage);
+      virtual void unpack_collective_stage(Deserializer& derez, int stage);
       virtual RtEvent post_complete_exchange(void);
       virtual void elide_collective(void);
     public:
-      void set_shadow_instance(FutureInstance *shadow);
-      RtEvent async_reduce(FutureInstance *instance, ApEvent &ready_event);
+      void set_shadow_instance(FutureInstance* shadow);
+      RtEvent async_reduce(FutureInstance* instance, ApEvent& ready_event);
     protected:
-      ApEvent perform_reductions(const std::map<ShardID,PendingReduction> &red);
+      ApEvent perform_reductions(
+          const std::map<ShardID, PendingReduction>& red);
       void create_shadow_instance(void);
     public:
-      Operation *const op;
-      const ReductionOp *const redop;
+      Operation* const op;
+      const ReductionOp* const redop;
       const ReductionOpID redop_id;
     protected:
-      const ApUserEvent finished; 
-      std::map<int,std::map<ShardID,PendingReduction> > pending_reductions;
-      FutureInstance *instance;
-      FutureInstance *shadow_instance;
+      const ApUserEvent finished;
+      std::map<int, std::map<ShardID, PendingReduction> > pending_reductions;
+      FutureInstance* instance;
+      FutureInstance* shadow_instance;
       ApEvent instance_ready;
       ApEvent shadow_ready;
       std::vector<ApEvent> shadow_reads;
@@ -605,29 +619,32 @@ namespace Legion {
      */
     class FutureBroadcastCollective : public BroadcastCollective {
     public:
-      FutureBroadcastCollective(ReplicateContext *ctx, 
-          CollectiveIndexLocation loc, ShardID origin, Operation *op);
-      FutureBroadcastCollective(const FutureBroadcastCollective &rhs) = delete;
+      FutureBroadcastCollective(
+          ReplicateContext* ctx, CollectiveIndexLocation loc, ShardID origin,
+          Operation* op);
+      FutureBroadcastCollective(const FutureBroadcastCollective& rhs) = delete;
       virtual ~FutureBroadcastCollective(void);
     public:
       FutureBroadcastCollective& operator=(
-                                const FutureBroadcastCollective &rhs) = delete;
+          const FutureBroadcastCollective& rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_FUTURE_ALLREDUCE; }
-      virtual void pack_collective(Serializer &rez) const;
-      virtual void unpack_collective(Deserializer &derez);
+      {
+        return SEND_CONTROL_REPLICATION_FUTURE_ALLREDUCE;
+      }
+      virtual void pack_collective(Serializer& rez) const;
+      virtual void unpack_collective(Deserializer& derez);
       virtual void elide_collective(void);
       virtual RtEvent post_broadcast(void);
     public:
-      RtEvent async_broadcast(FutureInstance *instance, 
-          ApEvent precondition = ApEvent::NO_AP_EVENT,
+      RtEvent async_broadcast(
+          FutureInstance* instance, ApEvent precondition = ApEvent::NO_AP_EVENT,
           RtEvent postcondition = RtEvent::NO_RT_EVENT);
     public:
-      Operation *const op;
+      Operation* const op;
       const ApUserEvent finished;
     protected:
-      FutureInstance *instance;
+      FutureInstance* instance;
       ApEvent write_event;
       mutable std::vector<ApEvent> read_events;
       RtEvent postcondition;
@@ -640,34 +657,37 @@ namespace Legion {
      */
     class FutureReductionCollective : public GatherCollective {
     public:
-      FutureReductionCollective(ReplicateContext *ctx,
-          CollectiveIndexLocation loc, ShardID origin,
-          Operation *op, FutureBroadcastCollective *broadcast,
-          const ReductionOp *redop, ReductionOpID redop_id);
-      FutureReductionCollective(const FutureReductionCollective &rhs) = delete;
+      FutureReductionCollective(
+          ReplicateContext* ctx, CollectiveIndexLocation loc, ShardID origin,
+          Operation* op, FutureBroadcastCollective* broadcast,
+          const ReductionOp* redop, ReductionOpID redop_id);
+      FutureReductionCollective(const FutureReductionCollective& rhs) = delete;
       virtual ~FutureReductionCollective(void);
     public:
       FutureReductionCollective& operator=(
-                                const FutureReductionCollective &rhs) = delete;
+          const FutureReductionCollective& rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_FUTURE_REDUCTION; }
-      virtual void pack_collective(Serializer &rez) const;
-      virtual void unpack_collective(Deserializer &derez);
+      {
+        return SEND_CONTROL_REPLICATION_FUTURE_REDUCTION;
+      }
+      virtual void pack_collective(Serializer& rez) const;
+      virtual void unpack_collective(Deserializer& derez);
       virtual RtEvent post_gather(void);
     public:
-      void async_reduce(FutureInstance *instance, ApEvent precondition);
+      void async_reduce(FutureInstance* instance, ApEvent precondition);
     protected:
       void perform_reductions(void) const;
     public:
-      Operation *const op;
-      FutureBroadcastCollective *const broadcast;
-      const ReductionOp *const redop;
+      Operation* const op;
+      FutureBroadcastCollective* const broadcast;
+      const ReductionOp* const redop;
       const ReductionOpID redop_id;
     protected:
-      FutureInstance *instance;
+      FutureInstance* instance;
       mutable ApEvent ready;
-      std::map<ShardID,std::pair<FutureInstance*,ApEvent> > pending_reductions;
+      std::map<ShardID, std::pair<FutureInstance*, ApEvent> >
+          pending_reductions;
     };
 
     /**
@@ -676,22 +696,24 @@ namespace Legion {
      */
     class ShardParticipantsExchange : public AllGatherCollective<false> {
     public:
-      ShardParticipantsExchange(ReplicateContext *ctx,
-                                CollectiveIndexLocation loc);
-      ShardParticipantsExchange(const ShardParticipantsExchange &rhs) = delete;
+      ShardParticipantsExchange(
+          ReplicateContext* ctx, CollectiveIndexLocation loc);
+      ShardParticipantsExchange(const ShardParticipantsExchange& rhs) = delete;
       virtual ~ShardParticipantsExchange(void);
     public:
       ShardParticipantsExchange& operator=(
-                                const ShardParticipantsExchange &rhs) = delete;
+          const ShardParticipantsExchange& rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_SHARD_PARTICIPANTS_EXCHANGE; }
-      virtual void pack_collective_stage(ShardID target,
-                                         Serializer &rez, int stage);
-      virtual void unpack_collective_stage(Deserializer &derez, int stage);
+      {
+        return SEND_CONTROL_REPLICATION_SHARD_PARTICIPANTS_EXCHANGE;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage);
+      virtual void unpack_collective_stage(Deserializer& derez, int stage);
     public:
       void exchange(bool participating);
-      bool find_shard_participants(std::vector<ShardID> &shards);
+      bool find_shard_participants(std::vector<ShardID>& shards);
     protected:
       std::set<ShardID> participants;
     };
@@ -703,26 +725,30 @@ namespace Legion {
     template<typename T>
     class InterferingPointExchange : public AllGatherCollective<true> {
     public:
-      InterferingPointExchange(ReplicateContext *ctx, CollectiveID id, T *op);
-      InterferingPointExchange(const InterferingPointExchange &rhs) = delete;
+      InterferingPointExchange(ReplicateContext* ctx, CollectiveID id, T* op);
+      InterferingPointExchange(const InterferingPointExchange& rhs) = delete;
       virtual ~InterferingPointExchange(void);
     public:
-      InterferingPointExchange& operator=(
-          const InterferingPointExchange &rhs) = delete;
+      InterferingPointExchange& operator=(const InterferingPointExchange& rhs) =
+          delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_INTERFERING_POINT_EXCHANGE; }
-      virtual void pack_collective_stage(ShardID target,
-                                         Serializer &rez, int stage);
-      virtual void unpack_collective_stage(Deserializer &derez, int stage);
+      {
+        return SEND_CONTROL_REPLICATION_INTERFERING_POINT_EXCHANGE;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage);
+      virtual void unpack_collective_stage(Deserializer& derez, int stage);
       virtual RtEvent post_complete_exchange(void);
     public:
-      void exchange_domain_points( 
-        std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > &points);
+      void exchange_domain_points(
+          std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >&
+              points);
     public:
-      T *const op;
+      T* const op;
     protected:
-      std::map<unsigned,std::vector<std::pair<DomainPoint,Domain> > > domain_points;
+      std::map<unsigned, std::vector<std::pair<DomainPoint, Domain> > >
+          domain_points;
     };
 
     /**
@@ -733,55 +759,72 @@ namespace Legion {
      */
     class ShardingGatherCollective : public GatherCollective {
     public:
-      ShardingGatherCollective(ReplicateContext *ctx, ShardID target,
-                               CollectiveIndexLocation loc);
-      ShardingGatherCollective(const ShardingGatherCollective &rhs) = delete;
+      ShardingGatherCollective(
+          ReplicateContext* ctx, ShardID target, CollectiveIndexLocation loc);
+      ShardingGatherCollective(const ShardingGatherCollective& rhs) = delete;
       virtual ~ShardingGatherCollective(void);
     public:
-      ShardingGatherCollective& operator=(
-          const ShardingGatherCollective &rhs) = delete;
+      ShardingGatherCollective& operator=(const ShardingGatherCollective& rhs) =
+          delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_SHARDING_GATHER_COLLECTIVE; }
-      virtual void pack_collective(Serializer &rez) const;
-      virtual void unpack_collective(Deserializer &derez);
+      {
+        return SEND_CONTROL_REPLICATION_SHARDING_GATHER_COLLECTIVE;
+      }
+      virtual void pack_collective(Serializer& rez) const;
+      virtual void unpack_collective(Deserializer& derez);
     public:
       void contribute(ShardingID value);
       bool validate(ShardingID value);
     protected:
-      std::map<ShardID,ShardingID> results;
+      std::map<ShardID, ShardingID> results;
     };
 
     /**
      * \class ValueBroadcast
-     * This will broadcast a value of any type that can be 
+     * This will broadcast a value of any type that can be
      * trivially serialized to all the shards.
      */
     template<typename T>
     class ValueBroadcast : public BroadcastCollective {
     public:
-      //ValueBroadcast(ReplicateContext *ctx, CollectiveIndexLocation loc)
-      //  : BroadcastCollective(loc, ctx, ctx->owner_shard->shard_id) { }
-      ValueBroadcast(ReplicateContext *ctx, ShardID origin,
-                     CollectiveIndexLocation loc)
-        : BroadcastCollective(loc, ctx, origin) { }
-      ValueBroadcast(CollectiveID id, ReplicateContext *ctx, ShardID origin)
-        : BroadcastCollective(ctx, id, origin) { }
-      ValueBroadcast(const ValueBroadcast &rhs) = delete; 
+      // ValueBroadcast(ReplicateContext *ctx, CollectiveIndexLocation loc)
+      //   : BroadcastCollective(loc, ctx, ctx->owner_shard->shard_id) { }
+      ValueBroadcast(
+          ReplicateContext* ctx, ShardID origin, CollectiveIndexLocation loc)
+        : BroadcastCollective(loc, ctx, origin)
+      { }
+      ValueBroadcast(CollectiveID id, ReplicateContext* ctx, ShardID origin)
+        : BroadcastCollective(ctx, id, origin)
+      { }
+      ValueBroadcast(const ValueBroadcast& rhs) = delete;
       virtual ~ValueBroadcast(void) { }
     public:
-      ValueBroadcast& operator=(const ValueBroadcast &rhs) = delete;
-      inline void broadcast(const T &v) 
-        { value = v; perform_collective_async(); }
+      ValueBroadcast& operator=(const ValueBroadcast& rhs) = delete;
+      inline void broadcast(const T& v)
+      {
+        value = v;
+        perform_collective_async();
+      }
       inline T get_value(bool wait = true)
-        { if (wait) perform_collective_wait(); return value; }
+      {
+        if (wait)
+          perform_collective_wait();
+        return value;
+      }
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_VALUE_BROADCAST; }
-      virtual void pack_collective(Serializer &rez) const 
-        { rez.serialize(value); }
-      virtual void unpack_collective(Deserializer &derez)
-        { derez.deserialize(value); }
+      {
+        return SEND_CONTROL_REPLICATION_VALUE_BROADCAST;
+      }
+      virtual void pack_collective(Serializer& rez) const
+      {
+        rez.serialize(value);
+      }
+      virtual void unpack_collective(Deserializer& derez)
+      {
+        derez.deserialize(value);
+      }
     protected:
       T value;
     };
@@ -797,18 +840,22 @@ namespace Legion {
      */
     class SlowBarrier : public AllGatherCollective<false> {
     public:
-      SlowBarrier(ReplicateContext *ctx, CollectiveID id)
-        : AllGatherCollective<false>(ctx, id) { }
-      SlowBarrier(const SlowBarrier &rhs) = delete;
+      SlowBarrier(ReplicateContext* ctx, CollectiveID id)
+        : AllGatherCollective<false>(ctx, id)
+      { }
+      SlowBarrier(const SlowBarrier& rhs) = delete;
       virtual ~SlowBarrier(void) { }
     public:
-      SlowBarrier& operator=(const SlowBarrier &rhs) = delete;
+      SlowBarrier& operator=(const SlowBarrier& rhs) = delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_SLOW_BARRIER; }
-      virtual void pack_collective_stage(ShardID target,
-                                         Serializer &rez, int stage) { }
-      virtual void unpack_collective_stage(Deserializer &derez, int stage) { }
+      {
+        return SEND_CONTROL_REPLICATION_SLOW_BARRIER;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage)
+      { }
+      virtual void unpack_collective_stage(Deserializer& derez, int stage) { }
     };
 
     /**
@@ -820,44 +867,62 @@ namespace Legion {
      */
     class CollectiveMapping : public Collectable {
     public:
-      CollectiveMapping(const std::vector<AddressSpaceID> &spaces,size_t radix);
-      CollectiveMapping(const ShardMapping &shard_mapping, size_t radix);
-      CollectiveMapping(Deserializer &derez, size_t total_spaces);
-      CollectiveMapping(const CollectiveMapping &rhs);
+      CollectiveMapping(
+          const std::vector<AddressSpaceID>& spaces, size_t radix);
+      CollectiveMapping(const ShardMapping& shard_mapping, size_t radix);
+      CollectiveMapping(Deserializer& derez, size_t total_spaces);
+      CollectiveMapping(const CollectiveMapping& rhs);
     public:
       inline AddressSpaceID operator[](unsigned idx) const
 #ifdef DEBUG_LEGION
-        { assert(idx < size()); return unique_sorted_spaces.get_index(idx); }
+      {
+        assert(idx < size());
+        return unique_sorted_spaces.get_index(idx);
+      }
 #else
-        { return unique_sorted_spaces.get_index(idx); }
+      {
+        return unique_sorted_spaces.get_index(idx);
+      }
 #endif
       inline unsigned find_index(const AddressSpaceID space) const
-        { return unique_sorted_spaces.find_index(space); }
-      inline const NodeSet& get_unique_spaces(void) const 
-        { return unique_sorted_spaces; }
+      {
+        return unique_sorted_spaces.find_index(space);
+      }
+      inline const NodeSet& get_unique_spaces(void) const
+      {
+        return unique_sorted_spaces;
+      }
       inline size_t size(void) const { return total_spaces; }
-      inline AddressSpaceID get_origin(void) const 
+      inline AddressSpaceID get_origin(void) const
 #ifdef DEBUG_LEGION
-        { assert(size() > 0); return unique_sorted_spaces.find_first_set(); }
+      {
+        assert(size() > 0);
+        return unique_sorted_spaces.find_first_set();
+      }
 #else
-        { return unique_sorted_spaces.find_first_set(); }
+      {
+        return unique_sorted_spaces.find_first_set();
+      }
 #endif
-      bool operator==(const CollectiveMapping &rhs) const;
-      bool operator!=(const CollectiveMapping &rhs) const;
+      bool operator==(const CollectiveMapping& rhs) const;
+      bool operator!=(const CollectiveMapping& rhs) const;
     public:
-      AddressSpaceID get_parent(const AddressSpaceID origin, 
-                                const AddressSpaceID local) const;
-      size_t count_children(const AddressSpaceID origin,
-                            const AddressSpaceID local) const;
-      void get_children(const AddressSpaceID origin, const AddressSpaceID local,
-                        std::vector<AddressSpaceID> &children) const;
+      AddressSpaceID get_parent(
+          const AddressSpaceID origin, const AddressSpaceID local) const;
+      size_t count_children(
+          const AddressSpaceID origin, const AddressSpaceID local) const;
+      void get_children(
+          const AddressSpaceID origin, const AddressSpaceID local,
+          std::vector<AddressSpaceID>& children) const;
       AddressSpaceID find_nearest(AddressSpaceID start) const;
       inline bool contains(const AddressSpaceID space) const
-        { return unique_sorted_spaces.contains(space); }
-      bool contains(const CollectiveMapping &rhs) const;
+      {
+        return unique_sorted_spaces.contains(space);
+      }
+      bool contains(const CollectiveMapping& rhs) const;
       CollectiveMapping* clone_with(AddressSpace space) const;
-      void pack(Serializer &rez) const;
-      static void pack_null(Serializer &rez);
+      void pack(Serializer& rez) const;
+      static void pack_null(Serializer& rez);
     protected:
       unsigned convert_to_offset(unsigned index, unsigned origin) const;
       unsigned convert_to_index(unsigned offset, unsigned origin) const;
@@ -867,7 +932,7 @@ namespace Legion {
       size_t radix;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_COLLECTIVES_H__
+#endif  // __LEGION_COLLECTIVES_H__

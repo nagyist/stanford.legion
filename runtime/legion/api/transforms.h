@@ -18,13 +18,13 @@
 
 #include "legion/api/geometry.h"
 
-namespace Legion { 
+namespace Legion {
 
   /**
    * \class AffineTransform
-   * An affine transform is used to transform points in one 
+   * An affine transform is used to transform points in one
    * coordinate space into points in another coordinate space
-   * using the basic Ax + b transformation, where A is a 
+   * using the basic Ax + b transformation, where A is a
    * transform matrix and b is an offset vector
    */
   template<int M, int N, typename T = coord_t>
@@ -35,30 +35,32 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     __LEGION_CUDA_HD__
-    AffineTransform(void); // default to identity transform
+    AffineTransform(void);  // default to identity transform
     // allow type coercions where possible
-    template<typename T2> __LEGION_CUDA_HD__
-    AffineTransform(const AffineTransform<M,N,T2> &rhs);
-    template<typename T2, typename T3> __LEGION_CUDA_HD__
-    AffineTransform(const Transform<M,N,T2> transform, 
-                    const Point<M,T3> offset);
+    template<typename T2>
+    __LEGION_CUDA_HD__ AffineTransform(const AffineTransform<M, N, T2>& rhs);
+    template<typename T2, typename T3>
+    __LEGION_CUDA_HD__ AffineTransform(
+        const Transform<M, N, T2> transform, const Point<M, T3> offset);
   public:
-    template<typename T2> __LEGION_CUDA_HD__
-    AffineTransform<M,N,T>& operator=(const AffineTransform<M,N,T2> &rhs);
+    template<typename T2>
+    __LEGION_CUDA_HD__ AffineTransform<M, N, T>& operator=(
+        const AffineTransform<M, N, T2>& rhs);
   public:
     // Apply the transformation to a point
-    template<typename T2> __LEGION_CUDA_HD__
-    Point<M,T> operator[](const Point<N,T2> point) const;
+    template<typename T2>
+    __LEGION_CUDA_HD__ Point<M, T> operator[](const Point<N, T2> point) const;
     // Compose the transform with another transform
-    template<int P> __LEGION_CUDA_HD__
-    AffineTransform<M,P,T> operator()(const AffineTransform<N,P,T> &rhs) const;
+    template<int P>
+    __LEGION_CUDA_HD__ AffineTransform<M, P, T> operator()(
+        const AffineTransform<N, P, T>& rhs) const;
     // Test whether this is the identity transform
     __LEGION_CUDA_HD__
     bool is_identity(void) const;
   public:
     // Transform = Ax + b
-    Transform<M,N,T> transform; // A
-    Point<M,T>       offset; // b
+    Transform<M, N, T> transform;  // A
+    Point<M, T> offset;            // b
   };
 
   /**
@@ -81,32 +83,32 @@ namespace Legion {
     static_assert(std::is_integral<T>::value, "must be integral type");
   public:
     __LEGION_CUDA_HD__
-    ScaleTransform(void); // default to identity transform
+    ScaleTransform(void);  // default to identity transform
     // allow type coercions where possible
-    template<typename T2> __LEGION_CUDA_HD__
-    ScaleTransform(const ScaleTransform<M,N,T2> &rhs);
-    template<typename T2, typename T3, typename T4> __LEGION_CUDA_HD__
-    ScaleTransform(const Transform<M,N,T2> transform,
-                   const Rect<M,T3> extent,
-                   const Point<M,T4> divisor);
+    template<typename T2>
+    __LEGION_CUDA_HD__ ScaleTransform(const ScaleTransform<M, N, T2>& rhs);
+    template<typename T2, typename T3, typename T4>
+    __LEGION_CUDA_HD__ ScaleTransform(
+        const Transform<M, N, T2> transform, const Rect<M, T3> extent,
+        const Point<M, T4> divisor);
   public:
-    template<typename T2> __LEGION_CUDA_HD__
-    ScaleTransform<M,N,T>& operator=(const ScaleTransform<M,N,T2> &rhs);
+    template<typename T2>
+    __LEGION_CUDA_HD__ ScaleTransform<M, N, T>& operator=(
+        const ScaleTransform<M, N, T2>& rhs);
   public:
     // Apply the transformation to a point
-    template<typename T2> __LEGION_CUDA_HD__
-    Rect<M,T> operator[](const Point<N,T2> point) const;
+    template<typename T2>
+    __LEGION_CUDA_HD__ Rect<M, T> operator[](const Point<N, T2> point) const;
     // Test whether this is the identity transform
     __LEGION_CUDA_HD__
     bool is_identity(void) const;
   public:
-    Transform<M,N,T> transform; // A
-    Rect<M,T>        extent; // [b=lo, c=hi]
-    Point<M,T>       divisor; // d
+    Transform<M, N, T> transform;  // A
+    Rect<M, T> extent;             // [b=lo, c=hi]
+    Point<M, T> divisor;           // d
   };
 
   // If we've got c++11 we can just include this directly
-   
 
   /**
    * \class DomainTransform
@@ -118,28 +120,29 @@ namespace Legion {
     __LEGION_CUDA_HD__
     DomainTransform(void);
     __LEGION_CUDA_HD__
-    DomainTransform(const DomainTransform &rhs);
-    template<int M, int N, typename T> __LEGION_CUDA_HD__
-    DomainTransform(const Transform<M,N,T> &rhs);
+    DomainTransform(const DomainTransform& rhs);
+    template<int M, int N, typename T>
+    __LEGION_CUDA_HD__ DomainTransform(const Transform<M, N, T>& rhs);
   public:
     __LEGION_CUDA_HD__
-    DomainTransform& operator=(const DomainTransform &rhs);
-    template<int M, int N, typename T> __LEGION_CUDA_HD__
-    DomainTransform& operator=(const Transform<M,N,T> &rhs);
+    DomainTransform& operator=(const DomainTransform& rhs);
+    template<int M, int N, typename T>
+    __LEGION_CUDA_HD__ DomainTransform& operator=(
+        const Transform<M, N, T>& rhs);
     __LEGION_CUDA_HD__
-    bool operator==(const DomainTransform &rhs) const;
+    bool operator==(const DomainTransform& rhs) const;
     __LEGION_CUDA_HD__
-    bool operator!=(const DomainTransform &rhs) const;
+    bool operator!=(const DomainTransform& rhs) const;
   public:
-    template<int M, int N, typename T> __LEGION_CUDA_HD__
-    operator Transform<M,N,T>(void) const;
+    template<int M, int N, typename T>
+    __LEGION_CUDA_HD__ operator Transform<M, N, T>(void) const;
   public:
     __LEGION_CUDA_HD__
-    DomainPoint operator*(const DomainPoint &p) const;
+    DomainPoint operator*(const DomainPoint& p) const;
     __LEGION_CUDA_HD__
-    Domain operator*(const Domain &domain) const;
+    Domain operator*(const Domain& domain) const;
     __LEGION_CUDA_HD__
-    DomainTransform operator*(const DomainTransform &transform) const;
+    DomainTransform operator*(const DomainTransform& transform) const;
   public:
     __LEGION_CUDA_HD__
     bool is_identity(void) const;
@@ -158,33 +161,35 @@ namespace Legion {
     __LEGION_CUDA_HD__
     DomainAffineTransform(void);
     __LEGION_CUDA_HD__
-    DomainAffineTransform(const DomainAffineTransform &rhs);
+    DomainAffineTransform(const DomainAffineTransform& rhs);
     __LEGION_CUDA_HD__
-    DomainAffineTransform(const DomainTransform &t, const DomainPoint &p);
-    template<int M, int N, typename T> __LEGION_CUDA_HD__
-    DomainAffineTransform(const AffineTransform<M,N,T> &transform);
+    DomainAffineTransform(const DomainTransform& t, const DomainPoint& p);
+    template<int M, int N, typename T>
+    __LEGION_CUDA_HD__ DomainAffineTransform(
+        const AffineTransform<M, N, T>& transform);
   public:
     __LEGION_CUDA_HD__
-    DomainAffineTransform& operator=(const DomainAffineTransform &rhs);
-    template<int M, int N, typename T> __LEGION_CUDA_HD__
-    DomainAffineTransform& operator=(const AffineTransform<M,N,T> &rhs);
+    DomainAffineTransform& operator=(const DomainAffineTransform& rhs);
+    template<int M, int N, typename T>
+    __LEGION_CUDA_HD__ DomainAffineTransform& operator=(
+        const AffineTransform<M, N, T>& rhs);
     __LEGION_CUDA_HD__
-    bool operator==(const DomainAffineTransform &rhs) const; 
+    bool operator==(const DomainAffineTransform& rhs) const;
     __LEGION_CUDA_HD__
-    bool operator!=(const DomainAffineTransform &rhs) const;
+    bool operator!=(const DomainAffineTransform& rhs) const;
   public:
-    template<int M, int N, typename T> __LEGION_CUDA_HD__
-    operator AffineTransform<M,N,T>(void) const;
+    template<int M, int N, typename T>
+    __LEGION_CUDA_HD__ operator AffineTransform<M, N, T>(void) const;
   public:
     // Apply the transformation to a point
     __LEGION_CUDA_HD__
-    DomainPoint operator[](const DomainPoint &p) const;
+    DomainPoint operator[](const DomainPoint& p) const;
     // Test for the identity
     __LEGION_CUDA_HD__
     bool is_identity(void) const;
   public:
     DomainTransform transform;
-    DomainPoint     offset;
+    DomainPoint offset;
   };
 
   /**
@@ -197,39 +202,42 @@ namespace Legion {
     __LEGION_CUDA_HD__
     DomainScaleTransform(void);
     __LEGION_CUDA_HD__
-    DomainScaleTransform(const DomainScaleTransform &rhs);
+    DomainScaleTransform(const DomainScaleTransform& rhs);
     __LEGION_CUDA_HD__
-    DomainScaleTransform(const DomainTransform &transform,
-                         const Domain &extent, const DomainPoint &divisor);
-    template<int M, int N, typename T> __LEGION_CUDA_HD__
-    DomainScaleTransform(const ScaleTransform<M,N,T> &transform);
+    DomainScaleTransform(
+        const DomainTransform& transform, const Domain& extent,
+        const DomainPoint& divisor);
+    template<int M, int N, typename T>
+    __LEGION_CUDA_HD__ DomainScaleTransform(
+        const ScaleTransform<M, N, T>& transform);
   public:
     __LEGION_CUDA_HD__
-    DomainScaleTransform& operator=(const DomainScaleTransform &rhs);
-    template<int M, int N, typename T> __LEGION_CUDA_HD__
-    DomainScaleTransform& operator=(const ScaleTransform<M,N,T> &rhs);
+    DomainScaleTransform& operator=(const DomainScaleTransform& rhs);
+    template<int M, int N, typename T>
+    __LEGION_CUDA_HD__ DomainScaleTransform& operator=(
+        const ScaleTransform<M, N, T>& rhs);
     __LEGION_CUDA_HD__
-    bool operator==(const DomainScaleTransform &rhs) const;
+    bool operator==(const DomainScaleTransform& rhs) const;
     __LEGION_CUDA_HD__
-    bool operator!=(const DomainScaleTransform &rhs) const;
+    bool operator!=(const DomainScaleTransform& rhs) const;
   public:
-    template<int M, int N, typename T> __LEGION_CUDA_HD__
-    operator ScaleTransform<M,N,T>(void) const;
+    template<int M, int N, typename T>
+    __LEGION_CUDA_HD__ operator ScaleTransform<M, N, T>(void) const;
   public:
     // Apply the transformation to a point
     __LEGION_CUDA_HD__
-    Domain operator[](const DomainPoint &p) const;
+    Domain operator[](const DomainPoint& p) const;
     // Test for the identity
     __LEGION_CUDA_HD__
     bool is_identity(void) const;
   public:
     DomainTransform transform;
-    Domain          extent;
-    DomainPoint     divisor;
+    Domain extent;
+    DomainPoint divisor;
   };
 
-} // namespace Legion
+}  // namespace Legion
 
 #include "legion/api/transforms.inl"
 
-#endif // __LEGION_TRANSFORMS_H__
+#endif  // __LEGION_TRANSFORMS_H__

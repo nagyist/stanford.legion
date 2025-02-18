@@ -17,63 +17,56 @@
 
 namespace Legion {
 
-    /////////////////////////////////////////////////////////////
-    // LayoutConstraintRegistrar
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // LayoutConstraintRegistrar
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    LayoutConstraintRegistrar::LayoutConstraintRegistrar(void)
-      : handle(FieldSpace::NO_SPACE), layout_name(nullptr)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  LayoutConstraintRegistrar::LayoutConstraintRegistrar(void)
+    : handle(FieldSpace::NO_SPACE), layout_name(nullptr)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    LayoutConstraintRegistrar::LayoutConstraintRegistrar(FieldSpace h,
-                                                  const char *layout/*= nullptr*/)
-      : handle(h), layout_name(layout)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  LayoutConstraintRegistrar::LayoutConstraintRegistrar(
+      FieldSpace h, const char* layout /*= nullptr*/)
+    : handle(h), layout_name(layout)
+  //--------------------------------------------------------------------------
+  { }
 
-    /////////////////////////////////////////////////////////////
-    // TaskVariantRegistrar 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // TaskVariantRegistrar
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    TaskVariantRegistrar::TaskVariantRegistrar(void)
-      : task_id(0), global_registration(true), 
-        task_variant_name(nullptr), leaf_variant(false), 
-        inner_variant(false), idempotent_variant(false),
-        replicable_variant(false), concurrent_variant(false),
-        concurrent_barrier(false)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  TaskVariantRegistrar::TaskVariantRegistrar(void)
+    : task_id(0), global_registration(true), task_variant_name(nullptr),
+      leaf_variant(false), inner_variant(false), idempotent_variant(false),
+      replicable_variant(false), concurrent_variant(false),
+      concurrent_barrier(false)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    TaskVariantRegistrar::TaskVariantRegistrar(TaskID task_id, bool global,
-                                               const char *variant_name)
-      : task_id(task_id), global_registration(global), 
-        task_variant_name(variant_name), leaf_variant(false), 
-        inner_variant(false), idempotent_variant(false),
-        replicable_variant(false), concurrent_variant(false),
-        concurrent_barrier(false)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  TaskVariantRegistrar::TaskVariantRegistrar(
+      TaskID task_id, bool global, const char* variant_name)
+    : task_id(task_id), global_registration(global),
+      task_variant_name(variant_name), leaf_variant(false),
+      inner_variant(false), idempotent_variant(false),
+      replicable_variant(false), concurrent_variant(false),
+      concurrent_barrier(false)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    TaskVariantRegistrar::TaskVariantRegistrar(TaskID task_id,
-					       const char *variant_name,
-					       bool global/*=true*/)
-      : task_id(task_id), global_registration(global), 
-        task_variant_name(variant_name), leaf_variant(false), 
-        inner_variant(false), idempotent_variant(false),
-        replicable_variant(false), concurrent_variant(false),
-        concurrent_barrier(false)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  TaskVariantRegistrar::TaskVariantRegistrar(
+      TaskID task_id, const char* variant_name, bool global /*=true*/)
+    : task_id(task_id), global_registration(global),
+      task_variant_name(variant_name), leaf_variant(false),
+      inner_variant(false), idempotent_variant(false),
+      replicable_variant(false), concurrent_variant(false),
+      concurrent_barrier(false)
+  //--------------------------------------------------------------------------
+  { }
 
-} // namespace Legion
+}  // namespace Legion

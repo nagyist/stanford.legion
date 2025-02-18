@@ -21,48 +21,44 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Reset Operation 
+    // Reset Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ResetOp::ResetOp(void)
-      : Operation()
+    ResetOp::ResetOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ResetOp::~ResetOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ResetOp::initialize(InnerContext *ctx, LogicalRegion parent,
-                             LogicalRegion region,const std::set<FieldID> &fids)
+    void ResetOp::initialize(
+        InnerContext* ctx, LogicalRegion parent, LogicalRegion region,
+        const std::set<FieldID>& fids)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx);
-      requirement =
-        RegionRequirement(region, LEGION_READ_WRITE, LEGION_EXCLUSIVE, parent);
+      requirement = RegionRequirement(
+          region, LEGION_READ_WRITE, LEGION_EXCLUSIVE, parent);
       requirement.privilege_fields = fids;
       if (runtime->safe_model)
         verify_requirement(requirement);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       if (runtime->legion_spy_enabled)
       {
-        LegionSpy::log_reset_operation(parent_ctx->get_unique_id(),
-                                       unique_op_id);
-        LegionSpy::log_logical_requirement(unique_op_id, 0/*idx*/,
-                                           true/*region*/,
-                                           requirement.region.index_space.get_id(),
-                                           requirement.region.field_space.get_id(),
-                                           requirement.region.get_tree_id(),
-                                           requirement.privilege,
-                                           requirement.prop, 
-                                           requirement.redop,
-                                           requirement.parent.index_space.get_id());
-        LegionSpy::log_requirement_fields(unique_op_id, 0/*idx*/, fids);
+        LegionSpy::log_reset_operation(
+            parent_ctx->get_unique_id(), unique_op_id);
+        LegionSpy::log_logical_requirement(
+            unique_op_id, 0 /*idx*/, true /*region*/,
+            requirement.region.index_space.get_id(),
+            requirement.region.field_space.get_id(),
+            requirement.region.get_tree_id(), requirement.privilege,
+            requirement.prop, requirement.redop,
+            requirement.parent.index_space.get_id());
+        LegionSpy::log_requirement_fields(unique_op_id, 0 /*idx*/, fids);
       }
     }
 
@@ -78,7 +74,7 @@ namespace Legion {
     void ResetOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       requirement.privilege_fields.clear();
       if (freeop)
         runtime->free_operation(this);
@@ -88,7 +84,7 @@ namespace Legion {
     const char* ResetOp::get_logging_name(void) const
     //--------------------------------------------------------------------------
     {
-      return op_names[RESET_OP_KIND]; 
+      return op_names[RESET_OP_KIND];
     }
 
     //--------------------------------------------------------------------------
@@ -120,11 +116,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<RtEvent> map_applied_conditions;
-      RegionNode *node = runtime->get_node(requirement.region);
+      RegionNode* node = runtime->get_node(requirement.region);
       FieldMask refinement_mask =
-        node->column_source->get_field_mask(requirement.privilege_fields);
-      parent_ctx->refine_equivalence_sets(parent_req_index,
-          node->row_source, refinement_mask, map_applied_conditions);
+          node->column_source->get_field_mask(requirement.privilege_fields);
+      parent_ctx->refine_equivalence_sets(
+          parent_req_index, node->row_source, refinement_mask,
+          map_applied_conditions);
       if (!map_applied_conditions.empty())
         complete_mapping(Runtime::merge_events(map_applied_conditions));
       else
@@ -148,17 +145,14 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplResetOp::ReplResetOp(void)
-      : ResetOp()
+    ReplResetOp::ReplResetOp(void) : ResetOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplResetOp::~ReplResetOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void ReplResetOp::activate(void)
@@ -172,7 +166,7 @@ namespace Legion {
     void ReplResetOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      ResetOp::deactivate(false/*free*/); 
+      ResetOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -182,20 +176,20 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
-      reset_barrier = repl_ctx->get_next_collective_map_barriers(); 
-      ResetOp::trigger_dependence_analysis(); 
+      reset_barrier = repl_ctx->get_next_collective_map_barriers();
+      ResetOp::trigger_dependence_analysis();
     }
 
     //--------------------------------------------------------------------------
     void ReplResetOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-      runtime->phase_barrier_arrive(reset_barrier, 1/*count*/); 
+      runtime->phase_barrier_arrive(reset_barrier, 1 /*count*/);
       const RtEvent precondition = reset_barrier;
       Runtime::advance_barrier(reset_barrier);
       enqueue_ready_operation(precondition);
@@ -206,19 +200,21 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<RtEvent> map_applied_conditions;
-      RegionNode *node = runtime->get_node(requirement.region);
+      RegionNode* node = runtime->get_node(requirement.region);
       FieldMask refinement_mask =
-        node->column_source->get_field_mask(requirement.privilege_fields);
-      parent_ctx->refine_equivalence_sets(parent_req_index,
-          node->row_source, refinement_mask, map_applied_conditions);
+          node->column_source->get_field_mask(requirement.privilege_fields);
+      parent_ctx->refine_equivalence_sets(
+          parent_req_index, node->row_source, refinement_mask,
+          map_applied_conditions);
       if (!map_applied_conditions.empty())
-        runtime->phase_barrier_arrive(reset_barrier, 1/*count*/,
+        runtime->phase_barrier_arrive(
+            reset_barrier, 1 /*count*/,
             Runtime::merge_events(map_applied_conditions));
       else
-        runtime->phase_barrier_arrive(reset_barrier, 1/*count*/);
+        runtime->phase_barrier_arrive(reset_barrier, 1 /*count*/);
       complete_mapping(reset_barrier);
       complete_execution();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

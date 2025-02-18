@@ -23,23 +23,23 @@ namespace Legion {
 
 #ifdef DEFINE_NT_TEMPLATES
     /////////////////////////////////////////////////////////////
-    // Index Space Expression 
+    // Index Space Expression
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceExpression::inline_union_internal(
-        IndexSpaceExpression *rhs)
+        IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
     {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
       if (runtime->legion_spy_enabled)
         return nullptr;
-      DomainT<DIM,T> domain = get_tight_domain();
+      DomainT<DIM, T> domain = get_tight_domain();
       if (!domain.dense())
         return nullptr;
-      Rect<DIM,T> bounds = domain.bounds;
+      Rect<DIM, T> bounds = domain.bounds;
       domain = rhs->get_tight_domain();
       if (!domain.dense())
         return nullptr;
@@ -47,13 +47,13 @@ namespace Legion {
         return this;
       if (domain.bounds.contains(bounds))
         return rhs;
-      // The union bbox is the union if the volume of the union bbox is the 
+      // The union bbox is the union if the volume of the union bbox is the
       // same as the volume of each rect added together and subtracted by
       // their overlap
-      const Rect<DIM,T> result = bounds.union_bbox(domain.bounds);
+      const Rect<DIM, T> result = bounds.union_bbox(domain.bounds);
       if (result.volume() == (bounds.volume() + domain.bounds.volume() -
-            bounds.intersection(domain.bounds).volume()))
-        return new IndexSpaceUnion<DIM,T>(result);
+                              bounds.intersection(domain.bounds).volume()))
+        return new IndexSpaceUnion<DIM, T>(result);
       else
         return nullptr;
     }
@@ -61,7 +61,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceExpression::inline_union_internal(
-        const std::set<IndexSpaceExpression*> &exprs)
+        const std::set<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
       // Disable the fast path for Legion Spy to avoid creating too many
@@ -69,26 +69,29 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
         return nullptr;
       if (exprs.size() == 2)
-        return this->inline_union_internal<DIM,T>(*exprs.rbegin());
-      DomainT<DIM,T> domain = get_tight_domain();;
+        return this->inline_union_internal<DIM, T>(*exprs.rbegin());
+      DomainT<DIM, T> domain = get_tight_domain();
+      ;
       if (!domain.dense())
         return nullptr;
-      Rect<DIM,T> result = domain.bounds;
-      std::vector<Rect<DIM,T> > previous;
+      Rect<DIM, T> result = domain.bounds;
+      std::vector<Rect<DIM, T> > previous;
       previous.reserve(exprs.size());
       size_t total_volume = 0;
       // Try to use the union bbox, we'll only be able to use this if all
       // the rects are disjoint or contained by each other and then we can
       // sum up the points that we should expect to find
-      for (std::set<IndexSpaceExpression*>::const_iterator eit =
-            exprs.begin(); eit != exprs.end(); eit++)
+      for (std::set<IndexSpaceExpression*>::const_iterator eit = exprs.begin();
+           eit != exprs.end(); eit++)
       {
         domain = (*eit)->get_tight_domain();
         if (!domain.dense())
           return nullptr;
         bool dominated = false;
-        for (typename std::vector<Rect<DIM,T> >::iterator it =
-              previous.begin(); it != previous.end(); /*nothing*/)
+        for (typename std::vector<Rect<DIM, T> >::iterator it =
+                 previous.begin();
+             it != previous.end();
+             /*nothing*/)
         {
           if (!domain.bounds.overlaps(*it))
           {
@@ -99,8 +102,7 @@ namespace Legion {
           {
             dominated = true;
             break;
-          }
-          else if (domain.bounds.contains(*it))
+          } else if (domain.bounds.contains(*it))
           {
             // subtract out the old volume since it no longer will count
             total_volume -= it->volume();
@@ -121,7 +123,7 @@ namespace Legion {
         }
       }
       if (result.volume() == total_volume)
-        return new IndexSpaceUnion<DIM,T>(result);
+        return new IndexSpaceUnion<DIM, T>(result);
       else
         return nullptr;
     }
@@ -129,29 +131,29 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceExpression::inline_intersection_internal(
-        IndexSpaceExpression *rhs)
+        IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
     {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
       if (runtime->legion_spy_enabled)
         return nullptr;
-      DomainT<DIM,T> left = get_tight_domain();
-      DomainT<DIM,T> right = rhs->get_tight_domain();
+      DomainT<DIM, T> left = get_tight_domain();
+      DomainT<DIM, T> right = rhs->get_tight_domain();
       if (!left.bounds.overlaps(right.bounds))
       {
         // Empty case
-        Rect<DIM,T> empty = Rect<DIM,T>::make_empty();
-        return new IndexSpaceIntersection<DIM,T>(empty);
+        Rect<DIM, T> empty = Rect<DIM, T>::make_empty();
+        return new IndexSpaceIntersection<DIM, T>(empty);
       }
       // A note on sparsity maps here: technically if we had just one sparsity
       // map then we could just tighten the bound on that sparsity map and
       // that would be good enough, but then we would create the illusion
       // of having created a new index space and the index space operation
-      // would think it owned the sparsity map and would try to destroy it 
-      // when being cleaned up which would be wrong. We'll leave it up to 
+      // would think it owned the sparsity map and would try to destroy it
+      // when being cleaned up which would be wrong. We'll leave it up to
       // Realm to do that by falling back to the normal intersection path
-      const Rect<DIM,T> intersection = left.bounds.intersection(right.bounds);
+      const Rect<DIM, T> intersection = left.bounds.intersection(right.bounds);
       if (!left.dense())
       {
         if (!right.dense())
@@ -165,11 +167,9 @@ namespace Legion {
               return rhs;
             else
               return nullptr;
-          }
-          else
+          } else
             return nullptr;
-        }
-        else
+        } else
         {
           // See if tightening with right bounds changes bounding box
           if (left.bounds == intersection)
@@ -177,8 +177,7 @@ namespace Legion {
           else
             return nullptr;
         }
-      }
-      else if (!right.dense())
+      } else if (!right.dense())
       {
         // See if tightening with the left bounds changes bounding box
         if (right.bounds == intersection)
@@ -191,33 +190,33 @@ namespace Legion {
       if (intersection == right.bounds)
         return rhs;
       // Make a new Intersection space that is a value of this space
-      return new IndexSpaceIntersection<DIM,T>(intersection);
+      return new IndexSpaceIntersection<DIM, T>(intersection);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceExpression::inline_intersection_internal(
-        const std::set<IndexSpaceExpression*> &exprs)
+        const std::set<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
       if (runtime->legion_spy_enabled)
         return nullptr;
-      DomainT<DIM,T> domain = get_tight_domain();
+      DomainT<DIM, T> domain = get_tight_domain();
       if (domain.empty())
         return this;
-      Rect<DIM,T> result = domain.bounds;
+      Rect<DIM, T> result = domain.bounds;
       bool has_sparsity = !domain.dense();
-      IndexSpaceExpression *smallest = nullptr;
-      for (std::set<IndexSpaceExpression*>::const_iterator it =
-            exprs.begin(); it != exprs.end(); it++)
+      IndexSpaceExpression* smallest = nullptr;
+      for (std::set<IndexSpaceExpression*>::const_iterator it = exprs.begin();
+           it != exprs.end(); it++)
       {
         domain = (*it)->get_tight_domain();
         // Keep going anyway to see if the intersection proves empty
         if (!domain.dense())
           has_sparsity = true;
-        const Rect<DIM,T> next = result.intersection(domain.bounds);
+        const Rect<DIM, T> next = result.intersection(domain.bounds);
         if (next != result)
         {
           result = next;
@@ -227,7 +226,7 @@ namespace Legion {
             if (domain.empty())
               return *it;
             else
-              return new IndexSpaceIntersection<DIM,T>(result);
+              return new IndexSpaceIntersection<DIM, T>(result);
           }
           if (next == domain.bounds)
             smallest = (*it);
@@ -239,21 +238,21 @@ namespace Legion {
         return nullptr;
       if (smallest != nullptr)
         return smallest;
-      return new IndexSpaceIntersection<DIM,T>(result);
+      return new IndexSpaceIntersection<DIM, T>(result);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceExpression::inline_subtraction_internal(
-        IndexSpaceExpression *rhs)
+        IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
     {
       // Disable the fast path for Legion Spy to avoid creating too many
       // index space expressions for it to deal with
       if (runtime->legion_spy_enabled)
         return nullptr;
-      DomainT<DIM,T> left = get_tight_domain();
-      DomainT<DIM,T> right = rhs->get_tight_domain();
+      DomainT<DIM, T> left = get_tight_domain();
+      DomainT<DIM, T> right = rhs->get_tight_domain();
       // If they don't overlap then this is easy
       if (!left.bounds.overlaps(right.bounds))
         return this;
@@ -265,14 +264,13 @@ namespace Legion {
         // Can still do a test for containment here to see if we're empty
         if (right.bounds.contains(left.bounds))
         {
-          const Rect<DIM,T> empty = Rect<DIM,T>::make_empty();
-          return new IndexSpaceDifference<DIM,T>(empty);
-        }
-        else
+          const Rect<DIM, T> empty = Rect<DIM, T>::make_empty();
+          return new IndexSpaceDifference<DIM, T>(empty);
+        } else
           return nullptr;
       }
       // We can find up to one non-dominating dimension and still easily
-      // compute the difference, as soon as we have more than one then 
+      // compute the difference, as soon as we have more than one then
       // this gets hard and we'll need to use Realm to compute all the
       // different rectangles and put them in a sparsity map
       // Note that even the non-dominating dimension still has to dominate
@@ -288,33 +286,30 @@ namespace Legion {
           // Just dominated on the low-side
           if (non_dominating_dim > -1)
             return nullptr;
-          left.bounds.lo[i] = right.bounds.hi[i]+1;
-        }
-        else if (left.bounds.hi[i] <= right.bounds.hi[i])
+          left.bounds.lo[i] = right.bounds.hi[i] + 1;
+        } else if (left.bounds.hi[i] <= right.bounds.hi[i])
         {
           // Just dominated on the high side
           if (non_dominating_dim > -1)
             return nullptr;
-          left.bounds.hi[i] = right.bounds.lo[i]-1;
-        }
-        else // Not dominated on either side
+          left.bounds.hi[i] = right.bounds.lo[i] - 1;
+        } else  // Not dominated on either side
           return nullptr;
         non_dominating_dim = i;
       }
       if (non_dominating_dim == -1)
       {
         // If all the dimensions were dominated then the result is empty
-        const Rect<DIM,T> empty = Rect<DIM,T>::make_empty();
-        return new IndexSpaceDifference<DIM,T>(empty);
-      }
-      else
-        return new IndexSpaceDifference<DIM,T>(left.bounds);
+        const Rect<DIM, T> empty = Rect<DIM, T>::make_empty();
+        return new IndexSpaceDifference<DIM, T>(empty);
+      } else
+        return new IndexSpaceDifference<DIM, T>(left.bounds);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     uint64_t IndexSpaceExpression::get_canonical_hash_internal(
-                                  const DomainT<DIM,T> &realm_index_space) const
+        const DomainT<DIM, T>& realm_index_space) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -323,11 +318,11 @@ namespace Legion {
 #endif
       // The promise of the canonical hash is that things that have the same
       // set of points should have the same hash value. We therefore hash first
-      // on the type tag since things from different type tags don't need to 
+      // on the type tag since things from different type tags don't need to
       // have the same hash value. Then we hash on the bounds of the tight
       // realm index space since things with the same sets of points will have
       // to have the same tight bounding box. Note that you cannot hash on the
-      // sparsity map ID because two realm index spaces can have different 
+      // sparsity map ID because two realm index spaces can have different
       // sparsity maps but contain the same set of points.
       Murmur3Hasher hasher;
       hasher.hash(type_tag);
@@ -350,20 +345,16 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     ApEvent IndexSpaceExpression::issue_fill_internal(
-                                 Operation *op,
-                                 const Realm::IndexSpace<DIM,T> &space,
-                                 const PhysicalTraceInfo &trace_info,
-                                 const std::vector<CopySrcDstField> &dst_fields,
-                                 const void *fill_value, size_t fill_size,
+        Operation* op, const Realm::IndexSpace<DIM, T>& space,
+        const PhysicalTraceInfo& trace_info,
+        const std::vector<CopySrcDstField>& dst_fields, const void* fill_value,
+        size_t fill_size,
 #ifdef LEGION_SPY
-                                 UniqueID fill_uid,
-                                 FieldSpace handle,
-                                 RegionTreeID tree_id,
+        UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
 #endif
-                                 ApEvent precondition, PredEvent pred_guard,
-                                 LgEvent unique_event,
-                                 CollectiveKind collective, bool record_effect,
-                                 int priority, bool replay)
+        ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
+        CollectiveKind collective, bool record_effect, int priority,
+        bool replay)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -385,22 +376,23 @@ namespace Legion {
       Realm::ProfilingRequestSet requests;
       if (!replay)
         priority =
-          op->add_copy_profiling_request(trace_info, requests, true/*fill*/);
+            op->add_copy_profiling_request(trace_info, requests, true /*fill*/);
       ApEvent fill_pre;
       if (pred_guard.exists())
         // No need for tracing to know about the precondition
-        fill_pre = Runtime::merge_events(nullptr,precondition,ApEvent(pred_guard));
+        fill_pre =
+            Runtime::merge_events(nullptr, precondition, ApEvent(pred_guard));
       else
         fill_pre = precondition;
       if (runtime->profiler != nullptr)
       {
-        SmallNameClosure<1> *closure = new SmallNameClosure<1>();
+        SmallNameClosure<1>* closure = new SmallNameClosure<1>();
         closure->record_instance_name(dst_fields.front().inst, unique_event);
-        runtime->profiler->add_fill_request(requests, closure, 
-                                            op, fill_pre, collective);
+        runtime->profiler->add_fill_request(
+            requests, closure, op, fill_pre, collective);
       }
-      ApEvent result = ApEvent(space.fill(dst_fields, requests,
-              fill_value, fill_size, fill_pre, priority));
+      ApEvent result = ApEvent(space.fill(
+          dst_fields, requests, fill_value, fill_size, fill_pre, priority));
       if (pred_guard.exists())
       {
         result = Runtime::ignorefaults(result);
@@ -432,80 +424,78 @@ namespace Legion {
 #endif
       record_index_space_user(result);
 #ifdef LEGION_SPY
-      LegionSpy::log_fill_events(op->get_unique_op_id(), expr_id, handle,
-          tree_id, precondition, result, fill_uid, collective);
+      LegionSpy::log_fill_events(
+          op->get_unique_op_id(), expr_id, handle, tree_id, precondition,
+          result, fill_uid, collective);
       for (unsigned idx = 0; idx < dst_fields.size(); idx++)
-        LegionSpy::log_fill_field(result, dst_fields[idx].field_id,
-                                  unique_event);
+        LegionSpy::log_fill_field(
+            result, dst_fields[idx].field_id, unique_event);
 #endif
       if (record_effect && result.exists())
         op->record_completion_effect(result);
       if (trace_info.recording)
-        trace_info.record_issue_fill(result, this, dst_fields,
-                                     fill_value, fill_size,
+        trace_info.record_issue_fill(
+            result, this, dst_fields, fill_value, fill_size,
 #ifdef LEGION_SPY
-                                     fill_uid, handle, tree_id,
+            fill_uid, handle, tree_id,
 #endif
-                                     precondition, pred_guard,
-                                     unique_event, priority, collective,
-                                     record_effect);
+            precondition, pred_guard, unique_event, priority, collective,
+            record_effect);
       return result;
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     ApEvent IndexSpaceExpression::issue_copy_internal(
-                                 Operation *op,
-                                 const Realm::IndexSpace<DIM,T> &space,
-                                 const PhysicalTraceInfo &trace_info,
-                                 const std::vector<CopySrcDstField> &dst_fields,
-                                 const std::vector<CopySrcDstField> &src_fields,
-                                 const std::vector<Reservation> &reservations,
+        Operation* op, const Realm::IndexSpace<DIM, T>& space,
+        const PhysicalTraceInfo& trace_info,
+        const std::vector<CopySrcDstField>& dst_fields,
+        const std::vector<CopySrcDstField>& src_fields,
+        const std::vector<Reservation>& reservations,
 #ifdef LEGION_SPY
-                                 RegionTreeID src_tree_id,
-                                 RegionTreeID dst_tree_id,
+        RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
 #endif
-                                 ApEvent precondition, PredEvent pred_guard,
-                                 LgEvent src_unique, LgEvent dst_unique,
-                                 CollectiveKind collective, bool record_effect,
-                                 int priority, bool replay)
+        ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
+        LgEvent dst_unique, CollectiveKind collective, bool record_effect,
+        int priority, bool replay)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!space.empty());
       // If we're doing any reductions with this copy then make sure they
       // are marked exclusive or we have some reservations
-      for (std::vector<CopySrcDstField>::const_iterator it =
-            dst_fields.begin(); it != dst_fields.end(); it++)
+      for (std::vector<CopySrcDstField>::const_iterator it = dst_fields.begin();
+           it != dst_fields.end(); it++)
         assert((it->redop_id == 0) || !reservations.empty());
 #endif
       // Now that we know we're going to do this copy add any profling requests
       Realm::ProfilingRequestSet requests;
       if (!replay)
-        priority =
-          op->add_copy_profiling_request(trace_info, requests, false/*fill*/);
+        priority = op->add_copy_profiling_request(
+            trace_info, requests, false /*fill*/);
       ApEvent copy_pre;
       if (pred_guard.exists())
-        copy_pre = Runtime::merge_events(nullptr,precondition,ApEvent(pred_guard));
+        copy_pre =
+            Runtime::merge_events(nullptr, precondition, ApEvent(pred_guard));
       else
         copy_pre = precondition;
-      for (std::vector<Reservation>::const_iterator it =
-            reservations.begin(); it != reservations.end(); it++)
-        copy_pre = Runtime::acquire_ap_reservation(*it, 
-                                        true/*exclusive*/, copy_pre);
+      for (std::vector<Reservation>::const_iterator it = reservations.begin();
+           it != reservations.end(); it++)
+        copy_pre =
+            Runtime::acquire_ap_reservation(*it, true /*exclusive*/, copy_pre);
       if (runtime->profiler != nullptr)
       {
-        SmallNameClosure<2> *closure = new SmallNameClosure<2>();
+        SmallNameClosure<2>* closure = new SmallNameClosure<2>();
         closure->record_instance_name(src_fields.front().inst, src_unique);
         closure->record_instance_name(dst_fields.front().inst, dst_unique);
-        runtime->profiler->add_copy_request(requests, closure, op,
-            copy_pre, 1/*count*/, collective);
+        runtime->profiler->add_copy_request(
+            requests, closure, op, copy_pre, 1 /*count*/, collective);
       }
-      ApEvent result = ApEvent(space.copy(src_fields, dst_fields, requests,
-                                          copy_pre, priority));
+      ApEvent result = ApEvent(
+          space.copy(src_fields, dst_fields, requests, copy_pre, priority));
       // Release any reservations after the copy is done
-      for (std::vector<Reservation>::const_iterator it =
-            reservations.begin(); it != reservations.end(); it++)
+      for (std::vector<Reservation>::const_iterator it = reservations.begin();
+           it != reservations.end(); it++)
         Runtime::release_reservation(*it, result);
       if (pred_guard.exists())
       {
@@ -531,14 +521,13 @@ namespace Legion {
       if (record_effect && result.exists())
         op->record_completion_effect(result);
       if (trace_info.recording)
-        trace_info.record_issue_copy(result, this, src_fields,
-                                     dst_fields, reservations,
+        trace_info.record_issue_copy(
+            result, this, src_fields, dst_fields, reservations,
 #ifdef LEGION_SPY
-                                     src_tree_id, dst_tree_id,
+            src_tree_id, dst_tree_id,
 #endif
-                                     precondition, pred_guard,
-                                     src_unique, dst_unique, 
-                                     priority, collective, record_effect);
+            precondition, pred_guard, src_unique, dst_unique, priority,
+            collective, record_effect);
 #ifdef LEGION_DISABLE_EVENT_PRUNING
       if (!result.exists())
       {
@@ -549,23 +538,22 @@ namespace Legion {
 #endif
       record_index_space_user(result);
 #ifdef LEGION_SPY
-      LegionSpy::log_copy_events(op->get_unique_op_id(), expr_id, src_tree_id,
-                                 dst_tree_id, precondition, result, collective);
+      LegionSpy::log_copy_events(
+          op->get_unique_op_id(), expr_id, src_tree_id, dst_tree_id,
+          precondition, result, collective);
       for (unsigned idx = 0; idx < src_fields.size(); idx++)
-        LegionSpy::log_copy_field(result, src_fields[idx].field_id,
-                                  src_unique,
-                                  dst_fields[idx].field_id,
-                                  dst_unique,
-				  dst_fields[idx].redop_id);
+        LegionSpy::log_copy_field(
+            result, src_fields[idx].field_id, src_unique,
+            dst_fields[idx].field_id, dst_unique, dst_fields[idx].redop_id);
 #endif
       return result;
     }
 
-    template <typename T, typename T2>
+    template<typename T, typename T2>
     inline T round_up(T val, T2 step)
     {
       T rem = val % step;
-      if(rem == 0)
+      if (rem == 0)
         return val;
       else
         return val + (step - rem);
@@ -574,27 +562,26 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     Realm::InstanceLayoutGeneric* IndexSpaceExpression::create_layout_internal(
-                                   const Realm::IndexSpace<DIM,T> &space,
-                                   const LayoutConstraintSet &constraints,
-                                   const std::vector<FieldID> &field_ids,
-                                   const std::vector<size_t> &field_sizes,
-                                   bool compact, void **piece_list,
-                                   size_t *piece_list_size,
-                                   size_t *num_pieces,
-                                   size_t base_alignment) const
+        const Realm::IndexSpace<DIM, T>& space,
+        const LayoutConstraintSet& constraints,
+        const std::vector<FieldID>& field_ids,
+        const std::vector<size_t>& field_sizes, bool compact, void** piece_list,
+        size_t* piece_list_size, size_t* num_pieces,
+        size_t base_alignment) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(base_alignment > 0); // should be at least 1
+      assert(base_alignment > 0);  // should be at least 1
       assert(field_ids.size() == field_sizes.size());
-      assert(int(constraints.ordering_constraint.ordering.size()) == (DIM+1));
+      assert(int(constraints.ordering_constraint.ordering.size()) == (DIM + 1));
 #endif
-      Realm::InstanceLayout<DIM,T> *layout = new Realm::InstanceLayout<DIM,T>();
+      Realm::InstanceLayout<DIM, T>* layout =
+          new Realm::InstanceLayout<DIM, T>();
       layout->bytes_used = 0;
       layout->alignment_reqd = base_alignment;
       layout->space = space;
-      std::vector<Rect<DIM,T> > piece_bounds;
-      const SpecializedConstraint &spec = constraints.specialized_constraint;
+      std::vector<Rect<DIM, T> > piece_bounds;
+      const SpecializedConstraint& spec = constraints.specialized_constraint;
       if (space.dense() || !compact)
       {
         if (!space.bounds.empty())
@@ -611,32 +598,32 @@ namespace Legion {
             assert((*num_pieces) == 0);
 #endif
             // First get the tile bounds
-            Point<DIM,T> tile_size;
+            Point<DIM, T> tile_size;
             for (int i = 0; i < DIM; i++)
               tile_size[i] = (space.bounds.hi[i] - space.bounds.lo[i]) + 1;
             for (std::vector<TilingConstraint>::const_iterator it =
-                  constraints.tiling_constraints.begin(); it !=
-                  constraints.tiling_constraints.end(); it++)
+                     constraints.tiling_constraints.begin();
+                 it != constraints.tiling_constraints.end(); it++)
             {
 #ifdef DEBUG_LEGION
               assert(it->dim < DIM);
 #endif
               if (it->tiles)
-                tile_size[it->dim] = 
-                  (tile_size[it->dim] + it->value - 1) / it->value;
+                tile_size[it->dim] =
+                    (tile_size[it->dim] + it->value - 1) / it->value;
               else
                 tile_size[it->dim] = it->value;
             }
-            // Now we've got the tile size, walk over the dimensions 
+            // Now we've got the tile size, walk over the dimensions
             // in order to produce the tiles as pieces
-            Point<DIM,T> offset = space.bounds.lo;
+            Point<DIM, T> offset = space.bounds.lo;
             // Iterate until we've tiled the entire space
             bool done = false;
             while (!done)
             {
               // Check to make sure the next tile is in bounds
-              Rect<DIM,T> piece(offset, 
-                  offset + tile_size - Point<DIM,T>::ONES());
+              Rect<DIM, T> piece(
+                  offset, offset + tile_size - Point<DIM, T>::ONES());
               // Intersect with the original bounds to not overflow
               piece = space.bounds.intersection(piece);
 #ifdef DEBUG_LEGION
@@ -646,8 +633,8 @@ namespace Legion {
               // Step the offset to the next location
               done = true;
               for (std::vector<TilingConstraint>::const_iterator it =
-                    constraints.tiling_constraints.begin(); it !=
-                    constraints.tiling_constraints.end(); it++)
+                       constraints.tiling_constraints.begin();
+                   it != constraints.tiling_constraints.end(); it++)
               {
                 offset[it->dim] += tile_size[it->dim];
                 if (offset[it->dim] <= space.bounds.hi[it->dim])
@@ -655,17 +642,14 @@ namespace Legion {
                   // Still in bounds so we can keep traversing
                   done = false;
                   break;
-                }
-                else // No longer in bounds, so ripple carry add
+                } else  // No longer in bounds, so ripple carry add
                   offset[it->dim] = space.bounds.lo[it->dim];
               }
             }
-          }
-          else
+          } else
             piece_bounds.push_back(space.bounds);
         }
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
         assert(piece_list != nullptr);
@@ -677,29 +661,27 @@ namespace Legion {
 #endif
         if (spec.max_overhead > 0)
         {
-          std::vector<Realm::Rect<DIM,T> > covering;
-          if (space.compute_covering(spec.max_pieces, spec.max_overhead,
-                                      covering))
+          std::vector<Realm::Rect<DIM, T> > covering;
+          if (space.compute_covering(
+                  spec.max_pieces, spec.max_overhead, covering))
           {
             // Container problem is stupid
             piece_bounds.resize(covering.size());
             for (unsigned idx = 0; idx < covering.size(); idx++)
               piece_bounds[idx] = covering[idx];
-          }
-          else
+          } else
           {
             // Just fill in with the compact rectangles for now
             // This will likely fail the max pieces test later
-            for (Realm::IndexSpaceIterator<DIM,T> itr(space); 
-                  itr.valid; itr.step())
+            for (Realm::IndexSpaceIterator<DIM, T> itr(space); itr.valid;
+                 itr.step())
               if (!itr.rect.empty())
                 piece_bounds.push_back(itr.rect);
           }
-        }
-        else
+        } else
         {
-          for (Realm::IndexSpaceIterator<DIM,T> itr(space); 
-                itr.valid; itr.step())
+          for (Realm::IndexSpaceIterator<DIM, T> itr(space); itr.valid;
+               itr.step())
             if (!itr.rect.empty())
               piece_bounds.push_back(itr.rect);
         }
@@ -712,22 +694,21 @@ namespace Legion {
         for (unsigned idx = 0; idx < field_ids.size(); idx++)
         {
           const FieldID fid = field_ids[idx];
-          Realm::InstanceLayoutGeneric::FieldLayout &fl = layout->fields[fid];
+          Realm::InstanceLayoutGeneric::FieldLayout& fl = layout->fields[fid];
           fl.list_idx = 0;
           fl.rel_offset = 0;
           fl.size_in_bytes = field_sizes[idx];
         }
         return layout;
-      }
-      else if (piece_bounds.size() > 1)
+      } else if (piece_bounds.size() > 1)
       {
         // Realm doesn't currently support padding on multiple pieces because
-        // then we might have valid points in multiple pieces and its 
+        // then we might have valid points in multiple pieces and its
         // undefined which pieces Realm might copy to
         if (constraints.padding_constraint.delta.get_dim() > 0)
         {
-          for (int dim = 0; dim < 
-                constraints.padding_constraint.delta.get_dim(); dim++)
+          for (int dim = 0;
+               dim < constraints.padding_constraint.delta.get_dim(); dim++)
           {
 #ifdef DEBUG_LEGION
             assert(constraints.padding_constraint.delta.lo()[dim] >= 0);
@@ -735,23 +716,23 @@ namespace Legion {
 #endif
             if ((constraints.padding_constraint.delta.lo()[dim] > 0) ||
                 (constraints.padding_constraint.delta.hi()[dim] > 0))
-              REPORT_LEGION_FATAL(LEGION_FATAL_COMPACT_SPARSE_PADDING,
+              REPORT_LEGION_FATAL(
+                  LEGION_FATAL_COMPACT_SPARSE_PADDING,
                   "Legion does not currently support additional padding "
                   "on compact sparse instances. Please open a github "
                   "issue to request support.")
           }
         }
         *num_pieces = piece_bounds.size();
-        *piece_list_size = piece_bounds.size() * sizeof(Rect<DIM,T>);
+        *piece_list_size = piece_bounds.size() * sizeof(Rect<DIM, T>);
         *piece_list = malloc(*piece_list_size);
-        Rect<DIM,T> *pieces = static_cast<Rect<DIM,T>*>(*piece_list);
+        Rect<DIM, T>* pieces = static_cast<Rect<DIM, T>*>(*piece_list);
         for (unsigned idx = 0; idx < piece_bounds.size(); idx++)
           pieces[idx] = piece_bounds[idx];
-      }
-      else if (constraints.padding_constraint.delta.get_dim() > 0)
+      } else if (constraints.padding_constraint.delta.get_dim() > 0)
       {
         // If the user requested any scratch padding on the instance apply it
-        const Domain &delta = constraints.padding_constraint.delta;
+        const Domain& delta = constraints.padding_constraint.delta;
         const Point<DIM> lo = delta.lo();
         const Point<DIM> hi = delta.hi();
 #ifdef DEBUG_LEGION
@@ -762,45 +743,47 @@ namespace Legion {
           assert(hi[i] >= 0);
         }
 #endif
-        for (typename std::vector<Rect<DIM,T> >::iterator it = 
-              piece_bounds.begin(); it != piece_bounds.end(); it++)
+        for (typename std::vector<Rect<DIM, T> >::iterator it =
+                 piece_bounds.begin();
+             it != piece_bounds.end(); it++)
         {
           it->lo -= lo;
           it->hi += hi;
         }
       }
-      const OrderingConstraint &order = constraints.ordering_constraint;  
+      const OrderingConstraint& order = constraints.ordering_constraint;
 #ifdef DEBUG_LEGION
-      assert(order.ordering.size() == (DIM+1));
+      assert(order.ordering.size() == (DIM + 1));
 #endif
       // Check if it is safe to re-use piece lists
       // It's only safe if fsize describes the size of a piece, which
       // is true if we only have a single piece or we're doing AOS
-      const bool safe_reuse = 
-       ((piece_bounds.size() == 1) || (order.ordering.front() == LEGION_DIM_F));
+      const bool safe_reuse =
+          ((piece_bounds.size() == 1) ||
+           (order.ordering.front() == LEGION_DIM_F));
       // Get any alignment and offset constraints for individual fields
-      std::map<FieldID,size_t> alignments;
-      for (std::vector<AlignmentConstraint>::const_iterator it = 
-            constraints.alignment_constraints.begin(); it !=
-            constraints.alignment_constraints.end(); it++)
+      std::map<FieldID, size_t> alignments;
+      for (std::vector<AlignmentConstraint>::const_iterator it =
+               constraints.alignment_constraints.begin();
+           it != constraints.alignment_constraints.end(); it++)
       {
 #ifdef DEBUG_LEGION
         assert(it->eqk == LEGION_EQ_EK);
 #endif
         alignments[it->fid] = it->alignment;
       }
-      std::map<FieldID,off_t> offsets;
-      for (std::vector<OffsetConstraint>::const_iterator it = 
-            constraints.offset_constraints.begin(); it !=
-            constraints.offset_constraints.end(); it++)
+      std::map<FieldID, off_t> offsets;
+      for (std::vector<OffsetConstraint>::const_iterator it =
+               constraints.offset_constraints.begin();
+           it != constraints.offset_constraints.end(); it++)
         offsets[it->fid] = it->offset;
       // Zip the fields with their sizes and sort them if we're allowed to
       std::set<size_t> unique_sizes;
-      std::vector<std::pair<size_t,FieldID> > zip_fields;
+      std::vector<std::pair<size_t, FieldID> > zip_fields;
       for (unsigned idx = 0; idx < field_ids.size(); idx++)
       {
         zip_fields.push_back(
-            std::pair<size_t,FieldID>(field_sizes[idx], field_ids[idx]));
+            std::pair<size_t, FieldID>(field_sizes[idx], field_ids[idx]));
         if (safe_reuse)
           unique_sizes.insert(field_sizes[idx]);
       }
@@ -811,18 +794,17 @@ namespace Legion {
         // Reverse them so the biggest fields are first
         std::reverse(zip_fields.begin(), zip_fields.end());
         // Then reverse the field IDs back for the same size fields
-        std::vector<std::pair<size_t,FieldID> >::iterator it1 = 
-          zip_fields.begin(); 
+        std::vector<std::pair<size_t, FieldID> >::iterator it1 =
+            zip_fields.begin();
         while (it1 != zip_fields.end())
         {
-          std::vector<std::pair<size_t,FieldID> >::iterator it2 = it1;
-          while ((it2 != zip_fields.end()) && (it1->first == it2->first))
-            it2++;
+          std::vector<std::pair<size_t, FieldID> >::iterator it2 = it1;
+          while ((it2 != zip_fields.end()) && (it1->first == it2->first)) it2++;
           std::reverse(it1, it2);
           it1 = it2;
         }
-      } 
-      // Single affine piece or AOS on all pieces 
+      }
+      // Single affine piece or AOS on all pieces
       // In this case we know fsize and falign are the same for
       // each of the pieces
       int field_index = -1;
@@ -840,9 +822,9 @@ namespace Legion {
 #endif
         for (unsigned pidx = 0; pidx < piece_bounds.size(); pidx++)
         {
-          const Rect<DIM,T> &bounds = piece_bounds[pidx];
+          const Rect<DIM, T>& bounds = piece_bounds[pidx];
           elements_between_per_piece[pidx] *=
-            (bounds.hi[dim] - bounds.lo[dim] + 1);
+              (bounds.hi[dim] - bounds.lo[dim] + 1);
         }
       }
 #ifdef DEBUG_LEGION
@@ -857,30 +839,33 @@ namespace Legion {
       // in a way that guarantees that all fields maintain their alignments
       size_t fsize = 0;
       size_t falign = 1;
-      // We can't make the piece lists yet because we don't know the 
-      // extent of the field dimension needed to ensure alignment 
+      // We can't make the piece lists yet because we don't know the
+      // extent of the field dimension needed to ensure alignment
       std::map<FieldID, size_t> field_offsets;
-      for (std::vector<std::pair<size_t,FieldID> >::const_iterator it = 
-            zip_fields.begin(); it != zip_fields.end(); it++)
+      for (std::vector<std::pair<size_t, FieldID> >::const_iterator it =
+               zip_fields.begin();
+           it != zip_fields.end(); it++)
       {
         // if not specified, field goes at the end of all known fields
         // (or a bit past if alignment is a concern)
         size_t offset = fsize;
-        std::map<FieldID,off_t>::const_iterator offset_finder = 
-          offsets.find(it->second);
+        std::map<FieldID, off_t>::const_iterator offset_finder =
+            offsets.find(it->second);
         if (offset_finder != offsets.end())
           offset += offset_finder->second;
-        std::map<FieldID,size_t>::const_iterator alignment_finder = 
-          alignments.find(it->second);
-        // Hack to help out lazy users unwilling to specify alignment 
+        std::map<FieldID, size_t>::const_iterator alignment_finder =
+            alignments.find(it->second);
+        // Hack to help out lazy users unwilling to specify alignment
         // constraints that are necessary for correctness
         // If they haven't specified an alignment we align on the largest
         // power of two that divides the size of the field, for more
         // details see https://github.com/StanfordLegion/legion/issues/1384
         // Cap at a maximum of 128 byte alignment for GPUs
         const size_t field_alignment =
-          (alignment_finder != alignments.end()) ? alignment_finder->second :
-          std::min<size_t>(it->first & ~(it->first - 1), 128/*max alignment*/);
+            (alignment_finder != alignments.end()) ?
+                alignment_finder->second :
+                std::min<size_t>(
+                    it->first & ~(it->first - 1), 128 /*max alignment*/);
         if (field_alignment > 1)
         {
           offset = round_up(offset, field_alignment);
@@ -906,10 +891,11 @@ namespace Legion {
       {
         for (unsigned pidx = 0; pidx < piece_bounds.size(); pidx++)
         {
-          const Rect<DIM,T> &bounds = piece_bounds[pidx];
+          const Rect<DIM, T>& bounds = piece_bounds[pidx];
           piece_offsets[pidx] = round_up(layout->bytes_used, falign);
           size_t piece_size = fsize;
-          for (unsigned idx = field_index+1; idx < order.ordering.size(); idx++)
+          for (unsigned idx = field_index + 1; idx < order.ordering.size();
+               idx++)
           {
             const DimensionKind dim = order.ordering[idx];
 #ifdef DEBUG_LEGION
@@ -921,17 +907,18 @@ namespace Legion {
         }
       }
       // we've handled the offsets and alignment for every field across
-      // all dimensions so we can just use the size of the field to 
+      // all dimensions so we can just use the size of the field to
       // determine the piece list
-      std::map<size_t,unsigned> pl_indexes;
-      layout->piece_lists.reserve(safe_reuse ? 
-          unique_sizes.size() : zip_fields.size());
-      for (std::vector<std::pair<size_t,FieldID> >::const_iterator it = 
-            zip_fields.begin(); it != zip_fields.end(); it++)
+      std::map<size_t, unsigned> pl_indexes;
+      layout->piece_lists.reserve(
+          safe_reuse ? unique_sizes.size() : zip_fields.size());
+      for (std::vector<std::pair<size_t, FieldID> >::const_iterator it =
+               zip_fields.begin();
+           it != zip_fields.end(); it++)
       {
         unsigned li;
-        std::map<size_t,unsigned>::const_iterator finder =
-          safe_reuse ? pl_indexes.find(it->first) : pl_indexes.end();
+        std::map<size_t, unsigned>::const_iterator finder =
+            safe_reuse ? pl_indexes.find(it->first) : pl_indexes.end();
         if (finder == pl_indexes.end())
         {
           li = layout->piece_lists.size();
@@ -942,17 +929,17 @@ namespace Legion {
           pl_indexes[it->first] = li;
 
           // create the piece list
-          Realm::InstancePieceList<DIM,T>& pl = layout->piece_lists[li];
+          Realm::InstancePieceList<DIM, T>& pl = layout->piece_lists[li];
           pl.pieces.reserve(piece_bounds.size());
 
           size_t next_piece = safe_reuse ? 0 : field_offsets[it->second];
           for (unsigned pidx = 0; pidx < piece_bounds.size(); pidx++)
           {
-            const Rect<DIM,T> &bounds = piece_bounds[pidx];
+            const Rect<DIM, T>& bounds = piece_bounds[pidx];
             // create the piece
-            Realm::AffineLayoutPiece<DIM,T> *piece = 
-              new Realm::AffineLayoutPiece<DIM,T>;
-            piece->bounds = bounds; 
+            Realm::AffineLayoutPiece<DIM, T>* piece =
+                new Realm::AffineLayoutPiece<DIM, T>;
+            piece->bounds = bounds;
             size_t piece_start;
             if (safe_reuse)
               piece_start = piece_offsets[pidx];
@@ -960,8 +947,9 @@ namespace Legion {
               piece_start = next_piece;
             piece->offset = piece_start;
             size_t stride = it->first;
-            for (std::vector<DimensionKind>::const_iterator dit = 
-                  order.ordering.begin(); dit != order.ordering.end(); dit++)
+            for (std::vector<DimensionKind>::const_iterator dit =
+                     order.ordering.begin();
+                 dit != order.ordering.end(); dit++)
             {
               if ((*dit) != LEGION_DIM_F)
               {
@@ -971,8 +959,7 @@ namespace Legion {
                 piece->strides[*dit] = stride;
                 piece->offset -= bounds.lo[*dit] * stride;
                 stride *= (bounds.hi[*dit] - bounds.lo[*dit] + 1);
-              }
-              else
+              } else
               {
                 // Update the location for the next piece to start
                 if (!safe_reuse)
@@ -983,18 +970,17 @@ namespace Legion {
               }
             }
             // Update the total bytes used for the last piece
-            if (!safe_reuse && ((pidx+1) == piece_bounds.size()))
+            if (!safe_reuse && ((pidx + 1) == piece_bounds.size()))
               layout->bytes_used = piece_start + stride;
             pl.pieces.push_back(piece);
           }
-        }
-        else
+        } else
           li = finder->second;
 #ifdef DEBUG_LEGION
         assert(layout->fields.count(it->second) == 0);
 #endif
-        Realm::InstanceLayoutGeneric::FieldLayout &fl = 
-          layout->fields[it->second];
+        Realm::InstanceLayoutGeneric::FieldLayout& fl =
+            layout->fields[it->second];
         fl.list_idx = li;
         fl.rel_offset = safe_reuse ? field_offsets[it->second] : 0;
         fl.size_in_bytes = it->first;
@@ -1004,10 +990,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    inline IndexSpaceExpression* 
-            IndexSpaceExpression::create_layout_expression_internal(
-                                     const Realm::IndexSpace<DIM,T> &space,
-                                     const Rect<DIM,T> *rects, size_t num_rects)
+    inline IndexSpaceExpression*
+        IndexSpaceExpression::create_layout_expression_internal(
+            const Realm::IndexSpace<DIM, T>& space, const Rect<DIM, T>* rects,
+            size_t num_rects)
     //--------------------------------------------------------------------------
     {
       if (rects == nullptr)
@@ -1016,24 +1002,23 @@ namespace Legion {
           return this;
         else
           // Make a new expression for the bounding box
-          return new InternalExpression<DIM,T>(&space.bounds,1/*size*/);
-      }
-      else
+          return new InternalExpression<DIM, T>(&space.bounds, 1 /*size*/);
+      } else
       {
 #ifdef DEBUG_LEGION
         assert(num_rects > 0);
 #endif
         // Make a realm expression from the rectangles
-        return new InternalExpression<DIM,T>(rects, num_rects);
+        return new InternalExpression<DIM, T>(rects, num_rects);
       }
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     inline bool IndexSpaceExpression::meets_layout_expression_internal(
-                          IndexSpaceExpression *space_expr, bool tight_bounds,
-                          const Rect<DIM,T> *piece_list, size_t piece_list_size,
-                          const Domain *padding_delta)
+        IndexSpaceExpression* space_expr, bool tight_bounds,
+        const Rect<DIM, T>* piece_list, size_t piece_list_size,
+        const Domain* padding_delta)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1044,8 +1029,8 @@ namespace Legion {
       {
         // Get the bounds for each of them, can ignore ready events
         // since we're just going to be looking at the bounds
-        DomainT<DIM,T> local = get_tight_domain();
-        DomainT<DIM,T> other = space_expr->get_tight_domain();
+        DomainT<DIM, T> local = get_tight_domain();
+        DomainT<DIM, T> other = space_expr->get_tight_domain();
         // Check to see if we contain the space expression
         if (!local.bounds.contains(other.bounds))
           return false;
@@ -1058,7 +1043,7 @@ namespace Legion {
           // any which have a non-trival padding
           for (int dim = 0; dim < DIM; dim++)
           {
-            if ((padding_delta->lo()[dim] > 0) && 
+            if ((padding_delta->lo()[dim] > 0) &&
                 (local.bounds.lo[dim] != other.bounds.lo[dim]))
               return false;
             if ((padding_delta->hi()[dim] > 0) &&
@@ -1070,8 +1055,7 @@ namespace Legion {
         if (tight_bounds)
           return local.bounds == other.bounds;
         return true;
-      }
-      else
+      } else
       {
         // Padding is not supported for sparse layouts
         if ((padding_delta != nullptr) && (padding_delta->get_dim() > 0))
@@ -1083,16 +1067,17 @@ namespace Legion {
         // and compute the intersection volume summary
         // Note that this assumes that the rectangles in the piece list
         // are all non-overlapping with each other
-        DomainT<DIM,T> other = space_expr->get_tight_domain();
-        size_t space_volume = 0; 
+        DomainT<DIM, T> other = space_expr->get_tight_domain();
+        size_t space_volume = 0;
         size_t overlap_volume = 0;
-        for (Realm::IndexSpaceIterator<DIM,T> itr(other); itr.valid; itr.step())
+        for (Realm::IndexSpaceIterator<DIM, T> itr(other); itr.valid;
+             itr.step())
         {
           size_t local_volume = itr.rect.volume();
           space_volume += local_volume;
           for (unsigned idx = 0; idx < piece_list_size; idx++)
           {
-            const Rect<DIM,T> overlap = piece_list[idx].intersection(itr.rect);
+            const Rect<DIM, T> overlap = piece_list[idx].intersection(itr.rect);
             size_t volume = overlap.volume();
             if (volume == 0)
               continue;
@@ -1126,33 +1111,33 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    inline IndexSpaceExpression* 
-              IndexSpaceExpression::create_from_rectangles_internal(
-                                                const std::set<Domain> &rects)
+    inline IndexSpaceExpression*
+        IndexSpaceExpression::create_from_rectangles_internal(
+            const std::set<Domain>& rects)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!rects.empty());
 #endif
       size_t total_volume = 0;
-      std::vector<Rect<DIM,T> > rectangles;
+      std::vector<Rect<DIM, T> > rectangles;
       rectangles.reserve(rects.size());
       // We're just assuming that all the rectangles here are non-overlapping
-      for (std::set<Domain>::const_iterator it =
-            rects.begin(); it != rects.end(); it++)
+      for (std::set<Domain>::const_iterator it = rects.begin();
+           it != rects.end(); it++)
       {
-        Rect<DIM,T> rect = *it;
+        Rect<DIM, T> rect = *it;
         total_volume += rect.volume();
         rectangles.push_back(rect);
       }
 #ifdef DEBUG_LEGION
       assert(total_volume <= get_volume());
 #endif
-      // If all the points add up to the same as our volume then the 
+      // If all the points add up to the same as our volume then the
       // expressions match and we can reuse this as the expression
       if (total_volume == get_volume())
         return this;
-      InternalExpression<DIM,T> *result = new InternalExpression<DIM,T>(
+      InternalExpression<DIM, T>* result = new InternalExpression<DIM, T>(
           &rectangles.front(), rectangles.size());
       // Do a little test to see if there is already a canonical expression
       // that we know about that matches this expression if so we'll use that
@@ -1165,24 +1150,23 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
     inline IndexSpaceExpression*
-              IndexSpaceExpression::find_congruent_expression_internal(
-                     SmallPointerVector<IndexSpaceExpression,true> &expressions)
+        IndexSpaceExpression::find_congruent_expression_internal(
+            SmallPointerVector<IndexSpaceExpression, true>& expressions)
     //--------------------------------------------------------------------------
     {
       if (expressions.empty())
       {
         expressions.insert(this);
         return this;
-      }
-      else if (expressions.contains(this))
+      } else if (expressions.contains(this))
         return this;
-      DomainT<DIM,T> local_space = get_tight_domain();
+      DomainT<DIM, T> local_space = get_tight_domain();
       size_t local_rect_count = 0;
-      KDNode<DIM,T,void> *local_tree = nullptr;
+      KDNode<DIM, T, void>* local_tree = nullptr;
       for (unsigned idx = 0; idx < expressions.size(); idx++)
       {
-        IndexSpaceExpression *expr = expressions[idx];
-        DomainT<DIM,T> other_space = expr->get_tight_domain();
+        IndexSpaceExpression* expr = expressions[idx];
+        DomainT<DIM, T> other_space = expr->get_tight_domain();
         // See if the rectangles are the same
         if (local_space.bounds != other_space.bounds)
           continue;
@@ -1197,8 +1181,7 @@ namespace Legion {
             if (local_tree != nullptr)
               delete local_tree;
             return expr;
-          }
-          else
+          } else
             continue;
         }
         if (!local_space.sparsity.exists() || !other_space.sparsity.exists())
@@ -1209,25 +1192,24 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           // Should never hit this assertion as they should have equal sparsity
           // map IDs if the sparsity map does not exist for both of them
-          assert(local_space.sparsity.exists() ||
-                  other_space.sparsity.exists());
+          assert(
+              local_space.sparsity.exists() || other_space.sparsity.exists());
 #endif
           continue;
-        }
-        else
+        } else
         {
           // Both have sparsity maps
           // We know something important though here: we know that both
           // these sparsity maps contain the same number of points
           // Build lists of both sets of rectangles
-          KDNode<DIM,T> *other_tree = 
-            expr->get_sparsity_map_kd_tree()->as_kdnode<DIM,T>();
+          KDNode<DIM, T>* other_tree =
+              expr->get_sparsity_map_kd_tree()->as_kdnode<DIM, T>();
           size_t other_rect_count = other_tree->count_rectangles();
           if (local_rect_count == 0)
           {
             // Count the number of rectangles in our sparsity map
-            for (Realm::IndexSpaceIterator<DIM,T> itr(local_space);
-                  itr.valid; itr.step())
+            for (Realm::IndexSpaceIterator<DIM, T> itr(local_space); itr.valid;
+                 itr.step())
               local_rect_count++;
 #ifdef DEBUG_LEGION
             assert(local_rect_count > 0);
@@ -1238,19 +1220,19 @@ namespace Legion {
             // Build our KD tree if we haven't already
             if (local_tree == nullptr)
             {
-              std::vector<Rect<DIM,T> > local_rects;
-              for (Realm::IndexSpaceIterator<DIM,T> itr(local_space);
-                    itr.valid; itr.step())
+              std::vector<Rect<DIM, T> > local_rects;
+              for (Realm::IndexSpaceIterator<DIM, T> itr(local_space);
+                   itr.valid; itr.step())
                 local_rects.push_back(itr.rect);
-              local_tree = new KDNode<DIM,T>(local_space.bounds, local_rects);
+              local_tree = new KDNode<DIM, T>(local_space.bounds, local_rects);
             }
             // Iterate the other rectangles and see if they are covered
-            bool congruent = true; 
-            for (Realm::IndexSpaceIterator<DIM,T> itr(other_space);
-                  itr.valid; itr.step())
+            bool congruent = true;
+            for (Realm::IndexSpaceIterator<DIM, T> itr(other_space); itr.valid;
+                 itr.step())
             {
-              const size_t intersecting_points = 
-                local_tree->count_intersecting_points(itr.rect);
+              const size_t intersecting_points =
+                  local_tree->count_intersecting_points(itr.rect);
               if (intersecting_points == itr.rect.volume())
                 continue;
               congruent = false;
@@ -1258,16 +1240,15 @@ namespace Legion {
             }
             if (!congruent)
               continue;
-          }
-          else
+          } else
           {
             // Iterate our rectangles and see if they are all covered
-            bool congruent = true; 
-            for (Realm::IndexSpaceIterator<DIM,T> itr(local_space);
-                  itr.valid; itr.step())
+            bool congruent = true;
+            for (Realm::IndexSpaceIterator<DIM, T> itr(local_space); itr.valid;
+                 itr.step())
             {
-              const size_t intersecting_points = 
-                other_tree->count_intersecting_points(itr.rect);
+              const size_t intersecting_points =
+                  other_tree->count_intersecting_points(itr.rect);
               if (intersecting_points == itr.rect.volume())
                 continue;
               congruent = false;
@@ -1276,7 +1257,7 @@ namespace Legion {
             if (!congruent)
               continue;
           }
-        }  
+        }
         // If we get here that means we are congruent
         // Try to add the expression reference, we can race with deletions
         // here though so handle the case we're we can't add a reference
@@ -1293,7 +1274,8 @@ namespace Legion {
       if (local_tree != nullptr)
       {
 #ifdef DEBUG_LEGION
-        assert(sparsity_map_kd_tree == nullptr); // should not have a kd tree yet
+        assert(
+            sparsity_map_kd_tree == nullptr);  // should not have a kd tree yet
 #endif
         sparsity_map_kd_tree = local_tree;
       }
@@ -1307,47 +1289,46 @@ namespace Legion {
     {
       if (sparsity_map_kd_tree != nullptr)
         return sparsity_map_kd_tree;
-      DomainT<DIM,T> local_space = get_tight_domain();
+      DomainT<DIM, T> local_space = get_tight_domain();
 #ifdef DEBUG_LEGION
       assert(!local_space.dense());
 #endif
-      std::vector<Rect<DIM,T> > local_rects;
-      for (Realm::IndexSpaceIterator<DIM,T> itr(local_space);
-            itr.valid; itr.step())
+      std::vector<Rect<DIM, T> > local_rects;
+      for (Realm::IndexSpaceIterator<DIM, T> itr(local_space); itr.valid;
+           itr.step())
         local_rects.push_back(itr.rect);
-      sparsity_map_kd_tree = new KDNode<DIM,T>(local_space.bounds, local_rects);
+      sparsity_map_kd_tree =
+          new KDNode<DIM, T>(local_space.bounds, local_rects);
       return sparsity_map_kd_tree;
     }
 
     /////////////////////////////////////////////////////////////
-    // Index Space Operations 
+    // Index Space Operations
     /////////////////////////////////////////////////////////////
-    
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    IndexSpaceOperationT<DIM,T>::IndexSpaceOperationT(OperationKind kind)
-      : IndexSpaceOperation(NT_TemplateHelper::encode_tag<DIM,T>(), kind), 
-        realm_index_space(Realm::IndexSpace<DIM,T>::make_empty()),
-        is_index_space_tight(false)
-    //--------------------------------------------------------------------------
-    {
-    }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceOperationT<DIM,T>::IndexSpaceOperationT(
-        IndexSpaceExprID eid, DistributedID did,
-        IndexSpaceOperation *origin, TypeTag tag, Deserializer &derez)
-      : IndexSpaceOperation(tag, eid, did, origin),
+    IndexSpaceOperationT<DIM, T>::IndexSpaceOperationT(OperationKind kind)
+      : IndexSpaceOperation(NT_TemplateHelper::encode_tag<DIM, T>(), kind),
+        realm_index_space(Realm::IndexSpace<DIM, T>::make_empty()),
         is_index_space_tight(false)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    template<int DIM, typename T>
+    IndexSpaceOperationT<DIM, T>::IndexSpaceOperationT(
+        IndexSpaceExprID eid, DistributedID did, IndexSpaceOperation* origin,
+        TypeTag tag, Deserializer& derez)
+      : IndexSpaceOperation(tag, eid, did, origin), is_index_space_tight(false)
     //--------------------------------------------------------------------------
     {
       // We can unpack the index space here directly
       derez.deserialize(this->realm_index_space);
       this->tight_index_space = this->realm_index_space;
       // Request that we make the valid index space valid
-      this->tight_index_space_ready = 
-        RtEvent(this->realm_index_space.make_valid());
+      this->tight_index_space_ready =
+          RtEvent(this->realm_index_space.make_valid());
       if (!this->tight_index_space.dense())
       {
         ApEvent added;
@@ -1355,14 +1336,14 @@ namespace Legion {
         if (added.exists())
         {
           added.subscribe();
-          index_space_users.push_back(added);      
+          index_space_users.push_back(added);
         }
       }
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceOperationT<DIM,T>::~IndexSpaceOperationT(void)
+    IndexSpaceOperationT<DIM, T>::~IndexSpaceOperationT(void)
     //--------------------------------------------------------------------------
     {
       if (!this->tight_index_space.dense())
@@ -1392,22 +1373,22 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    bool IndexSpaceOperationT<DIM,T>::is_sparse(void)
+    bool IndexSpaceOperationT<DIM, T>::is_sparse(void)
     //--------------------------------------------------------------------------
     {
-      DomainT<DIM,T> result = get_tight_index_space();
+      DomainT<DIM, T> result = get_tight_index_space();
       return !result.dense();
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    DomainT<DIM,T> IndexSpaceOperationT<DIM,T>::get_tight_index_space(void)
+    DomainT<DIM, T> IndexSpaceOperationT<DIM, T>::get_tight_index_space(void)
     //--------------------------------------------------------------------------
     {
       if (!is_index_space_tight.load())
       {
         // Wait for the index space to be tight
-        if (tight_index_space_ready.exists() && 
+        if (tight_index_space_ready.exists() &&
             !tight_index_space_ready.has_triggered())
           tight_index_space_ready.wait();
         // In case the reason we had a tight event was because we are remote
@@ -1419,8 +1400,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    ApEvent IndexSpaceOperationT<DIM,T>::get_loose_index_space(
-                                 DomainT<DIM,T> &space, ApUserEvent &to_trigger)
+    ApEvent IndexSpaceOperationT<DIM, T>::get_loose_index_space(
+        DomainT<DIM, T>& space, ApUserEvent& to_trigger)
     //--------------------------------------------------------------------------
     {
       if (!is_index_space_tight.load())
@@ -1433,7 +1414,7 @@ namespace Legion {
           if (!to_trigger.exists())
             to_trigger = Runtime::create_ap_user_event(nullptr);
           while (!index_space_users.empty() &&
-              index_space_users.front().has_triggered_faultignorant())
+                 index_space_users.front().has_triggered_faultignorant())
             index_space_users.pop_front();
           index_space_users.push_back(to_trigger);
           space = realm_index_space;
@@ -1447,7 +1428,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    Domain IndexSpaceOperationT<DIM,T>::get_tight_domain(void)
+    Domain IndexSpaceOperationT<DIM, T>::get_tight_domain(void)
     //--------------------------------------------------------------------------
     {
       return Domain(get_tight_index_space());
@@ -1455,11 +1436,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    ApEvent IndexSpaceOperationT<DIM,T>::get_loose_domain(Domain &domain, 
-                                                        ApUserEvent &to_trigger)
+    ApEvent IndexSpaceOperationT<DIM, T>::get_loose_domain(
+        Domain& domain, ApUserEvent& to_trigger)
     //--------------------------------------------------------------------------
     {
-      DomainT<DIM,T> index_space;
+      DomainT<DIM, T> index_space;
       const ApEvent result = get_loose_index_space(index_space, to_trigger);
       domain = index_space;
       return result;
@@ -1467,13 +1448,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void IndexSpaceOperationT<DIM,T>::record_index_space_user(ApEvent user)
+    void IndexSpaceOperationT<DIM, T>::record_index_space_user(ApEvent user)
     //--------------------------------------------------------------------------
     {
       if (!user.exists())
         return;
       // Can check some of these without the lock
-      // Only need to save this if the sparsity map exists 
+      // Only need to save this if the sparsity map exists
       if (is_index_space_tight.load())
       {
         if (tight_index_space.dense())
@@ -1481,23 +1462,21 @@ namespace Legion {
         AutoLock i_lock(inter_lock);
         // Try popping entries off the front of the list
         while (!index_space_users.empty() &&
-            index_space_users.front().has_triggered_faultignorant())
+               index_space_users.front().has_triggered_faultignorant())
           index_space_users.pop_front();
         index_space_users.push_back(user);
-      }
-      else if (!realm_index_space.dense())
+      } else if (!realm_index_space.dense())
       {
         AutoLock i_lock(inter_lock);
         if (is_index_space_tight.load())
         {
           if (tight_index_space.dense())
             return;
-        }
-        else if (realm_index_space.dense())
+        } else if (realm_index_space.dense())
           return;
         // Try popping entries off the front of the list
         while (!index_space_users.empty() &&
-            index_space_users.front().has_triggered_faultignorant())
+               index_space_users.front().has_triggered_faultignorant())
           index_space_users.pop_front();
         index_space_users.push_back(user);
       }
@@ -1505,7 +1484,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void IndexSpaceOperationT<DIM,T>::tighten_index_space(void)
+    void IndexSpaceOperationT<DIM, T>::tighten_index_space(void)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1544,7 +1523,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    bool IndexSpaceOperationT<DIM,T>::check_empty(void)
+    bool IndexSpaceOperationT<DIM, T>::check_empty(void)
     //--------------------------------------------------------------------------
     {
       return (get_volume() == 0);
@@ -1552,12 +1531,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    size_t IndexSpaceOperationT<DIM,T>::get_volume(void)
+    size_t IndexSpaceOperationT<DIM, T>::get_volume(void)
     //--------------------------------------------------------------------------
     {
       if (has_volume.load())
         return volume;
-      DomainT<DIM,T> temp = get_tight_index_space();
+      DomainT<DIM, T> temp = get_tight_index_space();
       volume = temp.volume();
       has_volume.store(true);
       return volume;
@@ -1565,8 +1544,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void IndexSpaceOperationT<DIM,T>::pack_expression(Serializer &rez,
-                                                      AddressSpaceID target)
+    void IndexSpaceOperationT<DIM, T>::pack_expression(
+        Serializer& rez, AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1574,27 +1553,25 @@ namespace Legion {
 #endif
       if (target == this->local_space)
       {
-        rez.serialize<bool>(true/*local*/);
+        rez.serialize<bool>(true /*local*/);
         rez.serialize(this);
         this->add_base_expression_reference(LIVE_EXPR_REF);
-      }
-      else if (target == this->owner_space)
+      } else if (target == this->owner_space)
       {
-        rez.serialize<bool>(true/*local*/);
+        rez.serialize<bool>(true /*local*/);
         rez.serialize(origin_expr);
         // Add a reference here that we'll remove after we've added a reference
         // on the target space expression
         this->pack_global_ref();
-      }
-      else
+      } else
       {
-        rez.serialize<bool>(false/*local*/);
-        rez.serialize<bool>(false/*index space*/);
+        rez.serialize<bool>(false /*local*/);
+        rez.serialize<bool>(false /*index space*/);
         rez.serialize(this->expr_id);
         rez.serialize(this->type_tag);
         rez.serialize(this->origin_expr);
         rez.serialize(this->did);
-        DomainT<DIM,T> temp = this->get_tight_index_space();
+        DomainT<DIM, T> temp = this->get_tight_index_space();
         rez.serialize(temp);
         if (!temp.dense())
         {
@@ -1612,24 +1589,25 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void IndexSpaceOperationT<DIM,T>::skip_unpack_expression(
-                                                      Deserializer &derez) const
+    void IndexSpaceOperationT<DIM, T>::skip_unpack_expression(
+        Deserializer& derez) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       TypeTag tag;
       derez.deserialize(tag);
       assert(tag == this->type_tag);
-      IndexSpaceOperation *origin;
+      IndexSpaceOperation* origin;
       derez.deserialize(origin);
       assert(origin == this->origin_expr);
       DistributedID id;
       derez.deserialize(id);
       assert(id == did);
 #else
-      derez.advance_pointer(sizeof(type_tag) + sizeof(origin_expr)+sizeof(did));
+      derez.advance_pointer(
+          sizeof(type_tag) + sizeof(origin_expr) + sizeof(did));
 #endif
-      Realm::IndexSpace<DIM,T> space;
+      Realm::IndexSpace<DIM, T> space;
       derez.deserialize(space);
       if (!space.dense())
       {
@@ -1641,228 +1619,221 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceNode* IndexSpaceOperationT<DIM,T>::create_node(IndexSpace handle,
-                         RtEvent initialized, 
-                         Provenance *provenance,
-                         CollectiveMapping *collective_mapping,
-                         IndexSpaceExprID new_expr_id)
+    IndexSpaceNode* IndexSpaceOperationT<DIM, T>::create_node(
+        IndexSpace handle, RtEvent initialized, Provenance* provenance,
+        CollectiveMapping* collective_mapping, IndexSpaceExprID new_expr_id)
     //--------------------------------------------------------------------------
     {
       if (new_expr_id == 0)
         new_expr_id = expr_id;
-      AutoLock i_lock(inter_lock, 1, false/*exclusive*/);
+      AutoLock i_lock(inter_lock, 1, false /*exclusive*/);
       if (is_index_space_tight.load())
-        return runtime->create_node(handle, Domain(tight_index_space), 
-                          false/*take ownership*/,
-                          nullptr/*parent*/, 0/*color*/, initialized,
-                          provenance, realm_index_space_ready, new_expr_id,
-                          collective_mapping, true/*add root ref*/);
+        return runtime->create_node(
+            handle, Domain(tight_index_space), false /*take ownership*/,
+            nullptr /*parent*/, 0 /*color*/, initialized, provenance,
+            realm_index_space_ready, new_expr_id, collective_mapping,
+            true /*add root ref*/);
       else
-        return runtime->create_node(handle, Domain(realm_index_space),
-                          false/*take ownership*/,
-                          nullptr/*parent*/, 0/*color*/, initialized,
-                          provenance, realm_index_space_ready, new_expr_id,
-                          collective_mapping, true/*add root ref*/);
+        return runtime->create_node(
+            handle, Domain(realm_index_space), false /*take ownership*/,
+            nullptr /*parent*/, 0 /*color*/, initialized, provenance,
+            realm_index_space_ready, new_expr_id, collective_mapping,
+            true /*add root ref*/);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceExpression* IndexSpaceOperationT<DIM,T>::create_from_rectangles(
-                                                  const std::set<Domain> &rects)
+    IndexSpaceExpression* IndexSpaceOperationT<DIM, T>::create_from_rectangles(
+        const std::set<Domain>& rects)
     //--------------------------------------------------------------------------
     {
-      return create_from_rectangles_internal<DIM,T>(rects);
-    } 
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    IndexSpaceExpression* IndexSpaceOperationT<DIM,T>::inline_union(
-        IndexSpaceExpression *rhs)
-    //--------------------------------------------------------------------------
-    {
-      return inline_union_internal<DIM,T>(rhs);
+      return create_from_rectangles_internal<DIM, T>(rects);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceExpression* IndexSpaceOperationT<DIM,T>::inline_union(
-        const std::set<IndexSpaceExpression*> &exprs)
+    IndexSpaceExpression* IndexSpaceOperationT<DIM, T>::inline_union(
+        IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
     {
-      return inline_union_internal<DIM,T>(exprs);
+      return inline_union_internal<DIM, T>(rhs);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceExpression* IndexSpaceOperationT<DIM,T>::inline_intersection(
-        IndexSpaceExpression *rhs)
+    IndexSpaceExpression* IndexSpaceOperationT<DIM, T>::inline_union(
+        const std::set<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
-      return inline_intersection_internal<DIM,T>(rhs);
+      return inline_union_internal<DIM, T>(exprs);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceExpression* IndexSpaceOperationT<DIM,T>::inline_intersection(
-        const std::set<IndexSpaceExpression*> &exprs)
+    IndexSpaceExpression* IndexSpaceOperationT<DIM, T>::inline_intersection(
+        IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
     {
-      return inline_intersection_internal<DIM,T>(exprs);
+      return inline_intersection_internal<DIM, T>(rhs);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceExpression* IndexSpaceOperationT<DIM,T>::inline_subtraction(
-        IndexSpaceExpression *rhs)
+    IndexSpaceExpression* IndexSpaceOperationT<DIM, T>::inline_intersection(
+        const std::set<IndexSpaceExpression*>& exprs)
     //--------------------------------------------------------------------------
     {
-      return inline_subtraction_internal<DIM,T>(rhs);
+      return inline_intersection_internal<DIM, T>(exprs);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    uint64_t IndexSpaceOperationT<DIM,T>::get_canonical_hash(void)
+    IndexSpaceExpression* IndexSpaceOperationT<DIM, T>::inline_subtraction(
+        IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
     {
-      DomainT<DIM,T> domain = get_tight_index_space();
+      return inline_subtraction_internal<DIM, T>(rhs);
+    }
+
+    //--------------------------------------------------------------------------
+    template<int DIM, typename T>
+    uint64_t IndexSpaceOperationT<DIM, T>::get_canonical_hash(void)
+    //--------------------------------------------------------------------------
+    {
+      DomainT<DIM, T> domain = get_tight_index_space();
       return get_canonical_hash_internal(domain);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    ApEvent IndexSpaceOperationT<DIM,T>::issue_fill(Operation *op,
-                                 const PhysicalTraceInfo &trace_info,
-                                 const std::vector<CopySrcDstField> &dst_fields,
-                                 const void *fill_value, size_t fill_size,
+    ApEvent IndexSpaceOperationT<DIM, T>::issue_fill(
+        Operation* op, const PhysicalTraceInfo& trace_info,
+        const std::vector<CopySrcDstField>& dst_fields, const void* fill_value,
+        size_t fill_size,
 #ifdef LEGION_SPY
-                                 UniqueID fill_uid,
-                                 FieldSpace handle,
-                                 RegionTreeID tree_id,
+        UniqueID fill_uid, FieldSpace handle, RegionTreeID tree_id,
 #endif
-                                 ApEvent precondition, PredEvent pred_guard,
-                                 LgEvent unique_event,
-                                 CollectiveKind collective, bool record_effect,
-                                 int priority, bool replay)
+        ApEvent precondition, PredEvent pred_guard, LgEvent unique_event,
+        CollectiveKind collective, bool record_effect, int priority,
+        bool replay)
     //--------------------------------------------------------------------------
     {
-      DomainT<DIM,T> local_space = get_tight_index_space();
-      return issue_fill_internal(op, local_space, trace_info, 
-                                 dst_fields, fill_value, fill_size,
+      DomainT<DIM, T> local_space = get_tight_index_space();
+      return issue_fill_internal(
+          op, local_space, trace_info, dst_fields, fill_value, fill_size,
 #ifdef LEGION_SPY
-                                 fill_uid, handle, tree_id,
+          fill_uid, handle, tree_id,
 #endif
-                                 precondition, pred_guard, unique_event,
-                                 collective, priority, replay, record_effect);
+          precondition, pred_guard, unique_event, collective, priority, replay,
+          record_effect);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    ApEvent IndexSpaceOperationT<DIM,T>::issue_copy(Operation *op,
-                                 const PhysicalTraceInfo &trace_info,
-                                 const std::vector<CopySrcDstField> &dst_fields,
-                                 const std::vector<CopySrcDstField> &src_fields,
-                                 const std::vector<Reservation> &reservations,
+    ApEvent IndexSpaceOperationT<DIM, T>::issue_copy(
+        Operation* op, const PhysicalTraceInfo& trace_info,
+        const std::vector<CopySrcDstField>& dst_fields,
+        const std::vector<CopySrcDstField>& src_fields,
+        const std::vector<Reservation>& reservations,
 #ifdef LEGION_SPY
-                                 RegionTreeID src_tree_id,
-                                 RegionTreeID dst_tree_id,
+        RegionTreeID src_tree_id, RegionTreeID dst_tree_id,
 #endif
-                                 ApEvent precondition, PredEvent pred_guard,
-                                 LgEvent src_unique, LgEvent dst_unique,
-                                 CollectiveKind collective, bool record_effect,
-                                 int priority, bool replay)
+        ApEvent precondition, PredEvent pred_guard, LgEvent src_unique,
+        LgEvent dst_unique, CollectiveKind collective, bool record_effect,
+        int priority, bool replay)
     //--------------------------------------------------------------------------
     {
-      DomainT<DIM,T> local_space = get_tight_index_space();
-      return issue_copy_internal(op, local_space, trace_info,
-              dst_fields, src_fields, reservations,
+      DomainT<DIM, T> local_space = get_tight_index_space();
+      return issue_copy_internal(
+          op, local_space, trace_info, dst_fields, src_fields, reservations,
 #ifdef LEGION_SPY
-              src_tree_id, dst_tree_id,
+          src_tree_id, dst_tree_id,
 #endif
-              precondition, pred_guard, src_unique, dst_unique,
-              collective, record_effect, priority, replay);
-    } 
-
-    //--------------------------------------------------------------------------
-    template<int DIM, typename T>
-    Realm::InstanceLayoutGeneric* IndexSpaceOperationT<DIM,T>::create_layout(
-                                    const LayoutConstraintSet &constraints,
-                                    const std::vector<FieldID> &field_ids,
-                                    const std::vector<size_t> &field_sizes,
-                                    bool compact, void **piece_list, 
-                                    size_t *piece_list_size, size_t *num_pieces,
-                                    size_t base_alignment)
-    //--------------------------------------------------------------------------
-    {
-      DomainT<DIM,T> local_is = get_tight_index_space();
-      return create_layout_internal(local_is, constraints,field_ids,field_sizes,
-              compact, piece_list, piece_list_size, num_pieces, base_alignment);
+          precondition, pred_guard, src_unique, dst_unique, collective,
+          record_effect, priority, replay);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceExpression* IndexSpaceOperationT<DIM,T>::create_layout_expression(
-                                 const void *piece_list, size_t piece_list_size)
+    Realm::InstanceLayoutGeneric* IndexSpaceOperationT<DIM, T>::create_layout(
+        const LayoutConstraintSet& constraints,
+        const std::vector<FieldID>& field_ids,
+        const std::vector<size_t>& field_sizes, bool compact, void** piece_list,
+        size_t* piece_list_size, size_t* num_pieces, size_t base_alignment)
+    //--------------------------------------------------------------------------
+    {
+      DomainT<DIM, T> local_is = get_tight_index_space();
+      return create_layout_internal(
+          local_is, constraints, field_ids, field_sizes, compact, piece_list,
+          piece_list_size, num_pieces, base_alignment);
+    }
+
+    //--------------------------------------------------------------------------
+    template<int DIM, typename T>
+    IndexSpaceExpression*
+        IndexSpaceOperationT<DIM, T>::create_layout_expression(
+            const void* piece_list, size_t piece_list_size)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((piece_list_size % sizeof(Rect<DIM,T>)) == 0);
+      assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
 #endif
-      DomainT<DIM,T> local_is = get_tight_index_space();
+      DomainT<DIM, T> local_is = get_tight_index_space();
       // No need to wait for the index space to be ready since we
       // are never actually going to look at the sparsity map
-      return create_layout_expression_internal(local_is,
-                      static_cast<const Rect<DIM,T>*>(piece_list),
-                      piece_list_size / sizeof(Rect<DIM,T>));
+      return create_layout_expression_internal(
+          local_is, static_cast<const Rect<DIM, T>*>(piece_list),
+          piece_list_size / sizeof(Rect<DIM, T>));
     }
-    
+
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    bool IndexSpaceOperationT<DIM,T>::meets_layout_expression(
-                            IndexSpaceExpression *space_expr, bool tight_bounds,
-                            const void *piece_list, size_t piece_list_size,
-                            const Domain *padding_delta)
+    bool IndexSpaceOperationT<DIM, T>::meets_layout_expression(
+        IndexSpaceExpression* space_expr, bool tight_bounds,
+        const void* piece_list, size_t piece_list_size,
+        const Domain* padding_delta)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((piece_list_size % sizeof(Rect<DIM,T>)) == 0);
+      assert((piece_list_size % sizeof(Rect<DIM, T>)) == 0);
 #endif
-      return meets_layout_expression_internal<DIM,T>(space_expr, tight_bounds,
-                                  static_cast<const Rect<DIM,T>*>(piece_list),
-                                  piece_list_size / sizeof(Rect<DIM,T>),
-                                  padding_delta);
+      return meets_layout_expression_internal<DIM, T>(
+          space_expr, tight_bounds,
+          static_cast<const Rect<DIM, T>*>(piece_list),
+          piece_list_size / sizeof(Rect<DIM, T>), padding_delta);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceExpression* 
-      IndexSpaceOperationT<DIM,T>::find_congruent_expression(
-                     SmallPointerVector<IndexSpaceExpression,true> &expressions)
+    IndexSpaceExpression*
+        IndexSpaceOperationT<DIM, T>::find_congruent_expression(
+            SmallPointerVector<IndexSpaceExpression, true>& expressions)
     //--------------------------------------------------------------------------
     {
-      return find_congruent_expression_internal<DIM,T>(expressions); 
+      return find_congruent_expression_internal<DIM, T>(expressions);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    KDTree* IndexSpaceOperationT<DIM,T>::get_sparsity_map_kd_tree(void)
+    KDTree* IndexSpaceOperationT<DIM, T>::get_sparsity_map_kd_tree(void)
     //--------------------------------------------------------------------------
     {
-      return get_sparsity_map_kd_tree_internal<DIM,T>();
+      return get_sparsity_map_kd_tree_internal<DIM, T>();
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void IndexSpaceOperationT<DIM,T>::initialize_equivalence_set_kd_tree(
-                     EqKDTree *tree, EquivalenceSet *set, const FieldMask &mask,
-                     ShardID local_shard, bool current)
+    void IndexSpaceOperationT<DIM, T>::initialize_equivalence_set_kd_tree(
+        EqKDTree* tree, EquivalenceSet* set, const FieldMask& mask,
+        ShardID local_shard, bool current)
     //--------------------------------------------------------------------------
     {
-      DomainT<DIM,T> realm_index_space = get_tight_index_space();
-      EqKDTreeT<DIM,T> *typed_tree = tree->as_eq_kd_tree<DIM,T>();
-      for (Realm::IndexSpaceIterator<DIM,T> itr(realm_index_space); 
-            itr.valid; itr.step())
+      DomainT<DIM, T> realm_index_space = get_tight_index_space();
+      EqKDTreeT<DIM, T>* typed_tree = tree->as_eq_kd_tree<DIM, T>();
+      for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space); itr.valid;
+           itr.step())
       {
-        const Rect<DIM,T> overlap = itr.rect.intersection(typed_tree->bounds);
+        const Rect<DIM, T> overlap = itr.rect.intersection(typed_tree->bounds);
         if (!overlap.empty())
           typed_tree->initialize_set(set, overlap, mask, local_shard, current);
       }
@@ -1870,61 +1841,61 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void IndexSpaceOperationT<DIM,T>::compute_equivalence_sets(
-          EqKDTree *tree, LocalLock *tree_lock, const FieldMask &mask, 
-          const std::vector<EqSetTracker*> &trackers,
-          const std::vector<AddressSpaceID> &tracker_spaces,
-          std::vector<unsigned> &new_tracker_references,
-          FieldMaskSet<EquivalenceSet> &eq_sets,
-          std::vector<RtEvent> &pending_sets,
-          FieldMaskSet<EqKDTree> &subscriptions,
-          FieldMaskSet<EqKDTree> &to_create,
-          std::map<EqKDTree*,Domain> &creation_rects,
-          std::map<EquivalenceSet*,LegionMap<Domain,FieldMask> > &creation_srcs,
-          std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
-          ShardID local_shard)
+    void IndexSpaceOperationT<DIM, T>::compute_equivalence_sets(
+        EqKDTree* tree, LocalLock* tree_lock, const FieldMask& mask,
+        const std::vector<EqSetTracker*>& trackers,
+        const std::vector<AddressSpaceID>& tracker_spaces,
+        std::vector<unsigned>& new_tracker_references,
+        FieldMaskSet<EquivalenceSet>& eq_sets,
+        std::vector<RtEvent>& pending_sets,
+        FieldMaskSet<EqKDTree>& subscriptions,
+        FieldMaskSet<EqKDTree>& to_create,
+        std::map<EqKDTree*, Domain>& creation_rects,
+        std::map<EquivalenceSet*, LegionMap<Domain, FieldMask> >& creation_srcs,
+        std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+        ShardID local_shard)
     //--------------------------------------------------------------------------
     {
-      EqKDTreeT<DIM,T> *typed_tree = tree->as_eq_kd_tree<DIM,T>();
-      DomainT<DIM,T> realm_index_space = get_tight_index_space();
+      EqKDTreeT<DIM, T>* typed_tree = tree->as_eq_kd_tree<DIM, T>();
+      DomainT<DIM, T> realm_index_space = get_tight_index_space();
       // Need non-exclusive access to the tree for non-invalidations
-      AutoLock t_lock(*tree_lock,1,false/*exclusive*/);
-      for (Realm::IndexSpaceIterator<DIM,T> itr(realm_index_space); 
-            itr.valid; itr.step())
-        typed_tree->compute_equivalence_sets(itr.rect, mask, trackers,
-            tracker_spaces, new_tracker_references, eq_sets, pending_sets,
-            subscriptions, to_create, creation_rects, creation_srcs,
-            remote_shard_rects, local_shard);
+      AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+      for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space); itr.valid;
+           itr.step())
+        typed_tree->compute_equivalence_sets(
+            itr.rect, mask, trackers, tracker_spaces, new_tracker_references,
+            eq_sets, pending_sets, subscriptions, to_create, creation_rects,
+            creation_srcs, remote_shard_rects, local_shard);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    unsigned IndexSpaceOperationT<DIM,T>::record_output_equivalence_set(
-          EqKDTree *tree, LocalLock *tree_lock, EquivalenceSet *set, 
-          const FieldMask &mask, EqSetTracker *tracker,
-          AddressSpaceID tracker_space, FieldMaskSet<EqKDTree> &subscriptions,
-          std::map<ShardID,LegionMap<Domain,FieldMask> > &remote_shard_rects,
-          ShardID local_shard)
+    unsigned IndexSpaceOperationT<DIM, T>::record_output_equivalence_set(
+        EqKDTree* tree, LocalLock* tree_lock, EquivalenceSet* set,
+        const FieldMask& mask, EqSetTracker* tracker,
+        AddressSpaceID tracker_space, FieldMaskSet<EqKDTree>& subscriptions,
+        std::map<ShardID, LegionMap<Domain, FieldMask> >& remote_shard_rects,
+        ShardID local_shard)
     //--------------------------------------------------------------------------
     {
-      EqKDTreeT<DIM,T> *typed_tree = tree->as_eq_kd_tree<DIM,T>();
-      DomainT<DIM,T> realm_index_space = get_tight_index_space();
+      EqKDTreeT<DIM, T>* typed_tree = tree->as_eq_kd_tree<DIM, T>();
+      DomainT<DIM, T> realm_index_space = get_tight_index_space();
       unsigned new_subs = 0;
       // Need non-exclusive access to the tree for non-invalidations
-      AutoLock t_lock(*tree_lock,1,false/*exclusive*/);
-      for (Realm::IndexSpaceIterator<DIM,T> itr(realm_index_space); 
-            itr.valid; itr.step())
-        new_subs += typed_tree->record_output_equivalence_set(set, itr.rect,
-            mask, tracker, tracker_space, subscriptions, remote_shard_rects,
-            local_shard);
+      AutoLock t_lock(*tree_lock, 1, false /*exclusive*/);
+      for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space); itr.valid;
+           itr.step())
+        new_subs += typed_tree->record_output_equivalence_set(
+            set, itr.rect, mask, tracker, tracker_space, subscriptions,
+            remote_shard_rects, local_shard);
       return new_subs;
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceUnion<DIM,T>::IndexSpaceUnion(
-                            const std::vector<IndexSpaceExpression*> &to_union)
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::UNION_OP_KIND),
+    IndexSpaceUnion<DIM, T>::IndexSpaceUnion(
+        const std::vector<IndexSpaceExpression*>& to_union)
+      : IndexSpaceOperationT<DIM, T>(IndexSpaceOperation::UNION_OP_KIND),
         sub_expressions(to_union)
     //--------------------------------------------------------------------------
     {
@@ -1932,10 +1903,10 @@ namespace Legion {
       this->add_base_resource_ref(REGION_TREE_REF);
       ApUserEvent to_trigger;
       std::set<ApEvent> preconditions;
-      std::vector<Realm::IndexSpace<DIM,T> > spaces(sub_expressions.size());
+      std::vector<Realm::IndexSpace<DIM, T> > spaces(sub_expressions.size());
       for (unsigned idx = 0; idx < sub_expressions.size(); idx++)
       {
-        IndexSpaceExpression *sub = sub_expressions[idx];
+        IndexSpaceExpression* sub = sub_expressions[idx];
 #ifdef DEBUG_LEGION
         assert(sub->get_canonical_expression() == sub);
 #endif
@@ -1953,44 +1924,43 @@ namespace Legion {
       ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
       if (runtime->profiler != nullptr)
-        runtime->profiler->add_partition_request(requests,
-            implicit_provenance, DEP_PART_UNION_REDUCTION, precondition);
-      this->realm_index_space_ready = ApEvent(
-          Realm::IndexSpace<DIM,T>::compute_union(
+        runtime->profiler->add_partition_request(
+            requests, implicit_provenance, DEP_PART_UNION_REDUCTION,
+            precondition);
+      this->realm_index_space_ready =
+          ApEvent(Realm::IndexSpace<DIM, T>::compute_union(
               spaces, this->realm_index_space, requests, precondition));
       if (to_trigger.exists())
-        Runtime::trigger_event_untraced(to_trigger, this->realm_index_space_ready);
+        Runtime::trigger_event_untraced(
+            to_trigger, this->realm_index_space_ready);
       // Then launch the tighten call for it too since we know we're
       // going to want this eventually
       const RtEvent valid_event(this->realm_index_space.make_valid());
       // See if both the events needed for the tighten call are done
-      if (this->realm_index_space_ready.exists() || 
+      if (this->realm_index_space_ready.exists() ||
           !valid_event.has_triggered())
       {
         IndexSpaceExpression::TightenIndexSpaceArgs args(this, this);
         if (this->realm_index_space_ready.exists())
         {
           if (!valid_event.has_triggered())
-            this->tight_index_space_ready = 
-              runtime->issue_runtime_meta_task(args, 
-                  LG_LATENCY_WORK_PRIORITY, Runtime::merge_events(valid_event,
+            this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+                args, LG_LATENCY_WORK_PRIORITY,
+                Runtime::merge_events(
+                    valid_event,
                     Runtime::protect_event(this->realm_index_space_ready)));
           else
-            this->tight_index_space_ready = 
-              runtime->issue_runtime_meta_task(args, 
-                  LG_LATENCY_WORK_PRIORITY,
-                  Runtime::protect_event(this->realm_index_space_ready));
-        }
-        else
-          this->tight_index_space_ready = 
-            runtime->issue_runtime_meta_task(args, 
-                LG_LATENCY_WORK_PRIORITY, valid_event);
-      }
-      else // We can do the tighten call now
+            this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+                args, LG_LATENCY_WORK_PRIORITY,
+                Runtime::protect_event(this->realm_index_space_ready));
+        } else
+          this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+              args, LG_LATENCY_WORK_PRIORITY, valid_event);
+      } else  // We can do the tighten call now
         this->tighten_index_space();
       if (runtime->legion_spy_enabled)
       {
-        std::vector<IndexSpaceExprID> sources(this->sub_expressions.size()); 
+        std::vector<IndexSpaceExprID> sources(this->sub_expressions.size());
         for (unsigned idx = 0; idx < this->sub_expressions.size(); idx++)
           sources[idx] = this->sub_expressions[idx]->expr_id;
         LegionSpy::log_index_space_union(this->expr_id, sources);
@@ -1999,9 +1969,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceUnion<DIM,T>::IndexSpaceUnion(
-        const Rect<DIM,T> &bounds)
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::UNION_OP_KIND)
+    IndexSpaceUnion<DIM, T>::IndexSpaceUnion(const Rect<DIM, T>& bounds)
+      : IndexSpaceOperationT<DIM, T>(IndexSpaceOperation::UNION_OP_KIND)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2010,14 +1979,14 @@ namespace Legion {
       // expressions for Legion Spy to deal with
       assert(!runtime->legion_spy_enabled);
 #endif
-      this->realm_index_space = DomainT<DIM,T>(bounds);
+      this->realm_index_space = DomainT<DIM, T>(bounds);
       this->tight_index_space = this->realm_index_space;
       this->is_index_space_tight.store(true);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceUnion<DIM,T>::~IndexSpaceUnion(void)
+    IndexSpaceUnion<DIM, T>::~IndexSpaceUnion(void)
     //--------------------------------------------------------------------------
     {
       // Remove references from our sub expressions
@@ -2028,7 +1997,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    bool IndexSpaceUnion<DIM,T>::invalidate_operation(void)
+    bool IndexSpaceUnion<DIM, T>::invalidate_operation(void)
     //--------------------------------------------------------------------------
     {
       // Make sure we only do this one time
@@ -2043,7 +2012,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void IndexSpaceUnion<DIM,T>::remove_operation(void)
+    void IndexSpaceUnion<DIM, T>::remove_operation(void)
     //--------------------------------------------------------------------------
     {
       if (!sub_expressions.empty())
@@ -2052,9 +2021,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceIntersection<DIM,T>::IndexSpaceIntersection(
-                            const std::vector<IndexSpaceExpression*> &to_inter)
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::INTERSECT_OP_KIND),
+    IndexSpaceIntersection<DIM, T>::IndexSpaceIntersection(
+        const std::vector<IndexSpaceExpression*>& to_inter)
+      : IndexSpaceOperationT<DIM, T>(IndexSpaceOperation::INTERSECT_OP_KIND),
         sub_expressions(to_inter)
     //--------------------------------------------------------------------------
     {
@@ -2062,10 +2031,10 @@ namespace Legion {
       this->add_base_resource_ref(REGION_TREE_REF);
       ApUserEvent to_trigger;
       std::set<ApEvent> preconditions;
-      std::vector<Realm::IndexSpace<DIM,T> > spaces(sub_expressions.size());
+      std::vector<Realm::IndexSpace<DIM, T> > spaces(sub_expressions.size());
       for (unsigned idx = 0; idx < sub_expressions.size(); idx++)
       {
-        IndexSpaceExpression *sub = sub_expressions[idx];
+        IndexSpaceExpression* sub = sub_expressions[idx];
 #ifdef DEBUG_LEGION
         assert(sub->get_canonical_expression() == sub);
 #endif
@@ -2082,13 +2051,15 @@ namespace Legion {
       ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
       if (runtime->profiler != nullptr)
-        runtime->profiler->add_partition_request(requests,
-            implicit_provenance, DEP_PART_INTERSECTION_REDUCTION, precondition);
-      this->realm_index_space_ready = ApEvent(
-          Realm::IndexSpace<DIM,T>::compute_intersection(
+        runtime->profiler->add_partition_request(
+            requests, implicit_provenance, DEP_PART_INTERSECTION_REDUCTION,
+            precondition);
+      this->realm_index_space_ready =
+          ApEvent(Realm::IndexSpace<DIM, T>::compute_intersection(
               spaces, this->realm_index_space, requests, precondition));
       if (to_trigger.exists())
-        Runtime::trigger_event_untraced(to_trigger, this->realm_index_space_ready);
+        Runtime::trigger_event_untraced(
+            to_trigger, this->realm_index_space_ready);
       // Then launch the tighten call for it too since we know we're
       // going to want this eventually
       const RtEvent valid_event(this->realm_index_space.make_valid());
@@ -2100,26 +2071,23 @@ namespace Legion {
         if (this->realm_index_space_ready.exists())
         {
           if (!valid_event.has_triggered())
-            this->tight_index_space_ready = 
-              runtime->issue_runtime_meta_task(args, 
-                  LG_LATENCY_WORK_PRIORITY, Runtime::merge_events(valid_event,
+            this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+                args, LG_LATENCY_WORK_PRIORITY,
+                Runtime::merge_events(
+                    valid_event,
                     Runtime::protect_event(this->realm_index_space_ready)));
           else
-            this->tight_index_space_ready = 
-              runtime->issue_runtime_meta_task(args, 
-                  LG_LATENCY_WORK_PRIORITY,
-                  Runtime::protect_event(this->realm_index_space_ready));
-        }
-        else
-          this->tight_index_space_ready = 
-            runtime->issue_runtime_meta_task(args, 
-                LG_LATENCY_WORK_PRIORITY, valid_event);
-      }
-      else // We can do the tighten call now
+            this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+                args, LG_LATENCY_WORK_PRIORITY,
+                Runtime::protect_event(this->realm_index_space_ready));
+        } else
+          this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+              args, LG_LATENCY_WORK_PRIORITY, valid_event);
+      } else  // We can do the tighten call now
         this->tighten_index_space();
       if (runtime->legion_spy_enabled)
       {
-        std::vector<IndexSpaceExprID> sources(this->sub_expressions.size()); 
+        std::vector<IndexSpaceExprID> sources(this->sub_expressions.size());
         for (unsigned idx = 0; idx < this->sub_expressions.size(); idx++)
           sources[idx] = this->sub_expressions[idx]->expr_id;
         LegionSpy::log_index_space_intersection(this->expr_id, sources);
@@ -2128,9 +2096,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceIntersection<DIM,T>::IndexSpaceIntersection(
-        const Rect<DIM,T> &bounds)
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::INTERSECT_OP_KIND)
+    IndexSpaceIntersection<DIM, T>::IndexSpaceIntersection(
+        const Rect<DIM, T>& bounds)
+      : IndexSpaceOperationT<DIM, T>(IndexSpaceOperation::INTERSECT_OP_KIND)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2139,14 +2107,14 @@ namespace Legion {
       // expressions for Legion Spy to deal with
       assert(!runtime->legion_spy_enabled);
 #endif
-      this->realm_index_space = DomainT<DIM,T>(bounds);
+      this->realm_index_space = DomainT<DIM, T>(bounds);
       this->tight_index_space = this->realm_index_space;
       this->is_index_space_tight.store(true);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceIntersection<DIM,T>::~IndexSpaceIntersection(void)
+    IndexSpaceIntersection<DIM, T>::~IndexSpaceIntersection(void)
     //--------------------------------------------------------------------------
     {
       // Remove references from our sub expressions
@@ -2157,7 +2125,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    bool IndexSpaceIntersection<DIM,T>::invalidate_operation(void)
+    bool IndexSpaceIntersection<DIM, T>::invalidate_operation(void)
     //--------------------------------------------------------------------------
     {
       // Make sure we only do this one time
@@ -2172,7 +2140,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void IndexSpaceIntersection<DIM,T>::remove_operation(void)
+    void IndexSpaceIntersection<DIM, T>::remove_operation(void)
     //--------------------------------------------------------------------------
     {
       if (!sub_expressions.empty())
@@ -2181,10 +2149,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceDifference<DIM,T>::IndexSpaceDifference(IndexSpaceExpression *l,
-                IndexSpaceExpression *r) 
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::DIFFERENCE_OP_KIND)
-        , lhs(l), rhs(r)
+    IndexSpaceDifference<DIM, T>::IndexSpaceDifference(
+        IndexSpaceExpression* l, IndexSpaceExpression* r)
+      : IndexSpaceOperationT<DIM, T>(IndexSpaceOperation::DIFFERENCE_OP_KIND),
+        lhs(l), rhs(r)
     //--------------------------------------------------------------------------
     {
       // Add an resource ref that will be removed by the OperationCreator
@@ -2198,12 +2166,11 @@ namespace Legion {
         // Special case for when the expressions are the same
         lhs->add_derived_operation(this);
         lhs->add_tree_expression_reference(this->did);
-        this->realm_index_space = Realm::IndexSpace<DIM,T>::make_empty();
-        this->tight_index_space = Realm::IndexSpace<DIM,T>::make_empty();
+        this->realm_index_space = Realm::IndexSpace<DIM, T>::make_empty();
+        this->tight_index_space = Realm::IndexSpace<DIM, T>::make_empty();
         this->realm_index_space_ready = ApEvent::NO_AP_EVENT;
         this->tight_index_space_ready = RtEvent::NO_RT_EVENT;
-      }
-      else
+      } else
       {
         // Add the parent and the references
         lhs->add_derived_operation(this);
@@ -2213,21 +2180,22 @@ namespace Legion {
         Domain domain;
         ApUserEvent to_trigger;
         ApEvent left_ready = lhs->get_loose_domain(domain, to_trigger);
-        DomainT<DIM,T> lhs_space = domain;
+        DomainT<DIM, T> lhs_space = domain;
         ApEvent right_ready = rhs->get_loose_domain(domain, to_trigger);
-        DomainT<DIM,T> rhs_space = domain;
-        ApEvent precondition = 
-          Runtime::merge_events(nullptr, left_ready, right_ready);
+        DomainT<DIM, T> rhs_space = domain;
+        ApEvent precondition =
+            Runtime::merge_events(nullptr, left_ready, right_ready);
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
-          runtime->profiler->add_partition_request(requests,
-              implicit_provenance, DEP_PART_DIFFERENCE, precondition);
-        this->realm_index_space_ready = ApEvent(
-            Realm::IndexSpace<DIM,T>::compute_difference(lhs_space, rhs_space, 
-                              this->realm_index_space, requests, precondition));
+          runtime->profiler->add_partition_request(
+              requests, implicit_provenance, DEP_PART_DIFFERENCE, precondition);
+        this->realm_index_space_ready =
+            ApEvent(Realm::IndexSpace<DIM, T>::compute_difference(
+                lhs_space, rhs_space, this->realm_index_space, requests,
+                precondition));
         if (to_trigger.exists())
-          Runtime::trigger_event_untraced(to_trigger,
-              this->realm_index_space_ready);
+          Runtime::trigger_event_untraced(
+              to_trigger, this->realm_index_space_ready);
         // Then launch the tighten call for it too since we know we're
         // going to want this eventually
         const RtEvent valid_event(this->realm_index_space.make_valid());
@@ -2239,35 +2207,32 @@ namespace Legion {
           if (this->realm_index_space_ready.exists())
           {
             if (!valid_event.has_triggered())
-              this->tight_index_space_ready = 
-                runtime->issue_runtime_meta_task(args, 
-                    LG_LATENCY_WORK_PRIORITY, Runtime::merge_events(valid_event,
+              this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+                  args, LG_LATENCY_WORK_PRIORITY,
+                  Runtime::merge_events(
+                      valid_event,
                       Runtime::protect_event(this->realm_index_space_ready)));
             else
-              this->tight_index_space_ready = 
-                runtime->issue_runtime_meta_task(args, 
-                    LG_LATENCY_WORK_PRIORITY,
-                    Runtime::protect_event(this->realm_index_space_ready));
-          }
-          else
-            this->tight_index_space_ready = 
-              runtime->issue_runtime_meta_task(args, 
-                  LG_LATENCY_WORK_PRIORITY, valid_event);
-        }
-        else // We can do the tighten call now
+              this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+                  args, LG_LATENCY_WORK_PRIORITY,
+                  Runtime::protect_event(this->realm_index_space_ready));
+          } else
+            this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+                args, LG_LATENCY_WORK_PRIORITY, valid_event);
+        } else  // We can do the tighten call now
           this->tighten_index_space();
       }
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_index_space_difference(this->expr_id,
-                                              lhs->expr_id, rhs->expr_id);
+        LegionSpy::log_index_space_difference(
+            this->expr_id, lhs->expr_id, rhs->expr_id);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceDifference<DIM,T>::IndexSpaceDifference(
-        const Rect<DIM,T> &bounds)
-      : IndexSpaceOperationT<DIM,T>(IndexSpaceOperation::DIFFERENCE_OP_KIND)
-        , lhs(nullptr), rhs(nullptr)
+    IndexSpaceDifference<DIM, T>::IndexSpaceDifference(
+        const Rect<DIM, T>& bounds)
+      : IndexSpaceOperationT<DIM, T>(IndexSpaceOperation::DIFFERENCE_OP_KIND),
+        lhs(nullptr), rhs(nullptr)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2276,17 +2241,17 @@ namespace Legion {
       // expressions for Legion Spy to deal with
       assert(!runtime->legion_spy_enabled);
 #endif
-      this->realm_index_space = DomainT<DIM,T>(bounds);
+      this->realm_index_space = DomainT<DIM, T>(bounds);
       this->tight_index_space = this->realm_index_space;
       this->is_index_space_tight.store(true);
     }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceDifference<DIM,T>::~IndexSpaceDifference(void)
+    IndexSpaceDifference<DIM, T>::~IndexSpaceDifference(void)
     //--------------------------------------------------------------------------
     {
-      if ((rhs != nullptr) && (lhs != rhs) && 
+      if ((rhs != nullptr) && (lhs != rhs) &&
           rhs->remove_tree_expression_reference(this->did))
         delete rhs;
       if ((lhs != nullptr) && lhs->remove_tree_expression_reference(this->did))
@@ -2295,7 +2260,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    bool IndexSpaceDifference<DIM,T>::invalidate_operation(void)
+    bool IndexSpaceDifference<DIM, T>::invalidate_operation(void)
     //--------------------------------------------------------------------------
     {
       // Make sure we only do this one time
@@ -2312,10 +2277,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void IndexSpaceDifference<DIM,T>::remove_operation(void)
+    void IndexSpaceDifference<DIM, T>::remove_operation(void)
     //--------------------------------------------------------------------------
     {
-       if ((lhs != nullptr) && (rhs != nullptr))
+      if ((lhs != nullptr) && (rhs != nullptr))
         runtime->remove_subtraction_operation(this, lhs, rhs);
     }
 
@@ -2325,10 +2290,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    InternalExpression<DIM,T>::InternalExpression(
-           const Rect<DIM,T> *rects, size_t num_rects)
-      : IndexSpaceOperationT<DIM,T>(
-          IndexSpaceOperation::INSTANCE_EXPRESSION_KIND)
+    InternalExpression<DIM, T>::InternalExpression(
+        const Rect<DIM, T>* rects, size_t num_rects)
+      : IndexSpaceOperationT<DIM, T>(
+            IndexSpaceOperation::INSTANCE_EXPRESSION_KIND)
     //--------------------------------------------------------------------------
     {
       // This is another kind of live expression made by the region tree
@@ -2339,22 +2304,19 @@ namespace Legion {
 #endif
       if (num_rects > 1)
       {
-        std::vector<Realm::Rect<DIM,T> > realm_rects(num_rects);
+        std::vector<Realm::Rect<DIM, T> > realm_rects(num_rects);
         for (unsigned idx = 0; idx < num_rects; idx++)
           realm_rects[idx] = rects[idx];
-        this->realm_index_space = Realm::IndexSpace<DIM,T>(realm_rects); 
+        this->realm_index_space = Realm::IndexSpace<DIM, T>(realm_rects);
         const RtEvent valid_event(this->realm_index_space.make_valid());
         if (!valid_event.has_triggered())
         {
           IndexSpaceExpression::TightenIndexSpaceArgs args(this, this);
-          this->tight_index_space_ready = 
-            runtime->issue_runtime_meta_task(args, 
-                LG_LATENCY_WORK_PRIORITY, valid_event);
-        }
-        else // We can do the tighten call now
+          this->tight_index_space_ready = runtime->issue_runtime_meta_task(
+              args, LG_LATENCY_WORK_PRIORITY, valid_event);
+        } else  // We can do the tighten call now
           this->tighten_index_space();
-      }
-      else
+      } else
       {
         this->realm_index_space.bounds = rects[0];
         this->realm_index_space.sparsity.id = 0;
@@ -2364,12 +2326,11 @@ namespace Legion {
       if (runtime->legion_spy_enabled)
       {
         // These index expressions cannot be computed, so we'll pretend
-        // like they are index spaces to Legion Spy since these are 
+        // like they are index spaces to Legion Spy since these are
         // effectively new "atom" index spaces for Legion Spy's analysis
-        const IndexSpaceID fake_space_id = 
-          runtime->get_unique_index_space_id();
-        LegionSpy::log_top_index_space(fake_space_id,
-            runtime->address_space, std::string_view());
+        const IndexSpaceID fake_space_id = runtime->get_unique_index_space_id();
+        LegionSpy::log_top_index_space(
+            fake_space_id, runtime->address_space, std::string_view());
         LegionSpy::log_index_space_expr(fake_space_id, this->expr_id);
         bool all_empty = true;
         for (unsigned idx = 0; idx < num_rects; idx++)
@@ -2390,14 +2351,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    InternalExpression<DIM,T>::~InternalExpression(void)
+    InternalExpression<DIM, T>::~InternalExpression(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    bool InternalExpression<DIM,T>::invalidate_operation(void)
+    bool InternalExpression<DIM, T>::invalidate_operation(void)
     //--------------------------------------------------------------------------
     {
       // should never be called
@@ -2406,27 +2366,27 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void InternalExpression<DIM,T>::remove_operation(void)
+    void InternalExpression<DIM, T>::remove_operation(void)
     //--------------------------------------------------------------------------
     {
       // Nothing to do here since we're not in the region tree
     }
-    
+
     // This is a bit out of place but needs to be here for instantiation to work
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    IndexSpaceExpression* EqKDTreeT<DIM,T>::create_from_rectangles(
-               const std::vector<Domain> &rects) const
+    IndexSpaceExpression* EqKDTreeT<DIM, T>::create_from_rectangles(
+        const std::vector<Domain>& rects) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!rects.empty());
 #endif
-      std::vector<Rect<DIM,T> > rectangles(rects.size());
+      std::vector<Rect<DIM, T> > rectangles(rects.size());
       for (unsigned idx = 0; idx < rects.size(); idx++)
         rectangles[idx] = rects[idx];
-      InternalExpression<DIM,T> *result = new InternalExpression<DIM,T>(
+      InternalExpression<DIM, T>* result = new InternalExpression<DIM, T>(
           &rectangles.front(), rectangles.size());
       // Do a little test to see if there is already a canonical expression
       // that we know about that matches this expression if so we'll use that
@@ -2442,24 +2402,22 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    RemoteExpression<DIM,T>::RemoteExpression(
-        IndexSpaceExprID eid, DistributedID did,
-        IndexSpaceOperation *origin, TypeTag tag, Deserializer &derez)
-      : IndexSpaceOperationT<DIM,T>(eid, did, origin, tag, derez)
+    RemoteExpression<DIM, T>::RemoteExpression(
+        IndexSpaceExprID eid, DistributedID did, IndexSpaceOperation* origin,
+        TypeTag tag, Deserializer& derez)
+      : IndexSpaceOperationT<DIM, T>(eid, did, origin, tag, derez)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    RemoteExpression<DIM,T>::~RemoteExpression(void)
+    RemoteExpression<DIM, T>::~RemoteExpression(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    bool RemoteExpression<DIM,T>::invalidate_operation(void)
+    bool RemoteExpression<DIM, T>::invalidate_operation(void)
     //--------------------------------------------------------------------------
     {
       // should never be called
@@ -2468,12 +2426,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    void RemoteExpression<DIM,T>::remove_operation(void)
+    void RemoteExpression<DIM, T>::remove_operation(void)
     //--------------------------------------------------------------------------
     {
       // nothing to do here
     }
-#endif // DEFINE_NT_TEMPLATES
+#endif  // DEFINE_NT_TEMPLATES
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

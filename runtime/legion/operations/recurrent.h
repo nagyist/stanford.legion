@@ -26,7 +26,8 @@ namespace Legion {
      * \class RecurrentOp
      * A recurrent op supports both the begin and complete interfaces
      */
-    class RecurrentOp : public BeginOp, public CompleteOp { };
+    class RecurrentOp : public BeginOp,
+                        public CompleteOp { };
 
     /**
      * \class TraceRecurrentOp
@@ -36,16 +37,18 @@ namespace Legion {
      * we ensure that the resources from the template are freed up before
      * any other downstream operations attempt to map.
      */
-    class TraceRecurrentOp : public TraceOp, public RecurrentOp {
+    class TraceRecurrentOp : public TraceOp,
+                             public RecurrentOp {
     public:
       TraceRecurrentOp(void);
-      TraceRecurrentOp(const TraceRecurrentOp &rhs) = delete;
+      TraceRecurrentOp(const TraceRecurrentOp& rhs) = delete;
       virtual ~TraceRecurrentOp(void);
     public:
-      TraceRecurrentOp& operator=(const TraceRecurrentOp &rhs) = delete;
+      TraceRecurrentOp& operator=(const TraceRecurrentOp& rhs) = delete;
     public:
-      void initialize_recurrent(InnerContext *ctx, LogicalTrace *trace,
-         LogicalTrace *previous, Provenance *provenance, bool remove_reference);
+      void initialize_recurrent(
+          InnerContext* ctx, LogicalTrace* trace, LogicalTrace* previous,
+          Provenance* provenance, bool remove_reference);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -55,22 +58,25 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceRecognizer &identifier, uint64_t idx);
+      virtual bool record_trace_hash(TraceRecognizer& identifier, uint64_t idx);
     public:
       virtual FenceOp* get_begin_operation(void) { return this; }
-      virtual ApEvent get_begin_completion(void) 
-        { return get_completion_event(); }
-      virtual PhysicalTemplate* create_fresh_template(PhysicalTrace *trace);
+      virtual ApEvent get_begin_completion(void)
+      {
+        return get_completion_event();
+      }
+      virtual PhysicalTemplate* create_fresh_template(PhysicalTrace* trace);
     public:
       virtual FenceOp* get_complete_operation(void) { return this; }
     protected:
-      LogicalTrace *previous;
+      LogicalTrace* previous;
       bool has_blocking_call;
       bool has_intermediate_fence;
       bool remove_trace_reference;
     };
 
-    class ReplRecurrentOp : public ReplTraceOp, public RecurrentOp {
+    class ReplRecurrentOp : public ReplTraceOp,
+                            public RecurrentOp {
     public:
       ReplRecurrentOp(void) : ReplTraceOp() { }
       virtual ~ReplRecurrentOp(void) { }
@@ -80,18 +86,18 @@ namespace Legion {
      * \class ReplTraceRecurrentOp
      * Control replicated version of TraceRecurrentOp
      */
-    class ReplTraceRecurrentOp : 
-      public ReplTraceBegin<ReplTraceComplete<ReplRecurrentOp> > {
+    class ReplTraceRecurrentOp
+      : public ReplTraceBegin<ReplTraceComplete<ReplRecurrentOp> > {
     public:
       ReplTraceRecurrentOp(void);
-      ReplTraceRecurrentOp(const ReplTraceRecurrentOp &rhs) = delete;
+      ReplTraceRecurrentOp(const ReplTraceRecurrentOp& rhs) = delete;
       virtual ~ReplTraceRecurrentOp(void);
     public:
-      ReplTraceRecurrentOp& operator=(
-          const ReplTraceRecurrentOp &rhs) = delete;
+      ReplTraceRecurrentOp& operator=(const ReplTraceRecurrentOp& rhs) = delete;
     public:
-      void initialize_recurrent(ReplicateContext *ctx, LogicalTrace *trace,
-         LogicalTrace *previous, Provenance *provenance, bool remove_reference);
+      void initialize_recurrent(
+          ReplicateContext* ctx, LogicalTrace* trace, LogicalTrace* previous,
+          Provenance* provenance, bool remove_reference);
       void perform_logging(void);
     public:
       virtual void activate(void);
@@ -102,15 +108,15 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceRecognizer &identifier, uint64_t idx);
+      virtual bool record_trace_hash(TraceRecognizer& identifier, uint64_t idx);
     protected:
-      LogicalTrace *previous; 
+      LogicalTrace* previous;
       bool has_blocking_call;
       bool has_intermediate_fence;
       bool remove_trace_reference;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_RECURRENT_OPERATION_H__
+#endif  // __LEGION_RECURRENT_OPERATION_H__

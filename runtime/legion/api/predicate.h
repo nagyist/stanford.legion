@@ -22,7 +22,7 @@ namespace Legion {
 
   /**
    * \class Predicate
-   * Predicate values are used for performing speculative 
+   * Predicate values are used for performing speculative
    * execution within an application.  They are lightweight handles
    * that can be passed around by value and stored in data
    * structures.  However, they should not escape the context of
@@ -36,28 +36,28 @@ namespace Legion {
     static const Predicate FALSE_PRED;
   public:
     Predicate(void);
-    Predicate(const Predicate &p);
-    Predicate(Predicate &&p) noexcept;
+    Predicate(const Predicate& p);
+    Predicate(Predicate&& p) noexcept;
     explicit Predicate(bool value);
     ~Predicate(void);
   protected:
     FRIEND_ALL_RUNTIME_CLASSES
-    Internal::PredicateImpl *impl;
+    Internal::PredicateImpl* impl;
     // Only the runtime should be allowed to make these
-    explicit Predicate(Internal::PredicateImpl *impl);
+    explicit Predicate(Internal::PredicateImpl* impl);
   public:
-    Predicate& operator=(const Predicate &p);
-    Predicate& operator=(Predicate &&p) noexcept;
-    inline bool operator==(const Predicate &p) const;
-    inline bool operator<(const Predicate &p) const;
-    inline bool operator!=(const Predicate &p) const;
+    Predicate& operator=(const Predicate& p);
+    Predicate& operator=(Predicate&& p) noexcept;
+    inline bool operator==(const Predicate& p) const;
+    inline bool operator<(const Predicate& p) const;
+    inline bool operator!=(const Predicate& p) const;
     inline bool exists(void) const { return (impl != nullptr); }
   private:
     bool const_value;
   };
 
-} // namespace Legion
+}  // namespace Legion
 
 #include "legion/api/predicate.inl"
 
-#endif // __LEGION_PREDICATE_H__
+#endif  // __LEGION_PREDICATE_H__

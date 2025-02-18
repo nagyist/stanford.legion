@@ -22,7 +22,7 @@ namespace Legion {
   namespace Internal {
 
     /**
-     * \class LogicalView 
+     * \class LogicalView
      * This class is the abstract base class for representing
      * the logical view onto one or more physical instances
      * in memory.  Logical views are reference counted
@@ -31,12 +31,14 @@ namespace Legion {
      */
     class LogicalView : public DistributedCollectable {
     public:
-      LogicalView(DistributedID did,
-                  bool register_now, CollectiveMapping *mapping);
+      LogicalView(
+          DistributedID did, bool register_now, CollectiveMapping* mapping);
       virtual ~LogicalView(void);
     public:
-      inline bool deterministic_pointer_less(const LogicalView *rhs) const
-        { return (did < rhs->did); }
+      inline bool deterministic_pointer_less(const LogicalView* rhs) const
+      {
+        return (did < rhs->did);
+      }
     public:
       inline bool is_instance_view(void) const;
       inline bool is_deferred_view(void) const;
@@ -59,10 +61,10 @@ namespace Legion {
       inline ReplicatedView* as_replicated_view(void) const;
       inline AllreduceView* as_allreduce_view(void) const;
       inline FillView* as_fill_view(void) const;
-      inline PhiView *as_phi_view(void) const;
+      inline PhiView* as_phi_view(void) const;
     public:
-      virtual void send_view(AddressSpaceID target) = 0; 
-      static void handle_view_request(Deserializer &derez);
+      virtual void send_view(AddressSpaceID target) = 0;
+      static void handle_view_request(Deserializer& derez);
     public:
       inline void add_base_valid_ref(ReferenceSource source, int cnt = 1);
       inline void add_nested_valid_ref(DistributedID source, int cnt = 1);
@@ -108,14 +110,14 @@ namespace Legion {
 #endif
 #ifdef DEBUG_LEGION_GC
     protected:
-      std::map<ReferenceSource,int> detailed_base_valid_references;
-      std::map<DistributedID,int> detailed_nested_valid_references;
+      std::map<ReferenceSource, int> detailed_base_valid_references;
+      std::map<DistributedID, int> detailed_nested_valid_references;
 #endif
     };
 
-  } // namespace Internal
-} // namespace Legion
-  
+  }  // namespace Internal
+}  // namespace Legion
+
 #include "legion/views/logical.inl"
 
-#endif // __LEGION_LOGICAL_VIEW_H__
+#endif  // __LEGION_LOGICAL_VIEW_H__

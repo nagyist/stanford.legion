@@ -33,37 +33,41 @@ namespace Legion {
   class PhysicalRegion : public Unserializable {
   public:
     PhysicalRegion(void);
-    PhysicalRegion(const PhysicalRegion &rhs);
-    PhysicalRegion(PhysicalRegion &&rhs) noexcept;
+    PhysicalRegion(const PhysicalRegion& rhs);
+    PhysicalRegion(PhysicalRegion&& rhs) noexcept;
     ~PhysicalRegion(void);
   private:
-    Internal::PhysicalRegionImpl *impl;
+    Internal::PhysicalRegionImpl* impl;
   protected:
     FRIEND_ALL_RUNTIME_CLASSES
-    explicit PhysicalRegion(Internal::PhysicalRegionImpl *impl);
+    explicit PhysicalRegion(Internal::PhysicalRegionImpl* impl);
   public:
-    PhysicalRegion& operator=(const PhysicalRegion &rhs);
-    PhysicalRegion& operator=(PhysicalRegion &&rhs) noexcept;
+    PhysicalRegion& operator=(const PhysicalRegion& rhs);
+    PhysicalRegion& operator=(PhysicalRegion&& rhs) noexcept;
     inline bool exists(void) const { return (impl != nullptr); }
-    inline bool operator==(const PhysicalRegion &reg) const
-      { return (impl == reg.impl); }
-    inline bool operator<(const PhysicalRegion &reg) const
-      { return (impl < reg.impl); }
+    inline bool operator==(const PhysicalRegion& reg) const
+    {
+      return (impl == reg.impl);
+    }
+    inline bool operator<(const PhysicalRegion& reg) const
+    {
+      return (impl < reg.impl);
+    }
     std::size_t hash(void) const;
   public:
     /**
-     * Check to see if this represents a mapped physical region. 
+     * Check to see if this represents a mapped physical region.
      */
     bool is_mapped(void) const;
     /**
      * For physical regions returned as the result of an
      * inline mapping, this call will block until the physical
      * instance has a valid copy of the data. You can silence
-     * warnings about this blocking call with the 
+     * warnings about this blocking call with the
      * 'silence_warnings' parameter.
      */
-    void wait_until_valid(bool silence_warnings = false,
-                          const char *warning_string = nullptr);
+    void wait_until_valid(
+        bool silence_warnings = false, const char* warning_string = nullptr);
     /**
      * For physical regions returned from inline mappings,
      * this call will query if the instance contains valid
@@ -82,24 +86,24 @@ namespace Legion {
     /**
      * Return the memories where the underlying physical instances locate.
      */
-    void get_memories(std::set<Memory>& memories,
-                      bool silence_warnings = false,
-                      const char *warning_string = nullptr) const;
+    void get_memories(
+        std::set<Memory>& memories, bool silence_warnings = false,
+        const char* warning_string = nullptr) const;
     /**
      * Return a list of fields that the physical region contains.
      */
-    void get_fields(std::vector<FieldID>& fields) const; 
+    void get_fields(std::vector<FieldID>& fields) const;
   public:
     template<int DIM, typename COORD_T>
-    DomainT<DIM,COORD_T> get_bounds(void) const;
+    DomainT<DIM, COORD_T> get_bounds(void) const;
     // We'll also allow this to implicitly cast to a realm index space
     // so that users can easily iterate over the points
     template<int DIM, typename COORD_T>
-    operator DomainT<DIM,COORD_T>(void) const;
+    operator DomainT<DIM, COORD_T>(void) const;
     // They can implicitly cast to a rectangle if there is no
     // sparsity map, runtime will check for this
     template<int DIM, typename COORD_T>
-    operator Rect<DIM,COORD_T>(void) const;
+    operator Rect<DIM, COORD_T>(void) const;
   protected:
     // These methods can only be accessed by accessor classes
     template<PrivilegeMode, typename, int, typename, typename, bool>
@@ -121,56 +125,46 @@ namespace Legion {
     friend class SpanIterator;
     template<typename, int, typename>
     friend class UnsafeSpanIterator;
-    Realm::RegionInstance get_instance_info(PrivilegeMode mode, 
-                                            FieldID fid, size_t field_size,
-                                            void *realm_is, TypeTag type_tag,
-                                            const char *warning_string,
-                                            bool silence_warnings,
-                                            bool generic_accessor,
-                                            bool check_field_size,
-                                            ReductionOpID redop = 0) const;
-    Realm::RegionInstance get_instance_info(PrivilegeMode mode, 
-                            const std::vector<PhysicalRegion> &other_regions,
-                                            FieldID fid, size_t field_size,
-                                            void *realm_is, TypeTag type_tag,
-                                            const char *warning_string,
-                                            bool silence_warnings,
-                                            bool generic_accessor,
-                                            bool check_field_size,
-                                            bool need_bounds,
-                                            ReductionOpID redop = 0) const;
-    Realm::RegionInstance get_padding_info(FieldID fid, size_t field_size,
-                                            Domain *inner, Domain &outer,
-                                            const char *warning_string,
-                                            bool silence_warnings,
-                                            bool generic_accessor,
-                                            bool check_field_size) const;
-    void report_incompatible_accessor(const char *accessor_kind,
-                           Realm::RegionInstance instance, FieldID fid) const;
-    void report_incompatible_multi_accessor(unsigned index, FieldID fid,
-                           Realm::RegionInstance inst1, 
-                           Realm::RegionInstance inst2) const;
-    void report_colocation_violation(const char *accessor_kind, FieldID fid,
-                           Realm::RegionInstance inst1,
-                           Realm::RegionInstance inst2,
-                           const PhysicalRegion &other,
-                           bool reduction = false) const;
-    static void empty_colocation_regions(const char *accessor_kind, 
-                                         FieldID fid, bool reduction = false);
-    static void fail_bounds_check(DomainPoint p, FieldID fid,
-                                  PrivilegeMode mode, bool multi = false);
-    static void fail_bounds_check(Domain d, FieldID fid,
-                                  PrivilegeMode mode, bool multi = false);
-    static void fail_privilege_check(DomainPoint p, FieldID fid,
-                                     PrivilegeMode mode);
-    static void fail_privilege_check(Domain d, FieldID fid,
-                                     PrivilegeMode mode); 
+    Realm::RegionInstance get_instance_info(
+        PrivilegeMode mode, FieldID fid, size_t field_size, void* realm_is,
+        TypeTag type_tag, const char* warning_string, bool silence_warnings,
+        bool generic_accessor, bool check_field_size,
+        ReductionOpID redop = 0) const;
+    Realm::RegionInstance get_instance_info(
+        PrivilegeMode mode, const std::vector<PhysicalRegion>& other_regions,
+        FieldID fid, size_t field_size, void* realm_is, TypeTag type_tag,
+        const char* warning_string, bool silence_warnings,
+        bool generic_accessor, bool check_field_size, bool need_bounds,
+        ReductionOpID redop = 0) const;
+    Realm::RegionInstance get_padding_info(
+        FieldID fid, size_t field_size, Domain* inner, Domain& outer,
+        const char* warning_string, bool silence_warnings,
+        bool generic_accessor, bool check_field_size) const;
+    void report_incompatible_accessor(
+        const char* accessor_kind, Realm::RegionInstance instance,
+        FieldID fid) const;
+    void report_incompatible_multi_accessor(
+        unsigned index, FieldID fid, Realm::RegionInstance inst1,
+        Realm::RegionInstance inst2) const;
+    void report_colocation_violation(
+        const char* accessor_kind, FieldID fid, Realm::RegionInstance inst1,
+        Realm::RegionInstance inst2, const PhysicalRegion& other,
+        bool reduction = false) const;
+    static void empty_colocation_regions(
+        const char* accessor_kind, FieldID fid, bool reduction = false);
+    static void fail_bounds_check(
+        DomainPoint p, FieldID fid, PrivilegeMode mode, bool multi = false);
+    static void fail_bounds_check(
+        Domain d, FieldID fid, PrivilegeMode mode, bool multi = false);
+    static void fail_privilege_check(
+        DomainPoint p, FieldID fid, PrivilegeMode mode);
+    static void fail_privilege_check(Domain d, FieldID fid, PrivilegeMode mode);
     static void fail_padding_check(DomainPoint p, FieldID fid);
     static void fail_nondense_rect(void);
     static void fail_rect_piece(void);
   protected:
-    void get_bounds(void *realm_is, TypeTag type_tag) const;
-  }; 
+    void get_bounds(void* realm_is, TypeTag type_tag) const;
+  };
 
   /**
    * \class ExternalResources
@@ -182,22 +176,26 @@ namespace Legion {
   class ExternalResources : public Unserializable {
   public:
     ExternalResources(void);
-    ExternalResources(const ExternalResources &rhs);
-    ExternalResources(ExternalResources &&rhs) noexcept;
+    ExternalResources(const ExternalResources& rhs);
+    ExternalResources(ExternalResources&& rhs) noexcept;
     ~ExternalResources(void);
   private:
-    Internal::ExternalResourcesImpl *impl;
+    Internal::ExternalResourcesImpl* impl;
   protected:
     FRIEND_ALL_RUNTIME_CLASSES
-    explicit ExternalResources(Internal::ExternalResourcesImpl *impl);
+    explicit ExternalResources(Internal::ExternalResourcesImpl* impl);
   public:
-    ExternalResources& operator=(const ExternalResources &rhs);
-    ExternalResources& operator=(ExternalResources &&rhs) noexcept;
+    ExternalResources& operator=(const ExternalResources& rhs);
+    ExternalResources& operator=(ExternalResources&& rhs) noexcept;
     inline bool exists(void) const { return (impl != nullptr); }
-    inline bool operator==(const ExternalResources &reg) const
-      { return (impl == reg.impl); }
-    inline bool operator<(const ExternalResources &reg) const
-      { return (impl < reg.impl); }
+    inline bool operator==(const ExternalResources& reg) const
+    {
+      return (impl == reg.impl);
+    }
+    inline bool operator<(const ExternalResources& reg) const
+    {
+      return (impl < reg.impl);
+    }
   public:
     size_t size(void) const;
     PhysicalRegion operator[](unsigned index) const;
@@ -206,18 +204,18 @@ namespace Legion {
   /**
    * \class PieceIterator
    * When mappers create a physical instance of a logical region, they have
-   * the option of choosing a layout that is affine or compact. Affine 
+   * the option of choosing a layout that is affine or compact. Affine
    * layouts have space for the convex hull of a logical region and support
    * O(1) memory accesses. Compact layouts have affine "pieces" of memory
-   * for subsets of the points in the logical region. A PieceIterator object 
+   * for subsets of the points in the logical region. A PieceIterator object
    * supports iteration over all such affine pieces in a compact instance so
    * that an accessor can be made for each one. Note that you can also make
-   * a PieceIterator for a instance with an affine layout: it is just a 
+   * a PieceIterator for a instance with an affine layout: it is just a
    * special case that contains a single piece. Note that the pieces are
    * rectangles which maybe different than the the rectangles in the original
    * index space for the logical region of this physical region. Furthermore,
    * the pieces are iterated in the order that they are laid out in memory
-   * which is unrelated to the order rectangles are iterated for the index 
+   * which is unrelated to the order rectangles are iterated for the index
    * space of the logical region for the physical region. The application can
    * control whether only rectangles with privileges are presented with the
    * privilege_only flag. If the privilege_only flag is set to true then each
@@ -229,16 +227,15 @@ namespace Legion {
   class PieceIterator {
   public:
     PieceIterator(void);
-    PieceIterator(const PieceIterator &rhs);
-    PieceIterator(PieceIterator &&rhs) noexcept;
-    PieceIterator(const PhysicalRegion &region, FieldID fid,
-                  bool privilege_only = true,
-                  bool silence_warnings = false,
-                  const char *warning_string = nullptr);
+    PieceIterator(const PieceIterator& rhs);
+    PieceIterator(PieceIterator&& rhs) noexcept;
+    PieceIterator(
+        const PhysicalRegion& region, FieldID fid, bool privilege_only = true,
+        bool silence_warnings = false, const char* warning_string = nullptr);
     ~PieceIterator(void);
   public:
-    PieceIterator& operator=(const PieceIterator &rhs);
-    PieceIterator& operator=(PieceIterator &&rhs) noexcept;
+    PieceIterator& operator=(const PieceIterator& rhs);
+    PieceIterator& operator=(PieceIterator&& rhs) noexcept;
   public:
     inline bool valid(void) const;
     bool step(void);
@@ -248,13 +245,13 @@ namespace Legion {
     inline const Domain& operator*(void) const;
     inline const Domain* operator->(void) const;
     inline PieceIterator& operator++(void);
-    inline PieceIterator operator++(int/*postfix*/);
+    inline PieceIterator operator++(int /*postfix*/);
   public:
-    bool operator<(const PieceIterator &rhs) const;
-    bool operator==(const PieceIterator &rhs) const;
-    bool operator!=(const PieceIterator &rhs) const;
+    bool operator<(const PieceIterator& rhs) const;
+    bool operator==(const PieceIterator& rhs) const;
+    bool operator!=(const PieceIterator& rhs) const;
   private:
-    Internal::PieceIteratorImpl *impl;
+    Internal::PieceIteratorImpl* impl;
     int index;
   protected:
     Domain current_piece;
@@ -273,23 +270,22 @@ namespace Legion {
     static_assert(std::is_integral<COORD_T>::value, "must be integral type");
   public:
     PieceIteratorT(void);
-    PieceIteratorT(const PieceIteratorT &rhs);
-    PieceIteratorT(PieceIteratorT &&rhs) noexcept;
-    PieceIteratorT(const PhysicalRegion &region, FieldID fid,
-                   bool privilege_only,
-                   bool silence_warnings = false,
-                   const char *warning_string = nullptr);
+    PieceIteratorT(const PieceIteratorT& rhs);
+    PieceIteratorT(PieceIteratorT&& rhs) noexcept;
+    PieceIteratorT(
+        const PhysicalRegion& region, FieldID fid, bool privilege_only,
+        bool silence_warnings = false, const char* warning_string = nullptr);
   public:
-    PieceIteratorT<DIM,COORD_T>& operator=(const PieceIteratorT &rhs);
-    PieceIteratorT<DIM,COORD_T>& operator=(PieceIteratorT &&rhs) noexcept;
+    PieceIteratorT<DIM, COORD_T>& operator=(const PieceIteratorT& rhs);
+    PieceIteratorT<DIM, COORD_T>& operator=(PieceIteratorT&& rhs) noexcept;
   public:
     inline bool step(void);
-    inline const Rect<DIM,COORD_T>& operator*(void) const;
-    inline const Rect<DIM,COORD_T>* operator->(void) const;
-    inline PieceIteratorT<DIM,COORD_T>& operator++(void);
-    inline PieceIteratorT<DIM,COORD_T> operator++(int/*postfix*/);
+    inline const Rect<DIM, COORD_T>& operator*(void) const;
+    inline const Rect<DIM, COORD_T>* operator->(void) const;
+    inline PieceIteratorT<DIM, COORD_T>& operator++(void);
+    inline PieceIteratorT<DIM, COORD_T> operator++(int /*postfix*/);
   protected:
-    Rect<DIM,COORD_T> current_rect;
+    Rect<DIM, COORD_T> current_rect;
   };
 
   /**
@@ -309,65 +305,109 @@ namespace Legion {
       typedef std::random_access_iterator_tag iterator_category;
       typedef FT value_type;
       typedef std::ptrdiff_t difference_type;
-      typedef FT *pointer;
+      typedef FT* pointer;
       typedef FT& reference;
 
-      iterator(void) : ptr(nullptr), stride(0) { } 
+      iterator(void) : ptr(nullptr), stride(0) { }
     private:
-      iterator(uint8_t *p, size_t s) : ptr(p), stride(s) { }
+      iterator(uint8_t* p, size_t s) : ptr(p), stride(s) { }
     public:
-      inline iterator& operator=(const iterator &rhs) 
-        { ptr = rhs.ptr; stride = rhs.stride; return *this; }
-      inline iterator& operator+=(int rhs) { ptr += stride; return *this; }
-      inline iterator& operator-=(int rhs) { ptr -= stride; return *this; }
-      inline FT& operator*(void) const 
-        { 
-          FT *result = nullptr;
-          static_assert(sizeof(result) == sizeof(ptr));
-          memcpy(&result, &ptr, sizeof(result));
-          return *result;
-        }
+      inline iterator& operator=(const iterator& rhs)
+      {
+        ptr = rhs.ptr;
+        stride = rhs.stride;
+        return *this;
+      }
+      inline iterator& operator+=(int rhs)
+      {
+        ptr += stride;
+        return *this;
+      }
+      inline iterator& operator-=(int rhs)
+      {
+        ptr -= stride;
+        return *this;
+      }
+      inline FT& operator*(void) const
+      {
+        FT* result = nullptr;
+        static_assert(sizeof(result) == sizeof(ptr));
+        memcpy(&result, &ptr, sizeof(result));
+        return *result;
+      }
       inline FT* operator->(void) const
-        { 
-          FT *result = nullptr;
-          static_assert(sizeof(result) == sizeof(ptr));
-          memcpy(&result, &ptr, sizeof(result));
-          return result;
-        }
+      {
+        FT* result = nullptr;
+        static_assert(sizeof(result) == sizeof(ptr));
+        memcpy(&result, &ptr, sizeof(result));
+        return result;
+      }
       inline FT& operator[](int rhs) const
-        { 
-          FT *result = nullptr;
-          uint8_t *ptr2 = ptr + rhs * stride;
-          static_assert(sizeof(result) == sizeof(ptr2));
-          memcpy(&result, &ptr2, sizeof(result));
-          return *result;
-        }
+      {
+        FT* result = nullptr;
+        uint8_t* ptr2 = ptr + rhs * stride;
+        static_assert(sizeof(result) == sizeof(ptr2));
+        memcpy(&result, &ptr2, sizeof(result));
+        return *result;
+      }
     public:
-      inline iterator& operator++(void) { ptr += stride; return *this; }
-      inline iterator& operator--(void) { ptr -= stride; return *this; }
-      inline iterator operator++(int) 
-        { iterator it(ptr, stride); ptr += stride; return it; }
-      inline iterator operator--(int) 
-        { iterator it(ptr, stride); ptr -= stride; return it; }
-      inline iterator operator+(int rhs) const 
-        { return iterator(ptr + stride * rhs, stride); }
-      inline iterator operator-(int rhs) const 
-        { return iterator(ptr - stride * rhs, stride); }
+      inline iterator& operator++(void)
+      {
+        ptr += stride;
+        return *this;
+      }
+      inline iterator& operator--(void)
+      {
+        ptr -= stride;
+        return *this;
+      }
+      inline iterator operator++(int)
+      {
+        iterator it(ptr, stride);
+        ptr += stride;
+        return it;
+      }
+      inline iterator operator--(int)
+      {
+        iterator it(ptr, stride);
+        ptr -= stride;
+        return it;
+      }
+      inline iterator operator+(int rhs) const
+      {
+        return iterator(ptr + stride * rhs, stride);
+      }
+      inline iterator operator-(int rhs) const
+      {
+        return iterator(ptr - stride * rhs, stride);
+      }
     public:
-      inline bool operator==(const iterator &rhs) const 
-        { return (ptr == rhs.ptr); }
-      inline bool operator!=(const iterator &rhs) const 
-        { return (ptr != rhs.ptr); }
-      inline bool operator<(const iterator &rhs) const 
-        { return (ptr < rhs.ptr); }
-      inline bool operator>(const iterator &rhs) const 
-        { return (ptr > rhs.ptr); }
-      inline bool operator<=(const iterator &rhs) const 
-        { return (ptr <= rhs.ptr); }
-      inline bool operator>=(const iterator &rhs) const
-        { return (ptr >= rhs.ptr); }
+      inline bool operator==(const iterator& rhs) const
+      {
+        return (ptr == rhs.ptr);
+      }
+      inline bool operator!=(const iterator& rhs) const
+      {
+        return (ptr != rhs.ptr);
+      }
+      inline bool operator<(const iterator& rhs) const
+      {
+        return (ptr < rhs.ptr);
+      }
+      inline bool operator>(const iterator& rhs) const
+      {
+        return (ptr > rhs.ptr);
+      }
+      inline bool operator<=(const iterator& rhs) const
+      {
+        return (ptr <= rhs.ptr);
+      }
+      inline bool operator>=(const iterator& rhs) const
+      {
+        return (ptr >= rhs.ptr);
+      }
     private:
-      uint8_t *ptr;
+      uint8_t* ptr;
       size_t stride;
     };
     class reverse_iterator {
@@ -376,136 +416,182 @@ namespace Legion {
       typedef std::random_access_iterator_tag iterator_category;
       typedef FT value_type;
       typedef std::ptrdiff_t difference_type;
-      typedef FT *pointer;
+      typedef FT* pointer;
       typedef FT& reference;
 
-      reverse_iterator(void) : ptr(nullptr), stride(0) { } 
+      reverse_iterator(void) : ptr(nullptr), stride(0) { }
     private:
-      reverse_iterator(uint8_t *p, size_t s) : ptr(p), stride(s) { }
+      reverse_iterator(uint8_t* p, size_t s) : ptr(p), stride(s) { }
     public:
-      inline reverse_iterator& operator=(const reverse_iterator &rhs) 
-        { ptr = rhs.ptr; stride = rhs.stride; return *this; }
-      inline reverse_iterator& operator+=(int rhs) 
-        { ptr -= stride; return *this; }
-      inline reverse_iterator& operator-=(int rhs) 
-        { ptr += stride; return *this; }
-      inline FT& operator*(void) const 
-        { 
-          FT *result = nullptr;
-          static_assert(sizeof(result) == sizeof(ptr));
-          memcpy(&result, &ptr, sizeof(result));
-          return *result;
-        }
+      inline reverse_iterator& operator=(const reverse_iterator& rhs)
+      {
+        ptr = rhs.ptr;
+        stride = rhs.stride;
+        return *this;
+      }
+      inline reverse_iterator& operator+=(int rhs)
+      {
+        ptr -= stride;
+        return *this;
+      }
+      inline reverse_iterator& operator-=(int rhs)
+      {
+        ptr += stride;
+        return *this;
+      }
+      inline FT& operator*(void) const
+      {
+        FT* result = nullptr;
+        static_assert(sizeof(result) == sizeof(ptr));
+        memcpy(&result, &ptr, sizeof(result));
+        return *result;
+      }
       inline FT* operator->(void) const
-        { 
-          FT *result = nullptr;
-          static_assert(sizeof(result) == sizeof(ptr));
-          memcpy(&result, &ptr, sizeof(result));
-          return result;
-        }
+      {
+        FT* result = nullptr;
+        static_assert(sizeof(result) == sizeof(ptr));
+        memcpy(&result, &ptr, sizeof(result));
+        return result;
+      }
       inline FT& operator[](int rhs) const
-        { 
-          FT *result = nullptr;
-          uint8_t *ptr2 = ptr - rhs * stride;
-          static_assert(sizeof(result) == sizeof(ptr2));
-          memcpy(&result, &ptr2, sizeof(result));
-          return *result;
-        }
+      {
+        FT* result = nullptr;
+        uint8_t* ptr2 = ptr - rhs * stride;
+        static_assert(sizeof(result) == sizeof(ptr2));
+        memcpy(&result, &ptr2, sizeof(result));
+        return *result;
+      }
     public:
-      inline reverse_iterator& operator++(void) 
-        { ptr -= stride; return *this; }
-      inline reverse_iterator& operator--(void) 
-        { ptr += stride; return *this; }
-      inline reverse_iterator operator++(int) 
-        { reverse_iterator it(ptr, stride); ptr -= stride; return it; }
-      inline reverse_iterator operator--(int) 
-        { reverse_iterator it(ptr, stride); ptr += stride; return it; }
-      inline reverse_iterator operator+(int rhs) const 
-        { return reverse_iterator(ptr - stride * rhs, stride); }
-      inline reverse_iterator operator-(int rhs) const 
-        { return reverse_iterator(ptr + stride * rhs, stride); }
+      inline reverse_iterator& operator++(void)
+      {
+        ptr -= stride;
+        return *this;
+      }
+      inline reverse_iterator& operator--(void)
+      {
+        ptr += stride;
+        return *this;
+      }
+      inline reverse_iterator operator++(int)
+      {
+        reverse_iterator it(ptr, stride);
+        ptr -= stride;
+        return it;
+      }
+      inline reverse_iterator operator--(int)
+      {
+        reverse_iterator it(ptr, stride);
+        ptr += stride;
+        return it;
+      }
+      inline reverse_iterator operator+(int rhs) const
+      {
+        return reverse_iterator(ptr - stride * rhs, stride);
+      }
+      inline reverse_iterator operator-(int rhs) const
+      {
+        return reverse_iterator(ptr + stride * rhs, stride);
+      }
     public:
-      inline bool operator==(const reverse_iterator &rhs) const
-        { return (ptr == rhs.ptr); }
-      inline bool operator!=(const reverse_iterator &rhs) const
-        { return (ptr != rhs.ptr); }
-      inline bool operator<(const reverse_iterator &rhs) const
-        { return (ptr > rhs.ptr); }
-      inline bool operator>(const reverse_iterator &rhs) const
-        { return (ptr < rhs.ptr); }
-      inline bool operator<=(const reverse_iterator &rhs) const
-        { return (ptr >= rhs.ptr); }
-      inline bool operator>=(const reverse_iterator &rhs) const
-        { return (ptr <= rhs.ptr); }
+      inline bool operator==(const reverse_iterator& rhs) const
+      {
+        return (ptr == rhs.ptr);
+      }
+      inline bool operator!=(const reverse_iterator& rhs) const
+      {
+        return (ptr != rhs.ptr);
+      }
+      inline bool operator<(const reverse_iterator& rhs) const
+      {
+        return (ptr > rhs.ptr);
+      }
+      inline bool operator>(const reverse_iterator& rhs) const
+      {
+        return (ptr < rhs.ptr);
+      }
+      inline bool operator<=(const reverse_iterator& rhs) const
+      {
+        return (ptr >= rhs.ptr);
+      }
+      inline bool operator>=(const reverse_iterator& rhs) const
+      {
+        return (ptr <= rhs.ptr);
+      }
     private:
-      uint8_t *ptr;
+      uint8_t* ptr;
       size_t stride;
     };
   public:
     Span(void) : base(nullptr), extent(0), stride(0) { }
-    Span(FT *b, size_t e, size_t s = sizeof(FT))
+    Span(FT* b, size_t e, size_t s = sizeof(FT))
       : base(nullptr), extent(e), stride(s)
-      {
-        static_assert(sizeof(base) == sizeof(b));
-        memcpy(&base, &b, sizeof(base));
-      }
+    {
+      static_assert(sizeof(base) == sizeof(b));
+      memcpy(&base, &b, sizeof(base));
+    }
   public:
     inline iterator begin(void) const { return iterator(base, stride); }
-    inline iterator end(void) const 
-      { return iterator(base + extent*stride, stride); }
+    inline iterator end(void) const
+    {
+      return iterator(base + extent * stride, stride);
+    }
     inline reverse_iterator rbegin(void) const
-      { return reverse_iterator(base + (extent-1) * stride, stride); }
+    {
+      return reverse_iterator(base + (extent - 1) * stride, stride);
+    }
     inline reverse_iterator rend(void) const
-      { return reverse_iterator(base - stride, stride); }
+    {
+      return reverse_iterator(base - stride, stride);
+    }
   public:
-    inline FT& front(void) const 
-      { 
-        FT *result = nullptr;
-        static_assert(sizeof(result) == sizeof(base));
-        memcpy(&result, &base, sizeof(result));
-        return *result;
-      }
+    inline FT& front(void) const
+    {
+      FT* result = nullptr;
+      static_assert(sizeof(result) == sizeof(base));
+      memcpy(&result, &base, sizeof(result));
+      return *result;
+    }
     inline FT& back(void) const
-      {
-        FT *result = nullptr;
-        uint8_t *ptr = base + (extent-1)*stride;
-        static_assert(sizeof(result) == sizeof(ptr));
-        memcpy(&result, &ptr, sizeof(result));
-        return *result;
-      }
+    {
+      FT* result = nullptr;
+      uint8_t* ptr = base + (extent - 1) * stride;
+      static_assert(sizeof(result) == sizeof(ptr));
+      memcpy(&result, &ptr, sizeof(result));
+      return *result;
+    }
     inline FT& operator[](int index) const
-      { 
-        FT *result = nullptr;
-        uint8_t *ptr = base + index * stride;
-        static_assert(sizeof(result) == sizeof(ptr));
-        memcpy(&result, &ptr, sizeof(result));
-        return *result;
-      }
+    {
+      FT* result = nullptr;
+      uint8_t* ptr = base + index * stride;
+      static_assert(sizeof(result) == sizeof(ptr));
+      memcpy(&result, &ptr, sizeof(result));
+      return *result;
+    }
     inline FT* data(void) const
-      {
-        FT *result = nullptr;
-        static_assert(sizeof(result) == sizeof(base));
-        memcpy(&result, &base, sizeof(result));
-        return result;
-      }
+    {
+      FT* result = nullptr;
+      static_assert(sizeof(result) == sizeof(base));
+      memcpy(&result, &base, sizeof(result));
+      return result;
+    }
     inline uintptr_t get_base(void) const { return uintptr_t(base); }
   public:
     inline size_t size(void) const { return extent; }
     inline size_t step(void) const { return stride; }
     inline bool empty(void) const { return (extent == 0); }
   private:
-    uint8_t *base;
-    size_t extent; // number of elements
-    size_t stride; // byte stride
+    uint8_t* base;
+    size_t extent;  // number of elements
+    size_t stride;  // byte stride
   };
 
   /**
    * \class SpanIterator
    * While the common model for compact instances is to use a piece iterator
    * to walk over pieces and create a field accessor to index the elements in
-   * each piece, some applications want to transpose these loops and walk 
-   * linearly over all spans of a field with a common stride without needing 
-   * to know which piece they belong to. The SpanIterator class allows this 
+   * each piece, some applications want to transpose these loops and walk
+   * linearly over all spans of a field with a common stride without needing
+   * to know which piece they belong to. The SpanIterator class allows this
    * piece-agnostic traversal of a field.
    */
   template<PrivilegeMode PM, typename FT, int DIM, typename COORD_T = coord_t>
@@ -516,41 +602,41 @@ namespace Legion {
     static_assert(std::is_integral<COORD_T>::value, "must be integral type");
   public:
     SpanIterator(void) { }
-    SpanIterator(const PhysicalRegion &region, FieldID fid,
-                 // The actual field size in case it is different from the 
-                 // one being used in FT and we still want to check it
-                 size_t actual_field_size = sizeof(FT),
+    SpanIterator(
+        const PhysicalRegion& region, FieldID fid,
+        // The actual field size in case it is different from the
+        // one being used in FT and we still want to check it
+        size_t actual_field_size = sizeof(FT),
 #ifdef DEBUG_LEGION
-                 bool check_field_size = true,
+        bool check_field_size = true,
 #else
-                 bool check_field_size = false,
+        bool check_field_size = false,
 #endif
-                 // Iterate only the spans that we have privileges on
-                 bool privileges_only = true,
-                 bool silence_warnings = false,
-                 const char *warning_string = nullptr);
+        // Iterate only the spans that we have privileges on
+        bool privileges_only = true, bool silence_warnings = false,
+        const char* warning_string = nullptr);
   public:
     inline bool valid(void) const;
     inline bool step(void);
   public:
     inline operator bool(void) const;
     inline bool operator()(void) const;
-    inline const Span<FT,PM>& operator*(void) const;
-    inline const Span<FT,PM>* operator->(void) const;
-    inline SpanIterator<PM,FT,DIM,COORD_T>& operator++(void);
-    inline SpanIterator<PM,FT,DIM,COORD_T> operator++(int);
+    inline const Span<FT, PM>& operator*(void) const;
+    inline const Span<FT, PM>* operator->(void) const;
+    inline SpanIterator<PM, FT, DIM, COORD_T>& operator++(void);
+    inline SpanIterator<PM, FT, DIM, COORD_T> operator++(int);
   private:
-    PieceIteratorT<DIM,COORD_T> piece_iterator;
-    Realm::MultiAffineAccessor<FT,DIM,COORD_T> accessor;
-    Span<FT,PM> current;
-    Point<DIM,COORD_T> partial_step_point;
+    PieceIteratorT<DIM, COORD_T> piece_iterator;
+    Realm::MultiAffineAccessor<FT, DIM, COORD_T> accessor;
+    Span<FT, PM> current;
+    Point<DIM, COORD_T> partial_step_point;
     int dim_order[DIM];
     int partial_step_dim;
     bool partial_piece;
   };
 
-} // namespace Legion
+}  // namespace Legion
 
 #include "legion/api/physical_region.inl"
 
-#endif // __LEGION_PHYSICAL_REGION_H__
+#endif  // __LEGION_PHYSICAL_REGION_H__

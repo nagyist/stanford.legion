@@ -19,28 +19,29 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Virtual Manager 
+    // Virtual Manager
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    VirtualManager::VirtualManager(DistributedID did,
-                            LayoutDescription *desc, CollectiveMapping *mapping)
-      : InstanceManager(did, desc,
-                        nullptr/*field space node*/,nullptr/*index space expression*/,
-                        0/*tree id*/, true/*register now*/, mapping)
+    VirtualManager::VirtualManager(
+        DistributedID did, LayoutDescription* desc, CollectiveMapping* mapping)
+      : InstanceManager(
+            did, desc, nullptr /*field space node*/,
+            nullptr /*index space expression*/, 0 /*tree id*/,
+            true /*register now*/, mapping)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_GC
-      log_garbage.info("GC Virtual Manager %lld %d",
-                        LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space); 
+      log_garbage.info(
+          "GC Virtual Manager %lld %d", LEGION_DISTRIBUTED_ID_FILTER(this->did),
+          local_space);
 #endif
     }
 
     //--------------------------------------------------------------------------
     VirtualManager::~VirtualManager(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     PointerConstraint VirtualManager::get_pointer_constraint(void) const
@@ -57,5 +58,5 @@ namespace Legion {
       std::abort();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

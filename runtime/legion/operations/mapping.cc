@@ -31,12 +31,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     ExternalMapping::ExternalMapping(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ExternalMapping::pack_external_mapping(Serializer &rez, 
-                                                AddressSpaceID target) const
+    void ExternalMapping::pack_external_mapping(
+        Serializer& rez, AddressSpaceID target) const
     //--------------------------------------------------------------------------
     {
       RezCheck z(rez);
@@ -56,7 +55,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalMapping::unpack_external_mapping(Deserializer &derez)
+    void ExternalMapping::unpack_external_mapping(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -84,25 +83,23 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Map Operation 
+    // Map Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MapOp::MapOp(void)
-      : ExternalMapping(), Operation()
+    MapOp::MapOp(void) : ExternalMapping(), Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     MapOp::~MapOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    PhysicalRegion MapOp::initialize(InnerContext *ctx, 
-                         const InlineLauncher &launcher, Provenance *provenance)
+    PhysicalRegion MapOp::initialize(
+        InnerContext* ctx, const InlineLauncher& launcher,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       parent_task = ctx->get_task();
@@ -112,11 +109,11 @@ namespace Legion {
         verify_requirement(requirement);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       const ApUserEvent term_event = Runtime::create_ap_user_event(nullptr);
-      region = PhysicalRegion(new PhysicalRegionImpl(requirement,
-            get_mapped_event(), ready_event, term_event, true/*mapped*/, ctx,
-            map_id, tag, false/*leaf*/, false/*virtual mapped*/,
-            true/*collective for replication*/, 
-            ctx->get_next_blocking_index()));
+      region = PhysicalRegion(new PhysicalRegionImpl(
+          requirement, get_mapped_event(), ready_event, term_event,
+          true /*mapped*/, ctx, map_id, tag, false /*leaf*/,
+          false /*virtual mapped*/, true /*collective for replication*/,
+          ctx->get_next_blocking_index()));
       termination_event = term_event;
       grants = launcher.grants;
       // Register ourselves with all the grants
@@ -124,13 +121,13 @@ namespace Legion {
         grants[idx].impl->register_operation(termination_event);
       wait_barriers = launcher.wait_barriers;
 #ifdef LEGION_SPY
-      for (std::vector<PhaseBarrier>::const_iterator it = 
-            launcher.arrive_barriers.begin(); it != 
-            launcher.arrive_barriers.end(); it++)
+      for (std::vector<PhaseBarrier>::const_iterator it =
+               launcher.arrive_barriers.begin();
+           it != launcher.arrive_barriers.end(); it++)
       {
         arrive_barriers.push_back(*it);
-        LegionSpy::log_event_dependence(it->phase_barrier,
-            arrive_barriers.back().phase_barrier);
+        LegionSpy::log_event_dependence(
+            it->phase_barrier, arrive_barriers.back().phase_barrier);
       }
 #else
       arrive_barriers = launcher.arrive_barriers;
@@ -147,16 +144,16 @@ namespace Legion {
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
       layout_constraint_id = launcher.layout_constraint_id;
-      
+
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_mapping_operation(parent_ctx->get_unique_id(),
-                                         unique_op_id);
+        LegionSpy::log_mapping_operation(
+            parent_ctx->get_unique_id(), unique_op_id);
       return region;
     }
 
     //--------------------------------------------------------------------------
-    void MapOp::initialize(InnerContext *ctx, const PhysicalRegion &reg,
-                           Provenance *provenance)
+    void MapOp::initialize(
+        InnerContext* ctx, const PhysicalRegion& reg, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -169,14 +166,14 @@ namespace Legion {
       map_id = reg.impl->map_id;
       tag = reg.impl->tag;
       region = reg;
-      termination_event = 
-        region.impl->remap_region(ready_event, ctx->get_next_blocking_index());
+      termination_event = region.impl->remap_region(
+          ready_event, ctx->get_next_blocking_index());
       remap_region = true;
       // No need to check the privileges here since we know that we have
       // them from the first time that we made this physical region
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_mapping_operation(parent_ctx->get_unique_id(),
-                                         unique_op_id);
+        LegionSpy::log_mapping_operation(
+            parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -200,7 +197,7 @@ namespace Legion {
     void MapOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       // Remove our reference to the region
       region = PhysicalRegion();
       grants.clear();
@@ -221,7 +218,7 @@ namespace Legion {
       // Now return this operation to the queue
       if (freeop)
         runtime->free_operation(this);
-    } 
+    }
 
     //--------------------------------------------------------------------------
     const char* MapOp::get_logging_name(void) const
@@ -254,20 +251,18 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void MapOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
-    { 
+    {
       if (runtime->legion_spy_enabled)
-      { 
-        LegionSpy::log_logical_requirement(unique_op_id,0/*index*/,
-                                           true/*region*/,
-                                           requirement.region.index_space.get_id(),
-                                           requirement.region.field_space.get_id(),
-                                           requirement.region.get_tree_id(),
-                                           requirement.privilege,
-                                           requirement.prop,
-                                           requirement.redop,
-                                           requirement.parent.index_space.get_id());
-        LegionSpy::log_requirement_fields(unique_op_id, 0/*index*/,
-                                          requirement.privilege_fields);
+      {
+        LegionSpy::log_logical_requirement(
+            unique_op_id, 0 /*index*/, true /*region*/,
+            requirement.region.index_space.get_id(),
+            requirement.region.field_space.get_id(),
+            requirement.region.get_tree_id(), requirement.privilege,
+            requirement.prop, requirement.redop,
+            requirement.parent.index_space.get_id());
+        LegionSpy::log_requirement_fields(
+            unique_op_id, 0 /*index*/, requirement.privilege_fields);
       }
     }
 
@@ -276,8 +271,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!wait_barriers.empty() || !arrive_barriers.empty())
-        parent_ctx->perform_barrier_dependence_analysis(this, 
-                              wait_barriers, arrive_barriers);
+        parent_ctx->perform_barrier_dependence_analysis(
+            this, wait_barriers, arrive_barriers);
       analyze_region_requirements();
     }
 
@@ -287,10 +282,8 @@ namespace Legion {
     {
       // Compute the version numbers for this mapping operation
       std::set<RtEvent> preconditions;
-      perform_versioning_analysis(0/*idx*/,
-                                                   requirement, 
-                                                   version_info,
-                                                   preconditions);
+      perform_versioning_analysis(
+          0 /*idx*/, requirement, version_info, preconditions);
       if (!preconditions.empty())
         enqueue_ready_operation(Runtime::merge_events(preconditions));
       else
@@ -301,20 +294,20 @@ namespace Legion {
     void MapOp::trigger_mapping(void)
     //--------------------------------------------------------------------------
     {
-      const PhysicalTraceInfo trace_info(this, 0/*index*/);
-      // If we have any wait preconditions from phase barriers or 
+      const PhysicalTraceInfo trace_info(this, 0 /*index*/);
+      // If we have any wait preconditions from phase barriers or
       // grants then we use them to compute a precondition for doing
       // any copies or anything else for this operation
       ApEvent init_precondition = execution_fence_event;
       if (!wait_barriers.empty() || !grants.empty())
       {
-        ApEvent sync_precondition = 
-          merge_sync_preconditions(trace_info, grants, wait_barriers);
+        ApEvent sync_precondition =
+            merge_sync_preconditions(trace_info, grants, wait_barriers);
         if (sync_precondition.exists())
         {
           if (init_precondition.exists())
-            init_precondition = Runtime::merge_events(&trace_info, 
-                                  init_precondition, sync_precondition); 
+            init_precondition = Runtime::merge_events(
+                &trace_info, init_precondition, sync_precondition);
           else
             init_precondition = sync_precondition;
         }
@@ -330,56 +323,48 @@ namespace Legion {
         record_valid = invoke_mapper(mapped_instances, source_instances);
         // First mapping so set the references now
         region.impl->set_references(mapped_instances);
-      }
-      else
+      } else
         region.impl->get_references(mapped_instances);
       // Then we can register our mapped instances
-      ApEvent map_complete_event =
-        physical_perform_updates_and_registration(
-                                                requirement, version_info,
-                                                0/*idx*/,
-                                                init_precondition,
-                                                termination_event, 
-                                                mapped_instances,
-                                                source_instances,
-                                                trace_info,
-                                                map_applied_conditions,
-                                                false/*no dynamic rendezvous*/,
-                                                record_valid);
+      ApEvent map_complete_event = physical_perform_updates_and_registration(
+          requirement, version_info, 0 /*idx*/, init_precondition,
+          termination_event, mapped_instances, source_instances, trace_info,
+          map_applied_conditions, false /*no dynamic rendezvous*/,
+          record_valid);
 #ifdef DEBUG_LEGION
       if (!IS_NO_ACCESS(requirement) && !requirement.privilege_fields.empty())
       {
         assert(!mapped_instances.empty());
-      } 
+      }
 #endif
-      log_mapping_decision(0/*idx*/, requirement, mapped_instances);
+      log_mapping_decision(0 /*idx*/, requirement, mapped_instances);
 
       if (!atomic_locks.empty() || !arrive_barriers.empty())
       {
-        // They've already been sorted in order 
-        for (std::map<Reservation,bool>::const_iterator it = 
-              atomic_locks.begin(); it != atomic_locks.end(); it++)
+        // They've already been sorted in order
+        for (std::map<Reservation, bool>::const_iterator it =
+                 atomic_locks.begin();
+             it != atomic_locks.end(); it++)
         {
-          map_complete_event = 
-                Runtime::acquire_ap_reservation(it->first, it->second,
-                                                map_complete_event);
+          map_complete_event = Runtime::acquire_ap_reservation(
+              it->first, it->second, map_complete_event);
           // We can also issue the release condition on our termination
           Runtime::release_reservation(it->first, termination_event);
         }
-        for (std::vector<PhaseBarrier>::iterator it = 
-              arrive_barriers.begin(); it != arrive_barriers.end(); it++)
+        for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
+             it != arrive_barriers.end(); it++)
         {
           if (runtime->legion_spy_enabled)
-            LegionSpy::log_phase_barrier_arrival(unique_op_id, 
-                                                 it->phase_barrier);
-          runtime->phase_barrier_arrive(it->phase_barrier, 1/*count*/,
-                                        termination_event);    
+            LegionSpy::log_phase_barrier_arrival(
+                unique_op_id, it->phase_barrier);
+          runtime->phase_barrier_arrive(
+              it->phase_barrier, 1 /*count*/, termination_event);
         }
       }
 #ifdef LEGION_SPY
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_operation_events(unique_op_id, map_complete_event,
-                                        ready_event);
+        LegionSpy::log_operation_events(
+            unique_op_id, map_complete_event, ready_event);
 #endif
       // Map operations do not wait for the unmapping to be considered complete
       record_completion_effect(map_complete_event);
@@ -391,8 +376,8 @@ namespace Legion {
       if (!map_applied_conditions.empty())
         mapping_applied = Runtime::merge_events(map_applied_conditions);
       if (!acquired_instances.empty())
-        mapping_applied = release_nonempty_acquired_instances(mapping_applied, 
-                                                          acquired_instances);
+        mapping_applied = release_nonempty_acquired_instances(
+            mapping_applied, acquired_instances);
       complete_mapping(finalize_complete_mapping(mapping_applied));
       complete_execution();
     }
@@ -408,12 +393,12 @@ namespace Legion {
         // do one ourself to inform the mapper that there won't be any
         Mapping::Mapper::InlineProfilingInfo info;
         info.total_reports = 0;
-        info.fill_response = false; // make valgrind happy
-        mapper->invoke_inline_report_profiling(this, info);    
+        info.fill_response = false;  // make valgrind happy
+        mapper->invoke_inline_report_profiling(this, info);
         Runtime::trigger_event(profiling_reported);
       }
       // Don't commit this operation until we've reported our profiling
-      commit_operation(true/*deactivate*/, profiling_reported); 
+      commit_operation(true /*deactivate*/, profiling_reported);
     }
 
     //--------------------------------------------------------------------------
@@ -428,10 +413,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapOp::select_sources(const unsigned index, PhysicalManager *target,
-                               const std::vector<InstanceView*> &sources,
-                               std::vector<unsigned> &ranking,
-                               std::map<unsigned,PhysicalManager*> &points)
+    void MapOp::select_sources(
+        const unsigned index, PhysicalManager* target,
+        const std::vector<InstanceView*>& sources,
+        std::vector<unsigned>& ranking,
+        std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -439,8 +425,8 @@ namespace Legion {
 #endif
       Mapper::SelectInlineSrcInput input;
       Mapper::SelectInlineSrcOutput output;
-      prepare_for_mapping(sources, input.source_instances,
-                          input.collective_views);
+      prepare_for_mapping(
+          sources, input.source_instances, input.collective_views);
       prepare_for_mapping(target, input.target);
       if (mapper == nullptr)
       {
@@ -449,31 +435,31 @@ namespace Legion {
       }
       mapper->invoke_select_inline_sources(this, input, output);
       compute_ranking(mapper, output.chosen_ranking, sources, ranking, points);
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    std::map<PhysicalManager*,unsigned>* MapOp::get_acquired_instances_ref(void)
+    std::map<PhysicalManager*, unsigned>* MapOp::get_acquired_instances_ref(
+        void)
     //--------------------------------------------------------------------------
     {
       return &acquired_instances;
     }
 
     //--------------------------------------------------------------------------
-    void MapOp::update_atomic_locks(const unsigned index,
-                                    Reservation lock, bool exclusive)
+    void MapOp::update_atomic_locks(
+        const unsigned index, Reservation lock, bool exclusive)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(index == 0);
 #endif
       AutoLock o_lock(op_lock);
-      std::map<Reservation,bool>::iterator finder = atomic_locks.find(lock);
+      std::map<Reservation, bool>::iterator finder = atomic_locks.find(lock);
       if (finder != atomic_locks.end())
       {
         if (!finder->second && exclusive)
           finder->second = true;
-      }
-      else
+      } else
         atomic_locks[lock] = exclusive;
     }
 
@@ -482,7 +468,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return unique_op_id;
-    } 
+    }
 
     //--------------------------------------------------------------------------
     uint64_t MapOp::get_context_index(void) const
@@ -518,7 +504,7 @@ namespace Legion {
     const std::string_view& MapOp::get_provenance_string(bool human) const
     //--------------------------------------------------------------------------
     {
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
@@ -526,14 +512,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool MapOp::invoke_mapper(InstanceSet &chosen_instances,
-                              std::vector<PhysicalManager*> &source_instances)
+    bool MapOp::invoke_mapper(
+        InstanceSet& chosen_instances,
+        std::vector<PhysicalManager*>& source_instances)
     //--------------------------------------------------------------------------
     {
       Mapper::MapInlineInput input;
       Mapper::MapInlineOutput output;
       output.copy_fill_priority = 0;
-      output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY; 
+      output.profiling_priority = LG_THROUGHPUT_WORK_PRIORITY;
       output.track_valid_region = true;
       // Invoke the mapper
       if (mapper == nullptr)
@@ -545,31 +532,33 @@ namespace Legion {
       {
         InstanceSet valid_instances;
         FieldMaskSet<ReplicatedView> collectives;
-        physical_premap_region(0/*idx*/, requirement,
-            version_info, valid_instances, collectives, map_applied_conditions);
+        physical_premap_region(
+            0 /*idx*/, requirement, version_info, valid_instances, collectives,
+            map_applied_conditions);
         if (!requirement.is_no_access())
         {
           std::set<Memory> visible_memories;
-          runtime->find_visible_memories(parent_ctx->get_executing_processor(),
-                                         visible_memories);
-          prepare_for_mapping(valid_instances, collectives, visible_memories,
-                              input.valid_instances, input.valid_collectives);
-        }
-        else
-          prepare_for_mapping(valid_instances, collectives,
+          runtime->find_visible_memories(
+              parent_ctx->get_executing_processor(), visible_memories);
+          prepare_for_mapping(
+              valid_instances, collectives, visible_memories,
               input.valid_instances, input.valid_collectives);
+        } else
+          prepare_for_mapping(
+              valid_instances, collectives, input.valid_instances,
+              input.valid_collectives);
       }
       mapper->invoke_map_inline(this, input, output);
       copy_fill_priority = output.copy_fill_priority;
       if (!output.source_instances.empty())
-        physical_convert_sources(requirement,
-            output.source_instances, source_instances, 
+        physical_convert_sources(
+            requirement, output.source_instances, source_instances,
             runtime->safe_mapper ? &acquired_instances : nullptr);
       if (!output.profiling_requests.empty())
       {
-        filter_copy_request_kinds(mapper,
-            output.profiling_requests.requested_measurements,
-            profiling_requests, true/*warn*/);
+        filter_copy_request_kinds(
+            mapper, output.profiling_requests.requested_measurements,
+            profiling_requests, true /*warn*/);
         profiling_priority = output.profiling_priority;
 #ifdef DEBUG_LEGION
         assert(!profiling_reported.exists());
@@ -583,68 +572,79 @@ namespace Legion {
       std::vector<FieldID> missing_fields;
       std::vector<PhysicalManager*> unacquired;
       int virtual_index = physical_convert_mapping(
-                                requirement, output.chosen_instances, 
-                                chosen_instances, bad_tree, missing_fields,
-                                &acquired_instances, unacquired, 
-                                runtime->safe_mapper);
+          requirement, output.chosen_instances, chosen_instances, bad_tree,
+          missing_fields, &acquired_instances, unacquired,
+          runtime->safe_mapper);
       if (bad_tree > 0)
         Exception(MAPPER_EXCEPTION, this)
-          << "Invalid mapper output from invocation of 'map_inline' on mapper "
-          << *mapper << ". Mapper selected instance from region tree "
-          << bad_tree << " to satisfy a region requirement for " << *this
-          << " whose region tree is " << requirement.region.get_tree_id() << ".";
+            << "Invalid mapper output from invocation of 'map_inline' on "
+               "mapper "
+            << *mapper << ". Mapper selected instance from region tree "
+            << bad_tree << " to satisfy a region requirement for " << *this
+            << " whose region tree is " << requirement.region.get_tree_id()
+            << ".";
       if (!missing_fields.empty())
       {
         for (std::vector<FieldID>::const_iterator it = missing_fields.begin();
-              it != missing_fields.end(); it++)
+             it != missing_fields.end(); it++)
         {
-          const void *name; size_t name_size;
+          const void* name;
+          size_t name_size;
           if (!runtime->retrieve_semantic_information(
-               requirement.region.get_field_space(), *it, 
-               LEGION_NAME_SEMANTIC_TAG, name, name_size, true, false))
+                  requirement.region.get_field_space(), *it,
+                  LEGION_NAME_SEMANTIC_TAG, name, name_size, true, false))
             name = "(no name)";
-          log_run.error("Missing instance for field %s (FieldID: %d)",
-                        static_cast<const char*>(name), *it);
+          log_run.error(
+              "Missing instance for field %s (FieldID: %d)",
+              static_cast<const char*>(name), *it);
         }
         Exception(MAPPER_EXCEPTION, this)
-          << "Invalid mapper output from invocation of 'map_inline' on mapper "
-          << *mapper << ". Mapper failed to specify a physical "
-          << "instance for " << missing_fields.size() << " fields of the region "
-          << "requirement for " << *this << ". The missing fields are listed above."; 
+            << "Invalid mapper output from invocation of 'map_inline' on "
+               "mapper "
+            << *mapper << ". Mapper failed to specify a physical "
+            << "instance for " << missing_fields.size()
+            << " fields of the region "
+            << "requirement for " << *this
+            << ". The missing fields are listed above.";
       }
       if (!unacquired.empty())
       {
-        for (std::vector<PhysicalManager*>::const_iterator it = 
-              unacquired.begin(); it != unacquired.end(); it++)
+        for (std::vector<PhysicalManager*>::const_iterator it =
+                 unacquired.begin();
+             it != unacquired.end(); it++)
         {
           if (acquired_instances.find(*it) == acquired_instances.end())
             Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from 'map_inline' invocation on mapper "
-              << *mapper << ". Mapper selected physical instance "
-              << "for " << *this << " which has already been collected. If the mapper "
-              << "had properly acquired this instance as part of the mapper call "
-              << "it would have detected this. Please update the mapper to abide "
-              << "by proper mapping conventions."; 
+                << "Invalid mapper output from 'map_inline' invocation on "
+                   "mapper "
+                << *mapper << ". Mapper selected physical instance "
+                << "for " << *this
+                << " which has already been collected. If the mapper "
+                << "had properly acquired this instance as part of the mapper "
+                   "call "
+                << "it would have detected this. Please update the mapper to "
+                   "abide "
+                << "by proper mapping conventions.";
         }
         // If we did successfully acquire them, still issue the warning
         Exception(WARNING_EXCEPTION, this)
-          << "Mapper " << *mapper 
-          << "failed to acquire instance for " << *this
-          << "in 'map_inline' call. You may experience undefined "
-          << "behavior as a consequence.";
+            << "Mapper " << *mapper << "failed to acquire instance for "
+            << *this << "in 'map_inline' call. You may experience undefined "
+            << "behavior as a consequence.";
       }
       if (virtual_index >= 0)
         Exception(MAPPER_EXCEPTION, this)
-          << "Invalid mapper output from invocation of 'map_inline' on mapper "
-          << *mapper << ". Mapper requested creation of a "
-          << "virtual mapping for " << *this << ". Inline mapping operations "
-          << "are not permitted to do perform virtual mappings.";
+            << "Invalid mapper output from invocation of 'map_inline' on "
+               "mapper "
+            << *mapper << ". Mapper requested creation of a "
+            << "virtual mapping for " << *this << ". Inline mapping operations "
+            << "are not permitted to do perform virtual mappings.";
       if (!output.track_valid_region && !IS_READ_ONLY(requirement))
       {
         Exception(WARNING_EXCEPTION, this)
-          << "Ignoring request by mapper " << *mapper
-          << " to not track valid instances for " << *this << " because "
-          << "the region requirement does not have read-only privileges.";
+            << "Ignoring request by mapper " << *mapper
+            << " to not track valid instances for " << *this << " because "
+            << "the region requirement does not have read-only privileges.";
         output.track_valid_region = true;
       }
       // If we are doing unsafe mapping, then we can return
@@ -662,10 +662,11 @@ namespace Legion {
           const Memory mem = chosen_instances[idx].get_memory();
           if (visible_memories.find(mem) == visible_memories.end())
             Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_inline' on mapper "
-              << *mapper << ". Mapper selected a physical "
-              << "instance in memory " << mem << " which is not visible from processor " 
-              << exec_proc << "."; 
+                << "Invalid mapper output from invocation of 'map_inline' on "
+                   "mapper "
+                << *mapper << ". Mapper selected a physical "
+                << "instance in memory " << mem
+                << " which is not visible from processor " << exec_proc << ".";
         }
       }
       // Iterate over the instances and make sure they are all valid
@@ -673,12 +674,13 @@ namespace Legion {
       std::vector<LogicalRegion> regions_to_check(1, requirement.region);
       for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
       {
-        PhysicalManager *manager = chosen_instances[idx].get_physical_manager();
+        PhysicalManager* manager = chosen_instances[idx].get_physical_manager();
         if (!manager->meets_regions(regions_to_check))
           Exception(MAPPER_EXCEPTION, this)
-            << "Invalid mapper output from invocation of 'map_inline' on mapper "
-            << *mapper << ". Mapper specified an instance that "
-            << "does not meet the logical region requirement.";
+              << "Invalid mapper output from invocation of 'map_inline' on "
+                 "mapper "
+              << *mapper << ". Mapper specified an instance that "
+              << "does not meet the logical region requirement.";
       }
       // If this is a reduction region requirement, make sure all the
       // chosen instances are specialized reduction instances
@@ -687,73 +689,76 @@ namespace Legion {
         for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
           if (!chosen_instances[idx].get_manager()->is_reduction_manager())
             Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_inline' on mapper "
-              << *mapper << ". Mapper failed to select "
-              << "specialized reduction instances for region requirement with "
-              << "reduction-only privileges for " << *this << ".";
-      }
-      else
+                << "Invalid mapper output from invocation of 'map_inline' on "
+                   "mapper "
+                << *mapper << ". Mapper failed to select "
+                << "specialized reduction instances for region requirement "
+                   "with "
+                << "reduction-only privileges for " << *this << ".";
+      } else
       {
         for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
         {
           if (chosen_instances[idx].get_manager()->is_reduction_manager())
             Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output from invocation of 'map_inline' on mapper "
-              << *mapper << ". Mapper selected an illegal "
-              << "specialized reduction instance for region requirement without "
-              << "reduction privileges for " << *this << ".";
+                << "Invalid mapper output from invocation of 'map_inline' on "
+                   "mapper "
+                << *mapper << ". Mapper selected an illegal "
+                << "specialized reduction instance for region requirement "
+                   "without "
+                << "reduction privileges for " << *this << ".";
         }
       }
       if (layout_constraint_id > 0)
       {
         // Check the layout constraints are valid
-        LayoutConstraints *constraints = 
-          runtime->find_layout_constraints(layout_constraint_id);
+        LayoutConstraints* constraints =
+            runtime->find_layout_constraints(layout_constraint_id);
         for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
         {
-          PhysicalManager *manager = 
-            chosen_instances[idx].get_physical_manager();
-          const LayoutConstraint *conflict_constraint = nullptr;
+          PhysicalManager* manager =
+              chosen_instances[idx].get_physical_manager();
+          const LayoutConstraint* conflict_constraint = nullptr;
           if (manager->conflicts(constraints, &conflict_constraint))
             Exception(MAPPER_EXCEPTION, this)
-              << "Invalid mapper output. Mapper " << *mapper
-              << " selected instance for " << *this 
-              << " which failed to satisfy the corresponding layout constraints.";
+                << "Invalid mapper output. Mapper " << *mapper
+                << " selected instance for " << *this
+                << " which failed to satisfy the corresponding layout "
+                   "constraints.";
         }
         // See if there is a padding constraint to get reservations for
         if (constraints->padding_constraint.delta.get_dim() > 0)
         {
           FieldMask padding_mask;
-          FieldSpaceNode *fs = 
-            runtime->get_node(requirement.region.get_field_space());
+          FieldSpaceNode* fs =
+              runtime->get_node(requirement.region.get_field_space());
           if (!constraints->field_constraint.field_set.empty())
           {
             std::set<FieldID> field_set;
             for (std::vector<FieldID>::const_iterator it =
-                  constraints->field_constraint.field_set.begin(); it !=
-                  constraints->field_constraint.field_set.end(); it++)
+                     constraints->field_constraint.field_set.begin();
+                 it != constraints->field_constraint.field_set.end(); it++)
             {
               field_set.insert(*it);
               region.impl->add_padded_field(*it);
             }
             padding_mask = fs->get_field_mask(field_set);
-          }
-          else
+          } else
           {
             padding_mask = fs->get_field_mask(requirement.privilege_fields);
             for (std::set<FieldID>::const_iterator it =
-                  requirement.privilege_fields.begin(); it !=
-                  requirement.privilege_fields.end(); it++)
+                     requirement.privilege_fields.begin();
+                 it != requirement.privilege_fields.end(); it++)
               region.impl->add_padded_field(*it);
           }
           for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
           {
-            const InstanceRef &ref = chosen_instances[idx];
+            const InstanceRef& ref = chosen_instances[idx];
             const FieldMask overlap = padding_mask & ref.get_valid_fields();
             if (!overlap)
               continue;
-            PhysicalManager *manager = ref.get_physical_manager();
-            manager->find_padded_reservations(overlap, this, 0/*index*/);
+            PhysicalManager* manager = ref.get_physical_manager();
+            manager->find_padded_reservations(overlap, this, 0 /*index*/);
             padding_mask -= overlap;
             if (!padding_mask)
               break;
@@ -767,23 +772,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    int MapOp::add_copy_profiling_request(const PhysicalTraceInfo &info,
-                Realm::ProfilingRequestSet &requests, bool fill, unsigned count)
+    int MapOp::add_copy_profiling_request(
+        const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
+        bool fill, unsigned count)
     //--------------------------------------------------------------------------
     {
       // Nothing to do if we don't have any profiling requests
       if (profiling_requests.empty())
         return copy_fill_priority;
       OpProfilingResponse response(this, info.index, info.dst_index, fill);
-      Realm::ProfilingRequest &request = requests.add_request( 
-          runtime->find_utility_group(), LG_LEGION_PROFILING_ID, 
-          &response, sizeof(response), profiling_priority);
+      Realm::ProfilingRequest& request = requests.add_request(
+          runtime->find_utility_group(), LG_LEGION_PROFILING_ID, &response,
+          sizeof(response), profiling_priority);
       bool has_finish = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it = 
-            profiling_requests.begin(); it != profiling_requests.end(); it++)
+      for (std::vector<ProfilingMeasurementID>::const_iterator it =
+               profiling_requests.begin();
+           it != profiling_requests.end(); it++)
       {
-        const Realm::ProfilingMeasurementID measurement = 
-          (Realm::ProfilingMeasurementID)*it;
+        const Realm::ProfilingMeasurementID measurement =
+            (Realm::ProfilingMeasurementID)*it;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_FINISH_EVENT)
           has_finish = true;
@@ -798,15 +805,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool MapOp::handle_profiling_response(
-        const Realm::ProfilingResponse &response, const void *orig, 
-        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
+        const Realm::ProfilingResponse& response, const void* orig,
+        size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(mapper != nullptr);
 #endif
-      const OpProfilingResponse *op_info = 
-        static_cast<const OpProfilingResponse*>(response.user_data());
+      const OpProfilingResponse* op_info =
+          static_cast<const OpProfilingResponse*>(response.user_data());
       Realm::ProfilingMeasurements::OperationFinishEvent finish_event;
       if (response.get_measurement(finish_event))
         fevent = LgEvent(finish_event.finish_event);
@@ -816,7 +823,7 @@ namespace Legion {
       if (!mapped.has_triggered())
         mapped.wait();
       // If we get here then we can handle the response now
-      Mapping::Mapper::InlineProfilingInfo info; 
+      Mapping::Mapper::InlineProfilingInfo info;
       info.profiling_responses.attach_realm_profiling_response(response);
       info.total_reports = outstanding_profiling_requests;
       info.fill_response = op_info->fill;
@@ -842,8 +849,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapOp::pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                      std::set<RtEvent> &applied_events) const
+    void MapOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_local_remote_operation(rez);
@@ -864,24 +872,22 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Repl Map Op 
+    // Repl Map Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
     ReplMapOp::ReplMapOp(void)
       : ReplCollectiveViewCreator<CollectiveViewCreator<MapOp> >()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplMapOp::~ReplMapOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ReplMapOp::initialize_replication(ReplicateContext *ctx) 
+    void ReplMapOp::initialize_replication(ReplicateContext* ctx)
     //--------------------------------------------------------------------------
     {
       // Mark that this is collective
@@ -892,21 +898,24 @@ namespace Legion {
         sources_check = ctx->get_next_collective_index(COLLECTIVE_LOC_104);
       }
       if (!grants.empty())
-        REPORT_LEGION_ERROR(ERROR_CONTROL_REPLICATION_VIOLATION,
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
             "Illegal use of grants with an inline mapping in control "
             "replicated parent task %s (UID %lld). Use of non-canonical "
             "Legion features such as grants are not permitted with "
-            "control replication.", parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
+            "control replication.",
+            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
       if (!wait_barriers.empty())
-        REPORT_LEGION_ERROR(ERROR_CONTROL_REPLICATION_VIOLATION,
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
             "Illegal use of wait phase barriers with an inline mapping in "
             "control replicated parent task %s (UID %lld). Use of "
             "non-canonical Legion features such as wait phase barriers are "
             "not permitted with control replication.",
             parent_ctx->get_task_name(), parent_ctx->get_unique_id())
       if (!arrive_barriers.empty())
-        REPORT_LEGION_ERROR(ERROR_CONTROL_REPLICATION_VIOLATION,
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
             "Illegal use of arrive phase barriers with an inline mapping in "
             "control replicated parent task %s (UID %lld). Use of "
             "non-canonical Legion features such as arrive phase barriers are "
@@ -928,11 +937,12 @@ namespace Legion {
       if (IS_WRITE(requirement))
       {
 #ifdef DEBUG_LEGION
-        ReplicateContext *repl_ctx =dynamic_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx =
+            dynamic_cast<ReplicateContext*>(parent_ctx);
         assert(repl_ctx != nullptr);
         assert(!collective_map_barrier.exists());
 #else
-        ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
         collective_map_barrier = repl_ctx->get_next_collective_map_barriers();
       }
@@ -946,15 +956,12 @@ namespace Legion {
     {
       // Signal that all our mapping dependences have been met
       if (collective_map_barrier.exists())
-        runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/);
+        runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       std::set<RtEvent> preconditions;
       // Compute the version numbers for this mapping operation
-      perform_versioning_analysis(0/*idx*/,
-                                                   requirement, 
-                                                   version_info,
-                                                   preconditions,
-                                                   nullptr/*output region*/,
-                                                   true/*rendezvous*/);
+      perform_versioning_analysis(
+          0 /*idx*/, requirement, version_info, preconditions,
+          nullptr /*output region*/, true /*rendezvous*/);
       if (collective_map_barrier.exists())
       {
         if (!collective_map_barrier.has_triggered())
@@ -968,22 +975,23 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool ReplMapOp::invoke_mapper(InstanceSet &mapped_instances,
-                                std::vector<PhysicalManager*> &source_instances)
+    bool ReplMapOp::invoke_mapper(
+        InstanceSet& mapped_instances,
+        std::vector<PhysicalManager*>& source_instances)
     //--------------------------------------------------------------------------
     {
-      const bool result = 
-        MapOp::invoke_mapper(mapped_instances, source_instances);
+      const bool result =
+          MapOp::invoke_mapper(mapped_instances, source_instances);
       if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
-        ReplicateContext *repl_ctx =
-          dynamic_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx =
+            dynamic_cast<ReplicateContext*>(parent_ctx);
         assert(repl_ctx != nullptr);
 #else
-        ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
-        // For read-write or write-discard cases make sure that all the 
+        // For read-write or write-discard cases make sure that all the
         // shards mapped to independent physical instances
         if (IS_WRITE(requirement))
         {
@@ -996,15 +1004,16 @@ namespace Legion {
         {
           CheckCollectiveSources sources_collective(repl_ctx, sources_check);
           if (!sources_collective.verify(source_instances))
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                  "Invalid mapper output from invocation of 'map_inline' "
-                  "by mapper %s. Mapper selected different 'source_instances' "
-                  "on shard 0 and shard %d when mapping an inline mapping in "
-                  "control-replicated parent task %s (UID %lld). Each inline "
-                  "mapping in a control-replicated parent task must provide "
-                  "same 'source_instances' across all shards.",
-                  mapper->get_mapper_name(), repl_ctx->owner_shard->shard_id,
-                  parent_ctx->get_task_name(), parent_ctx->get_unique_id())
+            REPORT_LEGION_ERROR(
+                ERROR_INVALID_MAPPER_OUTPUT,
+                "Invalid mapper output from invocation of 'map_inline' "
+                "by mapper %s. Mapper selected different 'source_instances' "
+                "on shard 0 and shard %d when mapping an inline mapping in "
+                "control-replicated parent task %s (UID %lld). Each inline "
+                "mapping in a control-replicated parent task must provide "
+                "same 'source_instances' across all shards.",
+                mapper->get_mapper_name(), repl_ctx->owner_shard->shard_id,
+                parent_ctx->get_task_name(), parent_ctx->get_unique_id())
         }
       }
       return result;
@@ -1016,30 +1025,29 @@ namespace Legion {
     {
       if (collective_map_barrier.exists())
       {
-        runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/,
-                                      precondition);
+        runtime->phase_barrier_arrive(
+            collective_map_barrier, 1 /*count*/, precondition);
         const RtEvent result = collective_map_barrier;
 #ifdef DEBUG_LEGION
         collective_map_barrier = RtBarrier::NO_RT_BARRIER;
 #endif
         return result;
-      }
-      else
+      } else
         return precondition;
     }
 
     //--------------------------------------------------------------------------
-    bool ReplMapOp::perform_collective_analysis(CollectiveMapping *&mapping,
-                                                bool &first_local)
+    bool ReplMapOp::perform_collective_analysis(
+        CollectiveMapping*& mapping, bool& first_local)
     //--------------------------------------------------------------------------
     {
-      // Yes, we want to do a collective analysis, but we'll need to 
+      // Yes, we want to do a collective analysis, but we'll need to
       // construct a collective view here for all the instances
       return true;
     }
 
     //--------------------------------------------------------------------------
-    bool ReplMapOp::find_shard_participants(std::vector<ShardID> &shards)
+    bool ReplMapOp::find_shard_participants(std::vector<ShardID>& shards)
     //--------------------------------------------------------------------------
     {
       // All the shards are participating
@@ -1064,20 +1072,21 @@ namespace Legion {
       // Make sure that we consumed this if we had one
       assert(!collective_map_barrier.exists());
 #endif
-      ReplCollectiveViewCreator<
-        CollectiveViewCreator<MapOp> >::deactivate(false);
+      ReplCollectiveViewCreator<CollectiveViewCreator<MapOp> >::deactivate(
+          false);
       if (freeop)
         runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
     RtEvent ReplMapOp::perform_collective_versioning_analysis(
-        unsigned index, LogicalRegion handle, EqSetTracker *tracker,
-        const FieldMask &mask, unsigned parent_req_index)
+        unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+        const FieldMask& mask, unsigned parent_req_index)
     //--------------------------------------------------------------------------
     {
-      return rendezvous_collective_versioning_analysis(index, handle, tracker,
-          runtime->address_space, mask, parent_req_index);
+      return rendezvous_collective_versioning_analysis(
+          index, handle, tracker, runtime->address_space, mask,
+          parent_req_index);
     }
 
     /////////////////////////////////////////////////////////////
@@ -1085,32 +1094,31 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    CheckCollectiveMapping::CheckCollectiveMapping(ReplicateContext *ctx,
-                                                   CollectiveID id)
+    CheckCollectiveMapping::CheckCollectiveMapping(
+        ReplicateContext* ctx, CollectiveID id)
       : AllGatherCollective<true>(ctx, id)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     CheckCollectiveMapping::~CheckCollectiveMapping(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void CheckCollectiveMapping::pack_collective_stage(ShardID target,
-                                                     Serializer &rez, int stage)
+    void CheckCollectiveMapping::pack_collective_stage(
+        ShardID target, Serializer& rez, int stage)
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(mapped_instances.size());
-      for (std::map<PhysicalInstance,ShardFields>::const_iterator mit =
-            mapped_instances.begin(); mit != mapped_instances.end(); mit++)
+      for (std::map<PhysicalInstance, ShardFields>::const_iterator mit =
+               mapped_instances.begin();
+           mit != mapped_instances.end(); mit++)
       {
         rez.serialize(mit->first);
         rez.serialize<size_t>(mit->second.size());
         for (ShardFields::const_iterator it = mit->second.begin();
-              it != mit->second.end(); it++)
+             it != mit->second.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
@@ -1119,8 +1127,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void CheckCollectiveMapping::unpack_collective_stage(Deserializer &derez,
-                                                         int stage)
+    void CheckCollectiveMapping::unpack_collective_stage(
+        Deserializer& derez, int stage)
     //--------------------------------------------------------------------------
     {
       size_t num_instances;
@@ -1129,59 +1137,60 @@ namespace Legion {
       {
         PhysicalInstance inst;
         derez.deserialize(inst);
-        ShardFields &shard_fields = mapped_instances[inst];
+        ShardFields& shard_fields = mapped_instances[inst];
         size_t offset = shard_fields.size();
         size_t num_copies;
         derez.deserialize(num_copies);
-        shard_fields.resize(offset+num_copies);
+        shard_fields.resize(offset + num_copies);
         for (unsigned idx2 = 0; idx2 < num_copies; idx2++)
         {
-          derez.deserialize(shard_fields[offset+idx2].first);
-          derez.deserialize(shard_fields[offset+idx2].second);
+          derez.deserialize(shard_fields[offset + idx2].first);
+          derez.deserialize(shard_fields[offset + idx2].second);
         }
       }
     }
 
     //--------------------------------------------------------------------------
-    void CheckCollectiveMapping::verify(const InstanceSet &instances,
-                                        MapperManager *mapper)
+    void CheckCollectiveMapping::verify(
+        const InstanceSet& instances, MapperManager* mapper)
     //--------------------------------------------------------------------------
     {
-      for (unsigned idx = 0; idx < instances.size(); idx++) 
+      for (unsigned idx = 0; idx < instances.size(); idx++)
       {
-        const InstanceRef &ref = instances[idx];
-        PhysicalManager *manager = ref.get_physical_manager();
+        const InstanceRef& ref = instances[idx];
+        PhysicalManager* manager = ref.get_physical_manager();
         PhysicalInstance inst = manager->get_instance();
         mapped_instances[inst].emplace_back(
             std::make_pair(local_shard, ref.get_valid_fields()));
       }
       perform_collective_sync();
-      for (unsigned idx = 0; idx < instances.size(); idx++) 
+      for (unsigned idx = 0; idx < instances.size(); idx++)
       {
-        const InstanceRef &ref = instances[idx];
-        PhysicalManager *manager = ref.get_physical_manager();
+        const InstanceRef& ref = instances[idx];
+        PhysicalManager* manager = ref.get_physical_manager();
         PhysicalInstance inst = manager->get_instance();
-        ShardFields &shard_fields = mapped_instances[inst];
+        ShardFields& shard_fields = mapped_instances[inst];
 #ifdef DEBUG_LEGION
         assert(!shard_fields.empty());
 #endif
-        for (ShardFields::const_iterator it =
-              shard_fields.begin(); it != shard_fields.end(); it++)
+        for (ShardFields::const_iterator it = shard_fields.begin();
+             it != shard_fields.end(); it++)
         {
           if (it->first == local_shard)
             continue;
           if (it->second * ref.get_valid_fields())
             continue;
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                  "Invalid mapper output from invocation of 'map_inline' "
-                  "by mapper %s. Mapper selected the same physical instance "
-                  IDFMT " on both shards %d and %d with write privileges for "
-                  "inline mapping in control-replicated parent task %s "
-                  "(UID %lld). Each inline mapping with write privileges in a "
-                  "control-replicated parent task must map to a different "
-                  "physical instance to avoid races.",
-                  mapper->get_mapper_name(), inst.id, local_shard, it->first,
-                  context->get_task_name(), context->get_unique_id())
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Invalid mapper output from invocation of 'map_inline' "
+              "by mapper %s. Mapper selected the same physical instance " IDFMT
+              " on both shards %d and %d with write privileges for "
+              "inline mapping in control-replicated parent task %s "
+              "(UID %lld). Each inline mapping with write privileges in a "
+              "control-replicated parent task must map to a different "
+              "physical instance to avoid races.",
+              mapper->get_mapper_name(), inst.id, local_shard, it->first,
+              context->get_task_name(), context->get_unique_id())
         }
       }
     }
@@ -1191,31 +1200,30 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    CheckCollectiveSources::CheckCollectiveSources(ReplicateContext *ctx,
-                                                   CollectiveID id)
-      : BroadcastCollective(ctx, id, 0/*origin shard*/)
+    CheckCollectiveSources::CheckCollectiveSources(
+        ReplicateContext* ctx, CollectiveID id)
+      : BroadcastCollective(ctx, id, 0 /*origin shard*/)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     CheckCollectiveSources::~CheckCollectiveSources(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void CheckCollectiveSources::pack_collective(Serializer &rez) const
+    void CheckCollectiveSources::pack_collective(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(source_instances.size());
       for (std::vector<DistributedID>::const_iterator it =
-            source_instances.begin(); it != source_instances.end(); it++)
+               source_instances.begin();
+           it != source_instances.end(); it++)
         rez.serialize(*it);
     }
 
     //--------------------------------------------------------------------------
-    void CheckCollectiveSources::unpack_collective(Deserializer &derez)
+    void CheckCollectiveSources::unpack_collective(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       size_t num_instances;
@@ -1227,7 +1235,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool CheckCollectiveSources::verify(
-                                 const std::vector<PhysicalManager*> &instances)
+        const std::vector<PhysicalManager*>& instances)
     //--------------------------------------------------------------------------
     {
       if (local_shard == 0)
@@ -1236,8 +1244,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < instances.size(); idx++)
           source_instances[idx] = instances[idx]->did;
         perform_collective_async();
-      }
-      else
+      } else
       {
         perform_collective_wait();
         if (instances.size() != source_instances.size())
@@ -1249,22 +1256,20 @@ namespace Legion {
       return true;
     }
 
-    ///////////////////////////////////////////////////////////// 
-    // Remote Map Op 
+    /////////////////////////////////////////////////////////////
+    // Remote Map Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteMapOp::RemoteMapOp(Operation *ptr, AddressSpaceID src)
+    RemoteMapOp::RemoteMapOp(Operation* ptr, AddressSpaceID src)
       : ExternalMapping(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     RemoteMapOp::~RemoteMapOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UniqueID RemoteMapOp::get_unique_id(void) const
@@ -1307,7 +1312,7 @@ namespace Legion {
     const std::string_view& RemoteMapOp::get_provenance_string(bool human) const
     //--------------------------------------------------------------------------
     {
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
@@ -1329,11 +1334,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteMapOp::select_sources(const unsigned index,
-                                    PhysicalManager *target,
-                                    const std::vector<InstanceView*> &sources,
-                                    std::vector<unsigned> &ranking,
-                                    std::map<unsigned,PhysicalManager*> &points)
+    void RemoteMapOp::select_sources(
+        const unsigned index, PhysicalManager* target,
+        const std::vector<InstanceView*>& sources,
+        std::vector<unsigned>& ranking,
+        std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
       if (source == runtime->address_space)
@@ -1347,8 +1352,8 @@ namespace Legion {
 #endif
       Mapper::SelectInlineSrcInput input;
       Mapper::SelectInlineSrcOutput output;
-      prepare_for_mapping(sources, input.source_instances,
-                          input.collective_views); 
+      prepare_for_mapping(
+          sources, input.source_instances, input.collective_views);
       prepare_for_mapping(target, input.target);
       if (mapper == nullptr)
         mapper = runtime->find_mapper(map_id);
@@ -1357,8 +1362,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteMapOp::pack_remote_operation(Serializer &rez,
-                 AddressSpaceID target, std::set<RtEvent> &applied_events) const
+    void RemoteMapOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_remote_base(rez);
@@ -1367,12 +1373,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteMapOp::unpack(Deserializer &derez)
+    void RemoteMapOp::unpack(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       unpack_external_mapping(derez);
       unpack_profiling_requests(derez);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

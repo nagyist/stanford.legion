@@ -14,13 +14,13 @@
  */
 
 #ifndef INST_N1
-  #error INST_N1 must be defined!
+#error INST_N1 must be defined!
 #endif
 
 #ifdef INST_N2
-  #define DEFINE_NTNT_TEMPLATES
+#define DEFINE_NTNT_TEMPLATES
 #else
-  #define DEFINE_NT_TEMPLATES
+#define DEFINE_NT_TEMPLATES
 #endif
 
 #include "legion/analysis/equivalence_set.h"
@@ -36,21 +36,12 @@
 #include "legion/nodes/index.h"
 #include "legion/nodes/across.h"
 
-#define FOREACH_T(__func__) \
-  __func__(int) \
-  __func__(unsigned) \
-  __func__(long long)
+#define FOREACH_T(__func__) __func__(int) __func__(unsigned) __func__(long long)
 
-#define FOREACH_TT(__func__) \
-  __func__(int,int) \
-  __func__(int,unsigned) \
-  __func__(int,long long) \
-  __func__(unsigned,int) \
-  __func__(unsigned,unsigned) \
-  __func__(unsigned,long long) \
-  __func__(long long,int) \
-  __func__(long long,unsigned) \
-  __func__(long long,long long)
+#define FOREACH_TT(__func__)                                                                                                         \
+  __func__(int, int) __func__(int, unsigned) __func__(int, long long) __func__(unsigned, int) __func__(unsigned, unsigned) __func__( \
+      unsigned,                                                                                                                      \
+      long long) __func__(long long, int) __func__(long long, unsigned) __func__(long long, long long)
 
 namespace Legion {
   namespace Internal {
@@ -59,87 +50,68 @@ namespace Legion {
 #define N2 INST_N2
 
 #ifdef INST_N2
-  // NTNT templates (helper methods on IndexSpaceNodeT)
-#define DOIT_TT(T1,T2) \
-  template ApEvent IndexSpaceNodeT<INST_N1,T1>:: \
-    create_by_domain_helper<INST_N2,T2>(Operation *,    \
-                                     IndexPartNode *,     \
-                                     const std::map<DomainPoint,FutureImpl*>&, \
-                                     const Domain&, \
-                                     bool); \
-  template ApEvent IndexSpaceNodeT<INST_N1,T1>:: \
-    create_by_weight_helper<INST_N2,T2>(Operation *,    \
-                                     IndexPartNode *,   \
-                                     const std::map<DomainPoint,FutureImpl*>&, \
-                                     size_t); \
-  template ApEvent IndexSpaceNodeT<INST_N1,T1>:: \
-    create_by_field_helper<INST_N2,T2>(Operation *,	\
-                                     FieldID,             \
-				     IndexPartNode *,	  \
-				     const std::vector<FieldDataDescriptor> &, \
-                                     std::vector<DeppartResult>*, \
-				     ApEvent); \
-  template ApEvent IndexSpaceNodeT<INST_N1,T1>:: \
-    create_by_image_helper<INST_N2,T2>(Operation *, \
-                                     FieldID,         \
-				     IndexPartNode *, \
-				     IndexPartNode *, \
-				     std::vector<FieldDataDescriptor> &, \
-                                     ApEvent); \
-  template ApEvent IndexSpaceNodeT<INST_N1,T1>:: \
-    create_by_image_range_helper<INST_N2,T2>(Operation *, \
-                                     FieldID,           \
-				     IndexPartNode *,	\
-				     IndexPartNode *,		\
-				     std::vector<FieldDataDescriptor> &, \
-                                     ApEvent); \
-  template ApEvent IndexSpaceNodeT<INST_N1,T1>:: \
-    create_by_preimage_helper<INST_N2,T2>(Operation *, \
-                                     FieldID,           \
-				     IndexPartNode *,	\
-				     IndexPartNode *,		\
-				     const std::vector<FieldDataDescriptor> &, \
-                                     const std::map<DomainPoint,Domain>*, \
-                                     std::vector<DeppartResult>*, \
-				     ApEvent);		\
-  template ApEvent IndexSpaceNodeT<INST_N1,T1>:: \
-    create_by_preimage_range_helper<INST_N2,T2>(Operation *, \
-                                     FieldID,           \
-				     IndexPartNode *,	\
-				     IndexPartNode *,	\
-				     const std::vector<FieldDataDescriptor> &, \
-                                     const std::map<DomainPoint,Domain>*, \
-                                     std::vector<DeppartResult>*, \
-				     ApEvent); \
-  template ApEvent IndexSpaceNodeT<INST_N1,T1>:: \
-    create_association_helper<INST_N2,T2>(Operation *, \
-                                     FieldID,          \
-				     IndexSpaceNode *, \
-				     const std::vector<FieldDataDescriptor> &, \
-				     ApEvent); \
-  template ApEvent CopyAcrossUnstructuredT<INST_N1,T1>:: \
-    perform_compute_preimages<INST_N2,T2>(std::vector<DomainT<INST_N1,T1> >&, \
-                                     Operation*, \
-                                     ApEvent, \
-                                     const bool); \
-  template bool CopyAcrossUnstructuredT<INST_N1,T1>:: \
-    rebuild_indirections<INST_N2,T2>(Operation *, ApEvent, const bool);
+    // NTNT templates (helper methods on IndexSpaceNodeT)
+#define DOIT_TT(T1, T2)                                                        \
+  template ApEvent                                                             \
+      IndexSpaceNodeT<INST_N1, T1>::create_by_domain_helper<INST_N2, T2>(      \
+          Operation*, IndexPartNode*,                                          \
+          const std::map<DomainPoint, FutureImpl*>&, const Domain&, bool);     \
+  template ApEvent                                                             \
+      IndexSpaceNodeT<INST_N1, T1>::create_by_weight_helper<INST_N2, T2>(      \
+          Operation*, IndexPartNode*,                                          \
+          const std::map<DomainPoint, FutureImpl*>&, size_t);                  \
+  template ApEvent                                                             \
+      IndexSpaceNodeT<INST_N1, T1>::create_by_field_helper<INST_N2, T2>(       \
+          Operation*, FieldID, IndexPartNode*,                                 \
+          const std::vector<FieldDataDescriptor>&,                             \
+          std::vector<DeppartResult>*, ApEvent);                               \
+  template ApEvent                                                             \
+      IndexSpaceNodeT<INST_N1, T1>::create_by_image_helper<INST_N2, T2>(       \
+          Operation*, FieldID, IndexPartNode*, IndexPartNode*,                 \
+          std::vector<FieldDataDescriptor>&, ApEvent);                         \
+  template ApEvent                                                             \
+      IndexSpaceNodeT<INST_N1, T1>::create_by_image_range_helper<INST_N2, T2>( \
+          Operation*, FieldID, IndexPartNode*, IndexPartNode*,                 \
+          std::vector<FieldDataDescriptor>&, ApEvent);                         \
+  template ApEvent                                                             \
+      IndexSpaceNodeT<INST_N1, T1>::create_by_preimage_helper<INST_N2, T2>(    \
+          Operation*, FieldID, IndexPartNode*, IndexPartNode*,                 \
+          const std::vector<FieldDataDescriptor>&,                             \
+          const std::map<DomainPoint, Domain>*, std::vector<DeppartResult>*,   \
+          ApEvent);                                                            \
+  template ApEvent IndexSpaceNodeT<INST_N1, T1>::                              \
+      create_by_preimage_range_helper<INST_N2, T2>(                            \
+          Operation*, FieldID, IndexPartNode*, IndexPartNode*,                 \
+          const std::vector<FieldDataDescriptor>&,                             \
+          const std::map<DomainPoint, Domain>*, std::vector<DeppartResult>*,   \
+          ApEvent);                                                            \
+  template ApEvent                                                             \
+      IndexSpaceNodeT<INST_N1, T1>::create_association_helper<INST_N2, T2>(    \
+          Operation*, FieldID, IndexSpaceNode*,                                \
+          const std::vector<FieldDataDescriptor>&, ApEvent);                   \
+  template ApEvent CopyAcrossUnstructuredT<INST_N1, T1>::                      \
+      perform_compute_preimages<INST_N2, T2>(                                  \
+          std::vector<DomainT<INST_N1, T1> >&, Operation*, ApEvent,            \
+          const bool);                                                         \
+  template bool                                                                \
+      CopyAcrossUnstructuredT<INST_N1, T1>::rebuild_indirections<INST_N2, T2>( \
+          Operation*, ApEvent, const bool);
 
-  FOREACH_TT(DOIT_TT)
+    FOREACH_TT(DOIT_TT)
 #else
-  // just the NT template
-#define DOIT_T(T) \
-  template class Internal::IndexSpaceNodeT<INST_N1,T>; \
-  template class Internal::IndexPartNodeT<INST_N1,T>; \
-  template class Internal::IndexSpaceUnion<INST_N1,T>; \
-  template class Internal::IndexSpaceIntersection<INST_N1,T>; \
-  template class Internal::IndexSpaceDifference<INST_N1,T>; \
-  template class Internal::InternalExpression<INST_N1,T>; \
-  template class Internal::RemoteExpression<INST_N1,T>; \
-  template class Internal::CopyAcrossUnstructuredT<INST_N1,T>;
+    // just the NT template
+#define DOIT_T(T)                                              \
+  template class Internal::IndexSpaceNodeT<INST_N1, T>;        \
+  template class Internal::IndexPartNodeT<INST_N1, T>;         \
+  template class Internal::IndexSpaceUnion<INST_N1, T>;        \
+  template class Internal::IndexSpaceIntersection<INST_N1, T>; \
+  template class Internal::IndexSpaceDifference<INST_N1, T>;   \
+  template class Internal::InternalExpression<INST_N1, T>;     \
+  template class Internal::RemoteExpression<INST_N1, T>;       \
+  template class Internal::CopyAcrossUnstructuredT<INST_N1, T>;
 
-  FOREACH_T(DOIT_T)
+    FOREACH_T(DOIT_T)
 #endif
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

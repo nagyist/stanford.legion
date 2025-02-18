@@ -20,281 +20,280 @@
 
 namespace Legion {
 
-    //--------------------------------------------------------------------------
-    inline RegionFlags operator~(RegionFlags f)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<RegionFlags>(~unsigned(f));
-    }
+  //--------------------------------------------------------------------------
+  inline RegionFlags operator~(RegionFlags f)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<RegionFlags>(~unsigned(f));
+  }
 
-    //--------------------------------------------------------------------------
-    inline RegionFlags operator|(RegionFlags left, RegionFlags right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<RegionFlags>(unsigned(left) | unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline RegionFlags operator|(RegionFlags left, RegionFlags right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<RegionFlags>(unsigned(left) | unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline RegionFlags operator&(RegionFlags left, RegionFlags right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<RegionFlags>(unsigned(left) & unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline RegionFlags operator&(RegionFlags left, RegionFlags right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<RegionFlags>(unsigned(left) & unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline RegionFlags operator^(RegionFlags left, RegionFlags right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<RegionFlags>(unsigned(left) ^ unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline RegionFlags operator^(RegionFlags left, RegionFlags right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<RegionFlags>(unsigned(left) ^ unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline RegionFlags operator|=(RegionFlags &left, RegionFlags right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l |= r;
-      return left = static_cast<RegionFlags>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline RegionFlags operator|=(RegionFlags& left, RegionFlags right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l |= r;
+    return left = static_cast<RegionFlags>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline RegionFlags operator&=(RegionFlags &left, RegionFlags right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l &= r;
-      return left = static_cast<RegionFlags>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline RegionFlags operator&=(RegionFlags& left, RegionFlags right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l &= r;
+    return left = static_cast<RegionFlags>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline RegionFlags operator^=(RegionFlags &left, RegionFlags right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l ^= r;
-      return left = static_cast<RegionFlags>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline RegionFlags operator^=(RegionFlags& left, RegionFlags right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l ^= r;
+    return left = static_cast<RegionFlags>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline PrivilegeMode operator~(PrivilegeMode p)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<PrivilegeMode>(~unsigned(p));
-    }
+  //--------------------------------------------------------------------------
+  inline PrivilegeMode operator~(PrivilegeMode p)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<PrivilegeMode>(~unsigned(p));
+  }
 
-    //--------------------------------------------------------------------------
-    inline PrivilegeMode operator|(PrivilegeMode left, PrivilegeMode right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<PrivilegeMode>(unsigned(left) | unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline PrivilegeMode operator|(PrivilegeMode left, PrivilegeMode right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<PrivilegeMode>(unsigned(left) | unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline PrivilegeMode operator&(PrivilegeMode left, PrivilegeMode right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<PrivilegeMode>(unsigned(left) & unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline PrivilegeMode operator&(PrivilegeMode left, PrivilegeMode right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<PrivilegeMode>(unsigned(left) & unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline PrivilegeMode operator^(PrivilegeMode left, PrivilegeMode right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<PrivilegeMode>(unsigned(left) ^ unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline PrivilegeMode operator^(PrivilegeMode left, PrivilegeMode right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<PrivilegeMode>(unsigned(left) ^ unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline PrivilegeMode operator|=(PrivilegeMode &left, PrivilegeMode right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l |= r;
-      return left = static_cast<PrivilegeMode>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline PrivilegeMode operator|=(PrivilegeMode& left, PrivilegeMode right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l |= r;
+    return left = static_cast<PrivilegeMode>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline PrivilegeMode operator&=(PrivilegeMode &left, PrivilegeMode right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l &= r;
-      return left = static_cast<PrivilegeMode>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline PrivilegeMode operator&=(PrivilegeMode& left, PrivilegeMode right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l &= r;
+    return left = static_cast<PrivilegeMode>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline PrivilegeMode operator^=(PrivilegeMode &left, PrivilegeMode right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l ^= r;
-      return left = static_cast<PrivilegeMode>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline PrivilegeMode operator^=(PrivilegeMode& left, PrivilegeMode right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l ^= r;
+    return left = static_cast<PrivilegeMode>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline CoherenceProperty operator~(CoherenceProperty p)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<CoherenceProperty>(~unsigned(p));
-    }
+  //--------------------------------------------------------------------------
+  inline CoherenceProperty operator~(CoherenceProperty p)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<CoherenceProperty>(~unsigned(p));
+  }
 
-    //--------------------------------------------------------------------------
-    inline CoherenceProperty operator|(CoherenceProperty left, 
-                                       CoherenceProperty right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<CoherenceProperty>(unsigned(left) | unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline CoherenceProperty operator|(
+      CoherenceProperty left, CoherenceProperty right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<CoherenceProperty>(unsigned(left) | unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline CoherenceProperty operator&(CoherenceProperty left,
-                                       CoherenceProperty right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<CoherenceProperty>(unsigned(left) & unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline CoherenceProperty operator&(
+      CoherenceProperty left, CoherenceProperty right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<CoherenceProperty>(unsigned(left) & unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline CoherenceProperty operator^(CoherenceProperty left,
-                                       CoherenceProperty right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<CoherenceProperty>(unsigned(left) ^ unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline CoherenceProperty operator^(
+      CoherenceProperty left, CoherenceProperty right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<CoherenceProperty>(unsigned(left) ^ unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline CoherenceProperty operator|=(CoherenceProperty &left,
-                                        CoherenceProperty right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l |= r;
-      return left = static_cast<CoherenceProperty>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline CoherenceProperty operator|=(
+      CoherenceProperty& left, CoherenceProperty right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l |= r;
+    return left = static_cast<CoherenceProperty>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline CoherenceProperty operator&=(CoherenceProperty &left,
-                                        CoherenceProperty right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l &= r;
-      return left = static_cast<CoherenceProperty>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline CoherenceProperty operator&=(
+      CoherenceProperty& left, CoherenceProperty right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l &= r;
+    return left = static_cast<CoherenceProperty>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline CoherenceProperty operator^=(CoherenceProperty &left,
-                                        CoherenceProperty right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l ^= r;
-      return left = static_cast<CoherenceProperty>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline CoherenceProperty operator^=(
+      CoherenceProperty& left, CoherenceProperty right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l ^= r;
+    return left = static_cast<CoherenceProperty>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline AllocateMode operator~(AllocateMode a)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<AllocateMode>(~unsigned(a));
-    }
+  //--------------------------------------------------------------------------
+  inline AllocateMode operator~(AllocateMode a)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<AllocateMode>(~unsigned(a));
+  }
 
-    //--------------------------------------------------------------------------
-    inline AllocateMode operator|(AllocateMode left, AllocateMode right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<AllocateMode>(unsigned(left) | unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline AllocateMode operator|(AllocateMode left, AllocateMode right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<AllocateMode>(unsigned(left) | unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline AllocateMode operator&(AllocateMode left, AllocateMode right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<AllocateMode>(unsigned(left) & unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline AllocateMode operator&(AllocateMode left, AllocateMode right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<AllocateMode>(unsigned(left) & unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline AllocateMode operator^(AllocateMode left, AllocateMode right)
-    //--------------------------------------------------------------------------
-    {
-      return static_cast<AllocateMode>(unsigned(left) ^ unsigned(right));
-    }
+  //--------------------------------------------------------------------------
+  inline AllocateMode operator^(AllocateMode left, AllocateMode right)
+  //--------------------------------------------------------------------------
+  {
+    return static_cast<AllocateMode>(unsigned(left) ^ unsigned(right));
+  }
 
-    //--------------------------------------------------------------------------
-    inline AllocateMode operator|=(AllocateMode &left, AllocateMode right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l |= r;
-      return left = static_cast<AllocateMode>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline AllocateMode operator|=(AllocateMode& left, AllocateMode right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l |= r;
+    return left = static_cast<AllocateMode>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline AllocateMode operator&=(AllocateMode &left, AllocateMode right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l &= r;
-      return left = static_cast<AllocateMode>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline AllocateMode operator&=(AllocateMode& left, AllocateMode right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l &= r;
+    return left = static_cast<AllocateMode>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline AllocateMode operator^=(AllocateMode &left, AllocateMode right)
-    //--------------------------------------------------------------------------
-    {
-      unsigned l = static_cast<unsigned>(left);
-      unsigned r = static_cast<unsigned>(right);
-      l ^= r;
-      return left = static_cast<AllocateMode>(l);
-    }
+  //--------------------------------------------------------------------------
+  inline AllocateMode operator^=(AllocateMode& left, AllocateMode right)
+  //--------------------------------------------------------------------------
+  {
+    unsigned l = static_cast<unsigned>(left);
+    unsigned r = static_cast<unsigned>(right);
+    l ^= r;
+    return left = static_cast<AllocateMode>(l);
+  }
 
-    //--------------------------------------------------------------------------
-    inline RegionRequirement& RegionRequirement::add_field(FieldID fid, 
-                                             bool instance/*= true*/)
-    //--------------------------------------------------------------------------
-    {
-      privilege_fields.insert(fid);
-      if (instance)
-        instance_fields.push_back(fid);
-      return *this;
-    }
+  //--------------------------------------------------------------------------
+  inline RegionRequirement& RegionRequirement::add_field(
+      FieldID fid, bool instance /*= true*/)
+  //--------------------------------------------------------------------------
+  {
+    privilege_fields.insert(fid);
+    if (instance)
+      instance_fields.push_back(fid);
+    return *this;
+  }
 
-    //--------------------------------------------------------------------------
-    inline RegionRequirement& RegionRequirement::add_fields(
-                      const std::vector<FieldID>& fids, bool instance/*= true*/)
-    //--------------------------------------------------------------------------
-    {
-      privilege_fields.insert(fids.begin(), fids.end());
-      if (instance)
-        instance_fields.insert(instance_fields.end(), fids.begin(), fids.end());
-      return *this;
-    }
+  //--------------------------------------------------------------------------
+  inline RegionRequirement& RegionRequirement::add_fields(
+      const std::vector<FieldID>& fids, bool instance /*= true*/)
+  //--------------------------------------------------------------------------
+  {
+    privilege_fields.insert(fids.begin(), fids.end());
+    if (instance)
+      instance_fields.insert(instance_fields.end(), fids.begin(), fids.end());
+    return *this;
+  }
 
-    //--------------------------------------------------------------------------
-    inline RegionRequirement& RegionRequirement::add_flags(
-                                                          RegionFlags new_flags)
-    //--------------------------------------------------------------------------
-    {
-      flags |= new_flags;
-      return *this;
-    }
+  //--------------------------------------------------------------------------
+  inline RegionRequirement& RegionRequirement::add_flags(RegionFlags new_flags)
+  //--------------------------------------------------------------------------
+  {
+    flags |= new_flags;
+    return *this;
+  }
 
-    //--------------------------------------------------------------------------
-    template <int DIM, typename COORD_T>
-    void OutputRequirement::set_type_tag()
-    //--------------------------------------------------------------------------
-    {
-      type_tag = Internal::NT_TemplateHelper::encode_tag<DIM,COORD_T>();
-    }
+  //--------------------------------------------------------------------------
+  template<int DIM, typename COORD_T>
+  void OutputRequirement::set_type_tag()
+  //--------------------------------------------------------------------------
+  {
+    type_tag = Internal::NT_TemplateHelper::encode_tag<DIM, COORD_T>();
+  }
 
-} // namespace Legion
+}  // namespace Legion

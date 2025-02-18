@@ -20,10 +20,14 @@
 
 namespace Legion {
 #ifdef LEGION_REDOP_HALF
-  /*static*/ const __half SumReduction<__half>::identity = __half(0, false/*raw*/);
-  /*static*/ const __half DiffReduction<__half>::identity = __half(0, false/*raw*/);
-  /*static*/ const __half ProdReduction<__half>::identity = __half(1, false/*raw*/);
-  /*static*/ const __half DivReduction<__half>::identity = __half(1, false/*raw*/);
+  /*static*/ const __half SumReduction<__half>::identity =
+      __half(0, false /*raw*/);
+  /*static*/ const __half DiffReduction<__half>::identity =
+      __half(0, false /*raw*/);
+  /*static*/ const __half ProdReduction<__half>::identity =
+      __half(1, false /*raw*/);
+  /*static*/ const __half DivReduction<__half>::identity =
+      __half(1, false /*raw*/);
   /*static*/ const __half MaxReduction<__half>::identity = __half(-2e10);
   /*static*/ const __half MinReduction<__half>::identity = __half(2e10);
 #endif
@@ -32,35 +36,48 @@ namespace Legion {
   /*static*/ const float DiffReduction<float>::identity = 0.f;
   /*static*/ const float ProdReduction<float>::identity = 1.f;
   /*static*/ const float DivReduction<float>::identity = 1.f;
-  /*static*/ const float MaxReduction<float>::identity = std::numeric_limits<float>::min();
-  /*static*/ const float MinReduction<float>::identity = std::numeric_limits<float>::max();
-
+  /*static*/ const float MaxReduction<float>::identity =
+      std::numeric_limits<float>::min();
+  /*static*/ const float MinReduction<float>::identity =
+      std::numeric_limits<float>::max();
 
   /*static*/ const double SumReduction<double>::identity = 0.0;
   /*static*/ const double DiffReduction<double>::identity = 0.0;
   /*static*/ const double ProdReduction<double>::identity = 1.0;
   /*static*/ const double DivReduction<double>::identity = 1.0;
-  /*static*/ const double MaxReduction<double>::identity = std::numeric_limits<double>::min();
-  /*static*/ const double MinReduction<double>::identity = std::numeric_limits<double>::max();
+  /*static*/ const double MaxReduction<double>::identity =
+      std::numeric_limits<double>::min();
+  /*static*/ const double MinReduction<double>::identity =
+      std::numeric_limits<double>::max();
 
 #ifdef LEGION_REDOP_COMPLEX
 #ifdef LEGION_REDOP_HALF
-  /*static*/ const complex<__half> SumReduction<complex<__half> >::identity = complex<__half>(__half(0, false/*raw*/), __half(0, false/*raw*/));
-  /*static*/ const complex<__half> DiffReduction<complex<__half> >::identity = complex<__half>(__half(0, false/*raw*/), __half(0, false/*raw*/));
-  /*static*/ const complex<__half> ProdReduction<complex<__half> >::identity = complex<__half>(__half(1, false/*raw*/), __half(0, false/*raw*/));
-  /*static*/ const complex<__half> DivReduction<complex<__half> >::identity = complex<__half>(__half(1, false/*raw*/), __half(0, false/*raw*/));
+  /*static*/ const complex<__half> SumReduction<complex<__half> >::identity =
+      complex<__half>(__half(0, false /*raw*/), __half(0, false /*raw*/));
+  /*static*/ const complex<__half> DiffReduction<complex<__half> >::identity =
+      complex<__half>(__half(0, false /*raw*/), __half(0, false /*raw*/));
+  /*static*/ const complex<__half> ProdReduction<complex<__half> >::identity =
+      complex<__half>(__half(1, false /*raw*/), __half(0, false /*raw*/));
+  /*static*/ const complex<__half> DivReduction<complex<__half> >::identity =
+      complex<__half>(__half(1, false /*raw*/), __half(0, false /*raw*/));
 #endif
-  /*static*/ const complex<float> SumReduction<complex<float> >::identity = complex<float>(0.f, 0.f);
-  /*static*/ const complex<float> DiffReduction<complex<float> >::identity = complex<float>(0.f, 0.f);
-  /*static*/ const complex<float> ProdReduction<complex<float> >::identity = complex<float>(1.f, 0.f);
-  /*static*/ const complex<float> DivReduction<complex<float> >::identity = complex<float>(1.f, 0.f);
+  /*static*/ const complex<float> SumReduction<complex<float> >::identity =
+      complex<float>(0.f, 0.f);
+  /*static*/ const complex<float> DiffReduction<complex<float> >::identity =
+      complex<float>(0.f, 0.f);
+  /*static*/ const complex<float> ProdReduction<complex<float> >::identity =
+      complex<float>(1.f, 0.f);
+  /*static*/ const complex<float> DivReduction<complex<float> >::identity =
+      complex<float>(1.f, 0.f);
 
-  /*static*/ const complex<double> SumReduction<complex<double> >::identity = complex<double>(0.f, 0.f);
+  /*static*/ const complex<double> SumReduction<complex<double> >::identity =
+      complex<double>(0.f, 0.f);
 #endif
 
-#define REGISTER_BUILTIN_REDOP(id, type)  \
-  register_reduction_op(id, Realm::ReductionOpUntyped::create_reduction_op< \
-      type >(), nullptr, nullptr, false);
+#define REGISTER_BUILTIN_REDOP(id, type)                                   \
+  register_reduction_op(                                                   \
+      id, Realm::ReductionOpUntyped::create_reduction_op<type>(), nullptr, \
+      nullptr, false);
 
   namespace Internal {
 #if defined(LEGION_USE_CUDA)
@@ -82,11 +99,11 @@ namespace Legion {
 #endif
 #ifdef LEGION_USE_HIP
       register_builtin_reduction_operators_hip();
-#endif      
+#endif
 #else
       // Only CPU reductions are needed, so register them here
       LEGION_REDOP_LIST(REGISTER_BUILTIN_REDOP)
 #endif
     }
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

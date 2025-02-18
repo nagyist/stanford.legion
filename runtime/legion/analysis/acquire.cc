@@ -28,64 +28,61 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    AcquireAnalysis::AcquireAnalysis(Operation *o, unsigned idx,
-                                     RegionNode *node,
-                                     const PhysicalTraceInfo &t_info)
-      : RegistrationAnalysis(o, idx, node, true/*on heap*/, t_info, 
-                             true/*exclusive*/), target_analysis(this)
+    AcquireAnalysis::AcquireAnalysis(
+        Operation* o, unsigned idx, RegionNode* node,
+        const PhysicalTraceInfo& t_info)
+      : RegistrationAnalysis(
+            o, idx, node, true /*on heap*/, t_info, true /*exclusive*/),
+        target_analysis(this)
     //--------------------------------------------------------------------------
-    {
-    }
-    
+    { }
+
     //--------------------------------------------------------------------------
-    AcquireAnalysis::AcquireAnalysis(AddressSpaceID src, 
-                      AddressSpaceID prev, Operation *o, unsigned idx, 
-                      RegionNode *node, AcquireAnalysis *t,
-                      const PhysicalTraceInfo &t_info,
-                      CollectiveMapping *mapping, bool first_local)
-      : RegistrationAnalysis(src, prev, o, idx, node, true/*on heap*/,
-          t_info, mapping, first_local, true/*exclusive*/), target_analysis(t)
+    AcquireAnalysis::AcquireAnalysis(
+        AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
+        RegionNode* node, AcquireAnalysis* t, const PhysicalTraceInfo& t_info,
+        CollectiveMapping* mapping, bool first_local)
+      : RegistrationAnalysis(
+            src, prev, o, idx, node, true /*on heap*/, t_info, mapping,
+            first_local, true /*exclusive*/),
+        target_analysis(t)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     AcquireAnalysis::~AcquireAnalysis(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    bool AcquireAnalysis::perform_analysis(EquivalenceSet *set,
-                                           IndexSpaceExpression *expr,
-                                           const bool expr_covers,
-                                           const FieldMask &mask,
-                                           std::set<RtEvent> &applied_events,
-                                           const bool already_deferred)
+    bool AcquireAnalysis::perform_analysis(
+        EquivalenceSet* set, IndexSpaceExpression* expr, const bool expr_covers,
+        const FieldMask& mask, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //--------------------------------------------------------------------------
     {
-      set->acquire_restrictions(*this, expr, expr_covers, mask,
-                                applied_events, already_deferred);
+      set->acquire_restrictions(
+          *this, expr, expr_covers, mask, applied_events, already_deferred);
       // Perform a check for migration after this
       return true;
     }
 
     //--------------------------------------------------------------------------
-    RtEvent AcquireAnalysis::perform_remote(RtEvent perform_precondition, 
-                                            std::set<RtEvent> &applied_events,
-                                            const bool already_deferred)
+    RtEvent AcquireAnalysis::perform_remote(
+        RtEvent perform_precondition, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //--------------------------------------------------------------------------
     {
-      if (perform_precondition.exists() && 
+      if (perform_precondition.exists() &&
           !perform_precondition.has_triggered())
         return defer_remote(perform_precondition, applied_events);
       // Easy out if there is nothing to do
       if (remote_sets.empty())
         return RtEvent::NO_RT_EVENT;
       std::set<RtEvent> remote_events;
-      for (LegionMap<AddressSpaceID,
-                     FieldMaskSet<EquivalenceSet> >::const_iterator 
-            rit = remote_sets.begin(); rit != remote_sets.end(); rit++)
+      for (LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+               const_iterator rit = remote_sets.begin();
+           rit != remote_sets.end(); rit++)
       {
 #ifdef DEBUG_LEGION
         assert(!rit->second.empty());
@@ -98,8 +95,9 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it = 
-                rit->second.begin(); it != rit->second.end(); it++)
+          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+                   rit->second.begin();
+               it != rit->second.end(); it++)
           {
             rez.serialize(it->first->did);
             rez.serialize(it->second);
@@ -113,13 +111,13 @@ namespace Legion {
           trace_info.pack_trace_info(rez);
           // We only need to pack the collective mapping once when going
           // from the origin space to the next space
-          CollectiveMapping *mapping = get_replicated_mapping();
-          if ((mapping != nullptr) && (original_source == runtime->address_space))
+          CollectiveMapping* mapping = get_replicated_mapping();
+          if ((mapping != nullptr) &&
+              (original_source == runtime->address_space))
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
-          }
-          else
+          } else
             rez.serialize<size_t>(0);
         }
         runtime->send_equivalence_set_remote_acquires(target, rez);
@@ -130,12 +128,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent AcquireAnalysis::perform_updates(RtEvent perform_precondition,
-                                             std::set<RtEvent> &applied_events,
-                                             const bool already_deferred)
+    RtEvent AcquireAnalysis::perform_updates(
+        RtEvent perform_precondition, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //-------------------------------------------------------------------------
     {
-      if (perform_precondition.exists() && 
+      if (perform_precondition.exists() &&
           !perform_precondition.has_triggered())
         return defer_updates(perform_precondition, applied_events);
       if (recorded_instances != nullptr)
@@ -149,9 +147,9 @@ namespace Legion {
             rez.serialize(target_analysis);
             rez.serialize(response_event);
             rez.serialize<size_t>(recorded_instances->size());
-            for (FieldMaskSet<LogicalView>::const_iterator it = 
-                  recorded_instances->begin(); it != 
-                  recorded_instances->end(); it++)
+            for (FieldMaskSet<LogicalView>::const_iterator it =
+                     recorded_instances->begin();
+                 it != recorded_instances->end(); it++)
             {
               rez.serialize(it->first->did);
               rez.serialize(it->second);
@@ -160,17 +158,16 @@ namespace Legion {
           }
           runtime->send_equivalence_set_remote_instances(original_source, rez);
           return response_event;
-        }
-        else
-          target_analysis->process_local_instances(*recorded_instances, 
-                                                   restricted);
+        } else
+          target_analysis->process_local_instances(
+              *recorded_instances, restricted);
       }
       return RtEvent::NO_RT_EVENT;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void AcquireAnalysis::handle_remote_acquires(Deserializer &derez,
-                                      AddressSpaceID previous)
+    /*static*/ void AcquireAnalysis::handle_remote_acquires(
+        Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -186,57 +183,62 @@ namespace Legion {
         DistributedID did;
         derez.deserialize(did);
         RtEvent ready;
-        eq_sets[idx] = runtime->find_or_request_equivalence_set(did, ready); 
+        eq_sets[idx] = runtime->find_or_request_equivalence_set(did, ready);
         if (ready.exists())
           ready_events.insert(ready);
         derez.deserialize(eq_masks[idx]);
       }
       LogicalRegion handle;
       derez.deserialize(handle);
-      RegionNode *region = runtime->get_node(handle);
-      RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
+      RegionNode* region = runtime->get_node(handle);
+      RemoteOp* op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
       RtUserEvent returned;
       derez.deserialize(returned);
       RtUserEvent applied;
       derez.deserialize(applied);
-      AcquireAnalysis *target;
+      AcquireAnalysis* target;
       derez.deserialize(target);
       std::set<RtEvent> deferral_events, applied_events;
-      const PhysicalTraceInfo trace_info = 
-        PhysicalTraceInfo::unpack_trace_info(derez);
+      const PhysicalTraceInfo trace_info =
+          PhysicalTraceInfo::unpack_trace_info(derez);
       size_t collective_mapping_size;
       derez.deserialize(collective_mapping_size);
-      CollectiveMapping *mapping = ((collective_mapping_size) > 0) ?
-        new CollectiveMapping(derez, collective_mapping_size) : nullptr;
+      CollectiveMapping* mapping =
+          ((collective_mapping_size) > 0) ?
+              new CollectiveMapping(derez, collective_mapping_size) :
+              nullptr;
       bool first_local = true;
       if (mapping != nullptr)
         derez.deserialize<bool>(first_local);
 
       // This takes ownership of the operation
-      AcquireAnalysis *analysis = new AcquireAnalysis(original_source,
-         previous, op, index, region, target, trace_info, mapping, first_local);
+      AcquireAnalysis* analysis = new AcquireAnalysis(
+          original_source, previous, op, index, region, target, trace_info,
+          mapping, first_local);
       analysis->add_reference();
       // Make sure that all our pointers are ready
       RtEvent ready_event;
       if (!ready_events.empty())
         ready_event = Runtime::merge_events(ready_events);
       for (unsigned idx = 0; idx < eq_sets.size(); idx++)
-        analysis->analyze(eq_sets[idx], eq_masks[idx], deferral_events, 
-                          applied_events, ready_event);
+        analysis->analyze(
+            eq_sets[idx], eq_masks[idx], deferral_events, applied_events,
+            ready_event);
       const RtEvent traversal_done = deferral_events.empty() ?
-        RtEvent::NO_RT_EVENT : Runtime::merge_events(deferral_events);
+                                         RtEvent::NO_RT_EVENT :
+                                         Runtime::merge_events(deferral_events);
       if (traversal_done.exists() || analysis->has_remote_sets())
       {
-        const RtEvent remote_ready = 
-          analysis->perform_remote(traversal_done, applied_events);
+        const RtEvent remote_ready =
+            analysis->perform_remote(traversal_done, applied_events);
         if (remote_ready.exists())
           ready_events.insert(remote_ready);
       }
       // Defer sending the updates until we're ready
-      const RtEvent local_ready = 
-        analysis->perform_updates(traversal_done, applied_events);
+      const RtEvent local_ready =
+          analysis->perform_updates(traversal_done, applied_events);
       if (local_ready.exists())
         ready_events.insert(local_ready);
       if (!ready_events.empty())
@@ -251,5 +253,5 @@ namespace Legion {
         delete analysis;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -28,37 +28,41 @@ namespace Legion {
     class TunableOp : public Operation {
     public:
       TunableOp(void);
-      TunableOp(const TunableOp &rhs) = delete;
+      TunableOp(const TunableOp& rhs) = delete;
       virtual ~TunableOp(void);
     public:
-      TunableOp& operator=(const TunableOp &rhs) = delete;
+      TunableOp& operator=(const TunableOp& rhs) = delete;
     public:
-      Future initialize(InnerContext *ctx, const TunableLauncher &launcher,
-                        Provenance *provenance);
+      Future initialize(
+          InnerContext* ctx, const TunableLauncher& launcher,
+          Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_mapping(void);
       virtual void trigger_execution(void);
       // virtual method for control replication
-      virtual void process_result(MapperManager *mapper,
-                                  void *buffer, size_t size) const { }
+      virtual void process_result(
+          MapperManager* mapper, void* buffer, size_t size) const
+      { }
     protected:
       TunableID tunable_id;
       MapperID mapper_id;
       MappingTagID tag;
-      void *arg;
+      void* arg;
       size_t argsize;
       uint64_t tunable_index;
       size_t return_type_size;
       Future result;
-      FutureInstance *instance;
+      FutureInstance* instance;
       std::vector<Future> futures;
       RtEvent futures_mapped;
     };
@@ -71,22 +75,22 @@ namespace Legion {
     class ReplTunableOp : public TunableOp {
     public:
       ReplTunableOp(void);
-      ReplTunableOp(const ReplTunableOp &rhs) = delete;
+      ReplTunableOp(const ReplTunableOp& rhs) = delete;
       virtual ~ReplTunableOp(void);
     public:
-      ReplTunableOp& operator=(const ReplTunableOp &rhs) = delete;
+      ReplTunableOp& operator=(const ReplTunableOp& rhs) = delete;
     public:
-      void initialize_replication(ReplicateContext *context);
+      void initialize_replication(ReplicateContext* context);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
-      virtual void process_result(MapperManager *mapper, 
-                                  void *buffer, size_t size) const;
+      virtual void process_result(
+          MapperManager* mapper, void* buffer, size_t size) const;
     protected:
-      BufferBroadcast *value_broadcast;       
+      BufferBroadcast* value_broadcast;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_TUNABLE_H__
+#endif  // __LEGION_TUNABLE_H__

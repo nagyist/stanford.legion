@@ -23,7 +23,7 @@ namespace Legion {
   namespace Internal {
 
     /**
-     * \class InstanceView 
+     * \class InstanceView
      * The InstanceView class is used for performing the dependence
      * analysis for a single physical instance.
      * The InstaceView class has two sub-classes: materialized
@@ -36,86 +36,75 @@ namespace Legion {
       // between collective user registrations
       struct RendezvousKey {
       public:
-        RendezvousKey(void)
-          : op_context_index(0), match(0), index(0) { }
+        RendezvousKey(void) : op_context_index(0), match(0), index(0) { }
         RendezvousKey(size_t ctx, unsigned idx, IndexSpaceID m)
-          : op_context_index(ctx), match(m), index(idx) { }
+          : op_context_index(ctx), match(m), index(idx)
+        { }
       public:
-        inline bool operator<(const RendezvousKey &rhs) const
+        inline bool operator<(const RendezvousKey& rhs) const
         {
-          if (op_context_index < rhs.op_context_index) return true;
-          if (op_context_index > rhs.op_context_index) return false;
-          if (match < rhs.match) return true;
-          if (match > rhs.match) return false;
+          if (op_context_index < rhs.op_context_index)
+            return true;
+          if (op_context_index > rhs.op_context_index)
+            return false;
+          if (match < rhs.match)
+            return true;
+          if (match > rhs.match)
+            return false;
           return (index < rhs.index);
         }
       public:
-        size_t op_context_index; // unique name operation in context
-        IndexSpaceID match; // index space of regions that should match
-        unsigned index; // uniquely name analysis for op by region req index
+        size_t op_context_index;  // unique name operation in context
+        IndexSpaceID match;       // index space of regions that should match
+        unsigned index;  // uniquely name analysis for op by region req index
       };
     public:
-      typedef LegionMap<ApEvent,FieldMask> EventFieldMap;
-      typedef LegionMap<ApEvent,FieldMaskSet<PhysicalUser> > EventFieldUsers;
+      typedef LegionMap<ApEvent, FieldMask> EventFieldMap;
+      typedef LegionMap<ApEvent, FieldMaskSet<PhysicalUser> > EventFieldUsers;
       typedef FieldMaskSet<PhysicalUser> EventUsers;
     public:
-      InstanceView(DistributedID did,
-                   bool register_now, CollectiveMapping *mapping);
-      virtual ~InstanceView(void);  
+      InstanceView(
+          DistributedID did, bool register_now, CollectiveMapping* mapping);
+      virtual ~InstanceView(void);
     public:
-      virtual ApEvent fill_from(FillView *fill_view,
-                                ApEvent precondition, PredEvent predicate_guard,
-                                IndexSpaceExpression *expression,
-                                Operation *op, const unsigned index,
-                                const IndexSpaceID collective_match_space,
-                                const FieldMask &fill_mask,
-                                const PhysicalTraceInfo &trace_info,
-                                std::set<RtEvent> &recorded_events,
-                                std::set<RtEvent> &applied_events,
-                                CopyAcrossHelper *across_helper,
-                                const bool manage_dst_events,
-                                const bool fill_restricted,
-                                const bool need_valid_return) = 0;
-      virtual ApEvent copy_from(InstanceView *src_view, ApEvent precondition,
-                                PredEvent predicate_guard, ReductionOpID redop,
-                                IndexSpaceExpression *expression,
-                                Operation *op, const unsigned index,
-                                const IndexSpaceID collective_match_space,
-                                const FieldMask &copy_mask,
-                                PhysicalManager *src_point,
-                                const PhysicalTraceInfo &trace_info,
-                                std::set<RtEvent> &recorded_events,
-                                std::set<RtEvent> &applied_events,
-                                CopyAcrossHelper *across_helper,
-                                const bool manage_dst_events,
-                                const bool copy_restricted,
-                                const bool need_valid_return) = 0;
+      virtual ApEvent fill_from(
+          FillView* fill_view, ApEvent precondition, PredEvent predicate_guard,
+          IndexSpaceExpression* expression, Operation* op, const unsigned index,
+          const IndexSpaceID collective_match_space, const FieldMask& fill_mask,
+          const PhysicalTraceInfo& trace_info,
+          std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
+          CopyAcrossHelper* across_helper, const bool manage_dst_events,
+          const bool fill_restricted, const bool need_valid_return) = 0;
+      virtual ApEvent copy_from(
+          InstanceView* src_view, ApEvent precondition,
+          PredEvent predicate_guard, ReductionOpID redop,
+          IndexSpaceExpression* expression, Operation* op, const unsigned index,
+          const IndexSpaceID collective_match_space, const FieldMask& copy_mask,
+          PhysicalManager* src_point, const PhysicalTraceInfo& trace_info,
+          std::set<RtEvent>& recorded_events, std::set<RtEvent>& applied_events,
+          CopyAcrossHelper* across_helper, const bool manage_dst_events,
+          const bool copy_restricted, const bool need_valid_return) = 0;
       // Always want users to be full index space expressions
-      virtual ApEvent register_user(const RegionUsage &usage,
-                                    const FieldMask &user_mask,
-                                    IndexSpaceNode *expr,
-                                    const UniqueID op_id,
-                                    const size_t op_ctx_index,
-                                    const unsigned index,
-                                    const IndexSpaceID collective_match_space,
-                                    ApEvent term_event,
-                                    PhysicalManager *target,
-                                    CollectiveMapping *collective_mapping,
-                                    size_t local_collective_arrivals,
-                                    std::vector<RtEvent> &registered_events,
-                                    std::set<RtEvent> &applied_events,
-                                    const PhysicalTraceInfo &trace_info,
-                                    const AddressSpaceID source,
-                                    const bool symbolic = false) = 0;
+      virtual ApEvent register_user(
+          const RegionUsage& usage, const FieldMask& user_mask,
+          IndexSpaceNode* expr, const UniqueID op_id, const size_t op_ctx_index,
+          const unsigned index, const IndexSpaceID collective_match_space,
+          ApEvent term_event, PhysicalManager* target,
+          CollectiveMapping* collective_mapping,
+          size_t local_collective_arrivals,
+          std::vector<RtEvent>& registered_events,
+          std::set<RtEvent>& applied_events,
+          const PhysicalTraceInfo& trace_info, const AddressSpaceID source,
+          const bool symbolic = false) = 0;
     public:
-      virtual void send_view(AddressSpaceID target) = 0; 
+      virtual void send_view(AddressSpaceID target) = 0;
       virtual ReductionOpID get_redop(void) const { return 0; }
       virtual FillView* get_redop_fill_view(void) const { std::abort(); }
-      virtual AddressSpaceID get_analysis_space(PhysicalManager *man) const = 0;
-      virtual bool aliases(InstanceView *other) const = 0;
+      virtual AddressSpaceID get_analysis_space(PhysicalManager* man) const = 0;
+      virtual bool aliases(InstanceView* other) const = 0;
     public:
-      static void handle_view_register_user(Deserializer &derez,
-                                            AddressSpaceID source);
+      static void handle_view_register_user(
+          Deserializer& derez, AddressSpaceID source);
     };
 
     //--------------------------------------------------------------------------
@@ -128,7 +117,7 @@ namespace Legion {
       return static_cast<InstanceView*>(const_cast<LogicalView*>(this));
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_INSTANCE_VIEW_H__
+#endif  // __LEGION_INSTANCE_VIEW_H__

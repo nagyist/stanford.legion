@@ -23,19 +23,20 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Region Tree Node 
+    // Region Tree Node
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
     RegionTreeNode::RegionTreeNode(
-       FieldSpaceNode *column_src, RtEvent init, RtEvent tree, Provenance *prov,
-       DistributedID id, CollectiveMapping *map)
+        FieldSpaceNode* column_src, RtEvent init, RtEvent tree,
+        Provenance* prov, DistributedID id, CollectiveMapping* map)
       : DistributedCollectable(
-            LEGION_DISTRIBUTED_HELP_ENCODE((id > 0) ? id :
-              runtime->get_available_distributed_id(),
-              REGION_TREE_NODE_DC), false/*register with runtime*/, map),
-        column_source(column_src), provenance(prov),
-        initialized(init), tree_initialized(tree), registered(false)
+            LEGION_DISTRIBUTED_HELP_ENCODE(
+                (id > 0) ? id : runtime->get_available_distributed_id(),
+                REGION_TREE_NODE_DC),
+            false /*register with runtime*/, map),
+        column_source(column_src), provenance(prov), initialized(init),
+        tree_initialized(tree), registered(false)
     //--------------------------------------------------------------------------
     {
       if (provenance != nullptr)
@@ -58,21 +59,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::attach_semantic_information(SemanticTag tag,
-                                                     AddressSpaceID source,
-                                                     const void *buffer,
-                                                     size_t size,
-                                                     bool is_mutable,
-                                                     bool local_only)
+    void RegionTreeNode::attach_semantic_information(
+        SemanticTag tag, AddressSpaceID source, const void* buffer, size_t size,
+        bool is_mutable, bool local_only)
     //--------------------------------------------------------------------------
     {
       // Make a copy
       bool added = true;
       {
-        AutoLock n_lock(node_lock); 
+        AutoLock n_lock(node_lock);
         // See if it already exists
-        LegionMap<SemanticTag,SemanticInfo>::iterator finder = 
-          semantic_info.find(tag);
+        LegionMap<SemanticTag, SemanticInfo>::iterator finder =
+            semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
           if (finder->second.is_valid())
@@ -81,52 +79,52 @@ namespace Legion {
             {
               // Check to make sure that the bits are the same
               if (size != finder->second.buffer.get_size())
-                REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
-                  "Inconsistent Semantic Tag value "
-                              "for tag %ld with different sizes of %zd"
-                              " and %zd for region tree node", 
-                              tag, size, finder->second.buffer.get_size())
-              // Otherwise do a bitwise comparison
-              {
-                const char *orig = (const char*)finder->second.buffer.get_buffer();
-                const char *next = (const char*)buffer;
-                for (unsigned idx = 0; idx < size; idx++)
+                REPORT_LEGION_ERROR(
+                    ERROR_INCONSISTENT_SEMANTIC_TAG,
+                    "Inconsistent Semantic Tag value "
+                    "for tag %ld with different sizes of %zd"
+                    " and %zd for region tree node",
+                    tag, size, finder->second.buffer.get_size())
+                // Otherwise do a bitwise comparison
                 {
-                  char diff = orig[idx] ^ next[idx];
-                  if (diff)
-                    REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
-                      "Inconsistent Semantic Tag value "
-                                  "for tag %ld with different values at"
-                                  "byte %d for region tree node, %x != %x", 
-                                  tag, idx, orig[idx], next[idx])
+                  const char* orig =
+                      (const char*)finder->second.buffer.get_buffer();
+                  const char* next = (const char*)buffer;
+                  for (unsigned idx = 0; idx < size; idx++)
+                  {
+                    char diff = orig[idx] ^ next[idx];
+                    if (diff)
+                      REPORT_LEGION_ERROR(
+                          ERROR_INCONSISTENT_SEMANTIC_TAG,
+                          "Inconsistent Semantic Tag value "
+                          "for tag %ld with different values at"
+                          "byte %d for region tree node, %x != %x",
+                          tag, idx, orig[idx], next[idx])
+                  }
                 }
-              }
               added = false;
-            }
-            else
+            } else
             {
               // Mutable so we can just overwrite it
               finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
-          }
-          else
+          } else
           {
             finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
-        }
-        else
+        } else
           semantic_info[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (added)
       {
         AddressSpaceID owner_space = find_semantic_owner();
-        // If we are not the owner and the message 
-        // didn't come from the owner, then send it 
+        // If we are not the owner and the message
+        // didn't come from the owner, then send it
         if ((owner_space != runtime->address_space) &&
             (source != owner_space) && !local_only)
         {
@@ -139,11 +137,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool RegionTreeNode::retrieve_semantic_information(SemanticTag tag,
-                                                       const void *&result,
-                                                       size_t &size,
-                                                       bool can_fail,
-                                                       bool wait_until)
+    bool RegionTreeNode::retrieve_semantic_information(
+        SemanticTag tag, const void*& result, size_t& size, bool can_fail,
+        bool wait_until)
     //--------------------------------------------------------------------------
     {
       RtEvent wait_on;
@@ -152,8 +148,8 @@ namespace Legion {
       const bool is_remote = (owner_space != runtime->address_space);
       {
         AutoLock n_lock(node_lock);
-        LegionMap<SemanticTag,SemanticInfo>::const_iterator finder = 
-          semantic_info.find(tag); 
+        LegionMap<SemanticTag, SemanticInfo>::const_iterator finder =
+            semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
           // Already have the data so we are done
@@ -162,22 +158,18 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             return true;
-          }
-          else if (is_remote)
+          } else if (is_remote)
           {
             if (can_fail)
             {
               // Have to make our own event
               request = Runtime::create_rt_user_event();
               wait_on = request;
-            }
-            else // can use the canonical event
-              wait_on = finder->second.ready_event; 
-          }
-          else if (wait_until) // local so use the canonical event
+            } else  // can use the canonical event
+              wait_on = finder->second.ready_event;
+          } else if (wait_until)  // local so use the canonical event
             wait_on = finder->second.ready_event;
-        }
-        else
+        } else
         {
           // Otherwise we make an event to wait on
           if (!can_fail && wait_until)
@@ -186,8 +178,7 @@ namespace Legion {
             request = Runtime::create_rt_user_event();
             semantic_info[tag] = SemanticInfo(request);
             wait_on = request;
-          }
-          else if (is_remote)
+          } else if (is_remote)
           {
             // Make an event just for us to use
             request = Runtime::create_rt_user_event();
@@ -200,27 +191,31 @@ namespace Legion {
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(ERROR_INVALID_SEMANTIC_TAG,
-                      "invalid semantic tag %ld for "
-                      "region tree node", tag)
-      }
-      else
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_SEMANTIC_TAG,
+            "invalid semantic tag %ld for "
+            "region tree node",
+            tag)
+      } else
       {
         if (is_remote && request.exists())
-          send_semantic_request(owner_space, tag, can_fail, wait_until,request);
+          send_semantic_request(
+              owner_space, tag, can_fail, wait_until, request);
         wait_on.wait();
       }
       // When we wake up, we should be able to find everything
-      AutoLock n_lock(node_lock,1,false/*exclusive*/);
-      LegionMap<SemanticTag,SemanticInfo>::const_iterator finder = 
-        semantic_info.find(tag);
+      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      LegionMap<SemanticTag, SemanticInfo>::const_iterator finder =
+          semantic_info.find(tag);
       if (finder == semantic_info.end())
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(ERROR_INVALID_SEMANTIC_TAG,
-                            "invalid semantic tag %ld for "
-                            "region tree node", tag)
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_SEMANTIC_TAG,
+            "invalid semantic tag %ld for "
+            "region tree node",
+            tag)
       }
       result = finder->second.buffer.get_buffer();
       size = finder->second.buffer.get_size();
@@ -229,68 +224,62 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ProjectionSummary* RegionTreeNode::compute_projection_summary(
-                   Operation *op, unsigned index, const RegionRequirement &req,
-                   LogicalAnalysis &analysis, const ProjectionInfo &proj_info)
+        Operation* op, unsigned index, const RegionRequirement& req,
+        LogicalAnalysis& analysis, const ProjectionInfo& proj_info)
     //--------------------------------------------------------------------------
     {
       const ContextID ctx = analysis.context->get_logical_tree_context();
-      LogicalState &state = get_logical_state(ctx);
-      return state.find_or_create_projection_summary(op, index, req,
-                                                     analysis, proj_info);
+      LogicalState& state = get_logical_state(ctx);
+      return state.find_or_create_projection_summary(
+          op, index, req, analysis, proj_info);
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::register_logical_user(LogicalRegion privilege_root,
-                                       LogicalUser &user,
-                                       const RegionTreePath &path,
-                                       const LogicalTraceInfo &trace_info,
-                                       const ProjectionInfo &proj_info,
-                                       const FieldMask &user_mask,
-                                       FieldMask &unopened_field_mask,
-                                       FieldMask &refinement_mask,
-                                       LogicalAnalysis &logical_analysis,
-                                       FieldMaskSet<RefinementOp,
-                                        TASK_LOCAL_LIFETIME,true> &refinements,
-                                       const bool root_node)
+    void RegionTreeNode::register_logical_user(
+        LogicalRegion privilege_root, LogicalUser& user,
+        const RegionTreePath& path, const LogicalTraceInfo& trace_info,
+        const ProjectionInfo& proj_info, const FieldMask& user_mask,
+        FieldMask& unopened_field_mask, FieldMask& refinement_mask,
+        LogicalAnalysis& logical_analysis,
+        FieldMaskSet<RefinementOp, TASK_LOCAL_LIFETIME, true>& refinements,
+        const bool root_node)
     //--------------------------------------------------------------------------
     {
-      const ContextID ctx = 
-        logical_analysis.context->get_logical_tree_context();
-      LogicalState &state = get_logical_state(ctx);
+      const ContextID ctx =
+          logical_analysis.context->get_logical_tree_context();
+      LogicalState& state = get_logical_state(ctx);
 #ifdef DEBUG_LEGION
       state.sanity_check();
 #endif
       const unsigned depth = get_depth();
       const bool arrived = !path.has_child(depth);
       FieldMask open_below;
-      RegionTreeNode *next_child = nullptr;
+      RegionTreeNode* next_child = nullptr;
       if (!arrived)
         next_child = get_tree_child(path.get_child(depth));
       // Check to see if we need to traverse any interfering children
       // and record dependences on prior operations in that tree
       if (!!unopened_field_mask)
-        siphon_interfering_children(state, logical_analysis,
-            user_mask, user, privilege_root, next_child, open_below);
+        siphon_interfering_children(
+            state, logical_analysis, user_mask, user, privilege_root,
+            next_child, open_below);
       else if (!arrived)
         // Everything is open-only so make a state and merge it in
         add_open_field_state(state, user, user_mask, next_child);
       // Perform our local dependence analysis at this node along the path
-      FieldMask dominator_mask = 
-             perform_dependence_checks<true/*track dom*/>(privilege_root,
-                          user, state.curr_epoch_users, user_mask,
-                          open_below, arrived, proj_info,
-                          state, logical_analysis);
+      FieldMask dominator_mask = perform_dependence_checks<true /*track dom*/>(
+          privilege_root, user, state.curr_epoch_users, user_mask, open_below,
+          arrived, proj_info, state, logical_analysis);
       FieldMask non_dominated_mask = user_mask - dominator_mask;
       // For the fields that weren't dominated, we have to check
       // those fields against the previous epoch's users
       if (!!non_dominated_mask)
-        perform_dependence_checks<false/*track dom*/>(privilege_root,
-                          user, state.prev_epoch_users, non_dominated_mask,
-                          open_below, arrived, proj_info,
-                          state, logical_analysis);
+        perform_dependence_checks<false /*track dom*/>(
+            privilege_root, user, state.prev_epoch_users, non_dominated_mask,
+            open_below, arrived, proj_info, state, logical_analysis);
       if (arrived)
       {
-        // If we dominated and this is our final destination then we 
+        // If we dominated and this is our final destination then we
         // can filter the operations since we actually do dominate them
         if (!!dominator_mask)
         {
@@ -298,7 +287,7 @@ namespace Legion {
           // Mask off all the dominated fields from the previous set
           // of epoch users and remove any previous epoch users
           // that were totally dominated
-          state.filter_previous_epoch_users(dominator_mask); 
+          state.filter_previous_epoch_users(dominator_mask);
           // Mask off all dominated fields from current epoch users and move
           // them to prev epoch users.  If all fields masked off, then remove
           // them from the list of current epoch users.
@@ -314,26 +303,24 @@ namespace Legion {
           {
             if (user.shard_proj == nullptr)
             {
-              ProjectionSummary *summary = 
-                state.find_or_create_projection_summary(user.op, user.idx,
-                              trace_info.req, logical_analysis, proj_info);
-              state.update_refinement_projection(ctx, summary,
-                                                 user.usage, refinement_mask);
-            }
-            else
-              state.update_refinement_projection(ctx, user.shard_proj,
-                                          user.usage, refinement_mask);
-          }
-          else
+              ProjectionSummary* summary =
+                  state.find_or_create_projection_summary(
+                      user.op, user.idx, trace_info.req, logical_analysis,
+                      proj_info);
+              state.update_refinement_projection(
+                  ctx, summary, user.usage, refinement_mask);
+            } else
+              state.update_refinement_projection(
+                  ctx, user.shard_proj, user.usage, refinement_mask);
+          } else
             state.update_refinement_arrival(ctx, user.usage, refinement_mask);
           // We can skip performing refinements at the root node
           if (!!refinement_mask && !root_node)
-            logical_analysis.record_pending_refinement(privilege_root,
-                user.idx, user.op->find_parent_index(user.idx),
+            logical_analysis.record_pending_refinement(
+                privilege_root, user.idx, user.op->find_parent_index(user.idx),
                 this, refinement_mask, refinements);
         }
-      }
-      else
+      } else
       {
         // We haven't arrived so we need to traverse to the next child
         // Get our set of fields which are being opened for
@@ -350,37 +337,39 @@ namespace Legion {
         }
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
-        else // if they weren't open here, they shouldn't be open below
+        else  // if they weren't open here, they shouldn't be open below
           assert(!open_below);
 #endif
 #endif
         if (!!refinement_mask)
-          state.update_refinement_child(ctx, next_child, 
-                                        user.usage, refinement_mask);
-        next_child->register_logical_user(privilege_root, user, path,
-            trace_info, proj_info, user_mask, unopened_field_mask,
-            refinement_mask, logical_analysis, refinements, false/*root node*/);
+          state.update_refinement_child(
+              ctx, next_child, user.usage, refinement_mask);
+        next_child->register_logical_user(
+            privilege_root, user, path, trace_info, proj_info, user_mask,
+            unopened_field_mask, refinement_mask, logical_analysis, refinements,
+            false /*root node*/);
       }
       // If we have any refinement operations then we need to perform their
-      // dependence analysis now on the way back up the tree after having 
+      // dependence analysis now on the way back up the tree after having
       // done everything else
       if (!refinements.empty())
       {
-        const ProjectionInfo no_projection_info(nullptr,
-                                                nullptr,
-                                                nullptr,
-                                                IndexSpace::NO_SPACE);
+        const ProjectionInfo no_projection_info(
+            nullptr, nullptr, nullptr, IndexSpace::NO_SPACE);
         const RegionUsage ref_usage(LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0);
-        for (FieldMaskSet<RefinementOp,TASK_LOCAL_LIFETIME,true>::const_iterator
-              it = refinements.begin(); it != refinements.end(); it++)
+        for (FieldMaskSet<
+                 RefinementOp, TASK_LOCAL_LIFETIME, true>::const_iterator it =
+                 refinements.begin();
+             it != refinements.end(); it++)
         {
-          const LogicalUser refinement_user(it->first,
-              it->first->get_internal_index(), ref_usage);
-          // Recording refinement dependences will record dependences on 
+          const LogicalUser refinement_user(
+              it->first, it->first->get_internal_index(), ref_usage);
+          // Recording refinement dependences will record dependences on
           // anything in an interfering sub-tree without changing the
           // state of the region tree states
-          state.record_refinement_dependences(ctx, refinement_user, it->second,
-              no_projection_info, next_child, privilege_root, logical_analysis);
+          state.record_refinement_dependences(
+              ctx, refinement_user, it->second, no_projection_info, next_child,
+              privilege_root, logical_analysis);
         }
         // A bit of a hairy case: if the user is not read-write and we have
         // refinements below then we need to promote the state of the child
@@ -398,36 +387,36 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::record_refinement_dependences(ContextID ctx,
-        const LogicalUser &refinement_user, const FieldMask &refinement_mask,
-        const ProjectionInfo &no_proj_info, RegionTreeNode *previous_child,
-        LogicalRegion privilege_root, LogicalAnalysis &logical_analysis)
+    void RegionTreeNode::record_refinement_dependences(
+        ContextID ctx, const LogicalUser& refinement_user,
+        const FieldMask& refinement_mask, const ProjectionInfo& no_proj_info,
+        RegionTreeNode* previous_child, LogicalRegion privilege_root,
+        LogicalAnalysis& logical_analysis)
     //--------------------------------------------------------------------------
     {
-      LogicalState &state = get_logical_state(ctx);
+      LogicalState& state = get_logical_state(ctx);
 #ifdef DEBUG_LEGION
       state.sanity_check();
 #endif
-      state.record_refinement_dependences(ctx, refinement_user, 
-          refinement_mask, no_proj_info, previous_child,
+      state.record_refinement_dependences(
+          ctx, refinement_user, refinement_mask, no_proj_info, previous_child,
           privilege_root, logical_analysis);
       state.filter_timeout_users(logical_analysis);
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::invalidate_logical_refinement(ContextID ctx,
-                                             const FieldMask &invalidation_mask)
+    void RegionTreeNode::invalidate_logical_refinement(
+        ContextID ctx, const FieldMask& invalidation_mask)
     //--------------------------------------------------------------------------
     {
-      LogicalState &state = get_logical_state(ctx);
+      LogicalState& state = get_logical_state(ctx);
       state.invalidate_refinements(ctx, invalidation_mask);
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::add_open_field_state(LogicalState &state,
-                                              const LogicalUser &user,
-                                              const FieldMask &open_mask,
-                                              RegionTreeNode *next_child)
+    void RegionTreeNode::add_open_field_state(
+        LogicalState& state, const LogicalUser& user,
+        const FieldMask& open_mask, RegionTreeNode* next_child)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -439,15 +428,13 @@ namespace Legion {
       state.sanity_check();
 #endif
     }
-    
+
     //--------------------------------------------------------------------------
-    void RegionTreeNode::siphon_interfering_children(LogicalState &state,
-                                                 LogicalAnalysis &analysis,
-                                                 const FieldMask &closing_mask,
-                                                 const LogicalUser &user,
-                                                 LogicalRegion privilege_root,
-                                                 RegionTreeNode *next_child,
-                                                 FieldMask &open_below)
+    void RegionTreeNode::siphon_interfering_children(
+        LogicalState& state, LogicalAnalysis& analysis,
+        const FieldMask& closing_mask, const LogicalUser& user,
+        LogicalRegion privilege_root, RegionTreeNode* next_child,
+        FieldMask& open_below)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -457,9 +444,9 @@ namespace Legion {
       // in the wrong state so we still need to add a new state for them
       FieldMask next_child_fields;
       // Now we can look at all the children
-      for (LegionList<FieldState>::iterator it = 
-            state.field_states.begin(); it != 
-            state.field_states.end(); /*nothing*/)
+      for (LegionList<FieldState>::iterator it = state.field_states.begin();
+           it != state.field_states.end();
+           /*nothing*/)
       {
         // Quick check for disjointness, in which case we can continue
         if (it->valid_fields() * closing_mask)
@@ -479,7 +466,7 @@ namespace Legion {
                 if (next_child != nullptr)
                 {
                   OrderedFieldMaskChildren::const_iterator finder =
-                    it->open_children.find(next_child);
+                      it->open_children.find(next_child);
                   if (finder != it->open_children.end())
                   {
                     // Remove the child's open fields from the
@@ -488,14 +475,14 @@ namespace Legion {
                   }
                 }
                 it++;
-              }
-              else
+              } else
               {
                 // Not-read only so traverse the interfering children and
                 // close up anything that is not the next child
-                perform_close_operations(user, closing_mask, it->open_children,
-                    privilege_root, this, analysis, open_below, next_child,
-                    &next_child_fields, true/*filter next*/);
+                perform_close_operations(
+                    user, closing_mask, it->open_children, privilege_root, this,
+                    analysis, open_below, next_child, &next_child_fields,
+                    true /*filter next*/);
                 // See if there are still any valid open fields
                 if (!it->valid_fields())
                   it = state.field_states.erase(it);
@@ -507,8 +494,9 @@ namespace Legion {
           case OPEN_READ_WRITE:
             {
               // Close up any interfering children that conflict
-              perform_close_operations(user, closing_mask, it->open_children,
-                  privilege_root, this, analysis, open_below, next_child);
+              perform_close_operations(
+                  user, closing_mask, it->open_children, privilege_root, this,
+                  analysis, open_below, next_child);
               if (!it->valid_fields())
                 it = state.field_states.erase(it);
               else
@@ -522,8 +510,8 @@ namespace Legion {
               {
                 if (next_child != nullptr)
                 {
-                  OrderedFieldMaskChildren::const_iterator finder = 
-                    it->open_children.find(next_child);
+                  OrderedFieldMaskChildren::const_iterator finder =
+                      it->open_children.find(next_child);
                   if (finder != it->open_children.end())
                   {
                     // Already open, so add the open fields
@@ -531,14 +519,14 @@ namespace Legion {
                   }
                 }
                 it++;
-              }
-              else
+              } else
               {
                 // Need to close up the open field since we're going
                 // to have to do it anyway
-                perform_close_operations(user, closing_mask, it->open_children,
-                    privilege_root, this, analysis, open_below, next_child,
-                    &next_child_fields, true/*filter next*/);
+                perform_close_operations(
+                    user, closing_mask, it->open_children, privilege_root, this,
+                    analysis, open_below, next_child, &next_child_fields,
+                    true /*filter next*/);
                 if (!it->valid_fields())
                   it = state.field_states.erase(it);
                 else
@@ -571,16 +559,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::perform_close_operations(const LogicalUser &user,
-                                        const FieldMask &closing_mask,
-                                        OrderedFieldMaskChildren &children,
-                                        LogicalRegion privilege_root,
-                                        RegionTreeNode *path_node,
-                                        LogicalAnalysis &analysis,
-                                        FieldMask &open_below,
-                                        RegionTreeNode *next_child,
-                                        FieldMask *next_child_fields,
-                                        const bool filter_next_child)
+    void RegionTreeNode::perform_close_operations(
+        const LogicalUser& user, const FieldMask& closing_mask,
+        OrderedFieldMaskChildren& children, LogicalRegion privilege_root,
+        RegionTreeNode* path_node, LogicalAnalysis& analysis,
+        FieldMask& open_below, RegionTreeNode* next_child,
+        FieldMask* next_child_fields, const bool filter_next_child)
     //--------------------------------------------------------------------------
     {
       if (next_child != nullptr)
@@ -591,10 +575,10 @@ namespace Legion {
           // see if they are disjoint with the next child
           const LegionColor next_color = next_child->get_color();
           std::vector<RegionTreeNode*> to_delete;
-          for (OrderedFieldMaskChildren::iterator it =
-                children.begin(); it != children.end(); it++)
+          for (OrderedFieldMaskChildren::iterator it = children.begin();
+               it != children.end(); it++)
           {
-            if (next_child == it->first) // we'll handle the next child below
+            if (next_child == it->first)  // we'll handle the next child below
               continue;
             const FieldMask close_mask = closing_mask & it->second;
             if (!close_mask)
@@ -602,8 +586,9 @@ namespace Legion {
             if (are_children_disjoint(it->first->get_color(), next_color))
               continue;
             FieldMask still_open;
-            it->first->close_logical_node(user, close_mask, privilege_root,
-                                          path_node, analysis, still_open);
+            it->first->close_logical_node(
+                user, close_mask, privilege_root, path_node, analysis,
+                still_open);
             if (!!still_open)
             {
               if (still_open != close_mask)
@@ -612,8 +597,7 @@ namespace Legion {
                 if (!it->second)
                   to_delete.push_back(it->first);
               }
-            }
-            else
+            } else
             {
               it.filter(close_mask);
               if (!it->second)
@@ -623,7 +607,8 @@ namespace Legion {
           if (!to_delete.empty())
           {
             for (std::vector<RegionTreeNode*>::const_iterator it =
-                  to_delete.begin(); it != to_delete.end(); it++)
+                     to_delete.begin();
+                 it != to_delete.end(); it++)
             {
               children.erase(*it);
               if ((*it)->remove_base_gc_ref(FIELD_STATE_REF))
@@ -633,8 +618,7 @@ namespace Legion {
           }
         }
         // Now handle the next child
-        OrderedFieldMaskChildren::iterator finder =
-          children.find(next_child);
+        OrderedFieldMaskChildren::iterator finder = children.find(next_child);
         if (finder != children.end())
         {
           FieldMask overlap = closing_mask & finder->second;
@@ -646,8 +630,9 @@ namespace Legion {
               assert(next_child_fields != nullptr);
 #endif
               FieldMask child_fields;
-              next_child->close_logical_node(user, overlap, privilege_root,
-                                             path_node, analysis, child_fields);
+              next_child->close_logical_node(
+                  user, overlap, privilege_root, path_node, analysis,
+                  child_fields);
               if (!!child_fields)
               {
                 open_below |= child_fields;
@@ -658,29 +643,28 @@ namespace Legion {
               {
                 children.erase(finder);
                 if (next_child->remove_base_gc_ref(FIELD_STATE_REF))
-                  std::abort(); // should never delete the next child
+                  std::abort();  // should never delete the next child
               }
               children.tighten_valid_mask();
-            }
-            else
+            } else
               open_below |= overlap;
           }
         }
-      }
-      else
+      } else
       {
         // We don't have a next child we're doing to, so we just need to
         // close up all the open children
         std::vector<RegionTreeNode*> to_delete;
-        for (OrderedFieldMaskChildren::iterator it =
-              children.begin(); it != children.end(); it++)
+        for (OrderedFieldMaskChildren::iterator it = children.begin();
+             it != children.end(); it++)
         {
           const FieldMask close_mask = closing_mask & it->second;
           if (!close_mask)
             continue;
           FieldMask still_open;
-          it->first->close_logical_node(user, close_mask, privilege_root,
-                                        path_node, analysis, still_open);
+          it->first->close_logical_node(
+              user, close_mask, privilege_root, path_node, analysis,
+              still_open);
           if (!!still_open)
           {
             open_below |= still_open;
@@ -690,8 +674,7 @@ namespace Legion {
               if (!it->second)
                 to_delete.push_back(it->first);
             }
-          }
-          else
+          } else
           {
             it.filter(close_mask);
             if (!it->second)
@@ -701,7 +684,8 @@ namespace Legion {
         if (!to_delete.empty())
         {
           for (std::vector<RegionTreeNode*>::const_iterator it =
-                to_delete.begin(); it != to_delete.end(); it++)
+                   to_delete.begin();
+               it != to_delete.end(); it++)
           {
             children.erase(*it);
             if ((*it)->remove_base_gc_ref(FIELD_STATE_REF))
@@ -713,27 +697,28 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::close_logical_node(const LogicalUser &user,
-                                            const FieldMask &closing_mask,
-                                            LogicalRegion privilege_root,
-                                            RegionTreeNode *path_node,
-                                            LogicalAnalysis &logical_analysis,
-                                            FieldMask &still_open)
+    void RegionTreeNode::close_logical_node(
+        const LogicalUser& user, const FieldMask& closing_mask,
+        LogicalRegion privilege_root, RegionTreeNode* path_node,
+        LogicalAnalysis& logical_analysis, FieldMask& still_open)
     //--------------------------------------------------------------------------
     {
-      LogicalState &state = 
-        get_logical_state(logical_analysis.context->get_logical_tree_context());
+      LogicalState& state = get_logical_state(
+          logical_analysis.context->get_logical_tree_context());
       // Perform closing checks on both the current epoch users
       // as well as the previous epoch users
-      perform_closing_checks(logical_analysis, state.curr_epoch_users,
-          user, closing_mask, privilege_root, path_node, still_open);
-      perform_closing_checks(logical_analysis, state.prev_epoch_users,
-          user, closing_mask, privilege_root, path_node, still_open);
+      perform_closing_checks(
+          logical_analysis, state.curr_epoch_users, user, closing_mask,
+          privilege_root, path_node, still_open);
+      perform_closing_checks(
+          logical_analysis, state.prev_epoch_users, user, closing_mask,
+          privilege_root, path_node, still_open);
       if (!state.field_states.empty())
       {
         // Recursively traverse any open children and close them as well
         for (std::list<FieldState>::iterator it = state.field_states.begin();
-              it != state.field_states.end(); /*nothing*/)
+             it != state.field_states.end();
+             /*nothing*/)
         {
           FieldMask overlap = it->valid_fields() & closing_mask;
           if (!overlap)
@@ -741,8 +726,9 @@ namespace Legion {
             it++;
             continue;
           }
-          perform_close_operations(user, overlap, it->open_children,
-              privilege_root, path_node, logical_analysis, still_open);
+          perform_close_operations(
+              user, overlap, it->open_children, privilege_root, path_node,
+              logical_analysis, still_open);
           // Remove the state if it is now empty
           if (!it->valid_fields())
             it = state.field_states.erase(it);
@@ -756,15 +742,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::merge_new_field_state(LogicalState &state,
-                                               FieldState &new_state)
+    void RegionTreeNode::merge_new_field_state(
+        LogicalState& state, FieldState& new_state)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!!new_state.valid_fields());
 #endif
       for (std::list<FieldState>::iterator it = state.field_states.begin();
-            it != state.field_states.end(); it++)
+           it != state.field_states.end(); it++)
       {
         if (it->overlaps(new_state))
         {
@@ -777,15 +763,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::report_uninitialized_usage(Operation *op, unsigned idx,
-                                  const FieldMask &uninit, RtUserEvent reported)
+    void RegionTreeNode::report_uninitialized_usage(
+        Operation* op, unsigned idx, const FieldMask& uninit,
+        RtUserEvent reported)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(is_region());
       assert(reported.exists());
 #endif
-      char *field_string = column_source->to_string(uninit, op->get_context());
+      char* field_string = column_source->to_string(uninit, op->get_context());
       op->report_uninitialized_usage(idx, field_string, reported);
       free(field_string);
     }
@@ -796,7 +783,7 @@ namespace Legion {
     {
       if (!logical_states.has_entry(ctx))
         return;
-      LogicalState &state = get_logical_state(ctx);
+      LogicalState& state = get_logical_state(ctx);
       state.check_init();
     }
 
@@ -806,28 +793,29 @@ namespace Legion {
     {
       if (!logical_states.has_entry(ctx))
         return;
-      LogicalState &state = get_logical_state(ctx);
-      state.clear(); 
+      LogicalState& state = get_logical_state(ctx);
+      state.clear();
     }
 
     //--------------------------------------------------------------------------
-    void RegionTreeNode::invalidate_deleted_state(ContextID ctx,
-                                                  const FieldMask &deleted_mask)
+    void RegionTreeNode::invalidate_deleted_state(
+        ContextID ctx, const FieldMask& deleted_mask)
     //--------------------------------------------------------------------------
     {
       if (!logical_states.has_entry(ctx))
         return;
-      LogicalState &state = get_logical_state(ctx);
+      LogicalState& state = get_logical_state(ctx);
       state.clear_deleted_state(ctx, deleted_mask);
     }
 
     //--------------------------------------------------------------------------
     template<bool TRACK_DOM>
-    FieldMask RegionTreeNode::perform_dependence_checks(LogicalRegion root,
-                const LogicalUser &user, OrderedFieldMaskUsers &prev_users,
-                const FieldMask &check_mask, const FieldMask &open_below,
-                const bool arrived, const ProjectionInfo &proj_info,
-                LogicalState &state, LogicalAnalysis &logical_analysis)
+    FieldMask RegionTreeNode::perform_dependence_checks(
+        LogicalRegion root, const LogicalUser& user,
+        OrderedFieldMaskUsers& prev_users, const FieldMask& check_mask,
+        const FieldMask& open_below, const bool arrived,
+        const ProjectionInfo& proj_info, LogicalState& state,
+        LogicalAnalysis& logical_analysis)
     //--------------------------------------------------------------------------
     {
       FieldMask dominator_mask = check_mask;
@@ -835,24 +823,25 @@ namespace Legion {
       // if we don't observe any users of those fields.  Therefore
       // also keep track of the fields that we observe.  We'll use this
       // at the end when computing the final dominator mask.
-      FieldMask observed_mask; 
+      FieldMask observed_mask;
       if (!(check_mask * prev_users.get_valid_mask()))
       {
         bool tighten = false;
         std::vector<LogicalUser*> to_delete;
-        for (OrderedFieldMaskUsers::iterator it =
-              prev_users.begin(); it != prev_users.end(); it++)
+        for (OrderedFieldMaskUsers::iterator it = prev_users.begin();
+             it != prev_users.end(); it++)
         {
           // Don't record dependences on any other users from the same op
-          LogicalUser &prev = *(it->first);
-          if ((prev.ctx_index == user.ctx_index) && 
-              // Note this second condition only happens for must-epoch 
+          LogicalUser& prev = *(it->first);
+          if ((prev.ctx_index == user.ctx_index) &&
+              // Note this second condition only happens for must-epoch
               // operations where multiple tasks are coming through here
               // and we still need to record their mapping dependences
               // so we don't want to go into the scope. If we ever get
-              // rid of must-epoch operations we can get rid of the 
+              // rid of must-epoch operations we can get rid of the
               // second part of this condition
-              ((prev.op == user.op) || (user.op->get_must_epoch_op() == nullptr)))
+              ((prev.op == user.op) ||
+               (user.op->get_must_epoch_op() == nullptr)))
           {
             if ((prev.ctx_index == user.ctx_index) &&
                 !(check_mask * it->second))
@@ -866,8 +855,8 @@ namespace Legion {
           {
             if (TRACK_DOM)
               observed_mask |= overlap;
-            const DependenceType dtype = 
-              check_dependence_type<true,true>(prev.usage, user.usage);
+            const DependenceType dtype =
+                check_dependence_type<true, true>(prev.usage, user.usage);
             switch (dtype)
             {
               case LEGION_NO_DEPENDENCE:
@@ -883,12 +872,12 @@ namespace Legion {
                 {
                   // Check to see if we can record a point-wise dependence
                   // between these two operations. We can only do this if
-                  // it they are both projections and we've arrived so 
+                  // it they are both projections and we've arrived so
                   // they are both projecting from the same node in the
                   // region tree.
                   bool dominates = false;
                   if (arrived && state.record_pointwise_dependence(
-                        logical_analysis, prev, user, dominates))
+                                     logical_analysis, prev, user, dominates))
                   {
                     user.op->register_pointwise_dependence(user.idx, prev);
                     // See if we the new user dominates or not
@@ -896,47 +885,46 @@ namespace Legion {
                       dominator_mask -= overlap;
 #ifdef LEGION_SPY
                     LegionSpy::log_mapping_dependence(
-                        user.op->get_context()->get_unique_id(),
-                        prev.uid, prev.idx, user.uid, user.idx, dtype, true);
+                        user.op->get_context()->get_unique_id(), prev.uid,
+                        prev.idx, user.uid, user.idx, dtype, true);
 #endif
-                  }
-                  else
+                  } else
                   {
                     // If we can validate a region record which of our
                     // predecessors regions we are validating, otherwise
                     // just register a normal dependence
-                    user.op->register_region_dependence(user.idx, prev.op,
-                                                        prev.gen, prev.idx,
-                                                        dtype, overlap);
+                    user.op->register_region_dependence(
+                        user.idx, prev.op, prev.gen, prev.idx, dtype, overlap);
 #ifdef LEGION_SPY
                     LegionSpy::log_mapping_dependence(
-                        user.op->get_context()->get_unique_id(),
-                        prev.uid, prev.idx, user.uid, user.idx, dtype);
+                        user.op->get_context()->get_unique_id(), prev.uid,
+                        prev.idx, user.uid, user.idx, dtype);
 #endif
                     if (prev.shard_proj != nullptr)
                     {
-                     // Two operations from the same must epoch shouldn't
+                      // Two operations from the same must epoch shouldn't
                       // be recording close dependences on each other so
                       // we can skip that part
                       if ((prev.ctx_index == user.ctx_index) &&
                           (user.op->get_must_epoch_op() != nullptr))
                         break;
-                      // If this is a sharding projection operation then check 
+                      // If this is a sharding projection operation then check
                       // to see if we need to record a fence dependence here to
-                      // ensure that we get dependences between interfering 
+                      // ensure that we get dependences between interfering
                       // points in different shards correct
                       // There are three sceanrios here:
-                      // 1. We haven't arrived in which case we don't have any 
+                      // 1. We haven't arrived in which case we don't have any
                       //    good way to symbolically prove it is safe to elide
                       //    the fence so just record the close
                       // 2. We've arrived but we're not projection in which case
-                      //    we'll interfere with any projections anyway so we need
-                      //    a full fence for dependences anyway
-                      // 3. We've arrived and are projecting in which case we can
-                      //    try to elide things symbolically, if that doesn't work
-                      //    we may still need to do an expensive analysis to prove
-                      //    it is safe to elide the close which we'll only do it
-                      //    we are tracing
+                      //    we'll interfere with any projections anyway so we
+                      //    need a full fence for dependences anyway
+                      // 3. We've arrived and are projecting in which case we
+                      // can
+                      //    try to elide things symbolically, if that doesn't
+                      //    work we may still need to do an expensive analysis
+                      //    to prove it is safe to elide the close which we'll
+                      //    only do it we are tracing
                       if (arrived && proj_info.is_projecting())
                       {
                         // If we arrived and are projecting then we can test
@@ -944,21 +932,23 @@ namespace Legion {
                         // each other and see if we can prove that they are
                         // disjoint in which case we don't need a close
 #ifdef DEBUG_LEGION
-                        assert(runtime->enable_pointwise_analysis ||
+                        assert(
+                            runtime->enable_pointwise_analysis ||
                             proj_info.is_sharding());
                         assert(user.shard_proj != nullptr);
 #endif
                         dominates = true;
-                        if (!state.has_interfering_shards(logical_analysis,
-                              prev.shard_proj, user.shard_proj, dominates))
+                        if (!state.has_interfering_shards(
+                                logical_analysis, prev.shard_proj,
+                                user.shard_proj, dominates))
                         {
-                          // If the two projections are non-interfering, then 
-                          // we can only consider the second projection as 
+                          // If the two projections are non-interfering, then
+                          // we can only consider the second projection as
                           // dominating the first if it uses all the same data.
-                          // Otherwise you can cases like those that occur in 
+                          // Otherwise you can cases like those that occur in
                           // https://github.com/StanfordLegion/legion/issues/1765
                           // where some index tasks push earlier index tasks out
-                          // of the set of current/previous epoch users and then 
+                          // of the set of current/previous epoch users and then
                           // we end up missing a merge close op fence.
                           if (!dominates)
                             dominator_mask -= it->second;
@@ -969,8 +959,8 @@ namespace Legion {
                       // non-interfering with each other so we need a close
                       // Not able to do the symbolic elision so we need a fence
                       // across the shards to be safe
-                      logical_analysis.record_close_dependence(root,
-                                    user.idx, this, &prev, overlap);
+                      logical_analysis.record_close_dependence(
+                          root, user.idx, this, &prev, overlap);
                       it.filter(overlap);
                       tighten = true;
                       if (!it->second)
@@ -980,14 +970,14 @@ namespace Legion {
                   break;
                 }
               default:
-                std::abort(); // should never get here
+                std::abort();  // should never get here
             }
           }
         }
         if (!to_delete.empty())
         {
-          for (std::vector<LogicalUser*>::const_iterator it =
-                to_delete.begin(); it != to_delete.end(); it++)
+          for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
+               it != to_delete.end(); it++)
           {
             prev_users.erase(*it);
             if ((*it)->remove_reference())
@@ -999,12 +989,12 @@ namespace Legion {
       }
       // The result of this computation is the dominator mask.
       // It's only sound to say that we dominate fields that
-      // we actually observed users for so intersect the dominator 
+      // we actually observed users for so intersect the dominator
       // mask with the observed mask
       if (TRACK_DOM)
       {
         // For writes, there is a special case here we actually
-        // want to record that we are dominating fields which 
+        // want to record that we are dominating fields which
         // are not actually open below even if we didn't see
         // any users on the way down
         if (IS_WRITE(user.usage))
@@ -1019,30 +1009,29 @@ namespace Legion {
           }
         }
         return (dominator_mask & observed_mask);
-      }
-      else
+      } else
         return dominator_mask;
     }
 
     // Instantiate the template for both templates because c++ is stupid
-    template FieldMask 
-      RegionTreeNode::perform_dependence_checks<true>(LogicalRegion root,
-                const LogicalUser &user, OrderedFieldMaskUsers &prev_users,
-                const FieldMask &check_mask, const FieldMask &open_below,
-                const bool arrived, const ProjectionInfo &proj_info,
-                LogicalState &state, LogicalAnalysis &logical_analysis);
-    template FieldMask 
-      RegionTreeNode::perform_dependence_checks<false>(LogicalRegion root,
-                const LogicalUser &user, OrderedFieldMaskUsers &prev_users,
-                const FieldMask &check_mask, const FieldMask &open_below,
-                const bool arrived, const ProjectionInfo &proj_info,
-                LogicalState &state, LogicalAnalysis &logical_analysis);
+    template FieldMask RegionTreeNode::perform_dependence_checks<true>(
+        LogicalRegion root, const LogicalUser& user,
+        OrderedFieldMaskUsers& prev_users, const FieldMask& check_mask,
+        const FieldMask& open_below, const bool arrived,
+        const ProjectionInfo& proj_info, LogicalState& state,
+        LogicalAnalysis& logical_analysis);
+    template FieldMask RegionTreeNode::perform_dependence_checks<false>(
+        LogicalRegion root, const LogicalUser& user,
+        OrderedFieldMaskUsers& prev_users, const FieldMask& check_mask,
+        const FieldMask& open_below, const bool arrived,
+        const ProjectionInfo& proj_info, LogicalState& state,
+        LogicalAnalysis& logical_analysis);
 
     //--------------------------------------------------------------------------
     /*static*/ void RegionTreeNode::perform_closing_checks(
-        LogicalAnalysis &logical_analysis, OrderedFieldMaskUsers &users,
-        const LogicalUser &user, const FieldMask &check_mask, 
-        LogicalRegion root, RegionTreeNode *path_node, FieldMask &still_open)
+        LogicalAnalysis& logical_analysis, OrderedFieldMaskUsers& users,
+        const LogicalUser& user, const FieldMask& check_mask,
+        LogicalRegion root, RegionTreeNode* path_node, FieldMask& still_open)
     //--------------------------------------------------------------------------
     {
       // Record dependences on all operations with the same field unless they
@@ -1051,27 +1040,27 @@ namespace Legion {
       if (check_mask * users.get_valid_mask())
         return;
       std::vector<LogicalUser*> to_delete;
-      for (OrderedFieldMaskUsers::iterator it = 
-            users.begin(); it != users.end(); it++)
+      for (OrderedFieldMaskUsers::iterator it = users.begin();
+           it != users.end(); it++)
       {
         const FieldMask overlap = check_mask & it->second;
         if (!overlap)
           continue;
-        const LogicalUser &prev = *it->first;
+        const LogicalUser& prev = *it->first;
         // Skip any users from the same operation for different requiremnts
         if (prev.ctx_index == user.ctx_index)
         {
           user.op->report_interfering_requirements(prev.idx, user.idx);
           continue;
         }
-        logical_analysis.record_close_dependence(root, user.idx, path_node,
-                                                 it->first, overlap);
+        logical_analysis.record_close_dependence(
+            root, user.idx, path_node, it->first, overlap);
         it.filter(overlap);
         if (!it->second)
           to_delete.push_back(it->first);
       }
-      for (std::vector<LogicalUser*>::const_iterator it =
-            to_delete.begin(); it != to_delete.end(); it++)
+      for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
+           it != to_delete.end(); it++)
       {
         users.erase(*it);
         if ((*it)->remove_reference())
@@ -1083,24 +1072,23 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Region Node 
+    // Region Node
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RegionNode::RegionNode(LogicalRegion r, PartitionNode *par,
-                           IndexSpaceNode *row_src, FieldSpaceNode *col_src,
-                           DistributedID id,
-                           RtEvent init, RtEvent tree,
-                           CollectiveMapping *mapping, Provenance *prov)
+    RegionNode::RegionNode(
+        LogicalRegion r, PartitionNode* par, IndexSpaceNode* row_src,
+        FieldSpaceNode* col_src, DistributedID id, RtEvent init, RtEvent tree,
+        CollectiveMapping* mapping, Provenance* prov)
       : RegionTreeNode(col_src, init, tree, prov, id, mapping), handle(r),
         parent(par), row_source(row_src)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_GC
-      log_garbage.info("GC Region %lld %d %lld %lld %lld",
-          LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space, 
-          handle.get_index_space().get_id(),
-          handle.get_field_space().get_id(),
+      log_garbage.info(
+          "GC Region %lld %d %lld %lld %lld",
+          LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space,
+          handle.get_index_space().get_id(), handle.get_field_space().get_id(),
           handle.get_tree_id());
 #endif
     }
@@ -1108,12 +1096,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     RegionNode::~RegionNode(void)
     //--------------------------------------------------------------------------
-    { 
+    {
       // The reason we would be here is if we were leaked
       if (!partition_trackers.empty())
       {
-        for (std::list<PartitionTracker*>::const_iterator it = 
-              partition_trackers.begin(); it != partition_trackers.end(); it++)
+        for (std::list<PartitionTracker*>::const_iterator it =
+                 partition_trackers.begin();
+             it != partition_trackers.end(); it++)
           if ((*it)->remove_partition_reference())
             delete (*it);
         partition_trackers.clear();
@@ -1147,10 +1136,11 @@ namespace Legion {
       if (!partition_trackers.empty())
       {
 #ifdef DEBUG_LEGION
-        assert(parent == nullptr); // should only happen on the root
+        assert(parent == nullptr);  // should only happen on the root
 #endif
-        for (std::list<PartitionTracker*>::const_iterator it = 
-              partition_trackers.begin(); it != partition_trackers.end(); it++)
+        for (std::list<PartitionTracker*>::const_iterator it =
+                 partition_trackers.begin();
+             it != partition_trackers.end(); it++)
           if ((*it)->remove_partition_reference())
             delete (*it);
         partition_trackers.clear();
@@ -1174,8 +1164,7 @@ namespace Legion {
         else
           row_source->parent->add_nested_valid_ref(did);
         column_source->add_nested_gc_ref(did);
-      }
-      else
+      } else
         parent->add_child(this);
       column_source->add_nested_resource_ref(did);
       row_source->add_nested_resource_ref(did);
@@ -1198,25 +1187,25 @@ namespace Legion {
     {
       // check to see if we have it, if not try to make it
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
-        std::map<LegionColor,PartitionNode*>::const_iterator finder = 
-          color_map.find(c);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        std::map<LegionColor, PartitionNode*>::const_iterator finder =
+            color_map.find(c);
         if (finder != color_map.end())
           return finder->second;
       }
       // If we get here we didn't immediately have it so try
       // to make it through the proper channels
-      IndexPartNode *index_part = row_source->get_child(c);
+      IndexPartNode* index_part = row_source->get_child(c);
 #ifdef DEBUG_LEGION
       assert(index_part != nullptr);
 #endif
-      LogicalPartition part_handle(handle.tree_did, index_part->handle,
-                                   handle.field_space);
+      LogicalPartition part_handle(
+          handle.tree_did, index_part->handle, handle.field_space);
       return runtime->create_node(part_handle, this);
     }
 
     //--------------------------------------------------------------------------
-    void RegionNode::add_child(PartitionNode *child)
+    void RegionNode::add_child(PartitionNode* child)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
@@ -1232,51 +1221,52 @@ namespace Legion {
     {
       AutoLock n_lock(node_lock);
 #ifdef DEBUG_LEGION
-      std::map<LegionColor,PartitionNode*>::iterator finder = color_map.find(c);
+      std::map<LegionColor, PartitionNode*>::iterator finder =
+          color_map.find(c);
       assert(finder != color_map.end());
       color_map.erase(finder);
 #else
       color_map.erase(c);
 #endif
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    void RegionNode::add_tracker(PartitionTracker *tracker)
+    void RegionNode::add_tracker(PartitionTracker* tracker)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(parent == nullptr); // should only happen on the root
+      assert(parent == nullptr);  // should only happen on the root
 #endif
       std::vector<PartitionTracker*> to_prune;
       {
         AutoLock n_lock(node_lock);
         // To avoid leaks, see if there are any other trackers we can prune
         for (std::list<PartitionTracker*>::iterator it =
-              partition_trackers.begin(); it != 
-              partition_trackers.end(); /*nothing*/)
+                 partition_trackers.begin();
+             it != partition_trackers.end();
+             /*nothing*/)
         {
           if ((*it)->can_prune())
           {
             to_prune.push_back(*it);
             it = partition_trackers.erase(it);
-          }
-          else
+          } else
             it++;
         }
         partition_trackers.push_back(tracker);
       }
-      for (std::vector<PartitionTracker*>::const_iterator it =
-            to_prune.begin(); it != to_prune.end(); it++)
+      for (std::vector<PartitionTracker*>::const_iterator it = to_prune.begin();
+           it != to_prune.end(); it++)
         if ((*it)->remove_reference())
           delete (*it);
     }
 
     //--------------------------------------------------------------------------
-    void RegionNode::initialize_no_refine_fields(ContextID ctx,
-                                               const FieldMask &mask)
+    void RegionNode::initialize_no_refine_fields(
+        ContextID ctx, const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
-      LogicalState &state = get_logical_state(ctx);
+      LogicalState& state = get_logical_state(ctx);
 #ifdef DEBUG_LEGION
       state.sanity_check();
 #endif
@@ -1326,8 +1316,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool RegionNode::are_children_disjoint(const LegionColor c1, 
-                                           const LegionColor c2)
+    bool RegionNode::are_children_disjoint(
+        const LegionColor c1, const LegionColor c2)
     //--------------------------------------------------------------------------
     {
       return row_source->are_disjoint(c1, c2);
@@ -1364,14 +1354,14 @@ namespace Legion {
 #endif
 
     //--------------------------------------------------------------------------
-    bool RegionNode::visit_node(PathTraverser *traverser)
+    bool RegionNode::visit_node(PathTraverser* traverser)
     //--------------------------------------------------------------------------
     {
       return traverser->visit_region(this);
     }
 
     //--------------------------------------------------------------------------
-    bool RegionNode::visit_node(NodeTraverser *traverser)
+    bool RegionNode::visit_node(NodeTraverser* traverser)
     //--------------------------------------------------------------------------
     {
       bool continue_traversal = traverser->visit_region(this);
@@ -1380,35 +1370,37 @@ namespace Legion {
         const bool break_early = traverser->break_early();
         if (traverser->force_instantiation)
         {
-          // If we are forcing instantiation, then grab the set of 
+          // If we are forcing instantiation, then grab the set of
           // colors from the row source and use them to instantiate children
           std::vector<LegionColor> children_colors;
-          row_source->get_colors(children_colors); 
-          for (std::vector<LegionColor>::const_iterator it = 
-                children_colors.begin(); it != children_colors.end(); it++)
+          row_source->get_colors(children_colors);
+          for (std::vector<LegionColor>::const_iterator it =
+                   children_colors.begin();
+               it != children_colors.end(); it++)
           {
             bool result = get_child(*it)->visit_node(traverser);
             continue_traversal = continue_traversal && result;
             if (!result && break_early)
               break;
           }
-        }
-        else
+        } else
         {
-          std::map<LegionColor,PartitionNode*> children;
-          // Need to hold the lock when reading from 
+          std::map<LegionColor, PartitionNode*> children;
+          // Need to hold the lock when reading from
           // the color map or the valid map
           {
-            AutoLock n_lock(node_lock,1,false/*exclusive*/);
-            for (std::map<LegionColor,PartitionNode*>::const_iterator it = 
-                  color_map.begin(); it != color_map.end(); it++)
+            AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+            for (std::map<LegionColor, PartitionNode*>::const_iterator it =
+                     color_map.begin();
+                 it != color_map.end(); it++)
             {
               children.insert(*it);
               it->second->add_base_resource_ref(REGION_TREE_REF);
             }
           }
-          for (std::map<LegionColor,PartitionNode*>::const_iterator it = 
-                children.begin(); it != children.end(); it++)
+          for (std::map<LegionColor, PartitionNode*>::const_iterator it =
+                   children.begin();
+               it != children.end(); it++)
           {
             const bool result = it->second->visit_node(traverser);
             if (it->second->remove_base_resource_ref(REGION_TREE_REF))
@@ -1440,17 +1432,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool RegionNode::intersects_with(RegionTreeNode *other, bool compute)
+    bool RegionNode::intersects_with(RegionTreeNode* other, bool compute)
     //--------------------------------------------------------------------------
     {
       if (other == this)
         return true;
       if (other->is_region())
         return row_source->intersects_with(
-                  other->as_region_node()->row_source, compute);
+            other->as_region_node()->row_source, compute);
       else
         return row_source->intersects_with(
-                  other->as_partition_node()->row_source, compute);
+            other->as_partition_node()->row_source, compute);
     }
 
     //--------------------------------------------------------------------------
@@ -1461,14 +1453,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionNode::send_node(Serializer &rez, AddressSpaceID target)
+    void RegionNode::send_node(Serializer& rez, AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
       // Check to see if we have it in our creation set in which
       // case we are done otherwise keep going up
       bool continue_up = false;
       {
-        AutoLock n_lock(node_lock); 
+        AutoLock n_lock(node_lock);
         if (!has_remote_instance(target))
         {
           continue_up = true;
@@ -1482,8 +1474,9 @@ namespace Legion {
           // Send the parent node first
           parent->send_node(rez, target);
           AutoLock n_lock(node_lock);
-          for (LegionMap<SemanticTag,SemanticInfo>::iterator it = 
-                semantic_info.begin(); it != semantic_info.end(); it++)
+          for (LegionMap<SemanticTag, SemanticInfo>::iterator it =
+                   semantic_info.begin();
+               it != semantic_info.end(); it++)
           {
             Serializer rez2;
             {
@@ -1493,13 +1486,13 @@ namespace Legion {
               rez2.serialize<size_t>(1);
               rez2.serialize(it->first);
               rez2.serialize(it->second.buffer.get_size());
-              rez2.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
+              rez2.serialize(
+                  it->second.buffer.get_buffer(), it->second.buffer.get_size());
               rez2.serialize(it->second.is_mutable);
             }
             runtime->send_logical_region_semantic_info(target, rez2);
           }
-        }
-        else
+        } else
         {
           rez.serialize(handle);
           rez.serialize(did);
@@ -1513,12 +1506,14 @@ namespace Legion {
           else
             CollectiveMapping::pack_null(rez);
           rez.serialize<size_t>(semantic_info.size());
-          for (LegionMap<SemanticTag,SemanticInfo>::iterator it = 
-                semantic_info.begin(); it != semantic_info.end(); it++)
+          for (LegionMap<SemanticTag, SemanticInfo>::iterator it =
+                   semantic_info.begin();
+               it != semantic_info.end(); it++)
           {
             rez.serialize(it->first);
             rez.serialize(it->second.buffer.get_size());
-            rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
+            rez.serialize(
+                it->second.buffer.get_buffer(), it->second.buffer.get_size());
             rez.serialize(it->second.is_mutable);
           }
         }
@@ -1527,7 +1522,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RegionNode::handle_node_creation(
-                                     Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       LogicalRegion handle;
@@ -1539,12 +1534,12 @@ namespace Legion {
       AutoProvenance prov(Provenance::deserialize(derez));
       size_t num_spaces;
       derez.deserialize(num_spaces);
-      CollectiveMapping *mapping = nullptr;
+      CollectiveMapping* mapping = nullptr;
       if (num_spaces > 0)
         mapping = new CollectiveMapping(derez, num_spaces);
 
-      RegionNode *node = runtime->create_node(handle, nullptr/*parent*/,
-                                      initialized, did, prov, mapping);
+      RegionNode* node = runtime->create_node(
+          handle, nullptr /*parent*/, initialized, did, prov, mapping);
 #ifdef DEBUG_LEGION
       assert(node != nullptr);
 #endif
@@ -1561,63 +1556,64 @@ namespace Legion {
           derez.deserialize(tag);
           size_t buffer_size;
           derez.deserialize(buffer_size);
-          const void *buffer = derez.get_current_pointer();
+          const void* buffer = derez.get_current_pointer();
           derez.advance_pointer(buffer_size);
           bool is_mutable;
           derez.deserialize(is_mutable);
-          node->attach_semantic_information(tag, source, buffer, buffer_size,
-                                            is_mutable, false/*local only*/);
+          node->attach_semantic_information(
+              tag, source, buffer, buffer_size, is_mutable,
+              false /*local only*/);
         }
       }
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    void RegionNode::perform_versioning_analysis(ContextID ctx,
-                                                 InnerContext *parent_ctx,
-                                                 VersionInfo *version_info,
-                                                 const FieldMask &mask,
-                                                 Operation *op, unsigned index,
-                                                 unsigned parent_req_index,
-                                                 std::set<RtEvent> &applied,
-                                                 RtEvent *output_region_ready,
-                                                 bool collective_rendezvous)
+    void RegionNode::perform_versioning_analysis(
+        ContextID ctx, InnerContext* parent_ctx, VersionInfo* version_info,
+        const FieldMask& mask, Operation* op, unsigned index,
+        unsigned parent_req_index, std::set<RtEvent>& applied,
+        RtEvent* output_region_ready, bool collective_rendezvous)
     //--------------------------------------------------------------------------
     {
-      VersionManager &manager = get_current_version_manager(ctx);
-      manager.perform_versioning_analysis(parent_ctx, version_info, this, mask,
-          op, index, parent_req_index, applied, output_region_ready,
-          collective_rendezvous);
+      VersionManager& manager = get_current_version_manager(ctx);
+      manager.perform_versioning_analysis(
+          parent_ctx, version_info, this, mask, op, index, parent_req_index,
+          applied, output_region_ready, collective_rendezvous);
     }
-    
+
     //--------------------------------------------------------------------------
-    void RegionNode::find_open_complete_partitions(ContextID ctx,
-               const FieldMask &mask, std::vector<LogicalPartition> &partitions)
+    void RegionNode::find_open_complete_partitions(
+        ContextID ctx, const FieldMask& mask,
+        std::vector<LogicalPartition>& partitions)
     //--------------------------------------------------------------------------
     {
-      LogicalState &state = get_logical_state(ctx);
+      LogicalState& state = get_logical_state(ctx);
       std::set<LogicalPartition> unique_partitions;
-      for (LegionList<FieldState>::const_iterator sit = 
-            state.field_states.begin(); sit != state.field_states.end(); sit++)
+      for (LegionList<FieldState>::const_iterator sit =
+               state.field_states.begin();
+           sit != state.field_states.end(); sit++)
       {
         if (sit->valid_fields() * mask)
           continue;
-        for (OrderedFieldMaskChildren::const_iterator it = 
-              sit->open_children.begin(); it != sit->open_children.end(); it++)
+        for (OrderedFieldMaskChildren::const_iterator it =
+                 sit->open_children.begin();
+             it != sit->open_children.end(); it++)
         {
           if (it->second * mask)
             continue;
-          PartitionNode *child = it->first->as_partition_node();
+          PartitionNode* child = it->first->as_partition_node();
           if (child->is_complete())
             unique_partitions.insert(child->handle);
         }
       }
-      partitions.insert(partitions.end(), 
-                        unique_partitions.begin(), unique_partitions.end());
+      partitions.insert(
+          partitions.end(), unique_partitions.begin(), unique_partitions.end());
     }
 
     //--------------------------------------------------------------------------
-    void RegionNode::send_semantic_request(AddressSpaceID target,
-             SemanticTag tag, bool can_fail, bool wait_until, RtUserEvent ready)
+    void RegionNode::send_semantic_request(
+        AddressSpaceID target, SemanticTag tag, bool can_fail, bool wait_until,
+        RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
       Serializer rez;
@@ -1645,10 +1641,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionNode::send_semantic_info(AddressSpaceID target,
-                                        SemanticTag tag,
-                                        const void *buffer, size_t size, 
-                                        bool is_mutable, RtUserEvent ready)
+    void RegionNode::send_semantic_info(
+        AddressSpaceID target, SemanticTag tag, const void* buffer, size_t size,
+        bool is_mutable, RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
       // Package up the message first
@@ -1666,22 +1661,23 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionNode::process_semantic_request(SemanticTag tag,
-       AddressSpaceID source, bool can_fail, bool wait_until, RtUserEvent ready)
+    void RegionNode::process_semantic_request(
+        SemanticTag tag, AddressSpaceID source, bool can_fail, bool wait_until,
+        RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(find_semantic_owner() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = nullptr;
+      void* result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
         AutoLock n_lock(node_lock);
         // See if we already have the data
-        LegionMap<SemanticTag,SemanticInfo>::iterator finder = 
-          semantic_info.find(tag);
+        LegionMap<SemanticTag, SemanticInfo>::iterator finder =
+            semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
           if (finder->second.is_valid())
@@ -1689,11 +1685,9 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          }
-          else if (!can_fail && wait_until)
+          } else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        }
-        else if (!can_fail && wait_until)
+        } else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -1709,17 +1703,16 @@ namespace Legion {
         {
           // Defer this until the semantic condition is ready
           SemanticRequestArgs args(this, tag, source);
-          runtime->issue_runtime_meta_task(args, 
-              LG_LATENCY_WORK_PRIORITY, precondition);
+          runtime->issue_runtime_meta_task(
+              args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      }
-      else
+      } else
         send_semantic_info(source, tag, result, size, is_mutable, ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void RegionNode::handle_semantic_request(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1733,13 +1726,13 @@ namespace Legion {
       derez.deserialize(wait_until);
       RtUserEvent ready;
       derez.deserialize(ready);
-      RegionNode *node = runtime->get_node(handle);
+      RegionNode* node = runtime->get_node(handle);
       node->process_semantic_request(tag, source, can_fail, wait_until, ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void RegionNode::handle_semantic_info(
-                                     Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1749,25 +1742,25 @@ namespace Legion {
       derez.deserialize(tag);
       size_t size;
       derez.deserialize(size);
-      const void *buffer = derez.get_current_pointer();
+      const void* buffer = derez.get_current_pointer();
       derez.advance_pointer(size);
       bool is_mutable;
       derez.deserialize(is_mutable);
       RtUserEvent ready;
       derez.deserialize(ready);
-      runtime->get_node(handle)->attach_semantic_information(tag, source, 
-          buffer, size, is_mutable, false/*local only*/);
+      runtime->get_node(handle)->attach_semantic_information(
+          tag, source, buffer, size, is_mutable, false /*local only*/);
       if (ready.exists())
         Runtime::trigger_event(ready);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RegionNode::handle_top_level_request(Deserializer &derez)
+    /*static*/ void RegionNode::handle_top_level_request(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       RegionTreeID tid;
       derez.deserialize(tid);
-      RegionNode *node = runtime->get_tree(tid, true/*can fail*/);
+      RegionNode* node = runtime->get_tree(tid, true /*can fail*/);
       RtUserEvent done_event;
       derez.deserialize(done_event);
       AddressSpaceID source;
@@ -1784,8 +1777,8 @@ namespace Legion {
 #endif
           if (node->is_owner())
           {
-            const AddressSpaceID nearest = 
-              node->collective_mapping->find_nearest(source);
+            const AddressSpaceID nearest =
+                node->collective_mapping->find_nearest(source);
             // If we're not the nearest then forward it on to the
             // proper node to handle the request
             if (nearest != node->local_space)
@@ -1801,7 +1794,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           else
           {
-            assert(node->local_space == 
+            assert(
+                node->local_space ==
                 node->collective_mapping->find_nearest(source));
           }
 #endif
@@ -1813,14 +1807,13 @@ namespace Legion {
           rez.serialize(done_event);
         }
         runtime->send_top_level_region_return(source, rez);
-      }
-      else
+      } else
         Runtime::trigger_event(done_event);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void RegionNode::handle_top_level_return(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1835,17 +1828,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PartitionTracker::PartitionTracker(PartitionNode *part)
-      : Collectable(2/*expecting two reference calls*/), partition(part)
+    PartitionTracker::PartitionTracker(PartitionNode* part)
+      : Collectable(2 /*expecting two reference calls*/), partition(part)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     bool PartitionTracker::can_prune(void)
     //--------------------------------------------------------------------------
     {
-      const unsigned remainder = references.load(); 
+      const unsigned remainder = references.load();
 #ifdef DEBUG_LEGION
       assert((remainder == 1) || (remainder == 2));
 #endif
@@ -1866,24 +1858,23 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Partition Node 
+    // Partition Node
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PartitionNode::PartitionNode(LogicalPartition p, RegionNode *par,
-                                 IndexPartNode *row_src, 
-                                 FieldSpaceNode *col_src,
-                                 RtEvent init, RtEvent tree)
-      : RegionTreeNode(col_src, init, tree, par->provenance), handle(p), 
+    PartitionNode::PartitionNode(
+        LogicalPartition p, RegionNode* par, IndexPartNode* row_src,
+        FieldSpaceNode* col_src, RtEvent init, RtEvent tree)
+      : RegionTreeNode(col_src, init, tree, par->provenance), handle(p),
         parent(par), row_source(row_src)
     //--------------------------------------------------------------------------
     {
 #ifdef LEGION_GC
-      log_garbage.info("GC Partition %lld %d %lld %lld %lld",
-          LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space, 
-          handle.get_index_partition().get_id(), 
-          handle.get_field_space().get_id(),
-          handle.get_tree_id());
+      log_garbage.info(
+          "GC Partition %lld %d %lld %lld %lld",
+          LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space,
+          handle.get_index_partition().get_id(),
+          handle.get_field_space().get_id(), handle.get_tree_id());
 #endif
     }
 
@@ -1891,8 +1882,9 @@ namespace Legion {
     PartitionNode::~PartitionNode(void)
     //--------------------------------------------------------------------------
     {
-      for (std::map<LegionColor,RegionNode*>::const_iterator it =   
-            color_map.begin(); it != color_map.end(); it++)
+      for (std::map<LegionColor, RegionNode*>::const_iterator it =
+               color_map.begin();
+           it != color_map.end(); it++)
         if (it->second->remove_nested_resource_ref(did))
           delete it->second;
       if (registered)
@@ -1917,8 +1909,9 @@ namespace Legion {
       // We should not need a lock at this point since nobody else should
       // be modifying these data structures at this point
       // No need to check for deletion since we hold resource references
-      for (std::map<LegionColor,RegionNode*>::const_iterator it = 
-            color_map.begin(); it != color_map.end(); it++)
+      for (std::map<LegionColor, RegionNode*>::const_iterator it =
+               color_map.begin();
+           it != color_map.end(); it++)
         it->second->remove_nested_gc_ref(did);
     }
 
@@ -1933,14 +1926,13 @@ namespace Legion {
       row_source->add_nested_gc_ref(did);
       parent->add_nested_resource_ref(did);
       parent->add_child(this);
-      // Create a partition deletion tracker for this node and add it to 
+      // Create a partition deletion tracker for this node and add it to
       // both the index partition node and the root logical region for this
       // tree so that we can have our reference removed once either is deleted
-      PartitionTracker *tracker = new PartitionTracker(this);
-      row_source->add_tracker(tracker); 
-      RegionNode *root = parent;
-      while (root->parent != nullptr)
-        root = root->parent->parent;
+      PartitionTracker* tracker = new PartitionTracker(this);
+      row_source->add_tracker(tracker);
+      RegionNode* root = parent;
+      while (root->parent != nullptr) root = root->parent->parent;
       root->add_tracker(tracker);
       registered = true;
     }
@@ -1959,26 +1951,26 @@ namespace Legion {
     {
       // check to see if we have it, if not try to make it
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
-        std::map<LegionColor,RegionNode*>::const_iterator finder = 
-          color_map.find(c);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        std::map<LegionColor, RegionNode*>::const_iterator finder =
+            color_map.find(c);
         if (finder != color_map.end())
           return finder->second;
       }
       // If we get here we didn't immediately have it so try
       // to make it through the proper channels
-      IndexSpaceNode *index_node = row_source->get_child(c, nullptr);
+      IndexSpaceNode* index_node = row_source->get_child(c, nullptr);
 #ifdef DEBUG_LEGION
       assert(index_node != nullptr);
 #endif
-      LogicalRegion reg_handle(handle.tree_did, index_node->handle,
-                               handle.field_space);
-      return runtime->create_node(reg_handle, this, 
-                                  RtEvent::NO_RT_EVENT, 0/*did*/);
+      LogicalRegion reg_handle(
+          handle.tree_did, index_node->handle, handle.field_space);
+      return runtime->create_node(
+          reg_handle, this, RtEvent::NO_RT_EVENT, 0 /*did*/);
     }
 
     //--------------------------------------------------------------------------
-    void PartitionNode::add_child(RegionNode *child)
+    void PartitionNode::add_child(RegionNode* child)
     //--------------------------------------------------------------------------
     {
       child->add_nested_resource_ref(did);
@@ -2034,8 +2026,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool PartitionNode::are_children_disjoint(const LegionColor c1, 
-                                              const LegionColor c2)
+    bool PartitionNode::are_children_disjoint(
+        const LegionColor c1, const LegionColor c2)
     //--------------------------------------------------------------------------
     {
       return row_source->are_disjoint(c1, c2);
@@ -2072,14 +2064,14 @@ namespace Legion {
 #endif
 
     //--------------------------------------------------------------------------
-    bool PartitionNode::visit_node(PathTraverser *traverser)
+    bool PartitionNode::visit_node(PathTraverser* traverser)
     //--------------------------------------------------------------------------
     {
       return traverser->visit_partition(this);
     }
 
     //--------------------------------------------------------------------------
-    bool PartitionNode::visit_node(NodeTraverser *traverser)
+    bool PartitionNode::visit_node(NodeTraverser* traverser)
     //--------------------------------------------------------------------------
     {
       bool continue_traversal = traverser->visit_partition(this);
@@ -2095,18 +2087,18 @@ namespace Legion {
             if (!result && break_early)
               break;
           }
-        }
-        else
+        } else
         {
-          std::map<LegionColor,RegionNode*> children;
-          // Need to hold the lock when reading from 
+          std::map<LegionColor, RegionNode*> children;
+          // Need to hold the lock when reading from
           // the color map or the valid map
           {
-            AutoLock n_lock(node_lock,1,false/*exclusive*/);
+            AutoLock n_lock(node_lock, 1, false /*exclusive*/);
             children = color_map;
           }
-          for (std::map<LegionColor,RegionNode*>::const_iterator it = 
-                children.begin(); it != children.end(); it++)
+          for (std::map<LegionColor, RegionNode*>::const_iterator it =
+                   children.begin();
+               it != children.end(); it++)
           {
             bool result = it->second->visit_node(traverser);
             continue_traversal = continue_traversal && result;
@@ -2129,17 +2121,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool PartitionNode::intersects_with(RegionTreeNode *other, bool compute)
+    bool PartitionNode::intersects_with(RegionTreeNode* other, bool compute)
     //--------------------------------------------------------------------------
     {
       if (other == this)
         return true;
       if (other->is_region())
         return row_source->intersects_with(
-                    other->as_region_node()->row_source, compute);
+            other->as_region_node()->row_source, compute);
       else
         return row_source->intersects_with(
-                    other->as_partition_node()->row_source, compute);
+            other->as_partition_node()->row_source, compute);
     }
 
     //--------------------------------------------------------------------------
@@ -2150,14 +2142,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PartitionNode::send_node(Serializer &rez, AddressSpaceID target)
+    void PartitionNode::send_node(Serializer& rez, AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
       // Check to see if we have it in our creation set in which
       // case we are done otherwise keep going up
       bool continue_up = false;
       {
-        AutoLock n_lock(node_lock); 
+        AutoLock n_lock(node_lock);
         if (!has_remote_instance(target))
         {
           continue_up = true;
@@ -2172,8 +2164,9 @@ namespace Legion {
         // Send the parent node first
         parent->send_node(rez, target);
         AutoLock n_lock(node_lock);
-        for (LegionMap<SemanticTag,SemanticInfo>::iterator it = 
-              semantic_info.begin(); it != semantic_info.end(); it++)
+        for (LegionMap<SemanticTag, SemanticInfo>::iterator it =
+                 semantic_info.begin();
+             it != semantic_info.end(); it++)
         {
           Serializer rez;
           {
@@ -2181,7 +2174,8 @@ namespace Legion {
             rez.serialize(handle);
             rez.serialize(it->first);
             rez.serialize(it->second.buffer.get_size());
-            rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
+            rez.serialize(
+                it->second.buffer.get_buffer(), it->second.buffer.get_size());
             rez.serialize(it->second.is_mutable);
           }
           runtime->send_logical_partition_semantic_info(target, rez);
@@ -2190,8 +2184,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PartitionNode::send_semantic_request(AddressSpaceID target,
-             SemanticTag tag, bool can_fail, bool wait_until, RtUserEvent ready)
+    void PartitionNode::send_semantic_request(
+        AddressSpaceID target, SemanticTag tag, bool can_fail, bool wait_until,
+        RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
       Serializer rez;
@@ -2215,10 +2210,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PartitionNode::send_semantic_info(AddressSpaceID target,
-                                           SemanticTag tag,
-                                           const void *buffer, size_t size,
-                                           bool is_mutable, RtUserEvent ready)
+    void PartitionNode::send_semantic_info(
+        AddressSpaceID target, SemanticTag tag, const void* buffer, size_t size,
+        bool is_mutable, RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
       // Package up the message first
@@ -2236,22 +2230,23 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PartitionNode::process_semantic_request(SemanticTag tag,
-       AddressSpaceID source, bool can_fail, bool wait_until, RtUserEvent ready)
+    void PartitionNode::process_semantic_request(
+        SemanticTag tag, AddressSpaceID source, bool can_fail, bool wait_until,
+        RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(find_semantic_owner() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = nullptr;
+      void* result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
         AutoLock n_lock(node_lock);
         // See if we already have the data
-        LegionMap<SemanticTag,SemanticInfo>::iterator finder = 
-          semantic_info.find(tag);
+        LegionMap<SemanticTag, SemanticInfo>::iterator finder =
+            semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
           if (finder->second.is_valid())
@@ -2259,11 +2254,9 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          }
-          else if (!can_fail && wait_until)
+          } else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        }
-        else if (!can_fail && wait_until)
+        } else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -2279,17 +2272,16 @@ namespace Legion {
         {
           // Defer this until the semantic condition is ready
           SemanticRequestArgs args(this, tag, source);
-          runtime->issue_runtime_meta_task(args, 
-              LG_LATENCY_WORK_PRIORITY, precondition);
+          runtime->issue_runtime_meta_task(
+              args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      }
-      else
+      } else
         send_semantic_info(source, tag, result, size, is_mutable, ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void PartitionNode::handle_semantic_request(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2303,13 +2295,13 @@ namespace Legion {
       derez.deserialize(wait_until);
       RtUserEvent ready;
       derez.deserialize(ready);
-      PartitionNode *node = runtime->get_node(handle);
+      PartitionNode* node = runtime->get_node(handle);
       node->process_semantic_request(tag, source, can_fail, wait_until, ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void PartitionNode::handle_semantic_info(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2319,32 +2311,31 @@ namespace Legion {
       derez.deserialize(tag);
       size_t size;
       derez.deserialize(size);
-      const void *buffer = derez.get_current_pointer();
+      const void* buffer = derez.get_current_pointer();
       derez.advance_pointer(size);
       bool is_mutable;
       derez.deserialize(is_mutable);
       RtUserEvent ready;
       derez.deserialize(ready);
-      runtime->get_node(handle)->attach_semantic_information(tag, source,
-          buffer, size, is_mutable, false/*local only*/);
+      runtime->get_node(handle)->attach_semantic_information(
+          tag, source, buffer, size, is_mutable, false /*local only*/);
       if (ready.exists())
         Runtime::trigger_event(ready);
     }
 
     /* static */
-    IndexSpaceOperation *
-    InternalExpressionCreator::create_with_domain(TypeTag tag,
-                                                 const Domain &dom)
+    IndexSpaceOperation* InternalExpressionCreator::create_with_domain(
+        TypeTag tag, const Domain& dom)
     {
       InternalExpressionCreator creator(tag, dom);
       creator.create_operation();
 
-      IndexSpaceOperation *out = creator.result;
+      IndexSpaceOperation* out = creator.result;
       out->add_base_expression_reference(LIVE_EXPR_REF);
       ImplicitReferenceTracker::record_live_expression(out);
 
       return out;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

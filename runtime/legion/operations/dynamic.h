@@ -25,26 +25,33 @@ namespace Legion {
      * \class DynamicCollectiveOp
      * A class for getting values from a collective operation
      * and writing them into a future. This will also give
-     * us the framework necessary to handle roll backs on 
+     * us the framework necessary to handle roll backs on
      * collectives so we can memoize their results.
      */
     class DynamicCollectiveOp : public MemoizableOp {
     public:
       DynamicCollectiveOp(void);
-      DynamicCollectiveOp(const DynamicCollectiveOp &rhs) = delete;
+      DynamicCollectiveOp(const DynamicCollectiveOp& rhs) = delete;
       virtual ~DynamicCollectiveOp(void);
     public:
-      DynamicCollectiveOp& operator=(const DynamicCollectiveOp &rhs) = delete;
+      DynamicCollectiveOp& operator=(const DynamicCollectiveOp& rhs) = delete;
     public:
-      Future initialize(InnerContext *ctx, const DynamicCollective &dc,
-                        Provenance *provenance);
+      Future initialize(
+          InnerContext* ctx, const DynamicCollective& dc,
+          Provenance* provenance);
     public:
       virtual const VersionInfo& get_version_info(unsigned idx) const
-        { std::abort(); }
+      {
+        std::abort();
+      }
       virtual const RegionRequirement& get_requirement(unsigned idx) const
-        { std::abort(); }
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      {
+        std::abort();
+      }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
     public:
       // From MemoizableOp
       virtual void trigger_replay(void);
@@ -62,7 +69,7 @@ namespace Legion {
       DynamicCollective collective;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_DYNAMIC_COLLECTIVE_H__
+#endif  // __LEGION_DYNAMIC_COLLECTIVE_H__

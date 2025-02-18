@@ -32,8 +32,8 @@ namespace Legion {
     {
       // Record a mapping dependence on our predicate
       if (this->predicate != nullptr)
-        this->register_dependence(this->predicate->creator, 
-                                  this->predicate->creator_gen);
+        this->register_dependence(
+            this->predicate->creator, this->predicate->creator_gen);
       // Then we can do the base initialization
       OP::trigger_dependence_analysis();
     }
@@ -50,8 +50,9 @@ namespace Legion {
       if (this->predication_state == OP::PENDING_PREDICATE_STATE)
       {
         if (this->is_recording())
-          REPORT_LEGION_FATAL(LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-                "Recording of predicated operations is not yet supported")
+          REPORT_LEGION_FATAL(
+              LEGION_FATAL_UNIMPLEMENTED_FEATURE,
+              "Recording of predicated operations is not yet supported")
 #ifdef DEBUG_LEGION
         assert(this->predicate != nullptr);
 #endif
@@ -65,7 +66,7 @@ namespace Legion {
         if (!ready)
         {
           // If false was poisoned then predicate resolve true
-          this->false_guard.wait_faultaware(value, true/*from application*/);
+          this->false_guard.wait_faultaware(value, true /*from application*/);
           ready = true;
         }
 #endif
@@ -82,20 +83,20 @@ namespace Legion {
       if (this->predication_state == OP::PREDICATED_FALSE_STATE)
       {
         if (this->is_recording())
-          REPORT_LEGION_FATAL(LEGION_FATAL_UNIMPLEMENTED_FEATURE,
-                "Recording of predicated operations is not yet supported")
+          REPORT_LEGION_FATAL(
+              LEGION_FATAL_UNIMPLEMENTED_FEATURE,
+              "Recording of predicated operations is not yet supported")
         if (runtime->legion_spy_enabled)
           LegionSpy::log_predicated_false_op(this->unique_op_id);
         this->predicate_false();
-      }
-      else
+      } else
         Memoizable<OP>::trigger_ready();
     }
 
     //--------------------------------------------------------------------------
     template<typename OP>
-    bool Predicated<OP>::record_trace_hash(TraceRecognizer &recognizer,
-                                           uint64_t opidx)
+    bool Predicated<OP>::record_trace_hash(
+        TraceRecognizer& recognizer, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       // TODO: Right now we don't support tracing of predicated operations
@@ -112,5 +113,5 @@ namespace Legion {
       return OP::record_trace_hash(recognizer, opidx);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

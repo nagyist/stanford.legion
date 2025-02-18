@@ -22,38 +22,36 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // InstanceView 
-    ///////////////////////////////////////////////////////////// 
+    // InstanceView
+    /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    InstanceView::InstanceView(DistributedID did,
-                               bool register_now, CollectiveMapping *mapping)
+    InstanceView::InstanceView(
+        DistributedID did, bool register_now, CollectiveMapping* mapping)
       : LogicalView(did, register_now, mapping)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     InstanceView::~InstanceView(void)
     //--------------------------------------------------------------------------
-    { 
-    } 
+    { }
 
     //--------------------------------------------------------------------------
-    /*static*/ void InstanceView::handle_view_register_user(Deserializer &derez,
-                                        AddressSpaceID source)
+    /*static*/ void InstanceView::handle_view_register_user(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
       RtEvent ready;
-      LogicalView *view = runtime->find_or_request_logical_view(did, ready);
+      LogicalView* view = runtime->find_or_request_logical_view(did, ready);
       DistributedID target_did;
       derez.deserialize(target_did);
       RtEvent target_ready;
-      PhysicalManager *target =
-        runtime->find_or_request_instance_manager(target_did, target_ready);
+      PhysicalManager* target =
+          runtime->find_or_request_instance_manager(target_did, target_ready);
 
       RegionUsage usage;
       derez.deserialize(usage);
@@ -61,7 +59,7 @@ namespace Legion {
       derez.deserialize(user_mask);
       IndexSpace handle;
       derez.deserialize(handle);
-      IndexSpaceNode *user_expr = runtime->get_node(handle);
+      IndexSpaceNode* user_expr = runtime->get_node(handle);
       UniqueID op_id;
       derez.deserialize(op_id);
       size_t op_ctx_index;
@@ -80,8 +78,8 @@ namespace Legion {
       derez.deserialize(registered_event);
       derez.deserialize(applied_event);
       std::set<RtEvent> applied_events;
-      const PhysicalTraceInfo trace_info = 
-        PhysicalTraceInfo::unpack_trace_info(derez);
+      const PhysicalTraceInfo trace_info =
+          PhysicalTraceInfo::unpack_trace_info(derez);
 
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
@@ -90,28 +88,25 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(view->is_instance_view());
 #endif
-      InstanceView *inst_view = view->as_instance_view();
+      InstanceView* inst_view = view->as_instance_view();
       std::vector<RtEvent> registered_events;
-      ApEvent pre = inst_view->register_user(usage, user_mask, user_expr,
-                                             op_id, op_ctx_index, index,
-                                             match_space, term_event,
-                                             target, nullptr/*no mapping*/,
-                                             local_collective_arrivals,
-                                             registered_events, applied_events,
-                                             trace_info, source);
+      ApEvent pre = inst_view->register_user(
+          usage, user_mask, user_expr, op_id, op_ctx_index, index, match_space,
+          term_event, target, nullptr /*no mapping*/, local_collective_arrivals,
+          registered_events, applied_events, trace_info, source);
       if (ready_event.exists())
         Runtime::trigger_event(ready_event, pre, trace_info, applied_events);
       if (!registered_events.empty())
-        Runtime::trigger_event(registered_event,
-            Runtime::merge_events(registered_events));
+        Runtime::trigger_event(
+            registered_event, Runtime::merge_events(registered_events));
       else
         Runtime::trigger_event(registered_event);
       if (!applied_events.empty())
-        Runtime::trigger_event(applied_event,
-            Runtime::merge_events(applied_events));
+        Runtime::trigger_event(
+            applied_event, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(applied_event);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -20,72 +20,65 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // TraceOp 
+    // TraceOp
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TraceOp::TraceOp(void)
-      : FenceOp()
+    TraceOp::TraceOp(void) : FenceOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     TraceOp::~TraceOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void TraceOp::pack_remote_operation(Serializer &rez,
-                 AddressSpaceID target, std::set<RtEvent> &applied_events) const
+    void TraceOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_local_remote_operation(rez);
     }
 
     /////////////////////////////////////////////////////////////
-    // ReplTraceOp 
+    // ReplTraceOp
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTraceOp::ReplTraceOp(void)
-      : ReplFenceOp()
+    ReplTraceOp::ReplTraceOp(void) : ReplFenceOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplTraceOp::~ReplTraceOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ReplTraceOp::pack_remote_operation(Serializer &rez, 
-                 AddressSpaceID target, std::set<RtEvent> &applied_events) const
+    void ReplTraceOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_local_remote_operation(rez);
     }
 
-    ///////////////////////////////////////////////////////////// 
-    // Remote Trace Op 
+    /////////////////////////////////////////////////////////////
+    // Remote Trace Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteTraceOp::RemoteTraceOp(Operation *ptr,
-                                 AddressSpaceID src, OpKind k)
+    RemoteTraceOp::RemoteTraceOp(Operation* ptr, AddressSpaceID src, OpKind k)
       : RemoteOp(ptr, src), kind(k)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     RemoteTraceOp::~RemoteTraceOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UniqueID RemoteTraceOp::get_unique_id(void) const
@@ -130,19 +123,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteTraceOp::pack_remote_operation(Serializer &rez,
-                 AddressSpaceID target, std::set<RtEvent> &applied_events) const
+    void RemoteTraceOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_remote_base(rez);
     }
 
     //--------------------------------------------------------------------------
-    void RemoteTraceOp::unpack(Deserializer &derez)
+    void RemoteTraceOp::unpack(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       // Nothing for the moment
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

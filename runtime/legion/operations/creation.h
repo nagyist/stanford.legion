@@ -36,46 +36,50 @@ namespace Legion {
       };
     public:
       CreationOp(void);
-      CreationOp(const CreationOp &rhs) = delete;
+      CreationOp(const CreationOp& rhs) = delete;
       virtual ~CreationOp(void);
     public:
-      CreationOp& operator=(const CreationOp &rhs) = delete;
+      CreationOp& operator=(const CreationOp& rhs) = delete;
     public:
-      void initialize_index_space(InnerContext *ctx, IndexSpaceNode *node, 
-                            const Future &future, Provenance *provenance,
-                            bool owner = true, 
-                            const CollectiveMapping *mapping = nullptr);
-      void initialize_field(InnerContext *ctx, FieldSpaceNode *node,
-                            FieldID fid, const Future &field_size,
-                            Provenance *provenance, bool owner = true);
-      void initialize_fields(InnerContext *ctx, FieldSpaceNode *node,
-                             const std::vector<FieldID> &fids,
-                             const std::vector<Future> &field_sizes,
-                             Provenance *provenance, bool owner = true);
-      void initialize_map(InnerContext *ctx, Provenance *provenance,
-                          const std::map<DomainPoint,Future> &futures);
+      void initialize_index_space(
+          InnerContext* ctx, IndexSpaceNode* node, const Future& future,
+          Provenance* provenance, bool owner = true,
+          const CollectiveMapping* mapping = nullptr);
+      void initialize_field(
+          InnerContext* ctx, FieldSpaceNode* node, FieldID fid,
+          const Future& field_size, Provenance* provenance, bool owner = true);
+      void initialize_fields(
+          InnerContext* ctx, FieldSpaceNode* node,
+          const std::vector<FieldID>& fids,
+          const std::vector<Future>& field_sizes, Provenance* provenance,
+          bool owner = true);
+      void initialize_map(
+          InnerContext* ctx, Provenance* provenance,
+          const std::map<DomainPoint, Future>& futures);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_mapping(void);
       virtual void trigger_execution(void);
     protected:
-      CreationKind kind; 
-      IndexSpaceNode *index_space_node;
-      FieldSpaceNode *field_space_node;
+      CreationKind kind;
+      IndexSpaceNode* index_space_node;
+      FieldSpaceNode* field_space_node;
       std::vector<Future> futures;
       std::vector<FieldID> fields;
-      const CollectiveMapping *mapping;
+      const CollectiveMapping* mapping;
       bool owner;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_CREATION_H__
+#endif  // __LEGION_CREATION_H__

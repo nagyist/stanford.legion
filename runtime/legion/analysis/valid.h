@@ -25,37 +25,39 @@ namespace Legion {
      * \class ValidInstAnalysis
      * For finding valid instances in equivalence set trees
      */
-    class ValidInstAnalysis : public PhysicalAnalysis,
-      public Heapify<ValidInstAnalysis,OPERATION_LIFETIME> {
+    class ValidInstAnalysis
+      : public PhysicalAnalysis,
+        public Heapify<ValidInstAnalysis, OPERATION_LIFETIME> {
     public:
-      ValidInstAnalysis(Operation *op, unsigned index,
-                        IndexSpaceExpression *expr, ReductionOpID redop = 0);
-      ValidInstAnalysis(AddressSpaceID src, AddressSpaceID prev,
-                        Operation *op,unsigned index,IndexSpaceExpression *expr,
-                        ValidInstAnalysis *target, ReductionOpID redop);
-      ValidInstAnalysis(const ValidInstAnalysis &rhs) = delete;
+      ValidInstAnalysis(
+          Operation* op, unsigned index, IndexSpaceExpression* expr,
+          ReductionOpID redop = 0);
+      ValidInstAnalysis(
+          AddressSpaceID src, AddressSpaceID prev, Operation* op,
+          unsigned index, IndexSpaceExpression* expr, ValidInstAnalysis* target,
+          ReductionOpID redop);
+      ValidInstAnalysis(const ValidInstAnalysis& rhs) = delete;
       virtual ~ValidInstAnalysis(void);
     public:
-      ValidInstAnalysis& operator=(const ValidInstAnalysis &rhs) = delete;
+      ValidInstAnalysis& operator=(const ValidInstAnalysis& rhs) = delete;
     public:
-      virtual bool perform_analysis(EquivalenceSet *set,
-                                    IndexSpaceExpression *expr,
-                                    const bool expr_covers,
-                                    const FieldMask &mask,
-                                    std::set<RtEvent> &applied_events,
-                                    const bool already_deferred = false);
-      virtual RtEvent perform_remote(RtEvent precondition,
-                                     std::set<RtEvent> &applied_events,
-                                     const bool already_deferred = false);
-      virtual RtEvent perform_updates(RtEvent precondition, 
-                                      std::set<RtEvent> &applied_events,
-                                      const bool already_deferred = false);
+      virtual bool perform_analysis(
+          EquivalenceSet* set, IndexSpaceExpression* expr,
+          const bool expr_covers, const FieldMask& mask,
+          std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_remote(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_updates(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
     public:
-      static void handle_remote_request_instances(Deserializer &derez, 
-                                                  AddressSpaceID previous);
+      static void handle_remote_request_instances(
+          Deserializer& derez, AddressSpaceID previous);
     public:
       const ReductionOpID redop;
-      ValidInstAnalysis *const target_analysis;
+      ValidInstAnalysis* const target_analysis;
     };
 
     /**
@@ -63,87 +65,95 @@ namespace Legion {
      * For finding which of a set of instances are not valid across
      * a set of equivalence sets
      */
-    class InvalidInstAnalysis : public PhysicalAnalysis,
-      public Heapify<InvalidInstAnalysis,OPERATION_LIFETIME> {
+    class InvalidInstAnalysis
+      : public PhysicalAnalysis,
+        public Heapify<InvalidInstAnalysis, OPERATION_LIFETIME> {
     public:
-      InvalidInstAnalysis(Operation *op, unsigned index,
-                          IndexSpaceExpression *expr,
-                          const FieldMaskSet<LogicalView> &valid_instances);
-      InvalidInstAnalysis(AddressSpaceID src, AddressSpaceID prev,
-                        Operation *op, unsigned index, 
-                        IndexSpaceExpression *expr, InvalidInstAnalysis *target,
-                        const FieldMaskSet<LogicalView> &valid_instances);
-      InvalidInstAnalysis(const InvalidInstAnalysis &rhs) = delete;
+      InvalidInstAnalysis(
+          Operation* op, unsigned index, IndexSpaceExpression* expr,
+          const FieldMaskSet<LogicalView>& valid_instances);
+      InvalidInstAnalysis(
+          AddressSpaceID src, AddressSpaceID prev, Operation* op,
+          unsigned index, IndexSpaceExpression* expr,
+          InvalidInstAnalysis* target,
+          const FieldMaskSet<LogicalView>& valid_instances);
+      InvalidInstAnalysis(const InvalidInstAnalysis& rhs) = delete;
       virtual ~InvalidInstAnalysis(void);
     public:
-      InvalidInstAnalysis& operator=(const InvalidInstAnalysis &rhs) = delete;
+      InvalidInstAnalysis& operator=(const InvalidInstAnalysis& rhs) = delete;
     public:
       inline bool has_invalid(void) const
-      { return ((recorded_instances != nullptr) && !recorded_instances->empty()); }
+      {
+        return (
+            (recorded_instances != nullptr) && !recorded_instances->empty());
+      }
     public:
-      virtual bool perform_analysis(EquivalenceSet *set,
-                                    IndexSpaceExpression *expr,
-                                    const bool expr_covers,
-                                    const FieldMask &mask,
-                                    std::set<RtEvent> &applied_events,
-                                    const bool already_deferred = false);
-      virtual RtEvent perform_remote(RtEvent precondition,
-                                     std::set<RtEvent> &applied_events,
-                                     const bool already_deferred = false);
-      virtual RtEvent perform_updates(RtEvent precondition, 
-                                      std::set<RtEvent> &applied_events,
-                                      const bool already_deferred = false);
+      virtual bool perform_analysis(
+          EquivalenceSet* set, IndexSpaceExpression* expr,
+          const bool expr_covers, const FieldMask& mask,
+          std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_remote(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_updates(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
     public:
-      static void handle_remote_request_invalid(Deserializer &derez, 
-                                                AddressSpaceID previous);
+      static void handle_remote_request_invalid(
+          Deserializer& derez, AddressSpaceID previous);
     public:
       const FieldMaskSet<LogicalView> valid_instances;
-      InvalidInstAnalysis *const target_analysis;
+      InvalidInstAnalysis* const target_analysis;
     };
 
     /**
      * \class AntivalidInstAnalysis
      * For checking that some views are not in the set of valid instances
      */
-    class AntivalidInstAnalysis : public PhysicalAnalysis,
-      public Heapify<AntivalidInstAnalysis,OPERATION_LIFETIME> {
+    class AntivalidInstAnalysis
+      : public PhysicalAnalysis,
+        public Heapify<AntivalidInstAnalysis, OPERATION_LIFETIME> {
     public:
-      AntivalidInstAnalysis(Operation *op, unsigned index,
-                          IndexSpaceExpression *expr,
-                          const FieldMaskSet<LogicalView> &anti_instances);
-      AntivalidInstAnalysis(AddressSpaceID src,AddressSpaceID prev,
-                      Operation *op, unsigned index, 
-                      IndexSpaceExpression *expr, AntivalidInstAnalysis *target,
-                      const FieldMaskSet<LogicalView> &anti_instances);
-      AntivalidInstAnalysis(const AntivalidInstAnalysis &rhs) = delete;
+      AntivalidInstAnalysis(
+          Operation* op, unsigned index, IndexSpaceExpression* expr,
+          const FieldMaskSet<LogicalView>& anti_instances);
+      AntivalidInstAnalysis(
+          AddressSpaceID src, AddressSpaceID prev, Operation* op,
+          unsigned index, IndexSpaceExpression* expr,
+          AntivalidInstAnalysis* target,
+          const FieldMaskSet<LogicalView>& anti_instances);
+      AntivalidInstAnalysis(const AntivalidInstAnalysis& rhs) = delete;
       virtual ~AntivalidInstAnalysis(void);
     public:
-      AntivalidInstAnalysis& operator=(const AntivalidInstAnalysis &r) = delete;
+      AntivalidInstAnalysis& operator=(const AntivalidInstAnalysis& r) = delete;
     public:
       inline bool has_antivalid(void) const
-      { return ((recorded_instances != nullptr) && !recorded_instances->empty()); }
+      {
+        return (
+            (recorded_instances != nullptr) && !recorded_instances->empty());
+      }
     public:
-      virtual bool perform_analysis(EquivalenceSet *set,
-                                    IndexSpaceExpression *expr,
-                                    const bool expr_covers,
-                                    const FieldMask &mask,
-                                    std::set<RtEvent> &applied_events,
-                                    const bool already_deferred = false);
-      virtual RtEvent perform_remote(RtEvent precondition,
-                                     std::set<RtEvent> &applied_events,
-                                     const bool already_deferred = false);
-      virtual RtEvent perform_updates(RtEvent precondition, 
-                                      std::set<RtEvent> &applied_events,
-                                      const bool already_deferred = false);
+      virtual bool perform_analysis(
+          EquivalenceSet* set, IndexSpaceExpression* expr,
+          const bool expr_covers, const FieldMask& mask,
+          std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_remote(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_updates(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
     public:
-      static void handle_remote_request_antivalid(Deserializer &derez, 
-                                                  AddressSpaceID previous);
+      static void handle_remote_request_antivalid(
+          Deserializer& derez, AddressSpaceID previous);
     public:
       const FieldMaskSet<LogicalView> antivalid_instances;
-      AntivalidInstAnalysis *const target_analysis;
+      AntivalidInstAnalysis* const target_analysis;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_VALID_ANALYSIS_H__
+#endif  // __LEGION_VALID_ANALYSIS_H__

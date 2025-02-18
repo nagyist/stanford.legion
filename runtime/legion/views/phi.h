@@ -34,31 +34,30 @@ namespace Legion {
      * continue to get ahead of actual execution. It's not pretty
      * but it seems to work.
      */
-    class PhiView : public DeferredView, 
-                    public Heapify<PhiView,CONTEXT_LIFETIME> {
+    class PhiView : public DeferredView,
+                    public Heapify<PhiView, CONTEXT_LIFETIME> {
     public:
-      struct DeferPhiViewRegistrationArgs : 
-        public LgTaskArgs<DeferPhiViewRegistrationArgs> {
+      struct DeferPhiViewRegistrationArgs
+        : public LgTaskArgs<DeferPhiViewRegistrationArgs> {
       public:
-        static const LgTaskID TASK_ID = 
-          LG_DEFER_PHI_VIEW_REGISTRATION_TASK_ID;
+        static const LgTaskID TASK_ID = LG_DEFER_PHI_VIEW_REGISTRATION_TASK_ID;
       public:
-        DeferPhiViewRegistrationArgs(PhiView *v)
+        DeferPhiViewRegistrationArgs(PhiView* v)
           : LgTaskArgs<DeferPhiViewRegistrationArgs>(implicit_provenance),
-            view(v) { }
+            view(v)
+        { }
       public:
-        PhiView *const view;
+        PhiView* const view;
       };
     public:
-      PhiView(DistributedID did,
-              PredEvent true_guard, PredEvent false_guard,
-              FieldMaskSet<DeferredView> &&true_views,
-              FieldMaskSet<DeferredView> &&false_views,
-              bool register_now = true);
-      PhiView(const PhiView &rhs) = delete;
+      PhiView(
+          DistributedID did, PredEvent true_guard, PredEvent false_guard,
+          FieldMaskSet<DeferredView>&& true_views,
+          FieldMaskSet<DeferredView>&& false_views, bool register_now = true);
+      PhiView(const PhiView& rhs) = delete;
       virtual ~PhiView(void);
     public:
-      PhiView& operator=(const PhiView &rhs) = delete;
+      PhiView& operator=(const PhiView& rhs) = delete;
     public:
       virtual void notify_local(void);
       virtual void pack_valid_ref(void);
@@ -66,17 +65,15 @@ namespace Legion {
     public:
       virtual void send_view(AddressSpaceID target);
     public:
-      virtual void flatten(CopyFillAggregator &aggregator,
-                           InstanceView *dst_view, const FieldMask &src_mask,
-                           IndexSpaceExpression *expr, 
-                           PredEvent pred_guard,
-                           const PhysicalTraceInfo &trace_info,
-                           EquivalenceSet *tracign_eq,
-                           CopyAcrossHelper *helper);
+      virtual void flatten(
+          CopyFillAggregator& aggregator, InstanceView* dst_view,
+          const FieldMask& src_mask, IndexSpaceExpression* expr,
+          PredEvent pred_guard, const PhysicalTraceInfo& trace_info,
+          EquivalenceSet* tracign_eq, CopyAcrossHelper* helper);
     public:
       void add_initial_references(bool unpack_references);
-      static void handle_send_phi_view(Deserializer &derez);
-      static void handle_deferred_view_registration(const void *args);
+      static void handle_send_phi_view(Deserializer& derez);
+      static void handle_deferred_view_registration(const void* args);
     public:
       const PredEvent true_guard;
       const PredEvent false_guard;
@@ -93,7 +90,7 @@ namespace Legion {
       return static_cast<PhiView*>(const_cast<LogicalView*>(this));
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_PHI_VIEW_H__
+#endif  // __LEGION_PHI_VIEW_H__

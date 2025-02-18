@@ -26,21 +26,18 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Slice Task 
+    // Slice Task
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    SliceTask::SliceTask(void)
-      : MultiTask()
+    SliceTask::SliceTask(void) : MultiTask()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     SliceTask::~SliceTask(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void SliceTask::activate(void)
@@ -61,20 +58,20 @@ namespace Legion {
     void SliceTask::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MultiTask::deactivate(false/*free*/);
-      // Deactivate all our points 
+      MultiTask::deactivate(false /*free*/);
+      // Deactivate all our points
       for (std::vector<PointTask*>::const_iterator it = points.begin();
-            it != points.end(); it++)
+           it != points.end(); it++)
       {
-        // Check to see if we are origin mapped or not which 
+        // Check to see if we are origin mapped or not which
         // determines whether we should commit this operation or
         // just deactivate it like normal
         if (is_origin_mapped() && !is_remote())
           (*it)->deactivate();
         else
-          (*it)->commit_operation(true/*deactivate*/);
+          (*it)->commit_operation(true /*deactivate*/);
       }
-      points.clear(); 
+      points.clear();
 #ifdef DEBUG_LEGION
       assert(local_regions.empty());
       assert(local_fields.empty());
@@ -116,7 +113,7 @@ namespace Legion {
     void SliceTask::premap_task(void)
     //--------------------------------------------------------------------------
     {
-      // Slices are already done with early mapping 
+      // Slices are already done with early mapping
     }
 
     //--------------------------------------------------------------------------
@@ -128,18 +125,19 @@ namespace Legion {
 #endif
       if (points.size() == 1)
         return;
-      const AddressSpaceID target_space = 
-        runtime->find_address_space(points[0]->target_proc);
+      const AddressSpaceID target_space =
+          runtime->find_address_space(points[0]->target_proc);
       for (unsigned idx = 1; idx < points.size(); idx++)
       {
-        if (target_space != 
+        if (target_space !=
             runtime->find_address_space(points[idx]->target_proc))
-          REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
-                      "Invalid mapper output: two different points in one "
-                      "slice of %s (UID %lld) mapped to processors in two"
-                      "different address spaces (%d and %d) which is illegal.",
-                      get_task_name(), get_unique_id(), target_space,
-                      runtime->find_address_space(points[idx]->target_proc))
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_MAPPER_OUTPUT,
+              "Invalid mapper output: two different points in one "
+              "slice of %s (UID %lld) mapped to processors in two"
+              "different address spaces (%d and %d) which is illegal.",
+              get_task_name(), get_unique_id(), target_space,
+              runtime->find_address_space(points[idx]->target_proc))
       }
     }
 
@@ -166,11 +164,9 @@ namespace Legion {
         {
           runtime->send_task(this);
           return false;
-        }
-        else
+        } else
           return true;
-      }
-      else
+      } else
       {
         if (target_proc.exists() && (target_proc != current_proc))
         {
@@ -204,8 +200,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool SliceTask::perform_mapping(MustEpochOp *epoch_owner/*=nullptr*/,
-                                    const DeferMappingArgs *args/*=nullptr*/)
+    bool SliceTask::perform_mapping(
+        MustEpochOp* epoch_owner /*=nullptr*/,
+        const DeferMappingArgs* args /*=nullptr*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -216,15 +213,15 @@ namespace Legion {
       // not then do so now
       const bool make_points = points.empty();
       if (make_points)
-        enumerate_points(false/*inlining*/);
+        enumerate_points(false /*inlining*/);
       // Enqueue all the point tasks as ready to map
       // Make a copy of the points data structure because as soon as we
       // kick off a task it might come back and start mutating the
       // points data structure out from under us and even cleaning up
       // the slice task object before we're done
       const std::vector<PointTask*> copy(points.begin(), points.end());
-      for (std::vector<PointTask*>::const_iterator it =
-            copy.begin(); it != copy.end(); it++)
+      for (std::vector<PointTask*>::const_iterator it = copy.begin();
+           it != copy.end(); it++)
       {
         // If we just made this point then perform the pointwise analysis
         // on it before we can go about trying to map it
@@ -235,10 +232,9 @@ namespace Legion {
         {
           // We can start the mapping for this point task now
           TriggerTaskArgs trigger_args(*it);
-          runtime->issue_runtime_meta_task(trigger_args,
-              LG_THROUGHPUT_WORK_PRIORITY, point_precondition);
-        }
-        else
+          runtime->issue_runtime_meta_task(
+              trigger_args, LG_THROUGHPUT_WORK_PRIORITY, point_precondition);
+        } else
           (*it)->enqueue_ready_task(!make_points, point_precondition);
       }
       return false;
@@ -301,8 +297,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool SliceTask::send_task(Processor target, PointTask *point,
-        std::vector<SingleTask*> &others)
+    bool SliceTask::send_task(
+        Processor target, PointTask* point, std::vector<SingleTask*>& others)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -310,13 +306,13 @@ namespace Legion {
       assert(std::is_sorted(others.begin(), others.end()));
 #endif
       std::vector<PointTask*> to_send(1, point);
-      for (std::vector<PointTask*>::const_iterator it = 
-            points.begin(); it != points.end(); it++)
+      for (std::vector<PointTask*>::const_iterator it = points.begin();
+           it != points.end(); it++)
       {
         if ((*it) == point)
           continue;
         std::vector<SingleTask*>::iterator finder =
-          std::lower_bound(others.begin(), others.end(), *it);
+            std::lower_bound(others.begin(), others.end(), *it);
         if ((finder != others.end()) && (*finder == *it))
         {
           to_send.push_back(*it);
@@ -339,11 +335,10 @@ namespace Legion {
           rez.serialize(SLICE_TASK_KIND);
           deactivate = pack_task(rez, target.address_space());
         }
-        MessageManager *manager = runtime->find_messenger(target);
+        MessageManager* manager = runtime->find_messenger(target);
         manager->send_message(TASK_MESSAGE, rez, others.empty());
         return deactivate;
-      }
-      else
+      } else
       {
         // This is the nasty case where we need to pack this slice and
         // then only send a subset of the points to the remote node
@@ -354,7 +349,7 @@ namespace Legion {
           rez.serialize(SLICE_TASK_KIND);
           pack_slice_task(rez, target.address_space(), to_send);
         }
-        MessageManager *manager = runtime->find_messenger(target);
+        MessageManager* manager = runtime->find_messenger(target);
         // Send the message and flush if the others are empty
         manager->send_message(TASK_MESSAGE, rez, others.empty());
         // Now take the lock and remove the sent points and see if
@@ -362,8 +357,9 @@ namespace Legion {
         // have these points completing anymore
         std::sort(to_send.begin(), to_send.end());
         AutoLock o_lock(op_lock);
-        for (std::vector<PointTask*>::iterator it =
-              points.begin(); it != points.end(); /*nothing*/)
+        for (std::vector<PointTask*>::iterator it = points.begin();
+             it != points.end();
+             /*nothing*/)
         {
           if (std::binary_search(to_send.begin(), to_send.end(), *it))
             it = points.erase(it);
@@ -376,24 +372,25 @@ namespace Legion {
             send_rendezvous_concurrent_mapped();
           // Decrement the group point counts of the points that
           // were sent away
-          ConcurrentColoringFunctor *functor =
-            runtime->find_concurrent_coloring_functor(concurrent_functor);
-          for (std::vector<PointTask*>::const_iterator it =
-                to_send.begin(); it != to_send.end(); it++)
+          ConcurrentColoringFunctor* functor =
+              runtime->find_concurrent_coloring_functor(concurrent_functor);
+          for (std::vector<PointTask*>::const_iterator it = to_send.begin();
+               it != to_send.end(); it++)
           {
             Color color = functor->color((*it)->index_point, index_domain);
-            std::map<Color,ConcurrentGroup>::iterator finder =
-              concurrent_groups.find(color);
+            std::map<Color, ConcurrentGroup>::iterator finder =
+                concurrent_groups.find(color);
 #ifdef DEBUG_LEGION
             assert(finder != concurrent_groups.end());
             assert(finder->second.group_points > 0);
-            assert(finder->second.point_tasks.size() < 
+            assert(
+                finder->second.point_tasks.size() <
                 finder->second.group_points);
 #endif
             finder->second.group_points--;
             // See if we have any concurrent mapping to trigger
             if ((finder->second.group_points > 0) &&
-                (finder->second.point_tasks.size() == 
+                (finder->second.point_tasks.size() ==
                  finder->second.group_points))
               concurrent_colors.push_back(color);
           }
@@ -407,11 +404,11 @@ namespace Legion {
         num_uncommitted_points -= to_send.size();
         trigger_children_commit = (num_uncommitted_points == 0);
       }
-      for (std::vector<Color>::const_iterator it =
-            concurrent_colors.begin(); it != concurrent_colors.end(); it++)
+      for (std::vector<Color>::const_iterator it = concurrent_colors.begin();
+           it != concurrent_colors.end(); it++)
       {
-        std::map<Color,ConcurrentGroup>::iterator finder =
-          concurrent_groups.find(*it);
+        std::map<Color, ConcurrentGroup>::iterator finder =
+            concurrent_groups.find(*it);
 #ifdef DEBUG_LEGION
         assert(finder != concurrent_groups.end());
 #endif
@@ -429,17 +426,16 @@ namespace Legion {
             rez.serialize(finder->second.poisoned);
           }
           runtime->send_slice_concurrent_allreduce_request(orig_proc, rez);
-        }
-        else
-          index_owner->concurrent_allreduce(finder->first, this,
-              runtime->address_space, finder->second.group_points,
-              finder->second.lamport_clock, finder->second.variant,
-              finder->second.poisoned);
+        } else
+          index_owner->concurrent_allreduce(
+              finder->first, this, runtime->address_space,
+              finder->second.group_points, finder->second.lamport_clock,
+              finder->second.variant, finder->second.poisoned);
       }
       if (trigger_mapped)
         complete_mapping();
-      const unsigned remaining = 
-        num_uncompleted_points.fetch_sub(to_send.size());
+      const unsigned remaining =
+          num_uncompleted_points.fetch_sub(to_send.size());
 #ifdef DEBUG_LEGION
       assert(to_send.size() <= remaining);
 #endif
@@ -448,15 +444,16 @@ namespace Legion {
       if (trigger_children_commit)
         trigger_children_committed();
       // Deactivate the points that we removed and sent
-      for (std::vector<PointTask*>::const_iterator it =
-            to_send.begin(); it != to_send.end(); it++)
+      for (std::vector<PointTask*>::const_iterator it = to_send.begin();
+           it != to_send.end(); it++)
         (*it)->deactivate();
       return false;
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::pack_slice_task(Serializer &rez, AddressSpaceID target,
-                                  const std::vector<PointTask*> &points_to_send)
+    void SliceTask::pack_slice_task(
+        Serializer& rez, AddressSpaceID target,
+        const std::vector<PointTask*>& points_to_send)
     //--------------------------------------------------------------------------
     {
       // Check to see if we are stealable or not yet fully sliced,
@@ -486,10 +483,11 @@ namespace Legion {
           rez.serialize<DistributedID>(0);
         rez.serialize<size_t>(predicate_false_result.get_size());
         if (predicate_false_result.get_size() > 0)
-          rez.serialize(predicate_false_result.get_buffer(),
+          rez.serialize(
+              predicate_false_result.get_buffer(),
               predicate_false_result.get_size());
       }
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         provenance->serialize(rez);
       else
@@ -507,17 +505,17 @@ namespace Legion {
         rez.serialize<size_t>(point_futures.size());
         for (unsigned idx = 0; idx < point_futures.size(); idx++)
         {
-          FutureMapImpl *impl = point_futures[idx].impl;
+          FutureMapImpl* impl = point_futures[idx].impl;
           impl->pack_future_map(rez, target);
         }
       }
     }
 
     //--------------------------------------------------------------------------
-    bool SliceTask::pack_task(Serializer &rez, AddressSpaceID target)
+    bool SliceTask::pack_task(Serializer& rez, AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-      pack_slice_task(rez, target, points); 
+      pack_slice_task(rez, target, points);
       if (is_origin_mapped() && !is_remote())
       {
         // Similarly for slices being removed remotely but are
@@ -531,10 +529,10 @@ namespace Legion {
       // always be deactivated after they are sent somewhere else
       return true;
     }
-    
+
     //--------------------------------------------------------------------------
-    bool SliceTask::unpack_task(Deserializer &derez, Processor current,
-                                std::set<RtEvent> &ready_events)
+    bool SliceTask::unpack_task(
+        Deserializer& derez, Processor current, std::set<RtEvent>& ready_events)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -543,31 +541,30 @@ namespace Legion {
       unpack_multi_task(derez, ready_events);
       set_current_proc(current);
       derez.deserialize(index_owner);
-      derez.deserialize(remote_unique_id); 
+      derez.deserialize(remote_unique_id);
       derez.deserialize(origin_mapped);
       parent_ctx = InnerContext::unpack_inner_context(derez);
       derez.deserialize(internal_space);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_slice_slice(remote_unique_id, get_unique_id());
       if (implicit_profiler != nullptr)
-        implicit_profiler->register_slice_owner(remote_unique_id,
-            get_unique_op_id());
+        implicit_profiler->register_slice_owner(
+            remote_unique_id, get_unique_op_id());
       num_unmapped_points = num_points;
       num_uncompleted_points.store(num_points);
       num_uncommitted_points = num_points;
       if (!elide_future_return)
       {
         if (redop == 0)
-          future_map = FutureMapImpl::unpack_future_map(derez, 
-                                                        parent_ctx);
+          future_map = FutureMapImpl::unpack_future_map(derez, parent_ctx);
         // Unpack the predicate false infos
         predicate_false_future = FutureImpl::unpack_future(derez);
         size_t predicate_false_size;
         derez.deserialize(predicate_false_size);
         if (predicate_false_size > 0)
         {
-          predicate_false_result.save_buffer(derez.get_current_pointer(),
-              predicate_false_size);
+          predicate_false_result.save_buffer(
+              derez.get_current_pointer(), predicate_false_size);
           derez.advance_pointer(predicate_false_size);
         }
       }
@@ -576,27 +573,26 @@ namespace Legion {
       set_provenance(Provenance::deserialize(derez));
       for (unsigned idx = 0; idx < num_points; idx++)
       {
-        PointTask *point = runtime->get_operation<PointTask>(); 
+        PointTask* point = runtime->get_operation<PointTask>();
         point->slice_owner = this;
         point->unpack_task(derez, current, ready_events);
         point->parent_ctx = parent_ctx;
         points.push_back(point);
         if (runtime->legion_spy_enabled)
-          LegionSpy::log_slice_point(get_unique_id(), 
-                                     point->get_unique_id(),
-                                     point->index_point);
+          LegionSpy::log_slice_point(
+              get_unique_id(), point->get_unique_id(), point->index_point);
       }
       if (concurrent_task)
       {
         // Update the concurrent groups based on the points
-        ConcurrentColoringFunctor *functor =
+        ConcurrentColoringFunctor* functor =
             runtime->find_concurrent_coloring_functor(concurrent_functor);
-        for (std::vector<PointTask*>::const_iterator it =
-              points.begin(); it != points.end(); it++)
+        for (std::vector<PointTask*>::const_iterator it = points.begin();
+             it != points.end(); it++)
         {
           Color color = functor->color((*it)->index_point, index_domain);
-          std::map<Color,ConcurrentGroup>::iterator finder =
-                concurrent_groups.find(color);
+          std::map<Color, ConcurrentGroup>::iterator finder =
+              concurrent_groups.find(color);
 #ifdef DEBUG_LEGION
           assert(finder != concurrent_groups.end());
 #endif
@@ -605,16 +601,15 @@ namespace Legion {
       }
       if (num_points == 0)
       {
-        point_arguments = FutureMapImpl::unpack_future_map(derez, 
-                                                           parent_ctx);
+        point_arguments = FutureMapImpl::unpack_future_map(derez, parent_ctx);
         size_t num_point_futures;
         derez.deserialize(num_point_futures);
         if (num_point_futures > 0)
         {
           point_futures.resize(num_point_futures);
           for (unsigned idx = 0; idx < num_point_futures; idx++)
-            point_futures[idx] = FutureMapImpl::unpack_future_map(
-                                                        derez, parent_ctx);
+            point_futures[idx] =
+                FutureMapImpl::unpack_future_map(derez, parent_ctx);
         }
       }
       if (implicit_profiler != nullptr)
@@ -624,24 +619,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::perform_inlining(VariantImpl *variant,
-                                const std::deque<InstanceSet> &parent_instances)
+    void SliceTask::perform_inlining(
+        VariantImpl* variant, const std::deque<InstanceSet>& parent_instances)
     //--------------------------------------------------------------------------
     {
       // Need to handle inter-space dependences correctly here
-      std::map<PointTask*,unsigned> remaining;
-      std::map<RtEvent,std::vector<PointTask*> > event_deps;
-      for (std::vector<PointTask*>::const_iterator it =
-            points.begin(); it != points.end(); it++)
+      std::map<PointTask*, unsigned> remaining;
+      std::map<RtEvent, std::vector<PointTask*> > event_deps;
+      for (std::vector<PointTask*>::const_iterator it = points.begin();
+           it != points.end(); it++)
         if (!(*it)->has_remaining_inlining_dependences(remaining, event_deps))
           (*it)->perform_inlining(variant, parent_instances);
       while (!remaining.empty())
       {
 #ifdef DEBUG_LEGION
-        bool found = false; // should find at least one each iteration
+        bool found = false;  // should find at least one each iteration
 #endif
-        for (std::map<PointTask*,unsigned>::iterator it =
-              remaining.begin(); it != remaining.end(); /*nothing*/)
+        for (std::map<PointTask*, unsigned>::iterator it = remaining.begin();
+             it != remaining.end();
+             /*nothing*/)
         {
           if (it->second == 0)
           {
@@ -651,14 +647,14 @@ namespace Legion {
             found = true;
             assert(mapped.has_triggered());
 #endif
-            std::map<RtEvent,std::vector<PointTask*> >::const_iterator finder =
-              event_deps.find(mapped);
+            std::map<RtEvent, std::vector<PointTask*> >::const_iterator finder =
+                event_deps.find(mapped);
             if (finder != event_deps.end())
             {
               for (unsigned idx = 0; idx < finder->second.size(); idx++)
               {
-                std::map<PointTask*,unsigned>::iterator point_finder =
-                  remaining.find(finder->second[idx]);
+                std::map<PointTask*, unsigned>::iterator point_finder =
+                    remaining.find(finder->second[idx]);
 #ifdef DEBUG_LEGION
                 assert(point_finder != remaining.end());
                 assert(point_finder->second > 0);
@@ -667,45 +663,43 @@ namespace Legion {
               }
               event_deps.erase(finder);
             }
-            std::map<PointTask*,unsigned>::iterator to_delete = it++;
+            std::map<PointTask*, unsigned>::iterator to_delete = it++;
             remaining.erase(to_delete);
-          }
-          else
+          } else
             it++;
         }
 #ifdef DEBUG_LEGION
         assert(found);
 #endif
       }
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    SliceTask* SliceTask::clone_as_slice_task(IndexSpace is, Processor p,
-                                              bool recurse, bool stealable)
+    SliceTask* SliceTask::clone_as_slice_task(
+        IndexSpace is, Processor p, bool recurse, bool stealable)
     //--------------------------------------------------------------------------
     {
-      SliceTask *result = runtime->get_operation<SliceTask>(); 
-      result->initialize_base_task(parent_ctx, Predicate::TRUE_PRED,
-                                   this->task_id, get_provenance());
+      SliceTask* result = runtime->get_operation<SliceTask>();
+      result->initialize_base_task(
+          parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance());
       result->clone_multi_from(this, is, p, recurse, stealable);
       result->index_owner = this->index_owner;
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_slice_slice(get_unique_id(), 
-                                   result->get_unique_id());
+        LegionSpy::log_slice_slice(get_unique_id(), result->get_unique_id());
       if (implicit_profiler != nullptr)
-        implicit_profiler->register_slice_owner(get_unique_op_id(),
-            result->get_unique_op_id());
+        implicit_profiler->register_slice_owner(
+            get_unique_op_id(), result->get_unique_op_id());
       return result;
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::reduce_future(const DomainPoint &point,
-                                  FutureInstance *inst, ApEvent effects)
+    void SliceTask::reduce_future(
+        const DomainPoint& point, FutureInstance* inst, ApEvent effects)
     //--------------------------------------------------------------------------
     {
       if (is_remote())
       {
-        // Store the future result in our temporary futures unless we're 
+        // Store the future result in our temporary futures unless we're
         // doing a non-deterministic reduction in which case we can eagerly
         // fold this now into our reduction buffer
         if (deterministic_redop)
@@ -717,8 +711,7 @@ namespace Legion {
           assert(temporary_futures.find(point) == temporary_futures.end());
 #endif
           temporary_futures[point] = std::make_pair(inst, effects);
-        }
-        else
+        } else
         {
           // If we're not doing serdez functions, we'll grab the first
           // one of these instances as the target for us to reduce into
@@ -736,11 +729,10 @@ namespace Legion {
                 // Must be the last thing we store
                 reduction_instance = inst;
                 return;
-              }
-              else
-                reduction_instance =
-                  FutureInstance::create_local(&reduction_op->identity,
-                      reduction_op->sizeof_rhs, false/*own*/);
+              } else
+                reduction_instance = FutureInstance::create_local(
+                    &reduction_op->identity, reduction_op->sizeof_rhs,
+                    false /*own*/);
             }
           }
           if (!fold_reduction_future(inst, effects))
@@ -751,21 +743,18 @@ namespace Legion {
             assert(temporary_futures.find(point) == temporary_futures.end());
 #endif
             temporary_futures[point] = std::make_pair(inst, effects);
-          }
-          else
+          } else
             delete inst;
         }
-      }
-      else
-        index_owner->reduce_future(point, inst, effects); 
+      } else
+        index_owner->reduce_future(point, inst, effects);
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::handle_future(ApEvent effects, const DomainPoint &point,
-                                  FutureInstance *instance,
-                                  const void *metadata, size_t metasize,
-                                  FutureFunctor *functor,
-                                  Processor future_proc, bool own_functor)
+    void SliceTask::handle_future(
+        ApEvent effects, const DomainPoint& point, FutureInstance* instance,
+        const void* metadata, size_t metasize, FutureFunctor* functor,
+        Processor future_proc, bool own_functor)
     //--------------------------------------------------------------------------
     {
       if (elide_future_return)
@@ -779,11 +768,9 @@ namespace Legion {
           functor->callback_release_future();
           if (own_functor)
             delete functor;
-        }
-        else if ((instance != nullptr) && !instance->defer_deletion(effects))
+        } else if ((instance != nullptr) && !instance->defer_deletion(effects))
           delete instance;
-      }
-      else if (redop > 0)
+      } else if (redop > 0)
       {
 #ifdef DEBUG_LEGION
         assert(functor == nullptr);
@@ -800,22 +787,21 @@ namespace Legion {
             memcpy(reduction_metadata, metadata, metasize);
           }
         }
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
         assert(future_handles != nullptr);
 #endif
-        std::map<DomainPoint,DistributedID>::const_iterator finder = 
-          future_handles->handles.find(point);
+        std::map<DomainPoint, DistributedID>::const_iterator finder =
+            future_handles->handles.find(point);
 #ifdef DEBUG_LEGION
         assert(finder != future_handles->handles.end());
 #endif
         const ContextCoordinate coordinate(future_map_coordinate, point);
         RtEvent registered;
-        FutureImpl *impl = runtime->find_or_create_future(finder->second, 
-            parent_ctx->did, coordinate, get_provenance(),
-            false/*has global reference*/, registered);
+        FutureImpl* impl = runtime->find_or_create_future(
+            finder->second, parent_ctx->did, coordinate, get_provenance(),
+            false /*has global reference*/, registered);
         if (functor != nullptr)
         {
 #ifdef DEBUG_LEGION
@@ -823,8 +809,7 @@ namespace Legion {
           assert(metadata == nullptr);
 #endif
           impl->set_result(effects, functor, own_functor, future_proc);
-        }
-        else
+        } else
           impl->set_result(effects, instance, metadata, metasize);
         if (registered.exists())
         {
@@ -842,64 +827,63 @@ namespace Legion {
       assert(must_epoch != nullptr);
 #endif
       if (points.empty())
-        enumerate_points(false/*inling*/);
+        enumerate_points(false /*inling*/);
       must_epoch->register_slice_task(this);
       for (unsigned idx = 0; idx < points.size(); idx++)
       {
-        PointTask *point = points[idx];
+        PointTask* point = points[idx];
         must_epoch->register_single_task(point, must_epoch_index);
       }
     }
 
     //--------------------------------------------------------------------------
-    PointTask* SliceTask::clone_as_point_task(const DomainPoint &point,
-                                              bool inline_task)
+    PointTask* SliceTask::clone_as_point_task(
+        const DomainPoint& point, bool inline_task)
     //--------------------------------------------------------------------------
     {
-      PointTask *result = runtime->get_operation<PointTask>();
-      result->initialize_base_task(parent_ctx, Predicate::TRUE_PRED,
-                                   this->task_id, get_provenance());
-      result->clone_task_op_from(this, this->target_proc, 
-                                 false/*stealable*/, false/*duplicate*/);
+      PointTask* result = runtime->get_operation<PointTask>();
+      result->initialize_base_task(
+          parent_ctx, Predicate::TRUE_PRED, this->task_id, get_provenance());
+      result->clone_task_op_from(
+          this, this->target_proc, false /*stealable*/, false /*duplicate*/);
       result->is_index_space = true;
       result->must_epoch_task = this->must_epoch_task;
       result->index_domain = this->index_domain;
       result->version_infos.resize(logical_regions.size());
       // Now figure out our local point information
-      result->initialize_point(this, point, point_arguments, inline_task,
-          point_futures, is_pointwise_analyzable());
+      result->initialize_point(
+          this, point, point_arguments, inline_task, point_futures,
+          is_pointwise_analyzable());
       if (concurrent_task)
       {
         // Find the color for this point task
-        ConcurrentColoringFunctor *functor = 
-          runtime->find_concurrent_coloring_functor(concurrent_functor);
+        ConcurrentColoringFunctor* functor =
+            runtime->find_concurrent_coloring_functor(concurrent_functor);
         result->concurrent_color = functor->color(point, index_domain);
         if (is_replaying())
         {
-          std::map<Color,ConcurrentGroup>::const_iterator finder =
-            concurrent_groups.find(result->concurrent_color);
+          std::map<Color, ConcurrentGroup>::const_iterator finder =
+              concurrent_groups.find(result->concurrent_color);
 #ifdef DEBUG_LEGION
           assert(finder != concurrent_groups.end());
 #endif
-          result->concurrent_precondition.traced = 
-            finder->second.precondition.traced;
+          result->concurrent_precondition.traced =
+              finder->second.precondition.traced;
           result->concurrent_postcondition = finder->second.precondition.traced;
-        }
-        else
+        } else
         {
-          std::map<Color,ConcurrentGroup>::const_iterator finder =
-            concurrent_groups.find(result->concurrent_color);
+          std::map<Color, ConcurrentGroup>::const_iterator finder =
+              concurrent_groups.find(result->concurrent_color);
 #ifdef DEBUG_LEGION
           assert(finder != concurrent_groups.end());
 #endif
           result->concurrent_postcondition =
-            finder->second.precondition.interpreted;
+              finder->second.precondition.interpreted;
         }
       }
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_slice_point(get_unique_id(), 
-                                   result->get_unique_id(),
-                                   result->index_point);
+        LegionSpy::log_slice_point(
+            get_unique_id(), result->get_unique_id(), result->index_point);
       return result;
     }
 
@@ -916,20 +900,21 @@ namespace Legion {
       unsigned point_idx = 0;
       points.resize(num_points);
       // Enumerate all the points in our slice and make point tasks
-      for (Domain::DomainPointIterator itr(internal_domain); 
-            itr; itr++, point_idx++)
+      for (Domain::DomainPointIterator itr(internal_domain); itr;
+           itr++, point_idx++)
         points[point_idx] = clone_as_point_task(itr.p, inline_task);
       // Compute any projection region requirements
       for (unsigned idx = 0; idx < logical_regions.size(); idx++)
       {
-        const RegionRequirement &req = logical_regions[idx];
+        const RegionRequirement& req = logical_regions[idx];
         if (req.handle_type == LEGION_SINGULAR_PROJECTION)
           continue;
-        ProjectionFunction *function = 
-          runtime->find_projection_function(req.projection);
-        std::map<unsigned,std::vector<PointwiseDependence> >::const_iterator
-          finder = pointwise_dependences.find(idx);
-        function->project_points(req, idx, index_domain, points,
+        ProjectionFunction* function =
+            runtime->find_projection_function(req.projection);
+        std::map<unsigned, std::vector<PointwiseDependence> >::const_iterator
+            finder = pointwise_dependences.find(idx);
+        function->project_points(
+            req, idx, index_domain, points,
             (finder == pointwise_dependences.end()) ? nullptr : &finder->second,
             parent_ctx->get_total_shards(), is_replaying());
       }
@@ -940,16 +925,17 @@ namespace Legion {
       {
         // Set the counts back to zero for all the groups and then
         // count how many local points we're going to be expecting here
-        for (std::map<Color,ConcurrentGroup>::iterator it =
-              concurrent_groups.begin(); it != concurrent_groups.end(); it++)
+        for (std::map<Color, ConcurrentGroup>::iterator it =
+                 concurrent_groups.begin();
+             it != concurrent_groups.end(); it++)
           it->second.group_points = 0;
-        ConcurrentColoringFunctor *functor =
+        ConcurrentColoringFunctor* functor =
             runtime->find_concurrent_coloring_functor(concurrent_functor);
         for (unsigned idx = 0; idx < num_points; idx++)
         {
           Color color = functor->color(points[idx]->index_point, index_domain);
-          std::map<Color,ConcurrentGroup>::iterator finder =
-            concurrent_groups.find(color);
+          std::map<Color, ConcurrentGroup>::iterator finder =
+              concurrent_groups.find(color);
 #ifdef DEBUG_LEGION
           assert(finder != concurrent_groups.end());
 #endif
@@ -961,11 +947,11 @@ namespace Legion {
       num_uncompleted_points.store(num_points);
       num_uncommitted_points = num_points;
       return num_points;
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    void SliceTask::set_predicate_false_result(const DomainPoint &point,
-                                               TaskContext *execution_context)
+    void SliceTask::set_predicate_false_result(
+        const DomainPoint& point, TaskContext* execution_context)
     //--------------------------------------------------------------------------
     {
       if (elide_future_return || (redop > 0))
@@ -973,25 +959,25 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(future_handles != nullptr);
 #endif
-      std::map<DomainPoint,DistributedID>::const_iterator finder = 
-        future_handles->handles.find(point);
+      std::map<DomainPoint, DistributedID>::const_iterator finder =
+          future_handles->handles.find(point);
 #ifdef DEBUG_LEGION
       assert(finder != future_handles->handles.end());
 #endif
       const ContextCoordinate coordinate(future_map_coordinate, point);
       RtEvent registered;
-      FutureImpl *impl = runtime->find_or_create_future(finder->second, 
-          parent_ctx->did, coordinate, get_provenance(),
-          false/*has global reference*/, registered);
+      FutureImpl* impl = runtime->find_or_create_future(
+          finder->second, parent_ctx->did, coordinate, get_provenance(),
+          false /*has global reference*/, registered);
       if (predicate_false_future.impl == nullptr)
       {
         if (predicate_false_result.get_size() > 0)
-          impl->set_local(predicate_false_result.get_buffer(),
-              predicate_false_result.get_size(), false/*own*/);
+          impl->set_local(
+              predicate_false_result.get_buffer(),
+              predicate_false_result.get_size(), false /*own*/);
         else
           impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
-      }
-      else
+      } else
         impl->set_result(execution_context, predicate_false_future.impl);
       if (registered.exists())
       {
@@ -1014,16 +1000,15 @@ namespace Legion {
         Serializer rez;
         pack_remote_complete(rez, effects);
         runtime->send_slice_remote_complete(orig_proc, rez);
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
         assert(temporary_futures.empty());
         assert(reduction_instance == nullptr);
         assert(serdez_redop_state == nullptr);
 #endif
-        index_owner->return_slice_complete(points.size(), effects,
-                                        reduction_metadata, reduction_metasize);
+        index_owner->return_slice_complete(
+            points.size(), effects, reduction_metadata, reduction_metasize);
         // No longer own the buffer so clear it
         reduction_metadata = nullptr;
       }
@@ -1042,19 +1027,18 @@ namespace Legion {
         Serializer rez;
         pack_remote_commit(rez, commit_precondition);
         runtime->send_slice_remote_commit(orig_proc, rez);
-      }
-      else
+      } else
       {
         // created and deleted privilege information already passed back
         // futures already sent back
         index_owner->return_slice_commit(points.size(), commit_precondition);
       }
-      commit_operation(true/*deactivate*/, commit_precondition);
-    } 
+      commit_operation(true /*deactivate*/, commit_precondition);
+    }
 
     //--------------------------------------------------------------------------
-    void SliceTask::return_privileges(TaskContext *point_context,
-                                      std::set<RtEvent> &preconditions)
+    void SliceTask::return_privileges(
+        TaskContext* point_context, std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
       // If we're remote, pass our privileges back to ourself
@@ -1062,16 +1046,16 @@ namespace Legion {
       if (is_remote())
         point_context->return_resources(this, context_index, preconditions);
       else if (must_epoch != nullptr)
-        point_context->return_resources(must_epoch, context_index,
-                                        preconditions);
+        point_context->return_resources(
+            must_epoch, context_index, preconditions);
       else
-        point_context->return_resources(parent_ctx, context_index,
-                                        preconditions);
+        point_context->return_resources(
+            parent_ctx, context_index, preconditions);
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::record_point_mapped(PointTask *point,
-                                        RtEvent child_mapped, bool shard_off)
+    void SliceTask::record_point_mapped(
+        PointTask* point, RtEvent child_mapped, bool shard_off)
     //--------------------------------------------------------------------------
     {
       bool done_mapping;
@@ -1150,8 +1134,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::handle_future_size(size_t future_size,
-                                       const DomainPoint &point)
+    void SliceTask::handle_future_size(
+        size_t future_size, const DomainPoint& point)
     //--------------------------------------------------------------------------
     {
       if (redop > 0)
@@ -1160,18 +1144,18 @@ namespace Legion {
       assert(!elide_future_return);
       assert(future_handles != nullptr);
 #endif
-      const std::map<DomainPoint,DistributedID> &handles = 
-        future_handles->handles;
-      std::map<DomainPoint,DistributedID>::const_iterator finder = 
-        handles.find(point);
+      const std::map<DomainPoint, DistributedID>& handles =
+          future_handles->handles;
+      std::map<DomainPoint, DistributedID>::const_iterator finder =
+          handles.find(point);
 #ifdef DEBUG_LEGION
       assert(finder != handles.end());
 #endif
       const ContextCoordinate coordinate(future_map_coordinate, point);
       RtEvent registered;
-      FutureImpl *impl = runtime->find_or_create_future(finder->second, 
-        parent_ctx->did, coordinate, get_provenance(),
-        false/*has global reference*/, registered);
+      FutureImpl* impl = runtime->find_or_create_future(
+          finder->second, parent_ctx->did, coordinate, get_provenance(),
+          false /*has global reference*/, registered);
       impl->set_future_result_size(future_size, runtime->address_space);
       if (registered.exists())
       {
@@ -1181,8 +1165,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::record_output_extent(unsigned index,
-                            const DomainPoint &color, const DomainPoint &extent)
+    void SliceTask::record_output_extent(
+        unsigned index, const DomainPoint& color, const DomainPoint& extent)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1193,21 +1177,22 @@ namespace Legion {
 #endif
       {
         AutoLock o_lock(op_lock);
-        OutputExtentMap &output_extents = output_region_extents[index];
+        OutputExtentMap& output_extents = output_region_extents[index];
         if (output_extents.find(color) != output_extents.end())
         {
-          const OutputRequirement &req = output_regions[index];
+          const OutputRequirement& req = output_regions[index];
           std::stringstream ss;
           ss << "(" << color[0];
           for (int dim = 1; dim < color.dim; ++dim) ss << "," << color[dim];
           ss << ")";
-          REPORT_LEGION_ERROR(ERROR_INVALID_OUTPUT_REGION_PROJECTION,
-            "A projection functor for every output requirement must be "
-            "bijective, but projection functor %u for output requirement %u "
-            "in task %s (UID: %lld) mapped more than one point in the launch "
-            "domain to the same subregion of color %s.",
-            req.projection, index, get_task_name(), get_unique_op_id(),
-            ss.str().c_str());
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_OUTPUT_REGION_PROJECTION,
+              "A projection functor for every output requirement must be "
+              "bijective, but projection functor %u for output requirement %u "
+              "in task %s (UID: %lld) mapped more than one point in the launch "
+              "domain to the same subregion of color %s.",
+              req.projection, index, get_task_name(), get_unique_op_id(),
+              ss.str().c_str());
         }
         output_extents[color] = extent;
 #ifdef DEBUG_LEGION
@@ -1241,10 +1226,10 @@ namespace Legion {
           rez.serialize<size_t>(output_region_extents.size());
           for (unsigned idx = 0; idx < output_region_extents.size(); idx++)
           {
-            const OutputExtentMap &extents = output_region_extents[idx];
+            const OutputExtentMap& extents = output_region_extents[idx];
             rez.serialize<size_t>(extents.size());
-            for (OutputExtentMap::const_iterator it =
-                  extents.begin(); it != extents.end(); it++)
+            for (OutputExtentMap::const_iterator it = extents.begin();
+                 it != extents.end(); it++)
             {
               rez.serialize(it->first);
               rez.serialize(it->second);
@@ -1258,24 +1243,23 @@ namespace Legion {
         assert(num_uncompleted_points.load() > 0);
 #endif
         commit_preconditions.insert(applied);
-      }
-      else
+      } else
         index_owner->record_output_extents(output_region_extents);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_remote_output_extents(Deserializer &derez)
+    /*static*/ void SliceTask::handle_remote_output_extents(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      IndexTask *index_owner;
+      IndexTask* index_owner;
       derez.deserialize(index_owner);
       size_t num_regions;
       derez.deserialize(num_regions);
       std::vector<OutputExtentMap> output_region_extents(num_regions);
       for (unsigned idx1 = 0; idx1 < num_regions; idx1++)
       {
-        OutputExtentMap &extents = output_region_extents[idx1];
+        OutputExtentMap& extents = output_region_extents[idx1];
         size_t num_extents;
         derez.deserialize(num_extents);
         for (unsigned idx2 = 0; idx2 < num_extents; idx2++)
@@ -1292,8 +1276,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::record_output_registered(RtEvent registered,
-                                             std::set<RtEvent> &applied_events)
+    void SliceTask::record_output_registered(
+        RtEvent registered, std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1313,18 +1297,17 @@ namespace Legion {
         }
         runtime->send_slice_remote_output_registration(orig_proc, rez);
         applied_events.insert(applied);
-      }
-      else
+      } else
         index_owner->record_output_registered(registered);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_remote_output_registration(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      IndexTask *index_owner;
+      IndexTask* index_owner;
       derez.deserialize(index_owner);
       RtEvent registered;
       derez.deserialize(registered);
@@ -1335,15 +1318,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::rendezvous_concurrent_mapped(const DomainPoint &point,
-                            Processor target, Color color, RtEvent precondition)
+    void SliceTask::rendezvous_concurrent_mapped(
+        const DomainPoint& point, Processor target, Color color,
+        RtEvent precondition)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(concurrent_task);
 #endif
-      std::map<Color,ConcurrentGroup>::iterator finder =
-        concurrent_groups.find(color);
+      std::map<Color, ConcurrentGroup>::iterator finder =
+          concurrent_groups.find(color);
 #ifdef DEBUG_LEGION
       assert(finder != concurrent_groups.end());
 #endif
@@ -1352,8 +1336,8 @@ namespace Legion {
         AutoLock o_lock(op_lock);
         if (precondition.exists())
           finder->second.preconditions.push_back(precondition);
-        std::map<Processor,DomainPoint>::const_iterator proc_finder =
-          finder->second.processors.find(target);
+        std::map<Processor, DomainPoint>::const_iterator proc_finder =
+            finder->second.processors.find(target);
         if (proc_finder != finder->second.processors.end())
           report_concurrent_mapping_failure(target, point, proc_finder->second);
 #ifdef DEBUG_LEGION
@@ -1361,10 +1345,9 @@ namespace Legion {
 #endif
         if (++concurrent_points == points.size())
           send_rendezvous_concurrent_mapped();
-      }
-      else
-        index_owner->rendezvous_concurrent_mapped(point, target, color,
-                                                  precondition);
+      } else
+        index_owner->rendezvous_concurrent_mapped(
+            point, target, color, precondition);
     }
 
     //--------------------------------------------------------------------------
@@ -1381,15 +1364,15 @@ namespace Legion {
         rez.serialize(index_owner);
         // Count how many colors have "interesting" results
         size_t num_colors = 0;
-        for (std::map<Color,ConcurrentGroup>::const_iterator it =
-              concurrent_groups.begin(); it !=
-              concurrent_groups.end(); it++)
+        for (std::map<Color, ConcurrentGroup>::const_iterator it =
+                 concurrent_groups.begin();
+             it != concurrent_groups.end(); it++)
           if (!it->second.preconditions.empty())
             num_colors++;
         rez.serialize(num_colors);
-        for (std::map<Color,ConcurrentGroup>::const_iterator it =
-              concurrent_groups.begin(); it !=
-              concurrent_groups.end(); it++)
+        for (std::map<Color, ConcurrentGroup>::const_iterator it =
+                 concurrent_groups.begin();
+             it != concurrent_groups.end(); it++)
         {
           if (it->second.processors.empty())
             continue;
@@ -1399,9 +1382,9 @@ namespace Legion {
           else
             rez.serialize(Runtime::merge_events(it->second.preconditions));
           rez.serialize<size_t>(it->second.processors.size());
-          for (std::map<Processor,DomainPoint>::const_iterator pit =
-                it->second.processors.begin(); pit !=
-                it->second.processors.end(); pit++)
+          for (std::map<Processor, DomainPoint>::const_iterator pit =
+                   it->second.processors.begin();
+               pit != it->second.processors.end(); pit++)
           {
             rez.serialize(pit->first);
             rez.serialize(pit->second);
@@ -1413,7 +1396,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     uint64_t SliceTask::collective_lamport_allreduce(
-                                       uint64_t lamport_clock, bool need_result)
+        uint64_t lamport_clock, bool need_result)
     //--------------------------------------------------------------------------
     {
       if (is_remote())
@@ -1437,10 +1420,9 @@ namespace Legion {
           return collective_lamport_clock;
         }
         // Otherwise fall through and send the message to the index owner
-      }
-      else
+      } else
         return index_owner->collective_lamport_allreduce(
-            lamport_clock, 1/*points*/, need_result);
+            lamport_clock, 1 /*points*/, need_result);
       Serializer rez;
       {
         RezCheck z(rez);
@@ -1452,17 +1434,16 @@ namespace Legion {
           // Still need to make one to know when results are applied
           collective_lamport_clock_ready = Runtime::create_rt_user_event();
           rez.serialize(collective_lamport_clock_ready);
-          rez.serialize<bool>(false); // need result;
-          // Put this in the commit preconditions data structure since 
-          // we need to capture it as part of the effects of this task 
+          rez.serialize<bool>(false);  // need result;
+          // Put this in the commit preconditions data structure since
+          // we need to capture it as part of the effects of this task
           // in case nothing ends up needing it
           AutoLock o_lock(op_lock);
           commit_preconditions.insert(collective_lamport_clock_ready);
-        }
-        else
+        } else
         {
           rez.serialize(collective_lamport_clock_ready);
-          rez.serialize<bool>(true); // need result;
+          rez.serialize<bool>(true);  // need result;
           rez.serialize(&collective_lamport_clock);
         }
       }
@@ -1473,14 +1454,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::concurrent_allreduce(PointTask *task, 
-                            ProcessorManager *manager, uint64_t lamport_clock,
-                            VariantID vid, bool poisoned)
+    void SliceTask::concurrent_allreduce(
+        PointTask* task, ProcessorManager* manager, uint64_t lamport_clock,
+        VariantID vid, bool poisoned)
     //--------------------------------------------------------------------------
     {
       bool done = false;
-      std::map<Color,ConcurrentGroup>::iterator finder =
-        concurrent_groups.find(task->concurrent_color);
+      std::map<Color, ConcurrentGroup>::iterator finder =
+          concurrent_groups.find(task->concurrent_color);
 #ifdef DEBUG_LEGION
       assert(finder != concurrent_groups.end());
 #endif
@@ -1493,10 +1474,10 @@ namespace Legion {
         if (finder->second.point_tasks.empty())
           finder->second.variant = vid;
         else if (finder->second.variant != vid)
-          finder->second.variant= std::min(finder->second.variant, vid);
+          finder->second.variant = std::min(finder->second.variant, vid);
         finder->second.point_tasks.push_back(std::make_pair(task, manager));
-        done = (finder->second.point_tasks.size() ==
-                finder->second.group_points);
+        done =
+            (finder->second.point_tasks.size() == finder->second.group_points);
       }
       if (done)
       {
@@ -1514,23 +1495,22 @@ namespace Legion {
             rez.serialize(finder->second.poisoned);
           }
           runtime->send_slice_concurrent_allreduce_request(orig_proc, rez);
-        }
-        else
-          index_owner->concurrent_allreduce(finder->first, this,
-              runtime->address_space, finder->second.group_points,
-              finder->second.lamport_clock, finder->second.variant,
-              finder->second.poisoned);
+        } else
+          index_owner->concurrent_allreduce(
+              finder->first, this, runtime->address_space,
+              finder->second.group_points, finder->second.lamport_clock,
+              finder->second.variant, finder->second.poisoned);
       }
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::finish_concurrent_allreduce(Color color,
-        uint64_t lamport_clock, bool poisoned, VariantID vid,
+    void SliceTask::finish_concurrent_allreduce(
+        Color color, uint64_t lamport_clock, bool poisoned, VariantID vid,
         RtBarrier concurrent_barrier)
     //--------------------------------------------------------------------------
     {
-      std::map<Color,ConcurrentGroup>::iterator finder =
-        concurrent_groups.find(color);
+      std::map<Color, ConcurrentGroup>::iterator finder =
+          concurrent_groups.find(color);
 #ifdef DEBUG_LEGION
       assert(finder != concurrent_groups.end());
 #endif
@@ -1538,33 +1518,35 @@ namespace Legion {
         finder->second.task_barrier = concurrent_barrier;
       // Swap this vector onto the stack in case the slice task gets deleted
       // out from under us while we are finalizing things
-      std::vector<std::pair<PointTask*,ProcessorManager*> > local_copy;
+      std::vector<std::pair<PointTask*, ProcessorManager*> > local_copy;
       local_copy.swap(finder->second.point_tasks);
-      for (std::vector<std::pair<PointTask*,ProcessorManager*> >::const_iterator
-            it = local_copy.begin(); it != local_copy.end(); it++)
+      for (std::vector<
+               std::pair<PointTask*, ProcessorManager*> >::const_iterator it =
+               local_copy.begin();
+           it != local_copy.end(); it++)
         if (must_epoch_task || it->first->check_concurrent_variant(vid))
-          it->second->finalize_concurrent_task_order(it->first,
-              lamport_clock, poisoned);
+          it->second->finalize_concurrent_task_order(
+              it->first, lamport_clock, poisoned);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_rendezvous_concurrent_mapped(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      IndexTask *owner;
+      IndexTask* owner;
       derez.deserialize(owner);
       owner->rendezvous_concurrent_mapped(derez);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_collective_allreduce_request(
-                                     Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      IndexTask *owner;
+      IndexTask* owner;
       derez.deserialize(owner);
       size_t total_points;
       derez.deserialize(total_points);
@@ -1579,7 +1561,7 @@ namespace Legion {
           lamport_clock, total_points, need_result);
       if (need_result)
       {
-        uint64_t *target;
+        uint64_t* target;
         derez.deserialize(target);
         Serializer rez;
         {
@@ -1589,18 +1571,17 @@ namespace Legion {
           rez.serialize(done);
         }
         runtime->send_slice_collective_allreduce_response(source, rez);
-      }
-      else
+      } else
         Runtime::trigger_event(done);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_collective_allreduce_response(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      uint64_t *target;
+      uint64_t* target;
       derez.deserialize(target);
       derez.deserialize(*target);
       RtUserEvent done;
@@ -1610,13 +1591,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_concurrent_allreduce_request(
-                                     Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      IndexTask *owner;
+      IndexTask* owner;
       derez.deserialize(owner);
-      SliceTask *slice;
+      SliceTask* slice;
       derez.deserialize(slice);
       Color color;
       derez.deserialize(color);
@@ -1628,17 +1609,17 @@ namespace Legion {
       derez.deserialize(variant);
       bool poisoned;
       derez.deserialize<bool>(poisoned);
-      owner->concurrent_allreduce(color, slice, source, total_points,
-                                  lamport_clock, variant, poisoned);
+      owner->concurrent_allreduce(
+          color, slice, source, total_points, lamport_clock, variant, poisoned);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_concurrent_allreduce_response(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      SliceTask *slice;
+      SliceTask* slice;
       derez.deserialize(slice);
       Color color;
       derez.deserialize(color);
@@ -1650,21 +1631,21 @@ namespace Legion {
       derez.deserialize(vid);
       bool poisoned;
       derez.deserialize<bool>(poisoned);
-      slice->finish_concurrent_allreduce(color, lamport_clock, poisoned, 
-                                         vid, barrier);
+      slice->finish_concurrent_allreduce(
+          color, lamport_clock, poisoned, vid, barrier);
     }
 
     //--------------------------------------------------------------------------
     void SliceTask::forward_completion_effects(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<PointTask*>::const_iterator it =
-            points.begin(); it != points.end(); it++)
+      for (std::vector<PointTask*>::const_iterator it = points.begin();
+           it != points.end(); it++)
         (*it)->forward_completion_effects(index_owner);
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::pack_remote_complete(Serializer &rez, ApEvent slice_effects)
+    void SliceTask::pack_remote_complete(Serializer& rez, ApEvent slice_effects)
     //--------------------------------------------------------------------------
     {
       rez.serialize(index_owner);
@@ -1680,22 +1661,22 @@ namespace Legion {
           assert(reduction_instance == nullptr);
           // Might have no temporary futures if this task was predicated
           // and the predicate resolved to false
-          assert((temporary_futures.size() == points.size()) || 
+          assert(
+              (temporary_futures.size() == points.size()) ||
               temporary_futures.empty());
           assert(reduction_fold_effects.empty());
 #endif
           rez.serialize<size_t>(temporary_futures.size());
-          for (std::map<DomainPoint,
-                std::pair<FutureInstance*,ApEvent> >::const_iterator it =
-               temporary_futures.begin(); it != temporary_futures.end(); it++)
+          for (std::map<DomainPoint, std::pair<FutureInstance*, ApEvent> >::
+                   const_iterator it = temporary_futures.begin();
+               it != temporary_futures.end(); it++)
           {
             rez.serialize(it->first);
-            if (!it->second.first->pack_instance(rez, it->second.second,
-                                                true/*pack ownership*/))
+            if (!it->second.first->pack_instance(
+                    rez, it->second.second, true /*pack ownership*/))
               rez.serialize(it->second.second);
           }
-        }
-        else
+        } else
         {
           if (serdez_redop_fns != nullptr)
           {
@@ -1707,14 +1688,14 @@ namespace Legion {
             rez.serialize(serdez_redop_state_size);
             if (serdez_redop_state_size > 0)
               rez.serialize(serdez_redop_state, serdez_redop_state_size);
-          }
-          else
+          } else
           {
 #ifdef DEBUG_LEGION
             // We might not have a reduction instance if this task was
             // predicated and ended up predicating false
             assert((reduction_instance != nullptr) || false_guard.exists());
-            assert((reduction_instance != nullptr) == 
+            assert(
+                (reduction_instance != nullptr) ==
                 (reduction_instance_point.get_dim() > 0));
 #endif
             rez.serialize(reduction_instance_point);
@@ -1723,10 +1704,11 @@ namespace Legion {
               // reduction_instance_precondition so we can just
               // overwrite it without including it in the merger
               reduction_instance_precondition =
-                Runtime::merge_events(nullptr, reduction_fold_effects);
+                  Runtime::merge_events(nullptr, reduction_fold_effects);
             if ((reduction_instance != nullptr) &&
-                !reduction_instance.load()->pack_instance(rez, 
-                  reduction_instance_precondition, true/*pack ownership*/))
+                !reduction_instance.load()->pack_instance(
+                    rez, reduction_instance_precondition,
+                    true /*pack ownership*/))
               rez.serialize(reduction_instance_precondition);
           }
         }
@@ -1734,15 +1716,14 @@ namespace Legion {
         {
           rez.serialize(reduction_metasize);
           rez.serialize(reduction_metadata, reduction_metasize);
-        }
-        else
+        } else
           rez.serialize<size_t>(0);
       }
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::pack_remote_commit(Serializer &rez, 
-                                       RtEvent applied_condition)
+    void SliceTask::pack_remote_commit(
+        Serializer& rez, RtEvent applied_condition)
     //--------------------------------------------------------------------------
     {
       rez.serialize(index_owner);
@@ -1754,7 +1735,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void SliceTask::handle_slice_return(Deserializer &derez)
+    /*static*/ void SliceTask::handle_slice_return(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1764,29 +1745,30 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::receive_resources(uint64_t return_index,
-              std::map<LogicalRegion,unsigned> &created_regs,
-              std::vector<DeletedRegion> &deleted_regs,
-              std::set<std::pair<FieldSpace,FieldID> > &created_fids,
-              std::vector<DeletedField> &deleted_fids,
-              std::map<FieldSpace,unsigned> &created_fs,
-              std::map<FieldSpace,std::set<LogicalRegion> > &latent_fs,
-              std::vector<DeletedFieldSpace> &deleted_fs,
-              std::map<IndexSpace,unsigned> &created_is,
-              std::vector<DeletedIndexSpace> &deleted_is,
-              std::map<IndexPartition,unsigned> &created_partitions,
-              std::vector<DeletedPartition> &deleted_partitions,
-              std::set<RtEvent> &preconditions)
+    void SliceTask::receive_resources(
+        uint64_t return_index, std::map<LogicalRegion, unsigned>& created_regs,
+        std::vector<DeletedRegion>& deleted_regs,
+        std::set<std::pair<FieldSpace, FieldID> >& created_fids,
+        std::vector<DeletedField>& deleted_fids,
+        std::map<FieldSpace, unsigned>& created_fs,
+        std::map<FieldSpace, std::set<LogicalRegion> >& latent_fs,
+        std::vector<DeletedFieldSpace>& deleted_fs,
+        std::map<IndexSpace, unsigned>& created_is,
+        std::vector<DeletedIndexSpace>& deleted_is,
+        std::map<IndexPartition, unsigned>& created_partitions,
+        std::vector<DeletedPartition>& deleted_partitions,
+        std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
-      merge_received_resources(created_regs, deleted_regs, created_fids, 
-          deleted_fids, created_fs, latent_fs, deleted_fs, created_is,
-          deleted_is, created_partitions, deleted_partitions);
+      merge_received_resources(
+          created_regs, deleted_regs, created_fids, deleted_fids, created_fs,
+          latent_fs, deleted_fs, created_is, deleted_is, created_partitions,
+          deleted_partitions);
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::expand_replay_slices(std::list<SliceTask*> &slices)
+    void SliceTask::expand_replay_slices(std::list<SliceTask*>& slices)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1797,10 +1779,11 @@ namespace Legion {
       // to move it remotely as part of the replay
       while (points.size() > 1)
       {
-        PointTask *point = points.back();
+        PointTask* point = points.back();
         points.pop_back();
-        SliceTask *new_owner = clone_as_slice_task(internal_space,
-                current_proc, false/*recurse*/, false/*stealable*/);
+        SliceTask* new_owner = clone_as_slice_task(
+            internal_space, current_proc, false /*recurse*/,
+            false /*stealable*/);
         point->slice_owner = new_owner;
         new_owner->points.push_back(point);
         new_owner->num_unmapped_points = 1;
@@ -1808,8 +1791,8 @@ namespace Legion {
         new_owner->num_uncommitted_points = 1;
         if (concurrent_task)
         {
-          std::map<Color,ConcurrentGroup>::iterator finder =
-            new_owner->concurrent_groups.find(point->concurrent_color);
+          std::map<Color, ConcurrentGroup>::iterator finder =
+              new_owner->concurrent_groups.find(point->concurrent_color);
 #ifdef DEBUG_LEGION
           assert(finder != new_owner->concurrent_groups.end());
 #endif
@@ -1824,8 +1807,8 @@ namespace Legion {
       num_uncommitted_points = points.size();
       if (concurrent_task)
       {
-        std::map<Color,ConcurrentGroup>::iterator finder =
-          concurrent_groups.find(points.back()->concurrent_color);
+        std::map<Color, ConcurrentGroup>::iterator finder =
+            concurrent_groups.find(points.back()->concurrent_color);
 #ifdef DEBUG_LEGION
         assert(finder != concurrent_groups.end());
 #endif
@@ -1850,14 +1833,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent SliceTask::find_intra_space_dependence(const DomainPoint &point)
+    RtEvent SliceTask::find_intra_space_dependence(const DomainPoint& point)
     //--------------------------------------------------------------------------
     {
       if (is_remote())
       {
         AutoLock o_lock(op_lock);
-        std::map<DomainPoint,RtEvent>::const_iterator finder = 
-          point_mapped_events.find(point);
+        std::map<DomainPoint, RtEvent>::const_iterator finder =
+            point_mapped_events.find(point);
         // If we've already got it then we're done
         if (finder != point_mapped_events.end())
           return finder->second;
@@ -1893,8 +1876,7 @@ namespace Legion {
         // Save this is for ourselves
         point_mapped_events[point] = temp_event;
         return temp_event;
-      }
-      else
+      } else
         return index_owner->find_intra_space_dependence(point);
     }
 
@@ -1909,7 +1891,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool SliceTask::find_shard_participants(std::vector<ShardID> &shards)
+    bool SliceTask::find_shard_participants(std::vector<ShardID>& shards)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1919,36 +1901,39 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent SliceTask::perform_collective_versioning_analysis(unsigned index,
-        LogicalRegion handle, EqSetTracker *tracker, const FieldMask &mask,
-        unsigned parent_req_index)
+    RtEvent SliceTask::perform_collective_versioning_analysis(
+        unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+        const FieldMask& mask, unsigned parent_req_index)
     //--------------------------------------------------------------------------
     {
       if (is_remote())
-        return MultiTask::rendezvous_collective_versioning_analysis(index,
-            handle, tracker, runtime->address_space, mask, parent_req_index);
+        return MultiTask::rendezvous_collective_versioning_analysis(
+            index, handle, tracker, runtime->address_space, mask,
+            parent_req_index);
       else
-        return index_owner->rendezvous_collective_versioning_analysis(index,
-            handle, tracker, runtime->address_space, mask, parent_req_index);
+        return index_owner->rendezvous_collective_versioning_analysis(
+            index, handle, tracker, runtime->address_space, mask,
+            parent_req_index);
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::perform_replicate_collective_versioning(unsigned index,
-        unsigned parent_req_index,
-        LegionMap<LogicalRegion,RegionVersioning> &to_perform)
+    void SliceTask::perform_replicate_collective_versioning(
+        unsigned index, unsigned parent_req_index,
+        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
       if (is_remote())
-        MultiTask::rendezvous_collective_versioning_analysis(index,
-            parent_req_index, to_perform);
+        MultiTask::rendezvous_collective_versioning_analysis(
+            index, parent_req_index, to_perform);
       else
-        index_owner->rendezvous_collective_versioning_analysis(index,
-            parent_req_index, to_perform);
+        index_owner->rendezvous_collective_versioning_analysis(
+            index, parent_req_index, to_perform);
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::convert_replicate_collective_views(const RendezvousKey &key,
-                       std::map<LogicalRegion,CollectiveRendezvous> &rendezvous)
+    void SliceTask::convert_replicate_collective_views(
+        const RendezvousKey& key,
+        std::map<LogicalRegion, CollectiveRendezvous>& rendezvous)
     //--------------------------------------------------------------------------
     {
       if (is_remote())
@@ -1958,9 +1943,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::finalize_collective_versioning_analysis(unsigned index,
-                          unsigned parent_req_index,
-                          LegionMap<LogicalRegion,RegionVersioning> &to_perform)
+    void SliceTask::finalize_collective_versioning_analysis(
+        unsigned index, unsigned parent_req_index,
+        LegionMap<LogicalRegion, RegionVersioning>& to_perform)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1973,8 +1958,9 @@ namespace Legion {
         rez.serialize(index);
         rez.serialize<size_t>(points.size());
         rez.serialize<size_t>(to_perform.size());
-        for (LegionMap<LogicalRegion,RegionVersioning>::const_iterator pit =
-              to_perform.begin(); pit != to_perform.end(); pit++)
+        for (LegionMap<LogicalRegion, RegionVersioning>::const_iterator pit =
+                 to_perform.begin();
+             pit != to_perform.end(); pit++)
         {
           rez.serialize(pit->first);
 #ifdef DEBUG_LEGION
@@ -1982,9 +1968,9 @@ namespace Legion {
 #endif
           rez.serialize(pit->second.ready_event);
           rez.serialize<size_t>(pit->second.trackers.size());
-          for (LegionMap<std::pair<AddressSpaceID,EqSetTracker*>,FieldMask>::
-                const_iterator it = pit->second.trackers.begin(); it != 
-                pit->second.trackers.end(); it++)
+          for (LegionMap<std::pair<AddressSpaceID, EqSetTracker*>, FieldMask>::
+                   const_iterator it = pit->second.trackers.begin();
+               it != pit->second.trackers.end(); it++)
           {
             rez.serialize(it->first.first);
             rez.serialize(it->first.second);
@@ -1999,36 +1985,37 @@ namespace Legion {
           const RtUserEvent done_event = Runtime::create_rt_user_event();
           rez.serialize(done_event);
           AutoLock o_lock(op_lock);
-          commit_preconditions.insert(done_event);  
+          commit_preconditions.insert(done_event);
         }
       }
       runtime->send_slice_remote_versioning_rendezvous(orig_proc, rez);
     }
 
     //--------------------------------------------------------------------------
-    RtEvent SliceTask::convert_collective_views(unsigned requirement_index,
-                       unsigned analysis_index, LogicalRegion region,
-                       const InstanceSet &targets, InnerContext *physical_ctx,
-                       CollectiveMapping *&analysis_mapping, bool &first_local,
-                       LegionVector<FieldMaskSet<InstanceView> > &target_views,
-                       std::map<InstanceView*,size_t> &collective_arrivals)
+    RtEvent SliceTask::convert_collective_views(
+        unsigned requirement_index, unsigned analysis_index,
+        LogicalRegion region, const InstanceSet& targets,
+        InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
+        bool& first_local,
+        LegionVector<FieldMaskSet<InstanceView> >& target_views,
+        std::map<InstanceView*, size_t>& collective_arrivals)
     //--------------------------------------------------------------------------
     {
       if (is_remote())
-        return MultiTask::convert_collective_views(requirement_index,
-            analysis_index, region, targets, physical_ctx, analysis_mapping,
-            first_local, target_views, collective_arrivals);
+        return MultiTask::convert_collective_views(
+            requirement_index, analysis_index, region, targets, physical_ctx,
+            analysis_mapping, first_local, target_views, collective_arrivals);
       else
-        return index_owner->convert_collective_views(requirement_index,
-            analysis_index, region, targets, physical_ctx, analysis_mapping,
-            first_local, target_views, collective_arrivals);
+        return index_owner->convert_collective_views(
+            requirement_index, analysis_index, region, targets, physical_ctx,
+            analysis_mapping, first_local, target_views, collective_arrivals);
     }
 
     //--------------------------------------------------------------------------
-    void SliceTask::rendezvous_collective_mapping(unsigned requirement_index, 
-                 unsigned analysis_index, LogicalRegion region,
-                 RendezvousResult *result, AddressSpaceID source,
-                 const LegionVector<std::pair<DistributedID,FieldMask> > &insts)
+    void SliceTask::rendezvous_collective_mapping(
+        unsigned requirement_index, unsigned analysis_index,
+        LogicalRegion region, RendezvousResult* result, AddressSpaceID source,
+        const LegionVector<std::pair<DistributedID, FieldMask> >& insts)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2045,8 +2032,9 @@ namespace Legion {
         rez.serialize(region);
         rez.serialize(result);
         rez.serialize<size_t>(insts.size());
-        for (LegionVector<std::pair<DistributedID,FieldMask> >::const_iterator
-              it = insts.begin(); it != insts.end(); it++)
+        for (LegionVector<std::pair<DistributedID, FieldMask> >::const_iterator
+                 it = insts.begin();
+             it != insts.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
@@ -2057,47 +2045,47 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_collective_rendezvous(
-                   Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      IndexTask *index_owner;
+      IndexTask* index_owner;
       derez.deserialize(index_owner);
       unsigned requirement_index, analysis_index;
       derez.deserialize(requirement_index);
       derez.deserialize(analysis_index);
       LogicalRegion region;
       derez.deserialize(region);
-      RendezvousResult *result;
+      RendezvousResult* result;
       derez.deserialize(result);
       size_t num_insts;
       derez.deserialize(num_insts);
-      LegionVector<std::pair<DistributedID,FieldMask> > instances(num_insts);
+      LegionVector<std::pair<DistributedID, FieldMask> > instances(num_insts);
       for (unsigned idx = 0; idx < num_insts; idx++)
       {
         derez.deserialize(instances[idx].first);
         derez.deserialize(instances[idx].second);
       }
 
-      index_owner->rendezvous_collective_mapping(requirement_index,
-          analysis_index, region, result, source, instances);
+      index_owner->rendezvous_collective_mapping(
+          requirement_index, analysis_index, region, result, source, instances);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void SliceTask::handle_collective_versioning_rendezvous(
-                                          Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      IndexTask *index_owner;
+      IndexTask* index_owner;
       derez.deserialize(index_owner);
       unsigned index;
       derez.deserialize(index);
       size_t total_points;
       derez.deserialize(total_points);
-      index_owner->unpack_slice_collective_versioning_rendezvous(derez, index, 
-                                                                 total_points);
+      index_owner->unpack_slice_collective_versioning_rendezvous(
+          derez, index, total_points);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

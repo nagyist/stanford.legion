@@ -34,12 +34,12 @@
 namespace Legion {
   namespace Internal {
 
-    ///////////////////////////////////////////////////////////// 
-    // Remote Op 
+    /////////////////////////////////////////////////////////////
+    // Remote Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteOp::RemoteOp(Operation *ptr, AddressSpaceID src)
+    RemoteOp::RemoteOp(Operation* ptr, AddressSpaceID src)
       : Operation(), remote_ptr(ptr), source(src), mapper(nullptr),
         profiling_reports(0)
     //--------------------------------------------------------------------------
@@ -63,11 +63,10 @@ namespace Legion {
           rez.serialize(profiling_reports.load());
           rez.serialize(profiling_response);
           runtime->send_remote_op_profiling_count_update(source, rez);
-        }
-        else
+        } else
           Runtime::trigger_event(profiling_response);
       }
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
@@ -77,12 +76,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DeferRemoteOpDeletionArgs args(this);
-      runtime->issue_runtime_meta_task(args, 
-          LG_THROUGHPUT_WORK_PRIORITY, precondition);
+      runtime->issue_runtime_meta_task(
+          args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
     }
 
     //--------------------------------------------------------------------------
-    void RemoteOp::pack_remote_base(Serializer &rez) const
+    void RemoteOp::pack_remote_base(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -93,7 +92,7 @@ namespace Legion {
       rez.serialize(source);
       rez.serialize(unique_op_id);
       parent_ctx->pack_inner_context(rez);
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         provenance->serialize(rez);
       else
@@ -102,7 +101,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteOp::unpack_remote_base(Deserializer &derez)
+    void RemoteOp::unpack_remote_base(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       derez.deserialize(unique_op_id);
@@ -112,8 +111,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteOp::pack_profiling_requests(Serializer &rez,
-                                           std::set<RtEvent> &applied) const
+    void RemoteOp::pack_profiling_requests(
+        Serializer& rez, std::set<RtEvent>& applied) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(copy_fill_priority);
@@ -131,7 +130,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteOp::unpack_profiling_requests(Deserializer &derez)
+    void RemoteOp::unpack_profiling_requests(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       derez.deserialize(copy_fill_priority);
@@ -167,9 +166,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteOp::report_uninitialized_usage(const unsigned index,
-                                              const char *field_string,
-                                              RtUserEvent reported)
+    void RemoteOp::report_uninitialized_usage(
+        const unsigned index, const char* field_string, RtUserEvent reported)
     //--------------------------------------------------------------------------
     {
       if (source == runtime->address_space)
@@ -178,7 +176,7 @@ namespace Legion {
         remote_ptr->report_uninitialized_usage(index, field_string, reported);
         return;
       }
-      // Ship this back to the owner node to report it there 
+      // Ship this back to the owner node to report it there
       Serializer rez;
       {
         RezCheck z(rez);
@@ -195,8 +193,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    std::map<PhysicalManager*,unsigned>*
-                                      RemoteOp::get_acquired_instances_ref(void)
+    std::map<PhysicalManager*, unsigned>* RemoteOp::get_acquired_instances_ref(
+        void)
     //--------------------------------------------------------------------------
     {
       // We shouldn't actually be acquiring anything here so we just
@@ -205,24 +203,27 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    int RemoteOp::add_copy_profiling_request(const PhysicalTraceInfo &info,
-                Realm::ProfilingRequestSet &requests, bool fill, unsigned count)
+    int RemoteOp::add_copy_profiling_request(
+        const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
+        bool fill, unsigned count)
     //--------------------------------------------------------------------------
     {
       // Nothing to do if we don't have any profiling requests
       if (profiling_requests.empty())
         return copy_fill_priority;
-      OpProfilingResponse response(remote_ptr, info.index, info.dst_index,fill);
+      OpProfilingResponse response(
+          remote_ptr, info.index, info.dst_index, fill);
       // Send the result back to the owner node
-      Realm::ProfilingRequest &request = requests.add_request( 
-          profiling_target, LG_LEGION_PROFILING_ID, 
-          &response, sizeof(response), profiling_priority);
+      Realm::ProfilingRequest& request = requests.add_request(
+          profiling_target, LG_LEGION_PROFILING_ID, &response, sizeof(response),
+          profiling_priority);
       bool has_timeline = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it = 
-            profiling_requests.begin(); it != profiling_requests.end(); it++)
+      for (std::vector<ProfilingMeasurementID>::const_iterator it =
+               profiling_requests.begin();
+           it != profiling_requests.end(); it++)
       {
-        const Realm::ProfilingMeasurementID measurement = 
-          (Realm::ProfilingMeasurementID)*it;
+        const Realm::ProfilingMeasurementID measurement =
+            (Realm::ProfilingMeasurementID)*it;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_TIMELINE)
           has_timeline = true;
@@ -251,14 +252,13 @@ namespace Legion {
         }
         runtime->send_remote_op_completion_effect(source, rez);
         applied.wait();
-      }
-      else
+      } else
         remote_ptr->record_completion_effect(effect);
     }
 
     //--------------------------------------------------------------------------
-    void RemoteOp::record_completion_effect(ApEvent effect,
-                                              std::set<RtEvent> &applied_events)
+    void RemoteOp::record_completion_effect(
+        ApEvent effect, std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
       if (source != runtime->address_space)
@@ -273,13 +273,12 @@ namespace Legion {
         }
         runtime->send_remote_op_completion_effect(source, rez);
         applied_events.insert(applied);
-      }
-      else
+      } else
         remote_ptr->record_completion_effect(effect, applied_events);
     }
 
     //--------------------------------------------------------------------------
-    void RemoteOp::record_completion_effects(const std::set<ApEvent> &effects)
+    void RemoteOp::record_completion_effects(const std::set<ApEvent>& effects)
     //--------------------------------------------------------------------------
     {
       // should never be called without map applied events
@@ -288,7 +287,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void RemoteOp::record_completion_effects(
-                                            const std::vector<ApEvent> &effects)
+        const std::vector<ApEvent>& effects)
     //--------------------------------------------------------------------------
     {
       // should never be called without map applied events
@@ -296,25 +295,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteOp::handle_deferred_deletion(const void *args)
+    /*static*/ void RemoteOp::handle_deferred_deletion(const void* args)
     //--------------------------------------------------------------------------
     {
-      const DeferRemoteOpDeletionArgs *dargs = 
-        (const DeferRemoteOpDeletionArgs*)args;
+      const DeferRemoteOpDeletionArgs* dargs =
+          (const DeferRemoteOpDeletionArgs*)args;
       delete dargs->op;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ RemoteOp* RemoteOp::unpack_remote_operation(Deserializer &derez)
+    /*static*/ RemoteOp* RemoteOp::unpack_remote_operation(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       OpKind kind;
       derez.deserialize(kind);
-      Operation *remote_ptr;
+      Operation* remote_ptr;
       derez.deserialize(remote_ptr);
       AddressSpaceID source;
       derez.deserialize(source);
-      RemoteOp *result = nullptr;
+      RemoteOp* result = nullptr;
       switch (kind)
       {
         case TASK_OP_KIND:
@@ -379,10 +378,10 @@ namespace Legion {
           }
         case TRACE_BEGIN_OP_KIND:
         case TRACE_RECURRENT_OP_KIND:
-	case TRACE_COMPLETE_OP_KIND:
+        case TRACE_COMPLETE_OP_KIND:
           {
             result = new RemoteTraceOp(remote_ptr, source, kind);
-	    break;
+            break;
           }
         default:
           std::abort();
@@ -394,11 +393,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteOp::handle_report_uninitialized(Deserializer &derez)
+    /*static*/ void RemoteOp::handle_report_uninitialized(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      Operation *op;
+      Operation* op;
       derez.deserialize(op);
       RtUserEvent reported;
       derez.deserialize(reported);
@@ -406,17 +405,17 @@ namespace Legion {
       derez.deserialize(index);
       size_t length;
       derez.deserialize(length);
-      const char *field_string = (const char*)derez.get_current_pointer();
+      const char* field_string = (const char*)derez.get_current_pointer();
       derez.advance_pointer(length);
       op->report_uninitialized_usage(index, field_string, reported);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteOp::handle_report_profiling_count_update(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-      Operation *op;
+      Operation* op;
       derez.deserialize(op);
       int update_count;
       derez.deserialize(update_count);
@@ -430,11 +429,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteOp::handle_completion_effect(Deserializer &derez)
+    /*static*/ void RemoteOp::handle_completion_effect(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      Operation *op;
+      Operation* op;
       derez.deserialize(op);
       ApEvent effect;
       derez.deserialize(effect);
@@ -449,5 +448,5 @@ namespace Legion {
         Runtime::trigger_event(done);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

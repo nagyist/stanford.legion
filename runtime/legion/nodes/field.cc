@@ -24,28 +24,29 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Field Space Node 
+    // Field Space Node
     /////////////////////////////////////////////////////////////
-    
+
     //--------------------------------------------------------------------------
-    FieldSpaceNode::FieldSpaceNode(FieldSpace sp,
-                   RtEvent init, CollectiveMapping *map, Provenance *prov)
-      : DistributedCollectable(sp.did,
-          false/*register with runtime*/, map),
-        handle(sp), provenance(prov), initialized(init), 
-        allocation_state((map != nullptr) ? FIELD_ALLOC_COLLECTIVE :
-            is_owner() ? FIELD_ALLOC_READ_ONLY : FIELD_ALLOC_INVALID), 
+    FieldSpaceNode::FieldSpaceNode(
+        FieldSpace sp, RtEvent init, CollectiveMapping* map, Provenance* prov)
+      : DistributedCollectable(sp.did, false /*register with runtime*/, map),
+        handle(sp), provenance(prov), initialized(init),
+        allocation_state(
+            (map != nullptr) ? FIELD_ALLOC_COLLECTIVE :
+            is_owner()       ? FIELD_ALLOC_READ_ONLY :
+                               FIELD_ALLOC_INVALID),
         outstanding_allocators(0), outstanding_invalidations(0)
     //--------------------------------------------------------------------------
     {
       if (is_owner())
       {
         unallocated_indexes = FieldMask(LEGION_FIELD_MASK_FIELD_ALL_ONES);
-        local_index_infos.resize(runtime->max_local_fields, 
-            std::pair<size_t,CustomSerdezID>(0, 0));
+        local_index_infos.resize(
+            runtime->max_local_fields, std::pair<size_t, CustomSerdezID>(0, 0));
         if (collective_mapping != nullptr)
         {
-          const CollectiveMapping &mapping = *collective_mapping;
+          const CollectiveMapping& mapping = *collective_mapping;
           for (unsigned idx = 0; idx < mapping.size(); idx++)
           {
             const AddressSpaceID space = mapping[idx];
@@ -56,24 +57,23 @@ namespace Legion {
           if (remote_field_infos.empty())
             allocation_state = FIELD_ALLOC_READ_ONLY;
         }
-      }
-      else if (allocation_state == FIELD_ALLOC_COLLECTIVE)
+      } else if (allocation_state == FIELD_ALLOC_COLLECTIVE)
         unallocated_indexes = FieldMask(LEGION_FIELD_MASK_FIELD_ALL_ONES);
       if (provenance != nullptr)
         provenance->add_reference();
 #ifdef LEGION_GC
-      log_garbage.info("GC Field Space %lld %d %lld",
+      log_garbage.info(
+          "GC Field Space %lld %d %lld",
           LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space, handle.did);
 #endif
     }
 
     //--------------------------------------------------------------------------
-    FieldSpaceNode::FieldSpaceNode(FieldSpace sp,
-         RtEvent init, CollectiveMapping *map,
-         Provenance *prov, Deserializer &derez)
-      : DistributedCollectable(sp.did,
-          false/*register with runtime*/, map),
-        handle(sp), provenance(prov), initialized(init), 
+    FieldSpaceNode::FieldSpaceNode(
+        FieldSpace sp, RtEvent init, CollectiveMapping* map, Provenance* prov,
+        Deserializer& derez)
+      : DistributedCollectable(sp.did, false /*register with runtime*/, map),
+        handle(sp), provenance(prov), initialized(init),
         allocation_state(FIELD_ALLOC_INVALID), outstanding_allocators(0),
         outstanding_invalidations(0)
     //--------------------------------------------------------------------------
@@ -96,7 +96,8 @@ namespace Legion {
       if (provenance != nullptr)
         provenance->add_reference();
 #ifdef LEGION_GC
-      log_garbage.info("GC Field Space %lld %d %lld",
+      log_garbage.info(
+          "GC Field Space %lld %d %lld",
           LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space, handle.did);
 #endif
     }
@@ -106,14 +107,17 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Next we can delete our layouts
-      for (std::map<LEGION_FIELD_MASK_FIELD_TYPE,LegionList<LayoutDescription*,
-            LONG_BOUNDED_LIFETIME>>::iterator it =
-            layouts.begin(); it != layouts.end(); it++)
+      for (std::map<
+               LEGION_FIELD_MASK_FIELD_TYPE,
+               LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME>>::iterator
+               it = layouts.begin();
+           it != layouts.end(); it++)
       {
-        LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>
-          &descs = it->second;
-        for (LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>::iterator
-              it = descs.begin(); it != descs.end(); it++)
+        LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME>& descs =
+            it->second;
+        for (LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME>::iterator
+                 it = descs.begin();
+             it != descs.end(); it++)
         {
           if ((*it)->remove_reference())
             delete (*it);
@@ -129,15 +133,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldSpaceNode::FieldInfo::FieldInfo(void)
-      : field_size(0), idx(0), serdez_id(0), provenance(nullptr), 
+      : field_size(0), idx(0), serdez_id(0), provenance(nullptr),
         collective(false), local(false)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    FieldSpaceNode::FieldInfo::FieldInfo(size_t size, unsigned id, 
-                       CustomSerdezID sid, Provenance *prov, bool loc, bool col)
+    FieldSpaceNode::FieldInfo::FieldInfo(
+        size_t size, unsigned id, CustomSerdezID sid, Provenance* prov,
+        bool loc, bool col)
       : field_size(size), idx(id), serdez_id(sid), provenance(prov),
         collective(col), local(loc)
     //--------------------------------------------------------------------------
@@ -147,8 +151,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FieldSpaceNode::FieldInfo::FieldInfo(ApEvent ready, unsigned id,
-                       CustomSerdezID sid, Provenance *prov, bool loc, bool col)
+    FieldSpaceNode::FieldInfo::FieldInfo(
+        ApEvent ready, unsigned id, CustomSerdezID sid, Provenance* prov,
+        bool loc, bool col)
       : field_size(0), size_ready(ready), idx(id), serdez_id(sid),
         provenance(prov), collective(col), local(loc)
     //--------------------------------------------------------------------------
@@ -158,7 +163,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FieldSpaceNode::FieldInfo::FieldInfo(const FieldInfo &rhs)
+    FieldSpaceNode::FieldInfo::FieldInfo(const FieldInfo& rhs)
       : field_size(rhs.field_size), size_ready(rhs.size_ready), idx(rhs.idx),
         serdez_id(rhs.serdez_id), provenance(rhs.provenance),
         collective(rhs.collective), local(rhs.local)
@@ -169,7 +174,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FieldSpaceNode::FieldInfo::FieldInfo(FieldInfo &&rhs)
+    FieldSpaceNode::FieldInfo::FieldInfo(FieldInfo&& rhs)
       : field_size(rhs.field_size), size_ready(rhs.size_ready), idx(rhs.idx),
         serdez_id(rhs.serdez_id), provenance(rhs.provenance),
         collective(rhs.collective), local(rhs.local)
@@ -188,7 +193,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldSpaceNode::FieldInfo& FieldSpaceNode::FieldInfo::operator=(
-                                                           const FieldInfo &rhs)
+        const FieldInfo& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -207,7 +212,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldSpaceNode::FieldInfo& FieldSpaceNode::FieldInfo::operator=(
-                                                                FieldInfo &&rhs)
+        FieldInfo&& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -224,7 +229,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::FieldInfo::serialize(Serializer &rez) const
+    void FieldSpaceNode::FieldInfo::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(field_size);
@@ -239,7 +244,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::FieldInfo::deserialize(Deserializer &derez)
+    void FieldSpaceNode::FieldInfo::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -269,20 +274,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::attach_semantic_information(SemanticTag tag,
-                                                     AddressSpaceID source,
-                                                     const void *buffer, 
-                                                     size_t size, 
-                                                     bool is_mutable,
-                                                     bool local_only)
+    void FieldSpaceNode::attach_semantic_information(
+        SemanticTag tag, AddressSpaceID source, const void* buffer, size_t size,
+        bool is_mutable, bool local_only)
     //--------------------------------------------------------------------------
     {
       bool added = true;
       {
-        AutoLock n_lock(node_lock); 
+        AutoLock n_lock(node_lock);
         // See if it already exists
-        LegionMap<SemanticTag,SemanticInfo>::iterator finder = 
-          semantic_info.find(tag);
+        LegionMap<SemanticTag, SemanticInfo>::iterator finder =
+            semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
           // First check to see if it is valid
@@ -292,52 +294,52 @@ namespace Legion {
             {
               // Check to make sure that the bits are the same
               if (size != finder->second.buffer.get_size())
-                REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
-                  "Inconsistent Semantic Tag value "
-                              "for tag %ld with different sizes of %zd"
-                              " and %zd for index tree node", 
-                              tag, size, finder->second.buffer.get_size())
-              // Otherwise do a bitwise comparison
-              {
-                const char *orig = (const char*)finder->second.buffer.get_buffer();
-                const char *next = (const char*)buffer;
-                for (unsigned idx = 0; idx < size; idx++)
-                {
-                  char diff = orig[idx] ^ next[idx];
-                  if (diff)
-                    REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
+                REPORT_LEGION_ERROR(
+                    ERROR_INCONSISTENT_SEMANTIC_TAG,
                     "Inconsistent Semantic Tag value "
-                                  "for tag %ld with different values at"
-                                  "byte %d for index tree node, %x != %x", 
-                                  tag, idx, orig[idx], next[idx])
+                    "for tag %ld with different sizes of %zd"
+                    " and %zd for index tree node",
+                    tag, size, finder->second.buffer.get_size())
+                // Otherwise do a bitwise comparison
+                {
+                  const char* orig =
+                      (const char*)finder->second.buffer.get_buffer();
+                  const char* next = (const char*)buffer;
+                  for (unsigned idx = 0; idx < size; idx++)
+                  {
+                    char diff = orig[idx] ^ next[idx];
+                    if (diff)
+                      REPORT_LEGION_ERROR(
+                          ERROR_INCONSISTENT_SEMANTIC_TAG,
+                          "Inconsistent Semantic Tag value "
+                          "for tag %ld with different values at"
+                          "byte %d for index tree node, %x != %x",
+                          tag, idx, orig[idx], next[idx])
+                  }
                 }
-              }
               added = false;
-            }
-            else
+            } else
             {
-              // Mutable so we can overwrite 
+              // Mutable so we can overwrite
               finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
-          }
-          else
+          } else
           {
             finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
-        }
-        else
+        } else
           semantic_info[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (added)
       {
         AddressSpaceID owner_space = get_owner_space();
-        // If we are not the owner and the message 
-        // didn't come from the owner, then send it 
+        // If we are not the owner and the message
+        // didn't come from the owner, then send it
         if ((owner_space != runtime->address_space) &&
             (source != owner_space) && !local_only)
         {
@@ -350,21 +352,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::attach_semantic_information(FieldID fid,
-                                                     SemanticTag tag,
-                                                     AddressSpaceID source,
-                                                     const void *buffer,
-                                                     size_t size, 
-                                                     bool is_mutable,
-                                                     bool local_only)
+    void FieldSpaceNode::attach_semantic_information(
+        FieldID fid, SemanticTag tag, AddressSpaceID source, const void* buffer,
+        size_t size, bool is_mutable, bool local_only)
     //--------------------------------------------------------------------------
     {
       bool added = true;
       {
-        AutoLock n_lock(node_lock); 
+        AutoLock n_lock(node_lock);
         // See if it already exists
-        LegionMap<std::pair<FieldID,SemanticTag>,SemanticInfo>::iterator finder
-          = semantic_field_info.find(std::pair<FieldID,SemanticTag>(fid,tag));
+        LegionMap<std::pair<FieldID, SemanticTag>, SemanticInfo>::iterator
+            finder = semantic_field_info.find(
+                std::pair<FieldID, SemanticTag>(fid, tag));
         if (finder != semantic_field_info.end())
         {
           // First check to see if it is valid
@@ -374,65 +373,66 @@ namespace Legion {
             {
               // Check to make sure that the bits are the same
               if (size != finder->second.buffer.get_size())
-                REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
-                              "Inconsistent Semantic Tag value "
-                              "for tag %ld with different sizes of %zd"
-                              " and %zd for index tree node", 
-                              tag, size, finder->second.buffer.get_size())
-              // Otherwise do a bitwise comparison
-              {
-                const char *orig = (const char*)finder->second.buffer.get_buffer();
-                const char *next = (const char*)buffer;
-                for (unsigned idx = 0; idx < size; idx++)
+                REPORT_LEGION_ERROR(
+                    ERROR_INCONSISTENT_SEMANTIC_TAG,
+                    "Inconsistent Semantic Tag value "
+                    "for tag %ld with different sizes of %zd"
+                    " and %zd for index tree node",
+                    tag, size, finder->second.buffer.get_size())
+                // Otherwise do a bitwise comparison
                 {
-                  char diff = orig[idx] ^ next[idx];
-                  if (diff)
-                    REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
-                                        "Inconsistent Semantic Tag value "
-                                  "for tag %ld with different values at"
-                                  "byte %d for index tree node, %x != %x", 
-                                  tag, idx, orig[idx], next[idx])
+                  const char* orig =
+                      (const char*)finder->second.buffer.get_buffer();
+                  const char* next = (const char*)buffer;
+                  for (unsigned idx = 0; idx < size; idx++)
+                  {
+                    char diff = orig[idx] ^ next[idx];
+                    if (diff)
+                      REPORT_LEGION_ERROR(
+                          ERROR_INCONSISTENT_SEMANTIC_TAG,
+                          "Inconsistent Semantic Tag value "
+                          "for tag %ld with different values at"
+                          "byte %d for index tree node, %x != %x",
+                          tag, idx, orig[idx], next[idx])
+                  }
                 }
-              }
               added = false;
-            }
-            else
+            } else
             {
               // Mutable so we can overwrite
               finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
-          }
-          else
+          } else
           {
             finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
-        }
-        else
+        } else
         {
-          semantic_field_info[std::pair<FieldID,SemanticTag>(fid,tag)] = 
-            SemanticInfo(buffer, size, is_mutable);
+          semantic_field_info[std::pair<FieldID, SemanticTag>(fid, tag)] =
+              SemanticInfo(buffer, size, is_mutable);
         }
       }
       if (added)
       {
         AddressSpaceID owner_space = get_owner_space();
-        // If we are not the owner and the message 
-        // didn't come from the owner, then send it 
+        // If we are not the owner and the message
+        // didn't come from the owner, then send it
         if ((owner_space != runtime->address_space) &&
             (source != owner_space) && !local_only)
-          send_semantic_field_info(owner_space, fid, tag, 
-                                   buffer, size, is_mutable); 
+          send_semantic_field_info(
+              owner_space, fid, tag, buffer, size, is_mutable);
       }
     }
 
     //--------------------------------------------------------------------------
-    bool FieldSpaceNode::retrieve_semantic_information(SemanticTag tag,
-              const void *&result, size_t &size, bool can_fail, bool wait_until)
+    bool FieldSpaceNode::retrieve_semantic_information(
+        SemanticTag tag, const void*& result, size_t& size, bool can_fail,
+        bool wait_until)
     //--------------------------------------------------------------------------
     {
       RtEvent wait_on;
@@ -441,8 +441,8 @@ namespace Legion {
       const bool is_remote = (owner_space != runtime->address_space);
       {
         AutoLock n_lock(node_lock);
-        LegionMap<SemanticTag,SemanticInfo>::const_iterator finder = 
-          semantic_info.find(tag); 
+        LegionMap<SemanticTag, SemanticInfo>::const_iterator finder =
+            semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
           // Already have the data so we are done
@@ -451,22 +451,18 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             return true;
-          }
-          else if (is_remote)
+          } else if (is_remote)
           {
             if (can_fail)
             {
               // Have to make our own event
               request = Runtime::create_rt_user_event();
               wait_on = request;
-            }
-            else // can use the canonical event
-              wait_on = finder->second.ready_event; 
-          }
-          else if (wait_until) // local so use the canonical event
+            } else  // can use the canonical event
+              wait_on = finder->second.ready_event;
+          } else if (wait_until)  // local so use the canonical event
             wait_on = finder->second.ready_event;
-        }
-        else
+        } else
         {
           // Otherwise we make an event to wait on
           if (!can_fail && wait_until)
@@ -475,8 +471,7 @@ namespace Legion {
             request = Runtime::create_rt_user_event();
             semantic_info[tag] = SemanticInfo(request);
             wait_on = request;
-          }
-          else if (is_remote)
+          } else if (is_remote)
           {
             // Make an event just for us to use
             request = Runtime::create_rt_user_event();
@@ -490,11 +485,12 @@ namespace Legion {
         // Nothing to wait on so we have to do something
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
-                      "invalid semantic tag %ld for "
-                      "field space %llu", tag, handle.get_id())
-      }
-      else
+        REPORT_LEGION_ERROR(
+            ERROR_INCONSISTENT_SEMANTIC_TAG,
+            "invalid semantic tag %ld for "
+            "field space %llu",
+            tag, handle.get_id())
+      } else
       {
         // Send a request if necessary
         if (is_remote && request.exists())
@@ -513,16 +509,18 @@ namespace Legion {
         wait_on.wait();
       }
       // When we wake up, we should be able to find everything
-      AutoLock n_lock(node_lock,1,false/*exclusive*/); 
-      LegionMap<SemanticTag,SemanticInfo>::const_iterator finder = 
-        semantic_info.find(tag);
+      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      LegionMap<SemanticTag, SemanticInfo>::const_iterator finder =
+          semantic_info.find(tag);
       if (finder == semantic_info.end())
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(ERROR_INCONSISTENT_SEMANTIC_TAG,
-                            "invalid semantic tag %ld for "
-                            "field space %llu", tag, handle.get_id())
+        REPORT_LEGION_ERROR(
+            ERROR_INCONSISTENT_SEMANTIC_TAG,
+            "invalid semantic tag %ld for "
+            "field space %llu",
+            tag, handle.get_id())
       }
       result = finder->second.buffer.get_buffer();
       size = finder->second.buffer.get_size();
@@ -530,9 +528,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool FieldSpaceNode::retrieve_semantic_information(FieldID fid,
-                             SemanticTag tag, const void *&result, size_t &size,
-                             bool can_fail, bool wait_until)
+    bool FieldSpaceNode::retrieve_semantic_information(
+        FieldID fid, SemanticTag tag, const void*& result, size_t& size,
+        bool can_fail, bool wait_until)
     //--------------------------------------------------------------------------
     {
       RtEvent wait_on;
@@ -541,9 +539,9 @@ namespace Legion {
       const bool is_remote = (owner_space != runtime->address_space);
       {
         AutoLock n_lock(node_lock);
-        LegionMap<std::pair<FieldID,SemanticTag>,
-                  SemanticInfo>::const_iterator finder = 
-            semantic_field_info.find(std::pair<FieldID,SemanticTag>(fid,tag));
+        LegionMap<std::pair<FieldID, SemanticTag>, SemanticInfo>::const_iterator
+            finder = semantic_field_info.find(
+                std::pair<FieldID, SemanticTag>(fid, tag));
         if (finder != semantic_field_info.end())
         {
           // Already have the data so we are done
@@ -552,22 +550,18 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             return true;
-          }
-          else if (is_remote)
+          } else if (is_remote)
           {
             if (can_fail)
             {
               // Have to make our own event
               request = Runtime::create_rt_user_event();
               wait_on = request;
-            }
-            else // can use the canonical event
-              wait_on = finder->second.ready_event; 
-          }
-          else if (wait_until) // local so use the canonical event
+            } else  // can use the canonical event
+              wait_on = finder->second.ready_event;
+          } else if (wait_until)  // local so use the canonical event
             wait_on = finder->second.ready_event;
-        }
-        else
+        } else
         {
           // Otherwise we make an event to wait on
           if (!can_fail && wait_until)
@@ -576,8 +570,7 @@ namespace Legion {
             request = Runtime::create_rt_user_event();
             semantic_info[tag] = SemanticInfo(request);
             wait_on = request;
-          }
-          else if (is_remote)
+          } else if (is_remote)
           {
             // Make an event just for us to use
             request = Runtime::create_rt_user_event();
@@ -590,11 +583,12 @@ namespace Legion {
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(ERROR_INVALID_SEMANTIC_TAG,
-          "invalid semantic tag %ld for field %d "
-                      "of field space %llu", tag, fid, handle.get_id())
-      }
-      else
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_SEMANTIC_TAG,
+            "invalid semantic tag %ld for field %d "
+            "of field space %llu",
+            tag, fid, handle.get_id())
+      } else
       {
         // Send a request if necessary
         if (is_remote && request.exists())
@@ -614,17 +608,19 @@ namespace Legion {
         wait_on.wait();
       }
       // When we wake up, we should be able to find everything
-      AutoLock n_lock(node_lock,1,false/*exclusive*/); 
-      LegionMap<std::pair<FieldID,SemanticTag>,
-        SemanticInfo>::const_iterator finder = 
-          semantic_field_info.find(std::pair<FieldID,SemanticTag>(fid,tag));
+      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      LegionMap<std::pair<FieldID, SemanticTag>, SemanticInfo>::const_iterator
+          finder = semantic_field_info.find(
+              std::pair<FieldID, SemanticTag>(fid, tag));
       if (finder == semantic_field_info.end())
       {
         if (can_fail)
           return false;
-        REPORT_LEGION_ERROR(ERROR_INVALID_SEMANTIC_TAG,
-                            "invalid semantic tag %ld for field %d "
-                            "of field space %llu", tag, fid, handle.get_id())
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_SEMANTIC_TAG,
+            "invalid semantic tag %ld for field %d "
+            "of field space %llu",
+            tag, fid, handle.get_id())
       }
       result = finder->second.buffer.get_buffer();
       size = finder->second.buffer.get_size();
@@ -632,9 +628,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::send_semantic_info(AddressSpaceID target, 
-                 SemanticTag tag, const void *result, size_t size, 
-                 bool is_mutable, RtUserEvent ready)
+    void FieldSpaceNode::send_semantic_info(
+        AddressSpaceID target, SemanticTag tag, const void* result, size_t size,
+        bool is_mutable, RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
       Serializer rez;
@@ -651,9 +647,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::send_semantic_field_info(AddressSpaceID target,
-                  FieldID fid, SemanticTag tag, const void *result, 
-                  size_t size, bool is_mutable, RtUserEvent ready)
+    void FieldSpaceNode::send_semantic_field_info(
+        AddressSpaceID target, FieldID fid, SemanticTag tag, const void* result,
+        size_t size, bool is_mutable, RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
       Serializer rez;
@@ -671,22 +667,23 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::process_semantic_request(SemanticTag tag,
-       AddressSpaceID source, bool can_fail, bool wait_until, RtUserEvent ready)
+    void FieldSpaceNode::process_semantic_request(
+        SemanticTag tag, AddressSpaceID source, bool can_fail, bool wait_until,
+        RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(get_owner_space() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = nullptr;
+      void* result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
         AutoLock n_lock(node_lock);
         // See if we already have the data
-        LegionMap<SemanticTag,SemanticInfo>::iterator finder = 
-          semantic_info.find(tag);
+        LegionMap<SemanticTag, SemanticInfo>::iterator finder =
+            semantic_info.find(tag);
         if (finder != semantic_info.end())
         {
           if (finder->second.is_valid())
@@ -694,11 +691,9 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          }
-          else if (!can_fail && wait_until)
+          } else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        }
-        else if (!can_fail && wait_until)
+        } else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -714,33 +709,32 @@ namespace Legion {
         {
           // Defer this until the semantic condition is ready
           SemanticRequestArgs args(this, tag, source);
-          runtime->issue_runtime_meta_task(args, 
-              LG_LATENCY_WORK_PRIORITY, precondition);
+          runtime->issue_runtime_meta_task(
+              args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      }
-      else
+      } else
         send_semantic_info(source, tag, result, size, is_mutable, ready);
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::process_semantic_field_request(FieldID fid, 
-                               SemanticTag tag, AddressSpaceID source, 
-                               bool can_fail, bool wait_until,RtUserEvent ready)
+    void FieldSpaceNode::process_semantic_field_request(
+        FieldID fid, SemanticTag tag, AddressSpaceID source, bool can_fail,
+        bool wait_until, RtUserEvent ready)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(get_owner_space() == runtime->address_space);
 #endif
       RtEvent precondition;
-      void *result = nullptr;
+      void* result = nullptr;
       size_t size = 0;
       bool is_mutable = false;
       {
         AutoLock n_lock(node_lock);
         // See if we already have the data
-        std::pair<FieldID,SemanticTag> key(fid,tag);
-        LegionMap<std::pair<FieldID,SemanticTag>,SemanticInfo>::iterator
-          finder = semantic_field_info.find(key);
+        std::pair<FieldID, SemanticTag> key(fid, tag);
+        LegionMap<std::pair<FieldID, SemanticTag>, SemanticInfo>::iterator
+            finder = semantic_field_info.find(key);
         if (finder != semantic_field_info.end())
         {
           if (finder->second.is_valid())
@@ -748,11 +742,9 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          }
-          else if (!can_fail && wait_until)
+          } else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        }
-        else if (!can_fail && wait_until)
+        } else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -768,18 +760,17 @@ namespace Legion {
         {
           // Defer this until the semantic condition is ready
           SemanticFieldRequestArgs args(this, fid, tag, source);
-          runtime->issue_runtime_meta_task(args, 
-              LG_LATENCY_WORK_PRIORITY, precondition);
+          runtime->issue_runtime_meta_task(
+              args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      }
-      else
-        send_semantic_field_info(source, fid, tag, result, size, 
-                                 is_mutable, ready);
+      } else
+        send_semantic_field_info(
+            source, fid, tag, result, size, is_mutable, ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_semantic_request(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -793,13 +784,13 @@ namespace Legion {
       derez.deserialize(wait_until);
       RtUserEvent ready;
       derez.deserialize(ready);
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       node->process_semantic_request(tag, source, can_fail, wait_until, ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_field_semantic_request(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -815,14 +806,14 @@ namespace Legion {
       derez.deserialize(wait_until);
       RtUserEvent ready;
       derez.deserialize(ready);
-      FieldSpaceNode *node = runtime->get_node(handle);
-      node->process_semantic_field_request(fid, tag, source, 
-                                           can_fail, wait_until, ready);
+      FieldSpaceNode* node = runtime->get_node(handle);
+      node->process_semantic_field_request(
+          fid, tag, source, can_fail, wait_until, ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_semantic_info(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -832,21 +823,21 @@ namespace Legion {
       derez.deserialize(tag);
       size_t size;
       derez.deserialize(size);
-      const void *buffer = derez.get_current_pointer();
+      const void* buffer = derez.get_current_pointer();
       derez.advance_pointer(size);
       bool is_mutable;
       derez.deserialize(is_mutable);
       RtUserEvent ready;
       derez.deserialize(ready);
-      runtime->get_node(handle)->attach_semantic_information(tag, source,
-          buffer, size, is_mutable, false/*local only*/);
+      runtime->get_node(handle)->attach_semantic_information(
+          tag, source, buffer, size, is_mutable, false /*local only*/);
       if (ready.exists())
         Runtime::trigger_event(ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_field_semantic_info(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -858,14 +849,14 @@ namespace Legion {
       derez.deserialize(tag);
       size_t size;
       derez.deserialize(size);
-      const void *buffer = derez.get_current_pointer();
+      const void* buffer = derez.get_current_pointer();
       derez.advance_pointer(size);
       bool is_mutable;
       derez.deserialize(is_mutable);
       RtUserEvent ready;
       derez.deserialize(ready);
-      runtime->get_node(handle)->attach_semantic_information(fid, tag, 
-          source, buffer, size, is_mutable, false/*local lonly*/);
+      runtime->get_node(handle)->attach_semantic_information(
+          fid, tag, source, buffer, size, is_mutable, false /*local lonly*/);
       if (ready.exists())
         Runtime::trigger_event(ready);
     }
@@ -878,8 +869,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent FieldSpaceNode::create_allocator(AddressSpaceID source,
-          RtUserEvent ready_event, bool sharded_owner_context, bool owner_shard)
+    RtEvent FieldSpaceNode::create_allocator(
+        AddressSpaceID source, RtUserEvent ready_event,
+        bool sharded_owner_context, bool owner_shard)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
@@ -923,18 +915,18 @@ namespace Legion {
               outstanding_invalidations++;
               // Add a reference that will be remove when the flush returns
               add_base_gc_ref(FIELD_ALLOCATOR_REF);
-              // Send the invalidation and make ourselves the new 
+              // Send the invalidation and make ourselves the new
               // pending exclusive allocator value
               Serializer rez;
               {
                 RezCheck z(rez);
                 rez.serialize(handle);
                 rez.serialize(ready_event);
-                rez.serialize<bool>(true); // flush allocation
-                rez.serialize<bool>(false); // need merge
+                rez.serialize<bool>(true);   // flush allocation
+                rez.serialize<bool>(false);  // need merge
               }
-              runtime->send_field_space_allocator_invalidation(remote_owner, 
-                                                               rez); 
+              runtime->send_field_space_allocator_invalidation(
+                  remote_owner, rez);
               outstanding_allocators = 1;
               pending_field_allocation = ready_event;
               allocation_state = FIELD_ALLOC_PENDING;
@@ -952,9 +944,9 @@ namespace Legion {
                 assert(outstanding_invalidations == 0);
 #endif
                 std::set<RtEvent> preconditions;
-                for (std::set<AddressSpaceID>::const_iterator it = 
-                      remote_field_infos.begin(); it != 
-                      remote_field_infos.end(); it++)
+                for (std::set<AddressSpaceID>::const_iterator it =
+                         remote_field_infos.begin();
+                     it != remote_field_infos.end(); it++)
                 {
                   const RtUserEvent done = Runtime::create_rt_user_event();
                   outstanding_invalidations++;
@@ -963,8 +955,8 @@ namespace Legion {
                     RezCheck z(rez);
                     rez.serialize(handle);
                     rez.serialize(done);
-                    rez.serialize<bool>(true); // flush allocation
-                    rez.serialize<bool>(true); // need merge
+                    rez.serialize<bool>(true);  // flush allocation
+                    rez.serialize<bool>(true);  // need merge
                   }
                   runtime->send_field_space_allocator_invalidation(*it, rez);
                   preconditions.insert(done);
@@ -990,9 +982,9 @@ namespace Legion {
                 assert(outstanding_invalidations == 0);
 #endif
                 std::set<RtEvent> preconditions;
-                for (std::set<AddressSpaceID>::const_iterator it = 
-                      remote_field_infos.begin(); it != 
-                      remote_field_infos.end(); it++)
+                for (std::set<AddressSpaceID>::const_iterator it =
+                         remote_field_infos.begin();
+                     it != remote_field_infos.end(); it++)
                 {
                   if ((*it) == source)
                   {
@@ -1008,8 +1000,8 @@ namespace Legion {
                     RezCheck z(rez);
                     rez.serialize(handle);
                     rez.serialize(done);
-                    rez.serialize<bool>(false); // flush allocation
-                    rez.serialize<bool>(false); // need merge
+                    rez.serialize<bool>(false);  // flush allocation
+                    rez.serialize<bool>(false);  // need merge
                   }
                   runtime->send_field_space_allocator_invalidation(*it, rez);
                   preconditions.insert(done);
@@ -1023,7 +1015,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
                 assert(ready_event.exists());
 #endif
-                // Send the response back to the source and mark that 
+                // Send the response back to the source and mark that
                 // we are now invalid
                 Serializer rez;
                 {
@@ -1033,29 +1025,29 @@ namespace Legion {
                   if (full_update)
                   {
                     rez.serialize(field_infos.size());
-                    for (std::map<FieldID,FieldInfo>::iterator it = 
-                          field_infos.begin(); it != 
-                          field_infos.end(); /*nothing*/)
+                    for (std::map<FieldID, FieldInfo>::iterator it =
+                             field_infos.begin();
+                         it != field_infos.end();
+                         /*nothing*/)
                     {
                       rez.serialize(it->first);
                       it->second.serialize(rez);
                       if (!it->second.local)
                       {
-                        std::map<FieldID,FieldInfo>::iterator to_delete = it++;
+                        std::map<FieldID, FieldInfo>::iterator to_delete = it++;
                         field_infos.erase(to_delete);
-                      }
-                      else
-                        it++; // skip deleting local fields
+                      } else
+                        it++;  // skip deleting local fields
                     }
                   }
-                  if (full_update || 
-                      (allocation_state != FIELD_ALLOC_COLLECTIVE)) 
+                  if (full_update ||
+                      (allocation_state != FIELD_ALLOC_COLLECTIVE))
                   {
                     rez.serialize(unallocated_indexes);
                     rez.serialize<size_t>(available_indexes.size());
-                    for (std::list<std::pair<unsigned,RtEvent> >::const_iterator
-                          it = available_indexes.begin(); it !=
-                          available_indexes.end(); it++)
+                    for (std::list<std::pair<unsigned, RtEvent>>::const_iterator
+                             it = available_indexes.begin();
+                         it != available_indexes.end(); it++)
                     {
                       rez.serialize(it->first);
                       rez.serialize(it->second);
@@ -1065,22 +1057,20 @@ namespace Legion {
                   available_indexes.clear();
                   rez.serialize(ready_event);
                 }
-                // Add a reference to this node to keep it alive until we 
+                // Add a reference to this node to keep it alive until we
                 // get the corresponding free operation from the remote node
                 add_base_gc_ref(FIELD_ALLOCATOR_REF);
-                runtime->send_field_space_allocator_response(source, rez); 
+                runtime->send_field_space_allocator_response(source, rez);
                 remote_field_infos.insert(source);
-                allocation_state = FIELD_ALLOC_INVALID; 
-              }
-              else
+                allocation_state = FIELD_ALLOC_INVALID;
+              } else
               {
                 // We are now the exclusive allocation owner
                 if (outstanding_invalidations > 0)
                 {
                   pending_field_allocation = invalidations_done;
                   allocation_state = FIELD_ALLOC_PENDING;
-                }
-                else // we're ready now
+                } else  // we're ready now
                   allocation_state = FIELD_ALLOC_EXCLUSIVE;
                 outstanding_allocators = 1;
                 if (ready_event.exists())
@@ -1102,12 +1092,11 @@ namespace Legion {
               if (ready_event.exists())
                 Runtime::trigger_event(ready_event, pending_field_allocation);
               break;
-            } 
+            }
           default:
             std::abort();
         }
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
         assert(!ready_event.exists());
@@ -1122,8 +1111,7 @@ namespace Legion {
             n_lock.release();
             wait_on.wait();
             n_lock.reacquire();
-          }
-          else
+          } else
             break;
         }
         // See if we already have allocation privileges
@@ -1138,23 +1126,23 @@ namespace Legion {
           }
           runtime->send_field_space_allocator_request(owner_space, rez);
           pending_field_allocation = ready_event;
-        }
-        else // Have privileges, increment our allocator count
+        } else  // Have privileges, increment our allocator count
           outstanding_allocators++;
       }
       return ready_event;
     }
 
     //--------------------------------------------------------------------------
-    RtEvent FieldSpaceNode::destroy_allocator(AddressSpaceID source,
-                                   bool sharded_owner_context, bool owner_shard)
+    RtEvent FieldSpaceNode::destroy_allocator(
+        AddressSpaceID source, bool sharded_owner_context, bool owner_shard)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
 #ifdef DEBUG_LEGION
-      assert((allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
-             (allocation_state == FIELD_ALLOC_COLLECTIVE) ||
-             (allocation_state == FIELD_ALLOC_INVALID));
+      assert(
+          (allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
+          (allocation_state == FIELD_ALLOC_COLLECTIVE) ||
+          (allocation_state == FIELD_ALLOC_INVALID));
 #endif
       if (sharded_owner_context)
       {
@@ -1180,8 +1168,7 @@ namespace Legion {
         assert(!is_owner());
 #endif
         return RtEvent::NO_RT_EVENT;
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
         assert(outstanding_allocators > 0);
@@ -1198,10 +1185,11 @@ namespace Legion {
             {
               RezCheck z(rez);
               rez.serialize(handle);
-              rez.serialize<bool>(true); // return allocation
+              rez.serialize<bool>(true);  // return allocation
               rez.serialize(field_infos.size());
-              for (std::map<FieldID,FieldInfo>::const_iterator it = 
-                    field_infos.begin(); it != field_infos.end(); it++)
+              for (std::map<FieldID, FieldInfo>::const_iterator it =
+                       field_infos.begin();
+                   it != field_infos.end(); it++)
               {
                 rez.serialize(it->first);
                 it->second.serialize(rez);
@@ -1211,7 +1199,7 @@ namespace Legion {
               rez.serialize<size_t>(available_indexes.size());
               while (!available_indexes.empty())
               {
-                std::pair<unsigned,RtEvent> &next = available_indexes.front();
+                std::pair<unsigned, RtEvent>& next = available_indexes.front();
                 rez.serialize(next.first);
                 rez.serialize(next.second);
                 available_indexes.pop_front();
@@ -1227,9 +1215,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::initialize_fields(const std::vector<size_t> &sizes,
-                  const std::vector<FieldID> &fids, CustomSerdezID serdez_id,
-                  Provenance *prov, bool collective)
+    void FieldSpaceNode::initialize_fields(
+        const std::vector<size_t>& sizes, const std::vector<FieldID>& fids,
+        CustomSerdezID serdez_id, Provenance* prov, bool collective)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1239,63 +1227,70 @@ namespace Legion {
       {
         FieldID fid = fids[idx];
         if (field_infos.find(fid) != field_infos.end())
-          REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-            "Illegal duplicate field ID %d used by the "
-            "application in field space %llu", fid, handle.get_id())
-        // Find an index in which to allocate this field  
+          REPORT_LEGION_ERROR(
+              ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
+              "Illegal duplicate field ID %d used by the "
+              "application in field space %llu",
+              fid, handle.get_id())
+        // Find an index in which to allocate this field
         RtEvent dummy_event;
-        int result = allocate_index(dummy_event, true/*initializing*/);
+        int result = allocate_index(dummy_event, true /*initializing*/);
         if (result < 0)
-          REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-            "Exceeded maximum number of allocated fields for "
-            "field space %llu. Change LEGION_MAX_FIELDS from %d "
-            "and related macros at the top of legion_config.h "
-            "and recompile.", handle.get_id(), LEGION_MAX_FIELDS)
+          REPORT_LEGION_ERROR(
+              ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
+              "Exceeded maximum number of allocated fields for "
+              "field space %llu. Change LEGION_MAX_FIELDS from %d "
+              "and related macros at the top of legion_config.h "
+              "and recompile.",
+              handle.get_id(), LEGION_MAX_FIELDS)
 #ifdef DEBUG_LEGION
         assert(!dummy_event.exists());
 #endif
         const unsigned index = result;
-        field_infos[fid] = FieldInfo(sizes[idx], index, serdez_id, 
-                                     prov, false/*local*/, collective);
+        field_infos[fid] = FieldInfo(
+            sizes[idx], index, serdez_id, prov, false /*local*/, collective);
       }
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::initialize_fields(ApEvent sizes_ready,
-                    const std::vector<FieldID> &fids, CustomSerdezID serdez_id,
-                    Provenance *prov, bool collective)
+    void FieldSpaceNode::initialize_fields(
+        ApEvent sizes_ready, const std::vector<FieldID>& fids,
+        CustomSerdezID serdez_id, Provenance* prov, bool collective)
     //--------------------------------------------------------------------------
     {
       for (unsigned idx = 0; idx < fids.size(); idx++)
       {
         FieldID fid = fids[idx];
         if (field_infos.find(fid) != field_infos.end())
-          REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-            "Illegal duplicate field ID %d used by the "
-                          "application in field space %llu", fid, handle.get_id())
-        // Find an index in which to allocate this field  
+          REPORT_LEGION_ERROR(
+              ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
+              "Illegal duplicate field ID %d used by the "
+              "application in field space %llu",
+              fid, handle.get_id())
+        // Find an index in which to allocate this field
         RtEvent dummy_event;
-        int result = allocate_index(dummy_event, true/*initializing*/);
+        int result = allocate_index(dummy_event, true /*initializing*/);
         if (result < 0)
-          REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-            "Exceeded maximum number of allocated fields for "
-                          "field space %llu. Change LEGION_MAX_FIELDS from %d "
-                          "and related macros at the top of legion_config.h "
-                          "and recompile.", handle.get_id(), LEGION_MAX_FIELDS)
+          REPORT_LEGION_ERROR(
+              ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
+              "Exceeded maximum number of allocated fields for "
+              "field space %llu. Change LEGION_MAX_FIELDS from %d "
+              "and related macros at the top of legion_config.h "
+              "and recompile.",
+              handle.get_id(), LEGION_MAX_FIELDS)
 #ifdef DEBUG_LEGION
         assert(!dummy_event.exists());
 #endif
         const unsigned index = result;
-        field_infos[fid] = FieldInfo(sizes_ready, index, serdez_id, 
-                                     prov, false/*local*/, collective);
+        field_infos[fid] = FieldInfo(
+            sizes_ready, index, serdez_id, prov, false /*local*/, collective);
       }
     }
 
     //--------------------------------------------------------------------------
-    RtEvent FieldSpaceNode::allocate_field(FieldID fid, size_t size, 
-                                           CustomSerdezID serdez_id,
-                                           Provenance *prov,
-                                           bool sharded_non_owner)
+    RtEvent FieldSpaceNode::allocate_field(
+        FieldID fid, size_t size, CustomSerdezID serdez_id, Provenance* prov,
+        bool sharded_non_owner)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
@@ -1333,7 +1328,7 @@ namespace Legion {
             prov->serialize(rez);
           else
             Provenance::serialize_null(rez);
-          rez.serialize<size_t>(1); // only allocating one field
+          rez.serialize<size_t>(1);  // only allocating one field
           rez.serialize(fid);
           rez.serialize(size);
         }
@@ -1341,37 +1336,41 @@ namespace Legion {
         return allocated_event;
       }
       // We're the owner so do the field allocation
-      std::map<FieldID,FieldInfo>::iterator finder = field_infos.find(fid);
+      std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
       if (finder != field_infos.end())
       {
         // Handle the case of deduplicating fields that were allocated
         // in a collective mode but are now merged together
         if (finder->second.collective)
           return RtEvent::NO_RT_EVENT;
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-          "Illegal duplicate field ID %d used by the "
-                        "application in field space %llu", fid, handle.get_id())
+        REPORT_LEGION_ERROR(
+            ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
+            "Illegal duplicate field ID %d used by the "
+            "application in field space %llu",
+            fid, handle.get_id())
       }
-      // Find an index in which to allocate this field  
+      // Find an index in which to allocate this field
       RtEvent ready_event;
       int result = allocate_index(ready_event);
       if (result < 0)
-        REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-                        "Exceeded maximum number of allocated fields for "
-                        "field space %llu. Change LEGION_MAX_FIELDS from %d and"
-                        " related macros at the top of legion_config.h and "
-                        "recompile.", handle.get_id(), LEGION_MAX_FIELDS)
+        REPORT_LEGION_ERROR(
+            ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
+            "Exceeded maximum number of allocated fields for "
+            "field space %llu. Change LEGION_MAX_FIELDS from %d and"
+            " related macros at the top of legion_config.h and "
+            "recompile.",
+            handle.get_id(), LEGION_MAX_FIELDS)
       const unsigned index = result;
-      field_infos[fid] = FieldInfo(size, index, serdez_id, prov,
-          false/*local*/, (allocation_state == FIELD_ALLOC_COLLECTIVE));
+      field_infos[fid] = FieldInfo(
+          size, index, serdez_id, prov, false /*local*/,
+          (allocation_state == FIELD_ALLOC_COLLECTIVE));
       return ready_event;
     }
 
     //--------------------------------------------------------------------------
-    RtEvent FieldSpaceNode::allocate_field(FieldID fid, ApEvent size_ready, 
-                                           CustomSerdezID serdez_id,
-                                           Provenance *prov,
-                                           bool sharded_non_owner)
+    RtEvent FieldSpaceNode::allocate_field(
+        FieldID fid, ApEvent size_ready, CustomSerdezID serdez_id,
+        Provenance* prov, bool sharded_non_owner)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
@@ -1404,50 +1403,53 @@ namespace Legion {
           rez.serialize(handle);
           rez.serialize(allocated_event);
           rez.serialize(serdez_id);
-          rez.serialize(size_ready); // size ready
+          rez.serialize(size_ready);  // size ready
           if (prov != nullptr)
             prov->serialize(rez);
           else
             Provenance::serialize_null(rez);
-          rez.serialize<size_t>(1); // only allocating one field
+          rez.serialize<size_t>(1);  // only allocating one field
           rez.serialize(fid);
         }
         runtime->send_field_alloc_request(owner_space, rez);
         return allocated_event;
       }
       // We're the owner so do the field allocation
-      std::map<FieldID,FieldInfo>::iterator finder = field_infos.find(fid);
+      std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
       if (finder != field_infos.end())
       {
         // Handle the case of deduplicating fields that were allocated
         // in a collective mode but are now merged together
         if (finder->second.collective)
           return RtEvent::NO_RT_EVENT;
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-          "Illegal duplicate field ID %d used by the "
-                        "application in field space %llu", fid, handle.get_id())
+        REPORT_LEGION_ERROR(
+            ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
+            "Illegal duplicate field ID %d used by the "
+            "application in field space %llu",
+            fid, handle.get_id())
       }
-      // Find an index in which to allocate this field  
+      // Find an index in which to allocate this field
       RtEvent ready_event;
       int result = allocate_index(ready_event);
       if (result < 0)
-        REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-                        "Exceeded maximum number of allocated fields for "
-                        "field space %llu. Change LEGION_MAX_FIELDS from %d and"
-                        " related macros at the top of legion_config.h and "
-                        "recompile.", handle.get_id(), LEGION_MAX_FIELDS)
+        REPORT_LEGION_ERROR(
+            ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
+            "Exceeded maximum number of allocated fields for "
+            "field space %llu. Change LEGION_MAX_FIELDS from %d and"
+            " related macros at the top of legion_config.h and "
+            "recompile.",
+            handle.get_id(), LEGION_MAX_FIELDS)
       const unsigned index = result;
-      field_infos[fid] = FieldInfo(size_ready, index, serdez_id, prov,
-          false/*local*/, (allocation_state == FIELD_ALLOC_COLLECTIVE));
+      field_infos[fid] = FieldInfo(
+          size_ready, index, serdez_id, prov, false /*local*/,
+          (allocation_state == FIELD_ALLOC_COLLECTIVE));
       return ready_event;
     }
 
     //--------------------------------------------------------------------------
-    RtEvent FieldSpaceNode::allocate_fields(const std::vector<size_t> &sizes,
-                                            const std::vector<FieldID> &fids,
-                                            CustomSerdezID serdez_id,
-                                            Provenance *prov,
-                                            bool sharded_non_owner)
+    RtEvent FieldSpaceNode::allocate_fields(
+        const std::vector<size_t>& sizes, const std::vector<FieldID>& fids,
+        CustomSerdezID serdez_id, Provenance* prov, bool sharded_non_owner)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1501,31 +1503,36 @@ namespace Legion {
       for (unsigned idx = 0; idx < fids.size(); idx++)
       {
         const FieldID fid = fids[idx];
-        std::map<FieldID,FieldInfo>::iterator finder = field_infos.find(fid);
+        std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
         if (field_infos.find(fid) != field_infos.end())
         {
           // Handle the case of deduplicating fields that were allocated
           // in a collective mode but are now merged together
           if (finder->second.collective)
             continue;
-          REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-            "Illegal duplicate field ID %d used by the "
-                          "application in field space %llu", fid, handle.get_id())
+          REPORT_LEGION_ERROR(
+              ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
+              "Illegal duplicate field ID %d used by the "
+              "application in field space %llu",
+              fid, handle.get_id())
         }
-        // Find an index in which to allocate this field  
+        // Find an index in which to allocate this field
         RtEvent ready_event;
         int result = allocate_index(ready_event);
         if (result < 0)
-          REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-            "Exceeded maximum number of allocated fields for "
-                          "field space %llu. Change LEGION_MAX_FIELDS from %d "
-                          "and related macros at the top of legion_config.h "
-                          "and recompile.", handle.get_id(), LEGION_MAX_FIELDS)
+          REPORT_LEGION_ERROR(
+              ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
+              "Exceeded maximum number of allocated fields for "
+              "field space %llu. Change LEGION_MAX_FIELDS from %d "
+              "and related macros at the top of legion_config.h "
+              "and recompile.",
+              handle.get_id(), LEGION_MAX_FIELDS)
         if (ready_event.exists())
           allocated_events.insert(ready_event);
         const unsigned index = result;
-        field_infos[fid] = FieldInfo(sizes[idx], index, serdez_id, prov, 
-            false/*local*/, (allocation_state == FIELD_ALLOC_COLLECTIVE));
+        field_infos[fid] = FieldInfo(
+            sizes[idx], index, serdez_id, prov, false /*local*/,
+            (allocation_state == FIELD_ALLOC_COLLECTIVE));
       }
       if (!allocated_events.empty())
         return Runtime::merge_events(allocated_events);
@@ -1534,13 +1541,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent FieldSpaceNode::allocate_fields(ApEvent sizes_ready,
-                                            const std::vector<FieldID> &fids,
-                                            CustomSerdezID serdez_id,
-                                            Provenance *prov,
-                                            bool sharded_non_owner)
+    RtEvent FieldSpaceNode::allocate_fields(
+        ApEvent sizes_ready, const std::vector<FieldID>& fids,
+        CustomSerdezID serdez_id, Provenance* prov, bool sharded_non_owner)
     //--------------------------------------------------------------------------
-    { 
+    {
       AutoLock n_lock(node_lock);
       // For control replication see if we've been invalidated and do not need
       // to do anything because we are not the owner any longer
@@ -1585,31 +1590,36 @@ namespace Legion {
       for (unsigned idx = 0; idx < fids.size(); idx++)
       {
         const FieldID fid = fids[idx];
-        std::map<FieldID,FieldInfo>::iterator finder = field_infos.find(fid);
+        std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
         if (finder != field_infos.end())
         {
           // Handle the case of deduplicating fields that were allocated
           // in a collective mode but are now merged together
           if (finder->second.collective)
             continue;
-          REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-            "Illegal duplicate field ID %d used by the "
-                          "application in field space %llu", fid, handle.get_id())
+          REPORT_LEGION_ERROR(
+              ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
+              "Illegal duplicate field ID %d used by the "
+              "application in field space %llu",
+              fid, handle.get_id())
         }
-        // Find an index in which to allocate this field  
+        // Find an index in which to allocate this field
         RtEvent ready_event;
         int result = allocate_index(ready_event);
         if (result < 0)
-          REPORT_LEGION_ERROR(ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
-            "Exceeded maximum number of allocated fields for "
-                          "field space %llu. Change LEGION_MAX_FIELDS from %d "
-                          "and related macros at the top of legion_config.h "
-                          "and recompile.", handle.get_id(), LEGION_MAX_FIELDS)
+          REPORT_LEGION_ERROR(
+              ERROR_EXCEEDED_MAXIMUM_NUMBER_ALLOCATED_FIELDS,
+              "Exceeded maximum number of allocated fields for "
+              "field space %llu. Change LEGION_MAX_FIELDS from %d "
+              "and related macros at the top of legion_config.h "
+              "and recompile.",
+              handle.get_id(), LEGION_MAX_FIELDS)
         if (ready_event.exists())
           allocated_events.insert(ready_event);
         const unsigned index = result;
-        field_infos[fid] = FieldInfo(sizes_ready, index, serdez_id, prov,
-            false/*local*/, (allocation_state == FIELD_ALLOC_COLLECTIVE));
+        field_infos[fid] = FieldInfo(
+            sizes_ready, index, serdez_id, prov, false /*local*/,
+            (allocation_state == FIELD_ALLOC_COLLECTIVE));
       }
       if (!allocated_events.empty())
         return Runtime::merge_events(allocated_events);
@@ -1618,8 +1628,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::update_field_size(FieldID fid, size_t field_size,
-                        std::set<RtEvent> &update_events, AddressSpaceID source)
+    void FieldSpaceNode::update_field_size(
+        FieldID fid, size_t field_size, std::set<RtEvent>& update_events,
+        AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
@@ -1634,8 +1645,7 @@ namespace Legion {
           wait_on.wait();
         n_lock.reacquire();
       }
-      std::map<FieldID,FieldInfo>::iterator finder = 
-        field_infos.find(fid);
+      std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
       if (finder != field_infos.end())
       {
 #ifdef DEBUG_LEGION
@@ -1645,7 +1655,7 @@ namespace Legion {
         finder->second.field_size = field_size;
         finder->second.size_ready = ApEvent::NO_AP_EVENT;
       }
-      // Now figure out where the updates need to go 
+      // Now figure out where the updates need to go
       if (is_owner())
       {
         // If we're not the exclusive allocator then broadcast
@@ -1654,9 +1664,9 @@ namespace Legion {
             (allocation_state != FIELD_ALLOC_COLLECTIVE))
         {
           // Send messages to all the read-only field infos
-          for (std::set<AddressSpaceID>::const_iterator it = 
-                remote_field_infos.begin(); it != 
-                remote_field_infos.end(); it++)
+          for (std::set<AddressSpaceID>::const_iterator it =
+                   remote_field_infos.begin();
+               it != remote_field_infos.end(); it++)
           {
             if ((*it) == source)
               continue;
@@ -1674,12 +1684,11 @@ namespace Legion {
             update_events.insert(done_event);
           }
         }
-      }
-      else
+      } else
       {
-        // If the source is not the owner and we're not in a collective 
+        // If the source is not the owner and we're not in a collective
         // mode then we have to send the message to the owner
-        if ((source != owner_space) && 
+        if ((source != owner_space) &&
             (allocation_state != FIELD_ALLOC_EXCLUSIVE) &&
             (allocation_state != FIELD_ALLOC_COLLECTIVE))
         {
@@ -1700,12 +1709,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::free_field(FieldID fid, AddressSpaceID source,
-                                    std::set<RtEvent> &applied,
-                                    bool sharded_non_owner)   
+    void FieldSpaceNode::free_field(
+        FieldID fid, AddressSpaceID source, std::set<RtEvent>& applied,
+        bool sharded_non_owner)
     //--------------------------------------------------------------------------
     {
-      AutoLock n_lock(node_lock); 
+      AutoLock n_lock(node_lock);
       // For control replication see if we've been invalidated and do not need
       // to do anything because we are not the owner any longer
       if (sharded_non_owner && (allocation_state != FIELD_ALLOC_COLLECTIVE))
@@ -1740,7 +1749,7 @@ namespace Legion {
         applied.insert(done_event);
         return;
       }
-      std::map<FieldID,FieldInfo>::iterator finder = field_infos.find(fid);
+      std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(fid);
 #ifdef DEBUG_LEGION
       assert(finder != field_infos.end());
 #endif
@@ -1749,12 +1758,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::free_fields(const std::vector<FieldID> &to_free,
-                              AddressSpaceID source, std::set<RtEvent> &applied,
-                              bool sharded_non_owner)
+    void FieldSpaceNode::free_fields(
+        const std::vector<FieldID>& to_free, AddressSpaceID source,
+        std::set<RtEvent>& applied, bool sharded_non_owner)
     //--------------------------------------------------------------------------
     {
-      AutoLock n_lock(node_lock); 
+      AutoLock n_lock(node_lock);
       // For control replication see if we've been invalidated and do not need
       // to do anything because we are not the owner any longer
       if (sharded_non_owner && (allocation_state != FIELD_ALLOC_COLLECTIVE))
@@ -1791,9 +1800,9 @@ namespace Legion {
         return;
       }
       for (std::vector<FieldID>::const_iterator it = to_free.begin();
-            it != to_free.end(); it++)
+           it != to_free.end(); it++)
       {
-        std::map<FieldID,FieldInfo>::iterator finder = field_infos.find(*it);
+        std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(*it);
 #ifdef DEBUG_LEGION
         assert(finder != field_infos.end());
 #endif
@@ -1803,8 +1812,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::free_field_indexes(const std::vector<FieldID> &to_free,
-                                    RtEvent freed_event, bool sharded_non_owner)
+    void FieldSpaceNode::free_field_indexes(
+        const std::vector<FieldID>& to_free, RtEvent freed_event,
+        bool sharded_non_owner)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
@@ -1841,10 +1851,10 @@ namespace Legion {
         runtime->send_field_free_indexes(owner_space, rez);
         return;
       }
-      for (std::vector<FieldID>::const_iterator it = 
-            to_free.begin(); it != to_free.end(); it++)
+      for (std::vector<FieldID>::const_iterator it = to_free.begin();
+           it != to_free.end(); it++)
       {
-        std::map<FieldID,FieldInfo>::iterator finder = field_infos.find(*it);
+        std::map<FieldID, FieldInfo>::iterator finder = field_infos.find(*it);
 #ifdef DEBUG_LEGION
         assert(finder != field_infos.end());
 #endif
@@ -1856,12 +1866,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool FieldSpaceNode::allocate_local_fields(
-                                            const std::vector<FieldID> &fids,
-                                            const std::vector<size_t> &sizes,
-                                            CustomSerdezID serdez_id,
-                                            const std::set<unsigned> &indexes,
-                                            std::vector<unsigned> &new_indexes,
-                                            Provenance *prov)
+        const std::vector<FieldID>& fids, const std::vector<size_t>& sizes,
+        CustomSerdezID serdez_id, const std::set<unsigned>& indexes,
+        std::vector<unsigned>& new_indexes, Provenance* prov)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1891,7 +1898,7 @@ namespace Legion {
           }
           rez.serialize<size_t>(indexes.size());
           for (std::set<unsigned>::const_iterator it = indexes.begin();
-                it != indexes.end(); it++)
+               it != indexes.end(); it++)
             rez.serialize(*it);
           rez.serialize(&new_indexes);
         }
@@ -1909,11 +1916,10 @@ namespace Legion {
         for (unsigned idx = 0; idx < fids.size(); idx++)
         {
           FieldID fid = fids[idx];
-          field_infos[fid] = 
-            FieldInfo(sizes[idx],new_indexes[idx],serdez_id,prov,true/*local*/);
+          field_infos[fid] = FieldInfo(
+              sizes[idx], new_indexes[idx], serdez_id, prov, true /*local*/);
         }
-      }
-      else
+      } else
       {
         // We're the owner so do the field allocation
         AutoLock n_lock(node_lock);
@@ -1926,20 +1932,22 @@ namespace Legion {
         {
           FieldID fid = fids[idx];
           if (field_infos.find(fid) != field_infos.end())
-            REPORT_LEGION_ERROR(ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
-              "Illegal duplicate field ID %d used by the "
-                            "application in field space %llu", fid, handle.get_id())
-          field_infos[fid] = 
-            FieldInfo(sizes[idx],new_indexes[idx],serdez_id,prov,true/*local*/);
+            REPORT_LEGION_ERROR(
+                ERROR_ILLEGAL_DUPLICATE_FIELD_ID,
+                "Illegal duplicate field ID %d used by the "
+                "application in field space %llu",
+                fid, handle.get_id())
+          field_infos[fid] = FieldInfo(
+              sizes[idx], new_indexes[idx], serdez_id, prov, true /*local*/);
         }
       }
       return true;
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::free_local_fields(const std::vector<FieldID> &to_free,
-                                           const std::vector<unsigned> &indexes,
-                                           const CollectiveMapping *mapping)
+    void FieldSpaceNode::free_local_fields(
+        const std::vector<FieldID>& to_free,
+        const std::vector<unsigned>& indexes, const CollectiveMapping* mapping)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1951,8 +1959,7 @@ namespace Legion {
         {
           if (local_space != owner_space)
             return;
-        }
-        else
+        } else
         {
           const AddressSpaceID nearest = mapping->find_nearest(owner_space);
           if (nearest == local_space)
@@ -1972,8 +1979,7 @@ namespace Legion {
           }
           return;
         }
-      }
-      else
+      } else
       {
         if (!is_owner())
         {
@@ -1997,11 +2003,11 @@ namespace Legion {
       assert(is_owner());
 #endif
       // Do the local free
-      AutoLock n_lock(node_lock); 
+      AutoLock n_lock(node_lock);
       for (unsigned idx = 0; idx < to_free.size(); idx++)
       {
-        std::map<FieldID,FieldInfo>::iterator finder = 
-          field_infos.find(to_free[idx]);
+        std::map<FieldID, FieldInfo>::iterator finder =
+            field_infos.find(to_free[idx]);
 #ifdef DEBUG_LEGION
         assert(finder != field_infos.end());
 #endif
@@ -2010,11 +2016,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::update_local_fields(const std::vector<FieldID> &fids,
-                                  const std::vector<size_t> &sizes,
-                                  const std::vector<CustomSerdezID> &serdez_ids,
-                                  const std::vector<unsigned> &indexes,
-                                  Provenance *provenance)
+    void FieldSpaceNode::update_local_fields(
+        const std::vector<FieldID>& fids, const std::vector<size_t>& sizes,
+        const std::vector<CustomSerdezID>& serdez_ids,
+        const std::vector<unsigned>& indexes, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2024,20 +2029,21 @@ namespace Legion {
 #endif
       AutoLock n_lock(node_lock);
       for (unsigned idx = 0; idx < fids.size(); idx++)
-        field_infos[fids[idx]] = FieldInfo(sizes[idx], indexes[idx], 
-            serdez_ids[idx], provenance, true/*local*/);
+        field_infos[fids[idx]] = FieldInfo(
+            sizes[idx], indexes[idx], serdez_ids[idx], provenance,
+            true /*local*/);
     }
 
     //--------------------------------------------------------------------------
     void FieldSpaceNode::remove_local_fields(
-                                          const std::vector<FieldID> &to_remove)
+        const std::vector<FieldID>& to_remove)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
       for (unsigned idx = 0; idx < to_remove.size(); idx++)
       {
-        std::map<FieldID,FieldInfo>::iterator finder = 
-          field_infos.find(to_remove[idx]);
+        std::map<FieldID, FieldInfo>::iterator finder =
+            field_infos.find(to_remove[idx]);
         if (finder != field_infos.end())
           field_infos.erase(finder);
       }
@@ -2048,7 +2054,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2063,20 +2069,20 @@ namespace Legion {
         // Check to see if we have a valid copy of the field infos
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          std::map<FieldID,FieldInfo>::const_iterator finder = 
-            field_infos.find(fid);
+          std::map<FieldID, FieldInfo>::const_iterator finder =
+              field_infos.find(fid);
           if (finder == field_infos.end())
             return false;
           else
             return true;
         }
       }
-      std::map<FieldID,FieldInfo> local_infos;
+      std::map<FieldID, FieldInfo> local_infos;
       const RtEvent ready = request_field_infos_copy(&local_infos, local_space);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
-      std::map<FieldID,FieldInfo>::const_iterator finder = 
-        local_infos.find(fid);
+      std::map<FieldID, FieldInfo>::const_iterator finder =
+          local_infos.find(fid);
       if (finder == local_infos.end())
         return false;
       else
@@ -2089,7 +2095,7 @@ namespace Legion {
     {
       RtEvent wait_for;
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2103,8 +2109,8 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          std::map<FieldID,FieldInfo>::const_iterator finder = 
-            field_infos.find(fid);
+          std::map<FieldID, FieldInfo>::const_iterator finder =
+              field_infos.find(fid);
 #ifdef DEBUG_LEGION
           assert(finder != field_infos.end());
 #endif
@@ -2116,13 +2122,13 @@ namespace Legion {
       }
       if (!wait_for.exists())
       {
-        std::map<FieldID,FieldInfo> local_infos;
-        const RtEvent ready = 
-          request_field_infos_copy(&local_infos, local_space);
+        std::map<FieldID, FieldInfo> local_infos;
+        const RtEvent ready =
+            request_field_infos_copy(&local_infos, local_space);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-        std::map<FieldID,FieldInfo>::const_iterator finder = 
-          local_infos.find(fid);
+        std::map<FieldID, FieldInfo>::const_iterator finder =
+            local_infos.find(fid);
 #ifdef DEBUG_LEGION
         assert(finder != local_infos.end());
 #endif
@@ -2142,7 +2148,7 @@ namespace Legion {
     {
       RtEvent wait_for;
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2156,8 +2162,8 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          std::map<FieldID,FieldInfo>::const_iterator finder = 
-            field_infos.find(fid);
+          std::map<FieldID, FieldInfo>::const_iterator finder =
+              field_infos.find(fid);
 #ifdef DEBUG_LEGION
           assert(finder != field_infos.end());
 #endif
@@ -2169,13 +2175,13 @@ namespace Legion {
       }
       if (!wait_for.exists())
       {
-        std::map<FieldID,FieldInfo> local_infos;
-        const RtEvent ready = 
-          request_field_infos_copy(&local_infos, local_space);
+        std::map<FieldID, FieldInfo> local_infos;
+        const RtEvent ready =
+            request_field_infos_copy(&local_infos, local_space);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-        std::map<FieldID,FieldInfo>::const_iterator finder = 
-          local_infos.find(fid);
+        std::map<FieldID, FieldInfo>::const_iterator finder =
+            local_infos.find(fid);
 #ifdef DEBUG_LEGION
         assert(finder != local_infos.end());
 #endif
@@ -2190,12 +2196,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::get_all_fields(std::vector<FieldID> &to_set)
+    void FieldSpaceNode::get_all_fields(std::vector<FieldID>& to_set)
     //--------------------------------------------------------------------------
     {
       to_set.clear();
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2210,30 +2216,33 @@ namespace Legion {
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
           to_set.reserve(field_infos.size());
-          for (std::map<FieldID,FieldInfo>::const_iterator it = 
-                field_infos.begin(); it != field_infos.end(); it++)
+          for (std::map<FieldID, FieldInfo>::const_iterator it =
+                   field_infos.begin();
+               it != field_infos.end(); it++)
             to_set.push_back(it->first);
           return;
         }
       }
-      std::map<FieldID,FieldInfo> local_infos;
+      std::map<FieldID, FieldInfo> local_infos;
       const RtEvent ready = request_field_infos_copy(&local_infos, local_space);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
       to_set.reserve(local_infos.size());
-      for (std::map<FieldID,FieldInfo>::const_iterator it = 
-            local_infos.begin(); it != local_infos.end(); it++)
+      for (std::map<FieldID, FieldInfo>::const_iterator it =
+               local_infos.begin();
+           it != local_infos.end(); it++)
         to_set.push_back(it->first);
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::get_field_set(const FieldMask &mask, TaskContext *ctx,
-                                       std::set<FieldID> &to_set) const
+    void FieldSpaceNode::get_field_set(
+        const FieldMask& mask, TaskContext* ctx,
+        std::set<FieldID>& to_set) const
     //--------------------------------------------------------------------------
     {
       std::set<unsigned> local_indexes;
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2247,8 +2256,9 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          for (std::map<FieldID,FieldInfo>::const_iterator it = 
-                field_infos.begin(); it != field_infos.end(); it++)
+          for (std::map<FieldID, FieldInfo>::const_iterator it =
+                   field_infos.begin();
+               it != field_infos.end(); it++)
           {
             if (mask.is_set(it->second.idx))
             {
@@ -2264,13 +2274,14 @@ namespace Legion {
       }
       if (local_indexes.empty())
       {
-        std::map<FieldID,FieldInfo> local_infos;
-        const RtEvent ready = 
-          request_field_infos_copy(&local_infos, local_space);
+        std::map<FieldID, FieldInfo> local_infos;
+        const RtEvent ready =
+            request_field_infos_copy(&local_infos, local_space);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-        for (std::map<FieldID,FieldInfo>::const_iterator it = 
-              local_infos.begin(); it != local_infos.end(); it++)
+        for (std::map<FieldID, FieldInfo>::const_iterator it =
+                 local_infos.begin();
+             it != local_infos.end(); it++)
         {
           if (mask.is_set(it->second.idx))
           {
@@ -2286,13 +2297,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::get_field_set(const FieldMask &mask, TaskContext *ctx,
-                                       std::vector<FieldID> &to_set) const
+    void FieldSpaceNode::get_field_set(
+        const FieldMask& mask, TaskContext* ctx,
+        std::vector<FieldID>& to_set) const
     //--------------------------------------------------------------------------
     {
       std::set<unsigned> local_indexes;
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2306,8 +2318,9 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          for (std::map<FieldID,FieldInfo>::const_iterator it = 
-                field_infos.begin(); it != field_infos.end(); it++)
+          for (std::map<FieldID, FieldInfo>::const_iterator it =
+                   field_infos.begin();
+               it != field_infos.end(); it++)
           {
             if (mask.is_set(it->second.idx))
             {
@@ -2323,13 +2336,14 @@ namespace Legion {
       }
       if (local_indexes.empty())
       {
-        std::map<FieldID,FieldInfo> local_infos;
-        const RtEvent ready = 
-          request_field_infos_copy(&local_infos, local_space);
+        std::map<FieldID, FieldInfo> local_infos;
+        const RtEvent ready =
+            request_field_infos_copy(&local_infos, local_space);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-        for (std::map<FieldID,FieldInfo>::const_iterator it = 
-              local_infos.begin(); it != local_infos.end(); it++)
+        for (std::map<FieldID, FieldInfo>::const_iterator it =
+                 local_infos.begin();
+             it != local_infos.end(); it++)
         {
           if (mask.is_set(it->second.idx))
           {
@@ -2345,13 +2359,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::get_field_set(const FieldMask &mask, 
-                                       const std::set<FieldID> &basis,
-                                       std::set<FieldID> &to_set) const
+    void FieldSpaceNode::get_field_set(
+        const FieldMask& mask, const std::set<FieldID>& basis,
+        std::set<FieldID>& to_set) const
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2367,10 +2381,10 @@ namespace Legion {
         {
           // Only iterate over the basis fields here
           for (std::set<FieldID>::const_iterator it = basis.begin();
-                it != basis.end(); it++)
+               it != basis.end(); it++)
           {
-            std::map<FieldID,FieldInfo>::const_iterator finder = 
-              field_infos.find(*it);
+            std::map<FieldID, FieldInfo>::const_iterator finder =
+                field_infos.find(*it);
 #ifdef DEBUG_LEGION
             assert(finder != field_infos.end());
 #endif
@@ -2380,16 +2394,16 @@ namespace Legion {
           return;
         }
       }
-      std::map<FieldID,FieldInfo> local_infos;
+      std::map<FieldID, FieldInfo> local_infos;
       const RtEvent ready = request_field_infos_copy(&local_infos, local_space);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
       // Only iterate over the basis fields here
       for (std::set<FieldID>::const_iterator it = basis.begin();
-            it != basis.end(); it++)
+           it != basis.end(); it++)
       {
-        std::map<FieldID,FieldInfo>::const_iterator finder = 
-          local_infos.find(*it);
+        std::map<FieldID, FieldInfo>::const_iterator finder =
+            local_infos.find(*it);
 #ifdef DEBUG_LEGION
         assert(finder != local_infos.end());
 #endif
@@ -2400,12 +2414,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     FieldMask FieldSpaceNode::get_field_mask(
-                              const std::set<FieldID> &privilege_fields) const
+        const std::set<FieldID>& privilege_fields) const
     //--------------------------------------------------------------------------
     {
       FieldMask result;
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2420,10 +2434,10 @@ namespace Legion {
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
           for (std::set<FieldID>::const_iterator it = privilege_fields.begin();
-                it != privilege_fields.end(); it++)
+               it != privilege_fields.end(); it++)
           {
-            std::map<FieldID,FieldInfo>::const_iterator finder = 
-              field_infos.find(*it);
+            std::map<FieldID, FieldInfo>::const_iterator finder =
+                field_infos.find(*it);
 #ifdef DEBUG_LEGION
             assert(finder != field_infos.end());
 #endif
@@ -2432,15 +2446,15 @@ namespace Legion {
           return result;
         }
       }
-      std::map<FieldID,FieldInfo> local_infos;
+      std::map<FieldID, FieldInfo> local_infos;
       const RtEvent ready = request_field_infos_copy(&local_infos, local_space);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
       for (std::set<FieldID>::const_iterator it = privilege_fields.begin();
-            it != privilege_fields.end(); it++)
+           it != privilege_fields.end(); it++)
       {
-        std::map<FieldID,FieldInfo>::const_iterator finder = 
-          local_infos.find(*it);
+        std::map<FieldID, FieldInfo>::const_iterator finder =
+            local_infos.find(*it);
 #ifdef DEBUG_LEGION
         assert(finder != local_infos.end());
 #endif
@@ -2454,7 +2468,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2468,19 +2482,19 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          std::map<FieldID,FieldInfo>::const_iterator finder = 
-            field_infos.find(fid);
+          std::map<FieldID, FieldInfo>::const_iterator finder =
+              field_infos.find(fid);
 #ifdef DEBUG_LEGION
           assert(finder != field_infos.end());
 #endif
           return finder->second.idx;
         }
       }
-      std::map<FieldID,FieldInfo> local_infos;
+      std::map<FieldID, FieldInfo> local_infos;
       const RtEvent ready = request_field_infos_copy(&local_infos, local_space);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
-      std::map<FieldID,FieldInfo>::const_iterator finder = 
+      std::map<FieldID, FieldInfo>::const_iterator finder =
           local_infos.find(fid);
 #ifdef DEBUG_LEGION
       assert(finder != local_infos.end());
@@ -2489,15 +2503,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::get_field_indexes(const std::vector<FieldID> &needed,
-                                          std::vector<unsigned> &indexes) const
+    void FieldSpaceNode::get_field_indexes(
+        const std::vector<FieldID>& needed,
+        std::vector<unsigned>& indexes) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(needed.size() == indexes.size());
 #endif
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2513,24 +2528,24 @@ namespace Legion {
         {
           for (unsigned idx = 0; idx < needed.size(); idx++)
           {
-            std::map<FieldID,FieldInfo>::const_iterator finder = 
-              field_infos.find(needed[idx]);
+            std::map<FieldID, FieldInfo>::const_iterator finder =
+                field_infos.find(needed[idx]);
 #ifdef DEBUG_LEGION
             assert(finder != field_infos.end());
 #endif
             indexes[idx] = finder->second.idx;
           }
-          return; 
+          return;
         }
       }
-      std::map<FieldID,FieldInfo> local_infos;
+      std::map<FieldID, FieldInfo> local_infos;
       const RtEvent ready = request_field_infos_copy(&local_infos, local_space);
       if (ready.exists() && !ready.has_triggered())
         ready.wait();
       for (unsigned idx = 0; idx < needed.size(); idx++)
       {
-        std::map<FieldID,FieldInfo>::const_iterator finder = 
-          local_infos.find(needed[idx]);
+        std::map<FieldID, FieldInfo>::const_iterator finder =
+            local_infos.find(needed[idx]);
 #ifdef DEBUG_LEGION
         assert(finder != local_infos.end());
 #endif
@@ -2540,11 +2555,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void FieldSpaceNode::compute_field_layout(
-                                      const std::vector<FieldID> &create_fields,
-                                      std::vector<size_t> &field_sizes,
-                                      std::vector<unsigned> &mask_index_map,
-                                      std::vector<CustomSerdezID> &serdez,
-                                      FieldMask &mask)
+        const std::vector<FieldID>& create_fields,
+        std::vector<size_t>& field_sizes, std::vector<unsigned>& mask_index_map,
+        std::vector<CustomSerdezID>& serdez, FieldMask& mask)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2554,10 +2567,10 @@ namespace Legion {
 #endif
       bool invalid = false;
       std::set<ApEvent> defer_events;
-      std::map<unsigned/*mask index*/,unsigned/*layout index*/> index_map;
+      std::map<unsigned /*mask index*/, unsigned /*layout index*/> index_map;
       {
         // Need to hold the lock when accessing field infos
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -2574,47 +2587,48 @@ namespace Legion {
           for (unsigned idx = 0; idx < create_fields.size(); idx++)
           {
             const FieldID fid = create_fields[idx];
-            std::map<FieldID,FieldInfo>::const_iterator finder = 
-              field_infos.find(fid);
+            std::map<FieldID, FieldInfo>::const_iterator finder =
+                field_infos.find(fid);
             // Catch unknown fields here for now
             if (finder == field_infos.end())
-              REPORT_LEGION_FATAL(LEGION_FATAL_UNKNOWN_FIELD_ID,
-                "unknown field ID %d requested during instance creation", fid)
+              REPORT_LEGION_FATAL(
+                  LEGION_FATAL_UNKNOWN_FIELD_ID,
+                  "unknown field ID %d requested during instance creation", fid)
             if (finder->second.size_ready.exists())
               defer_events.insert(finder->second.size_ready);
             else if (defer_events.empty())
             {
-              field_sizes[idx] = finder->second.field_size; 
+              field_sizes[idx] = finder->second.field_size;
               index_map[finder->second.idx] = idx;
               serdez[idx] = finder->second.serdez_id;
               mask.set_bit(finder->second.idx);
             }
           }
-        }
-        else
+        } else
           invalid = true;
       }
       if (invalid)
       {
-        std::map<FieldID,FieldInfo> local_infos;
-        const RtEvent ready = 
-          request_field_infos_copy(&local_infos, local_space);
+        std::map<FieldID, FieldInfo> local_infos;
+        const RtEvent ready =
+            request_field_infos_copy(&local_infos, local_space);
         if (ready.exists() && !ready.has_triggered())
-          ready.wait();       
+          ready.wait();
         for (unsigned idx = 0; idx < create_fields.size(); idx++)
         {
           const FieldID fid = create_fields[idx];
-          std::map<FieldID,FieldInfo>::const_iterator finder = 
-            local_infos.find(fid);
+          std::map<FieldID, FieldInfo>::const_iterator finder =
+              local_infos.find(fid);
           // Catch unknown fields here for now
           if (finder == local_infos.end())
-            REPORT_LEGION_FATAL(LEGION_FATAL_UNKNOWN_FIELD_ID,
-              "unknown field ID %d requested during instance creation", fid)
+            REPORT_LEGION_FATAL(
+                LEGION_FATAL_UNKNOWN_FIELD_ID,
+                "unknown field ID %d requested during instance creation", fid)
           if (finder->second.size_ready.exists())
             defer_events.insert(finder->second.size_ready);
           else if (defer_events.empty())
           {
-            field_sizes[idx] = finder->second.field_size; 
+            field_sizes[idx] = finder->second.field_size;
             index_map[finder->second.idx] = idx;
             serdez[idx] = finder->second.serdez_id;
             mask.set_bit(finder->second.idx);
@@ -2626,20 +2640,19 @@ namespace Legion {
         const RtEvent wait_on = Runtime::protect_merge_events(defer_events);
         if (wait_on.exists() && !wait_on.has_triggered())
           wait_on.wait();
-        compute_field_layout(create_fields, field_sizes, 
-                             mask_index_map, serdez, mask);
+        compute_field_layout(
+            create_fields, field_sizes, mask_index_map, serdez, mask);
         return;
       }
       // Now we can linearize the index map without holding the lock
       unsigned idx = 0;
-      for (std::map<unsigned,unsigned>::const_iterator it = 
-            index_map.begin(); it != index_map.end(); it++, idx++)
+      for (std::map<unsigned, unsigned>::const_iterator it = index_map.begin();
+           it != index_map.end(); it++, idx++)
         mask_index_map[idx] = it->second;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_alloc_request(
-                                  Deserializer &derez)
+    /*static*/ void FieldSpaceNode::handle_alloc_request(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2664,14 +2677,13 @@ namespace Legion {
           derez.deserialize(fids[idx]);
           derez.deserialize(sizes[idx]);
         }
-        FieldSpaceNode *node = runtime->get_node(handle);
+        FieldSpaceNode* node = runtime->get_node(handle);
         ready = node->allocate_fields(sizes, fids, serdez_id, provenance);
-      }
-      else
+      } else
       {
         for (unsigned idx = 0; idx < num_fields; idx++)
           derez.deserialize(fids[idx]);
-        FieldSpaceNode *node = runtime->get_node(handle);
+        FieldSpaceNode* node = runtime->get_node(handle);
         ready = node->allocate_fields(sizes_ready, fids, serdez_id, provenance);
       }
       Runtime::trigger_event(done, ready);
@@ -2679,7 +2691,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_field_free(
-                                     Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2692,7 +2704,7 @@ namespace Legion {
         derez.deserialize(fields[idx]);
       RtUserEvent done_event;
       derez.deserialize(done_event);
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       std::set<RtEvent> applied;
       node->free_fields(fields, source, applied);
       if (done_event.exists())
@@ -2706,7 +2718,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_field_free_indexes(
-                                  Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2719,13 +2731,13 @@ namespace Legion {
         derez.deserialize(fields[idx]);
       RtEvent freed_event;
       derez.deserialize(freed_event);
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       node->free_field_indexes(fields, freed_event);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_layout_invalidation(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2735,7 +2747,7 @@ namespace Legion {
       derez.deserialize(index);
       RtUserEvent done_event;
       derez.deserialize(done_event);
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       std::set<RtEvent> applied;
       node->invalidate_layouts(index, applied, source);
       node->unpack_global_ref();
@@ -2747,7 +2759,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_local_alloc_request(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2776,13 +2788,14 @@ namespace Legion {
         derez.deserialize(index);
         current_indexes.insert(index);
       }
-      std::vector<unsigned> *destination;
+      std::vector<unsigned>* destination;
       derez.deserialize(destination);
 
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       std::vector<unsigned> new_indexes;
-      if (node->allocate_local_fields(fields, sizes, serdez_id,
-                                      current_indexes, new_indexes, provenance))
+      if (node->allocate_local_fields(
+              fields, sizes, serdez_id, current_indexes, new_indexes,
+              provenance))
       {
         Serializer rez;
         {
@@ -2794,18 +2807,17 @@ namespace Legion {
           rez.serialize(done_event);
         }
         runtime->send_local_field_alloc_response(source, rez);
-      }
-      else // if we failed we can just trigger the event
+      } else  // if we failed we can just trigger the event
         Runtime::trigger_event(done_event);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_local_alloc_response(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      std::vector<unsigned> *destination;
+      std::vector<unsigned>* destination;
       derez.deserialize(destination);
       size_t num_indexes;
       derez.deserialize(num_indexes);
@@ -2818,7 +2830,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_local_free(Deserializer &derez)
+    /*static*/ void FieldSpaceNode::handle_local_free(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2834,13 +2846,13 @@ namespace Legion {
         derez.deserialize(indexes[idx]);
       }
 
-      FieldSpaceNode *node = runtime->get_node(handle);
-      node->free_local_fields(fields, indexes, nullptr/*no collective*/); 
+      FieldSpaceNode* node = runtime->get_node(handle);
+      node->free_local_fields(fields, indexes, nullptr /*no collective*/);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_field_size_update(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2853,7 +2865,7 @@ namespace Legion {
       size_t field_size;
       derez.deserialize(field_size);
 
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       std::set<RtEvent> done_events;
       node->update_field_size(fid, field_size, done_events, source);
       node->unpack_global_ref();
@@ -2864,20 +2876,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_defer_infos_request(const void *args)
+    /*static*/ void FieldSpaceNode::handle_defer_infos_request(const void* args)
     //--------------------------------------------------------------------------
     {
-      const DeferRequestFieldInfoArgs *dargs = 
-        (const DeferRequestFieldInfoArgs*)args;
-      dargs->proxy_this->request_field_infos_copy(dargs->copy, dargs->source, 
-                                                  dargs->to_trigger);
+      const DeferRequestFieldInfoArgs* dargs =
+          (const DeferRequestFieldInfoArgs*)args;
+      dargs->proxy_this->request_field_infos_copy(
+          dargs->copy, dargs->source, dargs->to_trigger);
     }
 
     //--------------------------------------------------------------------------
     InstanceRef FieldSpaceNode::create_external_instance(
-                                         const std::set<FieldID> &priv_fields,
-                                         const std::vector<FieldID> &field_set,
-                                         RegionNode *node, AttachOp *attach_op)
+        const std::set<FieldID>& priv_fields,
+        const std::vector<FieldID>& field_set, RegionNode* node,
+        AttachOp* attach_op)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2887,25 +2899,26 @@ namespace Legion {
       std::vector<unsigned> mask_index_map(field_set.size());
       std::vector<CustomSerdezID> serdez(field_set.size());
       FieldMask external_mask;
-      compute_field_layout(field_set, field_sizes, 
-                           mask_index_map, serdez, external_mask);
+      compute_field_layout(
+          field_set, field_sizes, mask_index_map, serdez, external_mask);
       FieldMask privilege_mask = (priv_fields.size() == field_set.size()) ?
-        external_mask : get_field_mask(priv_fields);
+                                     external_mask :
+                                     get_field_mask(priv_fields);
       // Now make the instance, this should always succeed
-      PhysicalManager *manager = attach_op->create_manager(node, field_set,
-          field_sizes, mask_index_map, serdez, external_mask);
-      return InstanceRef(manager, privilege_mask); 
+      PhysicalManager* manager = attach_op->create_manager(
+          node, field_set, field_sizes, mask_index_map, serdez, external_mask);
+      return InstanceRef(manager, privilege_mask);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_external_create_request(
-                   Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       FieldSpace handle;
       derez.deserialize(handle);
-      FieldSpaceNode *fs = runtime->get_node(handle);
+      FieldSpaceNode* fs = runtime->get_node(handle);
       PhysicalInstance inst;
       derez.deserialize(inst);
       ApEvent ready_event;
@@ -2933,26 +2946,26 @@ namespace Legion {
       }
       LogicalRegion region_handle;
       derez.deserialize(region_handle);
-      RegionNode *region_node = runtime->get_node(region_handle);
+      RegionNode* region_node = runtime->get_node(region_handle);
       size_t collective_mapping_size;
       derez.deserialize(collective_mapping_size);
-      CollectiveMapping *collective_mapping = nullptr;
+      CollectiveMapping* collective_mapping = nullptr;
       if (collective_mapping_size > 0)
       {
         collective_mapping =
-          new CollectiveMapping(derez, collective_mapping_size);
+            new CollectiveMapping(derez, collective_mapping_size);
         collective_mapping->add_reference();
       }
-      std::atomic<DistributedID> *did_ptr;
+      std::atomic<DistributedID>* did_ptr;
       derez.deserialize(did_ptr);
       RtUserEvent done_event;
       derez.deserialize(done_event);
 
-      PhysicalManager *manager = fs->create_external_manager(inst, ready_event,
-          footprint, constraints, field_set, field_sizes, file_mask,
-          mask_index_map, unique_event, region_node, serdez,
+      PhysicalManager* manager = fs->create_external_manager(
+          inst, ready_event, footprint, constraints, field_set, field_sizes,
+          file_mask, mask_index_map, unique_event, region_node, serdez,
           runtime->get_available_distributed_id(), collective_mapping);
-      
+
       Serializer rez;
       {
         RezCheck z2(rez);
@@ -2969,11 +2982,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_external_create_response(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      std::atomic<DistributedID> *did_ptr;
+      std::atomic<DistributedID>* did_ptr;
       derez.deserialize(did_ptr);
       DistributedID did;
       derez.deserialize(did);
@@ -2985,14 +2998,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalManager* FieldSpaceNode::create_external_manager(
-            PhysicalInstance inst, ApEvent ready_event, 
-            size_t instance_footprint, LayoutConstraintSet &constraints, 
-            const std::vector<FieldID> &field_set,
-            const std::vector<size_t> &field_sizes, 
-            const FieldMask &external_mask,
-            const std::vector<unsigned> &mask_index_map, LgEvent unique_event,
-            RegionNode *node, const std::vector<CustomSerdezID> &serdez,
-            DistributedID did, CollectiveMapping *collective_mapping)
+        PhysicalInstance inst, ApEvent ready_event, size_t instance_footprint,
+        LayoutConstraintSet& constraints, const std::vector<FieldID>& field_set,
+        const std::vector<size_t>& field_sizes, const FieldMask& external_mask,
+        const std::vector<unsigned>& mask_index_map, LgEvent unique_event,
+        RegionNode* node, const std::vector<CustomSerdezID>& serdez,
+        DistributedID did, CollectiveMapping* collective_mapping)
     //--------------------------------------------------------------------------
     {
       // Pull out the pointer constraint so that we can use it separately
@@ -3000,36 +3011,27 @@ namespace Legion {
       constraints.pointer_constraint = PointerConstraint();
       const unsigned total_dims = node->row_source->get_num_dims();
       // Get the layout
-      LayoutDescription *layout = 
-        find_layout_description(external_mask, total_dims, constraints);
+      LayoutDescription* layout =
+          find_layout_description(external_mask, total_dims, constraints);
       if (layout == nullptr)
       {
-        LayoutConstraints *layout_constraints = 
-          runtime->register_layout(handle, 
-                                            constraints, true/*internal*/);
-        layout = create_layout_description(external_mask, total_dims,
-                                           layout_constraints,
-                                           mask_index_map, field_set,
-                                           field_sizes, serdez);
+        LayoutConstraints* layout_constraints =
+            runtime->register_layout(handle, constraints, true /*internal*/);
+        layout = create_layout_description(
+            external_mask, total_dims, layout_constraints, mask_index_map,
+            field_set, field_sizes, serdez);
       }
 #ifdef DEBUG_LEGION
       assert(layout != nullptr);
 #endif
-      MemoryManager *memory = 
-        runtime->find_memory_manager(inst.get_location());
-      PhysicalManager *result = new PhysicalManager(did, 
-                                         memory, inst, node->row_source, 
-                                         nullptr/*piece list*/, 
-                                         0/*piece list size*/,
-                                         node->column_source,
-                                         node->handle.get_tree_id(),
-                                         layout, 0/*redop*/, 
-                                         true/*register now*/,
-                                         instance_footprint, 
-                                         ready_event, unique_event,
-                              PhysicalManager::EXTERNAL_ATTACHED_INSTANCE_KIND,
-                                         nullptr/*redop*/,
-                                         collective_mapping);
+      MemoryManager* memory = runtime->find_memory_manager(inst.get_location());
+      PhysicalManager* result = new PhysicalManager(
+          did, memory, inst, node->row_source, nullptr /*piece list*/,
+          0 /*piece list size*/, node->column_source,
+          node->handle.get_tree_id(), layout, 0 /*redop*/,
+          true /*register now*/, instance_footprint, ready_event, unique_event,
+          PhysicalManager::EXTERNAL_ATTACHED_INSTANCE_KIND, nullptr /*redop*/,
+          collective_mapping);
       // Remove the reference that was returned to us from either finding
       // or creating the layout
       if (layout->remove_reference())
@@ -3042,22 +3044,24 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     LayoutDescription* FieldSpaceNode::find_layout_description(
-                                      const FieldMask &mask, unsigned num_dims,
-                                      const LayoutConstraintSet &constraints)
+        const FieldMask& mask, unsigned num_dims,
+        const LayoutConstraintSet& constraints)
     //--------------------------------------------------------------------------
     {
       std::deque<LayoutDescription*> candidates;
       {
         uint64_t hash_key = mask.get_hash_key();
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
-        std::map<LEGION_FIELD_MASK_FIELD_TYPE,LegionList<LayoutDescription*,
-          LONG_BOUNDED_LIFETIME>>::const_iterator finder = 
-                                                      layouts.find(hash_key);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+        std::map<
+            LEGION_FIELD_MASK_FIELD_TYPE,
+            LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME>>::
+            const_iterator finder = layouts.find(hash_key);
         if (finder == layouts.end())
           return nullptr;
         // Get the ones with a matching mask
-        for (std::list<LayoutDescription*>::const_iterator it = 
-              finder->second.begin(); it != finder->second.end(); it++)
+        for (std::list<LayoutDescription*>::const_iterator it =
+                 finder->second.begin();
+             it != finder->second.end(); it++)
         {
           if ((*it)->total_dims != num_dims)
             continue;
@@ -3069,8 +3073,9 @@ namespace Legion {
         return nullptr;
       // First go through the existing descriptions and see if we find
       // one that matches the existing layout
-      for (std::deque<LayoutDescription*>::const_iterator it = 
-            candidates.begin(); it != candidates.end(); it++)
+      for (std::deque<LayoutDescription*>::const_iterator it =
+               candidates.begin();
+           it != candidates.end(); it++)
       {
         if ((*it)->match_layout(constraints, num_dims))
         {
@@ -3083,20 +3088,22 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     LayoutDescription* FieldSpaceNode::find_layout_description(
-                          const FieldMask &mask, LayoutConstraints *constraints)
+        const FieldMask& mask, LayoutConstraints* constraints)
     //--------------------------------------------------------------------------
     {
       // This one better work
       uint64_t hash_key = mask.get_hash_key();
-      AutoLock n_lock(node_lock,1,false/*exclusive*/);
-      std::map<LEGION_FIELD_MASK_FIELD_TYPE,LegionList<LayoutDescription*,
-        LONG_BOUNDED_LIFETIME>>::const_iterator finder = 
-                                                    layouts.find(hash_key);
+      AutoLock n_lock(node_lock, 1, false /*exclusive*/);
+      std::map<
+          LEGION_FIELD_MASK_FIELD_TYPE,
+          LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME>>::const_iterator
+          finder = layouts.find(hash_key);
 #ifdef DEBUG_LEGION
       assert(finder != layouts.end());
 #endif
-      for (std::list<LayoutDescription*>::const_iterator it = 
-            finder->second.begin(); it != finder->second.end(); it++)
+      for (std::list<LayoutDescription*>::const_iterator it =
+               finder->second.begin();
+           it != finder->second.end(); it++)
       {
         if ((*it)->constraints != constraints)
           continue;
@@ -3110,35 +3117,37 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     LayoutDescription* FieldSpaceNode::create_layout_description(
-                                     const FieldMask &layout_mask,
-                                     const unsigned total_dims,
-                                     LayoutConstraints *constraints,
-                                   const std::vector<unsigned> &mask_index_map,
-                                   const std::vector<FieldID> &fids,
-                                   const std::vector<size_t> &field_sizes,
-                                   const std::vector<CustomSerdezID> &serdez)
+        const FieldMask& layout_mask, const unsigned total_dims,
+        LayoutConstraints* constraints,
+        const std::vector<unsigned>& mask_index_map,
+        const std::vector<FieldID>& fids,
+        const std::vector<size_t>& field_sizes,
+        const std::vector<CustomSerdezID>& serdez)
     //--------------------------------------------------------------------------
     {
       // Make the new field description and then register it
-      LayoutDescription *result = new LayoutDescription(this, layout_mask, 
-        total_dims, constraints, mask_index_map, fids, field_sizes, serdez);
+      LayoutDescription* result = new LayoutDescription(
+          this, layout_mask, total_dims, constraints, mask_index_map, fids,
+          field_sizes, serdez);
       result->add_reference();
       return register_layout_description(result);
     }
 
     //--------------------------------------------------------------------------
     LayoutDescription* FieldSpaceNode::register_layout_description(
-                                                      LayoutDescription *layout)
+        LayoutDescription* layout)
     //--------------------------------------------------------------------------
     {
       uint64_t hash_key = layout->allocated_fields.get_hash_key();
       AutoLock n_lock(node_lock);
-      LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>
-        &descs = layouts[hash_key];
+      LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME>& descs =
+          layouts[hash_key];
       if (!descs.empty())
       {
-        for (LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>
-              ::const_iterator it = descs.begin(); it != descs.end(); it++)
+        for (LegionList<
+                 LayoutDescription*, LONG_BOUNDED_LIFETIME>::const_iterator it =
+                 descs.begin();
+             it != descs.end(); it++)
         {
           if (layout->match_layout(*it, layout->total_dims))
           {
@@ -3166,11 +3175,12 @@ namespace Legion {
       // Only send it if we're the owner without a collective mapping
       // or the target is not in the collective mapping and we're the
       // closest node in the collective mapping to the target
-      assert((is_owner() && (collective_mapping == nullptr)) ||
-            ((collective_mapping != nullptr) && 
-             !collective_mapping->contains(target) &&
-             collective_mapping->contains(local_space) && 
-             (local_space == collective_mapping->find_nearest(target))));
+      assert(
+          (is_owner() && (collective_mapping == nullptr)) ||
+          ((collective_mapping != nullptr) &&
+           !collective_mapping->contains(target) &&
+           collective_mapping->contains(local_space) &&
+           (local_space == collective_mapping->find_nearest(target))));
 #endif
       // See if this is in our creation set, if not, send it and all the fields
       AutoLock n_lock(node_lock);
@@ -3195,35 +3205,38 @@ namespace Legion {
           {
             size_t num_fields = field_infos.size();
             rez.serialize<size_t>(num_fields);
-            for (std::map<FieldID,FieldInfo>::const_iterator it = 
-                  field_infos.begin(); it != field_infos.end(); it++)
+            for (std::map<FieldID, FieldInfo>::const_iterator it =
+                     field_infos.begin();
+                 it != field_infos.end(); it++)
             {
               rez.serialize(it->first);
               it->second.serialize(rez);
             }
             remote_field_infos.insert(target);
-          }
-          else
+          } else
             rez.serialize<size_t>(0);
           rez.serialize<size_t>(semantic_info.size());
-          for (LegionMap<SemanticTag,SemanticInfo>::iterator it = 
-                semantic_info.begin(); it != semantic_info.end(); it++)
+          for (LegionMap<SemanticTag, SemanticInfo>::iterator it =
+                   semantic_info.begin();
+               it != semantic_info.end(); it++)
           {
             rez.serialize(it->first);
             rez.serialize<size_t>(it->second.buffer.get_size());
-            rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
+            rez.serialize(
+                it->second.buffer.get_buffer(), it->second.buffer.get_size());
             rez.serialize(it->second.is_mutable);
           }
           rez.serialize<size_t>(semantic_field_info.size());
-          for (LegionMap<std::pair<FieldID,SemanticTag>,
-                SemanticInfo>::iterator
-                it = semantic_field_info.begin(); 
-                it != semantic_field_info.end(); it++)
+          for (LegionMap<
+                   std::pair<FieldID, SemanticTag>, SemanticInfo>::iterator it =
+                   semantic_field_info.begin();
+               it != semantic_field_info.end(); it++)
           {
             rez.serialize(it->first.first);
             rez.serialize(it->first.second);
             rez.serialize(it->second.buffer.get_size());
-            rez.serialize(it->second.buffer.get_buffer(), it->second.buffer.get_size());
+            rez.serialize(
+                it->second.buffer.get_buffer(), it->second.buffer.get_size());
             rez.serialize(it->second.is_mutable);
           }
         }
@@ -3235,7 +3248,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_node_creation(
-          Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3246,11 +3259,11 @@ namespace Legion {
       AutoProvenance provenance(Provenance::deserialize(derez));
       size_t num_spaces;
       derez.deserialize(num_spaces);
-      CollectiveMapping *mapping = nullptr;
+      CollectiveMapping* mapping = nullptr;
       if (num_spaces > 0)
         mapping = new CollectiveMapping(derez, num_spaces);
-      FieldSpaceNode *node =
-        runtime->create_node(handle, initialized, provenance, mapping, derez);
+      FieldSpaceNode* node =
+          runtime->create_node(handle, initialized, provenance, mapping, derez);
 #ifdef DEBUG_LEGION
       assert(node != nullptr);
 #endif
@@ -3262,12 +3275,12 @@ namespace Legion {
         derez.deserialize(tag);
         size_t buffer_size;
         derez.deserialize(buffer_size);
-        const void *buffer = derez.get_current_pointer();
+        const void* buffer = derez.get_current_pointer();
         derez.advance_pointer(buffer_size);
         bool is_mutable;
         derez.deserialize(is_mutable);
-        node->attach_semantic_information(tag, source, buffer, buffer_size, 
-                                          is_mutable, false/*local only*/);
+        node->attach_semantic_information(
+            tag, source, buffer, buffer_size, is_mutable, false /*local only*/);
       }
       size_t num_field_semantic;
       derez.deserialize(num_field_semantic);
@@ -3279,18 +3292,18 @@ namespace Legion {
         derez.deserialize(tag);
         size_t buffer_size;
         derez.deserialize(buffer_size);
-        const void *buffer = derez.get_current_pointer();
+        const void* buffer = derez.get_current_pointer();
         derez.advance_pointer(buffer_size);
         bool is_mutable;
         derez.deserialize(is_mutable);
-        node->attach_semantic_information(fid, tag, source, buffer, buffer_size,
-                                          is_mutable, false/*local only*/);
+        node->attach_semantic_information(
+            fid, tag, source, buffer, buffer_size, is_mutable,
+            false /*local only*/);
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_node_request(
-           Deserializer &derez)
+    /*static*/ void FieldSpaceNode::handle_node_request(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       FieldSpace handle;
@@ -3299,7 +3312,7 @@ namespace Legion {
       derez.deserialize(to_trigger);
       AddressSpaceID source;
       derez.deserialize(source);
-      FieldSpaceNode *target = runtime->get_node(handle);
+      FieldSpaceNode* target = runtime->get_node(handle);
       // If there is a collective mapping, check to see if we're on the
       // right node and if not forward it on to the right node
       if (target->collective_mapping != nullptr)
@@ -3310,8 +3323,8 @@ namespace Legion {
 #endif
         if (target->is_owner())
         {
-          const AddressSpaceID nearest = 
-            target->collective_mapping->find_nearest(source);
+          const AddressSpaceID nearest =
+              target->collective_mapping->find_nearest(source);
           // If we're not the nearest then forward it on to the
           // proper node to handle the request
           if (nearest != target->local_space)
@@ -3327,7 +3340,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         else
         {
-          assert(target->local_space == 
+          assert(
+              target->local_space ==
               target->collective_mapping->find_nearest(source));
         }
 #endif
@@ -3339,7 +3353,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_node_return(Deserializer &derez)
+    /*static*/ void FieldSpaceNode::handle_node_return(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       RtUserEvent to_trigger;
@@ -3349,7 +3363,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_allocator_request(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3358,8 +3372,8 @@ namespace Legion {
       RtUserEvent ready_event;
       derez.deserialize(ready_event);
 
-      FieldSpaceNode *node = runtime->get_node(handle);
-      
+      FieldSpaceNode* node = runtime->get_node(handle);
+
 #ifdef DEBUG_LEGION
       assert(node->is_owner());
 #endif
@@ -3368,7 +3382,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_allocator_response(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3377,7 +3391,7 @@ namespace Legion {
       RtEvent invalidations_done;
       derez.deserialize(invalidations_done);
 
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       // wait for the invalidations to be done before handling ourselves
       if (invalidations_done.exists() && !invalidations_done.has_triggered())
         invalidations_done.wait();
@@ -3389,7 +3403,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_allocator_invalidation(
-                                  Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3402,39 +3416,38 @@ namespace Legion {
       bool merge;
       derez.deserialize(merge);
 
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       node->process_allocator_invalidation(done_event, flush_allocation, merge);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_allocator_flush(
-                                  Deserializer &derez)
+    /*static*/ void FieldSpaceNode::handle_allocator_flush(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       FieldSpace handle;
       derez.deserialize(handle);
 
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       const bool remove_free_reference = node->process_allocator_flush(derez);
       RtUserEvent done_event;
       derez.deserialize(done_event);
       Runtime::trigger_event(done_event);
-      if (node->remove_base_gc_ref(FIELD_ALLOCATOR_REF,
-            (remove_free_reference ? 2 : 1)))
+      if (node->remove_base_gc_ref(
+              FIELD_ALLOCATOR_REF, (remove_free_reference ? 2 : 1)))
         delete node;
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FieldSpaceNode::handle_allocator_free(
-           Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       FieldSpace handle;
       derez.deserialize(handle);
 
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       node->process_allocator_free(derez, source);
       RtUserEvent done_event;
       derez.deserialize(done_event);
@@ -3445,14 +3458,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_infos_request(
-                                  Deserializer &derez)
+    /*static*/ void FieldSpaceNode::handle_infos_request(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       FieldSpace handle;
       derez.deserialize(handle);
-      std::map<FieldID,FieldInfo> *target;
+      std::map<FieldID, FieldInfo>* target;
       derez.deserialize(target);
       AddressSpaceID source;
       derez.deserialize(source);
@@ -3461,17 +3473,16 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(to_trigger.exists());
 #endif
-      FieldSpaceNode *node = runtime->get_node(handle);
+      FieldSpaceNode* node = runtime->get_node(handle);
       node->request_field_infos_copy(target, source, to_trigger);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FieldSpaceNode::handle_infos_response(
-                                  Deserializer &derez)
+    /*static*/ void FieldSpaceNode::handle_infos_response(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      std::map<FieldID,FieldInfo> *target; 
+      std::map<FieldID, FieldInfo>* target;
       derez.deserialize(target);
       size_t num_infos;
       derez.deserialize(num_infos);
@@ -3480,12 +3491,12 @@ namespace Legion {
         FieldID fid;
         derez.deserialize(fid);
         (*target)[fid].deserialize(derez);
-      } 
+      }
       FieldSpace handle;
       derez.deserialize(handle);
       if (handle.exists())
       {
-        FieldSpaceNode *node = runtime->get_node(handle);
+        FieldSpaceNode* node = runtime->get_node(handle);
         node->record_read_only_infos(*target);
       }
       RtUserEvent to_trigger;
@@ -3493,12 +3504,12 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(to_trigger.exists());
 #endif
-      Runtime::trigger_event(to_trigger); 
+      Runtime::trigger_event(to_trigger);
     }
 
     //--------------------------------------------------------------------------
-    char* FieldSpaceNode::to_string(const FieldMask &mask, 
-                                    TaskContext *ctx) const
+    char* FieldSpaceNode::to_string(
+        const FieldMask& mask, TaskContext* ctx) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -3509,7 +3520,7 @@ namespace Legion {
       bool invalid = false;
       size_t count = 0;  // used to skip leading comma
       {
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         while (allocation_state == FIELD_ALLOC_PENDING)
         {
 #ifdef DEBUG_LEGION
@@ -3523,46 +3534,47 @@ namespace Legion {
         }
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
-          for (std::map<FieldID,FieldInfo>::const_iterator it = 
-                field_infos.begin(); it != field_infos.end(); it++)
+          for (std::map<FieldID, FieldInfo>::const_iterator it =
+                   field_infos.begin();
+               it != field_infos.end(); it++)
           {
             if (mask.is_set(it->second.idx))
             {
               if (!it->second.local)
               {
-                if(count++) result += ',';
+                if (count++)
+                  result += ',';
                 char temp[32];
                 snprintf(temp, 32, "%d", it->first);
                 result += temp;
-              }
-              else
+              } else
                 local_indexes.insert(it->second.idx);
             }
           }
-        }
-        else
+        } else
           invalid = true;
       }
       if (invalid)
       {
-        std::map<FieldID,FieldInfo> local_infos;
-        const RtEvent ready = 
-          request_field_infos_copy(&local_infos, local_space);
+        std::map<FieldID, FieldInfo> local_infos;
+        const RtEvent ready =
+            request_field_infos_copy(&local_infos, local_space);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-        for (std::map<FieldID,FieldInfo>::const_iterator it = 
-              local_infos.begin(); it != local_infos.end(); it++)
+        for (std::map<FieldID, FieldInfo>::const_iterator it =
+                 local_infos.begin();
+             it != local_infos.end(); it++)
         {
           if (mask.is_set(it->second.idx))
           {
             if (!it->second.local)
             {
-              if(count++) result += ',';
+              if (count++)
+                result += ',';
               char temp[32];
               snprintf(temp, 32, "%d", it->first);
               result += temp;
-            }
-            else
+            } else
               local_indexes.insert(it->second.idx);
           }
         }
@@ -3571,11 +3583,12 @@ namespace Legion {
       {
         std::vector<FieldID> local_fields;
         ctx->get_local_field_set(handle, local_indexes, local_fields);
-        for (std::vector<FieldID>::const_iterator it =
-              local_fields.begin(); it != local_fields.end(); it++)
+        for (std::vector<FieldID>::const_iterator it = local_fields.begin();
+             it != local_fields.end(); it++)
         {
-	  if(count++) result += ',';
-	  char temp[32];
+          if (count++)
+            result += ',';
+          char temp[32];
           snprintf(temp, 32, "%d", *it);
           result += temp;
         }
@@ -3584,16 +3597,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    int FieldSpaceNode::allocate_index(RtEvent &ready_event, bool initializing)
+    int FieldSpaceNode::allocate_index(RtEvent& ready_event, bool initializing)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((allocation_state == FIELD_ALLOC_EXCLUSIVE) || 
-              (allocation_state == FIELD_ALLOC_COLLECTIVE) || initializing);
+      assert(
+          (allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
+          (allocation_state == FIELD_ALLOC_COLLECTIVE) || initializing);
 #endif
       // Check to see if we still have spots
       int result = unallocated_indexes.find_first_set();
-      if ((result >= 0) && 
+      if ((result >= 0) &&
           (result < int(LEGION_MAX_FIELDS - runtime->max_local_fields)))
       {
         // We still have unallocated indexes so use those first
@@ -3603,10 +3617,11 @@ namespace Legion {
       // If there are no available indexes then we are done
       if (available_indexes.empty())
         return -1;
-      std::list<std::pair<unsigned,RtEvent> >::iterator backup = 
-        available_indexes.end();
-      for (std::list<std::pair<unsigned,RtEvent> >::iterator it = 
-            available_indexes.begin(); it != available_indexes.end(); it++)
+      std::list<std::pair<unsigned, RtEvent>>::iterator backup =
+          available_indexes.end();
+      for (std::list<std::pair<unsigned, RtEvent>>::iterator it =
+               available_indexes.begin();
+           it != available_indexes.end(); it++)
       {
         if (!it->second.exists() || it->second.has_triggered())
         {
@@ -3614,8 +3629,7 @@ namespace Legion {
           result = it->first;
           available_indexes.erase(it);
           return result;
-        }
-        else if (backup == available_indexes.end())
+        } else if (backup == available_indexes.end())
         {
           // If we haven't recorded a back-up then this is the
           // first once we've found so record it
@@ -3638,13 +3652,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((allocation_state == FIELD_ALLOC_EXCLUSIVE) || 
-              (allocation_state == FIELD_ALLOC_COLLECTIVE));
+      assert(
+          (allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
+          (allocation_state == FIELD_ALLOC_COLLECTIVE));
 #endif
       // Perform the invalidations across all nodes too
       std::set<RtEvent> invalidation_events;
-      invalidate_layouts(index, invalidation_events, 
-          runtime->address_space, false/*need lock*/);
+      invalidate_layouts(
+          index, invalidation_events, runtime->address_space,
+          false /*need lock*/);
       if (!invalidation_events.empty())
       {
         if (ready_event.exists())
@@ -3653,30 +3669,31 @@ namespace Legion {
       }
       // Record this as an available index
       available_indexes.push_back(
-          std::pair<unsigned,RtEvent>(index, ready_event)); 
+          std::pair<unsigned, RtEvent>(index, ready_event));
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::invalidate_layouts(unsigned index, 
-              std::set<RtEvent> &applied, AddressSpaceID source, bool need_lock)
+    void FieldSpaceNode::invalidate_layouts(
+        unsigned index, std::set<RtEvent>& applied, AddressSpaceID source,
+        bool need_lock)
     //--------------------------------------------------------------------------
     {
       if (need_lock)
       {
         AutoLock n_lock(node_lock);
-        invalidate_layouts(index, applied, source, false/*need lock*/);
+        invalidate_layouts(index, applied, source, false /*need lock*/);
         return;
       }
       // Send messages to any remote nodes to perform the invalidation
-      // We're already holding the lock 
+      // We're already holding the lock
       if (has_remote_instances())
       {
         std::deque<AddressSpaceID> targets;
         FindTargetsFunctor functor(targets);
         map_over_remote_instances(functor);
         std::set<RtEvent> remote_ready;
-        for (std::deque<AddressSpaceID>::const_iterator it = 
-              targets.begin(); it != targets.end(); it++)
+        for (std::deque<AddressSpaceID>::const_iterator it = targets.begin();
+             it != targets.end(); it++)
         {
           if ((*it) == source)
             continue;
@@ -3694,26 +3711,29 @@ namespace Legion {
         }
       }
       std::vector<LEGION_FIELD_MASK_FIELD_TYPE> to_delete;
-      for (std::map<LEGION_FIELD_MASK_FIELD_TYPE,LegionList<LayoutDescription*,
-                  LONG_BOUNDED_LIFETIME>>::iterator lit = 
-            layouts.begin(); lit != layouts.end(); lit++)
+      for (std::map<
+               LEGION_FIELD_MASK_FIELD_TYPE,
+               LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME>>::iterator
+               lit = layouts.begin();
+           lit != layouts.end(); lit++)
       {
         // If the bit is set, remove the layout descriptions
         if (lit->first & (1ULL << index))
         {
-          LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>
-            &descs = lit->second;
+          LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME>& descs =
+              lit->second;
           bool perform_delete = true;
-          for (LegionList<LayoutDescription*,LONG_BOUNDED_LIFETIME>::iterator
-                it = descs.begin(); it != descs.end(); /*nothing*/)
+          for (LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME>::iterator
+                   it = descs.begin();
+               it != descs.end();
+               /*nothing*/)
           {
             if ((*it)->allocated_fields.is_set(index))
             {
               if ((*it)->remove_reference())
                 delete (*it);
               it = descs.erase(it);
-            }
-            else 
+            } else
             {
               it++;
               perform_delete = false;
@@ -3723,15 +3743,16 @@ namespace Legion {
             to_delete.push_back(lit->first);
         }
       }
-      for (std::vector<LEGION_FIELD_MASK_FIELD_TYPE>::const_iterator it = 
-            to_delete.begin(); it != to_delete.end(); it++)
+      for (std::vector<LEGION_FIELD_MASK_FIELD_TYPE>::const_iterator it =
+               to_delete.begin();
+           it != to_delete.end(); it++)
         layouts.erase(*it);
     }
 
     //--------------------------------------------------------------------------
     RtEvent FieldSpaceNode::request_field_infos_copy(
-                            std::map<FieldID,FieldInfo> *copy, 
-                            AddressSpaceID source, RtUserEvent to_trigger) const
+        std::map<FieldID, FieldInfo>* copy, AddressSpaceID source,
+        RtUserEvent to_trigger) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -3740,7 +3761,7 @@ namespace Legion {
       if (is_owner())
       {
         RtEvent wait_on;
-        // May need to iterate this in the case of allocation pending 
+        // May need to iterate this in the case of allocation pending
         while (true)
         {
           if (wait_on.exists() && !wait_on.has_triggered())
@@ -3752,14 +3773,13 @@ namespace Legion {
               assert(to_trigger.exists());
 #endif
               DeferRequestFieldInfoArgs args(this, copy, source, to_trigger);
-              runtime->issue_runtime_meta_task(args, 
-                  LG_LATENCY_DEFERRED_PRIORITY, wait_on);
+              runtime->issue_runtime_meta_task(
+                  args, LG_LATENCY_DEFERRED_PRIORITY, wait_on);
               return to_trigger;
-            }
-            else
+            } else
               wait_on.wait();
           }
-          AutoLock n_lock(node_lock); 
+          AutoLock n_lock(node_lock);
           if (allocation_state == FIELD_ALLOC_INVALID)
           {
 #ifdef DEBUG_LEGION
@@ -3780,8 +3800,7 @@ namespace Legion {
               rez.serialize(to_trigger);
             }
             runtime->send_field_space_infos_request(target, rez);
-          }
-          else if (allocation_state == FIELD_ALLOC_READ_ONLY)
+          } else if (allocation_state == FIELD_ALLOC_READ_ONLY)
           {
             // We can send back a response, make them a reader if they
             // are not one already
@@ -3795,38 +3814,35 @@ namespace Legion {
                 RezCheck z(rez);
                 rez.serialize(copy);
                 rez.serialize<size_t>(field_infos.size());
-                for (std::map<FieldID,FieldInfo>::const_iterator it = 
-                      field_infos.begin(); it != field_infos.end(); it++)
+                for (std::map<FieldID, FieldInfo>::const_iterator it =
+                         field_infos.begin();
+                     it != field_infos.end(); it++)
                 {
                   rez.serialize(it->first);
                   it->second.serialize(rez);
                 }
-                std::set<AddressSpaceID>::const_iterator finder = 
-                  remote_field_infos.find(source);
+                std::set<AddressSpaceID>::const_iterator finder =
+                    remote_field_infos.find(source);
                 if (finder == remote_field_infos.end())
                 {
                   rez.serialize(handle);
                   remote_field_infos.insert(source);
-                }
-                else
+                } else
                   rez.serialize(FieldSpace::NO_SPACE);
                 rez.serialize(to_trigger);
               }
               runtime->send_field_space_infos_response(source, rez);
-            }
-            else
+            } else
             {
               *copy = field_infos;
               if (to_trigger.exists())
                 Runtime::trigger_event(to_trigger);
             }
-          }
-          else if (allocation_state == FIELD_ALLOC_PENDING)
+          } else if (allocation_state == FIELD_ALLOC_PENDING)
           {
             wait_on = pending_field_allocation;
             continue;
-          }
-          else
+          } else
           {
             // If we have allocation privileges we can send the response
             // but we can't make them a read-only copy
@@ -3840,8 +3856,9 @@ namespace Legion {
                 RezCheck z(rez);
                 rez.serialize(copy);
                 rez.serialize<size_t>(field_infos.size());
-                for (std::map<FieldID,FieldInfo>::const_iterator it = 
-                      field_infos.begin(); it != field_infos.end(); it++)
+                for (std::map<FieldID, FieldInfo>::const_iterator it =
+                         field_infos.begin();
+                     it != field_infos.end(); it++)
                 {
                   rez.serialize(it->first);
                   it->second.serialize(rez);
@@ -3850,8 +3867,7 @@ namespace Legion {
                 rez.serialize(to_trigger);
               }
               runtime->send_field_space_infos_response(source, rez);
-            }
-            else
+            } else
             {
               *copy = field_infos;
               if (to_trigger.exists())
@@ -3861,11 +3877,10 @@ namespace Legion {
           // Always break out if we make it here
           break;
         }
-      }
-      else
+      } else
       {
         // Not the owner
-        AutoLock n_lock(node_lock,1,false/*exclusive*/);
+        AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         // check to see if we lost the race
         if (allocation_state != FIELD_ALLOC_INVALID)
         {
@@ -3880,26 +3895,25 @@ namespace Legion {
               RezCheck z(rez);
               rez.serialize(copy);
               rez.serialize<size_t>(field_infos.size());
-              for (std::map<FieldID,FieldInfo>::const_iterator it = 
-                    field_infos.begin(); it != field_infos.end(); it++)
+              for (std::map<FieldID, FieldInfo>::const_iterator it =
+                       field_infos.begin();
+                   it != field_infos.end(); it++)
               {
                 rez.serialize(it->first);
                 it->second.serialize(rez);
               }
-              // We can't give them read-only privileges 
+              // We can't give them read-only privileges
               rez.serialize(FieldSpace::NO_SPACE);
               rez.serialize(to_trigger);
             }
             runtime->send_field_space_infos_response(source, rez);
-          }
-          else
+          } else
           {
             *copy = field_infos;
             if (to_trigger.exists())
               Runtime::trigger_event(to_trigger);
           }
-        }
-        else
+        } else
         {
           // Did not lose the race, send the request back to the owner
           if (!to_trigger.exists())
@@ -3920,7 +3934,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void FieldSpaceNode::record_read_only_infos(
-                                       const std::map<FieldID,FieldInfo> &infos)
+        const std::map<FieldID, FieldInfo>& infos)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -3935,15 +3949,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::process_allocator_response(Deserializer &derez)
+    void FieldSpaceNode::process_allocator_response(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
 #ifdef DEBUG_LEGION
       assert(!is_owner());
-      assert((allocation_state == FIELD_ALLOC_INVALID) || 
-              (allocation_state == FIELD_ALLOC_READ_ONLY) ||
-              (allocation_state == FIELD_ALLOC_COLLECTIVE)); 
+      assert(
+          (allocation_state == FIELD_ALLOC_INVALID) ||
+          (allocation_state == FIELD_ALLOC_READ_ONLY) ||
+          (allocation_state == FIELD_ALLOC_COLLECTIVE));
       assert(outstanding_allocators == 0);
 #endif
       if (allocation_state == FIELD_ALLOC_INVALID)
@@ -3968,7 +3983,7 @@ namespace Legion {
         derez.deserialize(num_indexes);
         for (unsigned idx = 0; idx < num_indexes; idx++)
         {
-          std::pair<unsigned,RtEvent> index;
+          std::pair<unsigned, RtEvent> index;
           derez.deserialize(index.first);
           derez.deserialize(index.second);
           available_indexes.push_back(index);
@@ -3980,16 +3995,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::process_allocator_invalidation(RtUserEvent done_event,
-                                         bool flush_allocation, bool need_merge)
+    void FieldSpaceNode::process_allocator_invalidation(
+        RtUserEvent done_event, bool flush_allocation, bool need_merge)
     //--------------------------------------------------------------------------
     {
       AutoLock n_lock(node_lock);
 #ifdef DEBUG_LEGION
       assert(!is_owner());
-      assert((allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
-             (allocation_state == FIELD_ALLOC_COLLECTIVE) ||
-             (allocation_state == FIELD_ALLOC_READ_ONLY));
+      assert(
+          (allocation_state == FIELD_ALLOC_EXCLUSIVE) ||
+          (allocation_state == FIELD_ALLOC_COLLECTIVE) ||
+          (allocation_state == FIELD_ALLOC_READ_ONLY));
 #endif
       Serializer rez;
       // It's possible to be in the read-only state even with a flush because
@@ -4000,20 +4016,20 @@ namespace Legion {
       {
         RezCheck z(rez);
         rez.serialize(handle);
-        rez.serialize<bool>(true); // allocation meta data
+        rez.serialize<bool>(true);  // allocation meta data
         rez.serialize<bool>(need_merge);
         rez.serialize(field_infos.size());
-        for (std::map<FieldID,FieldInfo>::iterator it = 
-              field_infos.begin(); it != field_infos.end(); /*nothing*/)
+        for (std::map<FieldID, FieldInfo>::iterator it = field_infos.begin();
+             it != field_infos.end();
+             /*nothing*/)
         {
           rez.serialize(it->first);
           it->second.serialize(rez);
           if (!it->second.local)
           {
-            std::map<FieldID,FieldInfo>::iterator to_delete = it++;
+            std::map<FieldID, FieldInfo>::iterator to_delete = it++;
             field_infos.erase(to_delete);
-          }
-          else
+          } else
             it++;
         }
         rez.serialize(unallocated_indexes);
@@ -4021,7 +4037,7 @@ namespace Legion {
         rez.serialize(available_indexes.size());
         while (!available_indexes.empty())
         {
-          std::pair<unsigned,RtEvent> &front = available_indexes.front();
+          std::pair<unsigned, RtEvent>& front = available_indexes.front();
           rez.serialize(front.first);
           rez.serialize(front.second);
           available_indexes.pop_front();
@@ -4029,37 +4045,37 @@ namespace Legion {
         rez.serialize(outstanding_allocators);
         outstanding_allocators = 0;
         rez.serialize(done_event);
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
-        assert((allocation_state == FIELD_ALLOC_READ_ONLY) ||
-               (allocation_state == FIELD_ALLOC_COLLECTIVE));
+        assert(
+            (allocation_state == FIELD_ALLOC_READ_ONLY) ||
+            (allocation_state == FIELD_ALLOC_COLLECTIVE));
 #endif
         RezCheck z(rez);
         rez.serialize(handle);
-        rez.serialize<bool>(false); // allocation meta data
+        rez.serialize<bool>(false);  // allocation meta data
         // Invalidate our field infos
-        for (std::map<FieldID,FieldInfo>::iterator it = 
-              field_infos.begin(); it != field_infos.end(); /*nothing*/)
+        for (std::map<FieldID, FieldInfo>::iterator it = field_infos.begin();
+             it != field_infos.end();
+             /*nothing*/)
         {
           if (!it->second.local)
           {
-            std::map<FieldID,FieldInfo>::iterator to_delete = it++;
+            std::map<FieldID, FieldInfo>::iterator to_delete = it++;
             field_infos.erase(to_delete);
-          }
-          else
+          } else
             it++;
         }
         rez.serialize(done_event);
       }
-      runtime->send_field_space_allocator_flush(owner_space, rez); 
+      runtime->send_field_space_allocator_flush(owner_space, rez);
       // back to the invalid state
       allocation_state = FIELD_ALLOC_INVALID;
     }
 
     //--------------------------------------------------------------------------
-    bool FieldSpaceNode::process_allocator_flush(Deserializer &derez)
+    bool FieldSpaceNode::process_allocator_flush(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -4089,12 +4105,13 @@ namespace Legion {
           derez.deserialize(num_available);
           for (unsigned idx = 0; idx < num_available; idx++)
           {
-            std::pair<unsigned,RtEvent> next;
+            std::pair<unsigned, RtEvent> next;
             derez.deserialize(next.first);
             derez.deserialize(next.second);
             bool found = false;
-            for (std::list<std::pair<unsigned,RtEvent> >::const_iterator it =
-                 available_indexes.begin(); it != available_indexes.end(); it++)
+            for (std::list<std::pair<unsigned, RtEvent>>::const_iterator it =
+                     available_indexes.begin();
+                 it != available_indexes.end(); it++)
             {
               if (it->first != next.first)
                 continue;
@@ -4105,8 +4122,7 @@ namespace Legion {
               available_indexes.push_back(next);
           }
           derez.advance_pointer(sizeof(outstanding_allocators));
-        }
-        else
+        } else
         {
           size_t num_infos;
           derez.deserialize(num_infos);
@@ -4125,7 +4141,7 @@ namespace Legion {
           derez.deserialize(num_available);
           for (unsigned idx = 0; idx < num_available; idx++)
           {
-            std::pair<unsigned,RtEvent> next;
+            std::pair<unsigned, RtEvent> next;
             derez.deserialize(next.first);
             derez.deserialize(next.second);
             available_indexes.push_back(next);
@@ -4137,8 +4153,9 @@ namespace Legion {
       }
 #ifdef DEBUG_LEGION
       assert(outstanding_invalidations > 0);
-      assert((allocation_state == FIELD_ALLOC_PENDING) ||
-             (allocation_state == FIELD_ALLOC_INVALID)); 
+      assert(
+          (allocation_state == FIELD_ALLOC_PENDING) ||
+          (allocation_state == FIELD_ALLOC_INVALID));
 #endif
       if ((--outstanding_invalidations == 0) &&
           (allocation_state == FIELD_ALLOC_PENDING))
@@ -4147,8 +4164,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FieldSpaceNode::process_allocator_free(Deserializer &derez,
-                                                AddressSpaceID source)
+    void FieldSpaceNode::process_allocator_free(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -4160,8 +4177,9 @@ namespace Legion {
       {
         AutoLock n_lock(node_lock);
 #ifdef DEBUG_LEGION
-        assert((allocation_state == FIELD_ALLOC_INVALID) ||
-               (allocation_state == FIELD_ALLOC_PENDING));
+        assert(
+            (allocation_state == FIELD_ALLOC_INVALID) ||
+            (allocation_state == FIELD_ALLOC_PENDING));
         if (allocation_state == FIELD_ALLOC_INVALID)
         {
           assert(remote_field_infos.size() == 1);
@@ -4184,23 +4202,22 @@ namespace Legion {
         derez.deserialize(num_indexes);
         for (unsigned idx = 0; idx < num_indexes; idx++)
         {
-          std::pair<unsigned,RtEvent> next;
+          std::pair<unsigned, RtEvent> next;
           derez.deserialize(next.first);
           derez.deserialize(next.second);
           available_indexes.push_back(next);
         }
         if (allocation_state == FIELD_ALLOC_INVALID)
           allocation_state = FIELD_ALLOC_READ_ONLY;
-      }
-      else
+      } else
         destroy_allocator(source);
     }
 
     //--------------------------------------------------------------------------
-    bool FieldSpaceNode::allocate_local_indexes(CustomSerdezID serdez,
-                                      const std::vector<size_t> &sizes,
-                                      const std::set<unsigned> &current_indexes,
-                                            std::vector<unsigned> &new_indexes)
+    bool FieldSpaceNode::allocate_local_indexes(
+        CustomSerdezID serdez, const std::vector<size_t>& sizes,
+        const std::set<unsigned>& current_indexes,
+        std::vector<unsigned>& new_indexes)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -4214,8 +4231,8 @@ namespace Legion {
         const size_t field_size = sizes[fidx];
         int chosen_index = -1;
         unsigned global_idx = LEGION_MAX_FIELDS - runtime->max_local_fields;
-        for (unsigned local_idx = 0; 
-              local_idx < local_index_infos.size(); local_idx++, global_idx++)
+        for (unsigned local_idx = 0; local_idx < local_index_infos.size();
+             local_idx++, global_idx++)
         {
           // If it's already been allocated in this context then
           // we can't use it
@@ -4233,13 +4250,12 @@ namespace Legion {
               break;
             }
             // Else different field size means we can't reuse it
-          }
-          else
+          } else
           {
             // Not in use, so we can assign the size and make
             // ourselves the first user
-            local_index_infos[local_idx] = 
-              std::pair<size_t,CustomSerdezID>(field_size, serdez);
+            local_index_infos[local_idx] =
+                std::pair<size_t, CustomSerdezID>(field_size, serdez);
             chosen_index = global_idx;
             break;
           }
@@ -4253,5 +4269,5 @@ namespace Legion {
       return true;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

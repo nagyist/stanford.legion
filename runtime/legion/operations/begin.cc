@@ -27,25 +27,23 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TraceBeginOp::TraceBeginOp(void)
-      : TraceOp()
+    TraceBeginOp::TraceBeginOp(void) : TraceOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     TraceBeginOp::~TraceBeginOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void TraceBeginOp::initialize_begin(InnerContext *ctx, LogicalTrace *tr,
-                                        Provenance *provenance)
+    void TraceBeginOp::initialize_begin(
+        InnerContext* ctx, LogicalTrace* tr, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      initialize(ctx,tr->has_physical_trace() ? EXECUTION_FENCE : MAPPING_FENCE,
-                  false/*need future*/, provenance);
+      initialize(
+          ctx, tr->has_physical_trace() ? EXECUTION_FENCE : MAPPING_FENCE,
+          false /*need future*/, provenance);
       trace = tr;
       tracing = false;
     }
@@ -61,7 +59,7 @@ namespace Legion {
     void TraceBeginOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      TraceOp::deactivate(false/*free*/);
+      TraceOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -93,11 +91,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // All our mapping dependences are satisfied, check to see if we're
-      // doing a physical replay, if we are then we need to refresh the 
+      // doing a physical replay, if we are then we need to refresh the
       // equivalence sets for all the templates
       if (trace->has_physical_trace())
       {
-        PhysicalTrace *physical = trace->get_physical_trace();
+        PhysicalTrace* physical = trace->get_physical_trace();
 #ifdef DEBUG_LEGION
         assert(!physical->has_current_template());
 #endif
@@ -118,9 +116,9 @@ namespace Legion {
     {
       if (trace->has_physical_trace())
       {
-        PhysicalTrace *physical = trace->get_physical_trace();
-        const bool replaying = physical->begin_physical_trace(this,
-            map_applied_conditions, execution_preconditions);
+        PhysicalTrace* physical = trace->get_physical_trace();
+        const bool replaying = physical->begin_physical_trace(
+            this, map_applied_conditions, execution_preconditions);
         // Tell the parent context whether we are replaying
         parent_ctx->record_physical_trace_replay(mapped_event, replaying);
       }
@@ -129,15 +127,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalTemplate* TraceBeginOp::create_fresh_template(
-                                                        PhysicalTrace *physical)
+        PhysicalTrace* physical)
     //--------------------------------------------------------------------------
     {
       return new PhysicalTemplate(physical, get_completion_event());
     }
 
     //--------------------------------------------------------------------------
-    bool TraceBeginOp::record_trace_hash(TraceRecognizer &recognizer, 
-                                         uint64_t opidx)
+    bool TraceBeginOp::record_trace_hash(
+        TraceRecognizer& recognizer, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       return false;
@@ -149,16 +147,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename OP>
-    ReplTraceBegin<OP>::ReplTraceBegin(void)
-      : OP()
+    ReplTraceBegin<OP>::ReplTraceBegin(void) : OP()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     template<typename OP>
-    void ReplTraceBegin<OP>::initialize_begin(ReplicateContext *ctx,
-                                              LogicalTrace *trace)
+    void ReplTraceBegin<OP>::initialize_begin(
+        ReplicateContext* ctx, LogicalTrace* trace)
     //--------------------------------------------------------------------------
     {
       // Allocate template status collective IDs if we might be checking
@@ -198,41 +194,41 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<typename OP>
     PhysicalTemplate* ReplTraceBegin<OP>::create_fresh_template(
-                                                        PhysicalTrace *physical)
+        PhysicalTrace* physical)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx =
-        dynamic_cast<ReplicateContext*>(this->parent_ctx);
+      ReplicateContext* repl_ctx =
+          dynamic_cast<ReplicateContext*>(this->parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx =
-        static_cast<ReplicateContext*>(this->parent_ctx);
+      ReplicateContext* repl_ctx =
+          static_cast<ReplicateContext*>(this->parent_ctx);
 #endif
-      return new ShardedPhysicalTemplate(physical, 
-          this->get_completion_event(), repl_ctx);
+      return new ShardedPhysicalTemplate(
+          physical, this->get_completion_event(), repl_ctx);
     }
 
     //--------------------------------------------------------------------------
     template<typename OP>
-    bool ReplTraceBegin<OP>::allreduce_template_status(bool &valid,
-                                                       bool acquired)
+    bool ReplTraceBegin<OP>::allreduce_template_status(
+        bool& valid, bool acquired)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!status_collective_ids.empty());
-      ReplicateContext *repl_ctx =
-        dynamic_cast<ReplicateContext*>(this->parent_ctx);
+      ReplicateContext* repl_ctx =
+          dynamic_cast<ReplicateContext*>(this->parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx =
-        static_cast<ReplicateContext*>(this->parent_ctx);
+      ReplicateContext* repl_ctx =
+          static_cast<ReplicateContext*>(this->parent_ctx);
 #endif
-      AllReduceCollective<typename OP::StatusReduction,false> 
-        allreduce(repl_ctx, status_collective_ids.back());  
+      AllReduceCollective<typename OP::StatusReduction, false> allreduce(
+          repl_ctx, status_collective_ids.back());
       if (!acquired)
         valid = false;
-      typename OP::TemplateStatus status = { valid, !acquired };
+      typename OP::TemplateStatus status = {valid, !acquired};
       status = allreduce.sync_all_reduce(status);
       valid = status.all_valid;
       status_collective_ids.pop_back();
@@ -247,12 +243,12 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(slow_barrier_id > 0);
       assert(slow_barrier == nullptr);
-      ReplicateContext *repl_ctx =
-        dynamic_cast<ReplicateContext*>(this->parent_ctx);
+      ReplicateContext* repl_ctx =
+          dynamic_cast<ReplicateContext*>(this->parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = 
-        static_cast<ReplicateContext*>(this->parent_ctx);
+      ReplicateContext* repl_ctx =
+          static_cast<ReplicateContext*>(this->parent_ctx);
 #endif
       slow_barrier = new SlowBarrier(repl_ctx, slow_barrier_id);
       slow_barrier->perform_collective_async();
@@ -268,28 +264,26 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTraceBeginOp::ReplTraceBeginOp(void)
-      : ReplTraceBegin<ReplBeginOp>()
+    ReplTraceBeginOp::ReplTraceBeginOp(void) : ReplTraceBegin<ReplBeginOp>()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplTraceBeginOp::~ReplTraceBeginOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ReplTraceBeginOp::initialize_begin(ReplicateContext *ctx, 
-                                       LogicalTrace *tr, Provenance *provenance)
+    void ReplTraceBeginOp::initialize_begin(
+        ReplicateContext* ctx, LogicalTrace* tr, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      initialize(ctx,tr->has_physical_trace() ? EXECUTION_FENCE : MAPPING_FENCE,
-                  false/*need future*/, provenance);
+      initialize(
+          ctx, tr->has_physical_trace() ? EXECUTION_FENCE : MAPPING_FENCE,
+          false /*need future*/, provenance);
       trace = tr;
       tracing = false;
-      ReplTraceBegin<ReplBeginOp>::initialize_begin(ctx, trace); 
+      ReplTraceBegin<ReplBeginOp>::initialize_begin(ctx, trace);
     }
 
     //--------------------------------------------------------------------------
@@ -303,7 +297,7 @@ namespace Legion {
     void ReplTraceBeginOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      ReplTraceBegin<ReplBeginOp>::deactivate(false/*free*/);
+      ReplTraceBegin<ReplBeginOp>::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -335,11 +329,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // All our mapping dependences are satisfied, check to see if we're
-      // doing a physical replay, if we are then we need to refresh the 
+      // doing a physical replay, if we are then we need to refresh the
       // equivalence sets for all the templates
       if (trace->has_physical_trace())
       {
-        PhysicalTrace *physical = trace->get_physical_trace();
+        PhysicalTrace* physical = trace->get_physical_trace();
 #ifdef DEBUG_LEGION
         assert(mapping_fence_barrier.exists());
         assert(!physical->has_current_template());
@@ -348,20 +342,18 @@ namespace Legion {
         physical->refresh_condition_sets(this, refresh_ready);
         // Have to do the mapping fence on the way in for physical traces
         // since we need to know everything is done mapping before testing
-        // preconditions of any templates. Note that this is safe to do in 
+        // preconditions of any templates. Note that this is safe to do in
         // parallel with the refresh since we're not going to look inside
-        // the equivalence sets until later and any refinements to the 
+        // the equivalence sets until later and any refinements to the
         // equivalence sets will do their own barriers across the shards
-        runtime->phase_barrier_arrive(mapping_fence_barrier, 1/*count*/);
+        runtime->phase_barrier_arrive(mapping_fence_barrier, 1 /*count*/);
         if (!refresh_ready.empty())
         {
           refresh_ready.insert(mapping_fence_barrier);
           enqueue_ready_operation(Runtime::merge_events(refresh_ready));
-        }
-        else
+        } else
           enqueue_ready_operation(mapping_fence_barrier);
-      }
-      else
+      } else
         enqueue_ready_operation();
     }
 
@@ -374,9 +366,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(fence_kind == EXECUTION_FENCE);
 #endif
-        PhysicalTrace *physical = trace->get_physical_trace();
-        const bool replaying = physical->begin_physical_trace(this,
-            map_applied_conditions, execution_preconditions);
+        PhysicalTrace* physical = trace->get_physical_trace();
+        const bool replaying = physical->begin_physical_trace(
+            this, map_applied_conditions, execution_preconditions);
         if (!replaying)
           // Have to do the slow barrier here to make sure that
           // all the shards have made their templates for recording
@@ -384,10 +376,10 @@ namespace Legion {
         // Tell the parent context whether we are replaying
         parent_ctx->record_physical_trace_replay(mapped_event, replaying);
         // Do the normal physical fence analysis
-        parent_ctx->perform_execution_fence_analysis(this,
-                execution_preconditions);
-        parent_ctx->update_current_execution_fence(this, 
-                get_completion_event());
+        parent_ctx->perform_execution_fence_analysis(
+            this, execution_preconditions);
+        parent_ctx->update_current_execution_fence(
+            this, get_completion_event());
         // Now we wrap up the fence, we already did the mapping fence
         // during the trigger ready stage of the pipeline
         if (!map_applied_conditions.empty())
@@ -396,18 +388,17 @@ namespace Legion {
           complete_mapping();
         record_completion_effects(execution_preconditions);
         complete_execution();
-      }
-      else
+      } else
         ReplTraceOp::trigger_mapping();
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    bool ReplTraceBeginOp::record_trace_hash(TraceRecognizer &recognizer,
-                                             uint64_t opidx)
+    bool ReplTraceBeginOp::record_trace_hash(
+        TraceRecognizer& recognizer, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       return false;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -31,46 +31,45 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    UpdateAnalysis::UpdateAnalysis(Operation *o, unsigned idx,
-                    const RegionRequirement &req, RegionNode *rn,
-                    const PhysicalTraceInfo &t_info, const ApEvent pre,
-                    const ApEvent term, const bool check, const bool record)
-      : CollectiveCopyFillAnalysis(o, idx, rn, true/*on heap*/,
-                                   t_info, IS_WRITE(req)),
+    UpdateAnalysis::UpdateAnalysis(
+        Operation* o, unsigned idx, const RegionRequirement& req,
+        RegionNode* rn, const PhysicalTraceInfo& t_info, const ApEvent pre,
+        const ApEvent term, const bool check, const bool record)
+      : CollectiveCopyFillAnalysis(
+            o, idx, rn, true /*on heap*/, t_info, IS_WRITE(req)),
         usage(req), precondition(pre), term_event(term),
         // Don't support checking initialized for simultaneous because of
         // must epoch operations which need a total order on mapping points
-        check_initialized(check && !IS_WRITE_DISCARD(usage) &&
-            !IS_SIMULT(usage)), record_valid(record), output_aggregator(nullptr)
+        check_initialized(
+            check && !IS_WRITE_DISCARD(usage) && !IS_SIMULT(usage)),
+        record_valid(record), output_aggregator(nullptr)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    UpdateAnalysis::UpdateAnalysis(AddressSpaceID src, 
-                     AddressSpaceID prev, Operation *o, unsigned idx, 
-                     const RegionUsage &use, RegionNode *rn,
-                     std::vector<PhysicalManager*> &&target_insts,
-                     LegionVector<FieldMaskSet<InstanceView> > &&target_vws,
-                     std::vector<IndividualView*> &&source_vws,
-                     const PhysicalTraceInfo &info, CollectiveMapping *mapping,
-                     const RtEvent user_reg, const ApEvent pre, 
-                     const ApEvent term, const bool check, 
-                     const bool record, const bool first_local)
-      : CollectiveCopyFillAnalysis(src, prev, o, idx, rn,
-          true/*on heap*/, std::move(target_insts), std::move(target_vws), 
-          std::move(source_vws), info, mapping, first_local, IS_WRITE(use)),
+    UpdateAnalysis::UpdateAnalysis(
+        AddressSpaceID src, AddressSpaceID prev, Operation* o, unsigned idx,
+        const RegionUsage& use, RegionNode* rn,
+        std::vector<PhysicalManager*>&& target_insts,
+        LegionVector<FieldMaskSet<InstanceView> >&& target_vws,
+        std::vector<IndividualView*>&& source_vws,
+        const PhysicalTraceInfo& info, CollectiveMapping* mapping,
+        const RtEvent user_reg, const ApEvent pre, const ApEvent term,
+        const bool check, const bool record, const bool first_local)
+      : CollectiveCopyFillAnalysis(
+            src, prev, o, idx, rn, true /*on heap*/, std::move(target_insts),
+            std::move(target_vws), std::move(source_vws), info, mapping,
+            first_local, IS_WRITE(use)),
         usage(use), precondition(pre), term_event(term),
         check_initialized(check), record_valid(record),
         output_aggregator(nullptr), remote_user_registered(user_reg)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UpdateAnalysis::~UpdateAnalysis(void)
     //--------------------------------------------------------------------------
-    { 
+    {
       // If we didn't perform a registration and someone wanted to know that
       // the registration was done then we need to trigger that
       if (user_registered.exists())
@@ -78,8 +77,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void UpdateAnalysis::record_uninitialized(const FieldMask &uninit,
-                                              std::set<RtEvent> &applied_events)
+    void UpdateAnalysis::record_uninitialized(
+        const FieldMask& uninit, std::set<RtEvent>& applied_events)
     //--------------------------------------------------------------------------
     {
       if (!uninitialized)
@@ -94,27 +93,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool UpdateAnalysis::perform_analysis(EquivalenceSet *set,
-                                          IndexSpaceExpression *expr,
-                                          const bool expr_covers,
-                                          const FieldMask &mask,
-                                          std::set<RtEvent> &applied_events,
-                                          const bool already_deferred)
+    bool UpdateAnalysis::perform_analysis(
+        EquivalenceSet* set, IndexSpaceExpression* expr, const bool expr_covers,
+        const FieldMask& mask, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //--------------------------------------------------------------------------
     {
-      set->update_set(*this, expr, expr_covers, mask,
-                      applied_events, already_deferred);
+      set->update_set(
+          *this, expr, expr_covers, mask, applied_events, already_deferred);
       // Perform a check for migration
       return true;
     }
 
     //--------------------------------------------------------------------------
-    RtEvent UpdateAnalysis::perform_remote(RtEvent perform_precondition,
-                                           std::set<RtEvent> &applied_events,
-                                           const bool already_deferred)
+    RtEvent UpdateAnalysis::perform_remote(
+        RtEvent perform_precondition, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //--------------------------------------------------------------------------
     {
-      if (perform_precondition.exists() && 
+      if (perform_precondition.exists() &&
           !perform_precondition.has_triggered())
         return defer_remote(perform_precondition, applied_events);
       // Easy out if we don't have any remote sets
@@ -130,13 +127,13 @@ namespace Legion {
         assert(original_source == runtime->address_space);
         assert(!user_registered.exists());
 #endif
-        user_registered = Runtime::create_rt_user_event(); 
+        user_registered = Runtime::create_rt_user_event();
         remote_user_registered = user_registered;
       }
       std::set<RtEvent> remote_events;
-      for (LegionMap<AddressSpaceID,
-                     FieldMaskSet<EquivalenceSet> >::const_iterator 
-            rit = remote_sets.begin(); rit != remote_sets.end(); rit++)
+      for (LegionMap<AddressSpaceID, FieldMaskSet<EquivalenceSet> >::
+               const_iterator rit = remote_sets.begin();
+           rit != remote_sets.end(); rit++)
       {
 #ifdef DEBUG_LEGION
         assert(!rit->second.empty());
@@ -149,8 +146,9 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(original_source);
           rez.serialize<size_t>(rit->second.size());
-          for (FieldMaskSet<EquivalenceSet>::const_iterator it = 
-                rit->second.begin(); it != rit->second.end(); it++)
+          for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+                   rit->second.begin();
+               it != rit->second.end(); it++)
           {
             rez.serialize(it->first->did);
             rez.serialize(it->second);
@@ -165,7 +163,8 @@ namespace Legion {
             rez.serialize(target_instances[idx]->did);
             rez.serialize<size_t>(target_views[idx].size());
             for (FieldMaskSet<InstanceView>::const_iterator it =
-                 target_views[idx].begin(); it != target_views[idx].end(); it++)
+                     target_views[idx].begin();
+                 it != target_views[idx].end(); it++)
             {
               rez.serialize(it->first->did);
               rez.serialize(it->second);
@@ -177,13 +176,13 @@ namespace Legion {
           trace_info.pack_trace_info(rez);
           // We only need to pack the collective mapping once when going
           // from the origin space to the next space
-          CollectiveMapping *mapping = get_replicated_mapping();
-          if ((mapping != nullptr) && (original_source == runtime->address_space))
+          CollectiveMapping* mapping = get_replicated_mapping();
+          if ((mapping != nullptr) &&
+              (original_source == runtime->address_space))
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
-          }
-          else
+          } else
             rez.serialize<size_t>(0);
           rez.serialize(precondition);
           rez.serialize(term_event);
@@ -201,12 +200,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent UpdateAnalysis::perform_updates(RtEvent perform_precondition,
-                                            std::set<RtEvent> &applied_events,
-                                            const bool already_deferred)
+    RtEvent UpdateAnalysis::perform_updates(
+        RtEvent perform_precondition, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //--------------------------------------------------------------------------
     {
-      if (perform_precondition.exists() && 
+      if (perform_precondition.exists() &&
           !perform_precondition.has_triggered())
         return defer_updates(perform_precondition, applied_events);
       // Report any uninitialized data now that we know the traversal is done
@@ -216,16 +215,17 @@ namespace Legion {
         assert(check_initialized);
         assert(uninitialized_reported.exists());
 #endif
-        region->report_uninitialized_usage(op, index, uninitialized,
-                                           uninitialized_reported);
+        region->report_uninitialized_usage(
+            op, index, uninitialized, uninitialized_reported);
       }
       if (!input_aggregators.empty())
       {
 #ifndef NON_AGGRESSIVE_AGGREGATORS
         const bool is_local = (original_source == runtime->address_space);
 #endif
-        for (std::map<RtEvent,CopyFillAggregator*>::const_iterator it = 
-              input_aggregators.begin(); it != input_aggregators.end(); it++)
+        for (std::map<RtEvent, CopyFillAggregator*>::const_iterator it =
+                 input_aggregators.begin();
+             it != input_aggregators.end(); it++)
         {
           it->second->issue_updates(trace_info, precondition);
 #ifdef NON_AGGRESSIVE_AGGREGATORS
@@ -239,8 +239,7 @@ namespace Legion {
               if (!it->second->guard_postcondition.has_triggered())
                 guard_events.insert(it->second->guard_postcondition);
               applied_events.insert(it->second->effects_applied);
-            }
-            else
+            } else
               guard_events.insert(it->second->effects_applied);
           }
 #endif
@@ -255,11 +254,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent UpdateAnalysis::perform_registration(RtEvent precondition,
-                                const RegionUsage &usage,
-                                std::set<RtEvent> &applied_events,
-                                ApEvent init_precondition, ApEvent termination,
-                                ApEvent &instances_ready, bool symbolic)
+    RtEvent UpdateAnalysis::perform_registration(
+        RtEvent precondition, const RegionUsage& usage,
+        std::set<RtEvent>& applied_events, ApEvent init_precondition,
+        ApEvent termination, ApEvent& instances_ready, bool symbolic)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -268,14 +266,15 @@ namespace Legion {
       assert(original_source == runtime->address_space);
 #endif
       if (precondition.exists() && !precondition.has_triggered())
-        return defer_registration(precondition, usage, applied_events,
-         trace_info, init_precondition, termination, instances_ready, symbolic);
+        return defer_registration(
+            precondition, usage, applied_events, trace_info, init_precondition,
+            termination, instances_ready, symbolic);
 
       // Invoke the base implementation to see if we actually do it now
-      const RtEvent registered = 
-        CollectiveCopyFillAnalysis::perform_registration(precondition,
-                              usage, applied_events, init_precondition,
-                              termination, instances_ready, symbolic);
+      const RtEvent registered =
+          CollectiveCopyFillAnalysis::perform_registration(
+              precondition, usage, applied_events, init_precondition,
+              termination, instances_ready, symbolic);
       // If we're doing a collective read-write then check to make sure that
       // we have exactly one arrival on each of the instances, if we don't
       // then we're not going to have the isolation that we expect. We make
@@ -287,12 +286,15 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(IS_COLLECTIVE(usage));
 #endif
-        for (std::map<InstanceView*,size_t>::const_iterator it =
-              collective_arrivals.begin(); it !=
-              collective_arrivals.end(); it++)
-          if ((it->second > 1) && (it->first->is_individual_view() ||
-              (it->first->as_collective_view()->local_views.size()<it->second)))
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
+        for (std::map<InstanceView*, size_t>::const_iterator it =
+                 collective_arrivals.begin();
+             it != collective_arrivals.end(); it++)
+          if ((it->second > 1) &&
+              (it->first->is_individual_view() ||
+               (it->first->as_collective_view()->local_views.size() <
+                it->second)))
+            REPORT_LEGION_ERROR(
+                ERROR_INVALID_MAPPER_OUTPUT,
                 "Illegal mapper output: detected multiple write-collective "
                 "users of the same instance on region requirement %d of %s "
                 "(UID %lld). For read-write collectives it is mandatory "
@@ -308,19 +310,19 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ApEvent UpdateAnalysis::perform_output(RtEvent perform_precondition,
-                                           std::set<RtEvent> &applied_events,
-                                           const bool already_deferred)
+    ApEvent UpdateAnalysis::perform_output(
+        RtEvent perform_precondition, std::set<RtEvent>& applied_events,
+        const bool already_deferred)
     //--------------------------------------------------------------------------
     {
-      if (perform_precondition.exists() && 
+      if (perform_precondition.exists() &&
           !perform_precondition.has_triggered())
-        return defer_output(perform_precondition, trace_info,
-            false/*track*/, applied_events);
+        return defer_output(
+            perform_precondition, trace_info, false /*track*/, applied_events);
       if (output_aggregator != nullptr)
       {
-        output_aggregator->issue_updates(trace_info, term_event,
-                                         true/*restricted output*/);
+        output_aggregator->issue_updates(
+            trace_info, term_event, true /*restricted output*/);
         if (output_aggregator->effects_applied.has_triggered())
           applied_events.insert(output_aggregator->effects_applied);
         if (output_aggregator->release_guards(applied_events))
@@ -330,8 +332,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void UpdateAnalysis::handle_remote_updates(Deserializer &derez, 
-                                                        AddressSpaceID previous)
+    /*static*/ void UpdateAnalysis::handle_remote_updates(
+        Deserializer& derez, AddressSpaceID previous)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -348,13 +350,13 @@ namespace Legion {
         DistributedID did;
         derez.deserialize(did);
         RtEvent ready;
-        eq_sets[idx] = runtime->find_or_request_equivalence_set(did, ready); 
+        eq_sets[idx] = runtime->find_or_request_equivalence_set(did, ready);
         if (ready.exists())
           ready_events.insert(ready);
         derez.deserialize(eq_masks[idx]);
         user_mask |= eq_masks[idx];
       }
-      RemoteOp *op = RemoteOp::unpack_remote_operation(derez);
+      RemoteOp* op = RemoteOp::unpack_remote_operation(derez);
       unsigned index;
       derez.deserialize(index);
       LogicalRegion handle;
@@ -378,7 +380,7 @@ namespace Legion {
         for (unsigned idx2 = 0; idx2 < num_views; idx2++)
         {
           derez.deserialize(did);
-          LogicalView *view = runtime->find_or_request_logical_view(did, ready);
+          LogicalView* view = runtime->find_or_request_logical_view(did, ready);
           if (ready.exists())
             ready_events.insert(ready);
           FieldMask mask;
@@ -394,19 +396,21 @@ namespace Legion {
         DistributedID did;
         derez.deserialize(did);
         RtEvent ready;
-        LogicalView *view = runtime->find_or_request_logical_view(did, ready);
+        LogicalView* view = runtime->find_or_request_logical_view(did, ready);
         source_views[idx] = static_cast<IndividualView*>(view);
         if (ready.exists())
           ready_events.insert(ready);
       }
-      std::set<RtEvent> deferral_events, applied_events; 
+      std::set<RtEvent> deferral_events, applied_events;
       PhysicalTraceInfo trace_info =
-        PhysicalTraceInfo::unpack_trace_info(derez);
+          PhysicalTraceInfo::unpack_trace_info(derez);
       bool first_local = true;
       size_t collective_mapping_size;
       derez.deserialize(collective_mapping_size);
-      CollectiveMapping *collective_mapping = ((collective_mapping_size) > 0) ?
-        new CollectiveMapping(derez, collective_mapping_size) : nullptr;
+      CollectiveMapping* collective_mapping =
+          ((collective_mapping_size) > 0) ?
+              new CollectiveMapping(derez, collective_mapping_size) :
+              nullptr;
       if (collective_mapping != nullptr)
         derez.deserialize<bool>(first_local);
       ApEvent precondition;
@@ -424,41 +428,43 @@ namespace Legion {
       bool record_valid;
       derez.deserialize(record_valid);
 
-      RegionNode *node = runtime->get_node(handle);
+      RegionNode* node = runtime->get_node(handle);
       // This takes ownership of the remote operation
-      UpdateAnalysis *analysis = new UpdateAnalysis(original_source,
-        previous, op, index, usage, node, std::move(targets), 
-        std::move(target_views), std::move(source_views), trace_info,
-        collective_mapping, remote_user_registered, precondition,
-        term_event, check_initialized, record_valid, first_local);
+      UpdateAnalysis* analysis = new UpdateAnalysis(
+          original_source, previous, op, index, usage, node, std::move(targets),
+          std::move(target_views), std::move(source_views), trace_info,
+          collective_mapping, remote_user_registered, precondition, term_event,
+          check_initialized, record_valid, first_local);
       analysis->add_reference();
       // Make sure that all our pointers are ready
       RtEvent ready_event;
       if (!ready_events.empty())
         ready_event = Runtime::merge_events(ready_events);
       for (unsigned idx = 0; idx < eq_sets.size(); idx++)
-        analysis->analyze(eq_sets[idx], eq_masks[idx], deferral_events, 
-                          applied_events, ready_event);
+        analysis->analyze(
+            eq_sets[idx], eq_masks[idx], deferral_events, applied_events,
+            ready_event);
       const RtEvent traversal_done = deferral_events.empty() ?
-        RtEvent::NO_RT_EVENT : Runtime::merge_events(deferral_events);
+                                         RtEvent::NO_RT_EVENT :
+                                         Runtime::merge_events(deferral_events);
       std::set<RtEvent> update_events;
       // If we have remote messages to send do that now
       if (traversal_done.exists() || analysis->has_remote_sets())
       {
-        const RtEvent remote_ready = 
-          analysis->perform_remote(traversal_done, applied_events);
+        const RtEvent remote_ready =
+            analysis->perform_remote(traversal_done, applied_events);
         if (remote_ready.exists())
           update_events.insert(remote_ready);
       }
       // Then perform the updates
       // Note that we need to capture all the effects of these updates
-      // before we can consider them applied, so we can't use the 
+      // before we can consider them applied, so we can't use the
       // applied_events data structure here
-      const RtEvent updates_ready = 
-        analysis->perform_updates(traversal_done, update_events);
+      const RtEvent updates_ready =
+          analysis->perform_updates(traversal_done, update_events);
       if (updates_ready.exists())
         update_events.insert(updates_ready);
-      // We can trigger our updated event done when all the guards are done 
+      // We can trigger our updated event done when all the guards are done
       if (!update_events.empty())
         Runtime::trigger_event(updated, Runtime::merge_events(update_events));
       else
@@ -475,5 +481,5 @@ namespace Legion {
         delete analysis;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

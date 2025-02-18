@@ -20,34 +20,33 @@
 
 namespace Legion {
 
-    //--------------------------------------------------------------------------
-    template<typename PT, unsigned DIM>
-    inline void ArgumentMap::set_point_arg(const PT point[DIM], 
-                                           const UntypedBuffer &arg, 
-                                           bool replace/*= false*/)
-    //--------------------------------------------------------------------------
-    {
-      static_assert(DIM <= DomainPoint::MAX_POINT_DIM,
-          "ArgumentMap DIM is larger than LEGION_MAX_DIM");  
-      DomainPoint dp;
-      dp.dim = DIM;
-      for (unsigned idx = 0; idx < DIM; idx++)
-        dp.point_data[idx] = point[idx];
-      set_point(dp, arg, replace);
-    }
+  //--------------------------------------------------------------------------
+  template<typename PT, unsigned DIM>
+  inline void ArgumentMap::set_point_arg(
+      const PT point[DIM], const UntypedBuffer& arg, bool replace /*= false*/)
+  //--------------------------------------------------------------------------
+  {
+    static_assert(
+        DIM <= DomainPoint::MAX_POINT_DIM,
+        "ArgumentMap DIM is larger than LEGION_MAX_DIM");
+    DomainPoint dp;
+    dp.dim = DIM;
+    for (unsigned idx = 0; idx < DIM; idx++) dp.point_data[idx] = point[idx];
+    set_point(dp, arg, replace);
+  }
 
-    //--------------------------------------------------------------------------
-    template<typename PT, unsigned DIM>
-    inline bool ArgumentMap::remove_point(const PT point[DIM])
-    //--------------------------------------------------------------------------
-    {
-      static_assert(DIM <= DomainPoint::MAX_POINT_DIM,
-          "ArgumentMap DIM is larger than LEGION_MAX_DIM");
-      DomainPoint dp;
-      dp.dim = DIM;
-      for (unsigned idx = 0; idx < DIM; idx++)
-        dp.point_data[idx] = point[idx];
-      return remove_point(dp);
-    }
+  //--------------------------------------------------------------------------
+  template<typename PT, unsigned DIM>
+  inline bool ArgumentMap::remove_point(const PT point[DIM])
+  //--------------------------------------------------------------------------
+  {
+    static_assert(
+        DIM <= DomainPoint::MAX_POINT_DIM,
+        "ArgumentMap DIM is larger than LEGION_MAX_DIM");
+    DomainPoint dp;
+    dp.dim = DIM;
+    for (unsigned idx = 0; idx < DIM; idx++) dp.point_data[idx] = point[idx];
+    return remove_point(dp);
+  }
 
-} // namespace Legion
+}  // namespace Legion

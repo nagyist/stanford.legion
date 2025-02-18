@@ -18,29 +18,29 @@
 
 #include "legion/api/types.h"
 
-#define REPORT_LEGION_FATAL(code, fmt, ...)               \
-{                                                         \
-char message[4096];                                       \
-snprintf(message, 4096, fmt, ##__VA_ARGS__);              \
-Legion::Internal::Runtime::report_fatal_message(          \
-code, __FILE__, __LINE__, message);                       \
-}
+#define REPORT_LEGION_FATAL(code, fmt, ...)          \
+  {                                                  \
+    char message[4096];                              \
+    snprintf(message, 4096, fmt, ##__VA_ARGS__);     \
+    Legion::Internal::Runtime::report_fatal_message( \
+        code, __FILE__, __LINE__, message);          \
+  }
 
-#define REPORT_LEGION_ERROR(code, fmt, ...)               \
-{                                                         \
-char message[4096];                                       \
-snprintf(message, 4096, fmt, ##__VA_ARGS__);              \
-Legion::Internal::Runtime::report_error_message(          \
-code, __FILE__, __LINE__, message);                       \
-}
+#define REPORT_LEGION_ERROR(code, fmt, ...)          \
+  {                                                  \
+    char message[4096];                              \
+    snprintf(message, 4096, fmt, ##__VA_ARGS__);     \
+    Legion::Internal::Runtime::report_error_message( \
+        code, __FILE__, __LINE__, message);          \
+  }
 
-#define REPORT_LEGION_WARNING(code, fmt, ...)             \
-{                                                         \
-char message[4096];                                       \
-snprintf(message, 4096, fmt, ##__VA_ARGS__);              \
-Legion::Internal::Runtime::report_warning_message(        \
-code, __FILE__, __LINE__, message);                       \
-}
+#define REPORT_LEGION_WARNING(code, fmt, ...)          \
+  {                                                    \
+    char message[4096];                                \
+    snprintf(message, 4096, fmt, ##__VA_ARGS__);       \
+    Legion::Internal::Runtime::report_warning_message( \
+        code, __FILE__, __LINE__, message);            \
+  }
 
 // The following enums are all re-exported by
 // namespace Legion. These versions are here to facilitate the
@@ -400,7 +400,7 @@ typedef enum legion_error_t {
   ERROR_ATTACH_OPERATION_MISSING_POINTER = 546,
   ERROR_RESERVED_VARIANT_ID = 547,
   ERROR_NON_DENSE_RECTANGLE = 548,
-  ERROR_LIBRARY_COUNT_MISMATCH = 549, 
+  ERROR_LIBRARY_COUNT_MISMATCH = 549,
   ERROR_MPI_INTEROP_MISCONFIGURATION = 550,
   ERROR_NUMBER_SRC_INDIRECT_REQUIREMENTS = 551,
   ERROR_NUMBER_DST_INDIRECT_REQUIREMENTS = 552,
@@ -465,7 +465,6 @@ typedef enum legion_error_t {
   ERROR_INVALID_CONCURRENT_ID = 631,
   ERROR_DUPLICATE_CONCURRENT_ID = 632,
 
-
   LEGION_WARNING_FUTURE_NONLEAF = 1000,
   LEGION_WARNING_BLOCKING_EMPTY = 1001,
   LEGION_WARNING_WAITING_ALL_FUTURES = 1002,
@@ -511,7 +510,7 @@ typedef enum legion_error_t {
   LEGION_WARNING_MAPPER_REQUESTED_POST = 1088,
   LEGION_WARNING_IGNORING_RELEASE_REQUEST = 1089,
   LEGION_WARNING_PRUNE_DEPTH_EXCEEDED = 1090,
-  LEGION_WARNING_GENERIC_ACCESSOR = 1091, 
+  LEGION_WARNING_GENERIC_ACCESSOR = 1091,
   LEGION_WARNING_UNUSED_PROFILING_FILE_NAME = 1092,
   LEGION_WARNING_INVALID_PRIORITY_CHANGE = 1093,
   LEGION_WARNING_EXTERNAL_ATTACH_OPERATION = 1094,
@@ -544,16 +543,15 @@ typedef enum legion_error_t {
   LEGION_WARNING_UNBOUND_MEMORY_POOL = 1121,
   LEGION_WARNING_TRACING_UNBOUND_MEMORY_POOL = 1122,
   LEGION_WARNING_DYNAMIC_CONCURRENT_REG = 1123,
-  
-  
+
   LEGION_FATAL_MUST_EPOCH_NOADDRESS = 2000,
   LEGION_FATAL_MUST_EPOCH_NOTASKS = 2001,
   LEGION_FATAL_DEFAULT_MAPPER_ERROR = 2002,
   LEGION_FATAL_SHIM_MAPPER_SUPPORT = 2006,
   LEGION_FATAL_UNKNOWN_FIELD_ID = 2007,
   LEGION_FATAL_RESTRICTED_SIMULTANEOUS = 2008,
-  LEGION_FATAL_UNIMPLEMENTED_FEATURE = 2009,  
-  LEGION_FATAL_INCONSISTENT_PHI_VIEW = 2010, 
+  LEGION_FATAL_UNIMPLEMENTED_FEATURE = 2009,
+  LEGION_FATAL_INCONSISTENT_PHI_VIEW = 2010,
   LEGION_FATAL_EXCEEDED_LIBRARY_ID_OFFSET = 2011,
   LEGION_FATAL_SEPARATE_RUNTIME_INSTANCES = 2012,
   LEGION_FATAL_UNSUPPORTED_CONSENSUS_SIZE = 2013,
@@ -566,8 +564,8 @@ typedef enum legion_error_t {
   LEGION_FATAL_NO_CRITICAL_PATH_DYNAMIC_COLLECTIVES = 2020,
   LEGION_FATAL_UNSUPPORTED_HANDSHAKE_PARTICIPANTS = 2021,
   LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS = 2022,
-  
-}  legion_error_t;
+
+} legion_error_t;
 typedef legion_error_t LegionErrorType;
 
 namespace Legion {
@@ -592,18 +590,18 @@ namespace Legion {
      * and having them propagate up the task tree to either be handled or
      * to prune out tasks all the way to the root of the task tree.
      * Ultimately we want this to be the basis for better error handling
-     * so we don't just exit processes but clean up and tear down the 
+     * so we don't just exit processes but clean up and tear down the
      * runtime elegantly even when things go wrong.
      */
     class Exception : public Realm::LoggerMessage {
     public:
-      Exception(ExceptionType type, const Operation *op = nullptr);
-      Exception(const Exception &rhs) = delete;
-      Exception(Exception &&rhs) = delete;
+      Exception(ExceptionType type, const Operation* op = nullptr);
+      Exception(const Exception& rhs) = delete;
+      Exception(Exception&& rhs) = delete;
       ~Exception(void);
     public:
-      Exception& operator=(const Exception &rhs) = delete;
-      Exception& operator=(Exception &&rhs) = delete;
+      Exception& operator=(const Exception& rhs) = delete;
+      Exception& operator=(Exception&& rhs) = delete;
       using Realm::LoggerMessage::operator<<;
       Exception& operator<<(Memory memory);
       Exception& operator<<(Processor processor);
@@ -612,11 +610,11 @@ namespace Legion {
       Exception& operator<<(PhysicalInstance inst);
       Exception& operator<<(LayoutConstraintKind kind);
     public:
-      const Operation *const op;
+      const Operation* const op;
       const ExceptionType type;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_EXCEPTION_H__
+#endif  // __LEGION_EXCEPTION_H__

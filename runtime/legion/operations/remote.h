@@ -29,78 +29,81 @@ namespace Legion {
      */
     class RemoteOp : public Operation {
     public:
-      struct DeferRemoteOpDeletionArgs : 
-        public LgTaskArgs<DeferRemoteOpDeletionArgs> {
+      struct DeferRemoteOpDeletionArgs
+        : public LgTaskArgs<DeferRemoteOpDeletionArgs> {
       public:
         static const LgTaskID TASK_ID = LG_DEFER_REMOTE_OP_DELETION_TASK_ID;
       public:
-        DeferRemoteOpDeletionArgs(Operation *o)
-          : LgTaskArgs<DeferRemoteOpDeletionArgs>(o->get_unique_op_id()), 
-            op(o) { }
+        DeferRemoteOpDeletionArgs(Operation* o)
+          : LgTaskArgs<DeferRemoteOpDeletionArgs>(o->get_unique_op_id()), op(o)
+        { }
       public:
-        Operation *const op;
+        Operation* const op;
       };
     public:
-      RemoteOp(Operation *ptr, AddressSpaceID src);
-      RemoteOp(const RemoteOp &rhs) = delete;
+      RemoteOp(Operation* ptr, AddressSpaceID src);
+      RemoteOp(const RemoteOp& rhs) = delete;
       virtual ~RemoteOp(void);
     public:
-      RemoteOp& operator=(const RemoteOp &rhs) = delete;
+      RemoteOp& operator=(const RemoteOp& rhs) = delete;
     public:
-      virtual void unpack(Deserializer &derez) = 0;
+      virtual void unpack(Deserializer& derez) = 0;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const = 0;
       virtual OpKind get_operation_kind(void) const = 0;
-      virtual Operation* get_origin_operation(void) 
-        { std::abort(); } // should never be called on remote ops
-      virtual std::map<PhysicalManager*,unsigned>*
-                                       get_acquired_instances_ref(void);
-      virtual int add_copy_profiling_request(const PhysicalTraceInfo &info,
-                               Realm::ProfilingRequestSet &requests,
-                               bool fill, unsigned count = 1);
-      virtual void report_uninitialized_usage(const unsigned index,
-                                              const char *field_string,
-                                              RtUserEvent reported);
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const = 0;
+      virtual Operation* get_origin_operation(void)
+      {
+        std::abort();
+      }  // should never be called on remote ops
+      virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
+          void);
+      virtual int add_copy_profiling_request(
+          const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
+          bool fill, unsigned count = 1);
+      virtual void report_uninitialized_usage(
+          const unsigned index, const char* field_string, RtUserEvent reported);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const = 0;
     public:
       void defer_deletion(RtEvent precondition);
-      void pack_remote_base(Serializer &rez) const;
-      void unpack_remote_base(Deserializer &derez);
-      void pack_profiling_requests(Serializer &rez, 
-                                   std::set<RtEvent> &applied) const;
-      void unpack_profiling_requests(Deserializer &derez);
-      static void handle_deferred_deletion(const void *args);
+      void pack_remote_base(Serializer& rez) const;
+      void unpack_remote_base(Deserializer& derez);
+      void pack_profiling_requests(
+          Serializer& rez, std::set<RtEvent>& applied) const;
+      void unpack_profiling_requests(Deserializer& derez);
+      static void handle_deferred_deletion(const void* args);
       // Caller takes ownership of this object and must delete it when done
-      static RemoteOp* unpack_remote_operation(Deserializer &derez);
-      static void handle_report_uninitialized(Deserializer &derez);
-      static void handle_report_profiling_count_update(Deserializer &derez);
-      static void handle_completion_effect(Deserializer &derez);
+      static RemoteOp* unpack_remote_operation(Deserializer& derez);
+      static void handle_report_uninitialized(Deserializer& derez);
+      static void handle_report_profiling_count_update(Deserializer& derez);
+      static void handle_completion_effect(Deserializer& derez);
     public:
       virtual void record_completion_effect(ApEvent effect);
-      virtual void record_completion_effect(ApEvent effect,
-          std::set<RtEvent> &map_applied_events);
-      virtual void record_completion_effects(const std::set<ApEvent> &effects);
-      virtual void record_completion_effects(const std::vector<ApEvent> &effects);
+      virtual void record_completion_effect(
+          ApEvent effect, std::set<RtEvent>& map_applied_events);
+      virtual void record_completion_effects(const std::set<ApEvent>& effects);
+      virtual void record_completion_effects(
+          const std::vector<ApEvent>& effects);
     public:
       // This is a pointer to an operation on a remote node
       // it should never be dereferenced
-      Operation *const remote_ptr;
+      Operation* const remote_ptr;
       const AddressSpaceID source;
     protected:
-      MapperManager *mapper;
+      MapperManager* mapper;
     protected:
       std::vector<ProfilingMeasurementID> profiling_requests;
-      int                                 profiling_priority;
-      int                                 copy_fill_priority;
-      Processor                           profiling_target;
-      RtUserEvent                         profiling_response;
-      std::atomic<int>                    profiling_reports;
+      int profiling_priority;
+      int copy_fill_priority;
+      Processor profiling_target;
+      RtUserEvent profiling_response;
+      std::atomic<int> profiling_reports;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_REMOTE_OPERATION_H__
+#endif  // __LEGION_REMOTE_OPERATION_H__

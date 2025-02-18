@@ -32,23 +32,26 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PointwiseDependence::PointwiseDependence(void)
-      : context_index(0), unique_id(0), kind(LAST_OP_KIND),
-        region_index(0), domain(nullptr), projection(nullptr), sharding(nullptr),
-        sharding_id(0), sharding_domain(nullptr)
+      : context_index(0), unique_id(0), kind(LAST_OP_KIND), region_index(0),
+        domain(nullptr), projection(nullptr), sharding(nullptr), sharding_id(0),
+        sharding_domain(nullptr)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    PointwiseDependence::PointwiseDependence(const LogicalUser &user)
+    PointwiseDependence::PointwiseDependence(const LogicalUser& user)
       : context_index(user.ctx_index), unique_id(user.uid),
         kind(user.op->get_operation_kind()), region_index(user.idx),
         domain(user.shard_proj->domain),
         projection(user.shard_proj->projection),
-        sharding((user.shard_proj->sharding == nullptr) ? nullptr :
-            user.shard_proj->sharding->functor),
-        sharding_id((user.shard_proj->sharding == nullptr) ? 0 : 
-            user.shard_proj->sharding->sharding_id),
+        sharding(
+            (user.shard_proj->sharding == nullptr) ?
+                nullptr :
+                user.shard_proj->sharding->functor),
+        sharding_id(
+            (user.shard_proj->sharding == nullptr) ?
+                0 :
+                user.shard_proj->sharding->sharding_id),
         sharding_domain(user.shard_proj->sharding_domain)
     //--------------------------------------------------------------------------
     {
@@ -59,7 +62,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PointwiseDependence::PointwiseDependence(const PointwiseDependence &rhs)
+    PointwiseDependence::PointwiseDependence(const PointwiseDependence& rhs)
       : context_index(rhs.context_index), unique_id(rhs.unique_id),
         kind(rhs.kind), region_index(rhs.region_index), domain(rhs.domain),
         projection(rhs.projection), sharding(rhs.sharding),
@@ -74,7 +77,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    PointwiseDependence::PointwiseDependence(PointwiseDependence &&rhs)
+    PointwiseDependence::PointwiseDependence(PointwiseDependence&& rhs)
       : context_index(rhs.context_index), unique_id(rhs.unique_id),
         kind(rhs.kind), region_index(rhs.region_index), domain(rhs.domain),
         projection(rhs.projection), sharding(rhs.sharding),
@@ -90,26 +93,26 @@ namespace Legion {
     PointwiseDependence::~PointwiseDependence(void)
     //--------------------------------------------------------------------------
     {
-      if ((domain != nullptr) && 
+      if ((domain != nullptr) &&
           domain->remove_base_expression_reference(POINTWISE_DEPENDENCE_REF))
         delete domain;
       if ((sharding_domain != nullptr) &&
           sharding_domain->remove_base_expression_reference(
-            POINTWISE_DEPENDENCE_REF))
+              POINTWISE_DEPENDENCE_REF))
         delete sharding_domain;
     }
 
     //--------------------------------------------------------------------------
     PointwiseDependence& PointwiseDependence::operator=(
-                                                 const PointwiseDependence &rhs)
+        const PointwiseDependence& rhs)
     //--------------------------------------------------------------------------
     {
-      if ((domain != nullptr) && 
+      if ((domain != nullptr) &&
           domain->remove_base_expression_reference(POINTWISE_DEPENDENCE_REF))
         delete domain;
       if ((sharding_domain != nullptr) &&
           sharding_domain->remove_base_expression_reference(
-            POINTWISE_DEPENDENCE_REF))
+              POINTWISE_DEPENDENCE_REF))
         delete sharding_domain;
       context_index = rhs.context_index;
       unique_id = rhs.unique_id;
@@ -130,15 +133,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PointwiseDependence& PointwiseDependence::operator=(
-                                                      PointwiseDependence &&rhs)
+        PointwiseDependence&& rhs)
     //--------------------------------------------------------------------------
     {
-      if ((domain != nullptr) && 
+      if ((domain != nullptr) &&
           domain->remove_base_expression_reference(POINTWISE_DEPENDENCE_REF))
         delete domain;
       if ((sharding_domain != nullptr) &&
           sharding_domain->remove_base_expression_reference(
-            POINTWISE_DEPENDENCE_REF))
+              POINTWISE_DEPENDENCE_REF))
         delete sharding_domain;
       context_index = rhs.context_index;
       unique_id = rhs.unique_id;
@@ -156,7 +159,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool PointwiseDependence::matches(const LogicalUser &user) const
+    bool PointwiseDependence::matches(const LogicalUser& user) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -170,17 +173,19 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PointwiseDependence::find_dependences(const RegionRequirement &req,
-        const std::vector<LogicalRegion> &point_regions,
-        std::map<LogicalRegion,std::vector<DomainPoint> > &dependences) const
+    void PointwiseDependence::find_dependences(
+        const RegionRequirement& req,
+        const std::vector<LogicalRegion>& point_regions,
+        std::map<LogicalRegion, std::vector<DomainPoint> >& dependences) const
     //--------------------------------------------------------------------------
     {
-      projection->find_inversions(kind, unique_id, region_index, req,
-          domain, point_regions, dependences);
+      projection->find_inversions(
+          kind, unique_id, region_index, req, domain, point_regions,
+          dependences);
     }
 
     //--------------------------------------------------------------------------
-    void PointwiseDependence::serialize(Serializer &rez) const
+    void PointwiseDependence::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(context_index);
@@ -197,15 +202,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PointwiseDependence::deserialize(Deserializer &derez)
+    void PointwiseDependence::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-      if ((domain != nullptr) && 
+      if ((domain != nullptr) &&
           domain->remove_base_expression_reference(POINTWISE_DEPENDENCE_REF))
         delete domain;
       if ((sharding_domain != nullptr) &&
           sharding_domain->remove_base_expression_reference(
-            POINTWISE_DEPENDENCE_REF))
+              POINTWISE_DEPENDENCE_REF))
         delete sharding_domain;
       derez.deserialize(context_index);
       derez.deserialize(unique_id);
@@ -213,7 +218,7 @@ namespace Legion {
       derez.deserialize(region_index);
       IndexSpace handle;
       derez.deserialize(handle);
-      domain = runtime->get_node(handle); 
+      domain = runtime->get_node(handle);
       domain->add_base_expression_reference(POINTWISE_DEPENDENCE_REF);
       ProjectionID pid;
       derez.deserialize(pid);
@@ -226,8 +231,7 @@ namespace Legion {
         sharding_domain = runtime->get_node(handle);
         sharding_domain->add_base_expression_reference(
             POINTWISE_DEPENDENCE_REF);
-      }
-      else
+      } else
         sharding_domain = nullptr;
     }
 
@@ -262,17 +266,17 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename OP>
-    void PointwiseAnalyzable<OP>::register_pointwise_dependence(unsigned idx,
-          const LogicalUser &previous)
+    void PointwiseAnalyzable<OP>::register_pointwise_dependence(
+        unsigned idx, const LogicalUser& previous)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(previous.shard_proj != nullptr);
 #endif
-      std::vector<PointwiseDependence> &dependences = 
-        pointwise_dependences[idx];
-      for (std::vector<PointwiseDependence>::iterator it =
-            dependences.begin(); it != dependences.end(); it++)
+      std::vector<PointwiseDependence>& dependences =
+          pointwise_dependences[idx];
+      for (std::vector<PointwiseDependence>::iterator it = dependences.begin();
+           it != dependences.end(); it++)
         if (it->matches(previous))
           return;
       dependences.emplace_back(PointwiseDependence(previous));
@@ -281,21 +285,22 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(this->trace != nullptr);
 #endif
-        this->trace->record_pointwise_dependence(previous.op, previous.gen,
-            this, this->gen, idx, dependences.back());
+        this->trace->record_pointwise_dependence(
+            previous.op, previous.gen, this, this->gen, idx,
+            dependences.back());
       }
     }
 
     //--------------------------------------------------------------------------
     template<typename OP>
     void PointwiseAnalyzable<OP>::replay_pointwise_dependences(
-        std::map<unsigned,std::vector<PointwiseDependence> > &dependences)
+        std::map<unsigned, std::vector<PointwiseDependence> >& dependences)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(pointwise_dependences.empty());
 #endif
-      pointwise_dependences.swap(dependences); 
+      pointwise_dependences.swap(dependences);
     }
 
     // Explicit instantiations
@@ -304,5 +309,5 @@ namespace Legion {
     template class PointwiseAnalyzable<FillOp>;
     template class PointwiseAnalyzable<CollectiveViewCreator<TaskOp> >;
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

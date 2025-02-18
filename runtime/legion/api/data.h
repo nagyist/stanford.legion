@@ -21,11 +21,11 @@
 namespace Legion {
 
   /**
-   * \class IndexSpace 
-   * Index spaces are handles that reference a collection of 
+   * \class IndexSpace
+   * Index spaces are handles that reference a collection of
    * points. These collections of points are used to define the
    * "rows" of a logical region. Only the Legion runtime is able
-   * to create non-empty index spaces. 
+   * to create non-empty index spaces.
    */
   class IndexSpace {
   public:
@@ -37,10 +37,10 @@ namespace Legion {
   public:
     IndexSpace(void);
   public:
-    inline bool operator==(const IndexSpace &rhs) const;
-    inline bool operator!=(const IndexSpace &rhs) const;
-    inline bool operator<(const IndexSpace &rhs) const;
-    inline bool operator>(const IndexSpace &rhs) const;
+    inline bool operator==(const IndexSpace& rhs) const;
+    inline bool operator!=(const IndexSpace& rhs) const;
+    inline bool operator<(const IndexSpace& rhs) const;
+    inline bool operator>(const IndexSpace& rhs) const;
     inline std::size_t hash(void) const;
     inline DistributedID get_id(bool filter = true) const;
     inline IndexTreeID get_tree_id(void) const { return tid; }
@@ -49,8 +49,7 @@ namespace Legion {
     inline int get_dim(void) const;
     bool valid(void) const;
   protected:
-    friend std::ostream& operator<<(std::ostream& os, 
-                                    const IndexSpace& is);
+    friend std::ostream& operator<<(std::ostream& os, const IndexSpace& is);
     DistributedID did;
     IndexTreeID tid;
     TypeTag type_tag;
@@ -74,9 +73,9 @@ namespace Legion {
     IndexSpaceT(DistributedID id, IndexTreeID tid);
   public:
     IndexSpaceT(void);
-    explicit IndexSpaceT(const IndexSpace &rhs);
+    explicit IndexSpaceT(const IndexSpace& rhs);
   public:
-    inline IndexSpaceT& operator=(const IndexSpace &rhs);
+    inline IndexSpaceT& operator=(const IndexSpace& rhs);
   };
 
   /**
@@ -95,10 +94,10 @@ namespace Legion {
   public:
     IndexPartition(void);
   public:
-    inline bool operator==(const IndexPartition &rhs) const;
-    inline bool operator!=(const IndexPartition &rhs) const;
-    inline bool operator<(const IndexPartition &rhs) const;
-    inline bool operator>(const IndexPartition &rhs) const;
+    inline bool operator==(const IndexPartition& rhs) const;
+    inline bool operator!=(const IndexPartition& rhs) const;
+    inline bool operator<(const IndexPartition& rhs) const;
+    inline bool operator>(const IndexPartition& rhs) const;
     inline std::size_t hash(void) const;
     inline DistributedID get_id(bool filter = true) const;
     inline IndexTreeID get_tree_id(void) const { return tid; }
@@ -107,8 +106,7 @@ namespace Legion {
     inline int get_dim(void) const;
     bool valid(void) const;
   protected:
-    friend std::ostream& operator<<(std::ostream& os, 
-                                    const IndexPartition& ip);
+    friend std::ostream& operator<<(std::ostream& os, const IndexPartition& ip);
     DistributedID did;
     IndexTreeID tid;
     TypeTag type_tag;
@@ -132,9 +130,9 @@ namespace Legion {
     IndexPartitionT(DistributedID id, IndexTreeID tid);
   public:
     IndexPartitionT(void);
-    explicit IndexPartitionT(const IndexPartition &rhs);
+    explicit IndexPartitionT(const IndexPartition& rhs);
   public:
-    inline IndexPartitionT& operator=(const IndexPartition &rhs);
+    inline IndexPartitionT& operator=(const IndexPartition& rhs);
   };
 
   /**
@@ -156,17 +154,17 @@ namespace Legion {
   public:
     FieldSpace(void);
   public:
-    inline bool operator==(const FieldSpace &rhs) const;
-    inline bool operator!=(const FieldSpace &rhs) const;
-    inline bool operator<(const FieldSpace &rhs) const;
-    inline bool operator>(const FieldSpace &rhs) const;
+    inline bool operator==(const FieldSpace& rhs) const;
+    inline bool operator!=(const FieldSpace& rhs) const;
+    inline bool operator<(const FieldSpace& rhs) const;
+    inline bool operator>(const FieldSpace& rhs) const;
     inline std::size_t hash(void) const;
     inline DistributedID get_id(bool filter = true) const;
     inline bool exists(void) const { return (did != 0); }
     bool valid(void) const;
   private:
     friend std::ostream& operator<<(std::ostream& os, const FieldSpace& fs);
-    DistributedID did; 
+    DistributedID did;
   };
 
   /**
@@ -177,8 +175,8 @@ namespace Legion {
    * the logical region.  These three values are used to uniquely name
    * every logical region created in a Legion program.
    *
-   * Logical region objects can be copied by value and stored in data 
-   * structures.  Only the Legion runtime is able to create logical region 
+   * Logical region objects can be copied by value and stored in data
+   * structures.  Only the Legion runtime is able to create logical region
    * objects that are non-empty.
    *
    * @see FieldSpace
@@ -193,26 +191,27 @@ namespace Legion {
   public:
     LogicalRegion(void);
   public:
-    inline bool operator==(const LogicalRegion &rhs) const;
-    inline bool operator!=(const LogicalRegion &rhs) const;
-    inline bool operator<(const LogicalRegion &rhs) const;
+    inline bool operator==(const LogicalRegion& rhs) const;
+    inline bool operator!=(const LogicalRegion& rhs) const;
+    inline bool operator<(const LogicalRegion& rhs) const;
     std::size_t hash(void) const;
   public:
     inline IndexSpace get_index_space(void) const { return index_space; }
     inline FieldSpace get_field_space(void) const { return field_space; }
     inline RegionTreeID get_tree_id(bool filter = true) const;
-    inline bool exists(void) const { return (tree_did != 0); } 
-    inline TypeTag get_type_tag(void) const 
-      { return index_space.get_type_tag(); }
+    inline bool exists(void) const { return (tree_did != 0); }
+    inline TypeTag get_type_tag(void) const
+    {
+      return index_space.get_type_tag();
+    }
     inline int get_dim(void) const { return index_space.get_dim(); }
     bool valid(void) const;
   protected:
-    friend std::ostream& operator<<(std::ostream& os, 
-                                    const LogicalRegion& lr);
+    friend std::ostream& operator<<(std::ostream& os, const LogicalRegion& lr);
     // These are private so the user can't just arbitrarily change them
     DistributedID tree_did;
     IndexSpace index_space;
-    FieldSpace field_space; 
+    FieldSpace field_space;
   };
 
   /**
@@ -233,9 +232,9 @@ namespace Legion {
     LogicalRegionT(DistributedID tid, IndexSpace index, FieldSpace field);
   public:
     LogicalRegionT(void);
-    explicit LogicalRegionT(const LogicalRegion &rhs);
+    explicit LogicalRegionT(const LogicalRegion& rhs);
   public:
-    inline LogicalRegionT& operator=(const LogicalRegion &rhs);
+    inline LogicalRegionT& operator=(const LogicalRegion& rhs);
   };
 
   /**
@@ -247,8 +246,8 @@ namespace Legion {
    * values are sufficient to name every logical partition created
    * in a Legion program.
    *
-   * Logical partition objects can be copied by values and stored in 
-   * data structures.  Only the Legion runtime is able to create 
+   * Logical partition objects can be copied by values and stored in
+   * data structures.  Only the Legion runtime is able to create
    * non-empty logical partitions.
    *
    * @see FieldSpace
@@ -263,27 +262,31 @@ namespace Legion {
   public:
     LogicalPartition(void);
   public:
-    inline bool operator==(const LogicalPartition &rhs) const;
-    inline bool operator!=(const LogicalPartition &rhs) const;
-    inline bool operator<(const LogicalPartition &rhs) const;
+    inline bool operator==(const LogicalPartition& rhs) const;
+    inline bool operator!=(const LogicalPartition& rhs) const;
+    inline bool operator<(const LogicalPartition& rhs) const;
     std::size_t hash(void) const;
   public:
-    inline IndexPartition get_index_partition(void) const 
-      { return index_partition; }
+    inline IndexPartition get_index_partition(void) const
+    {
+      return index_partition;
+    }
     inline FieldSpace get_field_space(void) const { return field_space; }
     inline RegionTreeID get_tree_id(bool filter = true) const;
     inline bool exists(void) const { return (tree_did != 0); }
-    inline TypeTag get_type_tag(void) const 
-      { return index_partition.get_type_tag(); }
+    inline TypeTag get_type_tag(void) const
+    {
+      return index_partition.get_type_tag();
+    }
     inline int get_dim(void) const { return index_partition.get_dim(); }
     bool valid(void) const;
   protected:
-    friend std::ostream& operator<<(std::ostream& os, 
-                                    const LogicalPartition& lp);
+    friend std::ostream& operator<<(
+        std::ostream& os, const LogicalPartition& lp);
     // These are private so the user can't just arbitrary change them
     DistributedID tree_did;
     IndexPartition index_partition;
-    FieldSpace field_space; 
+    FieldSpace field_space;
   };
 
   /**
@@ -301,12 +304,12 @@ namespace Legion {
   protected:
     // Only the runtime should be allowed to make these
     FRIEND_ALL_RUNTIME_CLASSES
-    LogicalPartitionT(DistributedID tid, IndexPartition pid,FieldSpace field);
+    LogicalPartitionT(DistributedID tid, IndexPartition pid, FieldSpace field);
   public:
     LogicalPartitionT(void);
-    explicit LogicalPartitionT(const LogicalPartition &rhs);
+    explicit LogicalPartitionT(const LogicalPartition& rhs);
   public:
-    inline LogicalPartitionT& operator=(const LogicalPartition &rhs);
+    inline LogicalPartitionT& operator=(const LogicalPartition& rhs);
   };
 
   /**
@@ -328,18 +331,18 @@ namespace Legion {
   class FieldAllocator : public Unserializable {
   public:
     FieldAllocator(void);
-    FieldAllocator(const FieldAllocator &allocator);
-    FieldAllocator(FieldAllocator &&allocator) noexcept;
+    FieldAllocator(const FieldAllocator& allocator);
+    FieldAllocator(FieldAllocator&& allocator) noexcept;
     ~FieldAllocator(void);
   protected:
     FRIEND_ALL_RUNTIME_CLASSES
     // Only the Runtime should be able to make these
-    FieldAllocator(Internal::FieldAllocatorImpl *impl);
+    FieldAllocator(Internal::FieldAllocatorImpl* impl);
   public:
-    FieldAllocator& operator=(const FieldAllocator &allocator);
-    FieldAllocator& operator=(FieldAllocator &&allocator) noexcept;
-    inline bool operator<(const FieldAllocator &rhs) const;
-    inline bool operator==(const FieldAllocator &rhs) const;
+    FieldAllocator& operator=(const FieldAllocator& allocator);
+    FieldAllocator& operator=(FieldAllocator&& allocator) noexcept;
+    inline bool operator<(const FieldAllocator& rhs) const;
+    inline bool operator==(const FieldAllocator& rhs) const;
     inline bool exists(void) const { return (impl != nullptr); }
   public:
     ///@{
@@ -358,109 +361,109 @@ namespace Legion {
      *   custom serdez object for serializing and deserializing
      *   a field when it is moved.
      * @param local_field whether this is a local field or not
-     * @param provenance an optional string describing the provenance 
+     * @param provenance an optional string describing the provenance
      *                   information for this index space
      * @return field ID for the allocated field
      */
-    FieldID allocate_field(size_t field_size, 
-                           FieldID desired_fieldid = LEGION_AUTO_GENERATE_ID,
-                           CustomSerdezID serdez_id = 0,
-                           bool local_field = false,
-                           const char *provenance = nullptr);
-    FieldID allocate_field(const Future &field_size,
-                           FieldID desired_fieldid = LEGION_AUTO_GENERATE_ID,
-                           CustomSerdezID serdez_id = 0,
-                           bool local_field = false,
-                           const char *provenance = nullptr);
+    FieldID allocate_field(
+        size_t field_size, FieldID desired_fieldid = LEGION_AUTO_GENERATE_ID,
+        CustomSerdezID serdez_id = 0, bool local_field = false,
+        const char* provenance = nullptr);
+    FieldID allocate_field(
+        const Future& field_size,
+        FieldID desired_fieldid = LEGION_AUTO_GENERATE_ID,
+        CustomSerdezID serdez_id = 0, bool local_field = false,
+        const char* provenance = nullptr);
     ///@}
     /**
      * Deallocate the specified field from the field space.
      * @param fid the field ID to be deallocated
      * @param unordered set to true if this is performed by a different
      *          thread than the one for the task (e.g a garbage collector)
-     * @param provenance an optional string describing the provenance 
+     * @param provenance an optional string describing the provenance
      *                   information for this index space
      */
-    LEGION_DEPRECATED("We are considering removing support for freeing fields"
+    LEGION_DEPRECATED(
+        "We are considering removing support for freeing fields"
         "in a future Legion release. Please contact the Legion developer's "
-        "list if field deletion is important for your application.") 
-    void free_field(FieldID fid, const bool unordered = false,
-                    const char *provenance = nullptr);
+        "list if field deletion is important for your application.")
+    void free_field(
+        FieldID fid, const bool unordered = false,
+        const char* provenance = nullptr);
 
     /**
      * Same as allocate field, but this field will only
      * be available locally on the node on which it is
      * created and not on remote nodes.  It will then be
-     * implicitly destroyed once the task in which it is 
+     * implicitly destroyed once the task in which it is
      * allocated completes.
      */
-    FieldID allocate_local_field(size_t field_size,
-        FieldID desired_fieldid = LEGION_AUTO_GENERATE_ID,
-        CustomSerdezID serdez_id = 0, const char *provenance = nullptr);
+    FieldID allocate_local_field(
+        size_t field_size, FieldID desired_fieldid = LEGION_AUTO_GENERATE_ID,
+        CustomSerdezID serdez_id = 0, const char* provenance = nullptr);
     ///@{
     /**
      * Allocate a collection of fields with the specified sizes.
      * Optionally pass in a set of field IDs to use when allocating
      * the fields otherwise the vector should be empty or the
      * same size as field_sizes with LEGION_AUTO_GENERATE_ID set as the
-     * value for each of the resulting_field IDs.  The length of 
-     * the resulting_fields vector must be less than or equal to 
-     * the length of field_sizes.  Upon return it will be the same 
+     * value for each of the resulting_field IDs.  The length of
+     * the resulting_fields vector must be less than or equal to
+     * the length of field_sizes.  Upon return it will be the same
      * size with field IDs specified for all the allocated fields
      * @param field_sizes size in bytes of the fields to be allocated
      * @param resulting_fields optional field names for allocated fields
      * @param local_fields whether these should be local fields or not
-     * @param provenance an optional string describing the provenance 
+     * @param provenance an optional string describing the provenance
      *                   information for this index space
      * @return resulting_fields vector with length equivalent to
      *    the length of field_sizes with field IDs specified
      */
-    void allocate_fields(const std::vector<size_t> &field_sizes,
-                         std::vector<FieldID> &resulting_fields,
-                         CustomSerdezID serdez_id = 0,
-                         bool local_fields = false,
-                         const char *provenance = nullptr);
-    void allocate_fields(const std::vector<Future> &field_sizes,
-                         std::vector<FieldID> &resulting_fields,
-                         CustomSerdezID serdez_id = 0,
-                         bool local_fields = false,
-                         const char *provenance = nullptr);
+    void allocate_fields(
+        const std::vector<size_t>& field_sizes,
+        std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id = 0,
+        bool local_fields = false, const char* provenance = nullptr);
+    void allocate_fields(
+        const std::vector<Future>& field_sizes,
+        std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id = 0,
+        bool local_fields = false, const char* provenance = nullptr);
     ///@}
     /**
      * Free a collection of field IDs
      * @param to_free set of field IDs to be freed
      * @param unordered set to true if this is performed by a different
      *          thread than the one for the task (e.g a garbage collector)
-     * @param provenance an optional string describing the provenance 
+     * @param provenance an optional string describing the provenance
      *                   information for this index space
      */
-    LEGION_DEPRECATED("We are considering removing support for freeing fields"
+    LEGION_DEPRECATED(
+        "We are considering removing support for freeing fields"
         "in a future Legion release. Please contact the Legion developer's "
         "list if field deletion is important for your application.")
-    void free_fields(const std::set<FieldID> &to_free, 
-                     const bool unordered = false,
-                     const char *provenance = nullptr);
+    void free_fields(
+        const std::set<FieldID>& to_free, const bool unordered = false,
+        const char* provenance = nullptr);
     /**
      * Same as allocate_fields but the fields that are allocated
-     * will only be available locally on the node on which 
+     * will only be available locally on the node on which
      * this call is made and not on remote nodes.  The fields
      * will be implicitly destroyed once the task in which
      * they were created completes.
      */
-    void allocate_local_fields(const std::vector<size_t> &field_sizes,
-                               std::vector<FieldID> &resulting_fields,
-                               CustomSerdezID serdez_id = 0,
-                               const char *provenance = nullptr);
+    void allocate_local_fields(
+        const std::vector<size_t>& field_sizes,
+        std::vector<FieldID>& resulting_fields, CustomSerdezID serdez_id = 0,
+        const char* provenance = nullptr);
     /**
      * @return field space associated with this allocator
      */
     FieldSpace get_field_space(void) const;
   private:
-    Internal::FieldAllocatorImpl *impl;
+    Internal::FieldAllocatorImpl* impl;
   };
 
-} // namespace Legion
+}  // namespace Legion
 
 #include "legion/api/data.inl"
 
-#endif // __LEGION_DATA_H__
+#endif  // __LEGION_DATA_H__

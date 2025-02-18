@@ -30,22 +30,23 @@ namespace Legion {
      * An extention of the external-facing Task to help
      * with packing and unpacking them
      */
-    class ExternalTask : public Task, public ExternalMappable {
+    class ExternalTask : public Task,
+                         public ExternalMappable {
     public:
       ExternalTask(void);
     public:
-      void pack_external_task(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_task(Deserializer &derez);
+      void pack_external_task(Serializer& rez, AddressSpaceID target) const;
+      void unpack_external_task(Deserializer& derez);
     public:
       static void pack_output_requirement(
-          const OutputRequirement &req, Serializer &rez);
+          const OutputRequirement& req, Serializer& rez);
     public:
       static void unpack_output_requirement(
-          OutputRequirement &req, Deserializer &derez);
+          OutputRequirement& req, Deserializer& derez);
     public:
       virtual void set_context_index(uint64_t index) = 0;
     protected:
-      BufferManager<Task,OPERATION_LIFETIME> arg_manager;
+      BufferManager<Task, OPERATION_LIFETIME> arg_manager;
     };
 
     /**
@@ -54,22 +55,34 @@ namespace Legion {
      */
     class TaskRequirements {
     public:
-      TaskRequirements(Task &t) : task(t) { }
+      TaskRequirements(Task& t) : task(t) { }
     public:
-      inline size_t size(void) const 
-        { return task.regions.size() + task.output_regions.size(); }
+      inline size_t size(void) const
+      {
+        return task.regions.size() + task.output_regions.size();
+      }
       inline bool is_output_created(unsigned idx) const
-        { if (idx < task.regions.size()) return false;
-          return (task.output_regions[idx-task.regions.size()].flags &
-                        LEGION_CREATED_OUTPUT_REQUIREMENT_FLAG); }
+      {
+        if (idx < task.regions.size())
+          return false;
+        return (
+            task.output_regions[idx - task.regions.size()].flags &
+            LEGION_CREATED_OUTPUT_REQUIREMENT_FLAG);
+      }
       inline RegionRequirement& operator[](unsigned idx)
-        { return (idx < task.regions.size()) ? task.regions[idx] :
-                        task.output_regions[idx - task.regions.size()]; }
+      {
+        return (idx < task.regions.size()) ?
+                   task.regions[idx] :
+                   task.output_regions[idx - task.regions.size()];
+      }
       inline const RegionRequirement& operator[](unsigned idx) const
-        { return (idx < task.regions.size()) ? task.regions[idx] : 
-                        task.output_regions[idx - task.regions.size()]; }
+      {
+        return (idx < task.regions.size()) ?
+                   task.regions[idx] :
+                   task.output_regions[idx - task.regions.size()];
+      }
     private:
-      Task &task;
+      Task& task;
     };
 
     /**
@@ -77,7 +90,8 @@ namespace Legion {
      * This is the base task operation class for all
      * kinds of tasks in the system.
      */
-    class TaskOp : public ExternalTask, public PredicatedOp {
+    class TaskOp : public ExternalTask,
+                   public PredicatedOp {
     public:
       enum TaskKind {
         INDIVIDUAL_TASK_KIND,
@@ -90,7 +104,8 @@ namespace Legion {
       public:
         OutputOptions(void) : store(0) { }
         OutputOptions(bool global, bool valid, bool grouped)
-          : store((global ? 1 : 0) | (valid ? 2 : 0) | (grouped ? 4 : 0)) { }
+          : store((global ? 1 : 0) | (valid ? 2 : 0) | (grouped ? 4 : 0))
+        { }
       public:
         inline bool global_indexing(void) const { return (store & 1); }
         inline bool valid_requirement(void) const { return (store & 2); }
@@ -103,49 +118,54 @@ namespace Legion {
       public:
         static const LgTaskID TASK_ID = LG_TRIGGER_TASK_ID;
       public:
-        TriggerTaskArgs(TaskOp *t)
-          : LgTaskArgs<TriggerTaskArgs>(t->get_unique_op_id()), op(t) { }
+        TriggerTaskArgs(TaskOp* t)
+          : LgTaskArgs<TriggerTaskArgs>(t->get_unique_op_id()), op(t)
+        { }
       public:
-        TaskOp *const op;
+        TaskOp* const op;
       };
       struct DeferMappingArgs : public LgTaskArgs<DeferMappingArgs> {
       public:
         static const LgTaskID TASK_ID = LG_DEFER_PERFORM_MAPPING_TASK_ID;
       public:
-        DeferMappingArgs(TaskOp *op, MustEpochOp *owner, unsigned cnt,
-                         std::vector<unsigned> *performed,
-                         std::vector<ApEvent> *eff)
+        DeferMappingArgs(
+            TaskOp* op, MustEpochOp* owner, unsigned cnt,
+            std::vector<unsigned>* performed, std::vector<ApEvent>* eff)
           : LgTaskArgs<DeferMappingArgs>(op->get_unique_op_id()),
             proxy_this(op), must_op(owner), invocation_count(cnt),
-            performed_regions(performed), effects(eff) { }
+            performed_regions(performed), effects(eff)
+        { }
       public:
-        TaskOp *const proxy_this;
-        MustEpochOp *const must_op;
+        TaskOp* const proxy_this;
+        MustEpochOp* const must_op;
         const unsigned invocation_count;
-        std::vector<unsigned> *const performed_regions;
-        std::vector<ApEvent> *const effects;
+        std::vector<unsigned>* const performed_regions;
+        std::vector<ApEvent>* const effects;
       };
-    struct FinalizeOutputEqKDTreeArgs : 
-      public LgTaskArgs<FinalizeOutputEqKDTreeArgs> {
-    public:
-      static const LgTaskID TASK_ID = LG_FINALIZE_OUTPUT_TREE_TASK_ID;
-    public:
-      FinalizeOutputEqKDTreeArgs(TaskOp *owner)
-        : LgTaskArgs<FinalizeOutputEqKDTreeArgs>(owner->get_unique_op_id()),
-          proxy_this(owner) { }
-    public:
-      TaskOp *const proxy_this;
-    };
-    struct DeferTriggerChildrenCommitArgs :
-        public LgTaskArgs<DeferTriggerChildrenCommitArgs> {
+      struct FinalizeOutputEqKDTreeArgs
+        : public LgTaskArgs<FinalizeOutputEqKDTreeArgs> {
       public:
-        static const LgTaskID TASK_ID =LG_DEFER_TRIGGER_CHILDREN_COMMIT_TASK_ID;
+        static const LgTaskID TASK_ID = LG_FINALIZE_OUTPUT_TREE_TASK_ID;
       public:
-        DeferTriggerChildrenCommitArgs(TaskOp *t)
+        FinalizeOutputEqKDTreeArgs(TaskOp* owner)
+          : LgTaskArgs<FinalizeOutputEqKDTreeArgs>(owner->get_unique_op_id()),
+            proxy_this(owner)
+        { }
+      public:
+        TaskOp* const proxy_this;
+      };
+      struct DeferTriggerChildrenCommitArgs
+        : public LgTaskArgs<DeferTriggerChildrenCommitArgs> {
+      public:
+        static const LgTaskID TASK_ID =
+            LG_DEFER_TRIGGER_CHILDREN_COMMIT_TASK_ID;
+      public:
+        DeferTriggerChildrenCommitArgs(TaskOp* t)
           : LgTaskArgs<DeferTriggerChildrenCommitArgs>(t->get_unique_op_id()),
-            task(t) { }
+            task(t)
+        { }
       public:
-        TaskOp *const task;
+        TaskOp* const task;
       };
     public:
       TaskOp(void);
@@ -160,10 +180,11 @@ namespace Legion {
           bool human = true) const;
       virtual const char* get_task_name(void) const;
       virtual bool is_reducing_future(void) const;
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual void pack_profiling_requests(Serializer &rez,
-                                           std::set<RtEvent> &applied) const;
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual void pack_profiling_requests(
+          Serializer& rez, std::set<RtEvent>& applied) const;
     public:
       bool is_remote(void) const;
       bool is_forward_progress_task(void);
@@ -177,19 +198,19 @@ namespace Legion {
       inline void set_replicated(bool repl) { replicate = repl; }
       inline void set_target_proc(Processor next) { target_proc = next; }
     public:
-      void set_must_epoch(MustEpochOp *epoch, unsigned index,
-                          bool do_registration);
+      void set_must_epoch(
+          MustEpochOp* epoch, unsigned index, bool do_registration);
     public:
-      void pack_base_task(Serializer &rez, AddressSpaceID target);
-      void unpack_base_task(Deserializer &derez,
-                            std::set<RtEvent> &ready_events);
-      void pack_base_external_task(Serializer &rez, AddressSpaceID target);
-      void unpack_base_external_task(Deserializer &derez);
+      void pack_base_task(Serializer& rez, AddressSpaceID target);
+      void unpack_base_task(
+          Deserializer& derez, std::set<RtEvent>& ready_events);
+      void pack_base_external_task(Serializer& rez, AddressSpaceID target);
+      void unpack_base_external_task(Deserializer& derez);
     public:
       void mark_stolen(void);
-      void initialize_base_task(InnerContext *ctx,
-            const Predicate &p, Processor::TaskFuncID tid,
-            Provenance *provenance);
+      void initialize_base_task(
+          InnerContext* ctx, const Predicate& p, Processor::TaskFuncID tid,
+          Provenance* provenance);
     public:
       bool select_task_options(bool prioritize);
     public:
@@ -199,71 +220,79 @@ namespace Legion {
       virtual OpKind get_operation_kind(void) const;
       virtual size_t get_region_count(void) const;
       virtual Mappable* get_mappable(void);
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { exec_fence = false; return !regions.empty(); }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        exec_fence = false;
+        return !regions.empty();
+      }
     public:
       virtual void trigger_dependence_analysis(void) = 0;
       virtual void trigger_commit(void);
     public:
       virtual void predicate_false(void) = 0;
     public:
-      virtual void select_sources(const unsigned index, PhysicalManager *target,
-                                  const std::vector<InstanceView*> &sources,
-                                  std::vector<unsigned> &ranking,
-                                  std::map<unsigned,PhysicalManager*> &points);
-      virtual void update_atomic_locks(const unsigned index,
-                                       Reservation lock, bool exclusive);
+      virtual void select_sources(
+          const unsigned index, PhysicalManager* target,
+          const std::vector<InstanceView*>& sources,
+          std::vector<unsigned>& ranking,
+          std::map<unsigned, PhysicalManager*>& points);
+      virtual void update_atomic_locks(
+          const unsigned index, Reservation lock, bool exclusive);
       virtual unsigned find_parent_index(unsigned idx);
       virtual VersionInfo& get_version_info(unsigned idx);
       virtual const VersionInfo& get_version_info(unsigned idx) const;
-      virtual std::map<PhysicalManager*,unsigned>*
-                                            get_acquired_instances_ref(void);
+      virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
+          void);
     public:
       virtual bool distribute_task(void) = 0;
-      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
-                                   const DeferMappingArgs *args = nullptr) = 0;
+      virtual bool perform_mapping(
+          MustEpochOp* owner = nullptr,
+          const DeferMappingArgs* args = nullptr) = 0;
       virtual void launch_task(bool inline_task = false) = 0;
       virtual bool is_stealable(void) const = 0;
       virtual bool is_output_global(unsigned idx) const { return false; }
-      virtual bool is_output_valid(unsigned idx) const { return false; } 
+      virtual bool is_output_valid(unsigned idx) const { return false; }
       virtual bool is_output_grouped(unsigned idx) const { return false; }
     public:
       virtual TaskKind get_task_kind(void) const = 0;
     public:
       // Returns true if the task should be deactivated
-      virtual bool pack_task(Serializer &rez, AddressSpaceID target) = 0;
-      virtual bool unpack_task(Deserializer &derez, Processor current,
-                               std::set<RtEvent> &ready_events) = 0;
-      virtual void perform_inlining(VariantImpl *variant,
-                    const std::deque<InstanceSet> &parent_regions) = 0;
+      virtual bool pack_task(Serializer& rez, AddressSpaceID target) = 0;
+      virtual bool unpack_task(
+          Deserializer& derez, Processor current,
+          std::set<RtEvent>& ready_events) = 0;
+      virtual void perform_inlining(
+          VariantImpl* variant,
+          const std::deque<InstanceSet>& parent_regions) = 0;
     public:
-      bool defer_perform_mapping(RtEvent precondition, MustEpochOp *op,
-                                    unsigned invocation_count = 0,
-                                    std::vector<unsigned> *performed = nullptr,
-                                    std::vector<ApEvent> *effects = nullptr);
+      bool defer_perform_mapping(
+          RtEvent precondition, MustEpochOp* op, unsigned invocation_count = 0,
+          std::vector<unsigned>* performed = nullptr,
+          std::vector<ApEvent>* effects = nullptr);
     public:
       // Tell the parent context that this task is in a ready queue
       void activate_outstanding_task(void);
       void deactivate_outstanding_task(void);
     public:
-      void clone_task_op_from(TaskOp *rhs, Processor p,
-                              bool stealable, bool duplicate_args);
-      void update_grants(const std::vector<Grant> &grants);
-      void update_arrival_barriers(const std::vector<PhaseBarrier> &barriers);
+      void clone_task_op_from(
+          TaskOp* rhs, Processor p, bool stealable, bool duplicate_args);
+      void update_grants(const std::vector<Grant>& grants);
+      void update_arrival_barriers(const std::vector<PhaseBarrier>& barriers);
       void finalize_output_region_trees(void);
     public:
       void compute_parent_indexes(bool force);
     public:
       // From Memoizable
       virtual const RegionRequirement& get_requirement(unsigned idx) const
-        { return logical_regions[idx]; }
-      virtual unsigned get_output_offset() const
-        { return regions.size(); }
-    public: // helper for mapping, here because of inlining
-      void validate_variant_selection(MapperManager *local_mapper,
-                          VariantImpl *impl, Processor::Kind kind, 
-                          const std::deque<InstanceSet> &physical_instances,
-                          const char *call_name) const;
+      {
+        return logical_regions[idx];
+      }
+      virtual unsigned get_output_offset() const { return regions.size(); }
+    public:  // helper for mapping, here because of inlining
+      void validate_variant_selection(
+          MapperManager* local_mapper, VariantImpl* impl, Processor::Kind kind,
+          const std::deque<InstanceSet>& physical_instances,
+          const char* call_name) const;
     public:
       // These methods get called once the task has executed
       // and all the children have either mapped, completed,
@@ -275,22 +304,22 @@ namespace Legion {
       // - all children must commit (children_committed)
       virtual void trigger_task_commit(void) = 0;
     public:
-      static void handle_deferred_children_commit(const void *args);
+      static void handle_deferred_children_commit(const void* args);
     protected:
-      TaskRequirements                          logical_regions;
+      TaskRequirements logical_regions;
       // Region requirements to check for collective behavior
-      std::vector<unsigned>                     check_collective_regions;
+      std::vector<unsigned> check_collective_regions;
       // A map of any locks that we need to take for this task
-      std::map<Reservation,bool/*exclusive*/>   atomic_locks;
+      std::map<Reservation, bool /*exclusive*/> atomic_locks;
       // Set of acquired instances for this task
-      std::map<PhysicalManager*,unsigned/*ref count*/> acquired_instances;
+      std::map<PhysicalManager*, unsigned /*ref count*/> acquired_instances;
     protected:
-      std::vector<unsigned>                     parent_req_indexes;
+      std::vector<unsigned> parent_req_indexes;
       // The version infos for this task
-      LegionVector<VersionInfo>                 version_infos;
+      LegionVector<VersionInfo> version_infos;
     protected:
       // Whether we have an optional future return value
-      std::optional<size_t>                     future_return_size;
+      std::optional<size_t> future_return_size;
     protected:
       bool commit_received;
     protected:
@@ -306,84 +335,91 @@ namespace Legion {
     protected:
       bool children_commit;
     protected:
-      MapperManager *mapper;
+      MapperManager* mapper;
     public:
       // Index for this must epoch op
       unsigned must_epoch_index;
     public:
       // Static methods
-      static void process_unpack_task(Deserializer &derez);
-      static void process_remote_replay(Deserializer &derez);
+      static void process_unpack_task(Deserializer& derez);
+      static void process_remote_replay(Deserializer& derez);
     public:
-      static void log_requirement(UniqueID uid, unsigned idx,
-                                 const RegionRequirement &req);
+      static void log_requirement(
+          UniqueID uid, unsigned idx, const RegionRequirement& req);
     };
 
     /**
      * \class TaskImpl
-     * This class is used for storing all the meta-data associated 
+     * This class is used for storing all the meta-data associated
      * with a logical task
      */
-    class TaskImpl : public Heapify<TaskImpl,RUNTIME_LIFETIME> {
+    class TaskImpl : public Heapify<TaskImpl, RUNTIME_LIFETIME> {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
         static const LgTaskID TASK_ID = LG_TASK_IMPL_SEMANTIC_INFO_REQ_TASK_ID;
       public:
-        SemanticRequestArgs(TaskImpl *proxy, SemanticTag t, AddressSpaceID src)
+        SemanticRequestArgs(TaskImpl* proxy, SemanticTag t, AddressSpaceID src)
           : LgTaskArgs<SemanticRequestArgs>(implicit_provenance),
-            proxy_this(proxy), tag(t), source(src) { }
+            proxy_this(proxy), tag(t), source(src)
+        { }
       public:
-        TaskImpl *const proxy_this;
+        TaskImpl* const proxy_this;
         const SemanticTag tag;
         const AddressSpaceID source;
       };
     public:
-      TaskImpl(TaskID tid, const char *name = nullptr);
-      TaskImpl(const TaskImpl &rhs) = delete;
+      TaskImpl(TaskID tid, const char* name = nullptr);
+      TaskImpl(const TaskImpl& rhs) = delete;
       ~TaskImpl(void);
     public:
-      TaskImpl& operator=(const TaskImpl &rhs) = delete;
+      TaskImpl& operator=(const TaskImpl& rhs) = delete;
     public:
       VariantID get_unique_variant_id(void);
-      void add_variant(VariantImpl *impl);
+      void add_variant(VariantImpl* impl);
       VariantImpl* find_variant_impl(VariantID variant_id, bool can_fail);
-      void find_valid_variants(std::vector<VariantID> &valid_variants, 
-                               Processor::Kind kind) const;
+      void find_valid_variants(
+          std::vector<VariantID>& valid_variants, Processor::Kind kind) const;
     public:
       const char* get_name(bool needs_lock = true);
-      void attach_semantic_information(SemanticTag tag, AddressSpaceID source,
-         const void *buffer, size_t size, bool is_mutable, bool send_to_owner);
-      bool retrieve_semantic_information(SemanticTag tag,
-                                         const void *&buffer, size_t &size,
-                                         bool can_fail, bool wait_until);
-      void send_semantic_info(AddressSpaceID target, SemanticTag tag,
-                        const void *value, size_t size, bool is_mutable,
-                        RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
-      void send_semantic_request(AddressSpaceID target, SemanticTag tag, 
-                             bool can_fail, bool wait_until, RtUserEvent ready);
-      void process_semantic_request(SemanticTag tag, AddressSpaceID target, 
-                             bool can_fail, bool wait_until, RtUserEvent ready);
+      void attach_semantic_information(
+          SemanticTag tag, AddressSpaceID source, const void* buffer,
+          size_t size, bool is_mutable, bool send_to_owner);
+      bool retrieve_semantic_information(
+          SemanticTag tag, const void*& buffer, size_t& size, bool can_fail,
+          bool wait_until);
+      void send_semantic_info(
+          AddressSpaceID target, SemanticTag tag, const void* value,
+          size_t size, bool is_mutable,
+          RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
+      void send_semantic_request(
+          AddressSpaceID target, SemanticTag tag, bool can_fail,
+          bool wait_until, RtUserEvent ready);
+      void process_semantic_request(
+          SemanticTag tag, AddressSpaceID target, bool can_fail,
+          bool wait_until, RtUserEvent ready);
     public:
       inline AddressSpaceID get_owner_space(void) const
-        { return get_owner_space(task_id); }
+      {
+        return get_owner_space(task_id);
+      }
       static AddressSpaceID get_owner_space(TaskID task_id);
     public:
       static void handle_semantic_request(
-                          Deserializer &derez, AddressSpaceID source);
+          Deserializer& derez, AddressSpaceID source);
       static void handle_semantic_info(
-                          Deserializer &derez, AddressSpaceID source);
+          Deserializer& derez, AddressSpaceID source);
       static void handle_variant_request(
-                          Deserializer &derez, AddressSpaceID source);
+          Deserializer& derez, AddressSpaceID source);
     public:
       const TaskID task_id;
-      char *const initial_name;
+      char* const initial_name;
     private:
       mutable LocalLock task_lock;
-      std::map<VariantID,VariantImpl*> variants;
+      std::map<VariantID, VariantImpl*> variants;
       // VariantIDs that we've handed out but haven't registered yet
       std::set<VariantID> pending_variants;
-      std::map<SemanticTag,SemanticInfo> semantic_infos;
+      std::map<SemanticTag, SemanticInfo> semantic_infos;
       // Track whether all these variants are idempotent or not
       bool all_idempotent;
     };
@@ -393,17 +429,17 @@ namespace Legion {
      * This class is used for storing all the meta-data associated
      * with a particular variant implementation of a task
      */
-    class VariantImpl : public Heapify<VariantImpl,RUNTIME_LIFETIME> { 
+    class VariantImpl : public Heapify<VariantImpl, RUNTIME_LIFETIME> {
     public:
-      VariantImpl(VariantID vid, TaskImpl *owner, 
-                  const TaskVariantRegistrar &registrar, 
-                  size_t return_type_size, bool has_return_type_size,
-                  const CodeDescriptor &realm_desc,
-                  const void *user_data = nullptr, size_t user_data_size = 0);
-      VariantImpl(const VariantImpl &rhs) = delete;
+      VariantImpl(
+          VariantID vid, TaskImpl* owner, const TaskVariantRegistrar& registrar,
+          size_t return_type_size, bool has_return_type_size,
+          const CodeDescriptor& realm_desc, const void* user_data = nullptr,
+          size_t user_data_size = 0);
+      VariantImpl(const VariantImpl& rhs) = delete;
       ~VariantImpl(void);
     public:
-      VariantImpl& operator=(const VariantImpl &rhs) = delete;
+      VariantImpl& operator=(const VariantImpl& rhs) = delete;
     public:
       inline bool is_leaf(void) const { return leaf_variant; }
       inline bool is_inner(void) const { return inner_variant; }
@@ -412,33 +448,39 @@ namespace Legion {
       inline bool is_concurrent(void) const { return concurrent_variant; }
       inline bool needs_barrier(void) const { return concurrent_barrier; }
       inline const char* get_name(void) const { return variant_name; }
-      inline const ExecutionConstraintSet&
-        get_execution_constraints(void) const { return execution_constraints; }
-      inline const TaskLayoutConstraintSet& 
-        get_layout_constraints(void) const { return layout_constraints; } 
+      inline const ExecutionConstraintSet& get_execution_constraints(void) const
+      {
+        return execution_constraints;
+      }
+      inline const TaskLayoutConstraintSet& get_layout_constraints(void) const
+      {
+        return layout_constraints;
+      }
     public:
       bool is_no_access_region(unsigned idx) const;
     public:
-      ApEvent dispatch_task(Processor target, SingleTask *task, 
-          TaskContext *ctx, ApEvent precondition,
-          int priority, Realm::ProfilingRequestSet &requests);
+      ApEvent dispatch_task(
+          Processor target, SingleTask* task, TaskContext* ctx,
+          ApEvent precondition, int priority,
+          Realm::ProfilingRequestSet& requests);
     public:
       bool can_use(Processor::Kind kind, bool warn) const;
     public:
-      void broadcast_variant(RtUserEvent done, AddressSpaceID origin,
-                             AddressSpaceID local);
-      void find_padded_locks(SingleTask *task, 
-                    const std::vector<RegionRequirement> &regions,
-                    const std::deque<InstanceSet> &physical_instances) const;
-      void record_padded_fields(const std::vector<RegionRequirement> &regions,
-                    const std::vector<PhysicalRegion> &physical_regions) const;
+      void broadcast_variant(
+          RtUserEvent done, AddressSpaceID origin, AddressSpaceID local);
+      void find_padded_locks(
+          SingleTask* task, const std::vector<RegionRequirement>& regions,
+          const std::deque<InstanceSet>& physical_instances) const;
+      void record_padded_fields(
+          const std::vector<RegionRequirement>& regions,
+          const std::vector<PhysicalRegion>& physical_regions) const;
     public:
-      static void handle_variant_broadcast(Deserializer &derez);
-      static bool check_padding(const TaskLayoutConstraintSet &constraints);
+      static void handle_variant_broadcast(Deserializer& derez);
+      static bool check_padding(const TaskLayoutConstraintSet& constraints);
     public:
       const VariantID vid;
-      TaskImpl *const owner;
-      const bool global; // globally valid variant
+      TaskImpl* const owner;
+      const bool global;  // globally valid variant
       const bool needs_padding;
       const bool has_return_type_size;
       const size_t return_type_size;
@@ -447,13 +489,13 @@ namespace Legion {
       CodeDescriptor realm_descriptor;
     public:
       const ExecutionConstraintSet execution_constraints;
-      const TaskLayoutConstraintSet   layout_constraints;
-      const std::map<Memory::Kind,PoolBounds> leaf_pool_bounds;
+      const TaskLayoutConstraintSet layout_constraints;
+      const std::map<Memory::Kind, PoolBounds> leaf_pool_bounds;
     private:
-      void *user_data;
+      void* user_data;
       size_t user_data_size;
       ApEvent ready_event;
-    private: // properties
+    private:  // properties
       const bool leaf_variant;
       const bool inner_variant;
       const bool idempotent_variant;
@@ -461,18 +503,18 @@ namespace Legion {
       const bool concurrent_variant;
       const bool concurrent_barrier;
     private:
-      char *variant_name; 
+      char* variant_name;
     };
 
     //--------------------------------------------------------------------------
-    inline std::ostream& operator<<(std::ostream &os, const VariantImpl &impl)
+    inline std::ostream& operator<<(std::ostream& os, const VariantImpl& impl)
     //--------------------------------------------------------------------------
     {
-      os << impl.get_name();  
+      os << impl.get_name();
       return os;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_TASK_H__
+#endif  // __LEGION_TASK_H__

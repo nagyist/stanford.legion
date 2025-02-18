@@ -23,51 +23,54 @@ namespace Legion {
   namespace Internal {
 
     /**
-     * \class InstanceBuilder 
+     * \class InstanceBuilder
      * A helper for building physical instances of logical regions
      */
     class InstanceBuilder : public ProfilingResponseHandler {
     public:
-      InstanceBuilder(const std::vector<LogicalRegion> &regs,
-                      const LayoutConstraintSet &cons,
-                      MemoryManager *memory = nullptr, UniqueID cid = 0)
+      InstanceBuilder(
+          const std::vector<LogicalRegion>& regs,
+          const LayoutConstraintSet& cons, MemoryManager* memory = nullptr,
+          UniqueID cid = 0)
         : regions(regs), constraints(cons), memory_manager(memory),
-          creator_id(cid), instance(PhysicalInstance::NO_INST), 
+          creator_id(cid), instance(PhysicalInstance::NO_INST),
           field_space_node(nullptr), instance_domain(nullptr), tree_id(0),
-          redop_id(0), reduction_op(nullptr), realm_layout(nullptr), piece_list(nullptr),
-          piece_list_size(0), valid(false), allocated(false) { }
-      InstanceBuilder(const std::vector<LogicalRegion> &regs,
-                      IndexSpaceExpression *expr, FieldSpaceNode *node,
-                      RegionTreeID tree_id, const LayoutConstraintSet &cons, 
-                      MemoryManager *memory, UniqueID cid,
-                      const void *piece_list, size_t piece_list_size); 
+          redop_id(0), reduction_op(nullptr), realm_layout(nullptr),
+          piece_list(nullptr), piece_list_size(0), valid(false),
+          allocated(false)
+      { }
+      InstanceBuilder(
+          const std::vector<LogicalRegion>& regs, IndexSpaceExpression* expr,
+          FieldSpaceNode* node, RegionTreeID tree_id,
+          const LayoutConstraintSet& cons, MemoryManager* memory, UniqueID cid,
+          const void* piece_list, size_t piece_list_size);
       virtual ~InstanceBuilder(void);
     public:
       void initialize(void);
       PhysicalManager* create_physical_instance(
-            LayoutConstraintKind *unsat_kind,
-                        unsigned *unsat_index, size_t *footprint = nullptr,
-                        RtEvent collection_done = RtEvent::NO_RT_EVENT,
-                        PhysicalInstance hole = PhysicalInstance::NO_INST);
+          LayoutConstraintKind* unsat_kind, unsigned* unsat_index,
+          size_t* footprint = nullptr,
+          RtEvent collection_done = RtEvent::NO_RT_EVENT,
+          PhysicalInstance hole = PhysicalInstance::NO_INST);
     public:
       virtual bool handle_profiling_response(
-          const Realm::ProfilingResponse &response, const void *orig, 
-          size_t orig_length, LgEvent &fevent, bool &failed_alloc);
+          const Realm::ProfilingResponse& response, const void* orig,
+          size_t orig_length, LgEvent& fevent, bool& failed_alloc);
     protected:
       void compute_space_and_domain(void);
     protected:
       void compute_layout_parameters(void);
     protected:
-      const std::vector<LogicalRegion> &regions;
+      const std::vector<LogicalRegion>& regions;
       LayoutConstraintSet constraints;
-      MemoryManager *const memory_manager;
+      MemoryManager* const memory_manager;
       const UniqueID creator_id;
     protected:
       PhysicalInstance instance;
       RtUserEvent profiling_ready;
     protected:
-      FieldSpaceNode *field_space_node;
-      IndexSpaceExpression *instance_domain;
+      FieldSpaceNode* field_space_node;
+      IndexSpaceExpression* instance_domain;
       RegionTreeID tree_id;
       // Mapping from logical field order to layout order
       std::vector<unsigned> mask_index_map;
@@ -75,9 +78,9 @@ namespace Legion {
       std::vector<CustomSerdezID> serdez;
       FieldMask instance_mask;
       ReductionOpID redop_id;
-      const ReductionOp *reduction_op;
-      Realm::InstanceLayoutGeneric *realm_layout;
-      void *piece_list;
+      const ReductionOp* reduction_op;
+      Realm::InstanceLayoutGeneric* realm_layout;
+      void* piece_list;
       size_t piece_list_size;
     public:
       LgEvent current_unique_event;
@@ -85,7 +88,7 @@ namespace Legion {
       bool allocated;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_INSTANCE_BUILDER_H__
+#endif  // __LEGION_INSTANCE_BUILDER_H__

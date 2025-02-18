@@ -22,30 +22,35 @@ namespace Legion {
   namespace Internal {
 
     // Forward declarations.
-    template <typename T, typename V>
+    template<typename T, typename V>
     class Trie;
 
-    template <typename T, typename V>
+    template<typename T, typename V>
     class TrieNode {
     public:
       TrieNode(T token_, TrieNode<T, V>* parent_)
-        : token(token_), end(false), parent(parent_) {}
-      ~TrieNode() {
-        for (auto it : this->children) {
+        : token(token_), end(false), parent(parent_)
+      { }
+      ~TrieNode()
+      {
+        for (auto it : this->children)
+        {
           delete it.second;
         }
       }
       const std::unordered_map<T, TrieNode<T, V>*>& get_children() const
-        { return this->children; }
+      {
+        return this->children;
+      }
       TrieNode<T, V>* get_parent() const { return this->parent; }
       V& get_value() { return this->value; }
       const V& get_value() const { return this->value; }
       bool get_end() const { return this->end; }
       T get_token() const { return this->token; }
-      TrieNode<T,V>* find_child(T token) const
+      TrieNode<T, V>* find_child(T token) const
       {
-        typename std::unordered_map<T, TrieNode<T,V>*>::const_iterator 
-          finder = children.find(token);
+        typename std::unordered_map<T, TrieNode<T, V>*>::const_iterator finder =
+            children.find(token);
         if (finder == children.end())
           return nullptr;
         else
@@ -73,26 +78,28 @@ namespace Legion {
     };
 
     // Trie is a mapping of strings of tokens T to values V.
-    template <typename T, typename V>
+    template<typename T, typename V>
     class Trie {
     public:
       // Initialize the root with an arbitrary token.
-      Trie() : root(T{}, nullptr) {}
+      Trie() : root(T{}, nullptr) { }
 
-      inline bool empty(void) const {
-        return this->root.children.empty();
-      }
+      inline bool empty(void) const { return this->root.children.empty(); }
 
       template<typename ITER>
-      void insert(ITER start, ITER end, V value) {
+      void insert(ITER start, ITER end, V value)
+      {
         TrieNode<T, V>* node = &this->root;
 
-        for (auto tokitr = start; tokitr != end; tokitr++) {
+        for (auto tokitr = start; tokitr != end; tokitr++)
+        {
           auto token = *tokitr;
           auto it = node->children.find(token);
-          if (it != node->children.end()) {
+          if (it != node->children.end())
+          {
             node = it->second;
-          } else {
+          } else
+          {
             TrieNode<T, V>* new_node = new TrieNode<T, V>(token, node);
             node->children[token] = new_node;
             node = new_node;
@@ -107,15 +114,19 @@ namespace Legion {
         node->value = value;
       }
 
-      void insert(const T *tokens, size_t size, V value) {
+      void insert(const T* tokens, size_t size, V value)
+      {
         TrieNode<T, V>* node = &this->root;
 
-        for (unsigned idx = 0; idx < size; idx++) {
+        for (unsigned idx = 0; idx < size; idx++)
+        {
           auto token = tokens[idx];
           auto it = node->children.find(token);
-          if (it != node->children.end()) {
+          if (it != node->children.end())
+          {
             node = it->second;
-          } else {
+          } else
+          {
             TrieNode<T, V>* new_node = new TrieNode<T, V>(token, node);
             node->children[token] = new_node;
             node = new_node;
@@ -133,16 +144,20 @@ namespace Legion {
       // query is a method that performs a prefix, containment and
       // superstring query on the trie in a single traversal.
       template<typename ITER>
-      TrieQueryResult query(ITER start, ITER end) const {
+      TrieQueryResult query(ITER start, ITER end) const
+      {
         const TrieNode<T, V>* node = &this->root;
         int64_t matched_toks = 0;
-        for (auto tokitr = start; tokitr != end; tokitr++) {
+        for (auto tokitr = start; tokitr != end; tokitr++)
+        {
           auto token = *tokitr;
           auto it = node->children.find(token);
-          if (it != node->children.end()) {
+          if (it != node->children.end())
+          {
             node = it->second;
             matched_toks++;
-          } else {
+          } else
+          {
             break;
           }
         }
@@ -161,16 +176,20 @@ namespace Legion {
         return result;
       }
 
-      TrieQueryResult query(const T *tokens, size_t size) const {
+      TrieQueryResult query(const T* tokens, size_t size) const
+      {
         const TrieNode<T, V>* node = &this->root;
         size_t matched_toks = 0;
-        for (unsigned idx = 0; idx < size; idx++) {
+        for (unsigned idx = 0; idx < size; idx++)
+        {
           auto token = tokens[idx];
           auto it = node->children.find(token);
-          if (it != node->children.end()) {
+          if (it != node->children.end())
+          {
             node = it->second;
             matched_toks++;
-          } else {
+          } else
+          {
             break;
           }
         }
@@ -190,14 +209,18 @@ namespace Legion {
       }
 
       template<typename ITER>
-      bool contains(ITER start, ITER end) const {
+      bool contains(ITER start, ITER end) const
+      {
         const TrieNode<T, V>* node = &this->root;
-        for (auto tokitr = start; tokitr != end; tokitr++) {
+        for (auto tokitr = start; tokitr != end; tokitr++)
+        {
           auto token = *tokitr;
           auto it = node->children.find(token);
-          if (it != node->children.end()) {
+          if (it != node->children.end())
+          {
             node = it->second;
-          } else {
+          } else
+          {
             return false;
           }
         }
@@ -206,15 +229,19 @@ namespace Legion {
       }
 
       template<typename ITER>
-      bool prefix(ITER start, ITER end) const {
+      bool prefix(ITER start, ITER end) const
+      {
         const TrieNode<T, V>* node = &this->root;
 
-        for (auto tokitr = start; tokitr != end; tokitr++) {
+        for (auto tokitr = start; tokitr != end; tokitr++)
+        {
           auto token = *tokitr;
           auto it = node->children.find(token);
-          if (it != node->children.end()) {
+          if (it != node->children.end())
+          {
             node = it->second;
-          } else {
+          } else
+          {
             return false;
           }
         }
@@ -222,15 +249,19 @@ namespace Legion {
         return true;
       }
 
-      bool prefix(const T *tokens, size_t size) const {
+      bool prefix(const T* tokens, size_t size) const
+      {
         const TrieNode<T, V>* node = &this->root;
 
-        for (unsigned idx = 0; idx < size; idx++) {
+        for (unsigned idx = 0; idx < size; idx++)
+        {
           auto token = tokens[idx];
           auto it = node->children.find(token);
-          if (it != node->children.end()) {
+          if (it != node->children.end())
+          {
             node = it->second;
-          } else {
+          } else
+          {
             return false;
           }
         }
@@ -245,7 +276,7 @@ namespace Legion {
       TrieNode<T, V> root;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_TRIE_H__
+#endif  // __LEGION_TRIE_H__

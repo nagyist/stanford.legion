@@ -20,191 +20,181 @@
 
 namespace Legion {
 
-    /////////////////////////////////////////////////////////////
-    // LegionHandshake 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // LegionHandshake
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    LegionHandshake::LegionHandshake(void)
-      : impl(nullptr)
-    //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  LegionHandshake::LegionHandshake(void) : impl(nullptr)
+  //--------------------------------------------------------------------------
+  { }
+
+  //--------------------------------------------------------------------------
+  LegionHandshake::LegionHandshake(const LegionHandshake& rhs) : impl(rhs.impl)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->add_reference();
+  }
+
+  //--------------------------------------------------------------------------
+  LegionHandshake::~LegionHandshake(void)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
     {
+      if (impl->remove_reference())
+        delete impl;
+      impl = nullptr;
     }
+  }
 
-    //--------------------------------------------------------------------------
-    LegionHandshake::LegionHandshake(const LegionHandshake &rhs)
-      : impl(rhs.impl)
-    //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  LegionHandshake::LegionHandshake(Internal::LegionHandshakeImpl* i) : impl(i)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->add_reference();
+  }
+
+  //--------------------------------------------------------------------------
+  LegionHandshake& LegionHandshake::operator=(const LegionHandshake& rhs)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
     {
-      if (impl != nullptr)
-        impl->add_reference();
+      if (impl->remove_reference())
+        delete impl;
     }
+    impl = rhs.impl;
+    if (impl != nullptr)
+      impl->add_reference();
+    return *this;
+  }
 
-    //--------------------------------------------------------------------------
-    LegionHandshake::~LegionHandshake(void)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-      {
-        if (impl->remove_reference())
-          delete impl;
-        impl = nullptr;
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    LegionHandshake::LegionHandshake(Internal::LegionHandshakeImpl *i)
-      : impl(i)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        impl->add_reference();
-    }
-
-    //--------------------------------------------------------------------------
-    LegionHandshake& LegionHandshake::operator=(const LegionHandshake &rhs)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-      {
-        if (impl->remove_reference())
-          delete impl;
-      }
-      impl = rhs.impl;
-      if (impl != nullptr)
-        impl->add_reference();
-      return *this;
-    }
-
-    //--------------------------------------------------------------------------
-    void LegionHandshake::ext_handoff_to_legion(void) const
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void LegionHandshake::ext_handoff_to_legion(void) const
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      impl->ext_handoff_to_legion();
-    }
+    impl->ext_handoff_to_legion();
+  }
 
-    //--------------------------------------------------------------------------
-    void LegionHandshake::ext_wait_on_legion(void) const
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void LegionHandshake::ext_wait_on_legion(void) const
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      impl->ext_wait_on_legion();
-    }
+    impl->ext_wait_on_legion();
+  }
 
-    //--------------------------------------------------------------------------
-    void LegionHandshake::legion_handoff_to_ext(void) const
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void LegionHandshake::legion_handoff_to_ext(void) const
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      impl->legion_handoff_to_ext();
-    }
+    impl->legion_handoff_to_ext();
+  }
 
-    //--------------------------------------------------------------------------
-    void LegionHandshake::legion_wait_on_ext(void) const
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void LegionHandshake::legion_wait_on_ext(void) const
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      impl->legion_wait_on_ext();
-    }
+    impl->legion_wait_on_ext();
+  }
 
-    //--------------------------------------------------------------------------
-    PhaseBarrier LegionHandshake::get_legion_wait_phase_barrier(void) const
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  PhaseBarrier LegionHandshake::get_legion_wait_phase_barrier(void) const
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      return impl->get_legion_wait_phase_barrier();
-    }
+    return impl->get_legion_wait_phase_barrier();
+  }
 
-    //--------------------------------------------------------------------------
-    PhaseBarrier LegionHandshake::get_legion_arrive_phase_barrier(void) const
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  PhaseBarrier LegionHandshake::get_legion_arrive_phase_barrier(void) const
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      return impl->get_legion_arrive_phase_barrier();
-    }
-    
-    //--------------------------------------------------------------------------
-    void LegionHandshake::advance_legion_handshake(void) const
-    //--------------------------------------------------------------------------
-    {
+    return impl->get_legion_arrive_phase_barrier();
+  }
+
+  //--------------------------------------------------------------------------
+  void LegionHandshake::advance_legion_handshake(void) const
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      impl->advance_legion_handshake();
-    }
+    impl->advance_legion_handshake();
+  }
 
-    /////////////////////////////////////////////////////////////
-    // MPILegionHandshake 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // MPILegionHandshake
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    MPILegionHandshake::MPILegionHandshake(void)
-      : LegionHandshake()
-    //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  MPILegionHandshake::MPILegionHandshake(void) : LegionHandshake()
+  //--------------------------------------------------------------------------
+  { }
+
+  //--------------------------------------------------------------------------
+  MPILegionHandshake::MPILegionHandshake(const MPILegionHandshake& rhs)
+    : LegionHandshake(rhs)
+  //--------------------------------------------------------------------------
+  { }
+
+  //--------------------------------------------------------------------------
+  MPILegionHandshake::~MPILegionHandshake(void)
+  //--------------------------------------------------------------------------
+  { }
+
+  //--------------------------------------------------------------------------
+  MPILegionHandshake::MPILegionHandshake(Internal::LegionHandshakeImpl* i)
+    : LegionHandshake(i)
+  //--------------------------------------------------------------------------
+  { }
+
+  //--------------------------------------------------------------------------
+  MPILegionHandshake& MPILegionHandshake::operator=(
+      const MPILegionHandshake& rhs)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
     {
+      if (impl->remove_reference())
+        delete impl;
     }
-
-    //--------------------------------------------------------------------------
-    MPILegionHandshake::MPILegionHandshake(const MPILegionHandshake &rhs)
-      : LegionHandshake(rhs)
-    //--------------------------------------------------------------------------
-    {
-    }
-
-    //--------------------------------------------------------------------------
-    MPILegionHandshake::~MPILegionHandshake(void)
-    //--------------------------------------------------------------------------
-    {
-    }
-
-    //--------------------------------------------------------------------------
-    MPILegionHandshake::MPILegionHandshake(Internal::LegionHandshakeImpl *i)
-      : LegionHandshake(i)
-    //--------------------------------------------------------------------------
-    {
-    }
-
-    //--------------------------------------------------------------------------
-    MPILegionHandshake& MPILegionHandshake::operator=(
-                                                  const MPILegionHandshake &rhs)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-      {
-        if (impl->remove_reference())
-          delete impl;
-      }
-      impl = rhs.impl;
-      if (impl != nullptr)
-        impl->add_reference();
-      return *this;
-    }
+    impl = rhs.impl;
+    if (impl != nullptr)
+      impl->add_reference();
+    return *this;
+  }
 
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Handshake Impl 
+    // Handshake Impl
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
     HandshakeImpl::HandshakeImpl(bool init_ext)
       : init_in_ext(init_ext), split(false)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     HandshakeImpl::~HandshakeImpl(void)
@@ -230,14 +220,14 @@ namespace Legion {
       // the previous phase of the legion_wait barrier has already triggered
       if (!init_in_ext)
       {
-        // Trigger the first generation of the ext arrival so that 
+        // Trigger the first generation of the ext arrival so that
         // the legion_wait_barrier always points to a valid generation
-        // This makes it look like we always start the cycle from the 
-        // external side which is how we know that the barriers from 
-        // the external to the legion side will be the first ones to 
+        // This makes it look like we always start the cycle from the
+        // external side which is how we know that the barriers from
+        // the external to the legion side will be the first ones to
         // exhaust their generations and we know we need to generate
         // new barriers for both sides.
-        // Same trick as below for the profiler to tell it this is an 
+        // Same trick as below for the profiler to tell it this is an
         // external handshake
         const LgEvent previous_fevent = implicit_fevent;
         implicit_fevent = ext_arrive_barrier;
@@ -252,7 +242,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (implicit_fevent.exists())
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_HANDSHAKE,
+        REPORT_LEGION_ERROR(
+            ERROR_ILLEGAL_HANDSHAKE,
             "Detected an illegal handshake calling 'ext_handoff_to_legion' "
             "from inside of a Legion task.")
       // We need to detect the case where we are about to trigger the last
@@ -287,11 +278,12 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (implicit_fevent.exists())
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_HANDSHAKE,
+        REPORT_LEGION_ERROR(
+            ERROR_ILLEGAL_HANDSHAKE,
             "Detected an illegal handshake calling 'ext_wait_on_legion' "
             "from inside of a Legion task.")
       // Wait for ext to be ready to run
-      // Note we use the external wait to be sure 
+      // Note we use the external wait to be sure
       // we don't get drafted by the Realm runtime
       ext_wait_barrier.external_wait();
       // Now we can advance our wait barrier
@@ -303,7 +295,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!implicit_fevent.exists())
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_HANDSHAKE,
+        REPORT_LEGION_ERROR(
+            ERROR_ILLEGAL_HANDSHAKE,
             "Detected an illegal handshake calling 'legion_handoff_to_ext' "
             "while not inside of a Legion task.")
       if (split)
@@ -323,7 +316,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!implicit_fevent.exists())
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_HANDSHAKE,
+        REPORT_LEGION_ERROR(
+            ERROR_ILLEGAL_HANDSHAKE,
             "Detected an illegal handshake calling 'legion_wait_on_ext' "
             "while not inside of a Legion task.")
       // Wait for Legion to be ready to run
@@ -361,14 +355,15 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (!implicit_fevent.exists())
-        REPORT_LEGION_ERROR(ERROR_ILLEGAL_HANDSHAKE,
+        REPORT_LEGION_ERROR(
+            ERROR_ILLEGAL_HANDSHAKE,
             "Detected an illegal handshake calling 'advance_legion_handshake ' "
             "while not inside of a Legion task.")
       legion_wait_barrier = legion_next_barrier;
       Runtime::advance_barrier(legion_next_barrier);
-      if (split) // already in split mode execution
+      if (split)  // already in split mode execution
         Runtime::advance_barrier(legion_arrive_barrier);
-      else // not in split mode execution yet
+      else  // not in split mode execution yet
         split = true;
       // Check to see if we're out of generations and need to wait for the
       // external side to catch up and give us a new barrier
@@ -381,19 +376,18 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MPIRankTable::MPIRankTable(int radix, AddressSpaceID address_space,
-                               size_t total_address_spaces)
+    MPIRankTable::MPIRankTable(
+        int radix, AddressSpaceID address_space, size_t total_address_spaces)
       : collective_radix(radix), done_triggered(false)
     //--------------------------------------------------------------------------
     {
       if (total_address_spaces > 1)
       {
-        configure_collective_settings(total_address_spaces,
-            address_space, collective_radix, collective_log_radix,
-            collective_stages, collective_participating_spaces, 
-            collective_last_radix);
-        participating = 
-          (int(address_space) < collective_participating_spaces);
+        configure_collective_settings(
+            total_address_spaces, address_space, collective_radix,
+            collective_log_radix, collective_stages,
+            collective_participating_spaces, collective_last_radix);
+        participating = (int(address_space) < collective_participating_spaces);
         // We already have our contributions for each stage so
         // we can set the inditial participants to 1
         if (participating)
@@ -403,7 +397,7 @@ namespace Legion {
           assert(collective_stages > 0);
 #endif
           stage_notifications.resize(collective_stages, 1);
-          // Stage 0 always starts with 0 notifications since we'll 
+          // Stage 0 always starts with 0 notifications since we'll
           // explictcly arrive on it
           stage_notifications[0] = 0;
         }
@@ -415,12 +409,11 @@ namespace Legion {
 #endif
       forward_mapping[Runtime::mpi_rank] = address_space;
     }
-    
+
     //--------------------------------------------------------------------------
     MPIRankTable::~MPIRankTable(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void MPIRankTable::perform_rank_exchange(void)
@@ -436,16 +429,15 @@ namespace Legion {
           // See if we are waiting for an initial notification
           // if not we can just send our message now
           if ((int(runtime->total_address_spaces) ==
-                collective_participating_spaces) ||
+               collective_participating_spaces) ||
               (runtime->address_space >= (runtime->total_address_spaces -
-                collective_participating_spaces)))
+                                          collective_participating_spaces)))
           {
             const bool all_stages_done = initiate_exchange();
             if (all_stages_done)
               complete_exchange();
           }
-        }
-        else
+        } else
         {
           // We are not a participating node
           // so we just have to send notification to one node
@@ -458,8 +450,9 @@ namespace Legion {
       assert(forward_mapping.size() == runtime->total_address_spaces);
 #endif
       // Reverse the mapping
-      for (std::map<int,AddressSpace>::const_iterator it = 
-            forward_mapping.begin(); it != forward_mapping.end(); it++)
+      for (std::map<int, AddressSpace>::const_iterator it =
+               forward_mapping.begin();
+           it != forward_mapping.end(); it++)
         reverse_mapping[it->second] = it->first;
     }
 
@@ -468,22 +461,22 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(participating); // should only get this for participating shards
+      assert(participating);  // should only get this for participating shards
 #endif
       {
         AutoLock r_lock(reservation);
 #ifdef DEBUG_LEGION
         assert(!sent_stages.empty());
-        assert(!sent_stages[0]); // stage 0 shouldn't be sent yet
+        assert(!sent_stages[0]);  // stage 0 shouldn't be sent yet
         assert(!stage_notifications.empty());
         if (collective_stages == 1)
-          assert(stage_notifications[0] < collective_last_radix); 
+          assert(stage_notifications[0] < collective_last_radix);
         else
           assert(stage_notifications[0] < collective_radix);
 #endif
         stage_notifications[0]++;
       }
-      return send_ready_stages(0/*start stage*/);
+      return send_ready_stages(0 /*start stage*/);
     }
 
     //--------------------------------------------------------------------------
@@ -494,10 +487,11 @@ namespace Legion {
       {
         RezCheck z(rez);
         rez.serialize(-1);
-        AutoLock r_lock(reservation, 1, false/*exclusive*/);
+        AutoLock r_lock(reservation, 1, false /*exclusive*/);
         rez.serialize<size_t>(forward_mapping.size());
-        for (std::map<int,AddressSpace>::const_iterator it = 
-              forward_mapping.begin(); it != forward_mapping.end(); it++)
+        for (std::map<int, AddressSpace>::const_iterator it =
+                 forward_mapping.begin();
+             it != forward_mapping.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
@@ -506,24 +500,23 @@ namespace Legion {
       if (participating)
       {
         // Send back to the nodes that are not participating
-        AddressSpaceID target = runtime->address_space +
-          collective_participating_spaces;
+        AddressSpaceID target =
+            runtime->address_space + collective_participating_spaces;
 #ifdef DEBUG_LEGION
         assert(target < runtime->total_address_spaces);
 #endif
         runtime->send_mpi_rank_exchange(target, rez);
-      }
-      else
+      } else
       {
         // Sent to a node that is participating
-        AddressSpaceID target = runtime->address_space % 
-          collective_participating_spaces;
+        AddressSpaceID target =
+            runtime->address_space % collective_participating_spaces;
         runtime->send_mpi_rank_exchange(target, rez);
       }
     }
 
     //--------------------------------------------------------------------------
-    bool MPIRankTable::send_ready_stages(const int start_stage) 
+    bool MPIRankTable::send_ready_stages(const int start_stage)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -544,7 +537,8 @@ namespace Legion {
           // Check to see if we're sending this stage
           // We need all the notifications from the previous stage before
           // we can send this stage
-          if ((stage > 0) && (stage_notifications[stage-1] < collective_radix))
+          if ((stage > 0) &&
+              (stage_notifications[stage - 1] < collective_radix))
             return false;
           // If we get here then we can send the stage
           sent_stages[stage] = true;
@@ -557,32 +551,32 @@ namespace Legion {
           }
 #endif
           rez.serialize<size_t>(forward_mapping.size());
-          for (std::map<int,AddressSpace>::const_iterator it = 
-                forward_mapping.begin(); it != forward_mapping.end(); it++)
+          for (std::map<int, AddressSpace>::const_iterator it =
+                   forward_mapping.begin();
+               it != forward_mapping.end(); it++)
           {
             rez.serialize(it->first);
             rez.serialize(it->second);
           }
         }
         // Now we can do the send
-        if (stage == (collective_stages-1))
+        if (stage == (collective_stages - 1))
         {
           for (int r = 1; r < collective_last_radix; r++)
           {
-            AddressSpaceID target = runtime->address_space ^
-              (r << (stage * collective_log_radix));
+            AddressSpaceID target =
+                runtime->address_space ^ (r << (stage * collective_log_radix));
 #ifdef DEBUG_LEGION
             assert(int(target) < collective_participating_spaces);
 #endif
             runtime->send_mpi_rank_exchange(target, rez);
           }
-        }
-        else
+        } else
         {
           for (int r = 1; r < collective_radix; r++)
           {
-            AddressSpaceID target = runtime->address_space ^
-              (r << (stage * collective_log_radix));
+            AddressSpaceID target =
+                runtime->address_space ^ (r << (stage * collective_log_radix));
 #ifdef DEBUG_LEGION
             assert(int(target) < collective_participating_spaces);
 #endif
@@ -593,18 +587,17 @@ namespace Legion {
       // If we make it here, then we sent the last stage, check to see
       // if we've seen all the notifications for it
       AutoLock r_lock(reservation);
-      if ((stage_notifications.back() == collective_last_radix)
-          && !done_triggered)
+      if ((stage_notifications.back() == collective_last_radix) &&
+          !done_triggered)
       {
         done_triggered = true;
         return true;
-      }
-      else
+      } else
         return false;
     }
 
     //--------------------------------------------------------------------------
-    void MPIRankTable::handle_mpi_rank_exchange(Deserializer &derez)
+    void MPIRankTable::handle_mpi_rank_exchange(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -619,17 +612,16 @@ namespace Legion {
       {
         if (!participating)
           all_stages_done = true;
-        else // we can now send our stage 0
+        else  // we can now send our stage 0
           all_stages_done = initiate_exchange();
-      }
-      else
+      } else
         all_stages_done = send_ready_stages();
       if (all_stages_done)
         complete_exchange();
     }
 
     //--------------------------------------------------------------------------
-    void MPIRankTable::unpack_exchange(int stage, Deserializer &derez)
+    void MPIRankTable::unpack_exchange(int stage, Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       size_t num_entries;
@@ -639,21 +631,22 @@ namespace Legion {
       {
         int rank;
         derez.deserialize(rank);
-	unsigned space;
-	derez.deserialize(space);
+        unsigned space;
+        derez.deserialize(space);
 #ifdef DEBUG_LEGION
-	// Duplicates are possible because later messages aren't "held", but
-	// they should be exact matches
-	assert ((forward_mapping.count(rank) == 0) ||
-		(forward_mapping[rank] == space));
+        // Duplicates are possible because later messages aren't "held", but
+        // they should be exact matches
+        assert(
+            (forward_mapping.count(rank) == 0) ||
+            (forward_mapping[rank] == space));
 #endif
-	forward_mapping[rank] = space;
+        forward_mapping[rank] = space;
       }
       if (stage >= 0)
       {
 #ifdef DEBUG_LEGION
-	assert(stage < int(stage_notifications.size()));
-        if (stage < (collective_stages-1))
+        assert(stage < int(stage_notifications.size()));
+        if (stage < (collective_stages - 1))
           assert(stage_notifications[stage] < collective_radix);
         else
           assert(stage_notifications[stage] < collective_last_radix);
@@ -671,14 +664,14 @@ namespace Legion {
 #endif
       // See if we have to send a message back to a
       // non-participating node
-      if ((int(runtime->total_address_spaces) > 
+      if ((int(runtime->total_address_spaces) >
            collective_participating_spaces) &&
           (int(runtime->address_space) < int(runtime->total_address_spaces -
-            collective_participating_spaces)))
+                                             collective_participating_spaces)))
         send_remainder_stage();
       // We are done
       Runtime::trigger_event(done_event);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

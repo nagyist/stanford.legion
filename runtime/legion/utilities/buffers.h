@@ -20,7 +20,7 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Buffer Manager 
+    // Buffer Manager
     /////////////////////////////////////////////////////////////
 
     /**
@@ -30,42 +30,58 @@ namespace Legion {
     class BufferManager : public NoHeapify {
     public:
       BufferManager(void) : buffer(nullptr), size(0) { }
-      BufferManager(const BufferManager &rhs) = delete;
-      BufferManager(BufferManager &&rhs)
-        : buffer(rhs.buffer), size(rhs.size) { rhs.buffer = nullptr; rhs.size = 0; }
+      BufferManager(const BufferManager& rhs) = delete;
+      BufferManager(BufferManager&& rhs) : buffer(rhs.buffer), size(rhs.size)
+      {
+        rhs.buffer = nullptr;
+        rhs.size = 0;
+      }
       ~BufferManager(void) { clear(); }
     public:
-      BufferManager& operator=(const BufferManager &rhs) = delete;
-      BufferManager& operator=(BufferManager &&rhs) 
-      { save_buffer(rhs.buffer, rhs.size); rhs.buffer = nullptr; rhs.size = 0; return *this; }
+      BufferManager& operator=(const BufferManager& rhs) = delete;
+      BufferManager& operator=(BufferManager&& rhs)
+      {
+        save_buffer(rhs.buffer, rhs.size);
+        rhs.buffer = nullptr;
+        rhs.size = 0;
+        return *this;
+      }
     public:
-      inline void clear(void) {
-        if (buffer != nullptr) {
-          legion_free<BufferManager<T,L> >(static_cast<BufferManager<T,L>*>(buffer), size);
+      inline void clear(void)
+      {
+        if (buffer != nullptr)
+        {
+          legion_free<BufferManager<T, L> >(
+              static_cast<BufferManager<T, L>*>(buffer), size);
           buffer = nullptr;
           size = 0;
         }
       }
-      inline void save_buffer(const void *src, size_t sz) {
+      inline void save_buffer(const void* src, size_t sz)
+      {
         if (buffer != nullptr)
-          legion_free<BufferManager<T,L> >(static_cast<BufferManager<T,L>*>(buffer), size);
+          legion_free<BufferManager<T, L> >(
+              static_cast<BufferManager<T, L>*>(buffer), size);
         size = sz;
-        if (size > 0) {
-          buffer = static_cast<void*>(legion_malloc<BufferManager<T,L>,L>(size, alignof(uint8_t)));
+        if (size > 0)
+        {
+          buffer = static_cast<void*>(
+              legion_malloc<BufferManager<T, L>, L>(size, alignof(uint8_t)));
           std::memcpy(buffer, src, size);
-        } else {
+        } else
+        {
           buffer = nullptr;
         }
       }
       inline void* get_buffer(void) const { return buffer; }
       inline size_t get_size(void) const { return size; }
     private:
-      void *buffer;
+      void* buffer;
       size_t size;
     };
 
     /////////////////////////////////////////////////////////////
-    // Semantic Info 
+    // Semantic Info
     /////////////////////////////////////////////////////////////
 
     /**
@@ -75,19 +91,21 @@ namespace Legion {
     struct SemanticInfo {
     public:
       SemanticInfo(void) : is_mutable(false) { }
-      SemanticInfo(const void *buf, size_t s, bool is_mut = true) 
-        : is_mutable(is_mut) { buffer.save_buffer(buf, s); }
-      SemanticInfo(RtUserEvent ready)
-        : ready_event(ready), is_mutable(true) { }
+      SemanticInfo(const void* buf, size_t s, bool is_mut = true)
+        : is_mutable(is_mut)
+      {
+        buffer.save_buffer(buf, s);
+      }
+      SemanticInfo(RtUserEvent ready) : ready_event(ready), is_mutable(true) { }
     public:
       inline bool is_valid(void) const { return ready_event.has_triggered(); }
     public:
-      BufferManager<SemanticInfo,LONG_BOUNDED_LIFETIME> buffer;
+      BufferManager<SemanticInfo, LONG_BOUNDED_LIFETIME> buffer;
       RtUserEvent ready_event;
       bool is_mutable;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_BUFFERS_H__
+#endif  // __LEGION_BUFFERS_H__

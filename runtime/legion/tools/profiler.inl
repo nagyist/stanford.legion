@@ -23,15 +23,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    inline void LegionProfInstance::record_index_space_point(DistributedID handle,
-                                                      const Point<DIM,T> &point)
+    inline void LegionProfInstance::record_index_space_point(
+        DistributedID handle, const Point<DIM, T>& point)
     //--------------------------------------------------------------------------
     {
       IndexSpacePointDesc ispace_point_desc;
       ispace_point_desc.unique_id = handle;
       ispace_point_desc.dim = (unsigned)DIM;
 #define DIMFUNC(D2) \
-      ispace_point_desc.points[D2-1] = (D2<=DIM) ? (long long)point[D2-1] : 0;
+  ispace_point_desc.points[D2 - 1] = (D2 <= DIM) ? (long long)point[D2 - 1] : 0;
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       register_index_space_point(ispace_point_desc);
@@ -39,20 +39,22 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
-    inline void LegionProfInstance::record_index_space_rect(DistributedID handle,
-                                                        const Rect<DIM,T> &rect)
+    inline void LegionProfInstance::record_index_space_rect(
+        DistributedID handle, const Rect<DIM, T>& rect)
     //--------------------------------------------------------------------------
     {
       IndexSpaceRectDesc ispace_rect_desc;
       ispace_rect_desc.unique_id = handle;
       ispace_rect_desc.dim = DIM;
-#define DIMFUNC(D2) \
-      ispace_rect_desc.rect_lo[D2-1] = (D2<=DIM) ? (long long)rect.lo[D2-1]:0; \
-      ispace_rect_desc.rect_hi[D2-1] = (D2<=DIM) ? (long long)rect.hi[D2-1]:0;
+#define DIMFUNC(D2)                                 \
+  ispace_rect_desc.rect_lo[D2 - 1] =                \
+      (D2 <= DIM) ? (long long)rect.lo[D2 - 1] : 0; \
+  ispace_rect_desc.rect_hi[D2 - 1] =                \
+      (D2 <= DIM) ? (long long)rect.hi[D2 - 1] : 0;
       LEGION_FOREACH_N(DIMFUNC)
 #undef DIMFUNC
       register_index_space_rect(ispace_rect_desc);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

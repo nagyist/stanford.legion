@@ -19,25 +19,25 @@
 namespace Legion {
   namespace Internal {
 
-    // A small pointer vector is a vector that stores 0 or 1 pointers 
+    // A small pointer vector is a vector that stores 0 or 1 pointers
     // efficiently without any heap allocation but then expands to a
     // full vector when there are multiple elements
     template<typename T, bool SORTED>
     class SmallPointerVector {
     public:
       inline SmallPointerVector(void);
-      SmallPointerVector(const SmallPointerVector &rhs) = delete;
-      inline SmallPointerVector(SmallPointerVector &&rhs);
+      SmallPointerVector(const SmallPointerVector& rhs) = delete;
+      inline SmallPointerVector(SmallPointerVector&& rhs);
       inline ~SmallPointerVector(void);
     public:
-      SmallPointerVector& operator=(const SmallPointerVector &rhs) = delete;
-      inline SmallPointerVector& operator=(SmallPointerVector &&rhs);
+      SmallPointerVector& operator=(const SmallPointerVector& rhs) = delete;
+      inline SmallPointerVector& operator=(SmallPointerVector&& rhs);
     public:
       inline bool empty(void) const;
       inline size_t size(void) const;
-      inline bool contains(T *value) const;
-      inline void insert(T *value);
-      inline bool erase(T *value);
+      inline bool contains(T* value) const;
+      inline void insert(T* value);
+      inline bool erase(T* value);
       inline T* operator[](unsigned idx) const;
     private:
       inline std::vector<T*>& get_vector(void);
@@ -46,9 +46,9 @@ namespace Legion {
       uintptr_t ptr;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
 #include "legion/utilities/small_vector.inl"
 
-#endif // __LEGION_SMALL_VECTOR_H__
+#endif  // __LEGION_SMALL_VECTOR_H__

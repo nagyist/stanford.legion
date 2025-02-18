@@ -25,15 +25,14 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TraceCache::TraceCache(InnerContext *ctx)
+    TraceCache::TraceCache(InnerContext* ctx)
       : context(ctx), operation_start_idx(0)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    bool TraceCache::record_operation(Operation *op, Murmur3Hasher::Hash hash,
-                                      uint64_t opidx)
+    bool TraceCache::record_operation(
+        Operation* op, Murmur3Hasher::Hash hash, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       // Short circuit if we don't have any traces recorded yet
@@ -44,7 +43,7 @@ namespace Legion {
       // we actually start observing traces.
       if (trie.empty())
         return false;
-      // We only start lazily 
+      // We only start lazily
       operations.emplace(op);
       // Update all watching pointers. This is very similar to the advancing
       // of pointers in the TraceOccurrenceWatcher.
@@ -53,7 +52,7 @@ namespace Legion {
       unsigned current_index = 0;
       for (unsigned idx = 0; idx < active_watching_pointers.size(); idx++)
       {
-        WatchPointer &pointer = active_watching_pointers[idx];
+        WatchPointer& pointer = active_watching_pointers[idx];
         if (!pointer.advance(hash))
           continue;
         if (current_index != idx)
@@ -62,8 +61,9 @@ namespace Legion {
           current_index++;
       }
       // Erase the remaining unused elements
-      active_watching_pointers.erase(active_watching_pointers.begin() + 
-          current_index, active_watching_pointers.end());
+      active_watching_pointers.erase(
+          active_watching_pointers.begin() + current_index,
+          active_watching_pointers.end());
 
       // Now update all the commit pointers. This process is more tricky, as
       // we have to actually decide to flush operations through the dependence
@@ -73,10 +73,10 @@ namespace Legion {
       current_index = 0;
       for (unsigned idx = 0; idx < active_commit_pointers.size(); idx++)
       {
-        CommitPointer &pointer = active_commit_pointers[idx];
+        CommitPointer& pointer = active_commit_pointers[idx];
         if (!pointer.advance(hash))
           continue;
-        if (pointer.complete()) 
+        if (pointer.complete())
         {
           // Add the new completed pointer to the vector of
           // completed_commit_pointers. We calculate the score of
@@ -89,33 +89,36 @@ namespace Legion {
           // of the vector is likely better on the small sizes that
           // completed_commit_pointers should grow to.
 #ifdef DEBUG_LEGION
-          assert(std::is_sorted(completed_commit_pointers.begin(),
-                completed_commit_pointers.end()));
+          assert(std::is_sorted(
+              completed_commit_pointers.begin(),
+              completed_commit_pointers.end()));
 #endif
           FrozenCommitPointer frozen(pointer, opidx);
           completed_commit_pointers.insert(
-            std::upper_bound(completed_commit_pointers.begin(),
-              completed_commit_pointers.end(), frozen), frozen);
-        }
-        else if (current_index != idx)
+              std::upper_bound(
+                  completed_commit_pointers.begin(),
+                  completed_commit_pointers.end(), frozen),
+              frozen);
+        } else if (current_index != idx)
           active_commit_pointers[current_index++] = pointer;
         else
           current_index++;
       }
       // Erase the rest of the active pointers.
-      active_commit_pointers.erase(active_commit_pointers.begin() + 
-          current_index, active_commit_pointers.end());
+      active_commit_pointers.erase(
+          active_commit_pointers.begin() + current_index,
+          active_commit_pointers.end());
 
       // Find the minimum opidx of the active and completed pointers.
       uint64_t earliest_active = std::numeric_limits<uint64_t>::max();
       for (std::vector<CommitPointer>::const_iterator it =
-            active_commit_pointers.begin(); it !=
-            active_commit_pointers.end(); it++)
+               active_commit_pointers.begin();
+           it != active_commit_pointers.end(); it++)
         earliest_active = std::min(earliest_active, it->get_opidx());
       uint64_t earliest_completed = std::numeric_limits<uint64_t>::max();
       for (std::vector<FrozenCommitPointer>::const_iterator it =
-            completed_commit_pointers.begin(); it !=
-            completed_commit_pointers.end(); it++)
+               completed_commit_pointers.begin();
+           it != completed_commit_pointers.end(); it++)
         earliest_completed = std::min(earliest_completed, it->get_opidx());
       uint64_t earliest_opidx = std::min(earliest_active, earliest_completed);
 
@@ -135,18 +138,19 @@ namespace Legion {
           // through as many operations as we can. The heuristic is to take
           // traces ordered by score. This hueuristic can lead to suboptimal
           // trace replay, for example if the operation stream is AB and we have
-          // completed traces [A, B] but B has a higher score, we'll issue A 
-          // without actually replaying that trace. Doing this seems to require 
-          // some fancier logic with interval trees or something, so we'll stick 
+          // completed traces [A, B] but B has a higher score, we'll issue A
+          // without actually replaying that trace. Doing this seems to require
+          // some fancier logic with interval trees or something, so we'll stick
           // to the simpler piece. completed_commit_pointers should already be
           // sorted to have the highest scoring traces at the front.
 #ifdef DEBUG_LEGION
-          assert(std::is_sorted(completed_commit_pointers.begin(),
-                completed_commit_pointers.end()));
+          assert(std::is_sorted(
+              completed_commit_pointers.begin(),
+              completed_commit_pointers.end()));
 #endif
           for (std::vector<FrozenCommitPointer>::iterator it =
-                completed_commit_pointers.begin(); it !=
-                completed_commit_pointers.end(); it++)
+                   completed_commit_pointers.begin();
+               it != completed_commit_pointers.end(); it++)
           {
             // If we're considering a pointer that starts earlier than the
             // pending set of operations, then that trace is behind us. So
@@ -164,50 +168,54 @@ namespace Legion {
           // At this point, we don't have any completed or active pointers,
           // so flush any remaining operations.
           flush_buffer();
-        }
-        else
+        } else
         {
-          // In this case, we have both completed and active pointers. 
-          // What we actually do will change depending on what the overlaps 
+          // In this case, we have both completed and active pointers.
+          // What we actually do will change depending on what the overlaps
           // between our completed and active pointers actually are.
-          if (earliest_completed < earliest_active) 
+          if (earliest_completed < earliest_active)
           {
-            // In this case, we have some completed pointers that we could 
-            // potentially replay behind our active pointers. We're going to 
-            // take a heuristic here where we only flush completed pointers 
-            // that do not overlap with any active pointers. This biases us 
-            // towards longer traces when possible, and makes the replay 
-            // resilient against different kinds of traces being inserted, 
+            // In this case, we have some completed pointers that we could
+            // potentially replay behind our active pointers. We're going to
+            // take a heuristic here where we only flush completed pointers
+            // that do not overlap with any active pointers. This biases us
+            // towards longer traces when possible, and makes the replay
+            // resilient against different kinds of traces being inserted,
             // such as AB, when the trie already contains BC.
 #ifdef DEBUG_LEGION
-            assert(std::is_sorted(completed_commit_pointers.begin(),
-                  completed_commit_pointers.end()));
+            assert(std::is_sorted(
+                completed_commit_pointers.begin(),
+                completed_commit_pointers.end()));
 #endif
             uint64_t cutoff_opidx = earliest_active;
-            uint64_t pending_completion_cutoff = 
-              std::numeric_limits<uint64_t>::max();
+            uint64_t pending_completion_cutoff =
+                std::numeric_limits<uint64_t>::max();
             current_index = 0;
-            for (unsigned idx = 0; idx < completed_commit_pointers.size(); idx++)
+            for (unsigned idx = 0; idx < completed_commit_pointers.size();
+                 idx++)
             {
-              FrozenCommitPointer &pointer = completed_commit_pointers[idx];
-              // If this completed pointer spans into an active pointer, 
+              FrozenCommitPointer& pointer = completed_commit_pointers[idx];
+              // If this completed pointer spans into an active pointer,
               // then we need to save it for later.
               if (cutoff_opidx <= (pointer.get_opidx() + pointer.get_length()))
               {
                 completed_commit_pointers[current_index++] = pointer;
-                // If we decide to skip this completed pointer because it overlaps
-                // with an active pointer, we shouldn't replay any completed pointers
-                // that overlap with this good pointer, as it scored higher.
-                pending_completion_cutoff = 
-                  std::min(pending_completion_cutoff, pointer.get_opidx());
+                // If we decide to skip this completed pointer because it
+                // overlaps with an active pointer, we shouldn't replay any
+                // completed pointers that overlap with this good pointer, as it
+                // scored higher.
+                pending_completion_cutoff =
+                    std::min(pending_completion_cutoff, pointer.get_opidx());
                 continue;
               }
-              // As before, any pointers that we are already past can be ignored.
+              // As before, any pointers that we are already past can be
+              // ignored.
               if (pointer.get_opidx() < operation_start_idx)
                 continue;
-              // Lastly, make sure that this completed pointer doesn't invalidate
-              // a completed pointer that was re-queued with a better score.
-              if (pending_completion_cutoff <= 
+              // Lastly, make sure that this completed pointer doesn't
+              // invalidate a completed pointer that was re-queued with a better
+              // score.
+              if (pending_completion_cutoff <=
                   (pointer.get_opidx() + pointer.get_length()))
               {
                 completed_commit_pointers[current_index++] = pointer;
@@ -219,30 +227,31 @@ namespace Legion {
               replay_trace(pointer.get_opidx() + pointer.get_length(), tid);
             }
             // Clear the remaining invalid completions.
-            completed_commit_pointers.erase(completed_commit_pointers.begin() + 
-                current_index, completed_commit_pointers.end());
+            completed_commit_pointers.erase(
+                completed_commit_pointers.begin() + current_index,
+                completed_commit_pointers.end());
 
 #ifdef DEBUG_LEGION
-            // Since we iterated through completed_commit_pointers in sorted order
-            // to construct the new vector, it should still be sorted.
-            assert(std::is_sorted(completed_commit_pointers.begin(), 
-                  completed_commit_pointers.end()));
-            // Since we waited to not cut off any active pointers, there should not
-            // be any invalid active pointers.
+            // Since we iterated through completed_commit_pointers in sorted
+            // order to construct the new vector, it should still be sorted.
+            assert(std::is_sorted(
+                completed_commit_pointers.begin(),
+                completed_commit_pointers.end()));
+            // Since we waited to not cut off any active pointers, there should
+            // not be any invalid active pointers.
             for (std::vector<CommitPointer>::const_iterator it =
-                  active_commit_pointers.begin(); it !=
-                  active_commit_pointers.end(); it++)
+                     active_commit_pointers.begin();
+                 it != active_commit_pointers.end(); it++)
             {
               assert(operation_start_idx <= it->get_opidx());
             }
 #endif
-          } 
-          else if (earliest_completed == earliest_active) 
+          } else if (earliest_completed == earliest_active)
           {
-            // We should never be in the case where an active and completed 
+            // We should never be in the case where an active and completed
             // pointer are starting at the same opidx.
-            // TODO (rohany): This can actually happen if we allow for 
-            // prefixes like the comment earlier above suggests. We'll deal 
+            // TODO (rohany): This can actually happen if we allow for
+            // prefixes like the comment earlier above suggests. We'll deal
             // with that when we get there. Right now we don't allow prefixes
             // and instead split longer traces into smaller ones with prefix
             // and postfix parts split into separate traces.
@@ -260,7 +269,7 @@ namespace Legion {
     bool TraceCache::is_operation_ignorable_in_traces(Operation* op)
     //--------------------------------------------------------------------------
     {
-      switch (op->get_operation_kind()) 
+      switch (op->get_operation_kind())
       {
         case DISCARD_OP_KIND:
           return true;
@@ -270,7 +279,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool TraceCache::record_noop(Operation *op)
+    bool TraceCache::record_noop(Operation* op)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -285,8 +294,8 @@ namespace Legion {
       // commit pointer.
       operations.emplace(op);
       for (std::vector<CommitPointer>::iterator it =
-            active_commit_pointers.begin(); it !=
-            active_commit_pointers.end(); it++)
+               active_commit_pointers.begin();
+           it != active_commit_pointers.end(); it++)
         it->advance_for_trace_noop();
       // Because this operation does not invalidate any pointers,
       // we don't always need to compute a minumum and flush the
@@ -298,15 +307,14 @@ namespace Legion {
       // processing of these operations slightly more eager, we'll
       // flush them through if there aren't any active pointers,
       // rather than waiting for the next operation to come along.
-      if (active_commit_pointers.empty() && 
-          completed_commit_pointers.empty())
+      if (active_commit_pointers.empty() && completed_commit_pointers.empty())
         flush_buffer();
       return true;
     }
 
     //--------------------------------------------------------------------------
     bool TraceCache::has_prefix(
-                           const std::vector<Murmur3Hasher::Hash> &hashes) const
+        const std::vector<Murmur3Hasher::Hash>& hashes) const
     //--------------------------------------------------------------------------
     {
       return trie.prefix(&hashes.front(), hashes.size());
@@ -314,11 +322,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void TraceCache::insert(
-                       std::vector<Murmur3Hasher::Hash> &hashes, uint64_t opidx)
+        std::vector<Murmur3Hasher::Hash>& hashes, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
-      trie.insert(&hashes.front(), hashes.size(),
-          TraceInfo(opidx, hashes.size()));
+      trie.insert(
+          &hashes.front(), hashes.size(), TraceInfo(opidx, hashes.size()));
     }
 
     //--------------------------------------------------------------------------
@@ -335,13 +343,14 @@ namespace Legion {
       if (!completed_commit_pointers.empty())
       {
 #ifdef DEBUG_LEGION
-        assert(std::is_sorted(completed_commit_pointers.begin(), 
-              completed_commit_pointers.end()));
+        assert(std::is_sorted(
+            completed_commit_pointers.begin(),
+            completed_commit_pointers.end()));
 #endif
         // Now that we have some (sorted) completed pointers, issue them.
         for (std::vector<FrozenCommitPointer>::iterator it =
-              completed_commit_pointers.begin(); it !=
-              completed_commit_pointers.end(); it++)
+                 completed_commit_pointers.begin();
+             it != completed_commit_pointers.end(); it++)
         {
           // If we're considering a pointer that starts earlier than the
           // pending set of operations, then that trace is behind us. So
@@ -364,15 +373,16 @@ namespace Legion {
     void TraceCache::replay_trace(uint64_t opidx, TraceID tid)
     //--------------------------------------------------------------------------
     {
-      // rohany): I don't think that this should happen when we're 
+      // rohany): I don't think that this should happen when we're
       // actually calling replay, but better safe than sorry.
 #ifdef DEBUG_LEGION
       assert(operation_start_idx < opidx);
 #endif
       // Similar logic as flush_buffer, but issue a begin and end trace
       // around the flushed operations.
-      context->begin_trace(tid, false/*logical*/, false/*static*/,
-          nullptr/*managed*/, false/*deprecated*/, nullptr/*provenance*/);
+      context->begin_trace(
+          tid, false /*logical*/, false /*static*/, nullptr /*managed*/,
+          false /*deprecated*/, nullptr /*provenance*/);
       uint64_t difference = opidx - this->operation_start_idx;
       operation_start_idx += difference;
       unsigned traced_ops = 0;
@@ -380,15 +390,14 @@ namespace Legion {
       {
         if (!is_operation_ignorable_in_traces(operations.front()))
           traced_ops++;
-        context->add_to_dependence_queue(operations.front(),
-            nullptr/*dependences*/, false/*unordered*/, false/*outermost*/);
+        context->add_to_dependence_queue(
+            operations.front(), nullptr /*dependences*/, false /*unordered*/,
+            false /*outermost*/);
         operations.pop();
       }
-      context->end_trace(tid, false/*deprecated*/, nullptr/*provenance*/);
-      log_auto_trace.info() << "Replaying trace " << tid
-                            << " of length "
-                            << traced_ops
-                            << " at opidx: " << opidx;
+      context->end_trace(tid, false /*deprecated*/, nullptr /*provenance*/);
+      log_auto_trace.info() << "Replaying trace " << tid << " of length "
+                            << traced_ops << " at opidx: " << opidx;
     }
 
     //--------------------------------------------------------------------------
@@ -396,10 +405,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       operation_start_idx += operations.size();
-      while (!operations.empty()) 
+      while (!operations.empty())
       {
-        context->add_to_dependence_queue(operations.front(),
-            nullptr/*dependences*/, false/*unordered*/, false/*outermost*/);
+        context->add_to_dependence_queue(
+            operations.front(), nullptr /*dependences*/, false /*unordered*/,
+            false /*outermost*/);
         operations.pop();
       }
     }
@@ -408,15 +418,17 @@ namespace Legion {
     void TraceCache::flush_buffer(uint64_t opidx)
     //--------------------------------------------------------------------------
     {
-      // If we've already advanced beyond this point, then there's nothing to do.
+      // If we've already advanced beyond this point, then there's nothing to
+      // do.
       if (opidx <= operation_start_idx)
         return;
       uint64_t difference = opidx - operation_start_idx;
       operation_start_idx += difference;
       for (uint64_t idx = 0; idx < difference; idx++)
       {
-        context->add_to_dependence_queue(operations.front(),
-            nullptr/*dependences*/, false/*unordered*/, false/*outermost*/);
+        context->add_to_dependence_queue(
+            operations.front(), nullptr /*dependences*/, false /*unordered*/,
+            false /*outermost*/);
         operations.pop();
       }
     }
@@ -431,7 +443,7 @@ namespace Legion {
       node = node->find_child(token);
       if (node == nullptr)
         return false;
-      // If we've hit the end of a string, 
+      // If we've hit the end of a string,
       // mark it as visited and update the score.
       if (node->get_end() && (node->get_value().opidx <= opidx))
         node->get_value().visit(opidx);
@@ -465,10 +477,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    TraceID TraceCache::CommitPointer::replay(InnerContext *context)
+    TraceID TraceCache::CommitPointer::replay(InnerContext* context)
     //--------------------------------------------------------------------------
     {
-      TraceInfo &info = node->get_value();
+      TraceInfo& info = node->get_value();
       if (info.replays++ == 0)
         info.tid = context->generate_dynamic_trace_id();
       return info.tid;
@@ -504,7 +516,7 @@ namespace Legion {
         uint64_t previous_idemp_visit = last_idempotent_visit_opidx;
         uint64_t idemp_diff = (opidx - previous_idemp_visit) / length;
         decaying_idempotent_visits =
-          (std::pow(R, idemp_diff) * decaying_idempotent_visits) + 1;
+            (std::pow(R, idemp_diff) * decaying_idempotent_visits) + 1;
         last_idempotent_visit_opidx = opidx;
       }
       last_visited_opidx = opidx;
@@ -526,18 +538,19 @@ namespace Legion {
       // Increase the visit count by 1 when computing the score so that
       // traces that haven't been visited before don't have a 0 score.
       // The initial score is num_visits * length.
-      double score = ((std::pow(R, diff_in_traces) * decaying_visits) + 1) * length;
+      double score =
+          ((std::pow(R, diff_in_traces) * decaying_visits) + 1) * length;
       // Next, we cap the score so that the first trace that gets replayed
       // doesn't get replayed forever.
       score = std::min(score, SCORE_CAP_MULT * ((double)this->length));
       // Then, increase the score a little bit if a trace has already been
       // replayed to favor replays.
       double capped_replays =
-        std::max(std::min(REPLAY_SCALE, (double)replays), (double)1);
-      double capped_idemp_visits = std::max(std::min(IDEMPOTENT_VISIT_SCALE,
-            decaying_idempotent_visits), 1.0);
+          std::max(std::min(REPLAY_SCALE, (double)replays), (double)1);
+      double capped_idemp_visits = std::max(
+          std::min(IDEMPOTENT_VISIT_SCALE, decaying_idempotent_visits), 1.0);
       return score * capped_replays * capped_idemp_visits;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

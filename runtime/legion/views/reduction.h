@@ -27,42 +27,44 @@ namespace Legion {
      * in a specific memory.
      */
     class ReductionView : public IndividualView,
-                          public Heapify<ReductionView,CONTEXT_LIFETIME> {
+                          public Heapify<ReductionView, CONTEXT_LIFETIME> {
     public:
-      struct DeferReductionViewArgs : 
-        public LgTaskArgs<DeferReductionViewArgs> {
+      struct DeferReductionViewArgs
+        : public LgTaskArgs<DeferReductionViewArgs> {
       public:
         static const LgTaskID TASK_ID = LG_DEFER_REDUCTION_VIEW_TASK_ID;
       public:
-        DeferReductionViewArgs(DistributedID d, PhysicalManager *m,
-                               AddressSpaceID log)
-          : LgTaskArgs<DeferReductionViewArgs>(implicit_provenance),
-            did(d), manager(m), logical_owner(log) { }
+        DeferReductionViewArgs(
+            DistributedID d, PhysicalManager* m, AddressSpaceID log)
+          : LgTaskArgs<DeferReductionViewArgs>(implicit_provenance), did(d),
+            manager(m), logical_owner(log)
+        { }
       public:
         const DistributedID did;
-        PhysicalManager *const manager;
+        PhysicalManager* const manager;
         const AddressSpaceID logical_owner;
       };
     public:
-      ReductionView(DistributedID did,
-                    AddressSpaceID logical_owner, PhysicalManager *manager,
-                    bool register_now, CollectiveMapping *mapping = nullptr);
-      ReductionView(const ReductionView &rhs) = delete;
+      ReductionView(
+          DistributedID did, AddressSpaceID logical_owner,
+          PhysicalManager* manager, bool register_now,
+          CollectiveMapping* mapping = nullptr);
+      ReductionView(const ReductionView& rhs) = delete;
       virtual ~ReductionView(void);
     public:
-      ReductionView& operator=(const ReductionView&rhs) = delete;
-    public: // From InstanceView
+      ReductionView& operator=(const ReductionView& rhs) = delete;
+    public:  // From InstanceView
       virtual void send_view(AddressSpaceID target);
-      virtual ReductionOpID get_redop(void) const; 
+      virtual ReductionOpID get_redop(void) const;
       virtual FillView* get_redop_fill_view(void) const { return fill_view; }
     public:
-      static void handle_send_reduction_view(Deserializer &derez);
-      static void handle_defer_reduction_view(const void *args);
-      static void create_remote_view(DistributedID did, 
-                                     PhysicalManager *manager,
-                                     AddressSpaceID logical_owner); 
+      static void handle_send_reduction_view(Deserializer& derez);
+      static void handle_defer_reduction_view(const void* args);
+      static void create_remote_view(
+          DistributedID did, PhysicalManager* manager,
+          AddressSpaceID logical_owner);
     public:
-      FillView *const fill_view;
+      FillView* const fill_view;
     };
 
     //--------------------------------------------------------------------------
@@ -75,7 +77,7 @@ namespace Legion {
       return static_cast<ReductionView*>(const_cast<LogicalView*>(this));
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_REDUCTION_VIEW_H__
+#endif  // __LEGION_REDUCTION_VIEW_H__

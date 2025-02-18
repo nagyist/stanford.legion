@@ -23,7 +23,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    bool TaskTreeCoordinates::operator==(const TaskTreeCoordinates &rhs) const
+    bool TaskTreeCoordinates::operator==(const TaskTreeCoordinates& rhs) const
     //--------------------------------------------------------------------------
     {
       if (coordinates.size() != rhs.size())
@@ -35,7 +35,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool TaskTreeCoordinates::operator!=(const TaskTreeCoordinates &rhs) const
+    bool TaskTreeCoordinates::operator!=(const TaskTreeCoordinates& rhs) const
     //--------------------------------------------------------------------------
     {
       return !((*this) == rhs);
@@ -43,13 +43,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool TaskTreeCoordinates::same_index_space(
-                                           const TaskTreeCoordinates &rhs) const
+        const TaskTreeCoordinates& rhs) const
     //--------------------------------------------------------------------------
     {
       if (coordinates.size() != rhs.size())
         return false;
       // Must the same coordinates for all but the last level
-      for (unsigned idx = 0; idx < (coordinates.size()-1); idx++)
+      for (unsigned idx = 0; idx < (coordinates.size() - 1); idx++)
         if (coordinates[idx] != rhs[idx])
           return false;
       // Last leve just needs to have the same context index
@@ -59,26 +59,27 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void TaskTreeCoordinates::serialize(Serializer &rez) const 
+    void TaskTreeCoordinates::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(coordinates.size());
       for (std::vector<ContextCoordinate>::const_iterator it =
-            coordinates.begin(); it != coordinates.end(); it++)
+               coordinates.begin();
+           it != coordinates.end(); it++)
         it->serialize(rez);
     }
 
     //--------------------------------------------------------------------------
-    void TaskTreeCoordinates::deserialize(Deserializer &derez)
+    void TaskTreeCoordinates::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       size_t num_coordinates;
       derez.deserialize(num_coordinates);
       coordinates.resize(num_coordinates);
-      for (std::vector<ContextCoordinate>::iterator it =
-            coordinates.begin(); it != coordinates.end(); it++)
+      for (std::vector<ContextCoordinate>::iterator it = coordinates.begin();
+           it != coordinates.end(); it++)
         it->deserialize(derez);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

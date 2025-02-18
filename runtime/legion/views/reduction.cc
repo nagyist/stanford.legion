@@ -21,21 +21,22 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // ReductionView 
+    // ReductionView
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReductionView::ReductionView(DistributedID did,
-                                 AddressSpaceID log_own, PhysicalManager *man,
-                                 bool register_now, CollectiveMapping *mapping)
-      : IndividualView(encode_reduction_did(did), man, log_own, 
-                       register_now, mapping),
+    ReductionView::ReductionView(
+        DistributedID did, AddressSpaceID log_own, PhysicalManager* man,
+        bool register_now, CollectiveMapping* mapping)
+      : IndividualView(
+            encode_reduction_did(did), man, log_own, register_now, mapping),
         fill_view(runtime->find_or_create_reduction_fill_view(man->redop))
     //--------------------------------------------------------------------------
     {
       fill_view->add_nested_resource_ref(did);
 #ifdef LEGION_GC
-      log_garbage.info("GC Reduction View %lld %d %lld", 
+      log_garbage.info(
+          "GC Reduction View %lld %d %lld",
           LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space,
           LEGION_DISTRIBUTED_ID_FILTER(manager->did));
 #endif
@@ -44,7 +45,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     ReductionView::~ReductionView(void)
     //--------------------------------------------------------------------------
-    { 
+    {
       if (fill_view->remove_nested_resource_ref(did))
         delete fill_view;
     }
@@ -74,10 +75,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ReductionView::handle_send_reduction_view(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-      DerezCheck z(derez); 
+      DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
       DistributedID manager_did;
@@ -85,45 +86,43 @@ namespace Legion {
       AddressSpaceID logical_owner;
       derez.deserialize(logical_owner);
       RtEvent man_ready, ctx_ready;
-      PhysicalManager *manager =
-        runtime->find_or_request_instance_manager(manager_did, man_ready);
+      PhysicalManager* manager =
+          runtime->find_or_request_instance_manager(manager_did, man_ready);
       if (man_ready.exists() && !man_ready.has_triggered())
       {
         // Defer this until the manager is ready
         DeferReductionViewArgs args(did, manager, logical_owner);
-        runtime->issue_runtime_meta_task(args,
-            LG_LATENCY_RESPONSE_PRIORITY, man_ready);
-      }
-      else
+        runtime->issue_runtime_meta_task(
+            args, LG_LATENCY_RESPONSE_PRIORITY, man_ready);
+      } else
         create_remote_view(did, manager, logical_owner);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ReductionView::handle_defer_reduction_view(const void *args)
+    /*static*/ void ReductionView::handle_defer_reduction_view(const void* args)
     //--------------------------------------------------------------------------
     {
-      const DeferReductionViewArgs *dargs = 
-        (const DeferReductionViewArgs*)args; 
-      create_remote_view(dargs->did, dargs->manager, 
-                         dargs->logical_owner);
+      const DeferReductionViewArgs* dargs = (const DeferReductionViewArgs*)args;
+      create_remote_view(dargs->did, dargs->manager, dargs->logical_owner);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void ReductionView::create_remote_view(
-                            DistributedID did, PhysicalManager *manager,
-                            AddressSpaceID logical_owner)
+        DistributedID did, PhysicalManager* manager,
+        AddressSpaceID logical_owner)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(manager->is_reduction_manager());
 #endif
-      void *location = runtime->find_or_create_pending_collectable_location<
-                                                          ReductionView>(did);
-      ReductionView *view = new(location) ReductionView(did, 
-          logical_owner, manager, false/*register now*/);
+      void* location =
+          runtime->find_or_create_pending_collectable_location<ReductionView>(
+              did);
+      ReductionView* view = new (location)
+          ReductionView(did, logical_owner, manager, false /*register now*/);
       // Only register after construction
       view->register_with_runtime();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -16,7 +16,8 @@
 #ifndef __LEGION_DEPRECATED_LEGION_C_H__
 #define __LEGION_DEPRECATED_LEGION_C_H__
 
-#warning "Including legion_c.h is not required. Including legion.h should be sufficient. This header file will be removed in a future release."
+#warning \
+    "Including legion_c.h is not required. Including legion.h should be sufficient. This header file will be removed in a future release."
 
 #ifndef LEGION_ENABLE_C_BINDINGS
 #define LEGION_ENABLE_C_BINDINGS
@@ -26,4 +27,4 @@
 #include "legion.h"
 #endif
 
-#endif // __LEGION_DEPRECATED_LEGION_C_H__
+#endif  // __LEGION_DEPRECATED_LEGION_C_H__

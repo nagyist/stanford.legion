@@ -20,12 +20,12 @@
 
 namespace Legion {
 
-    //--------------------------------------------------------------------------
-    inline std::ostream& operator<<(std::ostream& os, const PhaseBarrier& pb)
-    //--------------------------------------------------------------------------
-    {
-      os << "PhaseBarrier(" << pb.phase_barrier << ")";
-      return os;
-    }
+  //--------------------------------------------------------------------------
+  inline std::ostream& operator<<(std::ostream& os, const PhaseBarrier& pb)
+  //--------------------------------------------------------------------------
+  {
+    os << "PhaseBarrier(" << pb.phase_barrier << ")";
+    return os;
+  }
 
-} // namespace Legion
+}  // namespace Legion

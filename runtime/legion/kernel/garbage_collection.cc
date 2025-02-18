@@ -30,28 +30,27 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (std::vector<IndexSpaceExpression*>::const_iterator it =
-            live_expressions.begin(); it != live_expressions.end(); it++)
+               live_expressions.begin();
+           it != live_expressions.end(); it++)
         if ((*it)->remove_base_expression_reference(LIVE_EXPR_REF))
           delete (*it);
     }
 
     /////////////////////////////////////////////////////////////
-    // DistributedCollectable 
+    // DistributedCollectable
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DistributedCollectable::DistributedCollectable(DistributedID id,
-                                                   bool do_registration,
-                                                   CollectiveMapping *mapping,
-                                                   State initial_state)
+    DistributedCollectable::DistributedCollectable(
+        DistributedID id, bool do_registration, CollectiveMapping* mapping,
+        State initial_state)
       : did(id), owner_space(runtime->determine_owner(did)),
         local_space(runtime->address_space), collective_mapping(mapping),
-        current_state(initial_state), gc_references(0),
-        resource_references(0), downgrade_owner(owner_space),
-        notready_owner(owner_space), sent_global_references(0),
-        received_global_references(0), total_sent_references(0),
-        total_received_references(0), remaining_responses(0),
-        registered_with_runtime(false)
+        current_state(initial_state), gc_references(0), resource_references(0),
+        downgrade_owner(owner_space), notready_owner(owner_space),
+        sent_global_references(0), received_global_references(0),
+        total_sent_references(0), total_received_references(0),
+        remaining_responses(0), registered_with_runtime(false)
     //--------------------------------------------------------------------------
     {
       if (collective_mapping != nullptr)
@@ -73,14 +72,15 @@ namespace Legion {
       assert(gc_references == 0);
       assert(resource_references == 0);
 #endif
-      if ((collective_mapping != nullptr) && 
+      if ((collective_mapping != nullptr) &&
           collective_mapping->remove_reference())
         delete collective_mapping;
 #ifdef LEGION_GC
-      log_garbage.info("GC Deletion %lld %d", 
-          LEGION_DISTRIBUTED_ID_FILTER(did), local_space);
+      log_garbage.info(
+          "GC Deletion %lld %d", LEGION_DISTRIBUTED_ID_FILTER(did),
+          local_space);
 #endif
-    } 
+    }
 
     //--------------------------------------------------------------------------
     template<bool NEED_LOCK>
@@ -90,16 +90,15 @@ namespace Legion {
       if (NEED_LOCK)
       {
         AutoLock gc(gc_lock);
-        return (current_state == VALID_REF_STATE) || 
-                (current_state == GLOBAL_REF_STATE) ||
-                (current_state == PENDING_LOCAL_REF_STATE) ||
-                (current_state == PENDING_GLOBAL_REF_STATE);
-      }
-      else
-        return (current_state == VALID_REF_STATE) || 
-                (current_state == GLOBAL_REF_STATE) ||
-                (current_state == PENDING_LOCAL_REF_STATE) ||
-                (current_state == PENDING_GLOBAL_REF_STATE);
+        return (current_state == VALID_REF_STATE) ||
+               (current_state == GLOBAL_REF_STATE) ||
+               (current_state == PENDING_LOCAL_REF_STATE) ||
+               (current_state == PENDING_GLOBAL_REF_STATE);
+      } else
+        return (current_state == VALID_REF_STATE) ||
+               (current_state == GLOBAL_REF_STATE) ||
+               (current_state == PENDING_LOCAL_REF_STATE) ||
+               (current_state == PENDING_GLOBAL_REF_STATE);
     }
 
     template bool DistributedCollectable::is_global<true>(void) const;
@@ -111,7 +110,7 @@ namespace Legion {
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_global<false/*need lock*/>());
+      assert(is_global<false /*need lock*/>());
 #endif
       // Promote the current state back up if we had a pending downgrade
       if (current_state == PENDING_LOCAL_REF_STATE)
@@ -130,14 +129,14 @@ namespace Legion {
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_global<false/*need lock*/>());
+      assert(is_global<false /*need lock*/>());
       assert(gc_references.load() >= cnt);
 #endif
       if (gc_references.fetch_sub(cnt) == cnt)
         return can_delete(gc);
       else
         return false;
-    } 
+    }
 
     //--------------------------------------------------------------------------
     void DistributedCollectable::add_resource_reference(int cnt)
@@ -164,13 +163,13 @@ namespace Legion {
       else
         return false;
     }
-#endif // not defined DEBUG_LEGION_GC 
+#endif  // not defined DEBUG_LEGION_GC
 
     //--------------------------------------------------------------------------
 #ifdef DEBUG_LEGION_GC
     template<typename T>
-    bool DistributedCollectable::acquire_global(int cnt,
-                              T source, std::map<T,int> &detailed_gc_references)
+    bool DistributedCollectable::acquire_global(
+        int cnt, T source, std::map<T, int>& detailed_gc_references)
 #else
     bool DistributedCollectable::acquire_global(int cnt)
 #endif
@@ -185,8 +184,8 @@ namespace Legion {
         {
 #ifdef DEBUG_LEGION_GC
           gc_references += cnt;
-          typename std::map<T,int>::iterator finder =
-            detailed_gc_references.find(source);
+          typename std::map<T, int>::iterator finder =
+              detailed_gc_references.find(source);
           if (finder == detailed_gc_references.end())
             detailed_gc_references[source] = cnt;
           else
@@ -205,13 +204,14 @@ namespace Legion {
               // No downgrade in progress so we can just add the references
 #ifdef DEBUG_LEGION
               // Can only be in a pending state if we're not the owner
-              assert((current_state != PENDING_GLOBAL_REF_STATE) ||
-                      (downgrade_owner != local_space));
+              assert(
+                  (current_state != PENDING_GLOBAL_REF_STATE) ||
+                  (downgrade_owner != local_space));
 #endif
 #ifdef DEBUG_LEGION_GC
               gc_references += cnt;
-              typename std::map<T,int>::iterator finder =
-                detailed_gc_references.find(source);
+              typename std::map<T, int>::iterator finder =
+                  detailed_gc_references.find(source);
               if (finder == detailed_gc_references.end())
                 detailed_gc_references[source] = cnt;
               else
@@ -261,33 +261,32 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION_GC
         AutoLock gc(gc_lock);
-        typename std::map<T,int>::iterator finder =
-          detailed_gc_references.find(source);
+        typename std::map<T, int>::iterator finder =
+            detailed_gc_references.find(source);
         if (finder == detailed_gc_references.end())
           detailed_gc_references[source] = cnt;
         else
           finder->second += cnt;
 #endif
         return true;
-      }
-      else
+      } else
         return false;
     }
 
 #ifdef DEBUG_LEGION_GC
     template bool DistributedCollectable::acquire_global<ReferenceSource>(
-        int, ReferenceSource, std::map<ReferenceSource,int>&);
+        int, ReferenceSource, std::map<ReferenceSource, int>&);
     template bool DistributedCollectable::acquire_global<DistributedID>(
-        int, DistributedID, std::map<DistributedID,int>&);
+        int, DistributedID, std::map<DistributedID, int>&);
 #endif
 
     //--------------------------------------------------------------------------
-    bool DistributedCollectable::acquire_global_remote(AddressSpaceID &current,
-                                               int count, AddressSpaceID source)
+    bool DistributedCollectable::acquire_global_remote(
+        AddressSpaceID& current, int count, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
-      if (is_global<false/*need lock*/>())
+      if (is_global<false /*need lock*/>())
       {
         if (downgrade_owner == local_space)
         {
@@ -300,12 +299,10 @@ namespace Legion {
 #else
             gc_references.fetch_add(count);
 #endif
-          }
-          else // Otherwise pack a reference to send back
+          } else  // Otherwise pack a reference to send back
             sent_global_references++;
           return true;
-        }
-        else
+        } else
           current = downgrade_owner;
       }
       return false;
@@ -313,25 +310,25 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_global_acquire_request(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
-      DistributedCollectable *remote;
+      DistributedCollectable* remote;
       derez.deserialize(remote);
       AddressSpaceID source;
       derez.deserialize(source);
       int count;
       derez.deserialize(count);
-      std::atomic<bool> *result;
+      std::atomic<bool>* result;
       derez.deserialize(result);
       RtUserEvent ready;
       derez.deserialize(ready);
 
-      DistributedCollectable *dc = 
-        runtime->weak_find_distributed_collectable(did);
+      DistributedCollectable* dc =
+          runtime->weak_find_distributed_collectable(did);
       if (dc != nullptr)
       {
         AddressSpaceID current_owner = dc->local_space;
@@ -349,15 +346,13 @@ namespace Legion {
               rez.serialize(ready);
             }
             runtime->send_did_acquire_global_response(source, rez);
-          }
-          else
+          } else
           {
             // Might have been sent back to ourself eventually
             result->store(true);
             Runtime::trigger_event(ready);
           }
-        }
-        else if (current_owner != dc->local_space)
+        } else if (current_owner != dc->local_space)
         {
           // Not the owner anymore, so forward and keep chasing
           Serializer rez;
@@ -371,29 +366,27 @@ namespace Legion {
             rez.serialize(ready);
           }
           runtime->send_did_acquire_global_request(current_owner, rez);
-        }
-        else
+        } else
           // Failed so trigger the event
           Runtime::trigger_event(ready);
         if (dc->remove_base_resource_ref(RUNTIME_REF))
           delete dc;
-      }
-      else
+      } else
         // Failed so trigger the event
         Runtime::trigger_event(ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_global_acquire_response(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      DistributedCollectable *local;
+      DistributedCollectable* local;
       derez.deserialize(local);
       int count;
       derez.deserialize(count);
-      std::atomic<bool> *result;
+      std::atomic<bool>* result;
       derez.deserialize(result);
       RtUserEvent ready;
       derez.deserialize(ready);
@@ -409,16 +402,16 @@ namespace Legion {
 #ifdef DEBUG_LEGION_GC
     //--------------------------------------------------------------------------
     void DistributedCollectable::add_base_gc_ref_internal(
-                                                ReferenceSource source, int cnt)
+        ReferenceSource source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_global<false/*need lock*/>());
+      assert(is_global<false /*need lock*/>());
 #endif
       gc_references += cnt;
-      std::map<ReferenceSource,int>::iterator finder = 
-        detailed_base_gc_references.find(source);
+      std::map<ReferenceSource, int>::iterator finder =
+          detailed_base_gc_references.find(source);
       if (finder == detailed_base_gc_references.end())
         detailed_base_gc_references[source] = cnt;
       else
@@ -427,16 +420,16 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void DistributedCollectable::add_nested_gc_ref_internal(
-                                                  DistributedID source, int cnt)
+        DistributedID source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_global<false/*need lock*/>());
+      assert(is_global<false /*need lock*/>());
 #endif
       gc_references += cnt;
-      std::map<DistributedID,int>::iterator finder = 
-        detailed_nested_gc_references.find(source);
+      std::map<DistributedID, int>::iterator finder =
+          detailed_nested_gc_references.find(source);
       if (finder == detailed_nested_gc_references.end())
         detailed_nested_gc_references[source] = cnt;
       else
@@ -445,17 +438,17 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool DistributedCollectable::remove_base_gc_ref_internal(
-                                                ReferenceSource source, int cnt)
+        ReferenceSource source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_global<false/*need lock*/>());
+      assert(is_global<false /*need lock*/>());
       assert(gc_references >= cnt);
 #endif
       gc_references -= cnt;
-      std::map<ReferenceSource,int>::iterator finder = 
-        detailed_base_gc_references.find(source);
+      std::map<ReferenceSource, int>::iterator finder =
+          detailed_base_gc_references.find(source);
       assert(finder != detailed_base_gc_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
@@ -467,17 +460,17 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool DistributedCollectable::remove_nested_gc_ref_internal(
-                                                  DistributedID source, int cnt)
+        DistributedID source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_global<false/*need lock*/>());
+      assert(is_global<false /*need lock*/>());
       assert(gc_references >= cnt);
 #endif
       gc_references -= cnt;
-      std::map<DistributedID,int>::iterator finder = 
-        detailed_nested_gc_references.find(source);
+      std::map<DistributedID, int>::iterator finder =
+          detailed_nested_gc_references.find(source);
       assert(finder != detailed_nested_gc_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
@@ -485,11 +478,11 @@ namespace Legion {
         return can_delete(gc);
       else
         return false;
-    } 
+    }
 
     //--------------------------------------------------------------------------
     void DistributedCollectable::add_base_resource_ref_internal(
-                                                ReferenceSource source, int cnt)
+        ReferenceSource source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
@@ -497,8 +490,8 @@ namespace Legion {
       assert(current_state != DELETED_REF_STATE);
 #endif
       resource_references += cnt;
-      std::map<ReferenceSource,int>::iterator finder = 
-        detailed_base_resource_references.find(source);
+      std::map<ReferenceSource, int>::iterator finder =
+          detailed_base_resource_references.find(source);
       if (finder == detailed_base_resource_references.end())
         detailed_base_resource_references[source] = cnt;
       else
@@ -506,8 +499,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void DistributedCollectable::add_nested_resource_ref_internal (
-                                                  DistributedID source, int cnt)
+    void DistributedCollectable::add_nested_resource_ref_internal(
+        DistributedID source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
@@ -515,8 +508,8 @@ namespace Legion {
       assert(current_state != DELETED_REF_STATE);
 #endif
       resource_references += cnt;
-      std::map<DistributedID,int>::iterator finder = 
-        detailed_nested_resource_references.find(source);
+      std::map<DistributedID, int>::iterator finder =
+          detailed_nested_resource_references.find(source);
       if (finder == detailed_nested_resource_references.end())
         detailed_nested_resource_references[source] = cnt;
       else
@@ -525,7 +518,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool DistributedCollectable::remove_base_resource_ref_internal(
-                                                ReferenceSource source, int cnt)
+        ReferenceSource source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
@@ -534,8 +527,8 @@ namespace Legion {
       assert(resource_references >= cnt);
 #endif
       resource_references -= cnt;
-      std::map<ReferenceSource,int>::iterator finder = 
-        detailed_base_resource_references.find(source);
+      std::map<ReferenceSource, int>::iterator finder =
+          detailed_base_resource_references.find(source);
       assert(finder != detailed_base_resource_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
@@ -547,7 +540,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool DistributedCollectable::remove_nested_resource_ref_internal(
-                                                  DistributedID source, int cnt)
+        DistributedID source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
@@ -556,8 +549,8 @@ namespace Legion {
       assert(resource_references >= cnt);
 #endif
       resource_references -= cnt;
-      std::map<DistributedID,int>::iterator finder = 
-        detailed_nested_resource_references.find(source);
+      std::map<DistributedID, int>::iterator finder =
+          detailed_nested_resource_references.find(source);
       assert(finder != detailed_nested_resource_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
@@ -566,20 +559,20 @@ namespace Legion {
       else
         return false;
     }
-#endif // DEBUG_LEGION_GC
+#endif  // DEBUG_LEGION_GC
 
     //--------------------------------------------------------------------------
     bool DistributedCollectable::has_remote_instance(
-                                               AddressSpaceID remote_inst) const
+        AddressSpaceID remote_inst) const
     //--------------------------------------------------------------------------
     {
-      AutoLock gc(gc_lock,1,false/*exclusive*/);
+      AutoLock gc(gc_lock, 1, false /*exclusive*/);
       return remote_instances.contains(remote_inst);
     }
 
     //--------------------------------------------------------------------------
     void DistributedCollectable::update_remote_instances(
-                                                     AddressSpaceID remote_inst)
+        AddressSpaceID remote_inst)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -587,24 +580,27 @@ namespace Legion {
       assert(remote_inst != owner_space);
       assert(remote_inst != local_space);
       // should not be recording things in the collective mapping
-      assert((collective_mapping == nullptr) || 
-              !collective_mapping->contains(remote_inst));
+      assert(
+          (collective_mapping == nullptr) ||
+          !collective_mapping->contains(remote_inst));
       // should only be recording on the owner or one of the
       // nodes in the collective mapping
-      assert(is_owner() || ((collective_mapping != nullptr) && 
-            collective_mapping->contains(local_space)));
+      assert(
+          is_owner() || ((collective_mapping != nullptr) &&
+                         collective_mapping->contains(local_space)));
 #endif
       AutoLock gc(gc_lock);
       // Handle a very unusual case here were we weren't able to perform the
       // deletion because there was a packed reference, but we didn't know
       // where to send it to yet
-      if (is_owner() && remote_instances.empty() && 
-          (collective_mapping == nullptr) && 
+      if (is_owner() && remote_instances.empty() &&
+          (collective_mapping == nullptr) &&
           (sent_global_references != received_global_references))
       {
 #ifdef DEBUG_LEGION
         assert(downgrade_owner == local_space);
-        assert((current_state == VALID_REF_STATE) || 
+        assert(
+            (current_state == VALID_REF_STATE) ||
             (current_state == GLOBAL_REF_STATE));
 #endif
         Serializer rez;
@@ -612,8 +608,7 @@ namespace Legion {
         rez.serialize(current_state);
         runtime->send_did_downgrade_update(remote_inst, rez);
         downgrade_owner = remote_inst;
-      }
-      else if (remaining_responses > 0)
+      } else if (remaining_responses > 0)
       {
         // Another hairy case: if we receive a notification of a new remote
         // instance and we're in the middle of a downgrade check, we can't
@@ -626,7 +621,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void DistributedCollectable::filter_remote_instances(
-                                                     AddressSpaceID remote_inst)
+        AddressSpaceID remote_inst)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
@@ -646,7 +641,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RtEvent DistributedCollectable::send_remote_registration(
-                                                      bool has_global_reference)
+        bool has_global_reference)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -662,13 +657,13 @@ namespace Legion {
         rez.serialize(did);
         rez.serialize(registered_event);
       }
-      runtime->send_did_remote_registration(owner_space, rez);     
+      runtime->send_did_remote_registration(owner_space, rez);
       return registered_event;
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_did_remote_registration(
-                  Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -676,8 +671,8 @@ namespace Legion {
       derez.deserialize(did);
       RtUserEvent done_event;
       derez.deserialize(done_event);
-      DistributedCollectable *target = 
-        runtime->find_distributed_collectable(did);
+      DistributedCollectable* target =
+          runtime->find_distributed_collectable(did);
       target->update_remote_instances(source);
       if (done_event.exists())
         Runtime::trigger_event(done_event);
@@ -690,7 +685,8 @@ namespace Legion {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
       // Must be in a global state when packing a reference
-      assert((current_state == VALID_REF_STATE) ||
+      assert(
+          (current_state == VALID_REF_STATE) ||
           (current_state == GLOBAL_REF_STATE) ||
           (current_state == PENDING_GLOBAL_REF_STATE));
 #endif
@@ -703,7 +699,7 @@ namespace Legion {
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_global<false/*need lock*/>());
+      assert(is_global<false /*need lock*/>());
 #endif
       received_global_references += cnt;
       // No need to send any notifications if a downgrade is in process
@@ -714,11 +710,10 @@ namespace Legion {
           // We're the downgrade owner so check to see if we can resume
           // doing collections or we can wait for the next removal
           check_for_downgrade_restart(local_space);
-        }
-        else if (current_state == PENDING_LOCAL_REF_STATE)
+        } else if (current_state == PENDING_LOCAL_REF_STATE)
         {
           // Send a notification to the downgrade owner to check if it
-          // needs to resume collections now that this reference has 
+          // needs to resume collections now that this reference has
           // been unpacked. This is not just a performance optimization.
           // It is vital to forward progress as it removes the necessity
           // to poll on downgrades while we are waiting for references
@@ -732,9 +727,9 @@ namespace Legion {
         }
       }
     }
-    
+
     //--------------------------------------------------------------------------
-    bool DistributedCollectable::can_delete(AutoLock &gc)
+    bool DistributedCollectable::can_delete(AutoLock& gc)
     //--------------------------------------------------------------------------
     {
       switch (current_state)
@@ -751,9 +746,9 @@ namespace Legion {
               return false;
             // We're the downgrade owner, so start the process to check to
             // see if all the nodes are ready to perform the deletion
-            if (!is_owner() || !remote_instances.empty() || 
-                ((collective_mapping != nullptr) && 
-                 (collective_mapping->size() > 1)) || 
+            if (!is_owner() || !remote_instances.empty() ||
+                ((collective_mapping != nullptr) &&
+                 (collective_mapping->size() > 1)) ||
                 (sent_global_references != received_global_references))
             {
               // If we're already checking for a downgrade but are awaiting
@@ -763,8 +758,7 @@ namespace Legion {
               // Send messages to see if we can perform the deletion
               check_for_downgrade(downgrade_owner);
               return false;
-            }
-            else
+            } else
             {
               // No messages to send so we can downgrade the state now
               return perform_downgrade(gc);
@@ -790,10 +784,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert((current_state == GLOBAL_REF_STATE) || 
+      assert(
+          (current_state == GLOBAL_REF_STATE) ||
           (current_state == PENDING_LOCAL_REF_STATE));
 #endif
-      return (gc_references == 0);  
+      return (gc_references == 0);
     }
 
     //--------------------------------------------------------------------------
@@ -802,24 +797,25 @@ namespace Legion {
     {
       // Ready to downgrade, send the messages
       if (is_owner() || ((collective_mapping != nullptr) &&
-            collective_mapping->contains(local_space)))
+                         collective_mapping->contains(local_space)))
       {
         if (collective_mapping != nullptr)
         {
           std::vector<AddressSpaceID> children;
           if (collective_mapping->contains(downgrade_owner))
-            collective_mapping->get_children(downgrade_owner, local_space,
-                                             children);
+            collective_mapping->get_children(
+                downgrade_owner, local_space, children);
           else
-            collective_mapping->get_children(owner_space, local_space,
-                                             children);
+            collective_mapping->get_children(
+                owner_space, local_space, children);
           if (!children.empty())
           {
             Serializer rez;
             rez.serialize(did);
             rez.serialize(downgrade);
             for (std::vector<AddressSpaceID>::const_iterator it =
-                  children.begin(); it != children.end(); it++)
+                     children.begin();
+                 it != children.end(); it++)
               runtime->send_did_downgrade_success(*it, rez);
           }
         }
@@ -830,19 +826,18 @@ namespace Legion {
           rez.serialize(downgrade);
           struct {
             void apply(AddressSpaceID space)
-            { 
-              if (space != owner) 
-                runtime->send_did_downgrade_success(space, *rez); 
+            {
+              if (space != owner)
+                runtime->send_did_downgrade_success(space, *rez);
             }
-            Serializer *rez;
+            Serializer* rez;
             AddressSpaceID owner;
           } downgrade_functor;
           downgrade_functor.rez = &rez;
           downgrade_functor.owner = downgrade_owner;
           remote_instances.map(downgrade_functor);
         }
-      }
-      else if (downgrade_owner == local_space)
+      } else if (downgrade_owner == local_space)
       {
         // If we're the owner then we have to send it to the owner_space
         // to get all the remote instances
@@ -854,17 +849,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool DistributedCollectable::perform_downgrade(AutoLock &gc)
+    bool DistributedCollectable::perform_downgrade(AutoLock& gc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(gc_references == 0);
       // Should be in the GLOBAL_REF_STATE on the owner and
       // PENDING_LOCAL_REF_STATE if we're not the downgrade owner
-      assert(((current_state == GLOBAL_REF_STATE) && 
-              (downgrade_owner == local_space)) ||
-             ((current_state == PENDING_LOCAL_REF_STATE) &&
-              (downgrade_owner != local_space)));
+      assert(
+          ((current_state == GLOBAL_REF_STATE) &&
+           (downgrade_owner == local_space)) ||
+          ((current_state == PENDING_LOCAL_REF_STATE) &&
+           (downgrade_owner != local_space)));
 #endif
       // Downgrade the state first so that we don't duplicate the callback
       current_state = LOCAL_REF_STATE;
@@ -887,7 +883,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(resource_references > 0);
 #endif
-      // Remove the guard resource reference that we added before 
+      // Remove the guard resource reference that we added before
 #ifdef DEBUG_LEGION_GC
       if (--resource_references == 0)
 #else
@@ -911,8 +907,8 @@ namespace Legion {
       {
         // We're ready to be downgraded
         // Send messages and count how many responses we expect to see
-        if (is_owner() || ((collective_mapping != nullptr) && 
-              collective_mapping->contains(local_space)))
+        if (is_owner() || ((collective_mapping != nullptr) &&
+                           collective_mapping->contains(local_space)))
         {
           if (collective_mapping != nullptr)
           {
@@ -920,8 +916,8 @@ namespace Legion {
             if (collective_mapping->contains(owner))
               collective_mapping->get_children(owner, local_space, children);
             else
-              collective_mapping->get_children(owner_space, local_space,
-                                               children);
+              collective_mapping->get_children(
+                  owner_space, local_space, children);
             if (!children.empty())
             {
               Serializer rez;
@@ -932,13 +928,14 @@ namespace Legion {
                 // for the non-pending version of this state
                 if ((current_state == PENDING_LOCAL_REF_STATE) ||
                     (current_state == PENDING_GLOBAL_REF_STATE))
-                  rez.serialize(current_state+1);
+                  rez.serialize(current_state + 1);
                 else
                   rez.serialize(current_state);
                 rez.serialize(owner);
               }
               for (std::vector<AddressSpaceID>::const_iterator it =
-                    children.begin(); it != children.end(); it++)
+                       children.begin();
+                   it != children.end(); it++)
                 runtime->send_did_downgrade_request(*it, rez);
               remaining_responses += children.size();
             }
@@ -953,20 +950,20 @@ namespace Legion {
               // for the non-pending version of this state
               if ((current_state == PENDING_LOCAL_REF_STATE) ||
                   (current_state == PENDING_GLOBAL_REF_STATE))
-                rez.serialize(current_state+1);
+                rez.serialize(current_state + 1);
               else
                 rez.serialize(current_state);
               rez.serialize(owner);
             }
             struct {
               void apply(AddressSpaceID space)
-              { 
-                if (space != owner) 
+              {
+                if (space != owner)
                   runtime->send_did_downgrade_request(space, *rez);
                 else
                   skipped++;
               }
-              Serializer *rez;
+              Serializer* rez;
               AddressSpaceID owner;
               unsigned skipped;
             } downgrade_functor;
@@ -974,16 +971,16 @@ namespace Legion {
             downgrade_functor.owner = downgrade_owner;
             downgrade_functor.skipped = 0;
             remote_instances.map(downgrade_functor);
-            remaining_responses += 
-              (remote_instances.size() - downgrade_functor.skipped);
-          } 
-        }
-        else if (owner == local_space)
+            remaining_responses +=
+                (remote_instances.size() - downgrade_functor.skipped);
+          }
+        } else if (owner == local_space)
         {
 #ifdef DEBUG_LEGION
           // Should be in a non-pending state if we're the owner
-          assert((current_state == GLOBAL_REF_STATE) ||
-                  (current_state == VALID_REF_STATE));
+          assert(
+              (current_state == GLOBAL_REF_STATE) ||
+              (current_state == VALID_REF_STATE));
 #endif
           // If we're the owner then we have to send it to the owner_space
           // to get all the remote instances
@@ -1013,7 +1010,7 @@ namespace Legion {
             {
               RezCheck z(rez);
               rez.serialize(did);
-              rez.serialize(owner); // owner is special bottom value
+              rez.serialize(owner);  // owner is special bottom value
               rez.serialize(total_sent_references);
               rez.serialize(total_received_references);
             }
@@ -1024,7 +1021,7 @@ namespace Legion {
           else
           {
             // We only get here if we're the owner and we don't know
-            // about any remote instances yet. The only way that 
+            // about any remote instances yet. The only way that
             // should happen is if we have some sent global references
             // There's nothing to do yet since we know we can't be
             // deleted yet
@@ -1033,8 +1030,7 @@ namespace Legion {
           }
 #endif
         }
-      }
-      else if (local_space != owner)
+      } else if (local_space != owner)
       {
         const AddressSpaceID target = get_downgrade_target(owner);
         Serializer rez;
@@ -1042,8 +1038,8 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(did);
           rez.serialize(local_space);
-          rez.serialize<uint64_t>(0); // sent global references
-          rez.serialize<uint64_t>(0); // received global references
+          rez.serialize<uint64_t>(0);  // sent global references
+          rez.serialize<uint64_t>(0);  // received global references
         }
         runtime->send_did_downgrade_response(target, rez);
       }
@@ -1051,7 +1047,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void DistributedCollectable::check_for_downgrade_restart(
-                                                       AddressSpaceID new_owner)
+        AddressSpaceID new_owner)
     //--------------------------------------------------------------------------
     {
       // If we're no longer the downgrade owner there is nothing to do
@@ -1063,12 +1059,13 @@ namespace Legion {
       // If we can't downgrade then we'll restart the downgrade proces
       if ((current_state == LOCAL_REF_STATE) || !can_downgrade())
         return;
-      // If we get here then it should be because we were just waiting for
-      // an unpack somewhere and we've finally been told where it is
+        // If we get here then it should be because we were just waiting for
+        // an unpack somewhere and we've finally been told where it is
 #ifdef DEBUG_LEGION
       assert(notready_owner == local_space);
-      assert((current_state == VALID_REF_STATE) || 
-            (current_state == GLOBAL_REF_STATE));
+      assert(
+          (current_state == VALID_REF_STATE) ||
+          (current_state == GLOBAL_REF_STATE));
 #endif
       // Restart the downgrade process
       if (new_owner != local_space)
@@ -1078,8 +1075,7 @@ namespace Legion {
         rez.serialize(did);
         rez.serialize(current_state);
         runtime->send_did_downgrade_update(new_owner, rez);
-      }
-      else
+      } else
         check_for_downgrade(new_owner);
     }
 
@@ -1097,7 +1093,8 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(downgrade_owner != local_space);
-      assert((current_state == GLOBAL_REF_STATE) || 
+      assert(
+          (current_state == GLOBAL_REF_STATE) ||
           (current_state == PENDING_LOCAL_REF_STATE));
 #endif
       current_state = PENDING_LOCAL_REF_STATE;
@@ -1105,7 +1102,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_downgrade_request(
-                   Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1118,26 +1115,25 @@ namespace Legion {
 
       // It's possible for this to race with the creation of this
       // distributed collectable so wait until it is ready
-      DistributedCollectable *dc = runtime->find_distributed_collectable(did);
+      DistributedCollectable* dc = runtime->find_distributed_collectable(did);
       dc->process_downgrade_request(downgrade_owner, to_check);
     }
 
     //--------------------------------------------------------------------------
-    void DistributedCollectable::process_downgrade_request(AddressSpaceID owner,
-                                                           State to_check)
+    void DistributedCollectable::process_downgrade_request(
+        AddressSpaceID owner, State to_check)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(owner != local_space); // we should be remote here
+      assert(owner != local_space);  // we should be remote here
       assert((to_check == GLOBAL_REF_STATE) || (to_check == VALID_REF_STATE));
 #endif
       AutoLock gc(gc_lock);
       // If the owner is asking us to downgrade a state that is less than
-      // our current state then that is because the downgrade from our 
+      // our current state then that is because the downgrade from our
       // current state has already been done on the owner and we should
       // perform our local down grade to reflect that first
-      while (to_check < current_state)
-        perform_downgrade(gc);
+      while (to_check < current_state) perform_downgrade(gc);
 #ifdef DEBUG_LEGION
       assert(LOCAL_REF_STATE < current_state);
 #endif
@@ -1146,7 +1142,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     AddressSpaceID DistributedCollectable::get_downgrade_target(
-                                                     AddressSpaceID owner) const
+        AddressSpaceID owner) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1178,7 +1174,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool DistributedCollectable::process_downgrade_response(
-          AddressSpaceID notready, uint64_t total_sent, uint64_t total_received)
+        AddressSpaceID notready, uint64_t total_sent, uint64_t total_received)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
@@ -1200,19 +1196,19 @@ namespace Legion {
         if (downgrade_owner == local_space)
         {
 #ifdef DEBUG_LEGION
-          assert((current_state == VALID_REF_STATE) || 
-            (current_state == GLOBAL_REF_STATE));
+          assert(
+              (current_state == VALID_REF_STATE) ||
+              (current_state == GLOBAL_REF_STATE));
 #endif
           // See if it safe to downgrade
-          // Make sure to check ourselves again to handle any 
+          // Make sure to check ourselves again to handle any
           // check_*_and_increment methods
           if (can_downgrade() && (notready_owner == downgrade_owner) &&
               (total_sent_references == total_received_references))
           {
             // Then perform our local downgrade
             return perform_downgrade(gc);
-          }
-          else
+          } else
           {
             // Not ready to downgrade
             if (notready_owner != downgrade_owner)
@@ -1234,20 +1230,19 @@ namespace Legion {
             // See the calls to check_for_downgrade_restart to see where
             // progress comes from now
             //{
-              // This is a strange case: all the nodes are ready to downgrade
-              // but there are still packed references in flight so we need
-              // to keep trying to perform the downgrade until we find one
-              // of these nodes and find the reference
-              //check_for_downgrade(downgrade_owner);
+            // This is a strange case: all the nodes are ready to downgrade
+            // but there are still packed references in flight so we need
+            // to keep trying to perform the downgrade until we find one
+            // of these nodes and find the reference
+            // check_for_downgrade(downgrade_owner);
             //}
           }
-        }
-        else
+        } else
         {
           const AddressSpaceID target = get_downgrade_target(downgrade_owner);
           // We had to release the lock to send the requests to our upstream
           // nodes so we need to check again to see if it is still safe to
-          // perform the downgrade on this node or not atomically with 
+          // perform the downgrade on this node or not atomically with
           // accumulating our sent and received references
           Serializer rez;
           if (can_downgrade())
@@ -1259,14 +1254,13 @@ namespace Legion {
             rez.serialize(total_received_references);
             // Record that we're in the pending downgrade state
             record_pending_downgrade();
-          }
-          else
+          } else
           {
             RezCheck z(rez);
             rez.serialize(did);
             rez.serialize(local_space);
-            rez.serialize<uint64_t>(0); // sent global references
-            rez.serialize<uint64_t>(0); // received global references
+            rez.serialize<uint64_t>(0);  // sent global references
+            rez.serialize<uint64_t>(0);  // received global references
           }
           runtime->send_did_downgrade_response(target, rez);
         }
@@ -1276,7 +1270,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_downgrade_response(
-                                          Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1288,7 +1282,7 @@ namespace Legion {
       derez.deserialize(total_sent);
       derez.deserialize(total_received);
 
-      DistributedCollectable *dc = runtime->find_distributed_collectable(did);
+      DistributedCollectable* dc = runtime->find_distributed_collectable(did);
       if (dc->process_downgrade_response(notready, total_sent, total_received))
         delete dc;
     }
@@ -1300,8 +1294,8 @@ namespace Legion {
       AutoLock gc(gc_lock);
       // Check to see if this state has already been downgraded already
       // because a check_for_downgrade got here first
-      if ((to_downgrade == current_state) || 
-          ((current_state+1) == to_downgrade))
+      if ((to_downgrade == current_state) ||
+          ((current_state + 1) == to_downgrade))
         perform_downgrade(gc);
 #ifdef DEBUG_LEGION
       else
@@ -1311,7 +1305,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_downgrade_success(
-                                          Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -1322,8 +1316,8 @@ namespace Legion {
       // These can race with checks for downgrades from other states and
       // therefore it's possible for these to arrive even after the object
       // itself has been deleted so we need a weak find here
-      DistributedCollectable *dc =
-        runtime->weak_find_distributed_collectable(did);
+      DistributedCollectable* dc =
+          runtime->weak_find_distributed_collectable(did);
       if (dc != nullptr)
       {
         dc->process_downgrade_success(to_downgrade);
@@ -1333,8 +1327,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void DistributedCollectable::process_downgrade_update(AutoLock &gc,
-                                                          State to_check)
+    void DistributedCollectable::process_downgrade_update(
+        AutoLock& gc, State to_check)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1344,8 +1338,7 @@ namespace Legion {
       // It's possible we get this notification before the update saying
       // that the downgrade from the previous state has been successful
       // so make sure to update accordingly
-      while (to_check < current_state)
-        perform_downgrade(gc);
+      while (to_check < current_state) perform_downgrade(gc);
       if (current_state < to_check)
         current_state = to_check;
       downgrade_owner = local_space;
@@ -1355,7 +1348,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_downgrade_update(
-                                          Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -1365,14 +1358,14 @@ namespace Legion {
 
       // It's possible for this to race with the creation and registration
       // of this distributed collectable so wait for it to be ready
-      DistributedCollectable *dc = runtime->find_distributed_collectable(did);
+      DistributedCollectable* dc = runtime->find_distributed_collectable(did);
       AutoLock gc(dc->gc_lock);
       dc->process_downgrade_update(gc, state);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void DistributedCollectable::handle_downgrade_restart(
-                                     Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
@@ -1381,8 +1374,8 @@ namespace Legion {
       // destruction of the collectable object so we have to check to see if
       // it is still here, if it's not then it's already been cleaned up and
       // there is nothing more for us to do
-      DistributedCollectable *dc =
-        runtime->weak_find_distributed_collectable(did);
+      DistributedCollectable* dc =
+          runtime->weak_find_distributed_collectable(did);
       if (dc != nullptr)
       {
         {
@@ -1400,23 +1393,20 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ValidDistributedCollectable::ValidDistributedCollectable(
-                                                  DistributedID id, 
-                                                  bool do_registration, 
-                                                  CollectiveMapping *map,
-                                                  bool start_in_valid_state)
-      : DistributedCollectable(id, do_registration, map,
-          start_in_valid_state ? VALID_REF_STATE : GLOBAL_REF_STATE),
+        DistributedID id, bool do_registration, CollectiveMapping* map,
+        bool start_in_valid_state)
+      : DistributedCollectable(
+            id, do_registration, map,
+            start_in_valid_state ? VALID_REF_STATE : GLOBAL_REF_STATE),
         valid_references(0), sent_valid_references(0),
         received_valid_references(0)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ValidDistributedCollectable::~ValidDistributedCollectable(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     template<bool NEED_LOCK>
@@ -1427,11 +1417,10 @@ namespace Legion {
       {
         AutoLock gc(gc_lock);
         return (current_state == VALID_REF_STATE) ||
-                (current_state == PENDING_GLOBAL_REF_STATE);
-      }
-      else
+               (current_state == PENDING_GLOBAL_REF_STATE);
+      } else
         return (current_state == VALID_REF_STATE) ||
-                (current_state == PENDING_GLOBAL_REF_STATE);
+               (current_state == PENDING_GLOBAL_REF_STATE);
     }
 
     template bool ValidDistributedCollectable::is_valid<true>(void) const;
@@ -1443,7 +1432,7 @@ namespace Legion {
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_valid<false/*need lock*/>());
+      assert(is_valid<false /*need lock*/>());
 #endif
       // Promote the current state back up if we had a pending downgrade
       if (current_state == PENDING_GLOBAL_REF_STATE)
@@ -1462,7 +1451,7 @@ namespace Legion {
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_valid<false/*need lock*/>());
+      assert(is_valid<false /*need lock*/>());
       assert(valid_references.load() >= cnt);
 #endif
       if (valid_references.fetch_sub(cnt) == cnt)
@@ -1470,19 +1459,19 @@ namespace Legion {
       else
         return false;
     }
-#else // ifndef DEBUG_LEGION_GC
+#else  // ifndef DEBUG_LEGION_GC
     //--------------------------------------------------------------------------
     void ValidDistributedCollectable::add_base_valid_ref_internal(
-                                                ReferenceSource source, int cnt)
+        ReferenceSource source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_valid<false/*need lock*/>());
+      assert(is_valid<false /*need lock*/>());
 #endif
       valid_references += cnt;
-      std::map<ReferenceSource,int>::iterator finder = 
-        detailed_base_valid_references.find(source);
+      std::map<ReferenceSource, int>::iterator finder =
+          detailed_base_valid_references.find(source);
       if (finder == detailed_base_valid_references.end())
         detailed_base_valid_references[source] = cnt;
       else
@@ -1491,16 +1480,16 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ValidDistributedCollectable::add_nested_valid_ref_internal(
-                                                  DistributedID source, int cnt)
+        DistributedID source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_valid<false/*need lock*/>());
+      assert(is_valid<false /*need lock*/>());
 #endif
       valid_references += cnt;
-      std::map<DistributedID,int>::iterator finder = 
-        detailed_nested_valid_references.find(source);
+      std::map<DistributedID, int>::iterator finder =
+          detailed_nested_valid_references.find(source);
       if (finder == detailed_nested_valid_references.end())
         detailed_nested_valid_references[source] = cnt;
       else
@@ -1509,17 +1498,17 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool ValidDistributedCollectable::remove_base_valid_ref_internal(
-                                                ReferenceSource source, int cnt)
+        ReferenceSource source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_valid<false/*need lock*/>());
+      assert(is_valid<false /*need lock*/>());
       assert(valid_references >= cnt);
 #endif
       valid_references -= cnt;
-      std::map<ReferenceSource,int>::iterator finder = 
-        detailed_base_valid_references.find(source);
+      std::map<ReferenceSource, int>::iterator finder =
+          detailed_base_valid_references.find(source);
       assert(finder != detailed_base_valid_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
@@ -1531,17 +1520,17 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool ValidDistributedCollectable::remove_nested_valid_ref_internal(
-                                                  DistributedID source, int cnt)
+        DistributedID source, int cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_valid<false/*need lock*/>());
+      assert(is_valid<false /*need lock*/>());
       assert(valid_references >= cnt);
 #endif
       valid_references -= cnt;
-      std::map<DistributedID,int>::iterator finder = 
-        detailed_nested_valid_references.find(source);
+      std::map<DistributedID, int>::iterator finder =
+          detailed_nested_valid_references.find(source);
       assert(finder != detailed_nested_valid_references.end());
       assert(finder->second >= cnt);
       finder->second -= cnt;
@@ -1555,8 +1544,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
 #ifdef DEBUG_LEGION_GC
     template<typename T>
-    bool ValidDistributedCollectable::acquire_valid(int cnt,
-                           T source, std::map<T,int> &detailed_valid_references)
+    bool ValidDistributedCollectable::acquire_valid(
+        int cnt, T source, std::map<T, int>& detailed_valid_references)
 #else
     bool ValidDistributedCollectable::acquire_valid(int cnt)
 #endif
@@ -1571,8 +1560,8 @@ namespace Legion {
         {
 #ifdef DEBUG_LEGION_GC
           valid_references += cnt;
-          typename std::map<T,int>::iterator finder =
-            detailed_valid_references.find(source);
+          typename std::map<T, int>::iterator finder =
+              detailed_valid_references.find(source);
           if (finder == detailed_valid_references.end())
             detailed_valid_references[source] = cnt;
           else
@@ -1589,8 +1578,8 @@ namespace Legion {
               // No downgrade in progress so we can just add the references
 #ifdef DEBUG_LEGION_GC
               valid_references += cnt;
-              typename std::map<T,int>::iterator finder =
-                detailed_valid_references.find(source);
+              typename std::map<T, int>::iterator finder =
+                  detailed_valid_references.find(source);
               if (finder == detailed_valid_references.end())
                 detailed_valid_references[source] = cnt;
               else
@@ -1642,33 +1631,32 @@ namespace Legion {
       {
 #ifdef DEBUG_LEGION_GC
         AutoLock gc(gc_lock);
-        typename std::map<T,int>::iterator finder =
-          detailed_valid_references.find(source);
+        typename std::map<T, int>::iterator finder =
+            detailed_valid_references.find(source);
         if (finder == detailed_valid_references.end())
           detailed_valid_references[source] = cnt;
         else
           finder->second += cnt;
 #endif
         return true;
-      }
-      else
+      } else
         return false;
     }
 
 #ifdef DEBUG_LEGION_GC
     template bool ValidDistributedCollectable::acquire_valid<ReferenceSource>(
-        int, ReferenceSource, std::map<ReferenceSource,int>&);
+        int, ReferenceSource, std::map<ReferenceSource, int>&);
     template bool ValidDistributedCollectable::acquire_valid<DistributedID>(
-        int, DistributedID, std::map<DistributedID,int>&);
+        int, DistributedID, std::map<DistributedID, int>&);
 #endif
 
     //--------------------------------------------------------------------------
     bool ValidDistributedCollectable::acquire_valid_remote(
-                      AddressSpaceID &current, int count, AddressSpaceID source)
+        AddressSpaceID& current, int count, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       AutoLock gc(gc_lock);
-      if (is_valid<false/*need lock*/>())
+      if (is_valid<false /*need lock*/>())
       {
         if (downgrade_owner == local_space)
         {
@@ -1681,12 +1669,10 @@ namespace Legion {
 #else
             valid_references.fetch_add(count);
 #endif
-          }
-          else // Otherwise pack a reference to send back
+          } else  // Otherwise pack a reference to send back
             sent_valid_references++;
           return true;
-        }
-        else
+        } else
           current = downgrade_owner;
       }
       return false;
@@ -1694,26 +1680,26 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void ValidDistributedCollectable::handle_valid_acquire_request(
-                                          Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
-      ValidDistributedCollectable *remote;
+      ValidDistributedCollectable* remote;
       derez.deserialize(remote);
       AddressSpaceID source;
       derez.deserialize(source);
       int count;
       derez.deserialize(count);
-      std::atomic<bool> *result;
+      std::atomic<bool>* result;
       derez.deserialize(result);
       RtUserEvent ready;
       derez.deserialize(ready);
 
-      ValidDistributedCollectable *dc = 
-        static_cast<ValidDistributedCollectable*>(
-            runtime->weak_find_distributed_collectable(did));
+      ValidDistributedCollectable* dc =
+          static_cast<ValidDistributedCollectable*>(
+              runtime->weak_find_distributed_collectable(did));
       if (dc != nullptr)
       {
         AddressSpaceID current_owner = dc->local_space;
@@ -1731,15 +1717,13 @@ namespace Legion {
               rez.serialize(ready);
             }
             runtime->send_did_acquire_valid_response(source, rez);
-          }
-          else
+          } else
           {
             // Might have been sent back to ourself eventually
             result->store(true);
             Runtime::trigger_event(ready);
           }
-        }
-        else if (current_owner != dc->local_space)
+        } else if (current_owner != dc->local_space)
         {
           // Not the owner anymore, so forward and keep chasing
           Serializer rez;
@@ -1753,29 +1737,27 @@ namespace Legion {
             rez.serialize(ready);
           }
           runtime->send_did_acquire_valid_request(current_owner, rez);
-        }
-        else
+        } else
           // Failed so trigger the event
           Runtime::trigger_event(ready);
         if (dc->remove_base_resource_ref(RUNTIME_REF))
           delete dc;
-      }
-      else
+      } else
         // Failed so trigger the event
         Runtime::trigger_event(ready);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void ValidDistributedCollectable::handle_valid_acquire_response(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      ValidDistributedCollectable *local;
+      ValidDistributedCollectable* local;
       derez.deserialize(local);
       int count;
       derez.deserialize(count);
-      std::atomic<bool> *result;
+      std::atomic<bool>* result;
       derez.deserialize(result);
       RtUserEvent ready;
       derez.deserialize(ready);
@@ -1806,7 +1788,7 @@ namespace Legion {
     {
       AutoLock gc(gc_lock);
 #ifdef DEBUG_LEGION
-      assert(is_valid<false/*need lock*/>());
+      assert(is_valid<false /*need lock*/>());
 #endif
       received_valid_references += cnt;
       // No need to send any notifications if a downgrade is in process
@@ -1817,11 +1799,10 @@ namespace Legion {
           // We're the downgrade owner so check to see if we can resume
           // doing collections or we can wait for the next removal
           check_for_downgrade_restart(local_space);
-        }
-        else if (current_state == PENDING_GLOBAL_REF_STATE)
+        } else if (current_state == PENDING_GLOBAL_REF_STATE)
         {
           // Send a notification to the downgrade owner to check if it
-          // needs to resume collections now that this reference has 
+          // needs to resume collections now that this reference has
           // been unpacked. This is not just a performance optimization.
           // It is vital to forward progress as it removes the necessity
           // to poll on downgrades while we are waiting for references
@@ -1848,20 +1829,21 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool ValidDistributedCollectable::perform_downgrade(AutoLock &gc)
+    bool ValidDistributedCollectable::perform_downgrade(AutoLock& gc)
     //--------------------------------------------------------------------------
     {
-      if ((current_state == VALID_REF_STATE) || 
+      if ((current_state == VALID_REF_STATE) ||
           (current_state == PENDING_GLOBAL_REF_STATE))
       {
 #ifdef DEBUG_LEGION
         assert(valid_references == 0);
         // Should be in the GLOBAL_REF_STATE on the owner and
         // PENDING_LOCAL_REF_STATE if we're not the downgrade owner
-        assert(((current_state == VALID_REF_STATE) && 
-                (downgrade_owner == local_space)) ||
-               ((current_state == PENDING_GLOBAL_REF_STATE) &&
-                (downgrade_owner != local_space)));
+        assert(
+            ((current_state == VALID_REF_STATE) &&
+             (downgrade_owner == local_space)) ||
+            ((current_state == PENDING_GLOBAL_REF_STATE) &&
+             (downgrade_owner != local_space)));
 #endif
         // Send messages while holding the lock because the remote_instances
         // data structure might still be changing
@@ -1890,14 +1872,13 @@ namespace Legion {
           return can_delete(gc);
         else
           return false;
-      }
-      else
-        return DistributedCollectable::perform_downgrade(gc); 
+      } else
+        return DistributedCollectable::perform_downgrade(gc);
     }
 
     //--------------------------------------------------------------------------
-    void ValidDistributedCollectable::process_downgrade_update(AutoLock &gc,
-                                                               State to_check)
+    void ValidDistributedCollectable::process_downgrade_update(
+        AutoLock& gc, State to_check)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1907,8 +1888,7 @@ namespace Legion {
       // It's possible we get this notification before the update saying
       // that the downgrade from the previous state has been successful
       // so make sure to update accordingly
-      while (to_check < current_state)
-        perform_downgrade(gc);
+      while (to_check < current_state) perform_downgrade(gc);
       if ((current_state == VALID_REF_STATE) ||
           (current_state == PENDING_GLOBAL_REF_STATE))
       {
@@ -1916,8 +1896,7 @@ namespace Legion {
         current_state = VALID_REF_STATE;
         if (valid_references == 0)
           check_for_downgrade(downgrade_owner);
-      }
-      else
+      } else
         DistributedCollectable::process_downgrade_update(gc, to_check);
     }
 
@@ -1930,8 +1909,7 @@ namespace Legion {
       {
         total_sent_references += sent_valid_references;
         total_received_references += received_valid_references;
-      }
-      else
+      } else
         DistributedCollectable::accumulate_local_references();
     }
 
@@ -1939,17 +1917,16 @@ namespace Legion {
     void ValidDistributedCollectable::record_pending_downgrade(void)
     //--------------------------------------------------------------------------
     {
-      if ((current_state == VALID_REF_STATE) || 
+      if ((current_state == VALID_REF_STATE) ||
           (current_state == PENDING_GLOBAL_REF_STATE))
       {
 #ifdef DEBUG_LEGION
         assert(downgrade_owner != local_space);
 #endif
         current_state = PENDING_GLOBAL_REF_STATE;
-      }
-      else
+      } else
         DistributedCollectable::record_pending_downgrade();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

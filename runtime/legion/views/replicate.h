@@ -27,19 +27,20 @@ namespace Legion {
      * must contain the same copy of data.
      */
     class ReplicatedView : public CollectiveView,
-                           public Heapify<ReplicatedView,CONTEXT_LIFETIME> {
+                           public Heapify<ReplicatedView, CONTEXT_LIFETIME> {
     public:
-      ReplicatedView(DistributedID did, DistributedID ctx_did,
-                     const std::vector<IndividualView*> &views,
-                     const std::vector<DistributedID> &instances,
-                     bool register_now, CollectiveMapping *mapping);
-      ReplicatedView(const ReplicatedView &rhs) = delete;
+      ReplicatedView(
+          DistributedID did, DistributedID ctx_did,
+          const std::vector<IndividualView*>& views,
+          const std::vector<DistributedID>& instances, bool register_now,
+          CollectiveMapping* mapping);
+      ReplicatedView(const ReplicatedView& rhs) = delete;
       virtual ~ReplicatedView(void);
     public:
-      ReplicatedView& operator=(const ReplicatedView &rhs) = delete;
-    public: // From InstanceView
+      ReplicatedView& operator=(const ReplicatedView& rhs) = delete;
+    public:  // From InstanceView
       virtual void send_view(AddressSpaceID target);
-      static void handle_send_replicated_view(Deserializer &derez);
+      static void handle_send_replicated_view(Deserializer& derez);
     };
 
     //--------------------------------------------------------------------------
@@ -52,7 +53,7 @@ namespace Legion {
       return static_cast<ReplicatedView*>(const_cast<LogicalView*>(this));
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_REPLICATE_VIEW_H__
+#endif  // __LEGION_REPLICATE_VIEW_H__

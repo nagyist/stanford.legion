@@ -30,49 +30,49 @@ namespace Legion {
      * create their own tasks for performing
      * computation.
      */
-    class TopLevelContext : 
-      public HeapifyMixin<TopLevelContext,InnerContext,CONTEXT_LIFETIME> {
+    class TopLevelContext
+      : public HeapifyMixin<TopLevelContext, InnerContext, CONTEXT_LIFETIME> {
     public:
-      TopLevelContext(Processor executing,
-          coord_t normal_id, coord_t implicit_id,
-          DistributedID id = 0, CollectiveMapping *mapping = nullptr);
-      TopLevelContext(const TopLevelContext &rhs) = delete;
+      TopLevelContext(
+          Processor executing, coord_t normal_id, coord_t implicit_id,
+          DistributedID id = 0, CollectiveMapping* mapping = nullptr);
+      TopLevelContext(const TopLevelContext& rhs) = delete;
       virtual ~TopLevelContext(void);
     public:
-      TopLevelContext& operator=(const TopLevelContext &rhs) = delete;
+      TopLevelContext& operator=(const TopLevelContext& rhs) = delete;
     public:
       static Mapper::ContextConfigOutput configure_toplevel_context(void);
     public:
-      virtual void pack_remote_context(Serializer &rez, 
-          AddressSpaceID target, bool replicate = false);
+      virtual void pack_remote_context(
+          Serializer& rez, AddressSpaceID target, bool replicate = false);
       virtual InnerContext* find_parent_context(void);
       virtual UniqueID get_unique_id(void) const { return root_uid; }
     public:
-      virtual InnerContext* find_top_context(InnerContext *previous = nullptr);
+      virtual InnerContext* find_top_context(InnerContext* previous = nullptr);
     public:
       virtual void receive_created_region_contexts(
-                          const std::vector<RegionNode*> &created_regions,
-                          const std::vector<EqKDTree*> &created_trees,
-                          std::set<RtEvent> &applied_events,
-                          const ShardMapping *mapping, ShardID source_shard);
-      virtual RtEvent compute_equivalence_sets(unsigned req_index,
-                      const std::vector<EqSetTracker*> &targets,
-                      const std::vector<AddressSpaceID> &target_spaces,
-                      AddressSpaceID creation_target_space,
-                      IndexSpaceExpression *expr, const FieldMask &mask);
-      virtual RtEvent record_output_equivalence_set(EqSetTracker *source,
-                      AddressSpaceID source_space, unsigned req_index,
-                      EquivalenceSet *set, const FieldMask &mask);
+          const std::vector<RegionNode*>& created_regions,
+          const std::vector<EqKDTree*>& created_trees,
+          std::set<RtEvent>& applied_events, const ShardMapping* mapping,
+          ShardID source_shard);
+      virtual RtEvent compute_equivalence_sets(
+          unsigned req_index, const std::vector<EqSetTracker*>& targets,
+          const std::vector<AddressSpaceID>& target_spaces,
+          AddressSpaceID creation_target_space, IndexSpaceExpression* expr,
+          const FieldMask& mask);
+      virtual RtEvent record_output_equivalence_set(
+          EqSetTracker* source, AddressSpaceID source_space, unsigned req_index,
+          EquivalenceSet* set, const FieldMask& mask);
     public:
       const UniqueID root_uid;
     protected:
-      std::vector<RegionRequirement>       dummy_requirements;
-      std::vector<OutputRequirement>       dummy_output_requirements;
-      std::vector<unsigned>                dummy_indexes;
-      std::vector<bool>                    dummy_mapped;
+      std::vector<RegionRequirement> dummy_requirements;
+      std::vector<OutputRequirement> dummy_output_requirements;
+      std::vector<unsigned> dummy_indexes;
+      std::vector<bool> dummy_mapped;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_TOPLEVEL_CONTEXT_H__
+#endif  // __LEGION_TOPLEVEL_CONTEXT_H__

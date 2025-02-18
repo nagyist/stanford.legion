@@ -25,8 +25,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T>
-    bool AutoTracing<T>::add_to_dependence_queue(Operation* op,
-        const std::vector<StaticDependence>* dependences,
+    bool AutoTracing<T>::add_to_dependence_queue(
+        Operation* op, const std::vector<StaticDependence>* dependences,
         bool unordered, bool outermost)
     //--------------------------------------------------------------------------
     {
@@ -35,13 +35,12 @@ namespace Legion {
       // from the trace cache so set it back to true for the context
       if (unordered || (this->current_trace != nullptr) || !outermost)
         return T::add_to_dependence_queue(
-            op, dependences, unordered, true/*outermost*/);
+            op, dependences, unordered, true /*outermost*/);
       else if (op->record_trace_hash(this->recognizer, this->opidx))
       {
         this->opidx++;
         return true;
-      }
-      else
+      } else
       {
         // Increment the current trace blocking index so we know
         // when we need to flush operations under blocking calls
@@ -52,8 +51,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<typename T>
-    void AutoTracing<T>::record_blocking_call(uint64_t blocking_index,
-                                              bool invalidate_trace)
+    void AutoTracing<T>::record_blocking_call(
+        uint64_t blocking_index, bool invalidate_trace)
     //--------------------------------------------------------------------------
     {
       // Check to see if the blocking operation happens for any operation
@@ -78,5 +77,5 @@ namespace Legion {
     template class AutoTracing<InnerContext>;
     template class AutoTracing<ReplicateContext>;
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

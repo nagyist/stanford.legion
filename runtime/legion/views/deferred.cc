@@ -19,22 +19,20 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // DeferredView 
+    // DeferredView
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DeferredView::DeferredView(DistributedID did,
-                               bool register_now, CollectiveMapping *mapping)
+    DeferredView::DeferredView(
+        DistributedID did, bool register_now, CollectiveMapping* mapping)
       : LogicalView(did, register_now, mapping)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     DeferredView::~DeferredView(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void DeferredView::notify_valid(void)
@@ -50,5 +48,5 @@ namespace Legion {
       return remove_base_gc_ref(INTERNAL_VALID_REF);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

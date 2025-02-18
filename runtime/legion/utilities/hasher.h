@@ -28,7 +28,7 @@ namespace Legion {
     /**
      * \class Murmur3Hasher
      * This class implements an object-oriented version of the
-     * MurmurHash3 hashing algorithm for computing a 128-bit 
+     * MurmurHash3 hashing algorithm for computing a 128-bit
      * hash value. It is taken from the public domain here:
      * https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
      */
@@ -39,24 +39,25 @@ namespace Legion {
       Murmur3Hasher& operator=(const Murmur3Hasher&) = delete;
     public:
       template<typename T, bool PRECISE = true>
-      inline void hash(const T &value);
-      inline void hash(const void *value, size_t size);
+      inline void hash(const T& value);
+      inline void hash(const void* value, size_t size);
       inline void finalize(uint64_t hash[2]);
       struct Hash {
         uint64_t x = 0;
         uint64_t y = 0;
-        inline bool operator!=(const Hash& rhs) const {
+        inline bool operator!=(const Hash& rhs) const
+        {
           return std::tie(x, y) != std::tie(rhs.x, rhs.y);
         }
-        inline bool operator==(const Hash& rhs) const {
+        inline bool operator==(const Hash& rhs) const
+        {
           return std::tie(x, y) == std::tie(rhs.x, rhs.y);
         }
-        inline bool operator<(const Hash& rhs) const {
+        inline bool operator<(const Hash& rhs) const
+        {
           return std::tie(x, y) < std::tie(rhs.x, rhs.y);
         }
-        inline bool operator!(void) const {
-          return (x == 0) && (y == 0);
-        }
+        inline bool operator!(void) const { return (x == 0) && (y == 0); }
       };
       inline void finalize(Hash& hash);
     private:
@@ -72,16 +73,17 @@ namespace Legion {
     private:
       struct IndexSpaceHasher {
       public:
-        IndexSpaceHasher(const Domain &d, Murmur3Hasher &h)
-          : domain(d), hasher(h) { }
+        IndexSpaceHasher(const Domain& d, Murmur3Hasher& h)
+          : domain(d), hasher(h)
+        { }
       public:
         template<typename N, typename T>
-        static inline void demux(IndexSpaceHasher *functor)
+        static inline void demux(IndexSpaceHasher* functor)
         {
-          const DomainT<N::N,T> is = functor->domain;
-          for (RectInDomainIterator<N::N,T> itr(is); itr(); itr.step())
+          const DomainT<N::N, T> is = functor->domain;
+          for (RectInDomainIterator<N::N, T> itr(is); itr(); itr.step())
           {
-            const Rect<N::N,T> rect = *itr;
+            const Rect<N::N, T> rect = *itr;
             for (int d = 0; d < N::N; d++)
             {
               functor->hasher.hash(rect.lo[d]);
@@ -90,14 +92,14 @@ namespace Legion {
           }
         }
       public:
-        const Domain &domain;
-        Murmur3Hasher &hasher;
+        const Domain& domain;
+        Murmur3Hasher& hasher;
       };
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
 #include "legion/utilities/hasher.inl"
 
-#endif // __LEGION_HASHER_H__
+#endif  // __LEGION_HASHER_H__

@@ -25,39 +25,63 @@ namespace Legion {
      * \struct ContextCoordinate
      * A struct that can uniquely identify an operation inside
      * the context of a parent task by the context_index which
-     * is the number of the operation in the context, and the 
+     * is the number of the operation in the context, and the
      * index_point specifying which point in the case of an
      * index space operation
      */
     struct ContextCoordinate {
       inline ContextCoordinate(void) : context_index(SIZE_MAX) { }
       // Prevent trivally copying for serialize/deserialize
-      inline ContextCoordinate(const ContextCoordinate &rhs)
-        : context_index(rhs.context_index), index_point(rhs.index_point) { }
-      inline ContextCoordinate(ContextCoordinate &&rhs)
-        : context_index(rhs.context_index), index_point(rhs.index_point) { }
+      inline ContextCoordinate(const ContextCoordinate& rhs)
+        : context_index(rhs.context_index), index_point(rhs.index_point)
+      { }
+      inline ContextCoordinate(ContextCoordinate&& rhs)
+        : context_index(rhs.context_index), index_point(rhs.index_point)
+      { }
       inline ContextCoordinate(uint64_t index) : context_index(index) { }
-      inline ContextCoordinate(uint64_t index, const DomainPoint &p)
-        : context_index(index), index_point(p) { }
-      inline ContextCoordinate& operator=(const ContextCoordinate &rhs)
-        { context_index = rhs.context_index; 
-          index_point = rhs.index_point; return *this; }
-      inline ContextCoordinate& operator=(ContextCoordinate &&rhs)
-        { context_index = rhs.context_index; 
-          index_point = rhs.index_point; return *this; }
-      inline bool operator==(const ContextCoordinate &rhs) const
-        { return ((context_index == rhs.context_index) && 
-                  (index_point == rhs.index_point)); }
-      inline bool operator!=(const ContextCoordinate &rhs) const
-        { return !((*this) == rhs); }
-      inline bool operator<(const ContextCoordinate &rhs) const
-        { if (context_index < rhs.context_index) return true;
-          if (context_index > rhs.context_index) return false;
-          return index_point < rhs.index_point; }
-      inline void serialize(Serializer &rez) const
-        { rez.serialize(context_index); rez.serialize(index_point); }
-      inline void deserialize(Deserializer &derez)
-        { derez.deserialize(context_index); derez.deserialize(index_point); }
+      inline ContextCoordinate(uint64_t index, const DomainPoint& p)
+        : context_index(index), index_point(p)
+      { }
+      inline ContextCoordinate& operator=(const ContextCoordinate& rhs)
+      {
+        context_index = rhs.context_index;
+        index_point = rhs.index_point;
+        return *this;
+      }
+      inline ContextCoordinate& operator=(ContextCoordinate&& rhs)
+      {
+        context_index = rhs.context_index;
+        index_point = rhs.index_point;
+        return *this;
+      }
+      inline bool operator==(const ContextCoordinate& rhs) const
+      {
+        return (
+            (context_index == rhs.context_index) &&
+            (index_point == rhs.index_point));
+      }
+      inline bool operator!=(const ContextCoordinate& rhs) const
+      {
+        return !((*this) == rhs);
+      }
+      inline bool operator<(const ContextCoordinate& rhs) const
+      {
+        if (context_index < rhs.context_index)
+          return true;
+        if (context_index > rhs.context_index)
+          return false;
+        return index_point < rhs.index_point;
+      }
+      inline void serialize(Serializer& rez) const
+      {
+        rez.serialize(context_index);
+        rez.serialize(index_point);
+      }
+      inline void deserialize(Deserializer& derez)
+      {
+        derez.deserialize(context_index);
+        derez.deserialize(index_point);
+      }
       uint64_t context_index;
       DomainPoint index_point;
     };
@@ -69,33 +93,43 @@ namespace Legion {
      */
     class TaskTreeCoordinates {
     public:
-      bool operator==(const TaskTreeCoordinates &rhs) const;
-      bool operator!=(const TaskTreeCoordinates &rhs) const;
-      bool same_index_space(const TaskTreeCoordinates &rhs) const;
+      bool operator==(const TaskTreeCoordinates& rhs) const;
+      bool operator!=(const TaskTreeCoordinates& rhs) const;
+      bool same_index_space(const TaskTreeCoordinates& rhs) const;
     public:
       inline void clear(void) { coordinates.clear(); }
       inline bool empty(void) const { return coordinates.empty(); }
       inline size_t size(void) const { return coordinates.size(); }
       inline ContextCoordinate& back(void) { return coordinates.back(); }
       inline const ContextCoordinate& back(void) const
-        { return coordinates.back(); }
-      inline ContextCoordinate& operator[](unsigned idx) 
-        { return coordinates[idx]; }
+      {
+        return coordinates.back();
+      }
+      inline ContextCoordinate& operator[](unsigned idx)
+      {
+        return coordinates[idx];
+      }
       inline const ContextCoordinate& operator[](unsigned idx) const
-        { return coordinates[idx]; }
-      inline void emplace_back(ContextCoordinate &&coordinate)
-        { coordinates.emplace_back(coordinate); }
+      {
+        return coordinates[idx];
+      }
+      inline void emplace_back(ContextCoordinate&& coordinate)
+      {
+        coordinates.emplace_back(coordinate);
+      }
       inline void reserve(size_t size) { coordinates.reserve(size); }
-      inline void swap(TaskTreeCoordinates &coords)
-        { coordinates.swap(coords.coordinates); }
+      inline void swap(TaskTreeCoordinates& coords)
+      {
+        coordinates.swap(coords.coordinates);
+      }
     public:
-      void serialize(Serializer &rez) const;
-      void deserialize(Deserializer &derez);
+      void serialize(Serializer& rez) const;
+      void deserialize(Deserializer& derez);
     private:
       std::vector<ContextCoordinate> coordinates;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_COORDINATES_H__
+#endif  // __LEGION_COORDINATES_H__

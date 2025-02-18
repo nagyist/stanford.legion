@@ -27,13 +27,14 @@ namespace Legion {
      * This is a remote copy of a TaskOp to be used
      * for mapper calls and other operations
      */
-    class RemoteTaskOp : public ExternalTask, public RemoteOp {
+    class RemoteTaskOp : public ExternalTask,
+                         public RemoteOp {
     public:
-      RemoteTaskOp(Operation *ptr, AddressSpaceID src);
-      RemoteTaskOp(const RemoteTaskOp &rhs) = delete;
+      RemoteTaskOp(Operation* ptr, AddressSpaceID src);
+      RemoteTaskOp(const RemoteTaskOp& rhs) = delete;
       virtual ~RemoteTaskOp(void);
     public:
-      RemoteTaskOp& operator=(const RemoteTaskOp &rhs) = delete;
+      RemoteTaskOp& operator=(const RemoteTaskOp& rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -50,20 +51,24 @@ namespace Legion {
       virtual Domain get_shard_domain(void) const;
       virtual void set_context_index(uint64_t index);
       virtual ContextCoordinate get_task_tree_coordinate(void) const
-        { return ContextCoordinate(context_index, index_point); }
+      {
+        return ContextCoordinate(context_index, index_point);
+      }
     public:
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual void select_sources(const unsigned index, PhysicalManager *target,
-                                  const std::vector<InstanceView*> &sources,
-                                  std::vector<unsigned> &ranking,
-                                  std::map<unsigned,PhysicalManager*> &points);
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual void unpack(Deserializer &derez);
+      virtual void select_sources(
+          const unsigned index, PhysicalManager* target,
+          const std::vector<InstanceView*>& sources,
+          std::vector<unsigned>& ranking,
+          std::map<unsigned, PhysicalManager*>& points);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual void unpack(Deserializer& derez);
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_REMOTE_TASK_H__
+#endif  // __LEGION_REMOTE_TASK_H__

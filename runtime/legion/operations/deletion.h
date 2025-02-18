@@ -41,72 +41,74 @@ namespace Legion {
       };
     public:
       DeletionOp(void);
-      DeletionOp(const DeletionOp &rhs) = delete;
+      DeletionOp(const DeletionOp& rhs) = delete;
       virtual ~DeletionOp(void);
     public:
-      DeletionOp& operator=(const DeletionOp &rhs) = delete;
+      DeletionOp& operator=(const DeletionOp& rhs) = delete;
     public:
       void set_deletion_preconditions(
-          const std::map<Operation*,GenerationID> &dependences);
+          const std::map<Operation*, GenerationID>& dependences);
     public:
-      void initialize_index_space_deletion(InnerContext *ctx, IndexSpace handle,
-                                   std::vector<IndexPartition> &sub_partitions,
-                                   const bool unordered,Provenance *provenance);
-      void initialize_index_part_deletion(InnerContext *ctx,IndexPartition part,
-                                   std::vector<IndexPartition> &sub_partitions,
-                                   const bool unordered,Provenance *provenance);
-      void initialize_field_space_deletion(InnerContext *ctx,
-                                           FieldSpace handle,
-                                           const bool unordered,
-                                           Provenance *provenance);
-      void initialize_field_deletion(InnerContext *ctx, FieldSpace handle,
-                                     FieldID fid, const bool unordered,
-                                     FieldAllocatorImpl *allocator,
-                                     Provenance *provenance,
-                                     const bool non_owner_shard);
-      void initialize_field_deletions(InnerContext *ctx, FieldSpace handle,
-                                      const std::set<FieldID> &to_free,
-                                      const bool unordered,
-                                      FieldAllocatorImpl *allocator,
-                                      Provenance *provenance,
-                                      const bool non_owner_shard);
-      void initialize_logical_region_deletion(InnerContext *ctx, 
-                                      LogicalRegion handle, 
-                                      const bool unordered,
-                                      Provenance *provenance);
+      void initialize_index_space_deletion(
+          InnerContext* ctx, IndexSpace handle,
+          std::vector<IndexPartition>& sub_partitions, const bool unordered,
+          Provenance* provenance);
+      void initialize_index_part_deletion(
+          InnerContext* ctx, IndexPartition part,
+          std::vector<IndexPartition>& sub_partitions, const bool unordered,
+          Provenance* provenance);
+      void initialize_field_space_deletion(
+          InnerContext* ctx, FieldSpace handle, const bool unordered,
+          Provenance* provenance);
+      void initialize_field_deletion(
+          InnerContext* ctx, FieldSpace handle, FieldID fid,
+          const bool unordered, FieldAllocatorImpl* allocator,
+          Provenance* provenance, const bool non_owner_shard);
+      void initialize_field_deletions(
+          InnerContext* ctx, FieldSpace handle,
+          const std::set<FieldID>& to_free, const bool unordered,
+          FieldAllocatorImpl* allocator, Provenance* provenance,
+          const bool non_owner_shard);
+      void initialize_logical_region_deletion(
+          InnerContext* ctx, LogicalRegion handle, const bool unordered,
+          Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
       virtual size_t get_region_count(void) const
-        { return deletion_requirements.size(); }
-      virtual const RegionRequirement &get_requirement(unsigned idx) const
-        { return deletion_requirements[idx]; }
+      {
+        return deletion_requirements.size();
+      }
+      virtual const RegionRequirement& get_requirement(unsigned idx) const
+      {
+        return deletion_requirements[idx];
+      }
     protected:
       void create_deletion_requirements(void);
       void log_deletion_requirements(void);
-      void invalidate_fields(unsigned index,
-                             const RegionRequirement &req,
-                             const VersionInfo &version_info,
-                             const PhysicalTraceInfo &trace_info,
-                             CollectiveMapping *collective_mapping,
-                             const bool collective_first_local);
+      void invalidate_fields(
+          unsigned index, const RegionRequirement& req,
+          const VersionInfo& version_info, const PhysicalTraceInfo& trace_info,
+          CollectiveMapping* collective_mapping,
+          const bool collective_first_local);
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
-      virtual void trigger_mapping(void); 
+      virtual void trigger_mapping(void);
       virtual void trigger_commit(void);
       virtual unsigned find_parent_index(unsigned idx);
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
     protected:
       DeletionKind kind;
       IndexSpace index_space;
       IndexPartition index_part;
       std::vector<IndexPartition> sub_partitions;
       FieldSpace field_space;
-      FieldAllocatorImpl *allocator;
+      FieldAllocatorImpl* allocator;
       LogicalRegion logical_region;
       std::set<FieldID> free_fields;
       std::vector<FieldID> local_fields;
@@ -118,7 +120,7 @@ namespace Legion {
       std::vector<RegionRequirement> deletion_requirements;
       LegionVector<VersionInfo> version_infos;
       std::set<RtEvent> map_applied_conditions;
-      std::map<Operation*,GenerationID> dependences;
+      std::map<Operation*, GenerationID> dependences;
       bool has_preconditions;
     };
 
@@ -127,25 +129,26 @@ namespace Legion {
      * A deletion operation that is aware that it is
      * being executed in a control replication context.
      */
-    class ReplDeletionOp : 
-      public ReplCollectiveVersioning<CollectiveVersioning<DeletionOp> > {
+    class ReplDeletionOp
+      : public ReplCollectiveVersioning<CollectiveVersioning<DeletionOp> > {
     public:
-      struct DeferDeletionCommitArgs : 
-        public LgTaskArgs<DeferDeletionCommitArgs> {
+      struct DeferDeletionCommitArgs
+        : public LgTaskArgs<DeferDeletionCommitArgs> {
       public:
         static const LgTaskID TASK_ID = LG_DEFER_DELETION_COMMIT_TASK_ID;
       public:
-        DeferDeletionCommitArgs(ReplDeletionOp *o)
-          : LgTaskArgs(o->get_unique_op_id()), op(o) { }
+        DeferDeletionCommitArgs(ReplDeletionOp* o)
+          : LgTaskArgs(o->get_unique_op_id()), op(o)
+        { }
       public:
-        ReplDeletionOp *const op;
+        ReplDeletionOp* const op;
       };
     public:
       ReplDeletionOp(void);
-      ReplDeletionOp(const ReplDeletionOp &rhs) = delete;
+      ReplDeletionOp(const ReplDeletionOp& rhs) = delete;
       virtual ~ReplDeletionOp(void);
     public:
-      ReplDeletionOp& operator=(const ReplDeletionOp &rhs) = delete;
+      ReplDeletionOp& operator=(const ReplDeletionOp& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -155,19 +158,21 @@ namespace Legion {
       virtual void trigger_mapping(void);
       virtual void trigger_commit(void);
     public:
-      void initialize_replication(ReplicateContext *ctx, bool is_first,
-                                  RtBarrier *ready_barrier = nullptr,
-                                  RtBarrier *mapping_barrier = nullptr,
-                                  RtBarrier *commit_barrier = nullptr);
-      // Help for handling unordered deletions 
+      void initialize_replication(
+          ReplicateContext* ctx, bool is_first,
+          RtBarrier* ready_barrier = nullptr,
+          RtBarrier* mapping_barrier = nullptr,
+          RtBarrier* commit_barrier = nullptr);
+      // Help for handling unordered deletions
       void record_unordered_kind(
-       std::map<IndexSpace,ReplDeletionOp*> &index_space_deletions,
-       std::map<IndexPartition,ReplDeletionOp*> &index_partition_deletions,
-       std::map<FieldSpace,ReplDeletionOp*> &field_space_deletions,
-       std::map<std::pair<FieldSpace,FieldID>,ReplDeletionOp*> &field_deletions,
-       std::map<LogicalRegion,ReplDeletionOp*> &logical_region_deletions);
+          std::map<IndexSpace, ReplDeletionOp*>& index_space_deletions,
+          std::map<IndexPartition, ReplDeletionOp*>& index_partition_deletions,
+          std::map<FieldSpace, ReplDeletionOp*>& field_space_deletions,
+          std::map<std::pair<FieldSpace, FieldID>, ReplDeletionOp*>&
+              field_deletions,
+          std::map<LogicalRegion, ReplDeletionOp*>& logical_region_deletions);
     public:
-      static void handle_defer_commit(const void *args);
+      static void handle_defer_commit(const void* args);
     protected:
       RtBarrier ready_barrier;
       RtBarrier mapping_barrier;
@@ -177,17 +182,18 @@ namespace Legion {
 
     /**
      * \class RemoteDeletionOp
-     * This is a remote copy of a DeletionOp to be used for 
+     * This is a remote copy of a DeletionOp to be used for
      * mapper calls and other operations
      */
-    class RemoteDeletionOp : public RemoteOp,
-      public Heapify<RemoteDeletionOp,OPERATION_LIFETIME> {
+    class RemoteDeletionOp
+      : public RemoteOp,
+        public Heapify<RemoteDeletionOp, OPERATION_LIFETIME> {
     public:
-      RemoteDeletionOp(Operation *ptr, AddressSpaceID src);
-      RemoteDeletionOp(const RemoteDeletionOp &rhs) = delete;
+      RemoteDeletionOp(Operation* ptr, AddressSpaceID src);
+      RemoteDeletionOp(const RemoteDeletionOp& rhs) = delete;
       virtual ~RemoteDeletionOp(void);
     public:
-      RemoteDeletionOp& operator=(const RemoteDeletionOp &rhs) = delete;
+      RemoteDeletionOp& operator=(const RemoteDeletionOp& rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -196,12 +202,13 @@ namespace Legion {
     public:
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual void unpack(Deserializer &derez);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual void unpack(Deserializer& derez);
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_DELETION_H__
+#endif  // __LEGION_DELETION_H__

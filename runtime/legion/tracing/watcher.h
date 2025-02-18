@@ -25,26 +25,26 @@ namespace Legion {
      * \class OccurrenceWatcher
      * The occurrence watcher class maintains a trie of hashes corresponding
      * to candidate traces. These are sequences of hashes that we've observed
-     * some number of times. Once these sequences are observed a certain 
+     * some number of times. Once these sequences are observed a certain
      * number of times determined by visit_threshold then these candidates
-     * are promoted up to the full traces in the trace cache and are 
+     * are promoted up to the full traces in the trace cache and are
      * eligible for replay. Note that each new hash can be the start of a
      * new trace so we maintain a group of active_pointers corresponding to
      * traces that are still matching in the trie.
      */
     class OccurrenceWatcher {
     public:
-      OccurrenceWatcher(InnerContext *context,
-          const Mapper::ContextConfigOutput &config);
+      OccurrenceWatcher(
+          InnerContext* context, const Mapper::ContextConfigOutput& config);
     public:
-      bool record_operation(Operation *op,
-          Murmur3Hasher::Hash hash, uint64_t opidx); 
-      bool record_noop(Operation *op);
+      bool record_operation(
+          Operation* op, Murmur3Hasher::Hash hash, uint64_t opidx);
+      bool record_noop(Operation* op);
       void flush(uint64_t opidx);
-      void insert(const Murmur3Hasher::Hash *hashes, 
-                  size_t size, uint64_t opidx);
-      TrieQueryResult query(const Murmur3Hasher::Hash *hashes,
-                            size_t size) const;
+      void insert(
+          const Murmur3Hasher::Hash* hashes, size_t size, uint64_t opidx);
+      TrieQueryResult query(
+          const Murmur3Hasher::Hash* hashes, size_t size) const;
     private:
       TraceCache cache;
     private:
@@ -74,9 +74,11 @@ namespace Legion {
       // traversed in the watcher's trie.
       class TriePointer {
       public:
-        TriePointer(TrieNode<Murmur3Hasher::Hash, TraceCandidate>* node_,
-                    uint64_t opidx_)
-          : node(node_), opidx(opidx_), depth(0) { }
+        TriePointer(
+            TrieNode<Murmur3Hasher::Hash, TraceCandidate>* node_,
+            uint64_t opidx_)
+          : node(node_), opidx(opidx_), depth(0)
+        { }
         bool advance(Murmur3Hasher::Hash token);
         bool complete(void) const;
       public:
@@ -88,7 +90,7 @@ namespace Legion {
       std::vector<TriePointer> active_pointers;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_OCCURRENCE_WATCHER_H__
+#endif  // __LEGION_OCCURRENCE_WATCHER_H__

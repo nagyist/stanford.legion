@@ -20,19 +20,17 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Resource Tracker 
+    // Resource Tracker
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedRegion::DeletedRegion(void)
-      : provenance(nullptr)
+    ResourceTracker::DeletedRegion::DeletedRegion(void) : provenance(nullptr)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedRegion::DeletedRegion(LogicalRegion r,
-                                                  Provenance *p)
+    ResourceTracker::DeletedRegion::DeletedRegion(
+        LogicalRegion r, Provenance* p)
       : region(r), provenance(p)
     //--------------------------------------------------------------------------
     {
@@ -41,7 +39,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedRegion::DeletedRegion(const DeletedRegion &rhs)
+    ResourceTracker::DeletedRegion::DeletedRegion(const DeletedRegion& rhs)
       : region(rhs.region), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
@@ -50,7 +48,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedRegion::DeletedRegion(DeletedRegion &&rhs)
+    ResourceTracker::DeletedRegion::DeletedRegion(DeletedRegion&& rhs)
       : region(rhs.region), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
@@ -67,7 +65,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedRegion& ResourceTracker::DeletedRegion::operator=(
-                                                       const DeletedRegion &rhs)
+        const DeletedRegion& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -81,7 +79,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedRegion& ResourceTracker::DeletedRegion::operator=(
-                                                            DeletedRegion &&rhs)
+        DeletedRegion&& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -93,7 +91,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedRegion::serialize(Serializer &rez) const
+    void ResourceTracker::DeletedRegion::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(region);
@@ -104,7 +102,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedRegion::deserialize(Deserializer &derez)
+    void ResourceTracker::DeletedRegion::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -119,12 +117,11 @@ namespace Legion {
     ResourceTracker::DeletedField::DeletedField(void)
       : fid(0), provenance(nullptr)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedField::DeletedField(FieldSpace sp, FieldID f,
-                                                Provenance *p)
+    ResourceTracker::DeletedField::DeletedField(
+        FieldSpace sp, FieldID f, Provenance* p)
       : space(sp), fid(f), provenance(p)
     //--------------------------------------------------------------------------
     {
@@ -133,7 +130,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedField::DeletedField(const DeletedField&rhs)
+    ResourceTracker::DeletedField::DeletedField(const DeletedField& rhs)
       : space(rhs.space), fid(rhs.fid), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
@@ -142,7 +139,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedField::DeletedField(DeletedField &&rhs)
+    ResourceTracker::DeletedField::DeletedField(DeletedField&& rhs)
       : space(rhs.space), fid(rhs.fid), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
@@ -159,7 +156,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedField& ResourceTracker::DeletedField::operator=(
-                                                        const DeletedField &rhs)
+        const DeletedField& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -174,7 +171,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedField& ResourceTracker::DeletedField::operator=(
-                                                             DeletedField &&rhs)
+        DeletedField&& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -187,7 +184,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedField::serialize(Serializer &rez) const
+    void ResourceTracker::DeletedField::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(space);
@@ -199,7 +196,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedField::deserialize(Deserializer &derez)
+    void ResourceTracker::DeletedField::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -215,12 +212,11 @@ namespace Legion {
     ResourceTracker::DeletedFieldSpace::DeletedFieldSpace(void)
       : provenance(nullptr)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedFieldSpace::DeletedFieldSpace(FieldSpace sp,
-                                                          Provenance *p)
+    ResourceTracker::DeletedFieldSpace::DeletedFieldSpace(
+        FieldSpace sp, Provenance* p)
       : space(sp), provenance(p)
     //--------------------------------------------------------------------------
     {
@@ -230,7 +226,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedFieldSpace::DeletedFieldSpace(
-                                                   const DeletedFieldSpace &rhs)
+        const DeletedFieldSpace& rhs)
       : space(rhs.space), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
@@ -240,7 +236,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedFieldSpace::DeletedFieldSpace(
-                                                        DeletedFieldSpace &&rhs)
+        DeletedFieldSpace&& rhs)
       : space(rhs.space), provenance(rhs.provenance)
     //--------------------------------------------------------------------------
     {
@@ -256,9 +252,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedFieldSpace& 
-      ResourceTracker::DeletedFieldSpace::operator=(
-                                                   const DeletedFieldSpace &rhs)
+    ResourceTracker::DeletedFieldSpace&
+        ResourceTracker::DeletedFieldSpace::operator=(
+            const DeletedFieldSpace& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -271,8 +267,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedFieldSpace& 
-      ResourceTracker::DeletedFieldSpace::operator=(DeletedFieldSpace &&rhs)
+    ResourceTracker::DeletedFieldSpace&
+        ResourceTracker::DeletedFieldSpace::operator=(DeletedFieldSpace&& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -284,7 +280,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedFieldSpace::serialize(Serializer &rez) const
+    void ResourceTracker::DeletedFieldSpace::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(space);
@@ -295,7 +291,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedFieldSpace::deserialize(Deserializer &derez)
+    void ResourceTracker::DeletedFieldSpace::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -310,12 +306,11 @@ namespace Legion {
     ResourceTracker::DeletedIndexSpace::DeletedIndexSpace(void)
       : provenance(nullptr), recurse(false)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedIndexSpace::DeletedIndexSpace(IndexSpace sp,
-                                                          bool r, Provenance *p)
+    ResourceTracker::DeletedIndexSpace::DeletedIndexSpace(
+        IndexSpace sp, bool r, Provenance* p)
       : space(sp), provenance(p), recurse(r)
     //--------------------------------------------------------------------------
     {
@@ -325,7 +320,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedIndexSpace::DeletedIndexSpace(
-                                                   const DeletedIndexSpace &rhs)
+        const DeletedIndexSpace& rhs)
       : space(rhs.space), provenance(rhs.provenance), recurse(rhs.recurse)
     //--------------------------------------------------------------------------
     {
@@ -335,7 +330,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedIndexSpace::DeletedIndexSpace(
-                                                        DeletedIndexSpace &&rhs)
+        DeletedIndexSpace&& rhs)
       : space(rhs.space), provenance(rhs.provenance), recurse(rhs.recurse)
     //--------------------------------------------------------------------------
     {
@@ -351,9 +346,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedIndexSpace& 
-      ResourceTracker::DeletedIndexSpace::operator=(
-                                                   const DeletedIndexSpace &rhs)
+    ResourceTracker::DeletedIndexSpace&
+        ResourceTracker::DeletedIndexSpace::operator=(
+            const DeletedIndexSpace& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -367,8 +362,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedIndexSpace& 
-          ResourceTracker::DeletedIndexSpace::operator=(DeletedIndexSpace &&rhs)
+    ResourceTracker::DeletedIndexSpace&
+        ResourceTracker::DeletedIndexSpace::operator=(DeletedIndexSpace&& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -381,7 +376,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedIndexSpace::serialize(Serializer &rez) const
+    void ResourceTracker::DeletedIndexSpace::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(space);
@@ -393,7 +388,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedIndexSpace::deserialize(Deserializer &derez)
+    void ResourceTracker::DeletedIndexSpace::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -409,12 +404,11 @@ namespace Legion {
     ResourceTracker::DeletedPartition::DeletedPartition(void)
       : provenance(nullptr), recurse(false)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedPartition::DeletedPartition(IndexPartition ip,
-                                                        bool r, Provenance *p)
+    ResourceTracker::DeletedPartition::DeletedPartition(
+        IndexPartition ip, bool r, Provenance* p)
       : partition(ip), provenance(p), recurse(r)
     //--------------------------------------------------------------------------
     {
@@ -424,8 +418,9 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ResourceTracker::DeletedPartition::DeletedPartition(
-                                                     const DeletedPartition&rhs)
-      : partition(rhs.partition),provenance(rhs.provenance),recurse(rhs.recurse)
+        const DeletedPartition& rhs)
+      : partition(rhs.partition), provenance(rhs.provenance),
+        recurse(rhs.recurse)
     //--------------------------------------------------------------------------
     {
       if (provenance != nullptr)
@@ -433,8 +428,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedPartition::DeletedPartition(DeletedPartition&&rhs)
-      : partition(rhs.partition),provenance(rhs.provenance),recurse(rhs.recurse)
+    ResourceTracker::DeletedPartition::DeletedPartition(DeletedPartition&& rhs)
+      : partition(rhs.partition), provenance(rhs.provenance),
+        recurse(rhs.recurse)
     //--------------------------------------------------------------------------
     {
       rhs.provenance = nullptr;
@@ -449,8 +445,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedPartition& 
-      ResourceTracker::DeletedPartition::operator=(const DeletedPartition &rhs)
+    ResourceTracker::DeletedPartition&
+        ResourceTracker::DeletedPartition::operator=(
+            const DeletedPartition& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -464,8 +461,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ResourceTracker::DeletedPartition& 
-            ResourceTracker::DeletedPartition::operator=(DeletedPartition &&rhs)
+    ResourceTracker::DeletedPartition&
+        ResourceTracker::DeletedPartition::operator=(DeletedPartition&& rhs)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -478,7 +475,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedPartition::serialize(Serializer &rez) const
+    void ResourceTracker::DeletedPartition::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(partition);
@@ -490,7 +487,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::DeletedPartition::deserialize(Deserializer &derez)
+    void ResourceTracker::DeletedPartition::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       if ((provenance != nullptr) && provenance->remove_reference())
@@ -505,32 +502,31 @@ namespace Legion {
     //--------------------------------------------------------------------------
     ResourceTracker::ResourceTracker(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ResourceTracker::~ResourceTracker(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::return_resources(ResourceTracker *target, 
-                        uint64_t return_index, std::set<RtEvent> &preconditions)
+    void ResourceTracker::return_resources(
+        ResourceTracker* target, uint64_t return_index,
+        std::set<RtEvent>& preconditions)
     //--------------------------------------------------------------------------
     {
-      if (created_regions.empty() && deleted_regions.empty() && 
+      if (created_regions.empty() && deleted_regions.empty() &&
           created_fields.empty() && deleted_fields.empty() &&
           created_field_spaces.empty() && latent_field_spaces.empty() &&
           deleted_field_spaces.empty() && created_index_spaces.empty() &&
           deleted_index_spaces.empty() && created_index_partitions.empty() &&
           deleted_index_partitions.empty())
         return;
-      target->receive_resources(return_index, created_regions, deleted_regions,
-          created_fields, deleted_fields, created_field_spaces, 
-          latent_field_spaces, deleted_field_spaces, created_index_spaces,
-          deleted_index_spaces, created_index_partitions, 
-          deleted_index_partitions, preconditions); 
+      target->receive_resources(
+          return_index, created_regions, deleted_regions, created_fields,
+          deleted_fields, created_field_spaces, latent_field_spaces,
+          deleted_field_spaces, created_index_spaces, deleted_index_spaces,
+          created_index_partitions, deleted_index_partitions, preconditions);
       created_regions.clear();
       deleted_regions.clear();
       created_fields.clear();
@@ -545,8 +541,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ResourceTracker::pack_resources_return(Serializer &rez, 
-                                                uint64_t return_index)
+    void ResourceTracker::pack_resources_return(
+        Serializer& rez, uint64_t return_index)
     //--------------------------------------------------------------------------
     {
       // Shouldn't need the lock here since we only do this
@@ -556,8 +552,9 @@ namespace Legion {
       rez.serialize<size_t>(created_regions.size());
       if (!created_regions.empty())
       {
-        for (std::map<LogicalRegion,unsigned>::const_iterator it =
-              created_regions.begin(); it != created_regions.end(); it++)
+        for (std::map<LogicalRegion, unsigned>::const_iterator it =
+                 created_regions.begin();
+             it != created_regions.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
@@ -567,16 +564,18 @@ namespace Legion {
       rez.serialize<size_t>(deleted_regions.size());
       if (!deleted_regions.empty())
       {
-        for (std::vector<DeletedRegion>::const_iterator it = 
-              deleted_regions.begin(); it != deleted_regions.end(); it++)
+        for (std::vector<DeletedRegion>::const_iterator it =
+                 deleted_regions.begin();
+             it != deleted_regions.end(); it++)
           it->serialize(rez);
         deleted_regions.clear();
       }
       rez.serialize<size_t>(created_fields.size());
       if (!created_fields.empty())
       {
-        for (std::set<std::pair<FieldSpace,FieldID> >::const_iterator 
-              it = created_fields.begin(); it != created_fields.end(); it++)
+        for (std::set<std::pair<FieldSpace, FieldID> >::const_iterator it =
+                 created_fields.begin();
+             it != created_fields.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
@@ -587,33 +586,34 @@ namespace Legion {
       if (!deleted_fields.empty())
       {
         for (std::vector<DeletedField>::const_iterator it =
-              deleted_fields.begin(); it != deleted_fields.end(); it++)
+                 deleted_fields.begin();
+             it != deleted_fields.end(); it++)
           it->serialize(rez);
         deleted_fields.clear();
       }
       rez.serialize<size_t>(created_field_spaces.size());
       if (!created_field_spaces.empty())
       {
-        for (std::map<FieldSpace,unsigned>::const_iterator it = 
-              created_field_spaces.begin(); it != 
-              created_field_spaces.end(); it++)
+        for (std::map<FieldSpace, unsigned>::const_iterator it =
+                 created_field_spaces.begin();
+             it != created_field_spaces.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
         }
         created_field_spaces.clear();
-      } 
+      }
       rez.serialize<size_t>(latent_field_spaces.size());
       if (!latent_field_spaces.empty())
       {
-        for (std::map<FieldSpace,std::set<LogicalRegion> >::const_iterator it =
-              latent_field_spaces.begin(); it != 
-              latent_field_spaces.end(); it++)
+        for (std::map<FieldSpace, std::set<LogicalRegion> >::const_iterator it =
+                 latent_field_spaces.begin();
+             it != latent_field_spaces.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize<size_t>(it->second.size());
-          for (std::set<LogicalRegion>::const_iterator it2 = 
-                it->second.begin(); it2 != it->second.end(); it2++)
+          for (std::set<LogicalRegion>::const_iterator it2 = it->second.begin();
+               it2 != it->second.end(); it2++)
             rez.serialize(*it2);
         }
         latent_field_spaces.clear();
@@ -621,18 +621,18 @@ namespace Legion {
       rez.serialize<size_t>(deleted_field_spaces.size());
       if (!deleted_field_spaces.empty())
       {
-        for (std::vector<DeletedFieldSpace>::const_iterator it = 
-              deleted_field_spaces.begin(); it != 
-              deleted_field_spaces.end(); it++)
+        for (std::vector<DeletedFieldSpace>::const_iterator it =
+                 deleted_field_spaces.begin();
+             it != deleted_field_spaces.end(); it++)
           it->serialize(rez);
         deleted_field_spaces.clear();
       }
       rez.serialize<size_t>(created_index_spaces.size());
       if (!created_index_spaces.empty())
       {
-        for (std::map<IndexSpace,unsigned>::const_iterator it = 
-              created_index_spaces.begin(); it != 
-              created_index_spaces.end(); it++)
+        for (std::map<IndexSpace, unsigned>::const_iterator it =
+                 created_index_spaces.begin();
+             it != created_index_spaces.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
@@ -642,18 +642,18 @@ namespace Legion {
       rez.serialize<size_t>(deleted_index_spaces.size());
       if (!deleted_index_spaces.empty())
       {
-        for (std::vector<DeletedIndexSpace>::const_iterator it = 
-              deleted_index_spaces.begin(); it != 
-              deleted_index_spaces.end(); it++)
+        for (std::vector<DeletedIndexSpace>::const_iterator it =
+                 deleted_index_spaces.begin();
+             it != deleted_index_spaces.end(); it++)
           it->serialize(rez);
         deleted_index_spaces.clear();
       }
       rez.serialize<size_t>(created_index_partitions.size());
       if (!created_index_partitions.empty())
       {
-        for (std::map<IndexPartition,unsigned>::const_iterator it = 
-              created_index_partitions.begin(); it !=
-              created_index_partitions.end(); it++)
+        for (std::map<IndexPartition, unsigned>::const_iterator it =
+                 created_index_partitions.begin();
+             it != created_index_partitions.end(); it++)
         {
           rez.serialize(it->first);
           rez.serialize(it->second);
@@ -663,37 +663,37 @@ namespace Legion {
       rez.serialize<size_t>(deleted_index_partitions.size());
       if (!deleted_index_partitions.empty())
       {
-        for (std::vector<DeletedPartition>::const_iterator it = 
-              deleted_index_partitions.begin(); it !=
-              deleted_index_partitions.end(); it++)
+        for (std::vector<DeletedPartition>::const_iterator it =
+                 deleted_index_partitions.begin();
+             it != deleted_index_partitions.end(); it++)
           it->serialize(rez);
         deleted_index_partitions.clear();
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void ResourceTracker::pack_empty_resources(Serializer &rez,
-                                                          uint64_t return_index)
+    /*static*/ void ResourceTracker::pack_empty_resources(
+        Serializer& rez, uint64_t return_index)
     //--------------------------------------------------------------------------
     {
       RezCheck z(rez);
       rez.serialize(return_index);
-      rez.serialize<size_t>(0); // created regions
-      rez.serialize<size_t>(0); // deleted regions
-      rez.serialize<size_t>(0); // created fields
-      rez.serialize<size_t>(0); // deleted fields
-      rez.serialize<size_t>(0); // created field spaces
-      rez.serialize<size_t>(0); // latent field spaces
-      rez.serialize<size_t>(0); // deleted field spaces
-      rez.serialize<size_t>(0); // created index spaces 
-      rez.serialize<size_t>(0); // deleted index spaces
-      rez.serialize<size_t>(0); // created index partitions
-      rez.serialize<size_t>(0); // deleted index partitions
+      rez.serialize<size_t>(0);  // created regions
+      rez.serialize<size_t>(0);  // deleted regions
+      rez.serialize<size_t>(0);  // created fields
+      rez.serialize<size_t>(0);  // deleted fields
+      rez.serialize<size_t>(0);  // created field spaces
+      rez.serialize<size_t>(0);  // latent field spaces
+      rez.serialize<size_t>(0);  // deleted field spaces
+      rez.serialize<size_t>(0);  // created index spaces
+      rez.serialize<size_t>(0);  // deleted index spaces
+      rez.serialize<size_t>(0);  // created index partitions
+      rez.serialize<size_t>(0);  // deleted index partitions
     }
 
     //--------------------------------------------------------------------------
     /*static*/ RtEvent ResourceTracker::unpack_resources_return(
-                                   Deserializer &derez, ResourceTracker *target)
+        Deserializer& derez, ResourceTracker* target)
     //--------------------------------------------------------------------------
     {
       // Hold the lock while doing the unpack to avoid conflicting
@@ -703,7 +703,7 @@ namespace Legion {
       derez.deserialize(return_index);
       size_t num_created_regions;
       derez.deserialize(num_created_regions);
-      std::map<LogicalRegion,unsigned> created_regions;
+      std::map<LogicalRegion, unsigned> created_regions;
       for (unsigned idx = 0; idx < num_created_regions; idx++)
       {
         LogicalRegion reg;
@@ -717,10 +717,10 @@ namespace Legion {
         deleted_regions[idx].deserialize(derez);
       size_t num_created_fields;
       derez.deserialize(num_created_fields);
-      std::set<std::pair<FieldSpace,FieldID> > created_fields;
+      std::set<std::pair<FieldSpace, FieldID> > created_fields;
       for (unsigned idx = 0; idx < num_created_fields; idx++)
       {
-        std::pair<FieldSpace,FieldID> key;
+        std::pair<FieldSpace, FieldID> key;
         derez.deserialize(key.first);
         derez.deserialize(key.second);
         created_fields.insert(key);
@@ -732,7 +732,7 @@ namespace Legion {
         deleted_fields[idx].deserialize(derez);
       size_t num_created_field_spaces;
       derez.deserialize(num_created_field_spaces);
-      std::map<FieldSpace,unsigned> created_field_spaces;
+      std::map<FieldSpace, unsigned> created_field_spaces;
       for (unsigned idx = 0; idx < num_created_field_spaces; idx++)
       {
         FieldSpace sp;
@@ -741,12 +741,12 @@ namespace Legion {
       }
       size_t num_latent_field_spaces;
       derez.deserialize(num_latent_field_spaces);
-      std::map<FieldSpace,std::set<LogicalRegion> > latent_field_spaces;
+      std::map<FieldSpace, std::set<LogicalRegion> > latent_field_spaces;
       for (unsigned idx = 0; idx < num_latent_field_spaces; idx++)
       {
         FieldSpace sp;
         derez.deserialize(sp);
-        std::set<LogicalRegion> &regions = latent_field_spaces[sp];
+        std::set<LogicalRegion>& regions = latent_field_spaces[sp];
         size_t num_regions;
         derez.deserialize(num_regions);
         for (unsigned idx2 = 0; idx2 < num_regions; idx2++)
@@ -758,13 +758,13 @@ namespace Legion {
       }
       size_t num_deleted_field_spaces;
       derez.deserialize(num_deleted_field_spaces);
-      std::vector<DeletedFieldSpace> 
-        deleted_field_spaces(num_deleted_field_spaces);
+      std::vector<DeletedFieldSpace> deleted_field_spaces(
+          num_deleted_field_spaces);
       for (unsigned idx = 0; idx < num_deleted_field_spaces; idx++)
         deleted_field_spaces[idx].deserialize(derez);
       size_t num_created_index_spaces;
       derez.deserialize(num_created_index_spaces);
-      std::map<IndexSpace,unsigned> created_index_spaces;
+      std::map<IndexSpace, unsigned> created_index_spaces;
       for (unsigned idx = 0; idx < num_created_index_spaces; idx++)
       {
         IndexSpace sp;
@@ -773,13 +773,13 @@ namespace Legion {
       }
       size_t num_deleted_index_spaces;
       derez.deserialize(num_deleted_index_spaces);
-      std::vector<DeletedIndexSpace> 
-          deleted_index_spaces(num_deleted_index_spaces);
+      std::vector<DeletedIndexSpace> deleted_index_spaces(
+          num_deleted_index_spaces);
       for (unsigned idx = 0; idx < num_deleted_index_spaces; idx++)
         deleted_index_spaces[idx].deserialize(derez);
       size_t num_created_index_partitions;
       derez.deserialize(num_created_index_partitions);
-      std::map<IndexPartition,unsigned> created_index_partitions;
+      std::map<IndexPartition, unsigned> created_index_partitions;
       for (unsigned idx = 0; idx < num_created_index_partitions; idx++)
       {
         IndexPartition ip;
@@ -788,16 +788,16 @@ namespace Legion {
       }
       size_t num_deleted_index_partitions;
       derez.deserialize(num_deleted_index_partitions);
-      std::vector<DeletedPartition> 
-        deleted_index_partitions(num_deleted_index_partitions);
+      std::vector<DeletedPartition> deleted_index_partitions(
+          num_deleted_index_partitions);
       for (unsigned idx = 0; idx < num_deleted_index_partitions; idx++)
         deleted_index_partitions[idx].deserialize(derez);
       std::set<RtEvent> preconditions;
-      target->receive_resources(return_index, created_regions, deleted_regions,
-          created_fields, deleted_fields, created_field_spaces,
-          latent_field_spaces, deleted_field_spaces, created_index_spaces,
-          deleted_index_spaces, created_index_partitions,
-          deleted_index_partitions, preconditions);
+      target->receive_resources(
+          return_index, created_regions, deleted_regions, created_fields,
+          deleted_fields, created_field_spaces, latent_field_spaces,
+          deleted_field_spaces, created_index_spaces, deleted_index_spaces,
+          created_index_partitions, deleted_index_partitions, preconditions);
       if (!preconditions.empty())
         return Runtime::merge_events(preconditions);
       else
@@ -806,53 +806,54 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ResourceTracker::merge_received_resources(
-              std::map<LogicalRegion,unsigned> &created_regs,
-              std::vector<DeletedRegion> &deleted_regs,
-              std::set<std::pair<FieldSpace,FieldID> > &created_fids,
-              std::vector<DeletedField> &deleted_fids,
-              std::map<FieldSpace,unsigned> &created_fs,
-              std::map<FieldSpace,std::set<LogicalRegion> > &latent_fs,
-              std::vector<DeletedFieldSpace> &deleted_fs,
-              std::map<IndexSpace,unsigned> &created_is,
-              std::vector<DeletedIndexSpace> &deleted_is,
-              std::map<IndexPartition,unsigned> &created_partitions,
-              std::vector<DeletedPartition> &deleted_partitions)
+        std::map<LogicalRegion, unsigned>& created_regs,
+        std::vector<DeletedRegion>& deleted_regs,
+        std::set<std::pair<FieldSpace, FieldID> >& created_fids,
+        std::vector<DeletedField>& deleted_fids,
+        std::map<FieldSpace, unsigned>& created_fs,
+        std::map<FieldSpace, std::set<LogicalRegion> >& latent_fs,
+        std::vector<DeletedFieldSpace>& deleted_fs,
+        std::map<IndexSpace, unsigned>& created_is,
+        std::vector<DeletedIndexSpace>& deleted_is,
+        std::map<IndexPartition, unsigned>& created_partitions,
+        std::vector<DeletedPartition>& deleted_partitions)
     //--------------------------------------------------------------------------
     {
       if (!created_regs.empty())
       {
         if (!latent_field_spaces.empty())
         {
-          for (std::map<LogicalRegion,unsigned>::const_iterator it = 
-                created_regs.begin(); it != created_regs.end(); it++)
+          for (std::map<LogicalRegion, unsigned>::const_iterator it =
+                   created_regs.begin();
+               it != created_regs.end(); it++)
           {
-            std::map<FieldSpace,std::set<LogicalRegion> >::iterator finder =
-              latent_field_spaces.find(it->first.get_field_space());
+            std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+                latent_field_spaces.find(it->first.get_field_space());
             if (finder != latent_field_spaces.end())
               finder->second.insert(it->first);
           }
         }
         if (!created_regions.empty())
         {
-          for (std::map<LogicalRegion,unsigned>::const_iterator it = 
-                created_regs.begin(); it != created_regs.end(); it++)
+          for (std::map<LogicalRegion, unsigned>::const_iterator it =
+                   created_regs.begin();
+               it != created_regs.end(); it++)
           {
-            std::map<LogicalRegion,unsigned>::iterator finder = 
-              created_regions.find(it->first);
+            std::map<LogicalRegion, unsigned>::iterator finder =
+                created_regions.find(it->first);
             if (finder == created_regions.end())
               created_regions.insert(*it);
             else
               finder->second += it->second;
           }
-        }
-        else
+        } else
           created_regions.swap(created_regs);
       }
       if (!deleted_regs.empty())
       {
         if (!deleted_regions.empty())
-          deleted_regions.insert(deleted_regions.end(), 
-              deleted_regs.begin(), deleted_regs.end());
+          deleted_regions.insert(
+              deleted_regions.end(), deleted_regs.begin(), deleted_regs.end());
         else
           deleted_regions.swap(deleted_regs);
       }
@@ -861,8 +862,9 @@ namespace Legion {
         if (!created_fields.empty())
         {
 #ifdef DEBUG_LEGION
-          for (std::set<std::pair<FieldSpace,FieldID> >::const_iterator it = 
-                created_fids.begin(); it != created_fids.end(); it++)
+          for (std::set<std::pair<FieldSpace, FieldID> >::const_iterator it =
+                   created_fids.begin();
+               it != created_fids.end(); it++)
           {
             assert(created_fields.find(*it) == created_fields.end());
             created_fields.insert(*it);
@@ -870,15 +872,14 @@ namespace Legion {
 #else
           created_fields.insert(created_fids.begin(), created_fids.end());
 #endif
-        }
-        else
+        } else
           created_fields.swap(created_fids);
       }
       if (!deleted_fids.empty())
       {
         if (!deleted_fields.empty())
-          deleted_fields.insert(deleted_fields.end(), 
-                                deleted_fids.begin(), deleted_fids.end());
+          deleted_fields.insert(
+              deleted_fields.end(), deleted_fids.begin(), deleted_fids.end());
         else
           deleted_fields.swap(deleted_fids);
       }
@@ -887,29 +888,30 @@ namespace Legion {
         if (!latent_field_spaces.empty())
         {
           // Remove any latent field spaces we have ownership for
-          for (std::map<FieldSpace,unsigned>::const_iterator it =
-                created_fs.begin(); it != created_fs.end(); it++)
+          for (std::map<FieldSpace, unsigned>::const_iterator it =
+                   created_fs.begin();
+               it != created_fs.end(); it++)
           {
-            std::map<FieldSpace,std::set<LogicalRegion> >::iterator finder = 
-              latent_field_spaces.find(it->first);
+            std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+                latent_field_spaces.find(it->first);
             if (finder != latent_field_spaces.end())
               latent_field_spaces.erase(finder);
           }
         }
         if (!created_field_spaces.empty())
         {
-          for (std::map<FieldSpace,unsigned>::const_iterator it = 
-                created_fs.begin(); it != created_fs.end(); it++)
+          for (std::map<FieldSpace, unsigned>::const_iterator it =
+                   created_fs.begin();
+               it != created_fs.end(); it++)
           {
-            std::map<FieldSpace,unsigned>::iterator finder = 
-              created_field_spaces.find(it->first);
+            std::map<FieldSpace, unsigned>::iterator finder =
+                created_field_spaces.find(it->first);
             if (finder == created_field_spaces.end())
               created_field_spaces.insert(*it);
             else
               finder->second += it->second;
           }
-        }
-        else
+        } else
           created_field_spaces.swap(created_fs);
       }
       if (!latent_fs.empty())
@@ -917,28 +919,30 @@ namespace Legion {
         if (!created_field_spaces.empty())
         {
           // Remote any latent field spaces we already have ownership on
-          for (std::map<FieldSpace,std::set<LogicalRegion> >::iterator it =
-                latent_fs.begin(); it != latent_fs.end(); /*nothing*/)
+          for (std::map<FieldSpace, std::set<LogicalRegion> >::iterator it =
+                   latent_fs.begin();
+               it != latent_fs.end();
+               /*nothing*/)
           {
-            if (created_field_spaces.find(it->first) != 
-                  created_field_spaces.end())
+            if (created_field_spaces.find(it->first) !=
+                created_field_spaces.end())
             {
-              std::map<FieldSpace,std::set<LogicalRegion> >::iterator 
-                to_delete = it++;
+              std::map<FieldSpace, std::set<LogicalRegion> >::iterator
+                  to_delete = it++;
               latent_fs.erase(to_delete);
-            }
-            else
+            } else
               it++;
           }
         }
         if (!created_regions.empty())
         {
           // See if any of these regions are copies of our latent spaces
-          for (std::map<LogicalRegion,unsigned>::const_iterator it = 
-                created_regions.begin(); it != created_regions.end(); it++)
+          for (std::map<LogicalRegion, unsigned>::const_iterator it =
+                   created_regions.begin();
+               it != created_regions.end(); it++)
           {
-            std::map<FieldSpace,std::set<LogicalRegion> >::iterator finder = 
-              latent_fs.find(it->first.get_field_space());
+            std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+                latent_fs.find(it->first.get_field_space());
             if (finder != latent_fs.end())
               finder->second.insert(it->first);
           }
@@ -946,25 +950,25 @@ namespace Legion {
         // Now we can do the merge
         if (!latent_field_spaces.empty())
         {
-          for (std::map<FieldSpace,std::set<LogicalRegion> >::const_iterator 
-                it = latent_fs.begin(); it != latent_fs.end(); it++)
+          for (std::map<FieldSpace, std::set<LogicalRegion> >::const_iterator
+                   it = latent_fs.begin();
+               it != latent_fs.end(); it++)
           {
-            std::map<FieldSpace,std::set<LogicalRegion> >::iterator finder = 
-              latent_field_spaces.find(it->first);
+            std::map<FieldSpace, std::set<LogicalRegion> >::iterator finder =
+                latent_field_spaces.find(it->first);
             if (finder != latent_field_spaces.end())
               finder->second.insert(it->second.begin(), it->second.end());
             else
               latent_field_spaces.insert(*it);
           }
-        }
-        else
+        } else
           latent_field_spaces.swap(latent_fs);
       }
       if (!deleted_fs.empty())
       {
         if (!deleted_field_spaces.empty())
-          deleted_field_spaces.insert(deleted_field_spaces.end(), 
-                                      deleted_fs.begin(), deleted_fs.end());
+          deleted_field_spaces.insert(
+              deleted_field_spaces.end(), deleted_fs.begin(), deleted_fs.end());
         else
           deleted_field_spaces.swap(deleted_fs);
       }
@@ -972,25 +976,25 @@ namespace Legion {
       {
         if (!created_index_spaces.empty())
         {
-          for (std::map<IndexSpace,unsigned>::const_iterator it = 
-                created_is.begin(); it != created_is.end(); it++)
+          for (std::map<IndexSpace, unsigned>::const_iterator it =
+                   created_is.begin();
+               it != created_is.end(); it++)
           {
-            std::map<IndexSpace,unsigned>::iterator finder = 
-              created_index_spaces.find(it->first);
+            std::map<IndexSpace, unsigned>::iterator finder =
+                created_index_spaces.find(it->first);
             if (finder == created_index_spaces.end())
               created_index_spaces.insert(*it);
             else
               finder->second += it->second;
           }
-        }
-        else
+        } else
           created_index_spaces.swap(created_is);
       }
       if (!deleted_is.empty())
       {
         if (!deleted_index_spaces.empty())
-          deleted_index_spaces.insert(deleted_index_spaces.end(), 
-                                      deleted_is.begin(), deleted_is.end());
+          deleted_index_spaces.insert(
+              deleted_index_spaces.end(), deleted_is.begin(), deleted_is.end());
         else
           deleted_index_spaces.swap(deleted_is);
       }
@@ -998,30 +1002,30 @@ namespace Legion {
       {
         if (!created_index_partitions.empty())
         {
-          for (std::map<IndexPartition,unsigned>::const_iterator it = 
-                created_partitions.begin(); it != 
-                created_partitions.end(); it++)
+          for (std::map<IndexPartition, unsigned>::const_iterator it =
+                   created_partitions.begin();
+               it != created_partitions.end(); it++)
           {
-            std::map<IndexPartition,unsigned>::iterator finder = 
-              created_index_partitions.find(it->first);
+            std::map<IndexPartition, unsigned>::iterator finder =
+                created_index_partitions.find(it->first);
             if (finder == created_index_partitions.end())
               created_index_partitions.insert(*it);
             else
               finder->second += it->second;
           }
-        }
-        else
+        } else
           created_index_partitions.swap(created_partitions);
       }
       if (!deleted_partitions.empty())
       {
         if (!deleted_index_partitions.empty())
-          deleted_index_partitions.insert(deleted_index_partitions.end(),
-              deleted_partitions.begin(), deleted_partitions.end());
+          deleted_index_partitions.insert(
+              deleted_index_partitions.end(), deleted_partitions.begin(),
+              deleted_partitions.end());
         else
           deleted_index_partitions.swap(deleted_partitions);
       }
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

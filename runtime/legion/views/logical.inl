@@ -23,7 +23,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ inline DistributedID LogicalView::encode_materialized_did(
-                                                              DistributedID did)
+        DistributedID did)
     //--------------------------------------------------------------------------
     {
       return LEGION_DISTRIBUTED_HELP_ENCODE(did, MATERIALIZED_VIEW_DC);
@@ -31,7 +31,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ inline DistributedID LogicalView::encode_reduction_did(
-                                                              DistributedID did)
+        DistributedID did)
     //--------------------------------------------------------------------------
     {
       return LEGION_DISTRIBUTED_HELP_ENCODE(did, REDUCTION_VIEW_DC);
@@ -39,7 +39,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ inline DistributedID LogicalView::encode_replicated_did(
-                                                              DistributedID did)
+        DistributedID did)
     //--------------------------------------------------------------------------
     {
       return LEGION_DISTRIBUTED_HELP_ENCODE(did, REPLICATED_VIEW_DC);
@@ -47,7 +47,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ inline DistributedID LogicalView::encode_allreduce_did(
-                                                              DistributedID did)
+        DistributedID did)
     //--------------------------------------------------------------------------
     {
       return LEGION_DISTRIBUTED_HELP_ENCODE(did, ALLREDUCE_VIEW_DC);
@@ -55,7 +55,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ inline DistributedID LogicalView::encode_fill_did(
-                                                              DistributedID did)
+        DistributedID did)
     //--------------------------------------------------------------------------
     {
       return LEGION_DISTRIBUTED_HELP_ENCODE(did, FILL_VIEW_DC);
@@ -63,7 +63,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ inline DistributedID LogicalView::encode_phi_did(
-                                                              DistributedID did)
+        DistributedID did)
     //--------------------------------------------------------------------------
     {
       return LEGION_DISTRIBUTED_HELP_ENCODE(did, PHI_VIEW_DC);
@@ -73,32 +73,36 @@ namespace Legion {
     /*static*/ inline bool LogicalView::is_materialized_did(DistributedID did)
     //--------------------------------------------------------------------------
     {
-      return ((LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC-1)) ==
-                                          MATERIALIZED_VIEW_DC);
+      return (
+          (LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC - 1)) ==
+          MATERIALIZED_VIEW_DC);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ inline bool LogicalView::is_reduction_did(DistributedID did)
     //--------------------------------------------------------------------------
     {
-      return ((LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC-1)) ==
-                                              REDUCTION_VIEW_DC);
+      return (
+          (LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC - 1)) ==
+          REDUCTION_VIEW_DC);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ inline bool LogicalView::is_replicated_did(DistributedID did)
     //--------------------------------------------------------------------------
     {
-      return ((LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC-1)) ==
-                                          REPLICATED_VIEW_DC);
+      return (
+          (LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC - 1)) ==
+          REPLICATED_VIEW_DC);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ inline bool LogicalView::is_allreduce_did(DistributedID did)
     //--------------------------------------------------------------------------
     {
-      return ((LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC-1)) ==
-                                              ALLREDUCE_VIEW_DC);
+      return (
+          (LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC - 1)) ==
+          ALLREDUCE_VIEW_DC);
     }
 
     //--------------------------------------------------------------------------
@@ -119,24 +123,27 @@ namespace Legion {
     /*static*/ inline bool LogicalView::is_fill_did(DistributedID did)
     //--------------------------------------------------------------------------
     {
-      return ((LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC-1)) ==
-                                                    FILL_VIEW_DC);
+      return (
+          (LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC - 1)) ==
+          FILL_VIEW_DC);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ inline bool LogicalView::is_phi_did(DistributedID did)
     //--------------------------------------------------------------------------
     {
-      return ((LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC-1)) ==
-                                                    PHI_VIEW_DC);
+      return (
+          (LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC - 1)) ==
+          PHI_VIEW_DC);
     }
 
     //--------------------------------------------------------------------------
     inline bool LogicalView::is_instance_view(void) const
     //--------------------------------------------------------------------------
     {
-      return (is_materialized_did(did) || is_reduction_did(did) ||
-              is_replicated_did(did) || is_allreduce_did(did));
+      return (
+          is_materialized_did(did) || is_reduction_did(did) ||
+          is_replicated_did(did) || is_allreduce_did(did));
     }
 
     //--------------------------------------------------------------------------
@@ -207,11 +214,11 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return is_reduction_view() || is_allreduce_view();
-    } 
+    }
 
     //--------------------------------------------------------------------------
     inline void LogicalView::add_base_valid_ref(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -236,7 +243,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline void LogicalView::add_nested_valid_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -246,8 +253,7 @@ namespace Legion {
       log_nested_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
 #ifdef DEBUG_LEGION_GC
-      add_nested_valid_ref_internal(LEGION_DISTRIBUTED_ID_FILTER(source), 
-                                    cnt);
+      add_nested_valid_ref_internal(LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
 #else
       int current = valid_references.load();
       while (current > 0)
@@ -262,7 +268,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool LogicalView::remove_base_valid_ref(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -290,7 +296,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool LogicalView::remove_nested_valid_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -317,5 +323,5 @@ namespace Legion {
 #endif
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

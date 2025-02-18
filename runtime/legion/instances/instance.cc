@@ -21,18 +21,16 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // InstanceManager 
+    // InstanceManager
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    InstanceManager::InstanceManager(DistributedID did, LayoutDescription *desc,
-                                     FieldSpaceNode *node, 
-                                     IndexSpaceExpression *domain,
-                                     RegionTreeID tid, bool register_now,
-                                     CollectiveMapping *mapping)
-      : DistributedCollectable(did, register_now, mapping),
-        layout(desc), field_space_node(node),
-        instance_domain(domain), tree_id(tid)
+    InstanceManager::InstanceManager(
+        DistributedID did, LayoutDescription* desc, FieldSpaceNode* node,
+        IndexSpaceExpression* domain, RegionTreeID tid, bool register_now,
+        CollectiveMapping* mapping)
+      : DistributedCollectable(did, register_now, mapping), layout(desc),
+        field_space_node(node), instance_domain(domain), tree_id(tid)
     //--------------------------------------------------------------------------
     {
       // Add a reference to the layout
@@ -53,17 +51,18 @@ namespace Legion {
       if ((field_space_node != nullptr) &&
           field_space_node->remove_nested_gc_ref(did))
         delete field_space_node;
-      if ((instance_domain != nullptr) && 
+      if ((instance_domain != nullptr) &&
           instance_domain->remove_nested_expression_reference(did))
         delete instance_domain;
     }
 
     //--------------------------------------------------------------------------
-    bool InstanceManager::entails(LayoutConstraints *constraints,
-                               const LayoutConstraint **failed_constraint) const
+    bool InstanceManager::entails(
+        LayoutConstraints* constraints,
+        const LayoutConstraint** failed_constraint) const
     //--------------------------------------------------------------------------
     {
-      const PointerConstraint &pointer = constraints->pointer_constraint;
+      const PointerConstraint& pointer = constraints->pointer_constraint;
       if (pointer.is_valid)
       {
         PointerConstraint pointer_constraint = get_pointer_constraint();
@@ -75,17 +74,19 @@ namespace Legion {
           return false;
         }
       }
-      return layout->constraints->entails(constraints,
-              (instance_domain != nullptr) ? instance_domain->get_num_dims() : 0,
-              failed_constraint, false/*test pointer*/);
+      return layout->constraints->entails(
+          constraints,
+          (instance_domain != nullptr) ? instance_domain->get_num_dims() : 0,
+          failed_constraint, false /*test pointer*/);
     }
 
     //--------------------------------------------------------------------------
-    bool InstanceManager::entails(const LayoutConstraintSet &constraints,
-                               const LayoutConstraint **failed_constraint) const
+    bool InstanceManager::entails(
+        const LayoutConstraintSet& constraints,
+        const LayoutConstraint** failed_constraint) const
     //--------------------------------------------------------------------------
     {
-      const PointerConstraint &pointer = constraints.pointer_constraint;
+      const PointerConstraint& pointer = constraints.pointer_constraint;
       if (pointer.is_valid)
       {
         PointerConstraint pointer_constraint = get_pointer_constraint();
@@ -97,17 +98,19 @@ namespace Legion {
           return false;
         }
       }
-      return layout->constraints->entails(constraints,
-              (instance_domain != nullptr) ? instance_domain->get_num_dims() : 0,
-              failed_constraint, false/*test pointer*/);
+      return layout->constraints->entails(
+          constraints,
+          (instance_domain != nullptr) ? instance_domain->get_num_dims() : 0,
+          failed_constraint, false /*test pointer*/);
     }
 
     //--------------------------------------------------------------------------
-    bool InstanceManager::conflicts(LayoutConstraints *constraints,
-                             const LayoutConstraint **conflict_constraint) const
+    bool InstanceManager::conflicts(
+        LayoutConstraints* constraints,
+        const LayoutConstraint** conflict_constraint) const
     //--------------------------------------------------------------------------
     {
-      const PointerConstraint &pointer = constraints->pointer_constraint;
+      const PointerConstraint& pointer = constraints->pointer_constraint;
       if (pointer.is_valid)
       {
         PointerConstraint pointer_constraint = get_pointer_constraint();
@@ -120,17 +123,19 @@ namespace Legion {
         }
       }
       // We know our layouts don't have a pointer constraint so nothing special
-      return layout->constraints->conflicts(constraints,
-              (instance_domain != nullptr) ? instance_domain->get_num_dims() : 0,
-              conflict_constraint);
+      return layout->constraints->conflicts(
+          constraints,
+          (instance_domain != nullptr) ? instance_domain->get_num_dims() : 0,
+          conflict_constraint);
     }
 
     //--------------------------------------------------------------------------
-    bool InstanceManager::conflicts(const LayoutConstraintSet &constraints,
-                             const LayoutConstraint **conflict_constraint) const
+    bool InstanceManager::conflicts(
+        const LayoutConstraintSet& constraints,
+        const LayoutConstraint** conflict_constraint) const
     //--------------------------------------------------------------------------
     {
-      const PointerConstraint &pointer = constraints.pointer_constraint;
+      const PointerConstraint& pointer = constraints.pointer_constraint;
       if (pointer.is_valid)
       {
         PointerConstraint pointer_constraint = get_pointer_constraint();
@@ -143,10 +148,11 @@ namespace Legion {
         }
       }
       // We know our layouts don't have a pointer constraint so nothing special
-      return layout->constraints->conflicts(constraints,
-              (instance_domain != nullptr) ? instance_domain->get_num_dims() : 0,
-              conflict_constraint);
-    }  
+      return layout->constraints->conflicts(
+          constraints,
+          (instance_domain != nullptr) ? instance_domain->get_num_dims() : 0,
+          conflict_constraint);
+    }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

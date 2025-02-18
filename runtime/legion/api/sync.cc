@@ -17,258 +17,239 @@
 
 namespace Legion {
 
-    /////////////////////////////////////////////////////////////
-    // Lock 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // Lock
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    Lock::Lock(void)
-      : reservation_lock(Reservation::NO_RESERVATION)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  Lock::Lock(void) : reservation_lock(Reservation::NO_RESERVATION)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    Lock::Lock(Reservation r)
-      : reservation_lock(r)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  Lock::Lock(Reservation r) : reservation_lock(r)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    bool Lock::operator<(const Lock &rhs) const
-    //--------------------------------------------------------------------------
-    {
-      return (reservation_lock < rhs.reservation_lock);
-    }
+  //--------------------------------------------------------------------------
+  bool Lock::operator<(const Lock& rhs) const
+  //--------------------------------------------------------------------------
+  {
+    return (reservation_lock < rhs.reservation_lock);
+  }
 
-    //--------------------------------------------------------------------------
-    bool Lock::operator==(const Lock &rhs) const
-    //--------------------------------------------------------------------------
-    {
-      return (reservation_lock == rhs.reservation_lock);
-    }
+  //--------------------------------------------------------------------------
+  bool Lock::operator==(const Lock& rhs) const
+  //--------------------------------------------------------------------------
+  {
+    return (reservation_lock == rhs.reservation_lock);
+  }
 
-    //--------------------------------------------------------------------------
-    void Lock::acquire(unsigned mode /*=0*/, bool exclusive /*=true*/)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void Lock::acquire(unsigned mode /*=0*/, bool exclusive /*=true*/)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(reservation_lock.exists());
+    assert(reservation_lock.exists());
 #endif
-      Internal::ApEvent lock_event(reservation_lock.acquire(mode,exclusive));
-      bool poisoned = false;
-      lock_event.wait_faultaware(poisoned);
-      if (poisoned)
-        Internal::implicit_context->raise_poison_exception();
-    }
+    Internal::ApEvent lock_event(reservation_lock.acquire(mode, exclusive));
+    bool poisoned = false;
+    lock_event.wait_faultaware(poisoned);
+    if (poisoned)
+      Internal::implicit_context->raise_poison_exception();
+  }
 
-    //--------------------------------------------------------------------------
-    void Lock::release(void)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void Lock::release(void)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(reservation_lock.exists());
+    assert(reservation_lock.exists());
 #endif
-      reservation_lock.release();
-    }
+    reservation_lock.release();
+  }
 
-    /////////////////////////////////////////////////////////////
-    // Lock Request
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // Lock Request
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    LockRequest::LockRequest(Lock l, unsigned m, bool excl)
-      : lock(l), mode(m), exclusive(excl)
-    //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  LockRequest::LockRequest(Lock l, unsigned m, bool excl)
+    : lock(l), mode(m), exclusive(excl)
+  //--------------------------------------------------------------------------
+  { }
+
+  /////////////////////////////////////////////////////////////
+  // Grant
+  /////////////////////////////////////////////////////////////
+
+  //--------------------------------------------------------------------------
+  Grant::Grant(void) : impl(nullptr)
+  //--------------------------------------------------------------------------
+  { }
+
+  //--------------------------------------------------------------------------
+  Grant::Grant(Internal::GrantImpl* i) : impl(i)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->add_reference();
+  }
+
+  //--------------------------------------------------------------------------
+  Grant::Grant(const Grant& rhs) : impl(rhs.impl)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->add_reference();
+  }
+
+  //--------------------------------------------------------------------------
+  Grant::~Grant(void)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
     {
+      if (impl->remove_reference())
+        delete impl;
+      impl = nullptr;
     }
+  }
 
-    /////////////////////////////////////////////////////////////
-    // Grant 
-    /////////////////////////////////////////////////////////////
-
-    //--------------------------------------------------------------------------
-    Grant::Grant(void)
-      : impl(nullptr)
-    //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  Grant& Grant::operator=(const Grant& rhs)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
     {
+      if (impl->remove_reference())
+        delete impl;
     }
+    impl = rhs.impl;
+    if (impl != nullptr)
+      impl->add_reference();
+    return *this;
+  }
 
-    //--------------------------------------------------------------------------
-    Grant::Grant(Internal::GrantImpl *i)
-      : impl(i)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        impl->add_reference();
-    }
+  /////////////////////////////////////////////////////////////
+  // Phase Barrier
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    Grant::Grant(const Grant &rhs)
-      : impl(rhs.impl)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        impl->add_reference();
-    }
+  //--------------------------------------------------------------------------
+  PhaseBarrier::PhaseBarrier(void)
+    : phase_barrier(Internal::ApBarrier::NO_AP_BARRIER)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    Grant::~Grant(void)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-      {
-        if (impl->remove_reference())
-          delete impl;
-        impl = nullptr;
-      }
-    }
+  //--------------------------------------------------------------------------
+  PhaseBarrier::PhaseBarrier(Internal::ApBarrier b) : phase_barrier(b)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    Grant& Grant::operator=(const Grant &rhs)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-      {
-        if (impl->remove_reference())
-          delete impl;
-      }
-      impl = rhs.impl;
-      if (impl != nullptr)
-        impl->add_reference();
-      return *this;
-    }
+  //--------------------------------------------------------------------------
+  bool PhaseBarrier::operator<(const PhaseBarrier& rhs) const
+  //--------------------------------------------------------------------------
+  {
+    return (phase_barrier < rhs.phase_barrier);
+  }
 
-    /////////////////////////////////////////////////////////////
-    // Phase Barrier 
-    /////////////////////////////////////////////////////////////
+  //--------------------------------------------------------------------------
+  bool PhaseBarrier::operator==(const PhaseBarrier& rhs) const
+  //--------------------------------------------------------------------------
+  {
+    return (phase_barrier == rhs.phase_barrier);
+  }
 
-    //--------------------------------------------------------------------------
-    PhaseBarrier::PhaseBarrier(void)
-      : phase_barrier(Internal::ApBarrier::NO_AP_BARRIER)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  bool PhaseBarrier::operator!=(const PhaseBarrier& rhs) const
+  //--------------------------------------------------------------------------
+  {
+    return (phase_barrier != rhs.phase_barrier);
+  }
 
-    //--------------------------------------------------------------------------
-    PhaseBarrier::PhaseBarrier(Internal::ApBarrier b)
-      : phase_barrier(b)
-    //--------------------------------------------------------------------------
-    {
-    }
-
-    //--------------------------------------------------------------------------
-    bool PhaseBarrier::operator<(const PhaseBarrier &rhs) const
-    //--------------------------------------------------------------------------
-    {
-      return (phase_barrier < rhs.phase_barrier);
-    }
-
-    //--------------------------------------------------------------------------
-    bool PhaseBarrier::operator==(const PhaseBarrier &rhs) const
-    //--------------------------------------------------------------------------
-    {
-      return (phase_barrier == rhs.phase_barrier);
-    }
-
-    //--------------------------------------------------------------------------
-    bool PhaseBarrier::operator!=(const PhaseBarrier &rhs) const
-    //--------------------------------------------------------------------------
-    {
-      return (phase_barrier != rhs.phase_barrier);
-    }
-
-    //--------------------------------------------------------------------------
-    void PhaseBarrier::arrive(unsigned count /*=1*/)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void PhaseBarrier::arrive(unsigned count /*=1*/)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(phase_barrier.exists());
+    assert(phase_barrier.exists());
 #endif
-      Internal::runtime->phase_barrier_arrive(*this, count);
-    }
+    Internal::runtime->phase_barrier_arrive(*this, count);
+  }
 
-    //--------------------------------------------------------------------------
-    void PhaseBarrier::wait(void)
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void PhaseBarrier::wait(void)
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(phase_barrier.exists());
+    assert(phase_barrier.exists());
 #endif
-      Internal::ApEvent e = Internal::Runtime::get_previous_phase(*this);
-      bool poisoned = false;
-      e.wait_faultaware(poisoned);
-      if (poisoned)
-        Internal::implicit_context->raise_poison_exception();
-    }
+    Internal::ApEvent e = Internal::Runtime::get_previous_phase(*this);
+    bool poisoned = false;
+    e.wait_faultaware(poisoned);
+    if (poisoned)
+      Internal::implicit_context->raise_poison_exception();
+  }
 
-    //--------------------------------------------------------------------------
-    void PhaseBarrier::alter_arrival_count(int delta)
-    //--------------------------------------------------------------------------
-    {
-      Internal::Runtime::alter_arrival_count(*this, delta);
-    }
+  //--------------------------------------------------------------------------
+  void PhaseBarrier::alter_arrival_count(int delta)
+  //--------------------------------------------------------------------------
+  {
+    Internal::Runtime::alter_arrival_count(*this, delta);
+  }
 
-    //--------------------------------------------------------------------------
-    bool PhaseBarrier::exists(void) const
-    //--------------------------------------------------------------------------
-    {
-      return phase_barrier.exists();
-    }
+  //--------------------------------------------------------------------------
+  bool PhaseBarrier::exists(void) const
+  //--------------------------------------------------------------------------
+  {
+    return phase_barrier.exists();
+  }
 
-    /////////////////////////////////////////////////////////////
-    // Dynamic Collective 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // Dynamic Collective
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    DynamicCollective::DynamicCollective(void)
-      : PhaseBarrier(), redop(0)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  DynamicCollective::DynamicCollective(void) : PhaseBarrier(), redop(0)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    DynamicCollective::DynamicCollective(Internal::ApBarrier b, ReductionOpID r)
-      : PhaseBarrier(b), redop(r)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  DynamicCollective::DynamicCollective(Internal::ApBarrier b, ReductionOpID r)
+    : PhaseBarrier(b), redop(r)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    void DynamicCollective::arrive(const void *value, size_t size, 
-                                   unsigned count /*=1*/)
-    //--------------------------------------------------------------------------
-    {
-      Internal::runtime->phase_barrier_arrive(*this, count, 
-                                  Internal::ApEvent::NO_AP_EVENT, value, size);
-    }
+  //--------------------------------------------------------------------------
+  void DynamicCollective::arrive(
+      const void* value, size_t size, unsigned count /*=1*/)
+  //--------------------------------------------------------------------------
+  {
+    Internal::runtime->phase_barrier_arrive(
+        *this, count, Internal::ApEvent::NO_AP_EVENT, value, size);
+  }
 
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Grant Impl 
+    // Grant Impl
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    GrantImpl::GrantImpl(void)
-      : acquired(false)
+    GrantImpl::GrantImpl(void) : acquired(false)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    GrantImpl::GrantImpl(const std::vector<ReservationRequest> &reqs)
+    GrantImpl::GrantImpl(const std::vector<ReservationRequest>& reqs)
       : requests(reqs), acquired(false)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     GrantImpl::~GrantImpl(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void GrantImpl::register_operation(ApEvent completion_event)
@@ -286,11 +267,12 @@ namespace Legion {
       if (!acquired)
       {
         grant_event = ApEvent::NO_AP_EVENT;
-        for (std::vector<ReservationRequest>::const_iterator it = 
-              requests.begin(); it != requests.end(); it++)
+        for (std::vector<ReservationRequest>::const_iterator it =
+                 requests.begin();
+             it != requests.end(); it++)
         {
-          grant_event = ApEvent(it->reservation.acquire(it->mode, 
-                                                it->exclusive, grant_event));
+          grant_event = ApEvent(
+              it->reservation.acquire(it->mode, it->exclusive, grant_event));
         }
         acquired = true;
       }
@@ -302,16 +284,18 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock g_lock(grant_lock);
-      ApEvent deferred_release = Runtime::merge_events(nullptr, completion_events);
-      for (std::vector<ReservationRequest>::const_iterator it = 
-            requests.begin(); it != requests.end(); it++)
+      ApEvent deferred_release =
+          Runtime::merge_events(nullptr, completion_events);
+      for (std::vector<ReservationRequest>::const_iterator it =
+               requests.begin();
+           it != requests.end(); it++)
       {
         it->reservation.release(deferred_release);
       }
     }
 
     //--------------------------------------------------------------------------
-    void GrantImpl::pack_grant(Serializer &rez)
+    void GrantImpl::pack_grant(Serializer& rez)
     //--------------------------------------------------------------------------
     {
       ApEvent pack_event = acquire_grant();
@@ -319,7 +303,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void GrantImpl::unpack_grant(Deserializer &derez)
+    void GrantImpl::unpack_grant(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       ApEvent unpack_event;
@@ -332,5 +316,5 @@ namespace Legion {
       acquired = true;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

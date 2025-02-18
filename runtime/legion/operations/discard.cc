@@ -22,22 +22,19 @@
 namespace Legion {
   namespace Internal {
 
-    ///////////////////////////////////////////////////////////// 
-    // Discard Op 
+    /////////////////////////////////////////////////////////////
+    // Discard Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DiscardOp::DiscardOp(void)
-      : Operation()
+    DiscardOp::DiscardOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     DiscardOp::~DiscardOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void DiscardOp::activate(void)
@@ -51,7 +48,7 @@ namespace Legion {
     void DiscardOp::deactivate(bool free)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       requirement.privilege_fields.clear();
       version_info.clear();
       map_applied_conditions.clear();
@@ -92,8 +89,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void DiscardOp::initialize(InnerContext *ctx,
-                        const DiscardLauncher &launcher, Provenance *provenance)
+    void DiscardOp::initialize(
+        InnerContext* ctx, const DiscardLauncher& launcher,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -107,8 +105,8 @@ namespace Legion {
         verify_requirement(requirement);
       parent_req_index = ctx->find_parent_region_index(this, requirement);
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_discard_operation(parent_ctx->get_unique_id(),
-                                         unique_op_id);
+        LegionSpy::log_discard_operation(
+            parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -123,17 +121,15 @@ namespace Legion {
     void DiscardOp::log_requirement(void)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_logical_requirement(unique_op_id, 0/*index*/,
-                                         true/*region*/,
-                                         requirement.region.index_space.get_id(),
-                                         requirement.region.field_space.get_id(),
-                                         requirement.region.get_tree_id(),
-                                         requirement.privilege,
-                                         requirement.prop,
-                                         requirement.redop,
-                                         requirement.parent.index_space.get_id());
-      LegionSpy::log_requirement_fields(unique_op_id, 0/*index*/,
-                                        requirement.privilege_fields);
+      LegionSpy::log_logical_requirement(
+          unique_op_id, 0 /*index*/, true /*region*/,
+          requirement.region.index_space.get_id(),
+          requirement.region.field_space.get_id(),
+          requirement.region.get_tree_id(), requirement.privilege,
+          requirement.prop, requirement.redop,
+          requirement.parent.index_space.get_id());
+      LegionSpy::log_requirement_fields(
+          unique_op_id, 0 /*index*/, requirement.privilege_fields);
     }
 
     //--------------------------------------------------------------------------
@@ -147,11 +143,9 @@ namespace Legion {
     void DiscardOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
-      std::set<RtEvent> preconditions;  
-      perform_versioning_analysis(0/*idx*/,
-                                                   requirement,
-                                                   version_info,
-                                                   preconditions);
+      std::set<RtEvent> preconditions;
+      perform_versioning_analysis(
+          0 /*idx*/, requirement, version_info, preconditions);
       if (!preconditions.empty())
         enqueue_ready_operation(Runtime::merge_events(preconditions));
       else
@@ -162,48 +156,50 @@ namespace Legion {
     void DiscardOp::trigger_mapping(void)
     //--------------------------------------------------------------------------
     {
-      const PhysicalTraceInfo trace_info(this, 0/*idx*/);
+      const PhysicalTraceInfo trace_info(this, 0 /*idx*/);
       discard_fields(trace_info);
       if (!map_applied_conditions.empty())
         complete_mapping(finalize_complete_mapping(
-              Runtime::merge_events(map_applied_conditions)));
+            Runtime::merge_events(map_applied_conditions)));
       else
         complete_mapping(finalize_complete_mapping(RtEvent::NO_RT_EVENT));
       complete_execution();
     }
 
     //--------------------------------------------------------------------------
-    void DiscardOp::pack_remote_operation(Serializer &rez, 
-                        AddressSpaceID target, std::set<RtEvent> &applied) const
+    void DiscardOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied) const
     //--------------------------------------------------------------------------
     {
       pack_local_remote_operation(rez);
     }
 
     //--------------------------------------------------------------------------
-    bool DiscardOp::record_trace_hash(TraceRecognizer &recognizer,
-                                      uint64_t opidx)
+    bool DiscardOp::record_trace_hash(
+        TraceRecognizer& recognizer, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       return recognizer.record_operation_noop(this);
     }
 
     //--------------------------------------------------------------------------
-    void DiscardOp::discard_fields(const PhysicalTraceInfo &trace_info)
+    void DiscardOp::discard_fields(const PhysicalTraceInfo& trace_info)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
-#endif     
-      RegionNode *region = runtime->get_node(requirement.region);
-      FilterAnalysis *analysis = new FilterAnalysis(this, 0/*index*/,
-                                                    region, trace_info);
+#endif
+      RegionNode* region = runtime->get_node(requirement.region);
+      FilterAnalysis* analysis =
+          new FilterAnalysis(this, 0 /*index*/, region, trace_info);
       analysis->add_reference();
       // Still need to pretend to convert an empty set of views to get
       // the collective mapping initialized properly
       const InstanceSet empty_instances;
-      const RtEvent views_ready = analysis->convert_views(requirement.region,
-          empty_instances, nullptr/*sources*/, nullptr/*usage*/, false/*rendezvous*/);
+      const RtEvent views_ready = analysis->convert_views(
+          requirement.region, empty_instances, nullptr /*sources*/,
+          nullptr /*usage*/, false /*rendezvous*/);
       const RtEvent traversal_done = analysis->perform_traversal(
           views_ready, version_info, map_applied_conditions);
       // Send out any remote updates
@@ -214,25 +210,23 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Repl Discard Op 
+    // Repl Discard Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
     ReplDiscardOp::ReplDiscardOp(void)
       : ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> >()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplDiscardOp::~ReplDiscardOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ReplDiscardOp::initialize_replication(ReplicateContext *ctx,
-                                               bool is_first_local)
+    void ReplDiscardOp::initialize_replication(
+        ReplicateContext* ctx, bool is_first_local)
     //--------------------------------------------------------------------------
     {
       is_first_local_shard = is_first_local;
@@ -256,7 +250,7 @@ namespace Legion {
       assert(!collective_map_barrier.exists());
 #endif
       ReplCollectiveVersioning<CollectiveVersioning<DiscardOp> >::deactivate(
-                                                                false/*free*/);
+          false /*free*/);
       if (free)
         runtime->free_operation(this);
     }
@@ -266,13 +260,13 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       collective_map_barrier = repl_ctx->get_next_collective_map_barriers();
-      create_collective_rendezvous(0/*requirement index*/);
+      create_collective_rendezvous(0 /*requirement index*/);
       // Then do the base class analysis
       DiscardOp::trigger_dependence_analysis();
     }
@@ -285,14 +279,11 @@ namespace Legion {
       assert(collective_map_barrier.exists());
 #endif
       // Signal that all of our mapping dependences are satisfied
-      runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/);
+      runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       std::set<RtEvent> preconditions;
-      perform_versioning_analysis(0/*idx*/,
-                                                   requirement,
-                                                   version_info,
-                                                   preconditions,
-                                                   nullptr/*output region*/,
-                                                   true/*rendezvous*/);
+      perform_versioning_analysis(
+          0 /*idx*/, requirement, version_info, preconditions,
+          nullptr /*output region*/, true /*rendezvous*/);
       if (!collective_map_barrier.has_triggered())
         preconditions.insert(collective_map_barrier);
       Runtime::advance_barrier(collective_map_barrier);
@@ -309,7 +300,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(collective_map_barrier.exists());
 #endif
-      runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/, pre);
+      runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/, pre);
 #ifdef DEBUG_LEGION
       const RtEvent result = collective_map_barrier;
       collective_map_barrier = RtBarrier::NO_RT_BARRIER;
@@ -320,17 +311,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool ReplDiscardOp::perform_collective_analysis(CollectiveMapping *&mapping,
-                                                    bool &first_local)
+    bool ReplDiscardOp::perform_collective_analysis(
+        CollectiveMapping*& mapping, bool& first_local)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
-      mapping = &(repl_ctx->shard_manager->get_collective_mapping()); 
+      mapping = &(repl_ctx->shard_manager->get_collective_mapping());
       mapping->add_reference();
       first_local = is_first_local_shard;
       return true;
@@ -338,30 +329,29 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RtEvent ReplDiscardOp::perform_collective_versioning_analysis(
-        unsigned index, LogicalRegion handle, EqSetTracker *tracker,
-        const FieldMask &mask, unsigned parent_req_index)
+        unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+        const FieldMask& mask, unsigned parent_req_index)
     //--------------------------------------------------------------------------
     {
-      return rendezvous_collective_versioning_analysis(index, handle, tracker,
-          runtime->address_space, mask, parent_req_index);
+      return rendezvous_collective_versioning_analysis(
+          index, handle, tracker, runtime->address_space, mask,
+          parent_req_index);
     }
 
-    ///////////////////////////////////////////////////////////// 
-    // Remote Discard Op 
+    /////////////////////////////////////////////////////////////
+    // Remote Discard Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteDiscardOp::RemoteDiscardOp(Operation *ptr, AddressSpaceID src)
+    RemoteDiscardOp::RemoteDiscardOp(Operation* ptr, AddressSpaceID src)
       : RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     RemoteDiscardOp::~RemoteDiscardOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UniqueID RemoteDiscardOp::get_unique_id(void) const
@@ -406,19 +396,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteDiscardOp::pack_remote_operation(Serializer &rez,
-                 AddressSpaceID target, std::set<RtEvent> &applied_events) const
+    void RemoteDiscardOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_remote_base(rez);
     }
 
     //--------------------------------------------------------------------------
-    void RemoteDiscardOp::unpack(Deserializer &derez)
+    void RemoteDiscardOp::unpack(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       // Nothing for the moment
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

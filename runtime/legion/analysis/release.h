@@ -25,49 +25,50 @@ namespace Legion {
      * \class ReleaseAnalysis
      * For performing releases on equivalence set trees
      */
-    class ReleaseAnalysis : public CollectiveCopyFillAnalysis,
-      public Heapify<ReleaseAnalysis,OPERATION_LIFETIME> {
+    class ReleaseAnalysis
+      : public CollectiveCopyFillAnalysis,
+        public Heapify<ReleaseAnalysis, OPERATION_LIFETIME> {
     public:
-      ReleaseAnalysis(Operation *op, unsigned index,
-                      ApEvent precondition, RegionNode *node,
-                      const PhysicalTraceInfo &trace_info);
-      ReleaseAnalysis(AddressSpaceID src, AddressSpaceID prev,
-                      Operation *op, unsigned index, RegionNode *node,
-                      ApEvent precondition, ReleaseAnalysis *target, 
-                      std::vector<PhysicalManager*> &&target_instances,
-                      LegionVector<FieldMaskSet<InstanceView> > &&target_views,
-                      std::vector<IndividualView*> &&source_views,
-                      const PhysicalTraceInfo &info,
-                      CollectiveMapping *mapping, const bool first_local);
-      ReleaseAnalysis(const ReleaseAnalysis &rhs) = delete;
+      ReleaseAnalysis(
+          Operation* op, unsigned index, ApEvent precondition, RegionNode* node,
+          const PhysicalTraceInfo& trace_info);
+      ReleaseAnalysis(
+          AddressSpaceID src, AddressSpaceID prev, Operation* op,
+          unsigned index, RegionNode* node, ApEvent precondition,
+          ReleaseAnalysis* target,
+          std::vector<PhysicalManager*>&& target_instances,
+          LegionVector<FieldMaskSet<InstanceView> >&& target_views,
+          std::vector<IndividualView*>&& source_views,
+          const PhysicalTraceInfo& info, CollectiveMapping* mapping,
+          const bool first_local);
+      ReleaseAnalysis(const ReleaseAnalysis& rhs) = delete;
       virtual ~ReleaseAnalysis(void);
     public:
-      ReleaseAnalysis& operator=(const ReleaseAnalysis &rhs) = delete;
+      ReleaseAnalysis& operator=(const ReleaseAnalysis& rhs) = delete;
     public:
-      virtual bool perform_analysis(EquivalenceSet *set,
-                                    IndexSpaceExpression *expr,
-                                    const bool expr_covers,
-                                    const FieldMask &mask,
-                                    std::set<RtEvent> &applied_events,
-                                    const bool already_deferred = false);
-      virtual RtEvent perform_remote(RtEvent precondition,
-                                     std::set<RtEvent> &applied_events,
-                                     const bool already_deferred = false);
-      virtual RtEvent perform_updates(RtEvent precondition, 
-                                      std::set<RtEvent> &applied_events,
-                                      const bool already_deferred = false);
+      virtual bool perform_analysis(
+          EquivalenceSet* set, IndexSpaceExpression* expr,
+          const bool expr_covers, const FieldMask& mask,
+          std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_remote(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_updates(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
     public:
-      static void handle_remote_releases(Deserializer &derez,
-                                         AddressSpaceID previous);
+      static void handle_remote_releases(
+          Deserializer& derez, AddressSpaceID previous);
     public:
       const ApEvent precondition;
-      ReleaseAnalysis *const target_analysis;
+      ReleaseAnalysis* const target_analysis;
     public:
       // Can only safely be accessed when analysis is locked
-      CopyFillAggregator *release_aggregator;
+      CopyFillAggregator* release_aggregator;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_RELEASE_ANALYSIS_H__
+#endif  // __LEGION_RELEASE_ANALYSIS_H__

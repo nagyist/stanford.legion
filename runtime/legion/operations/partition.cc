@@ -23,27 +23,23 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Pending Partition Op 
+    // Pending Partition Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PendingPartitionOp::PendingPartitionOp(void)
-      : Operation(), thunk(nullptr)
+    PendingPartitionOp::PendingPartitionOp(void) : Operation(), thunk(nullptr)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     PendingPartitionOp::~PendingPartitionOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_equal_partition(InnerContext *ctx,
-                                                        IndexPartition pid, 
-                                                        size_t granularity,
-                                                        Provenance *provenance)
+    void PendingPartitionOp::initialize_equal_partition(
+        InnerContext* ctx, IndexPartition pid, size_t granularity,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -56,9 +52,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_weight_partition(InnerContext *ctx,
-                                   IndexPartition pid, const FutureMap &weights,
-                                   size_t granularity, Provenance *provenance)
+    void PendingPartitionOp::initialize_weight_partition(
+        InnerContext* ctx, IndexPartition pid, const FutureMap& weights,
+        size_t granularity, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -67,17 +63,15 @@ namespace Legion {
 #endif
       thunk = new WeightPartitionThunk(pid, granularity);
       // Also save this locally for analysis
-      populate_sources(weights, pid, true/*needs all futures*/);
+      populate_sources(weights, pid, true /*needs all futures*/);
       if (runtime->legion_spy_enabled)
         perform_logging();
     }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_union_partition(InnerContext *ctx,
-                                                        IndexPartition pid,
-                                                        IndexPartition h1,
-                                                        IndexPartition h2,
-                                                        Provenance *provenance)
+    void PendingPartitionOp::initialize_union_partition(
+        InnerContext* ctx, IndexPartition pid, IndexPartition h1,
+        IndexPartition h2, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -91,11 +85,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::initialize_intersection_partition(
-                                                            InnerContext *ctx,
-                                                            IndexPartition pid,
-                                                            IndexPartition h1,
-                                                            IndexPartition h2,
-                                                            Provenance *prov)
+        InnerContext* ctx, IndexPartition pid, IndexPartition h1,
+        IndexPartition h2, Provenance* prov)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, prov);
@@ -109,11 +100,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::initialize_intersection_partition(
-                                                           InnerContext *ctx,
-                                                           IndexPartition pid,
-                                                           IndexPartition part,
-                                                           const bool dominates,
-                                                           Provenance *prov)
+        InnerContext* ctx, IndexPartition pid, IndexPartition part,
+        const bool dominates, Provenance* prov)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, prov);
@@ -126,11 +114,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_difference_partition(InnerContext *ctx,
-                                                             IndexPartition pid,
-                                                             IndexPartition h1,
-                                                             IndexPartition h2,
-                                                             Provenance *prov)
+    void PendingPartitionOp::initialize_difference_partition(
+        InnerContext* ctx, IndexPartition pid, IndexPartition h1,
+        IndexPartition h2, Provenance* prov)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, prov);
@@ -143,31 +129,26 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_restricted_partition(InnerContext *ctx,
-                                                          IndexPartition pid,
-                                                          const void *transform,
-                                                          size_t transform_size,
-                                                          const void *extent,
-                                                          size_t extent_size,
-                                                          Provenance *prov)
+    void PendingPartitionOp::initialize_restricted_partition(
+        InnerContext* ctx, IndexPartition pid, const void* transform,
+        size_t transform_size, const void* extent, size_t extent_size,
+        Provenance* prov)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, prov);
 #ifdef DEBUG_LEGION
       assert(thunk == nullptr);
 #endif
-      thunk = new RestrictedPartitionThunk(pid, transform, transform_size,
-                                           extent, extent_size);
+      thunk = new RestrictedPartitionThunk(
+          pid, transform, transform_size, extent, extent_size);
       if (runtime->legion_spy_enabled)
         perform_logging();
     }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_by_domain(InnerContext *ctx,
-                                                  IndexPartition pid,
-                                                  const FutureMap &fm,
-                                                  bool perform_intersections,
-                                                  Provenance *provenance)
+    void PendingPartitionOp::initialize_by_domain(
+        InnerContext* ctx, IndexPartition pid, const FutureMap& fm,
+        bool perform_intersections, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -176,20 +157,17 @@ namespace Legion {
 #endif
       thunk = new FutureMapThunk(pid, fm, perform_intersections);
       // Also save this locally for analysis
-      populate_sources(fm, pid, false/*needs all futures*/);
+      populate_sources(fm, pid, false /*needs all futures*/);
 
       if (runtime->legion_spy_enabled)
         perform_logging();
     }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_cross_product(InnerContext *ctx,
-                                                      IndexPartition base,
-                                                      IndexPartition source,
-                                                      LegionColor part_color,
-                                                      Provenance *provenance,
-                                                      ShardID shard,
-                                                    const ShardMapping *mapping)
+    void PendingPartitionOp::initialize_cross_product(
+        InnerContext* ctx, IndexPartition base, IndexPartition source,
+        LegionColor part_color, Provenance* provenance, ShardID shard,
+        const ShardMapping* mapping)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -202,74 +180,69 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_index_space_union(InnerContext *ctx,
-                                                          IndexSpace target,
-                                         const std::vector<IndexSpace> &handles,
-                                                         Provenance *provenance)
+    void PendingPartitionOp::initialize_index_space_union(
+        InnerContext* ctx, IndexSpace target,
+        const std::vector<IndexSpace>& handles, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
       assert(thunk == nullptr);
 #endif
-      thunk = new ComputePendingSpace(target, true/*union*/, handles);
+      thunk = new ComputePendingSpace(target, true /*union*/, handles);
       if (runtime->legion_spy_enabled)
         perform_logging();
     }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_index_space_union(InnerContext *ctx,
-                                                         IndexSpace target,
-                                                         IndexPartition handle,
-                                                         Provenance *provenance)
+    void PendingPartitionOp::initialize_index_space_union(
+        InnerContext* ctx, IndexSpace target, IndexPartition handle,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
       assert(thunk == nullptr);
 #endif
-      thunk = new ComputePendingSpace(target, true/*union*/, handle);
-      if (runtime->legion_spy_enabled)
-        perform_logging();
-    }
-
-    //--------------------------------------------------------------------------
-    void PendingPartitionOp::initialize_index_space_intersection(
-                                         InnerContext *ctx,IndexSpace target,
-                                         const std::vector<IndexSpace> &handles,
-                                         Provenance *provenance)
-    //--------------------------------------------------------------------------
-    {
-      initialize_operation(ctx, provenance);
-#ifdef DEBUG_LEGION
-      assert(thunk == nullptr);
-#endif
-      thunk = new ComputePendingSpace(target, false/*union*/, handles);
+      thunk = new ComputePendingSpace(target, true /*union*/, handle);
       if (runtime->legion_spy_enabled)
         perform_logging();
     }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::initialize_index_space_intersection(
-                                  InnerContext *ctx, IndexSpace target,
-                                  IndexPartition handle, Provenance *provenance)
+        InnerContext* ctx, IndexSpace target,
+        const std::vector<IndexSpace>& handles, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
 #ifdef DEBUG_LEGION
       assert(thunk == nullptr);
 #endif
-      thunk = new ComputePendingSpace(target, false/*union*/, handle);
+      thunk = new ComputePendingSpace(target, false /*union*/, handles);
+      if (runtime->legion_spy_enabled)
+        perform_logging();
+    }
+
+    //--------------------------------------------------------------------------
+    void PendingPartitionOp::initialize_index_space_intersection(
+        InnerContext* ctx, IndexSpace target, IndexPartition handle,
+        Provenance* provenance)
+    //--------------------------------------------------------------------------
+    {
+      initialize_operation(ctx, provenance);
+#ifdef DEBUG_LEGION
+      assert(thunk == nullptr);
+#endif
+      thunk = new ComputePendingSpace(target, false /*union*/, handle);
       if (runtime->legion_spy_enabled)
         perform_logging();
     }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::initialize_index_space_difference(
-                                         InnerContext *ctx,
-                                         IndexSpace target, IndexSpace initial, 
-                                         const std::vector<IndexSpace> &handles,
-                                         Provenance *provenance)
+        InnerContext* ctx, IndexSpace target, IndexSpace initial,
+        const std::vector<IndexSpace>& handles, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -306,13 +279,13 @@ namespace Legion {
     {
       // Give these slightly higher priority since they are likely
       // needed by later operations
-      enqueue_ready_operation(RtEvent::NO_RT_EVENT, 
-                              LG_THROUGHPUT_DEFERRED_PRIORITY);
+      enqueue_ready_operation(
+          RtEvent::NO_RT_EVENT, LG_THROUGHPUT_DEFERRED_PRIORITY);
     }
 
     //--------------------------------------------------------------------------
-    void PendingPartitionOp::populate_sources(const FutureMap &fm,
-                                     IndexPartition pid, bool needs_all_futures)
+    void PendingPartitionOp::populate_sources(
+        const FutureMap& fm, IndexPartition pid, bool needs_all_futures)
     //--------------------------------------------------------------------------
     {
       future_map = fm;
@@ -325,11 +298,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::request_future_buffers(
-              std::set<RtEvent> &mapped_events, std::set<RtEvent> &ready_events)
+        std::set<RtEvent>& mapped_events, std::set<RtEvent>& ready_events)
     //--------------------------------------------------------------------------
     {
-      for (std::map<DomainPoint,FutureImpl*>::const_iterator it =
-            sources.begin(); it != sources.end(); it++)
+      for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
+               sources.begin();
+           it != sources.end(); it++)
       {
         it->second->request_runtime_instance(this);
         const RtEvent ready = it->second->find_runtime_instance_ready();
@@ -368,8 +342,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Perform the partitioning operation
-      const ApEvent ready_event =
-        thunk->perform(this, sources);
+      const ApEvent ready_event = thunk->perform(this, sources);
       if (ready_event.exists())
         record_completion_effect(ready_event);
       complete_execution();
@@ -386,11 +359,11 @@ namespace Legion {
     void PendingPartitionOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       if (thunk != nullptr)
         delete thunk;
       thunk = nullptr;
-      future_map = FutureMap(); // clear any references
+      future_map = FutureMap();  // clear any references
       sources.clear();
       if (freeop)
         runtime->free_operation(this);
@@ -412,236 +385,215 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::EqualPartitionThunk::perform_logging(
-                                                         PendingPartitionOp* op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_target_pending_partition(op->unique_op_id, pid.get_id(),
-          EQUAL_PARTITION);
+      LegionSpy::log_target_pending_partition(
+          op->unique_op_id, pid.get_id(), EQUAL_PARTITION);
     }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::WeightPartitionThunk::perform_logging(
-                                                         PendingPartitionOp *op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_target_pending_partition(op->unique_op_id, pid.get_id(),
-          WEIGHT_PARTITION);
+      LegionSpy::log_target_pending_partition(
+          op->unique_op_id, pid.get_id(), WEIGHT_PARTITION);
     }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::UnionPartitionThunk::perform_logging(
-                                                         PendingPartitionOp* op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_target_pending_partition(op->unique_op_id, pid.get_id(),
-          UNION_PARTITION);
-    } 
+      LegionSpy::log_target_pending_partition(
+          op->unique_op_id, pid.get_id(), UNION_PARTITION);
+    }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::IntersectionPartitionThunk::perform_logging(
-                                                         PendingPartitionOp* op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_target_pending_partition(op->unique_op_id, pid.get_id(),
-          INTERSECTION_PARTITION);
-    } 
+      LegionSpy::log_target_pending_partition(
+          op->unique_op_id, pid.get_id(), INTERSECTION_PARTITION);
+    }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::IntersectionWithRegionThunk::perform_logging(
-                                                         PendingPartitionOp* op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_target_pending_partition(op->unique_op_id, pid.get_id(),
-          INTERSECTION_PARTITION);
+      LegionSpy::log_target_pending_partition(
+          op->unique_op_id, pid.get_id(), INTERSECTION_PARTITION);
     }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::DifferencePartitionThunk::perform_logging(
-                                                         PendingPartitionOp* op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_target_pending_partition(op->unique_op_id, pid.get_id(),
-          DIFFERENCE_PARTITION);
-    } 
+      LegionSpy::log_target_pending_partition(
+          op->unique_op_id, pid.get_id(), DIFFERENCE_PARTITION);
+    }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::RestrictedPartitionThunk::perform_logging(
-                                                         PendingPartitionOp *op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_target_pending_partition(op->unique_op_id, pid.get_id(),
-          RESTRICTED_PARTITION);
+      LegionSpy::log_target_pending_partition(
+          op->unique_op_id, pid.get_id(), RESTRICTED_PARTITION);
     }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::FutureMapThunk::perform_logging(
-                                                         PendingPartitionOp *op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_target_pending_partition(op->unique_op_id, pid.get_id(),
-          BY_DOMAIN_PARTITION);
+      LegionSpy::log_target_pending_partition(
+          op->unique_op_id, pid.get_id(), BY_DOMAIN_PARTITION);
     }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::CrossProductThunk::perform_logging(
-                                                         PendingPartitionOp* op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::ComputePendingSpace::perform_logging(
-                                                         PendingPartitionOp* op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void PendingPartitionOp::ComputePendingDifference::perform_logging(
-                                                         PendingPartitionOp* op)
+        PendingPartitionOp* op)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::create_equal_partition(
-                                                     IndexPartition pid,
-                                                     size_t granularity)
+        IndexPartition pid, size_t granularity)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *new_part = runtime->get_node(pid);
-      return new_part->create_equal_children(this, granularity); 
+      IndexPartNode* new_part = runtime->get_node(pid);
+      return new_part->create_equal_children(this, granularity);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::create_partition_by_weights(
-                                                       IndexPartition pid,
-                               const std::map<DomainPoint,FutureImpl*> &weights,
-                                                       size_t granularity)
+        IndexPartition pid, const std::map<DomainPoint, FutureImpl*>& weights,
+        size_t granularity)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *new_part = runtime->get_node(pid);
-      return new_part->create_by_weights(this, weights, granularity); 
+      IndexPartNode* new_part = runtime->get_node(pid);
+      return new_part->create_by_weights(this, weights, granularity);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::create_partition_by_union(
-                                                        IndexPartition pid,
-                                                        IndexPartition handle1,
-                                                        IndexPartition handle2)
+        IndexPartition pid, IndexPartition handle1, IndexPartition handle2)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *new_part = runtime->get_node(pid);
-      IndexPartNode *node1 = runtime->get_node(handle1);
-      IndexPartNode *node2 = runtime->get_node(handle2);
+      IndexPartNode* new_part = runtime->get_node(pid);
+      IndexPartNode* node1 = runtime->get_node(handle1);
+      IndexPartNode* node2 = runtime->get_node(handle2);
       return new_part->create_by_union(this, node1, node2);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::create_partition_by_intersection(
-                                                         IndexPartition pid,
-                                                         IndexPartition handle1,
-                                                         IndexPartition handle2)
+        IndexPartition pid, IndexPartition handle1, IndexPartition handle2)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *new_part = runtime->get_node(pid);
-      IndexPartNode *node1 = runtime->get_node(handle1);
-      IndexPartNode *node2 = runtime->get_node(handle2);
-      return new_part->create_by_intersection(this, node1, node2); 
+      IndexPartNode* new_part = runtime->get_node(pid);
+      IndexPartNode* node1 = runtime->get_node(handle1);
+      IndexPartNode* node2 = runtime->get_node(handle2);
+      return new_part->create_by_intersection(this, node1, node2);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::create_partition_by_intersection(
-                                                           IndexPartition pid,
-                                                           IndexPartition part,
-                                                           const bool dominates)
+        IndexPartition pid, IndexPartition part, const bool dominates)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *new_part = runtime->get_node(pid);
-      IndexPartNode *node = runtime->get_node(part);
+      IndexPartNode* new_part = runtime->get_node(pid);
+      IndexPartNode* node = runtime->get_node(part);
       return new_part->create_by_intersection(this, node, dominates);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::create_partition_by_difference(
-                                                       IndexPartition pid,
-                                                       IndexPartition handle1,
-                                                       IndexPartition handle2)
+        IndexPartition pid, IndexPartition handle1, IndexPartition handle2)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *new_part = runtime->get_node(pid);
-      IndexPartNode *node1 = runtime->get_node(handle1);
-      IndexPartNode *node2 = runtime->get_node(handle2);
-      return new_part->create_by_difference(this, node1, node2); 
+      IndexPartNode* new_part = runtime->get_node(pid);
+      IndexPartNode* node1 = runtime->get_node(handle1);
+      IndexPartNode* node2 = runtime->get_node(handle2);
+      return new_part->create_by_difference(this, node1, node2);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::create_partition_by_restriction(
-                                                        IndexPartition pid,
-                                                        const void *transform,
-                                                        const void *extent)
+        IndexPartition pid, const void* transform, const void* extent)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *new_part = runtime->get_node(pid);
+      IndexPartNode* new_part = runtime->get_node(pid);
       return new_part->create_by_restriction(transform, extent);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::create_partition_by_domain(
-                                                    IndexPartition pid,
-                              const std::map<DomainPoint,FutureImpl*> &weights,
-                                                const Domain &future_map_domain,
-                                                    bool perform_intersections)
+        IndexPartition pid, const std::map<DomainPoint, FutureImpl*>& weights,
+        const Domain& future_map_domain, bool perform_intersections)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *new_part = runtime->get_node(pid);
-      return new_part->parent->create_by_domain(this, new_part, weights,
-                            future_map_domain, perform_intersections);
+      IndexPartNode* new_part = runtime->get_node(pid);
+      return new_part->parent->create_by_domain(
+          this, new_part, weights, future_map_domain, perform_intersections);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::create_cross_product_partitions(
-                                                         IndexPartition base,
-                                                         IndexPartition source,
-                                                         LegionColor part_color,
-                                                         ShardID local_shard,
-                                              const ShardMapping *shard_mapping)
+        IndexPartition base, IndexPartition source, LegionColor part_color,
+        ShardID local_shard, const ShardMapping* shard_mapping)
     //--------------------------------------------------------------------------
     {
-      IndexPartNode *base_node = runtime->get_node(base);
-      IndexPartNode *source_node = runtime->get_node(source);
+      IndexPartNode* base_node = runtime->get_node(base);
+      IndexPartNode* source_node = runtime->get_node(source);
       std::set<ApEvent> ready_events;
       if (shard_mapping == nullptr)
       {
         for (ColorSpaceIterator itr(base_node); itr; itr++)
         {
-          IndexSpaceNode *child_node = base_node->get_child(*itr);
-          IndexPartNode *part_node = child_node->get_child(part_color);
-          ApEvent ready = 
-            child_node->create_by_intersection(this, part_node, source_node);
+          IndexSpaceNode* child_node = base_node->get_child(*itr);
+          IndexPartNode* part_node = child_node->get_child(part_color);
+          ApEvent ready =
+              child_node->create_by_intersection(this, part_node, source_node);
           ready_events.insert(ready);
         }
-      }
-      else if (((LegionColor)shard_mapping->size()) <= 
-                  base_node->total_children)
+      } else if (
+          ((LegionColor)shard_mapping->size()) <= base_node->total_children)
       {
-        for (ColorSpaceIterator itr(base_node, local_shard,
-              shard_mapping->size()); itr; itr++)
+        for (ColorSpaceIterator itr(
+                 base_node, local_shard, shard_mapping->size());
+             itr; itr++)
         {
-          IndexSpaceNode *child_node = base_node->get_child(*itr);
-          IndexPartNode *part_node = child_node->get_child(part_color);
-          ApEvent ready = 
-            child_node->create_by_intersection(this, part_node, source_node);
+          IndexSpaceNode* child_node = base_node->get_child(*itr);
+          IndexPartNode* part_node = child_node->get_child(part_color);
+          ApEvent ready =
+              child_node->create_by_intersection(this, part_node, source_node);
           ready_events.insert(ready);
         }
-      }
-      else
+      } else
       {
-        const unsigned color_index = local_shard % base_node->total_children; 
+        const unsigned color_index = local_shard % base_node->total_children;
         // See if we're the first local shard on this address space
         bool first_local_shard = true;
-        for (ShardID shard = color_index;
-              shard < shard_mapping->size(); shard += base_node->total_children)
+        for (ShardID shard = color_index; shard < shard_mapping->size();
+             shard += base_node->total_children)
         {
           const AddressSpaceID space = (*shard_mapping)[shard];
           if (space != runtime->address_space)
@@ -663,10 +615,10 @@ namespace Legion {
               break;
             }
           }
-          IndexSpaceNode *child_node = base_node->get_child(child_color);
-          IndexPartNode *part_node = child_node->get_child(part_color);
-          ApEvent ready = 
-            child_node->create_by_intersection(this, part_node, source_node);
+          IndexSpaceNode* child_node = base_node->get_child(child_color);
+          IndexPartNode* part_node = child_node->get_child(part_color);
+          ApEvent ready =
+              child_node->create_by_intersection(this, part_node, source_node);
           ready_events.insert(ready);
         }
       }
@@ -675,60 +627,61 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::compute_pending_space(
-       IndexSpace target, const std::vector<IndexSpace> &handles, bool is_union)
+        IndexSpace target, const std::vector<IndexSpace>& handles,
+        bool is_union)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode *child_node = runtime->get_node(target);
+      IndexSpaceNode* child_node = runtime->get_node(target);
       // See if we own this child or not
-      if (!child_node->is_owner() && ((child_node->collective_mapping == nullptr)
-         || !child_node->collective_mapping->contains(child_node->local_space)))
+      if (!child_node->is_owner() &&
+          ((child_node->collective_mapping == nullptr) ||
+           !child_node->collective_mapping->contains(child_node->local_space)))
         return ApEvent::NO_AP_EVENT;
       return child_node->compute_pending_space(this, handles, is_union);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::compute_pending_space(
-                        IndexSpace target, IndexPartition handle, bool is_union)
+        IndexSpace target, IndexPartition handle, bool is_union)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode *child_node = runtime->get_node(target);
+      IndexSpaceNode* child_node = runtime->get_node(target);
       // See if we own this child or not
-      if (!child_node->is_owner() && ((child_node->collective_mapping == nullptr)
-         || !child_node->collective_mapping->contains(child_node->local_space)))
+      if (!child_node->is_owner() &&
+          ((child_node->collective_mapping == nullptr) ||
+           !child_node->collective_mapping->contains(child_node->local_space)))
         return ApEvent::NO_AP_EVENT;
       return child_node->compute_pending_space(this, handle, is_union);
     }
 
     //--------------------------------------------------------------------------
     ApEvent PendingPartitionOp::compute_pending_space(
-                                         IndexSpace target, IndexSpace initial,
-                                         const std::vector<IndexSpace> &handles)
+        IndexSpace target, IndexSpace initial,
+        const std::vector<IndexSpace>& handles)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode *child_node = runtime->get_node(target);
+      IndexSpaceNode* child_node = runtime->get_node(target);
       // See if we own this child or not
-      if (!child_node->is_owner() && ((child_node->collective_mapping == nullptr)
-         || !child_node->collective_mapping->contains(child_node->local_space)))
+      if (!child_node->is_owner() &&
+          ((child_node->collective_mapping == nullptr) ||
+           !child_node->collective_mapping->contains(child_node->local_space)))
         return ApEvent::NO_AP_EVENT;
       return child_node->compute_pending_difference(this, initial, handles);
     }
 
     /////////////////////////////////////////////////////////////
-    // Repl Pending Partition Op 
+    // Repl Pending Partition Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplPendingPartitionOp::ReplPendingPartitionOp(void)
-      : PendingPartitionOp()
+    ReplPendingPartitionOp::ReplPendingPartitionOp(void) : PendingPartitionOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplPendingPartitionOp::~ReplPendingPartitionOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void ReplPendingPartitionOp::activate(void)
@@ -741,14 +694,14 @@ namespace Legion {
     void ReplPendingPartitionOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PendingPartitionOp::deactivate(false/*free*/);
+      PendingPartitionOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
 
     //--------------------------------------------------------------------------
-    void ReplPendingPartitionOp::populate_sources(const FutureMap &fm,
-                                     IndexPartition pid, bool needs_all_futures)
+    void ReplPendingPartitionOp::populate_sources(
+        const FutureMap& fm, IndexPartition pid, bool needs_all_futures)
     //--------------------------------------------------------------------------
     {
       future_map = fm;
@@ -760,19 +713,19 @@ namespace Legion {
       {
         if (!needs_all_futures)
         {
-          IndexPartNode *partition = runtime->get_node(pid);
+          IndexPartNode* partition = runtime->get_node(pid);
           const Domain future_map_domain = future_map.impl->get_domain();
-          for (ColorSpaceIterator itr(partition,true/*local only*/); itr; itr++)
+          for (ColorSpaceIterator itr(partition, true /*local only*/); itr;
+               itr++)
           {
-            const DomainPoint point = 
-              partition->color_space->delinearize_color_to_point(*itr);
+            const DomainPoint point =
+                partition->color_space->delinearize_color_to_point(*itr);
             if (!future_map_domain.contains(point))
               continue;
-            Future f = future_map.impl->get_future(point, true/*internal*/);
+            Future f = future_map.impl->get_future(point, true /*internal*/);
             sources[point] = f.impl;
           }
-        }
-        else
+        } else
           future_map.impl->get_all_futures(sources);
       }
     }
@@ -783,10 +736,10 @@ namespace Legion {
     {
       // We know we are in a replicate context
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // Perform the partitioning operation
       ApEvent ready_event;
@@ -800,5 +753,5 @@ namespace Legion {
       complete_execution();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

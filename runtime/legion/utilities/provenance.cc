@@ -25,7 +25,7 @@ namespace Legion {
     /*static*/ constexpr std::string_view Provenance::no_provenance;
 
     //--------------------------------------------------------------------------
-    Provenance::Provenance(ProvenanceID p, const char *prov)
+    Provenance::Provenance(ProvenanceID p, const char* prov)
       : pid(p), full(prov)
     //--------------------------------------------------------------------------
     {
@@ -33,7 +33,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Provenance::Provenance(ProvenanceID p, const void *buffer, size_t size)
+    Provenance::Provenance(ProvenanceID p, const void* buffer, size_t size)
       : pid(p), full((const char*)buffer, size)
     //--------------------------------------------------------------------------
     {
@@ -41,7 +41,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Provenance::Provenance(ProvenanceID p, const std::string &prov)
+    Provenance::Provenance(ProvenanceID p, const std::string& prov)
       : pid(p), full(prov)
     //--------------------------------------------------------------------------
     {
@@ -84,20 +84,23 @@ namespace Legion {
           return false;
 
         // must end with: }]
-        if (full[len-2] != '}' || full[len-1] != ']')
+        if (full[len - 2] != '}' || full[len - 1] != ']')
           return false;
       }
 
       unsigned human_size = 0;
       bool human_closed = false;
-      std::string::iterator it = full.begin()+2;
-      for (; it != full.end(); it++) {
-        if (*it == '\\') {
+      std::string::iterator it = full.begin() + 2;
+      for (; it != full.end(); it++)
+      {
+        if (*it == '\\')
+        {
           // Remove the escape character
           it = full.erase(it);
           if (it == full.end())
             return false;
-          switch (*it) {
+          switch (*it)
+          {
             case '"':
             case '\\':
             case '/':
@@ -118,12 +121,13 @@ namespace Legion {
               *it = '\t';
               break;
             case 'u':
-              return false; // Unicode is unsupported
+              return false;  // Unicode is unsupported
             default:
-              return false; // Bad escape
+              return false;  // Bad escape
           }
           human_size++;
-        } else if (*it == '"') {
+        } else if (*it == '"')
+        {
           human_closed = true;
           break;
         } else
@@ -133,15 +137,17 @@ namespace Legion {
       if (!human_closed)
         return false;
 
-      human = std::string_view(full.c_str()+2, human_size);
+      human = std::string_view(full.c_str() + 2, human_size);
 
-      for (; it != full.end(); it++) {
-        if (*it == '{') {
+      for (; it != full.end(); it++)
+      {
+        if (*it == '{')
+        {
           size_t offset = std::distance(full.begin(), it);
           // Start from our current offset and go to the
           // end but don't include the closing ']'
-          machine = std::string_view(full.c_str()+offset,
-              full.length() - (offset+1));
+          machine = std::string_view(
+              full.c_str() + offset, full.length() - (offset + 1));
           return true;
         }
       }
@@ -151,39 +157,38 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void Provenance::serialize(Serializer &rez) const
+    void Provenance::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!full.empty());
 #endif
       rez.serialize<size_t>(full.size());
-      rez.serialize(full.c_str(), full.size() + 1/*null terminator*/);
+      rez.serialize(full.c_str(), full.size() + 1 /*null terminator*/);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void Provenance::serialize_null(Serializer &rez)
+    /*static*/ void Provenance::serialize_null(Serializer& rez)
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(0);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ Provenance* Provenance::deserialize(Deserializer &derez)
+    /*static*/ Provenance* Provenance::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       size_t length;
       derez.deserialize(length);
       if (length > 0)
       {
-        Provenance *result = runtime->find_or_create_provenance(
+        Provenance* result = runtime->find_or_create_provenance(
             (const char*)derez.get_current_pointer(), length);
-        derez.advance_pointer(length + 1/*null terminator*/);
+        derez.advance_pointer(length + 1 /*null terminator*/);
         return result;
-      }
-      else
+      } else
         return nullptr;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

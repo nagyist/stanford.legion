@@ -21,23 +21,23 @@
 namespace Legion {
 
   /**
-   * \class Lock 
+   * \class Lock
    * NOTE THIS IS NOT A NORMAL LOCK!
    * A lock is an atomicity mechanism for use with regions acquired
-   * with simultaneous coherence in a deferred execution model.  
-   * Locks are light-weight handles that are created in a parent 
-   * task and can be passed to child tasks to guaranteeing atomic access 
-   * to a region in simultaneous mode.  Lock can be used to request 
-   * access in either exclusive (mode 0) or non-exclusive mode (any number 
-   * other than zero).  Non-exclusive modes are mutually-exclusive from each 
+   * with simultaneous coherence in a deferred execution model.
+   * Locks are light-weight handles that are created in a parent
+   * task and can be passed to child tasks to guaranteeing atomic access
+   * to a region in simultaneous mode.  Lock can be used to request
+   * access in either exclusive (mode 0) or non-exclusive mode (any number
+   * other than zero).  Non-exclusive modes are mutually-exclusive from each
    * other. While locks can be passed down the task tree, they should
-   * never escape the context in which they are created as they will be 
+   * never escape the context in which they are created as they will be
    * garbage collected when the task in which they were created is complete.
    *
    * There are two ways to use locks.  The first is to use the blocking
    * acquire and release methods on the lock directly.  Acquire
-   * guarantees that the application will hold the lock when it 
-   * returns, but may result in stalls while some other task is holding the 
+   * guarantees that the application will hold the lock when it
+   * returns, but may result in stalls while some other task is holding the
    * lock.  The recommended way of using locks is to request
    * grants of a lock through the runtime interface and then pass
    * grants to launcher objects.  This ensures that the lock will be
@@ -53,12 +53,12 @@ namespace Legion {
   public:
     Lock(void);
   protected:
-    // Only the runtime is allowed to make non-empty locks 
+    // Only the runtime is allowed to make non-empty locks
     FRIEND_ALL_RUNTIME_CLASSES
     Lock(Reservation r);
   public:
-    bool operator<(const Lock &rhs) const;
-    bool operator==(const Lock &rhs) const;
+    bool operator<(const Lock& rhs) const;
+    bool operator==(const Lock& rhs) const;
   public:
     void acquire(unsigned mode = 0, bool exclusive = true);
     void release(void);
@@ -70,7 +70,7 @@ namespace Legion {
    * \struct LockRequest
    * This is a helper class for requesting grants.  It
    * specifies the locks that are needed, what mode they
-   * should be acquired in, and whether or not they 
+   * should be acquired in, and whether or not they
    * should be acquired in exclusive mode or not.
    */
   struct LockRequest {
@@ -85,7 +85,7 @@ namespace Legion {
   /**
    * \class Grant
    * Grants are ways of naming deferred acquisitions and releases
-   * of locks.  This allows the application to defer a lock 
+   * of locks.  This allows the application to defer a lock
    * acquire but still be able to use it to specify which tasks
    * must run while holding the this particular grant of the lock.
    * Grants are created through the runtime call 'acquire_grant'.
@@ -97,20 +97,18 @@ namespace Legion {
   class Grant {
   public:
     Grant(void);
-    Grant(const Grant &g);
+    Grant(const Grant& g);
     ~Grant(void);
   protected:
     // Only the runtime is allowed to make non-empty grants
     FRIEND_ALL_RUNTIME_CLASSES
-    explicit Grant(Internal::GrantImpl *impl);
+    explicit Grant(Internal::GrantImpl* impl);
   public:
-    bool operator==(const Grant &g) const
-      { return impl == g.impl; }
-    bool operator<(const Grant &g) const
-      { return impl < g.impl; }
-    Grant& operator=(const Grant &g);
+    bool operator==(const Grant& g) const { return impl == g.impl; }
+    bool operator<(const Grant& g) const { return impl < g.impl; }
+    Grant& operator=(const Grant& g);
   protected:
-    Internal::GrantImpl *impl;
+    Internal::GrantImpl* impl;
   };
 
   /**
@@ -149,9 +147,9 @@ namespace Legion {
     FRIEND_ALL_RUNTIME_CLASSES
     PhaseBarrier(Internal::ApBarrier b);
   public:
-    bool operator<(const PhaseBarrier &rhs) const;
-    bool operator==(const PhaseBarrier &rhs) const;
-    bool operator!=(const PhaseBarrier &rhs) const;
+    bool operator<(const PhaseBarrier& rhs) const;
+    bool operator==(const PhaseBarrier& rhs) const;
+    bool operator!=(const PhaseBarrier& rhs) const;
   public:
     void arrive(unsigned count = 1);
     void wait(void);
@@ -163,14 +161,14 @@ namespace Legion {
     friend std::ostream& operator<<(std::ostream& os, const PhaseBarrier& pb);
   };
 
- /**
+  /**
    * \class Collective
    * A DynamicCollective object is a special kind of PhaseBarrier
    * that is created with an associated reduction operation.
    * Arrivals on a dynamic collective can contribute a value to
    * each generation of the collective, either in the form of a
    * value or in the form of a future. The reduction operation is used
-   * to reduce all the contributed values (which all must be of the same 
+   * to reduce all the contributed values (which all must be of the same
    * type) to a common value. This value is returned in the form of
    * a future which applications can use as a normal future. Note
    * that unlike MPI collectives, collectives in Legion can
@@ -186,13 +184,13 @@ namespace Legion {
     DynamicCollective(Internal::ApBarrier b, ReductionOpID redop);
   public:
     // All the same operations as a phase barrier
-    void arrive(const void *value, size_t size, unsigned count = 1);
+    void arrive(const void* value, size_t size, unsigned count = 1);
   protected:
     ReductionOpID redop;
   };
 
-} // namespace Legion
+}  // namespace Legion
 
 #include "legion/api/sync.inl"
 
-#endif // __LEGION_SYNCHRONIZATION_H__
+#endif  // __LEGION_SYNCHRONIZATION_H__

@@ -33,20 +33,19 @@ namespace Legion {
     //--------------------------------------------------------------------------
     ExternalAcquire::ExternalAcquire(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ExternalAcquire::pack_external_acquire(Serializer &rez,
-                                                AddressSpaceID target) const
+    void ExternalAcquire::pack_external_acquire(
+        Serializer& rez, AddressSpaceID target) const
     //--------------------------------------------------------------------------
     {
       RezCheck z(rez);
       rez.serialize(logical_region);
       rez.serialize(parent_region);
       rez.serialize<size_t>(fields.size());
-      for (std::set<FieldID>::const_iterator it = 
-            fields.begin(); it != fields.end(); it++)
+      for (std::set<FieldID>::const_iterator it = fields.begin();
+           it != fields.end(); it++)
         rez.serialize(*it);
       rez.serialize(grants.size());
       for (unsigned idx = 0; idx < grants.size(); idx++)
@@ -62,7 +61,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalAcquire::unpack_external_acquire(Deserializer &derez)
+    void ExternalAcquire::unpack_external_acquire(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -98,25 +97,23 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Acquire Operation 
+    // Acquire Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    AcquireOp::AcquireOp(void)
-      : ExternalAcquire(), PredicatedOp()
+    AcquireOp::AcquireOp(void) : ExternalAcquire(), PredicatedOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     AcquireOp::~AcquireOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void AcquireOp::initialize(InnerContext *ctx,
-                        const AcquireLauncher &launcher, Provenance *provenance)
+    void AcquireOp::initialize(
+        InnerContext* ctx, const AcquireLauncher& launcher,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       parent_task = ctx->get_task();
@@ -124,27 +121,29 @@ namespace Legion {
       // Note we give it READ WRITE EXCLUSIVE to make sure that nobody
       // can be re-ordered around this operation for mapping or
       // normal dependences.  We won't actually read or write anything.
-      requirement = RegionRequirement(launcher.logical_region, 
-          LEGION_READ_WRITE, LEGION_EXCLUSIVE, launcher.parent_region); 
+      requirement = RegionRequirement(
+          launcher.logical_region, LEGION_READ_WRITE, LEGION_EXCLUSIVE,
+          launcher.parent_region);
       requirement.privilege_fields = launcher.fields;
       if (runtime->safe_model)
         verify_requirement(requirement);
-      parent_req_index = ctx->find_parent_region_index(this, requirement, 0/*index*/, true/*skip privileges*/);
+      parent_req_index = ctx->find_parent_region_index(
+          this, requirement, 0 /*index*/, true /*skip privileges*/);
       logical_region = launcher.logical_region;
       restricted_region = launcher.physical_region;
       if (restricted_region.impl != nullptr)
       {
-        const RegionRequirement &region_req =
-          restricted_region.impl->get_requirement();
+        const RegionRequirement& region_req =
+            restricted_region.impl->get_requirement();
         if (region_req.privilege_fields != launcher.fields)
           Exception(PROGRAMMING_MODEL_EXCEPTION, this)
-            << "The privilege fields for " << *this 
-            << "do not match the fields for the PhysicalRegion object being "
-            << "used for establishing restricted coherence. "
-            << "The field sets must match exactly.";
+              << "The privilege fields for " << *this
+              << "do not match the fields for the PhysicalRegion object being "
+              << "used for establishing restricted coherence. "
+              << "The field sets must match exactly.";
       }
       parent_region = launcher.parent_region;
-      fields = launcher.fields; 
+      fields = launcher.fields;
       // Mark the requirement restricted
       grants = launcher.grants;
       // Register ourselves with all the grants
@@ -152,19 +151,19 @@ namespace Legion {
         grants[idx].impl->register_operation(get_completion_event());
       wait_barriers = launcher.wait_barriers;
 #ifdef LEGION_SPY
-      for (std::vector<PhaseBarrier>::const_iterator it = 
-            launcher.arrive_barriers.begin(); it != 
-            launcher.arrive_barriers.end(); it++)
+      for (std::vector<PhaseBarrier>::const_iterator it =
+               launcher.arrive_barriers.begin();
+           it != launcher.arrive_barriers.end(); it++)
       {
         arrive_barriers.push_back(*it);
-        LegionSpy::log_event_dependence(it->phase_barrier,
-                                arrive_barriers.back().phase_barrier);
+        LegionSpy::log_event_dependence(
+            it->phase_barrier, arrive_barriers.back().phase_barrier);
       }
 #else
       arrive_barriers = launcher.arrive_barriers;
 #endif
       map_id = launcher.map_id;
-      tag = launcher.tag; 
+      tag = launcher.tag;
       mapper_data_size = launcher.map_arg.get_size();
       if (mapper_data_size > 0)
       {
@@ -175,8 +174,8 @@ namespace Legion {
         memcpy(mapper_data, launcher.map_arg.get_ptr(), mapper_data_size);
       }
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_acquire_operation(parent_ctx->get_unique_id(),
-                                         unique_op_id);
+        LegionSpy::log_acquire_operation(
+            parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -196,7 +195,7 @@ namespace Legion {
     void AcquireOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      PredicatedOp::deactivate(false/*free*/);
+      PredicatedOp::deactivate(false /*free*/);
       restricted_region = PhysicalRegion();
       version_info.clear();
       fields.clear();
@@ -249,7 +248,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     void AcquireOp::trigger_prepipeline_stage(void)
     //--------------------------------------------------------------------------
-    { 
+    {
       // First compute the parent index
       if (runtime->legion_spy_enabled)
         log_acquire_requirement();
@@ -259,23 +258,21 @@ namespace Legion {
     void AcquireOp::log_acquire_requirement(void)
     //--------------------------------------------------------------------------
     {
-      LegionSpy::log_logical_requirement(unique_op_id,0/*index*/,
-                                         true/*region*/,
-                                         requirement.region.index_space.get_id(),
-                                         requirement.region.field_space.get_id(),
-                                         requirement.region.get_tree_id(),
-                                         requirement.privilege,
-                                         requirement.prop,
-                                         requirement.redop,
-                                         requirement.parent.index_space.get_id());
-      LegionSpy::log_requirement_fields(unique_op_id, 0/*index*/,
-                                        requirement.privilege_fields);
+      LegionSpy::log_logical_requirement(
+          unique_op_id, 0 /*index*/, true /*region*/,
+          requirement.region.index_space.get_id(),
+          requirement.region.field_space.get_id(),
+          requirement.region.get_tree_id(), requirement.privilege,
+          requirement.prop, requirement.redop,
+          requirement.parent.index_space.get_id());
+      LegionSpy::log_requirement_fields(
+          unique_op_id, 0 /*index*/, requirement.privilege_fields);
     }
 
     //--------------------------------------------------------------------------
     void AcquireOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
-    {  
+    {
       // First register any mapping dependences that we have
       analyze_region_requirements();
     }
@@ -288,23 +285,22 @@ namespace Legion {
       complete_execution();
       if (!map_applied_conditions.empty())
         complete_mapping(finalize_complete_mapping(
-              Runtime::merge_events(map_applied_conditions)));
+            Runtime::merge_events(map_applied_conditions)));
       else
         complete_mapping();
-    } 
+    }
 
     //--------------------------------------------------------------------------
     void AcquireOp::trigger_ready(void)
     //--------------------------------------------------------------------------
     {
       if (parent_req_index == TRACED_PARENT_INDEX)
-        parent_req_index = parent_ctx->find_parent_region_index(this,
-            requirement, 0/*idx*/, true/*skip privileges*/, true/*force*/);
+        parent_req_index = parent_ctx->find_parent_region_index(
+            this, requirement, 0 /*idx*/, true /*skip privileges*/,
+            true /*force*/);
       std::set<RtEvent> preconditions;
-      perform_versioning_analysis(0/*idx*/,
-                                                   requirement,
-                                                   version_info,
-                                                   preconditions);
+      perform_versioning_analysis(
+          0 /*idx*/, requirement, version_info, preconditions);
       if (!preconditions.empty())
         enqueue_ready_operation(Runtime::merge_events(preconditions));
       else
@@ -315,34 +311,32 @@ namespace Legion {
     void AcquireOp::trigger_mapping(void)
     //--------------------------------------------------------------------------
     {
-      const PhysicalTraceInfo trace_info(this, 0/*index*/);
-      // Invoke the mapper before doing anything else 
+      const PhysicalTraceInfo trace_info(this, 0 /*index*/);
+      // Invoke the mapper before doing anything else
       invoke_mapper();
       InstanceSet restricted_instances;
       if (restricted_region.impl != nullptr)
         restricted_region.impl->get_references(restricted_instances);
       const ApEvent init_precondition = compute_sync_precondition(trace_info);
       ApUserEvent acquire_post = Runtime::create_ap_user_event(&trace_info);
-      ApEvent acquire_complete = 
-        acquire_restrictions(requirement, version_info,
-                                              0/*idx*/, init_precondition,
-                                              acquire_post,restricted_instances,
-                                              trace_info, map_applied_conditions
+      ApEvent acquire_complete = acquire_restrictions(
+          requirement, version_info, 0 /*idx*/, init_precondition, acquire_post,
+          restricted_instances, trace_info, map_applied_conditions
 #ifdef DEBUG_LEGION
-                                              , get_logging_name()
-                                              , unique_op_id
+          ,
+          get_logging_name(), unique_op_id
 #endif
-                                              );
-      Runtime::trigger_event(acquire_post, acquire_complete,
-          trace_info, map_applied_conditions);
+      );
+      Runtime::trigger_event(
+          acquire_post, acquire_complete, trace_info, map_applied_conditions);
       record_completion_effect(acquire_post);
-      log_mapping_decision(0/*idx*/, requirement, restricted_instances);
+      log_mapping_decision(0 /*idx*/, requirement, restricted_instances);
 #ifdef LEGION_SPY
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_operation_events(unique_op_id, acquire_complete,
-                                        acquire_post);
+        LegionSpy::log_operation_events(
+            unique_op_id, acquire_complete, acquire_post);
 #endif
-      
+
       // Remove profiling our guard and trigger the profiling event if necessary
       if ((outstanding_profiling_requests.fetch_sub(1) == 1) &&
           profiling_reported.exists())
@@ -354,8 +348,8 @@ namespace Legion {
       if (!map_applied_conditions.empty())
         mapping_applied = Runtime::merge_events(map_applied_conditions);
       if (!acquired_instances.empty())
-        mapping_applied = release_nonempty_acquired_instances(mapping_applied, 
-                                                          acquired_instances);
+        mapping_applied = release_nonempty_acquired_instances(
+            mapping_applied, acquired_instances);
       complete_mapping(finalize_complete_mapping(mapping_applied));
       complete_execution();
     }
@@ -367,14 +361,14 @@ namespace Legion {
       // Chain any arrival barriers
       if (!arrive_barriers.empty())
       {
-        for (std::vector<PhaseBarrier>::iterator it = 
-              arrive_barriers.begin(); it != arrive_barriers.end(); it++)
+        for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
+             it != arrive_barriers.end(); it++)
         {
           if (runtime->legion_spy_enabled)
-            LegionSpy::log_phase_barrier_arrival(unique_op_id, 
-                                                 it->phase_barrier);
-          runtime->phase_barrier_arrive(it->phase_barrier, 1/*count*/,
-                                        complete);
+            LegionSpy::log_phase_barrier_arrival(
+                unique_op_id, it->phase_barrier);
+          runtime->phase_barrier_arrive(
+              it->phase_barrier, 1 /*count*/, complete);
         }
       }
       complete_operation(complete);
@@ -391,17 +385,17 @@ namespace Legion {
         // do one ourself to inform the mapper that there won't be any
         Mapping::Mapper::AcquireProfilingInfo info;
         info.total_reports = 0;
-        info.fill_response = false; // make valgrind happy
-        mapper->invoke_acquire_report_profiling(this, info);    
+        info.fill_response = false;  // make valgrind happy
+        mapper->invoke_acquire_report_profiling(this, info);
         Runtime::trigger_event(profiling_reported);
       }
       // Don't commit thisoperation until we've reported profiling information
-      commit_operation(true/*deactivate*/, profiling_reported);
+      commit_operation(true /*deactivate*/, profiling_reported);
     }
 
     //--------------------------------------------------------------------------
-    bool AcquireOp::record_trace_hash(TraceRecognizer &recognizer,
-                                      uint64_t opidx)
+    bool AcquireOp::record_trace_hash(
+        TraceRecognizer& recognizer, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       Murmur3Hasher hasher;
@@ -409,7 +403,7 @@ namespace Legion {
       hasher.hash(logical_region);
       hasher.hash(parent_region);
       for (std::set<FieldID>::const_iterator it = fields.begin();
-            it != fields.end(); it++)
+           it != fields.end(); it++)
         hasher.hash(*it);
       return recognizer.record_operation_hash(this, hasher, opidx);
     }
@@ -426,8 +420,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    std::map<PhysicalManager*,unsigned>* 
-                                     AcquireOp::get_acquired_instances_ref(void)
+    std::map<PhysicalManager*, unsigned>* AcquireOp::get_acquired_instances_ref(
+        void)
     //--------------------------------------------------------------------------
     {
       return &acquired_instances;
@@ -474,7 +468,7 @@ namespace Legion {
     const std::string_view& AcquireOp::get_provenance_string(bool human) const
     //--------------------------------------------------------------------------
     {
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
@@ -499,14 +493,14 @@ namespace Legion {
       // copy complete event
       if (!arrive_barriers.empty())
       {
-        for (std::vector<PhaseBarrier>::iterator it =
-              arrive_barriers.begin(); it != arrive_barriers.end(); it++)
+        for (std::vector<PhaseBarrier>::iterator it = arrive_barriers.begin();
+             it != arrive_barriers.end(); it++)
         {
           if (runtime->legion_spy_enabled)
-            LegionSpy::log_phase_barrier_arrival(unique_op_id,
-                                                 it->phase_barrier);
-          runtime->phase_barrier_arrive(it->phase_barrier, 1/*count*/,
-                                        acquire_complete_event);
+            LegionSpy::log_phase_barrier_arrival(
+                unique_op_id, it->phase_barrier);
+          runtime->phase_barrier_arrive(
+              it->phase_barrier, 1 /*count*/, acquire_complete_event);
         }
       }
       // Handle the case for marking when the copy completes
@@ -545,9 +539,9 @@ namespace Legion {
       copy_fill_priority = output.copy_fill_priority;
       if (!output.profiling_requests.empty())
       {
-        filter_copy_request_kinds(mapper,
-            output.profiling_requests.requested_measurements,
-            profiling_requests, true/*warn*/);
+        filter_copy_request_kinds(
+            mapper, output.profiling_requests.requested_measurements,
+            profiling_requests, true /*warn*/);
         profiling_priority = output.profiling_priority;
 #ifdef DEBUG_LEGION
         assert(!profiling_reported.exists());
@@ -557,23 +551,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    int AcquireOp::add_copy_profiling_request(const PhysicalTraceInfo &info,
-                Realm::ProfilingRequestSet &requests, bool fill, unsigned count)
+    int AcquireOp::add_copy_profiling_request(
+        const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
+        bool fill, unsigned count)
     //--------------------------------------------------------------------------
     {
       // Nothing to do if we don't have any profiling requests
       if (profiling_requests.empty())
         return copy_fill_priority;
       OpProfilingResponse response(this, info.index, info.dst_index, fill);
-      Realm::ProfilingRequest &request = requests.add_request( 
-          runtime->find_utility_group(), LG_LEGION_PROFILING_ID, 
-          &response, sizeof(response), profiling_priority);
+      Realm::ProfilingRequest& request = requests.add_request(
+          runtime->find_utility_group(), LG_LEGION_PROFILING_ID, &response,
+          sizeof(response), profiling_priority);
       bool has_finish = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it = 
-            profiling_requests.begin(); it != profiling_requests.end(); it++)
+      for (std::vector<ProfilingMeasurementID>::const_iterator it =
+               profiling_requests.begin();
+           it != profiling_requests.end(); it++)
       {
-        const Realm::ProfilingMeasurementID measurement = 
-          (Realm::ProfilingMeasurementID)*it;
+        const Realm::ProfilingMeasurementID measurement =
+            (Realm::ProfilingMeasurementID)*it;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_FINISH_EVENT)
           has_finish = true;
@@ -588,15 +584,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool AcquireOp::handle_profiling_response(
-        const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
+        const Realm::ProfilingResponse& response, const void* orig,
+        size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(mapper != nullptr);
 #endif
-      const OpProfilingResponse *op_info = 
-        static_cast<const OpProfilingResponse*>(response.user_data());
+      const OpProfilingResponse* op_info =
+          static_cast<const OpProfilingResponse*>(response.user_data());
       Realm::ProfilingMeasurements::OperationFinishEvent finish_event;
       if (response.get_measurement(finish_event))
         fevent = LgEvent(finish_event.finish_event);
@@ -606,7 +602,7 @@ namespace Legion {
       if (!mapped.has_triggered())
         mapped.wait();
       // If we get here then we can handle the response now
-      Mapping::Mapper::AcquireProfilingInfo info; 
+      Mapping::Mapper::AcquireProfilingInfo info;
       info.profiling_responses.attach_realm_profiling_response(response);
       info.total_reports = outstanding_profiling_requests;
       info.fill_response = op_info->fill;
@@ -633,8 +629,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void AcquireOp::pack_remote_operation(Serializer &rez,AddressSpaceID target,
-                                        std::set<RtEvent> &applied_events) const
+    void AcquireOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_local_remote_operation(rez);
@@ -656,19 +653,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     ApEvent AcquireOp::acquire_restrictions(
-                                         const RegionRequirement &req,
-                                         const VersionInfo &version_info,
-                                         unsigned index,
-                                         ApEvent precondition, 
-                                         ApEvent term_event,
-                                         InstanceSet &restricted_instances,
-                                         const PhysicalTraceInfo &trace_info,
-                                         std::set<RtEvent> &map_applied_events
+        const RegionRequirement& req, const VersionInfo& version_info,
+        unsigned index, ApEvent precondition, ApEvent term_event,
+        InstanceSet& restricted_instances, const PhysicalTraceInfo& trace_info,
+        std::set<RtEvent>& map_applied_events
 #ifdef DEBUG_LEGION
-                                         , const char *log_name
-                                         , UniqueID uid
+        ,
+        const char* log_name, UniqueID uid
 #endif
-                                         )
+    )
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -677,9 +670,9 @@ namespace Legion {
       assert(IS_EXCLUSIVE(req));
 #endif
       const bool known_targets = !restricted_instances.empty();
-      RegionNode *region = runtime->get_node(req.region);
-      AcquireAnalysis *analysis =
-        new AcquireAnalysis(this, index, region, trace_info);
+      RegionNode* region = runtime->get_node(req.region);
+      AcquireAnalysis* analysis =
+          new AcquireAnalysis(this, index, region, trace_info);
       analysis->add_reference();
       RtEvent views_ready;
       if (known_targets)
@@ -690,7 +683,7 @@ namespace Legion {
       RtEvent remote_ready;
       if (traversal_done.exists() || analysis->has_remote_sets())
         remote_ready =
-          analysis->perform_remote(traversal_done, map_applied_events);
+            analysis->perform_remote(traversal_done, map_applied_events);
       if (!known_targets)
       {
         if (remote_ready.exists() && !remote_ready.has_triggered())
@@ -708,14 +701,14 @@ namespace Legion {
         // explicitly provide a PhysicalRegion argument so we should
         // always go through the known_targets path, therefore there
         // should be no collective views here.
-        for (FieldMaskSet<LogicalView>::const_iterator it =
-              instances.begin(); it != instances.end(); it++, inst_index++)
+        for (FieldMaskSet<LogicalView>::const_iterator it = instances.begin();
+             it != instances.end(); it++, inst_index++)
         {
 #ifdef DEBUG_LEGION
           assert(it->first->is_individual_view());
-#endif         
-          IndividualView *inst_view = it->first->as_individual_view();
-          PhysicalManager *manager = inst_view->get_manager();
+#endif
+          IndividualView* inst_view = it->first->as_individual_view();
+          PhysicalManager* manager = inst_view->get_manager();
           restricted_instances[inst_index] = InstanceRef(manager, it->second);
           analysis->target_instances[inst_index] = manager;
           analysis->target_views[inst_index].insert(inst_view, it->second);
@@ -724,8 +717,9 @@ namespace Legion {
       // Now add users for all the instances
       ApEvent instances_ready;
       const RegionUsage usage(req);
-      analysis->perform_registration(remote_ready, usage, map_applied_events,
-                                     precondition, term_event, instances_ready);
+      analysis->perform_registration(
+          remote_ready, usage, map_applied_events, precondition, term_event,
+          instances_ready);
       if (analysis->remove_reference())
         delete analysis;
       return instances_ready;
@@ -739,44 +733,46 @@ namespace Legion {
     ReplAcquireOp::ReplAcquireOp(void)
       : ReplCollectiveViewCreator<CollectiveViewCreator<AcquireOp> >()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplAcquireOp::~ReplAcquireOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ReplAcquireOp::initialize_replication(ReplicateContext *context,
-                                               bool first_local_shard)
+    void ReplAcquireOp::initialize_replication(
+        ReplicateContext* context, bool first_local_shard)
     //--------------------------------------------------------------------------
     {
       is_first_local_shard = first_local_shard;
       if (restricted_region.impl == nullptr)
-        REPORT_LEGION_ERROR(ERROR_CONTROL_REPLICATION_VIOLATION,
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
             "Acquire operation in control replicated parent task %s "
             "(UID %lld) did not specify a `physical_region' argument. "
             "All acquire operations in control replicated contexts must "
             "specify an explicit PhysicalRegion.",
             parent_ctx->get_task_name(), parent_ctx->get_unique_id())
       if (!grants.empty())
-        REPORT_LEGION_ERROR(ERROR_CONTROL_REPLICATION_VIOLATION,
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
             "Illegal use of grants with an acquire operation in control "
             "replicated parent task %s (UID %lld). Use of non-canonical "
             "Legion features such as grants are not permitted with "
-            "control replication.", parent_ctx->get_task_name(),
-            parent_ctx->get_unique_id())
+            "control replication.",
+            parent_ctx->get_task_name(), parent_ctx->get_unique_id())
       if (!wait_barriers.empty())
-        REPORT_LEGION_ERROR(ERROR_CONTROL_REPLICATION_VIOLATION,
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
             "Illegal use of wait phase barriers with an acquire operation in "
             "control replicated parent task %s (UID %lld). Use of "
             "non-canonical Legion features such as wait phase barriers are "
             "not permitted with control replication.",
             parent_ctx->get_task_name(), parent_ctx->get_unique_id())
       if (!arrive_barriers.empty())
-        REPORT_LEGION_ERROR(ERROR_CONTROL_REPLICATION_VIOLATION,
+        REPORT_LEGION_ERROR(
+            ERROR_CONTROL_REPLICATION_VIOLATION,
             "Illegal use of arrive phase barriers with an acquire operation in "
             "control replicated parent task %s (UID %lld). Use of "
             "non-canonical Legion features such as arrive phase barriers are "
@@ -801,8 +797,8 @@ namespace Legion {
       // Make sure we didn't leak our barrier
       assert(!collective_map_barrier.exists());
 #endif
-      ReplCollectiveViewCreator<
-        CollectiveViewCreator<AcquireOp> >::deactivate(false/*free*/);
+      ReplCollectiveViewCreator<CollectiveViewCreator<AcquireOp> >::deactivate(
+          false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -812,10 +808,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       collective_map_barrier = repl_ctx->get_next_collective_map_barriers();
       // See if we need to make a collective view rendezvous
@@ -833,17 +829,15 @@ namespace Legion {
       assert(collective_map_barrier.exists());
 #endif
       // Signal that all of our mapping dependences are satisfied
-      runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/);
+      runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       if (parent_req_index == TRACED_PARENT_INDEX)
-        parent_req_index = parent_ctx->find_parent_region_index(this,
-            requirement, 0/*idx*/, true/*skip privileges*/, true/*force*/);
+        parent_req_index = parent_ctx->find_parent_region_index(
+            this, requirement, 0 /*idx*/, true /*skip privileges*/,
+            true /*force*/);
       std::set<RtEvent> preconditions;
-      perform_versioning_analysis(0/*idx*/,
-                                                   requirement,
-                                                   version_info,
-                                                   preconditions,
-                                                   nullptr/*output region*/,
-                                                   true/*rendezvous*/);
+      perform_versioning_analysis(
+          0 /*idx*/, requirement, version_info, preconditions,
+          nullptr /*output region*/, true /*rendezvous*/);
       if (!collective_map_barrier.has_triggered())
         preconditions.insert(collective_map_barrier);
       Runtime::advance_barrier(collective_map_barrier);
@@ -860,27 +854,26 @@ namespace Legion {
       if (collective_map_barrier.exists())
       {
         // Normal analysis path
-        runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/, pre);
+        runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/, pre);
         return collective_map_barrier;
-      }
-      else // Tracing path
+      } else  // Tracing path
         return pre;
     }
 
     //--------------------------------------------------------------------------
-    bool ReplAcquireOp::perform_collective_analysis(CollectiveMapping *&mapping,
-                                                    bool &first_local)
+    bool ReplAcquireOp::perform_collective_analysis(
+        CollectiveMapping*& mapping, bool& first_local)
     //--------------------------------------------------------------------------
     {
       if (!restricted_region.impl->collective)
       {
 #ifdef DEBUG_LEGION
-        ReplicateContext *repl_ctx = 
-          dynamic_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx =
+            dynamic_cast<ReplicateContext*>(parent_ctx);
         assert(repl_ctx != nullptr);
         assert(!collective_map_barrier.exists());
 #else
-        ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
         mapping = &repl_ctx->shard_manager->get_collective_mapping();
         mapping->add_reference();
@@ -896,7 +889,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(collective_map_barrier.exists());
 #endif
-      runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/);
+      runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       Runtime::advance_barrier(collective_map_barrier);
       elide_collective_rendezvous();
       AcquireOp::predicate_false();
@@ -910,9 +903,9 @@ namespace Legion {
       assert(collective_map_barrier.exists());
 #endif
       // Elide both generations of the mapping fence barrier
-      runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/);
+      runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       Runtime::advance_barrier(collective_map_barrier);
-      runtime->phase_barrier_arrive(collective_map_barrier, 1/*count*/);
+      runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/);
       collective_map_barrier = RtBarrier::NO_RT_BARRIER;
       elide_collective_rendezvous();
       AcquireOp::trigger_replay();
@@ -920,30 +913,29 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     RtEvent ReplAcquireOp::perform_collective_versioning_analysis(
-        unsigned index, LogicalRegion handle, EqSetTracker *tracker,
-        const FieldMask &mask, unsigned parent_req_index)
+        unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+        const FieldMask& mask, unsigned parent_req_index)
     //--------------------------------------------------------------------------
     {
-      return rendezvous_collective_versioning_analysis(index, handle, tracker,
-          runtime->address_space, mask, parent_req_index);
+      return rendezvous_collective_versioning_analysis(
+          index, handle, tracker, runtime->address_space, mask,
+          parent_req_index);
     }
 
-    ///////////////////////////////////////////////////////////// 
-    // Remote Acquire Op 
+    /////////////////////////////////////////////////////////////
+    // Remote Acquire Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteAcquireOp::RemoteAcquireOp(Operation *ptr, AddressSpaceID src)
+    RemoteAcquireOp::RemoteAcquireOp(Operation* ptr, AddressSpaceID src)
       : ExternalAcquire(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     RemoteAcquireOp::~RemoteAcquireOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UniqueID RemoteAcquireOp::get_unique_id(void) const
@@ -984,10 +976,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     const std::string_view& RemoteAcquireOp::get_provenance_string(
-                                                               bool human) const
+        bool human) const
     //--------------------------------------------------------------------------
     {
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
@@ -1009,8 +1001,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteAcquireOp::pack_remote_operation(Serializer &rez,
-                 AddressSpaceID target, std::set<RtEvent> &applied_events) const
+    void RemoteAcquireOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_remote_base(rez);
@@ -1019,12 +1012,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteAcquireOp::unpack(Deserializer &derez)
+    void RemoteAcquireOp::unpack(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       unpack_external_acquire(derez);
       unpack_profiling_requests(derez);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

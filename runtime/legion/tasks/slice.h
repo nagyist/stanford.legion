@@ -29,14 +29,15 @@ namespace Legion {
      * each slice created by the mapper when (possibly recursively)
      * slicing up the domain of the index space task launch.
      */
-    class SliceTask : public MultiTask, public ResourceTracker,
-      public Heapify<SliceTask,OPERATION_LIFETIME> {
+    class SliceTask : public MultiTask,
+                      public ResourceTracker,
+                      public Heapify<SliceTask, OPERATION_LIFETIME> {
     public:
       SliceTask(void);
-      SliceTask(const SliceTask &rhs) = delete;
+      SliceTask(const SliceTask& rhs) = delete;
       virtual ~SliceTask(void);
     public:
-      SliceTask& operator=(const SliceTask &rhs) = delete;
+      SliceTask& operator=(const SliceTask& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -49,8 +50,8 @@ namespace Legion {
       virtual bool distribute_task(void);
       virtual VersionInfo& get_version_info(unsigned idx);
       virtual const VersionInfo& get_version_info(unsigned idx) const;
-      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
-                                   const DeferMappingArgs *args = nullptr);
+      virtual bool perform_mapping(
+          MustEpochOp* owner = nullptr, const DeferMappingArgs* args = nullptr);
       virtual void launch_task(bool inline_task = false);
       virtual bool is_stealable(void) const;
       virtual bool is_output_global(unsigned idx) const;
@@ -60,125 +61,130 @@ namespace Legion {
     public:
       virtual TaskKind get_task_kind(void) const;
     public:
-      bool send_task(Processor target, PointTask *point,
-                          std::vector<SingleTask*> &others);
-      void pack_slice_task(Serializer &rez, AddressSpaceID target,
-                           const std::vector<PointTask*> &to_send);
-      virtual bool pack_task(Serializer &rez, AddressSpaceID target);
-      virtual bool unpack_task(Deserializer &derez, Processor current,
-                               std::set<RtEvent> &ready_events);
-      virtual void perform_inlining(VariantImpl *variant,
-                    const std::deque<InstanceSet> &parent_regions);
+      bool send_task(
+          Processor target, PointTask* point, std::vector<SingleTask*>& others);
+      void pack_slice_task(
+          Serializer& rez, AddressSpaceID target,
+          const std::vector<PointTask*>& to_send);
+      virtual bool pack_task(Serializer& rez, AddressSpaceID target);
+      virtual bool unpack_task(
+          Deserializer& derez, Processor current,
+          std::set<RtEvent>& ready_events);
+      virtual void perform_inlining(
+          VariantImpl* variant, const std::deque<InstanceSet>& parent_regions);
     public:
-      virtual SliceTask* clone_as_slice_task(IndexSpace is,
-                  Processor p, bool recurse, bool stealable);
-      virtual void reduce_future(const DomainPoint &point,
-                                 FutureInstance *instance, ApEvent effects);
-      void handle_future(ApEvent complete, const DomainPoint &point,
-                         FutureInstance *instance, const void *metadata, 
-                         size_t metasize, FutureFunctor *functor,
-                         Processor future_proc, bool own_functor); 
+      virtual SliceTask* clone_as_slice_task(
+          IndexSpace is, Processor p, bool recurse, bool stealable);
+      virtual void reduce_future(
+          const DomainPoint& point, FutureInstance* instance, ApEvent effects);
+      void handle_future(
+          ApEvent complete, const DomainPoint& point, FutureInstance* instance,
+          const void* metadata, size_t metasize, FutureFunctor* functor,
+          Processor future_proc, bool own_functor);
     public:
       virtual void register_must_epoch(void);
-      PointTask* clone_as_point_task(const DomainPoint &point,
-                                     bool inline_task);
+      PointTask* clone_as_point_task(
+          const DomainPoint& point, bool inline_task);
       size_t enumerate_points(bool inline_task);
-      void set_predicate_false_result(const DomainPoint &point,
-                                      TaskContext *execution_context);
+      void set_predicate_false_result(
+          const DomainPoint& point, TaskContext* execution_context);
     public:
       void check_target_processors(void) const;
       void update_target_processor(void);
-      void expand_replay_slices(std::list<SliceTask*> &slices);
+      void expand_replay_slices(std::list<SliceTask*>& slices);
     protected:
       virtual void trigger_task_commit(void);
     public:
-      RtEvent find_intra_space_dependence(const DomainPoint &point);
-      void return_privileges(TaskContext *point_context,
-                             std::set<RtEvent> &preconditions);
-      void record_point_mapped(PointTask *point,
-          RtEvent child_mapped, bool shard_off = false);
+      RtEvent find_intra_space_dependence(const DomainPoint& point);
+      void return_privileges(
+          TaskContext* point_context, std::set<RtEvent>& preconditions);
+      void record_point_mapped(
+          PointTask* point, RtEvent child_mapped, bool shard_off = false);
       void record_point_complete(ApEvent child_effects);
-      void record_point_committed(RtEvent commit_precondition =
-                                  RtEvent::NO_RT_EVENT);
+      void record_point_committed(
+          RtEvent commit_precondition = RtEvent::NO_RT_EVENT);
     public:
-      void handle_future_size(size_t future_size, const DomainPoint &p);
-      void record_output_extent(unsigned index,
-          const DomainPoint &color, const DomainPoint &extent);
-      void record_output_registered(RtEvent registered,
-                                    std::set<RtEvent> &applied_events);
-      void rendezvous_concurrent_mapped(const DomainPoint &point,
-          Processor target, Color color, RtEvent precondition);
+      void handle_future_size(size_t future_size, const DomainPoint& p);
+      void record_output_extent(
+          unsigned index, const DomainPoint& color, const DomainPoint& extent);
+      void record_output_registered(
+          RtEvent registered, std::set<RtEvent>& applied_events);
+      void rendezvous_concurrent_mapped(
+          const DomainPoint& point, Processor target, Color color,
+          RtEvent precondition);
       uint64_t collective_lamport_allreduce(
           uint64_t lamport_clock, bool need_result);
-      void concurrent_allreduce(PointTask *point, ProcessorManager *manager,
-          uint64_t lamport_clock, VariantID vid, bool poisoned);
-      void finish_concurrent_allreduce(Color color, uint64_t lamport_clock,
-          bool poisoned, VariantID vid, RtBarrier concurrent_task_barrier);
+      void concurrent_allreduce(
+          PointTask* point, ProcessorManager* manager, uint64_t lamport_clock,
+          VariantID vid, bool poisoned);
+      void finish_concurrent_allreduce(
+          Color color, uint64_t lamport_clock, bool poisoned, VariantID vid,
+          RtBarrier concurrent_task_barrier);
     protected:
       void send_rendezvous_concurrent_mapped(void);
       void forward_completion_effects(void);
-      void pack_remote_complete(Serializer &rez, ApEvent slice_effects);
-      void pack_remote_commit(Serializer &rez, RtEvent applied_condition);
+      void pack_remote_complete(Serializer& rez, ApEvent slice_effects);
+      void pack_remote_commit(Serializer& rez, RtEvent applied_condition);
     public:
-      static void handle_slice_return(Deserializer &derez);
-    public: // Privilege tracker methods
-      virtual void receive_resources(uint64_t return_index,
-              std::map<LogicalRegion,unsigned> &created_regions,
-              std::vector<DeletedRegion> &deleted_regions,
-              std::set<std::pair<FieldSpace,FieldID> > &created_fields,
-              std::vector<DeletedField> &deleted_fields,
-              std::map<FieldSpace,unsigned> &created_field_spaces,
-              std::map<FieldSpace,std::set<LogicalRegion> > &latent_spaces,
-              std::vector<DeletedFieldSpace> &deleted_field_spaces,
-              std::map<IndexSpace,unsigned> &created_index_spaces,
-              std::vector<DeletedIndexSpace> &deleted_index_spaces,
-              std::map<IndexPartition,unsigned> &created_partitions,
-              std::vector<DeletedPartition> &deleted_partitions,
-              std::set<RtEvent> &preconditions);
+      static void handle_slice_return(Deserializer& derez);
+    public:  // Privilege tracker methods
+      virtual void receive_resources(
+          uint64_t return_index,
+          std::map<LogicalRegion, unsigned>& created_regions,
+          std::vector<DeletedRegion>& deleted_regions,
+          std::set<std::pair<FieldSpace, FieldID> >& created_fields,
+          std::vector<DeletedField>& deleted_fields,
+          std::map<FieldSpace, unsigned>& created_field_spaces,
+          std::map<FieldSpace, std::set<LogicalRegion> >& latent_spaces,
+          std::vector<DeletedFieldSpace>& deleted_field_spaces,
+          std::map<IndexSpace, unsigned>& created_index_spaces,
+          std::vector<DeletedIndexSpace>& deleted_index_spaces,
+          std::map<IndexPartition, unsigned>& created_partitions,
+          std::vector<DeletedPartition>& deleted_partitions,
+          std::set<RtEvent>& preconditions);
     public:
       // From MemoizableOp
       virtual void trigger_replay(void);
       virtual void complete_replay(ApEvent instance_ready_event);
     public:
       virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID> &shards);
-      virtual RtEvent perform_collective_versioning_analysis(unsigned index,
-                       LogicalRegion handle, EqSetTracker *tracker,
-                       const FieldMask &mask, unsigned parent_req_index);
-      void perform_replicate_collective_versioning(unsigned index,
-          unsigned parent_req_index,
-          LegionMap<LogicalRegion,RegionVersioning> &to_perform);
-      void convert_replicate_collective_views(const RendezvousKey &key,
-            std::map<LogicalRegion,CollectiveRendezvous> &rendezvous);
+      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual RtEvent perform_collective_versioning_analysis(
+          unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+          const FieldMask& mask, unsigned parent_req_index);
+      void perform_replicate_collective_versioning(
+          unsigned index, unsigned parent_req_index,
+          LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+      void convert_replicate_collective_views(
+          const RendezvousKey& key,
+          std::map<LogicalRegion, CollectiveRendezvous>& rendezvous);
 
-      virtual void finalize_collective_versioning_analysis(unsigned index,
-          unsigned parent_req_index,
-          LegionMap<LogicalRegion,RegionVersioning> &to_perform);
-      virtual RtEvent convert_collective_views(unsigned requirement_index,
-                       unsigned analysis_index, LogicalRegion region,
-                       const InstanceSet &targets, InnerContext *physical_ctx,
-                       CollectiveMapping *&analysis_mapping, bool &first_local,
-                       LegionVector<FieldMaskSet<InstanceView> > &target_views,
-                       std::map<InstanceView*,size_t> &collective_arrivals);
-      virtual void rendezvous_collective_mapping(unsigned requirement_index,
-                                  unsigned analysis_index,
-                                  LogicalRegion region,
-                                  RendezvousResult *result,
-                                  AddressSpaceID source,
-                                  const LegionVector<
-                                   std::pair<DistributedID,FieldMask> > &insts);
-      static void handle_collective_rendezvous(Deserializer &derez,
-                                               AddressSpaceID source);
-      static void handle_collective_versioning_rendezvous(Deserializer &derez);
-      static void handle_rendezvous_concurrent_mapped(Deserializer &derez);
-      static void handle_collective_allreduce_request(Deserializer &derez,
-                                                      AddressSpaceID source);
-      static void handle_collective_allreduce_response(Deserializer &derez);
-      static void handle_concurrent_allreduce_request(Deserializer &derez,
-                                                      AddressSpaceID source);
-      static void handle_concurrent_allreduce_response(Deserializer &derez);
-      static void handle_remote_output_extents(Deserializer &derez);
-      static void handle_remote_output_registration(Deserializer &derez);
+      virtual void finalize_collective_versioning_analysis(
+          unsigned index, unsigned parent_req_index,
+          LegionMap<LogicalRegion, RegionVersioning>& to_perform);
+      virtual RtEvent convert_collective_views(
+          unsigned requirement_index, unsigned analysis_index,
+          LogicalRegion region, const InstanceSet& targets,
+          InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
+          bool& first_local,
+          LegionVector<FieldMaskSet<InstanceView> >& target_views,
+          std::map<InstanceView*, size_t>& collective_arrivals);
+      virtual void rendezvous_collective_mapping(
+          unsigned requirement_index, unsigned analysis_index,
+          LogicalRegion region, RendezvousResult* result, AddressSpaceID source,
+          const LegionVector<std::pair<DistributedID, FieldMask> >& insts);
+      static void handle_collective_rendezvous(
+          Deserializer& derez, AddressSpaceID source);
+      static void handle_collective_versioning_rendezvous(Deserializer& derez);
+      static void handle_rendezvous_concurrent_mapped(Deserializer& derez);
+      static void handle_collective_allreduce_request(
+          Deserializer& derez, AddressSpaceID source);
+      static void handle_collective_allreduce_response(Deserializer& derez);
+      static void handle_concurrent_allreduce_request(
+          Deserializer& derez, AddressSpaceID source);
+      static void handle_concurrent_allreduce_response(Deserializer& derez);
+      static void handle_remote_output_extents(Deserializer& derez);
+      static void handle_remote_output_registration(Deserializer& derez);
     protected:
       friend class IndexTask;
       friend class PointTask;
@@ -189,7 +195,7 @@ namespace Legion {
       std::atomic<unsigned> num_uncompleted_points;
       unsigned num_uncommitted_points;
     protected:
-      IndexTask *index_owner;
+      IndexTask* index_owner;
       UniqueID remote_unique_id;
       bool origin_mapped;
       DomainPoint reduction_instance_point;
@@ -197,7 +203,7 @@ namespace Legion {
       std::set<RtEvent> commit_preconditions;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_SLICE_TASK_H__
+#endif  // __LEGION_SLICE_TASK_H__

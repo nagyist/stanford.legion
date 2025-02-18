@@ -27,16 +27,16 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    IndirectRecord::IndirectRecord(const RegionRequirement &req,
-                                   const InstanceSet &insts,
-                                   size_t total_points)
+    IndirectRecord::IndirectRecord(
+        const RegionRequirement& req, const InstanceSet& insts,
+        size_t total_points)
     //--------------------------------------------------------------------------
     {
-      IndexSpaceNode *is = runtime->get_node(req.region.get_index_space());
+      IndexSpaceNode* is = runtime->get_node(req.region.get_index_space());
       ApUserEvent to_trigger;
       domain_ready = is->get_loose_domain(domain, to_trigger);
       // This call adds 'total_points' references to the sparsity map of
-      // the domain (if there is one). Each point will then make a 
+      // the domain (if there is one). Each point will then make a
       // CopyAcrossUnstructured object that will own a reference and then
       // remove the reference when the CopyAcrossUnstructured object is
       // deleted. Note this is necessary for handling tracing cases where
@@ -48,7 +48,7 @@ namespace Legion {
 #ifdef LEGION_SPY
       index_space = req.region.get_index_space();
 #endif
-      FieldSpaceNode *fs = runtime->get_node(req.region.get_field_space());
+      FieldSpaceNode* fs = runtime->get_node(req.region.get_field_space());
       std::vector<unsigned> field_indexes(req.instance_fields.size());
       fs->get_field_indexes(req.instance_fields, field_indexes);
       instances.resize(field_indexes.size());
@@ -56,7 +56,7 @@ namespace Legion {
         instance_events.resize(field_indexes.size());
       // For each of the fields in the region requirement
       // (importantly in the order they will be copied)
-      // find the corresponding instance and store them 
+      // find the corresponding instance and store them
       // in the indirect record
       for (unsigned fidx = 0; fidx < field_indexes.size(); fidx++)
       {
@@ -65,11 +65,11 @@ namespace Legion {
 #endif
         for (unsigned idx = 0; idx < insts.size(); idx++)
         {
-          const InstanceRef &ref = insts[idx];
-          const FieldMask &mask = ref.get_valid_fields();
+          const InstanceRef& ref = insts[idx];
+          const FieldMask& mask = ref.get_valid_fields();
           if (!mask.is_set(field_indexes[fidx]))
             continue;
-          PhysicalManager *manager = ref.get_physical_manager();
+          PhysicalManager* manager = ref.get_physical_manager();
           instances[fidx] = manager->get_instance();
           if (!instance_events.empty())
             instance_events[fidx] = manager->get_unique_event();
@@ -92,7 +92,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void IndirectRecord::serialize(Serializer &rez) const
+    void IndirectRecord::serialize(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize(domain);
@@ -109,7 +109,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void IndirectRecord::deserialize(Deserializer &derez)
+    void IndirectRecord::deserialize(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       derez.deserialize(domain);
@@ -130,18 +130,19 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Copy Across Helper 
+    // Copy Across Helper
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    void CopyAcrossHelper::compute_across_offsets(const FieldMask &src_mask,
-                                       std::vector<CopySrcDstField> &dst_fields)
+    void CopyAcrossHelper::compute_across_offsets(
+        const FieldMask& src_mask, std::vector<CopySrcDstField>& dst_fields)
     //--------------------------------------------------------------------------
     {
-      FieldMask compressed; 
+      FieldMask compressed;
       bool found_in_cache = false;
-      for (LegionDeque<std::pair<FieldMask,FieldMask> >::const_iterator
-            it = compressed_cache.begin(); it != compressed_cache.end(); it++)
+      for (LegionDeque<std::pair<FieldMask, FieldMask> >::const_iterator it =
+               compressed_cache.begin();
+           it != compressed_cache.end(); it++)
       {
         if (it->first == src_mask)
         {
@@ -155,7 +156,7 @@ namespace Legion {
         compressed = src_mask;
         compress_mask<STATIC_LOG2(LEGION_MAX_FIELDS)>(compressed, full_mask);
         compressed_cache.push_back(
-            std::pair<FieldMask,FieldMask>(src_mask, compressed));
+            std::pair<FieldMask, FieldMask>(src_mask, compressed));
       }
       const unsigned pop_count = FieldMask::pop_count(compressed);
 #ifdef DEBUG_LEGION
@@ -167,7 +168,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < pop_count; idx++)
       {
         int index = compressed.find_next_set(next_start);
-        CopySrcDstField &field = dst_fields[offset+idx];
+        CopySrcDstField& field = dst_fields[offset + idx];
         field = offsets[index];
         // We'll start looking again at the next index after this one
         next_start = index + 1;
@@ -175,7 +176,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FieldMask CopyAcrossHelper::convert_src_to_dst(const FieldMask &src_mask)
+    FieldMask CopyAcrossHelper::convert_src_to_dst(const FieldMask& src_mask)
     //--------------------------------------------------------------------------
     {
       FieldMask dst_mask;
@@ -201,13 +202,13 @@ namespace Legion {
         assert(forward_map.find(index) != forward_map.end());
 #endif
         dst_mask.set_bit(forward_map[index]);
-        index = src_mask.find_next_set(index+1);
+        index = src_mask.find_next_set(index + 1);
       }
       return dst_mask;
     }
 
     //--------------------------------------------------------------------------
-    FieldMask CopyAcrossHelper::convert_dst_to_src(const FieldMask &dst_mask)
+    FieldMask CopyAcrossHelper::convert_dst_to_src(const FieldMask& dst_mask)
     //--------------------------------------------------------------------------
     {
       FieldMask src_mask;
@@ -233,7 +234,7 @@ namespace Legion {
         assert(backward_map.find(index) != backward_map.end());
 #endif
         src_mask.set_bit(backward_map[index]);
-        index = dst_mask.find_next_set(index+1);
+        index = dst_mask.find_next_set(index + 1);
       }
       return src_mask;
     }
@@ -290,13 +291,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     CopyAcrossExecutor::DeferCopyAcrossArgs::DeferCopyAcrossArgs(
-        CopyAcrossExecutor *e, Operation *o, PredEvent g, ApEvent copy_pre,
+        CopyAcrossExecutor* e, Operation* o, PredEvent g, ApEvent copy_pre,
         ApEvent src_pre, ApEvent dst_pre, bool repl, bool recurrent, unsigned s)
-      : LgTaskArgs<DeferCopyAcrossArgs>(o->get_unique_op_id()),
-        executor(e), op(o), guard(g), copy_precondition(copy_pre),
-        src_indirect_precondition(src_pre), dst_indirect_precondition(dst_pre), 
-        done_event(Runtime::create_ap_user_event(nullptr)),
-        stage(s+1), replay(repl), recurrent_replay(recurrent)
+      : LgTaskArgs<DeferCopyAcrossArgs>(o->get_unique_op_id()), executor(e),
+        op(o), guard(g), copy_precondition(copy_pre),
+        src_indirect_precondition(src_pre), dst_indirect_precondition(dst_pre),
+        done_event(Runtime::create_ap_user_event(nullptr)), stage(s + 1),
+        replay(repl), recurrent_replay(recurrent)
     //--------------------------------------------------------------------------
     {
       executor->add_reference();
@@ -304,17 +305,19 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void CopyAcrossExecutor::handle_deferred_copy_across(
-                                                               const void *args)
+        const void* args)
     //--------------------------------------------------------------------------
     {
-      const DeferCopyAcrossArgs *dargs = (const DeferCopyAcrossArgs*)args;
+      const DeferCopyAcrossArgs* dargs = (const DeferCopyAcrossArgs*)args;
       // Dummy trace info since we can't be tracing if we're here
       const PhysicalTraceInfo trace_info(dargs->op, -1U);
-      Runtime::trigger_event_untraced(dargs->done_event,
-          dargs->executor->execute(dargs->op, dargs->guard,
-            dargs->copy_precondition, dargs->src_indirect_precondition,
-            dargs->dst_indirect_precondition, trace_info,
-            dargs->replay, dargs->recurrent_replay, dargs->stage));
+      Runtime::trigger_event_untraced(
+          dargs->done_event,
+          dargs->executor->execute(
+              dargs->op, dargs->guard, dargs->copy_precondition,
+              dargs->src_indirect_precondition,
+              dargs->dst_indirect_precondition, trace_info, dargs->replay,
+              dargs->recurrent_replay, dargs->stage));
       if (dargs->executor->remove_reference())
         delete dargs->executor;
     }
@@ -327,7 +330,7 @@ namespace Legion {
     CopyAcrossUnstructured::~CopyAcrossUnstructured(void)
     //--------------------------------------------------------------------------
     {
-      // Need to release the sparsity map references being held by the 
+      // Need to release the sparsity map references being held by the
       // indirect records
       for (unsigned idx = 0; idx < src_indirections.size(); idx++)
         src_indirections[idx].domain.destroy(last_copy);
@@ -337,33 +340,33 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void CopyAcrossUnstructured::initialize_source_fields(
-       const RegionRequirement &req,
-       const InstanceSet &insts, const PhysicalTraceInfo &trace_info)
+        const RegionRequirement& req, const InstanceSet& insts,
+        const PhysicalTraceInfo& trace_info)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(src_fields.empty());
 #endif
-      FieldSpaceNode *fs = runtime->get_node(req.region.get_field_space());
+      FieldSpaceNode* fs = runtime->get_node(req.region.get_field_space());
       std::vector<unsigned> indexes(req.instance_fields.size());
       fs->get_field_indexes(req.instance_fields, indexes);
       src_fields.reserve(indexes.size());
       src_unique_events.reserve(indexes.size());
-      for (std::vector<unsigned>::const_iterator it =
-            indexes.begin(); it != indexes.end(); it++)
+      for (std::vector<unsigned>::const_iterator it = indexes.begin();
+           it != indexes.end(); it++)
       {
 #ifdef DEBUG_LEGION
         bool found = false;
 #endif
         for (unsigned idx = 0; idx < insts.size(); idx++)
         {
-          const InstanceRef &ref = insts[idx];
-          const FieldMask &mask = ref.get_valid_fields();
+          const InstanceRef& ref = insts[idx];
+          const FieldMask& mask = ref.get_valid_fields();
           if (!mask.is_set(*it))
             continue;
           FieldMask copy_mask;
           copy_mask.set_bit(*it);
-          PhysicalManager *manager = ref.get_physical_manager();
+          PhysicalManager* manager = ref.get_physical_manager();
           manager->compute_copy_offsets(copy_mask, src_fields);
           src_unique_events.push_back(manager->get_unique_event());
 #ifdef DEBUG_LEGION
@@ -379,34 +382,33 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void CopyAcrossUnstructured::initialize_destination_fields(
-                  const RegionRequirement &req,
-                  const InstanceSet &insts, const PhysicalTraceInfo &trace_info,
-                  const bool exclusive_redop)
+        const RegionRequirement& req, const InstanceSet& insts,
+        const PhysicalTraceInfo& trace_info, const bool exclusive_redop)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(dst_fields.empty());
 #endif
-      FieldSpaceNode *fs = runtime->get_node(req.region.get_field_space());
+      FieldSpaceNode* fs = runtime->get_node(req.region.get_field_space());
       std::vector<unsigned> indexes(req.instance_fields.size());
       fs->get_field_indexes(req.instance_fields, indexes);
       dst_fields.reserve(indexes.size());
       dst_unique_events.reserve(indexes.size());
-      for (std::vector<unsigned>::const_iterator it =
-            indexes.begin(); it != indexes.end(); it++)
+      for (std::vector<unsigned>::const_iterator it = indexes.begin();
+           it != indexes.end(); it++)
       {
 #ifdef DEBUG_LEGION
         bool found = false;
 #endif
         for (unsigned idx = 0; idx < insts.size(); idx++)
         {
-          const InstanceRef &ref = insts[idx];
-          const FieldMask &mask = ref.get_valid_fields();
+          const InstanceRef& ref = insts[idx];
+          const FieldMask& mask = ref.get_valid_fields();
           if (!mask.is_set(*it))
             continue;
           FieldMask copy_mask;
           copy_mask.set_bit(*it);
-          PhysicalManager *manager = ref.get_physical_manager();
+          PhysicalManager* manager = ref.get_physical_manager();
           manager->compute_copy_offsets(copy_mask, dst_fields);
           dst_unique_events.push_back(manager->get_unique_event());
 #ifdef DEBUG_LEGION
@@ -421,16 +423,15 @@ namespace Legion {
       if (req.redop != 0)
       {
         for (unsigned idx = 0; idx < dst_fields.size(); idx++)
-          dst_fields[idx].set_redop(req.redop, false/*fold*/, exclusive_redop);
+          dst_fields[idx].set_redop(req.redop, false /*fold*/, exclusive_redop);
       }
     }
 
     //--------------------------------------------------------------------------
     void CopyAcrossUnstructured::initialize_source_indirections(
-            std::vector<IndirectRecord> &records,
-            const RegionRequirement &src_req, const RegionRequirement &idx_req,
-            const InstanceRef &indirect_instance,
-            const bool are_range, const bool possible_out_of_range)
+        std::vector<IndirectRecord>& records, const RegionRequirement& src_req,
+        const RegionRequirement& idx_req, const InstanceRef& indirect_instance,
+        const bool are_range, const bool possible_out_of_range)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -439,29 +440,28 @@ namespace Legion {
 #endif
       src_indirections.swap(records);
       src_indirect_field = *(idx_req.privilege_fields.begin());
-      PhysicalManager *manager = indirect_instance.get_physical_manager();
+      PhysicalManager* manager = indirect_instance.get_physical_manager();
       src_indirect_instance = manager->get_instance();
       src_indirect_instance_event = manager->get_unique_event();
       src_indirect_type = src_req.region.get_index_space().get_type_tag();
       both_are_range = are_range;
       possible_src_out_of_range = possible_out_of_range;
       src_fields.resize(src_req.instance_fields.size());
-      FieldSpaceNode *fs = runtime->get_node(src_req.region.get_field_space());
+      FieldSpaceNode* fs = runtime->get_node(src_req.region.get_field_space());
       for (unsigned idx = 0; idx < src_fields.size(); idx++)
       {
         const FieldID fid = src_req.instance_fields[idx];
-        src_fields[idx].set_indirect(0/*dummy indirection for now*/,
-                                     fid, fs->get_field_size(fid));
+        src_fields[idx].set_indirect(
+            0 /*dummy indirection for now*/, fid, fs->get_field_size(fid));
       }
     }
 
     //--------------------------------------------------------------------------
     void CopyAcrossUnstructured::initialize_destination_indirections(
-            std::vector<IndirectRecord> &records,
-            const RegionRequirement &dst_req, const RegionRequirement &idx_req,
-            const InstanceRef &indirect_instance,
-            const bool are_range, const bool possible_out_of_range,
-            const bool possible_aliasing, const bool exclusive_redop)
+        std::vector<IndirectRecord>& records, const RegionRequirement& dst_req,
+        const RegionRequirement& idx_req, const InstanceRef& indirect_instance,
+        const bool are_range, const bool possible_out_of_range,
+        const bool possible_aliasing, const bool exclusive_redop)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -470,7 +470,7 @@ namespace Legion {
 #endif
       dst_indirections.swap(records);
       dst_indirect_field = *(idx_req.privilege_fields.begin());
-      PhysicalManager *manager = indirect_instance.get_physical_manager();
+      PhysicalManager* manager = indirect_instance.get_physical_manager();
       dst_indirect_instance = manager->get_instance();
       dst_indirect_instance_event = manager->get_unique_event();
       dst_indirect_type = dst_req.region.get_index_space().get_type_tag();
@@ -478,21 +478,21 @@ namespace Legion {
       possible_dst_out_of_range = possible_out_of_range;
       possible_dst_aliasing = possible_aliasing;
       dst_fields.resize(dst_req.instance_fields.size());
-      FieldSpaceNode *fs = runtime->get_node(dst_req.region.get_field_space());
+      FieldSpaceNode* fs = runtime->get_node(dst_req.region.get_field_space());
       for (unsigned idx = 0; idx < dst_fields.size(); idx++)
       {
         const FieldID fid = dst_req.instance_fields[idx];
-        dst_fields[idx].set_indirect(0/*dummy indirection for now*/,
-                                     fid, fs->get_field_size(fid));
+        dst_fields[idx].set_indirect(
+            0 /*dummy indirection for now*/, fid, fs->get_field_size(fid));
         if (dst_req.redop != 0)
-          dst_fields[idx].set_redop(dst_req.redop, 
-                    false/*fold*/, exclusive_redop);
+          dst_fields[idx].set_redop(
+              dst_req.redop, false /*fold*/, exclusive_redop);
       }
     }
 
     //--------------------------------------------------------------------------
     LgEvent CopyAcrossUnstructured::find_instance_name(
-                                                PhysicalInstance instance) const
+        PhysicalInstance instance) const
     //--------------------------------------------------------------------------
     {
       if (instance == src_indirect_instance)
@@ -506,23 +506,25 @@ namespace Legion {
         if (dst_fields[idx].inst == instance)
           return dst_unique_events[idx];
       for (std::vector<IndirectRecord>::const_iterator it =
-            src_indirections.begin(); it != src_indirections.end(); it++)
+               src_indirections.begin();
+           it != src_indirections.end(); it++)
         for (unsigned idx = 0; idx < it->instances.size(); idx++)
           if (it->instances[idx] == instance)
             return it->instance_events[idx];
       for (std::vector<IndirectRecord>::const_iterator it =
-            dst_indirections.begin(); it != dst_indirections.end(); it++)
+               dst_indirections.begin();
+           it != dst_indirections.end(); it++)
         for (unsigned idx = 0; idx < it->instances.size(); idx++)
           if (it->instances[idx] == instance)
             return it->instance_events[idx];
-      AutoLock p_lock(preimage_lock,1,false/*exclusive*/);
-      std::map<PhysicalInstance,LgEvent>::const_iterator finder =
-        profiling_shadow_instances.find(instance);
+      AutoLock p_lock(preimage_lock, 1, false /*exclusive*/);
+      std::map<PhysicalInstance, LgEvent>::const_iterator finder =
+          profiling_shadow_instances.find(instance);
       if (finder != profiling_shadow_instances.end())
         return finder->second;
       // Should always have found it before this
       std::abort();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

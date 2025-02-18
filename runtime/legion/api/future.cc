@@ -21,288 +21,294 @@
 
 namespace Legion {
 
-    /////////////////////////////////////////////////////////////
-    // Future 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // Future
+  /////////////////////////////////////////////////////////////
 
-    //--------------------------------------------------------------------------
-    Future::Future(void)
-      : impl(nullptr)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  Future::Future(void) : impl(nullptr)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    Future::Future(const Future &rhs)
-      : impl(rhs.impl)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        impl->add_base_gc_ref(Internal::APPLICATION_REF);
-    }
+  //--------------------------------------------------------------------------
+  Future::Future(const Future& rhs) : impl(rhs.impl)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->add_base_gc_ref(Internal::APPLICATION_REF);
+  }
 
-    //--------------------------------------------------------------------------
-    Future::Future(Future &&rhs) noexcept
-      : impl(rhs.impl)
-    //--------------------------------------------------------------------------
-    {
-      rhs.impl = nullptr;
-    }
+  //--------------------------------------------------------------------------
+  Future::Future(Future&& rhs) noexcept : impl(rhs.impl)
+  //--------------------------------------------------------------------------
+  {
+    rhs.impl = nullptr;
+  }
 
-    //--------------------------------------------------------------------------
-    Future::~Future(void)
-    //--------------------------------------------------------------------------
-    {
-      if ((impl != nullptr) && impl->remove_base_gc_ref(Internal::APPLICATION_REF))
-        delete impl;
-    }
+  //--------------------------------------------------------------------------
+  Future::~Future(void)
+  //--------------------------------------------------------------------------
+  {
+    if ((impl != nullptr) &&
+        impl->remove_base_gc_ref(Internal::APPLICATION_REF))
+      delete impl;
+  }
 
-    //--------------------------------------------------------------------------
-    Future::Future(Internal::FutureImpl *i)
-      : impl(i)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        impl->add_base_gc_ref(Internal::APPLICATION_REF);
-    }
+  //--------------------------------------------------------------------------
+  Future::Future(Internal::FutureImpl* i) : impl(i)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->add_base_gc_ref(Internal::APPLICATION_REF);
+  }
 
-    //--------------------------------------------------------------------------
-    Future& Future::operator=(const Future &rhs)
-    //--------------------------------------------------------------------------
-    {
-      if ((impl != nullptr) && impl->remove_base_gc_ref(Internal::APPLICATION_REF))
-        delete impl;
-      impl = rhs.impl;
-      if (impl != nullptr)
-        impl->add_base_gc_ref(Internal::APPLICATION_REF);
-      return *this;
-    }
+  //--------------------------------------------------------------------------
+  Future& Future::operator=(const Future& rhs)
+  //--------------------------------------------------------------------------
+  {
+    if ((impl != nullptr) &&
+        impl->remove_base_gc_ref(Internal::APPLICATION_REF))
+      delete impl;
+    impl = rhs.impl;
+    if (impl != nullptr)
+      impl->add_base_gc_ref(Internal::APPLICATION_REF);
+    return *this;
+  }
 
-    //--------------------------------------------------------------------------
-    Future& Future::operator=(Future &&rhs) noexcept
-    //--------------------------------------------------------------------------
-    {
-      if ((impl != nullptr) && impl->remove_base_gc_ref(Internal::APPLICATION_REF))
-        delete impl;
-      impl = rhs.impl;
-      rhs.impl = nullptr;
-      return *this;
-    }
+  //--------------------------------------------------------------------------
+  Future& Future::operator=(Future&& rhs) noexcept
+  //--------------------------------------------------------------------------
+  {
+    if ((impl != nullptr) &&
+        impl->remove_base_gc_ref(Internal::APPLICATION_REF))
+      delete impl;
+    impl = rhs.impl;
+    rhs.impl = nullptr;
+    return *this;
+  }
 
-    //--------------------------------------------------------------------------
-    std::size_t Future::hash(void) const
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        return std::hash<unsigned long long>{}(impl->did);
-      else
-        return std::hash<unsigned long long>{}(0);
-    }
+  //--------------------------------------------------------------------------
+  std::size_t Future::hash(void) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      return std::hash<unsigned long long>{}(impl->did);
+    else
+      return std::hash<unsigned long long>{}(0);
+  }
 
-    //--------------------------------------------------------------------------
-    void Future::get_void_result(bool silence_warnings,
-                                 const char *warning_string) const
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        impl->wait(silence_warnings, warning_string);
-    }
+  //--------------------------------------------------------------------------
+  void Future::get_void_result(
+      bool silence_warnings, const char* warning_string) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->wait(silence_warnings, warning_string);
+  }
 
-    //--------------------------------------------------------------------------
-    bool Future::is_empty(bool block /*= true*/, 
-                          bool silence_warnings/*=false*/,
-                          const char *warning_string /*=nullptr*/) const
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        return impl->is_empty(block, silence_warnings, warning_string);
+  //--------------------------------------------------------------------------
+  bool Future::is_empty(
+      bool block /*= true*/, bool silence_warnings /*=false*/,
+      const char* warning_string /*=nullptr*/) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      return impl->is_empty(block, silence_warnings, warning_string);
+    return true;
+  }
+
+  //--------------------------------------------------------------------------
+  bool Future::is_ready(bool subscribe) const
+  //--------------------------------------------------------------------------
+  {
+    if ((impl == nullptr) || (Internal::implicit_context != impl->context))
       return true;
-    }
+    return impl->is_ready(subscribe);
+  }
 
-    //--------------------------------------------------------------------------
-    bool Future::is_ready(bool subscribe) const
-    //--------------------------------------------------------------------------
-    {
-      if ((impl == nullptr) || (Internal::implicit_context != impl->context))
-        return true;
-      return impl->is_ready(subscribe);
-    }
-
-    //--------------------------------------------------------------------------
-    const void* Future::get_buffer(Memory::Kind memory, size_t *extent_in_bytes,
-       bool check_size, bool silence_warnings, const char *warning_string) const
-    //--------------------------------------------------------------------------
-    {
-      if (impl == nullptr)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+  //--------------------------------------------------------------------------
+  const void* Future::get_buffer(
+      Memory::Kind memory, size_t* extent_in_bytes, bool check_size,
+      bool silence_warnings, const char* warning_string) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl == nullptr)
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Illegal invocation of Future::get_buffer on an null future";
-      if (Internal::implicit_context == nullptr)
-        return impl->get_buffer(Processor::NO_PROC, memory, extent_in_bytes, 
-                                check_size, silence_warnings, warning_string);
-      else
-        return impl->get_buffer(
-            Internal::implicit_context->get_executing_processor(), memory,
-            extent_in_bytes, check_size, silence_warnings, warning_string);
-    }
+    if (Internal::implicit_context == nullptr)
+      return impl->get_buffer(
+          Processor::NO_PROC, memory, extent_in_bytes, check_size,
+          silence_warnings, warning_string);
+    else
+      return impl->get_buffer(
+          Internal::implicit_context->get_executing_processor(), memory,
+          extent_in_bytes, check_size, silence_warnings, warning_string);
+  }
 
-    //--------------------------------------------------------------------------
-    void Future::get_memories(std::set<Memory> &memories,
-                        bool silence_warnings, const char *warning_string) const
-    //--------------------------------------------------------------------------
-    {
-      if (impl == nullptr)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+  //--------------------------------------------------------------------------
+  void Future::get_memories(
+      std::set<Memory>& memories, bool silence_warnings,
+      const char* warning_string) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl == nullptr)
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Illegal invocation of Future::get_memories on an null future";
-      impl->get_memories(memories, silence_warnings, warning_string);
-    }
+    impl->get_memories(memories, silence_warnings, warning_string);
+  }
 
-    //--------------------------------------------------------------------------
-    size_t Future::get_untyped_size(void) const
-    //--------------------------------------------------------------------------
-    {
-      if (impl == nullptr)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+  //--------------------------------------------------------------------------
+  size_t Future::get_untyped_size(void) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl == nullptr)
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Illegal invocation of Future::get_untyped_size on an null future";
-      return impl->get_untyped_size();
-    }
+    return impl->get_untyped_size();
+  }
 
-    //--------------------------------------------------------------------------
-    const void* Future::get_metadata(size_t *size) const
-    //--------------------------------------------------------------------------
-    {
-      if (impl == nullptr)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+  //--------------------------------------------------------------------------
+  const void* Future::get_metadata(size_t* size) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl == nullptr)
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Illegal invocation of Future::get_metadata on an null future";
-      return impl->get_metadata(size);
-    }
+    return impl->get_metadata(size);
+  }
 
-    //--------------------------------------------------------------------------
-    Realm::RegionInstance Future::get_instance(Memory::Kind memkind,
-                        size_t field_size, bool check_field_size,
-                        const char *warning_string, bool silence_warnings) const
-    //--------------------------------------------------------------------------
-    {
-      if (impl == nullptr)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+  //--------------------------------------------------------------------------
+  Realm::RegionInstance Future::get_instance(
+      Memory::Kind memkind, size_t field_size, bool check_field_size,
+      const char* warning_string, bool silence_warnings) const
+  //--------------------------------------------------------------------------
+  {
+    if (impl == nullptr)
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Illegal invocation of Future::get_instance on an null future";
-      return impl->get_instance(memkind, field_size, check_field_size,
-                                silence_warnings, warning_string);
-    }
+    return impl->get_instance(
+        memkind, field_size, check_field_size, silence_warnings,
+        warning_string);
+  }
 
-    //--------------------------------------------------------------------------
-    void Future::report_incompatible_accessor(const char *accessor_kind,
-                                           Realm::RegionInstance instance) const
-    //--------------------------------------------------------------------------
-    {
+  //--------------------------------------------------------------------------
+  void Future::report_incompatible_accessor(
+      const char* accessor_kind, Realm::RegionInstance instance) const
+  //--------------------------------------------------------------------------
+  {
 #ifdef DEBUG_LEGION
-      assert(impl != nullptr);
+    assert(impl != nullptr);
 #endif
-      impl->report_incompatible_accessor(accessor_kind, instance);
-    }
+    impl->report_incompatible_accessor(accessor_kind, instance);
+  }
 
-    //--------------------------------------------------------------------------
-    /*static*/ void SparsityReferenceHelper::deletion_function(
-                                       const Realm::ExternalInstanceResource &r)
-    //--------------------------------------------------------------------------
-    {
-      const Realm::ExternalMemoryResource *resource =
+  //--------------------------------------------------------------------------
+  /*static*/ void SparsityReferenceHelper::deletion_function(
+      const Realm::ExternalInstanceResource& r)
+  //--------------------------------------------------------------------------
+  {
+    const Realm::ExternalMemoryResource* resource =
         static_cast<const Realm::ExternalMemoryResource*>(&r);
-      assert(resource->size_in_bytes == sizeof(Domain));
-      Domain *domain = reinterpret_cast<Domain*>(resource->base);
-      domain->destroy();
-      delete domain;
-    } 
+    assert(resource->size_in_bytes == sizeof(Domain));
+    Domain* domain = reinterpret_cast<Domain*>(resource->base);
+    domain->destroy();
+    delete domain;
+  }
 
-    //--------------------------------------------------------------------------
-    /*static*/ Future Future::from_domain(const Domain &d, bool take_ownership,
-        const char *provenance, bool shard_local)
-    //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  /*static*/ Future Future::from_domain(
+      const Domain& d, bool take_ownership, const char* provenance,
+      bool shard_local)
+  //--------------------------------------------------------------------------
+  {
+    if (!d.dense())
     {
-      if (!d.dense())
+      if (!take_ownership)
       {
-        if (!take_ownership)
-        {
-          SparsityReferenceHelper functor(d);
-          Internal::NT_TemplateHelper::demux<SparsityReferenceHelper>(
-              d.is_type, &functor);
-        }
-        Domain *domain = new Domain(d);
-        Realm::ExternalMemoryResource resource(domain, sizeof(d));
-        return Future::from_value(domain, sizeof(d), true/*owned*/,
-            resource, SparsityReferenceHelper::deletion_function,
-            provenance, shard_local);
+        SparsityReferenceHelper functor(d);
+        Internal::NT_TemplateHelper::demux<SparsityReferenceHelper>(
+            d.is_type, &functor);
       }
-      else
-        return from_untyped_pointer(&d, sizeof(d), false/*take ownership*/,
-            provenance, shard_local);
-    }
+      Domain* domain = new Domain(d);
+      Realm::ExternalMemoryResource resource(domain, sizeof(d));
+      return Future::from_value(
+          domain, sizeof(d), true /*owned*/, resource,
+          SparsityReferenceHelper::deletion_function, provenance, shard_local);
+    } else
+      return from_untyped_pointer(
+          &d, sizeof(d), false /*take ownership*/, provenance, shard_local);
+  }
 
-    //--------------------------------------------------------------------------
-    /*static*/ Future Future::from_untyped_pointer(Runtime *rt,
-                               const void *value, size_t value_size, bool owned)
-    //--------------------------------------------------------------------------
-    {
-      if (Internal::implicit_context == nullptr)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+  //--------------------------------------------------------------------------
+  /*static*/ Future Future::from_untyped_pointer(
+      Runtime* rt, const void* value, size_t value_size, bool owned)
+  //--------------------------------------------------------------------------
+  {
+    if (Internal::implicit_context == nullptr)
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Creating a Future from a buffer is only permitted to be "
           << "performed inside of Legion tasks.";
-      return Internal::implicit_context->from_value(value, value_size,
-          owned, nullptr/*provenance*/, false/*shard local*/);
-    }
+    return Internal::implicit_context->from_value(
+        value, value_size, owned, nullptr /*provenance*/,
+        false /*shard local*/);
+  }
 
-    //--------------------------------------------------------------------------
-    /*static*/ Future Future::from_untyped_pointer(
-             const void *value, size_t value_size, bool owned, 
-             const char *prov, bool shard_local)
-    //--------------------------------------------------------------------------
-    {
-      if (Internal::implicit_context == nullptr)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+  //--------------------------------------------------------------------------
+  /*static*/ Future Future::from_untyped_pointer(
+      const void* value, size_t value_size, bool owned, const char* prov,
+      bool shard_local)
+  //--------------------------------------------------------------------------
+  {
+    if (Internal::implicit_context == nullptr)
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Creating a Future from a buffer is only permitted to be "
           << "performed inside of Legion tasks.";
-      Internal::AutoProvenance provenance(prov);
-      return Internal::implicit_context->from_value(value, value_size,
-                                        owned, provenance, shard_local);
-    }
+    Internal::AutoProvenance provenance(prov);
+    return Internal::implicit_context->from_value(
+        value, value_size, owned, provenance, shard_local);
+  }
 
-    //--------------------------------------------------------------------------
-    /*static*/ Future Future::from_value(const void *buffer, size_t size,
-        bool owned, const Realm::ExternalInstanceResource &resource,
-        void (*freefunc)(const Realm::ExternalInstanceResource&),
-        const char *prov, bool shard_local)
-    //--------------------------------------------------------------------------
-    {
-      if (Internal::implicit_context == nullptr)
-        Internal::Exception(Internal::INTERFACE_EXCEPTION)
+  //--------------------------------------------------------------------------
+  /*static*/ Future Future::from_value(
+      const void* buffer, size_t size, bool owned,
+      const Realm::ExternalInstanceResource& resource,
+      void (*freefunc)(const Realm::ExternalInstanceResource&),
+      const char* prov, bool shard_local)
+  //--------------------------------------------------------------------------
+  {
+    if (Internal::implicit_context == nullptr)
+      Internal::Exception(Internal::INTERFACE_EXCEPTION)
           << "Creating a Future from a buffer is only permitted to be "
           << "performed inside of Legion tasks.";
-      Internal::AutoProvenance provenance(prov);
-      return Internal::implicit_context->from_value(buffer, size, owned,
-                            resource, freefunc, provenance, shard_local);
-    }
+    Internal::AutoProvenance provenance(prov);
+    return Internal::implicit_context->from_value(
+        buffer, size, owned, resource, freefunc, provenance, shard_local);
+  }
 
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Future Impl 
+    // Future Impl
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    FutureImpl::FutureImpl(TaskContext *ctx, bool register_now,
-            DistributedID did, Provenance *prov, Operation *o /*= nullptr*/) 
+    FutureImpl::FutureImpl(
+        TaskContext* ctx, bool register_now, DistributedID did,
+        Provenance* prov, Operation* o /*= nullptr*/)
       : DistributedCollectable(
-          LEGION_DISTRIBUTED_HELP_ENCODE(did, FUTURE_DC), 
-          register_now), context(ctx),
-        producer_op(o), op_gen((o == nullptr) ? 0 : o->get_generation()),
+            LEGION_DISTRIBUTED_HELP_ENCODE(did, FUTURE_DC), register_now),
+        context(ctx), producer_op(o),
+        op_gen((o == nullptr) ? 0 : o->get_generation()),
         producer_depth((o == nullptr) ? -1 : o->get_context()->get_depth()),
         producer_uid((o == nullptr) ? 0 : o->get_unique_op_id()),
-        coordinate((o == nullptr) ?
-            ContextCoordinate(InnerContext::NO_BLOCKING_INDEX) :
-            ContextCoordinate(o->get_context()->get_next_blocking_index())),
+        coordinate(
+            (o == nullptr) ?
+                ContextCoordinate(InnerContext::NO_BLOCKING_INDEX) :
+                ContextCoordinate(o->get_context()->get_next_blocking_index())),
         provenance(prov), local_visible_memory(Memory::NO_MEMORY),
-        metadata(nullptr), metasize(0), future_size(0), upper_bound_size(SIZE_MAX),
-        callback_functor(nullptr), own_callback_functor(false),
-        future_size_set(false)
+        metadata(nullptr), metasize(0), future_size(0),
+        upper_bound_size(SIZE_MAX), callback_functor(nullptr),
+        own_callback_functor(false), future_size_set(false)
     //--------------------------------------------------------------------------
     {
       empty.store(true);
@@ -312,21 +318,20 @@ namespace Legion {
       if (provenance != nullptr)
         provenance->add_reference();
 #ifdef LEGION_GC
-      log_garbage.info("GC Future %lld %d", 
-          LEGION_DISTRIBUTED_ID_FILTER(did), local_space);
+      log_garbage.info(
+          "GC Future %lld %d", LEGION_DISTRIBUTED_ID_FILTER(did), local_space);
 #endif
     }
 
     //--------------------------------------------------------------------------
-    FutureImpl::FutureImpl(TaskContext *ctx, bool register_now, 
-                           DistributedID did, Operation *o, GenerationID gen,
-                           const ContextCoordinate &coord, UniqueID uid,
-                           int depth, Provenance *prov, CollectiveMapping *map)
+    FutureImpl::FutureImpl(
+        TaskContext* ctx, bool register_now, DistributedID did, Operation* o,
+        GenerationID gen, const ContextCoordinate& coord, UniqueID uid,
+        int depth, Provenance* prov, CollectiveMapping* map)
       : DistributedCollectable(
-          LEGION_DISTRIBUTED_HELP_ENCODE(did, FUTURE_DC), 
-          register_now, map), context(ctx),
-        producer_op(o), op_gen(gen), producer_depth(depth), producer_uid(uid),
-        coordinate(coord), provenance(prov), 
+            LEGION_DISTRIBUTED_HELP_ENCODE(did, FUTURE_DC), register_now, map),
+        context(ctx), producer_op(o), op_gen(gen), producer_depth(depth),
+        producer_uid(uid), coordinate(coord), provenance(prov),
         local_visible_memory(Memory::NO_MEMORY), metadata(nullptr), metasize(0),
         future_size(0), upper_bound_size(SIZE_MAX), callback_functor(nullptr),
         own_callback_functor(false), future_size_set(false)
@@ -339,8 +344,9 @@ namespace Legion {
       if (provenance != nullptr)
         provenance->add_reference();
 #ifdef LEGION_GC
-      log_garbage.info("GC Future %lld %d", 
-          LEGION_DISTRIBUTED_ID_FILTER(this->did), local_space);
+      log_garbage.info(
+          "GC Future %lld %d", LEGION_DISTRIBUTED_ID_FILTER(this->did),
+          local_space);
 #endif
     }
 
@@ -351,8 +357,9 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(!subscription_event.exists());
 #endif
-      for (std::map<Memory,FutureInstanceTracker>::iterator
-            it = instances.begin(); it != instances.end(); it++)
+      for (std::map<Memory, FutureInstanceTracker>::iterator it =
+               instances.begin();
+           it != instances.end(); it++)
       {
         if (it->second.remote_postcondition.exists())
         {
@@ -361,11 +368,10 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(it->second.read_events.empty());
 #endif
-          Runtime::trigger_event_untraced(it->second.remote_postcondition,
-              it->second.ready_event);
+          Runtime::trigger_event_untraced(
+              it->second.remote_postcondition, it->second.ready_event);
           delete it->second.instance;
-        }
-        else
+        } else
         {
           // Merge together all the events for destroying this future instance
           ApEvent precondition = it->second.ready_event;
@@ -373,7 +379,8 @@ namespace Legion {
           {
             if (precondition.exists())
               it->second.read_events.push_back(precondition);
-            precondition = Runtime::merge_events(nullptr, it->second.read_events);
+            precondition =
+                Runtime::merge_events(nullptr, it->second.read_events);
           }
           if (!it->second.instance->defer_deletion(precondition))
             delete it->second.instance;
@@ -384,9 +391,9 @@ namespace Legion {
       if (callback_functor != nullptr)
       {
         // Dispatch the deletion functionon the callback processor
-        CallbackReleaseArgs args(callback_functor, own_callback_functor); 
-        runtime->issue_application_processor_task(args,
-              LG_LATENCY_WORK_PRIORITY, callback_proc);
+        CallbackReleaseArgs args(callback_functor, own_callback_functor);
+        runtime->issue_application_processor_task(
+            args, LG_LATENCY_WORK_PRIORITY, callback_proc);
       }
       if (metadata != nullptr)
         free(metadata);
@@ -400,8 +407,9 @@ namespace Legion {
     {
       // This future is leaking, so just force delete all our instances
       AutoLock f_lock(future_lock);
-      for (std::map<Memory,FutureInstanceTracker>::iterator it =
-            instances.begin(); it != instances.end(); it++)
+      for (std::map<Memory, FutureInstanceTracker>::iterator it =
+               instances.begin();
+           it != instances.end(); it++)
       {
         // Merge together all the events for destroying this future instance
         ApEvent precondition = it->second.ready_event;
@@ -425,8 +433,9 @@ namespace Legion {
         subscribe();
       if (producer_op == nullptr)
         return true;
-      const int context_depth = (implicit_context == nullptr) ? producer_depth :
-        implicit_context->get_depth();
+      const int context_depth = (implicit_context == nullptr) ?
+                                    producer_depth :
+                                    implicit_context->get_depth();
 #ifdef DEBUG_LEGION
       assert(producer_depth <= context_depth);
 #endif
@@ -438,34 +447,36 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::wait(bool silence_warnings, const char *warning_string)
+    void FutureImpl::wait(bool silence_warnings, const char* warning_string)
     //--------------------------------------------------------------------------
     {
-      if (runtime->runtime_warnings && !silence_warnings && 
+      if (runtime->runtime_warnings && !silence_warnings &&
           (implicit_context != nullptr))
       {
         if (!implicit_context->is_leaf_context())
-          REPORT_LEGION_WARNING(LEGION_WARNING_WAITING_FUTURE_NONLEAF, 
-             "Waiting on a future in non-leaf task %s "
-             "(UID %lld) is a violation of Legion's deferred execution model "
-             "best practices. You may notice a severe performance "
-             "degradation. Warning string: %s",
-             implicit_context->get_task_name(), 
-             implicit_context->get_unique_id(),
-             (warning_string == nullptr) ? "" : warning_string)
+          REPORT_LEGION_WARNING(
+              LEGION_WARNING_WAITING_FUTURE_NONLEAF,
+              "Waiting on a future in non-leaf task %s "
+              "(UID %lld) is a violation of Legion's deferred execution model "
+              "best practices. You may notice a severe performance "
+              "degradation. Warning string: %s",
+              implicit_context->get_task_name(),
+              implicit_context->get_unique_id(),
+              (warning_string == nullptr) ? "" : warning_string)
       }
       mark_sampled();
       // We only need to wait for the commit opertion for this future if we're
-      // outside of the task tree or at the same level as the depth of the 
+      // outside of the task tree or at the same level as the depth of the
       // context that produced the future (note this handles control
-      // replication correctly as well since all the shards will appear to 
+      // replication correctly as well since all the shards will appear to
       // be at the same depth). It should be impossible to have a depth above
-      // the level where the future was created because futures cannot 
+      // the level where the future was created because futures cannot
       // escape back up the task tree
       if (producer_op == nullptr)
         return;
-      const int context_depth = (implicit_context == nullptr) ? producer_depth :
-        implicit_context->get_depth();
+      const int context_depth = (implicit_context == nullptr) ?
+                                    producer_depth :
+                                    implicit_context->get_depth();
 #ifdef DEBUG_LEGION
       assert(producer_depth <= context_depth);
 #endif
@@ -474,45 +485,48 @@ namespace Legion {
       context->record_blocking_call(coordinate.context_index);
       context->wait_on_future(this, producer_op->get_commit_event(op_gen));
     }
-    
+
     //--------------------------------------------------------------------------
-    const void* FutureImpl::get_buffer(Processor proc, Memory::Kind memkind,
-                              size_t *extent_in_bytes, bool check_extent,
-                              bool silence_warnings, const char *warning_string)
+    const void* FutureImpl::get_buffer(
+        Processor proc, Memory::Kind memkind, size_t* extent_in_bytes,
+        bool check_extent, bool silence_warnings, const char* warning_string)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(proc.exists() ||
-          (memkind == runtime->runtime_system_memory.kind()));
+      assert(
+          proc.exists() || (memkind == runtime->runtime_system_memory.kind()));
 #endif
       // Figure out which memory we are looking for
       // If the user passed in a NO_PROC, then use the local system memory
-      Memory memory = proc.exists() ? runtime->find_local_memory(proc, memkind)
-        : runtime->runtime_system_memory;
+      Memory memory = proc.exists() ?
+                          runtime->find_local_memory(proc, memkind) :
+                          runtime->runtime_system_memory;
       if (!memory.exists())
       {
         if (memkind != Memory::SYSTEM_MEM)
         {
-          const char *mem_names[] = {
+          const char* mem_names[] = {
 #define MEM_NAMES(name, desc) desc,
-            REALM_MEMORY_KINDS(MEM_NAMES) 
+              REALM_MEMORY_KINDS(MEM_NAMES)
 #undef MEM_NAMES
           };
-          REPORT_LEGION_ERROR(ERROR_INVALID_FUTURE_MEMORY_KIND,
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_FUTURE_MEMORY_KIND,
               "Unable to find a %s memory associated with processor " IDFMT
-              " in which to create a future buffer.", 
+              " in which to create a future buffer.",
               mem_names[memkind], proc.id)
-        }
-        else
+        } else
           memory = runtime->runtime_system_memory;
       }
-      return get_buffer(memory, extent_in_bytes, check_extent,
-                        silence_warnings, warning_string);
+      return get_buffer(
+          memory, extent_in_bytes, check_extent, silence_warnings,
+          warning_string);
     }
 
     //--------------------------------------------------------------------------
-    const void* FutureImpl::get_buffer(Memory memory, size_t *extent_in_bytes,
-           bool check_extent, bool silence_warnings, const char *warning_string)
+    const void* FutureImpl::get_buffer(
+        Memory memory, size_t* extent_in_bytes, bool check_extent,
+        bool silence_warnings, const char* warning_string)
     //--------------------------------------------------------------------------
     {
       // Make sure that we've subscribed
@@ -522,34 +536,35 @@ namespace Legion {
       // Do this wait after everything is ready for pipelining of communication
       subscribed.wait();
       ApEvent inst_ready;
-      FutureInstance *instance = find_or_create_instance(memory, inst_ready,
-          silence_warnings, warning_string);
+      FutureInstance* instance = find_or_create_instance(
+          memory, inst_ready, silence_warnings, warning_string);
       if (extent_in_bytes != nullptr)
       {
         if (check_extent)
         {
           if (empty.load())
-            REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE, 
-                                "Accessing empty future! (UID %lld)",
-                                (producer_op == nullptr) ? 0 :
-                                  producer_op->get_unique_op_id())
+            REPORT_LEGION_ERROR(
+                ERROR_REQUEST_FOR_EMPTY_FUTURE,
+                "Accessing empty future! (UID %lld)",
+                (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
           else if (instance == nullptr)
           {
             if ((*extent_in_bytes) != 0)
-              REPORT_LEGION_ERROR(ERROR_FUTURE_SIZE_MISMATCH,
-                "Future size mismatch! Expected type of 0 bytes but "
-                "requested type is %zd bytes. (UID %lld)", 
-                *extent_in_bytes, (producer_op == nullptr) ? 0 :
-                producer_op->get_unique_op_id())
-          }
-          else if (future_size != *extent_in_bytes)
-            REPORT_LEGION_ERROR(ERROR_FUTURE_SIZE_MISMATCH,
+              REPORT_LEGION_ERROR(
+                  ERROR_FUTURE_SIZE_MISMATCH,
+                  "Future size mismatch! Expected type of 0 bytes but "
+                  "requested type is %zd bytes. (UID %lld)",
+                  *extent_in_bytes,
+                  (producer_op == nullptr) ? 0 :
+                                             producer_op->get_unique_op_id())
+          } else if (future_size != *extent_in_bytes)
+            REPORT_LEGION_ERROR(
+                ERROR_FUTURE_SIZE_MISMATCH,
                 "Future size mismatch! Expected type of %zd bytes but "
-                "requested type is %zd bytes. (UID %lld)", 
-                future_size, *extent_in_bytes, (producer_op == nullptr) ? 0 :
-                producer_op->get_unique_op_id())
-        }
-        else
+                "requested type is %zd bytes. (UID %lld)",
+                future_size, *extent_in_bytes,
+                (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
+        } else
           (*extent_in_bytes) = future_size;
       }
       if (instance == nullptr)
@@ -563,23 +578,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::get_memories(std::set<Memory> &memories,
-                              bool silence_warnings, const char *warning_string)
+    void FutureImpl::get_memories(
+        std::set<Memory>& memories, bool silence_warnings,
+        const char* warning_string)
     //--------------------------------------------------------------------------
     {
       // Wait for the future to be ready
       memories.clear();
       wait(silence_warnings, warning_string);
-      AutoLock f_lock(future_lock,1,false/*exclusive*/);
-      for (std::map<Memory,FutureInstanceTracker>::const_iterator it =
-            instances.begin(); it != instances.end(); it++)
+      AutoLock f_lock(future_lock, 1, false /*exclusive*/);
+      for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
+               instances.begin();
+           it != instances.end(); it++)
         memories.insert(it->first);
     }
 
     //--------------------------------------------------------------------------
-    PhysicalInstance FutureImpl::get_instance(Memory::Kind memkind, 
-                              size_t extent_in_bytes, bool check_extent, 
-                              bool silence_warnings, const char *warning_string)
+    PhysicalInstance FutureImpl::get_instance(
+        Memory::Kind memkind, size_t extent_in_bytes, bool check_extent,
+        bool silence_warnings, const char* warning_string)
     //--------------------------------------------------------------------------
     {
       // Make sure that we've subscribed
@@ -587,24 +604,24 @@ namespace Legion {
       Processor proc = implicit_context->get_executing_processor();
       // A heuristic to help out applications that are unsure of themselves
       if (memkind == Memory::NO_MEMKIND)
-        memkind = (proc.kind() == Processor::TOC_PROC) ?
-          Memory::GPU_FB_MEM : Memory::SYSTEM_MEM;
+        memkind = (proc.kind() == Processor::TOC_PROC) ? Memory::GPU_FB_MEM :
+                                                         Memory::SYSTEM_MEM;
       Memory memory = runtime->find_local_memory(proc, memkind);
       if (!memory.exists())
       {
         if (memkind != Memory::SYSTEM_MEM)
         {
-          const char *mem_names[] = {
+          const char* mem_names[] = {
 #define MEM_NAMES(name, desc) desc,
-            REALM_MEMORY_KINDS(MEM_NAMES) 
+              REALM_MEMORY_KINDS(MEM_NAMES)
 #undef MEM_NAMES
           };
-          REPORT_LEGION_ERROR(ERROR_INVALID_FUTURE_MEMORY_KIND,
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_FUTURE_MEMORY_KIND,
               "Unable to find a %s memory associated with processor " IDFMT
-              " in which to create a future buffer.", 
+              " in which to create a future buffer.",
               mem_names[memkind], proc.id)
-        }
-        else
+        } else
           memory = runtime->runtime_system_memory;
       }
       // Wait to make sure that the future is complete first
@@ -612,32 +629,36 @@ namespace Legion {
       // Do this wait after everything is ready for pipelining of communication
       subscribed.wait();
       ApEvent inst_ready;
-      FutureInstance *instance = find_or_create_instance(memory, inst_ready,
-          silence_warnings, warning_string);
+      FutureInstance* instance = find_or_create_instance(
+          memory, inst_ready, silence_warnings, warning_string);
       if (empty.load())
-        REPORT_LEGION_ERROR(ERROR_REQUEST_FOR_EMPTY_FUTURE, 
+        REPORT_LEGION_ERROR(
+            ERROR_REQUEST_FOR_EMPTY_FUTURE,
             "Accessing empty future when making an accessor! (UID %lld)",
             (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
       else if ((instance == nullptr) || (instance->size == 0))
-        REPORT_LEGION_ERROR(ERROR_FUTURE_SIZE_MISMATCH,
-          "Future size mismatch! Expected non-empty future for making an "
-          "accessor but future has a payload of 0 bytes. (UID %lld)", 
-          (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
+        REPORT_LEGION_ERROR(
+            ERROR_FUTURE_SIZE_MISMATCH,
+            "Future size mismatch! Expected non-empty future for making an "
+            "accessor but future has a payload of 0 bytes. (UID %lld)",
+            (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
       if (check_extent && (future_size != extent_in_bytes))
-        REPORT_LEGION_ERROR(ERROR_FUTURE_SIZE_MISMATCH,
+        REPORT_LEGION_ERROR(
+            ERROR_FUTURE_SIZE_MISMATCH,
             "Future size mismatch! Expected type of %zd bytes but "
-            "requested type is %zd bytes. (UID %lld)", 
-            future_size, extent_in_bytes, (producer_op == nullptr) ? 0 :
-            producer_op->get_unique_op_id())
+            "requested type is %zd bytes. (UID %lld)",
+            future_size, extent_in_bytes,
+            (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
       PhysicalInstance result;
       {
         bool dummy_owner = true;
-        // Need to hold the lock when creating the instance since 
+        // Need to hold the lock when creating the instance since
         // the future instance object is not thread safe
         AutoLock f_lock(future_lock);
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
         LgEvent dummy_event;
-        result = instance->get_instance(instance->size,dummy_event,dummy_owner);
+        result =
+            instance->get_instance(instance->size, dummy_event, dummy_owner);
 #else
         result = instance->get_instance(instance->size, dummy_owner);
 #endif
@@ -655,19 +676,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::report_incompatible_accessor(const char *accessor_kind,
-                                                  PhysicalInstance instance)
+    void FutureImpl::report_incompatible_accessor(
+        const char* accessor_kind, PhysicalInstance instance)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_ACCESSOR_COMPATIBILITY_CHECK,
+      REPORT_LEGION_ERROR(
+          ERROR_ACCESSOR_COMPATIBILITY_CHECK,
           "Unable to create Realm %s for future instance %llx in task %s",
           accessor_kind, instance.id, implicit_context->get_task_name())
     }
 
     //--------------------------------------------------------------------------
-    bool FutureImpl::request_application_instance(Memory target,
-                 SingleTask *task, RtEvent *safe_for_unbounded_pools,
-                 bool can_fail, size_t known_upper_bound_size)
+    bool FutureImpl::request_application_instance(
+        Memory target, SingleTask* task, RtEvent* safe_for_unbounded_pools,
+        bool can_fail, size_t known_upper_bound_size)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -701,35 +723,35 @@ namespace Legion {
         wait_on.wait();
         if (result)
           return true;
-      }
-      else if (find_or_create_application_instance(target, 
-            known_upper_bound_size, task_uid, coordinates,
-            safe_for_unbounded_pools))
+      } else if (find_or_create_application_instance(
+                     target, known_upper_bound_size, task_uid, coordinates,
+                     safe_for_unbounded_pools))
         return true;
       if (!can_fail && ((safe_for_unbounded_pools == nullptr) ||
-            !safe_for_unbounded_pools->exists()))
+                        !safe_for_unbounded_pools->exists()))
       {
-        const char *mem_names[] = {
+        const char* mem_names[] = {
 #define MEM_NAMES(name, desc) #name,
-          REALM_MEMORY_KINDS(MEM_NAMES) 
+            REALM_MEMORY_KINDS(MEM_NAMES)
 #undef MEM_NAMES
         };
-        REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-              "Failed to allocate future for task %s (UID %lld) "
-              "in parent task %s (UID %lld) because %s memory " IDFMT 
-              " is full.", task->get_task_name(), task->get_unique_id(),
-              task->get_context()->get_task_name(),
-              task->get_context()->get_unique_id(),
-              mem_names[target.kind()], target.id)
+        REPORT_LEGION_ERROR(
+            ERROR_DEFERRED_ALLOCATION_FAILURE,
+            "Failed to allocate future for task %s (UID %lld) "
+            "in parent task %s (UID %lld) because %s memory " IDFMT " is full.",
+            task->get_task_name(), task->get_unique_id(),
+            task->get_context()->get_task_name(),
+            task->get_context()->get_unique_id(), mem_names[target.kind()],
+            target.id)
       }
       return false;
     }
 
     //--------------------------------------------------------------------------
-    bool FutureImpl::find_or_create_application_instance(Memory target,
-         size_t known_upper_bound_size, UniqueID task_uid,
-         const TaskTreeCoordinates &coordinates,
-         RtEvent *safe_for_unbounded_pools)
+    bool FutureImpl::find_or_create_application_instance(
+        Memory target, size_t known_upper_bound_size, UniqueID task_uid,
+        const TaskTreeCoordinates& coordinates,
+        RtEvent* safe_for_unbounded_pools)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -786,9 +808,10 @@ namespace Legion {
       assert(known_upper_bound_size < SIZE_MAX);
 #endif
       // Create the future instance of the given size
-      MemoryManager *manager = runtime->find_memory_manager(target);
-      FutureInstance *instance = manager->create_future_instance(task_uid,
-          coordinates, known_upper_bound_size, safe_for_unbounded_pools);
+      MemoryManager* manager = runtime->find_memory_manager(target);
+      FutureInstance* instance = manager->create_future_instance(
+          task_uid, coordinates, known_upper_bound_size,
+          safe_for_unbounded_pools);
       if (instance == nullptr)
         return false;
       // Retake the lock and register the instance in the right place
@@ -801,8 +824,8 @@ namespace Legion {
           delete instance;
         return true;
       }
-      std::map<Memory,PendingInstance>::iterator finder =
-        pending_instances.find(target);
+      std::map<Memory, PendingInstance>::iterator finder =
+          pending_instances.find(target);
       if (finder != pending_instances.end())
       {
         // See if we tightened the size of the instance or not
@@ -811,22 +834,21 @@ namespace Legion {
           if (!finder->second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
             delete finder->second.instance;
           finder->second.instance = instance;
-        }
-        else if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
+        } else if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
           delete instance;
         return true;
       }
       // See if the future is set yet or not
       if (empty.load())
-        pending_instances.emplace(std::make_pair(target, 
-              PendingInstance(instance, task_uid)));
+        pending_instances.emplace(
+            std::make_pair(target, PendingInstance(instance, task_uid)));
       else
         record_instance(instance, task_uid);
       return true;
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::request_runtime_instance(Operation *op)
+    void FutureImpl::request_runtime_instance(Operation* op)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -840,12 +862,12 @@ namespace Legion {
         AutoLock f_lock(future_lock);
         if (empty.load())
         {
-          for (std::map<Memory,PendingInstance>::const_iterator it =
-                pending_instances.begin(); it != pending_instances.end(); it++)
+          for (std::map<Memory, PendingInstance>::const_iterator it =
+                   pending_instances.begin();
+               it != pending_instances.end(); it++)
             if (FutureInstance::check_meta_visible(it->first))
               return;
-        }
-        else if (local_visible_memory.exists())
+        } else if (local_visible_memory.exists())
           return;
         need_subscribe = !subscription_event.exists();
         // Don't have a local instance yet so we need to make one
@@ -875,13 +897,12 @@ namespace Legion {
           // Check to see if we lost the race
           if (empty.load())
           {
-            for (std::map<Memory,PendingInstance>::const_iterator it =
-                  pending_instances.begin(); it != 
-                  pending_instances.end(); it++)
+            for (std::map<Memory, PendingInstance>::const_iterator it =
+                     pending_instances.begin();
+                 it != pending_instances.end(); it++)
               if (FutureInstance::check_meta_visible(it->first))
                 return;
-          }
-          else if (local_visible_memory.exists())
+          } else if (local_visible_memory.exists())
             return;
           known_upper_bound_size = future_size;
         }
@@ -894,26 +915,28 @@ namespace Legion {
       // Create the future instance of the given size
       TaskTreeCoordinates coordinates;
       op->compute_task_tree_coordinates(coordinates);
-      MemoryManager *manager = 
-        runtime->find_memory_manager(runtime->runtime_system_memory);
+      MemoryManager* manager =
+          runtime->find_memory_manager(runtime->runtime_system_memory);
       // Safe to block here indefinitely waiting for unbounded pools
-      FutureInstance *instance = manager->create_future_instance(
+      FutureInstance* instance = manager->create_future_instance(
           op->get_unique_op_id(), coordinates, known_upper_bound_size,
-          nullptr/*safe_for_unbounded_pools*/);
+          nullptr /*safe_for_unbounded_pools*/);
       if (instance == nullptr)
-        REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-          "Failed to allocate future for %s (UID %lld) in parent task %s "
-          "(UID %lld) because %s memory " IDFMT " is full.",
-          op->get_logging_name(), op->get_unique_op_id(),
-          op->get_context()->get_task_name(),
-          op->get_context()->get_unique_id(), manager->get_name(), 
-          runtime->runtime_system_memory.id)
+        REPORT_LEGION_ERROR(
+            ERROR_DEFERRED_ALLOCATION_FAILURE,
+            "Failed to allocate future for %s (UID %lld) in parent task %s "
+            "(UID %lld) because %s memory " IDFMT " is full.",
+            op->get_logging_name(), op->get_unique_op_id(),
+            op->get_context()->get_task_name(),
+            op->get_context()->get_unique_id(), manager->get_name(),
+            runtime->runtime_system_memory.id)
       // Retake the lock and see if we lost the race making the instance
       AutoLock f_lock(future_lock);
       if (empty.load())
       {
-        for (std::map<Memory,PendingInstance>::const_iterator it =
-              pending_instances.begin(); it != pending_instances.end(); it++)
+        for (std::map<Memory, PendingInstance>::const_iterator it =
+                 pending_instances.begin();
+             it != pending_instances.end(); it++)
         {
           if (!FutureInstance::check_meta_visible(it->first))
             continue;
@@ -922,16 +945,16 @@ namespace Legion {
             delete instance;
           return;
         }
-      }
-      else if (local_visible_memory.exists())
+      } else if (local_visible_memory.exists())
       {
         // Somebody else already made the instance
         if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
           delete instance;
         return;
       }
-      for (std::map<Memory,PendingInstance>::iterator it =
-            pending_instances.begin(); it != pending_instances.end(); it++)
+      for (std::map<Memory, PendingInstance>::iterator it =
+               pending_instances.begin();
+           it != pending_instances.end(); it++)
       {
         if (!FutureInstance::check_meta_visible(it->first))
           continue;
@@ -941,22 +964,22 @@ namespace Legion {
           if (!it->second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
             delete it->second.instance;
           it->second.instance = instance;
-        }
-        else if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
+        } else if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
           delete instance;
         return;
       }
       // See if the future is set yet or not
       if (empty.load())
-        pending_instances.emplace(std::make_pair(runtime->runtime_system_memory,
-              PendingInstance(instance, op->get_unique_op_id())));
+        pending_instances.emplace(std::make_pair(
+            runtime->runtime_system_memory,
+            PendingInstance(instance, op->get_unique_op_id())));
       else
         record_instance(instance, op->get_unique_op_id());
     }
 
     //--------------------------------------------------------------------------
-    ApEvent FutureImpl::find_application_instance_ready(Memory target,
-                                                        SingleTask *task)
+    ApEvent FutureImpl::find_application_instance_ready(
+        Memory target, SingleTask* task)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -967,18 +990,18 @@ namespace Legion {
       // Handle the case where we have a future with no payload
       if (!empty.load() && instances.empty())
         return future_complete;
-      std::map<Memory,FutureInstanceTracker>::const_iterator finder =
-        instances.find(target);
+      std::map<Memory, FutureInstanceTracker>::const_iterator finder =
+          instances.find(target);
       if (finder != instances.end())
         return finder->second.ready_event;
-      std::map<Memory,PendingInstance>::iterator pending_finder =
-        pending_instances.find(target);
+      std::map<Memory, PendingInstance>::iterator pending_finder =
+          pending_instances.find(target);
 #ifdef DEBUG_LEGION
       assert(pending_finder != pending_instances.end());
 #endif
       if (!pending_finder->second.inst_ready.exists())
         pending_finder->second.inst_ready =
-          Runtime::create_ap_user_event(nullptr);
+            Runtime::create_ap_user_event(nullptr);
       return pending_finder->second.inst_ready;
     }
 
@@ -991,8 +1014,8 @@ namespace Legion {
         return RtEvent::NO_RT_EVENT;
       if (local_visible_memory.exists())
       {
-        std::map<Memory,FutureInstanceTracker>::iterator finder =
-          instances.find(local_visible_memory);
+        std::map<Memory, FutureInstanceTracker>::iterator finder =
+            instances.find(local_visible_memory);
 #ifdef DEBUG_LEGION
         assert(finder != instances.end());
 #endif
@@ -1000,21 +1023,21 @@ namespace Legion {
           return RtEvent::NO_RT_EVENT;
         if (!finder->second.safe_ready_event.exists())
           finder->second.safe_ready_event =
-            Runtime::protect_event(finder->second.ready_event);
+              Runtime::protect_event(finder->second.ready_event);
         return finder->second.safe_ready_event;
-      }
-      else
+      } else
       {
-        for (std::map<Memory,PendingInstance>::iterator it =
-              pending_instances.begin(); it != pending_instances.end(); it++)
+        for (std::map<Memory, PendingInstance>::iterator it =
+                 pending_instances.begin();
+             it != pending_instances.end(); it++)
         {
           if (!FutureInstance::check_meta_visible(it->first))
             continue;
           if (!it->second.inst_ready.exists())
             it->second.inst_ready = Runtime::create_ap_user_event(nullptr);
           if (!it->second.safe_inst_ready.exists())
-            it->second.safe_inst_ready = 
-              Runtime::protect_event(it->second.inst_ready);
+            it->second.safe_inst_ready =
+                Runtime::protect_event(it->second.inst_ready);
           return it->second.safe_inst_ready;
         }
       }
@@ -1024,11 +1047,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    const void* FutureImpl::find_runtime_buffer(TaskContext *ctx, size_t &size)
+    const void* FutureImpl::find_runtime_buffer(TaskContext* ctx, size_t& size)
     //--------------------------------------------------------------------------
     {
       RtEvent ready_event;
-      FutureInstance *instance = nullptr;
+      FutureInstance* instance = nullptr;
       {
         AutoLock f_lock(future_lock);
 #ifdef DEBUG_LEGION
@@ -1045,8 +1068,8 @@ namespace Legion {
         size = future_size;
         if (local_visible_memory.exists())
         {
-          std::map<Memory,FutureInstanceTracker>::iterator finder =
-            instances.find(local_visible_memory);
+          std::map<Memory, FutureInstanceTracker>::iterator finder =
+              instances.find(local_visible_memory);
 #ifdef DEBUG_LEGION
           assert(finder != instances.end());
 #endif
@@ -1054,13 +1077,13 @@ namespace Legion {
           if (finder->second.ready_event.exists() &&
               !finder->second.safe_ready_event.exists())
             finder->second.safe_ready_event =
-              Runtime::protect_event(finder->second.ready_event);
+                Runtime::protect_event(finder->second.ready_event);
           ready_event = finder->second.safe_ready_event;
-        }
-        else
+        } else
         {
-          for (std::map<Memory,PendingInstance>::iterator it =
-                pending_instances.begin(); it != pending_instances.end(); it++)
+          for (std::map<Memory, PendingInstance>::iterator it =
+                   pending_instances.begin();
+               it != pending_instances.end(); it++)
           {
             if (it->second.instance == nullptr)
               continue;
@@ -1071,7 +1094,7 @@ namespace Legion {
               it->second.inst_ready = Runtime::create_ap_user_event(nullptr);
             if (!it->second.safe_inst_ready.exists())
               it->second.safe_inst_ready =
-                Runtime::protect_event(it->second.inst_ready);
+                  Runtime::protect_event(it->second.inst_ready);
             ready_event = it->second.safe_inst_ready;
             break;
           }
@@ -1086,13 +1109,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ApEvent FutureImpl::copy_to(FutureInstance *target, Operation *op, 
-                                ApEvent precondition)
+    ApEvent FutureImpl::copy_to(
+        FutureInstance* target, Operation* op, ApEvent precondition)
     //--------------------------------------------------------------------------
     {
       AutoLock f_lock(future_lock);
       Memory source = find_best_source(target->memory);
-      FutureInstanceTracker &tracker = instances[source];
+      FutureInstanceTracker& tracker = instances[source];
 #ifdef DEBUG_LEGION
       assert(tracker.instance != nullptr);
 #endif
@@ -1100,26 +1123,26 @@ namespace Legion {
       {
         if (precondition.exists())
           precondition =
-            Runtime::merge_events(nullptr, precondition, tracker.ready_event);
+              Runtime::merge_events(nullptr, precondition, tracker.ready_event);
         else
           precondition = tracker.ready_event;
       }
       const ApEvent ready_event =
-        target->copy_from(tracker.instance, op, precondition);
+          target->copy_from(tracker.instance, op, precondition);
       if (ready_event.exists())
         tracker.read_events.push_back(ready_event);
       return ready_event;
     }
 
     //--------------------------------------------------------------------------
-    ApEvent FutureImpl::reduce_to(FutureInstance *target, AllReduceOp *op,
-                         const ReductionOpID redop_id, const ReductionOp *redop,
-                         bool exclusive, ApEvent precondition)
+    ApEvent FutureImpl::reduce_to(
+        FutureInstance* target, AllReduceOp* op, const ReductionOpID redop_id,
+        const ReductionOp* redop, bool exclusive, ApEvent precondition)
     //--------------------------------------------------------------------------
     {
       AutoLock f_lock(future_lock);
       Memory source = find_best_source(target->memory);
-      FutureInstanceTracker &tracker = instances[source];
+      FutureInstanceTracker& tracker = instances[source];
 #ifdef DEBUG_LEGION
       assert(tracker.instance != nullptr);
 #endif
@@ -1127,12 +1150,12 @@ namespace Legion {
       {
         if (precondition.exists())
           precondition =
-            Runtime::merge_events(nullptr, precondition, tracker.ready_event);
+              Runtime::merge_events(nullptr, precondition, tracker.ready_event);
         else
           precondition = tracker.ready_event;
       }
-      const ApEvent ready_event = target->reduce_from(tracker.instance, op,
-          redop_id, redop, exclusive, precondition);
+      const ApEvent ready_event = target->reduce_from(
+          tracker.instance, op, redop_id, redop, exclusive, precondition);
       if (ready_event.exists())
         tracker.read_events.push_back(ready_event);
       return ready_event;
@@ -1149,7 +1172,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    const void* FutureImpl::get_metadata(size_t *size)
+    const void* FutureImpl::get_metadata(size_t* size)
     //--------------------------------------------------------------------------
     {
       const RtEvent ready_event = subscribe();
@@ -1161,27 +1184,28 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool FutureImpl::is_empty(bool block, bool silence_warnings,
-                              const char *warning_string, bool internal)
+    bool FutureImpl::is_empty(
+        bool block, bool silence_warnings, const char* warning_string,
+        bool internal)
     //--------------------------------------------------------------------------
     {
       if (!internal)
       {
-        if (runtime->runtime_warnings && !silence_warnings && 
+        if (runtime->runtime_warnings && !silence_warnings &&
             (producer_op != nullptr))
         {
-          TaskContext *context = producer_op->get_context();
+          TaskContext* context = producer_op->get_context();
           if (!context->is_leaf_context())
-            REPORT_LEGION_WARNING(LEGION_WARNING_BLOCKING_EMPTY, 
+            REPORT_LEGION_WARNING(
+                LEGION_WARNING_BLOCKING_EMPTY,
                 "Performing a blocking is_empty test on a "
                 "in non-leaf task %s (UID %lld) is a violation of Legion's "
                 "deferred execution model best practices. You may notice a "
-                "severe performance degradation. Warning string: %s", 
-                context->get_task_name(), 
-                context->get_unique_id(),
+                "severe performance degradation. Warning string: %s",
+                context->get_task_name(), context->get_unique_id(),
                 (warning_string == nullptr) ? "" : warning_string)
         }
-        if (block && (context != nullptr) &&  (implicit_context == context))
+        if (block && (context != nullptr) && (implicit_context == context))
           context->record_blocking_call(coordinate.context_index);
       }
       if (block)
@@ -1195,7 +1219,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::save_metadata(const void *meta, size_t size)
+    void FutureImpl::save_metadata(const void* meta, size_t size)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1208,13 +1232,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::set_result(ApEvent complete, FutureInstance *instance,
-                                const void *meta, size_t size)
+    void FutureImpl::set_result(
+        ApEvent complete, FutureInstance* instance, const void* meta,
+        size_t size)
     //--------------------------------------------------------------------------
     {
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(ERROR_DUPLICATE_FUTURE_SET,
+        REPORT_LEGION_ERROR(
+            ERROR_DUPLICATE_FUTURE_SET,
             "Duplicate future set! This can be either a runtime bug or a "
             "user error. If you have a must epoch launch in this program "
             "please check that all of the point tasks that it creates have "
@@ -1226,8 +1252,8 @@ namespace Legion {
 #endif
       if (instance != nullptr)
       {
-        instances.emplace(std::make_pair(instance->memory,
-              FutureInstanceTracker(instance, complete)));
+        instances.emplace(std::make_pair(
+            instance->memory, FutureInstanceTracker(instance, complete)));
         if (instance->is_meta_visible)
           local_visible_memory = instance->memory;
       }
@@ -1237,13 +1263,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::set_results(ApEvent complete,
-       const std::vector<FutureInstance*> &insts, const void *meta, size_t size)
+    void FutureImpl::set_results(
+        ApEvent complete, const std::vector<FutureInstance*>& insts,
+        const void* meta, size_t size)
     //--------------------------------------------------------------------------
     {
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(ERROR_DUPLICATE_FUTURE_SET,
+        REPORT_LEGION_ERROR(
+            ERROR_DUPLICATE_FUTURE_SET,
             "Duplicate future set! This can be either a runtime bug or a "
             "user error. If you have a must epoch launch in this program "
             "please check that all of the point tasks that it creates have "
@@ -1254,14 +1282,14 @@ namespace Legion {
       assert(!insts.empty());
       assert(metadata == nullptr);
 #endif
-      for (std::vector<FutureInstance*>::const_iterator it =
-            insts.begin(); it != insts.end(); it++)
+      for (std::vector<FutureInstance*>::const_iterator it = insts.begin();
+           it != insts.end(); it++)
       {
 #ifdef DEBUG_LEGION
         assert(instances.find((*it)->memory) == instances.end());
 #endif
-        instances.emplace(std::make_pair((*it)->memory, 
-              FutureInstanceTracker(*it, complete)));
+        instances.emplace(std::make_pair(
+            (*it)->memory, FutureInstanceTracker(*it, complete)));
         if (!local_visible_memory.exists() && (*it)->is_meta_visible)
           local_visible_memory = (*it)->memory;
       }
@@ -1271,8 +1299,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::set_result(ApEvent complete, FutureFunctor *functor, 
-                                bool own, Processor proc)
+    void FutureImpl::set_result(
+        ApEvent complete, FutureFunctor* functor, bool own, Processor proc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1280,7 +1308,8 @@ namespace Legion {
 #endif
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(ERROR_DUPLICATE_FUTURE_SET,
+        REPORT_LEGION_ERROR(
+            ERROR_DUPLICATE_FUTURE_SET,
             "Duplicate future set! This can be either a runtime bug or a "
             "user error. If you have a must epoch launch in this program "
             "please check that all of the point tasks that it creates have "
@@ -1293,8 +1322,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::set_result(Operation *op, FutureImpl *previous,
-                                RtEvent *safe_for_unbounded_pools)
+    void FutureImpl::set_result(
+        Operation* op, FutureImpl* previous, RtEvent* safe_for_unbounded_pools)
     //--------------------------------------------------------------------------
     {
       const RtEvent subscribed = previous->subscribe();
@@ -1303,16 +1332,17 @@ namespace Legion {
       const size_t size = previous->get_untyped_size();
       ApEvent complete = previous->get_complete_event();
       ApEvent ready;
-      FutureInstance *instance = nullptr;
+      FutureInstance* instance = nullptr;
       if (size > 0)
       {
-        instance = create_instance(op, runtime->runtime_system_memory,
-            size, safe_for_unbounded_pools);
+        instance = create_instance(
+            op, runtime->runtime_system_memory, size, safe_for_unbounded_pools);
         ready = previous->copy_to(instance, op, ApEvent::NO_AP_EVENT);
       }
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(ERROR_DUPLICATE_FUTURE_SET,
+        REPORT_LEGION_ERROR(
+            ERROR_DUPLICATE_FUTURE_SET,
             "Duplicate future set! This can be either a runtime bug or a "
             "user error. If you have a must epoch launch in this program "
             "please check that all of the point tasks that it creates have "
@@ -1325,18 +1355,18 @@ namespace Legion {
       future_size = size;
       if (instance != nullptr)
       {
-        instances.emplace(std::make_pair(instance->memory, 
-              FutureInstanceTracker(instance, ready)));
+        instances.emplace(std::make_pair(
+            instance->memory, FutureInstanceTracker(instance, ready)));
         local_visible_memory = instance->memory;
       }
-      const void *meta = previous->get_metadata(&metasize);
+      const void* meta = previous->get_metadata(&metasize);
       if (metasize > 0)
         save_metadata(meta, metasize);
       finish_set_future(complete);
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::set_result(TaskContext *ctx, FutureImpl *previous)
+    void FutureImpl::set_result(TaskContext* ctx, FutureImpl* previous)
     //--------------------------------------------------------------------------
     {
       const RtEvent subscribed = previous->subscribe();
@@ -1346,7 +1376,8 @@ namespace Legion {
       ApEvent complete = previous->get_complete_event();
       AutoLock f_lock(future_lock);
       if (!empty.load() || (callback_functor != nullptr))
-        REPORT_LEGION_ERROR(ERROR_DUPLICATE_FUTURE_SET,
+        REPORT_LEGION_ERROR(
+            ERROR_DUPLICATE_FUTURE_SET,
             "Duplicate future set! This can be either a runtime bug or a "
             "user error. If you have a must epoch launch in this program "
             "please check that all of the point tasks that it creates have "
@@ -1358,26 +1389,27 @@ namespace Legion {
 #endif
       if (size > 0)
       {
-        FutureInstance *instance = ctx->create_task_local_future(
-            runtime->runtime_system_memory, size);
-        ApEvent ready = previous->copy_to(instance, ctx->owner_task, 
-                                          ApEvent::NO_AP_EVENT);
-        instances.emplace(std::make_pair(instance->memory,
-              FutureInstanceTracker(instance, ready)));
+        FutureInstance* instance =
+            ctx->create_task_local_future(runtime->runtime_system_memory, size);
+        ApEvent ready =
+            previous->copy_to(instance, ctx->owner_task, ApEvent::NO_AP_EVENT);
+        instances.emplace(std::make_pair(
+            instance->memory, FutureInstanceTracker(instance, ready)));
         local_visible_memory = instance->memory;
       }
-      const void *meta = previous->get_metadata(&metasize);
+      const void* meta = previous->get_metadata(&metasize);
       if (metasize > 0)
         save_metadata(meta, metasize);
       finish_set_future(complete);
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::set_local(const void *value, size_t size, bool own)
+    void FutureImpl::set_local(const void* value, size_t size, bool own)
     //--------------------------------------------------------------------------
     {
-      FutureInstance *instance = (size == 0) ? nullptr :
-        FutureInstance::create_local(value, size, own);
+      FutureInstance* instance =
+          (size == 0) ? nullptr :
+                        FutureInstance::create_local(value, size, own);
       set_result(ApEvent::NO_AP_EVENT, instance);
     }
 
@@ -1412,8 +1444,8 @@ namespace Legion {
           rez.serialize(did);
           rez.serialize(size);
         }
-        for (std::set<AddressSpaceID>::const_iterator it =
-              subscribers.begin(); it != subscribers.end(); it++)
+        for (std::set<AddressSpaceID>::const_iterator it = subscribers.begin();
+             it != subscribers.end(); it++)
         {
           if (((*it) == source) || ((*it) == local_space))
             continue;
@@ -1425,8 +1457,9 @@ namespace Legion {
       // that were made with the upper bound size
       if (future_size == 0)
       {
-        for (std::map<Memory,PendingInstance>::iterator it = 
-              pending_instances.begin(); it != pending_instances.end(); it++)
+        for (std::map<Memory, PendingInstance>::iterator it =
+                 pending_instances.begin();
+             it != pending_instances.end(); it++)
         {
           if (!it->second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
             delete it->second.instance;
@@ -1448,12 +1481,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      assert(!future_size_set || ((instances.empty() ? 0 :
-              instances.begin()->second.instance->size) <= future_size));
+      assert(
+          !future_size_set ||
+          ((instances.empty() ? 0 : instances.begin()->second.instance->size) <=
+           future_size));
 #endif
       // must be called while we are already holding the lock
       future_size =
-        instances.empty() ? 0 : instances.begin()->second.instance->size;
+          instances.empty() ? 0 : instances.begin()->second.instance->size;
       future_size_set = true;
       if (future_size_ready.exists())
       {
@@ -1462,18 +1497,17 @@ namespace Legion {
       }
       if (future_complete.exists())
       {
-        // If there's already a complete here then we know that it is a 
+        // If there's already a complete here then we know that it is a
         // user event that we need to trigger
         ApUserEvent to_trigger;
         to_trigger.id = future_complete.id;
         Runtime::trigger_event_untraced(to_trigger, complete);
-      }
-      else
+      } else
         future_complete = complete;
       result_set_space = local_space;
       if (!pending_instances.empty())
         create_pending_instances();
-      empty.store(false); 
+      empty.store(false);
       if (!is_owner())
         // The owner always needs to be told of the result
         subscribers.insert(owner_space);
@@ -1494,19 +1528,20 @@ namespace Legion {
       assert(future_size_set);
       assert(!pending_instances.empty());
 #endif
-      for (std::map<Memory,PendingInstance>::iterator it =
-            pending_instances.begin(); it != pending_instances.end(); it++)
+      for (std::map<Memory, PendingInstance>::iterator it =
+               pending_instances.begin();
+           it != pending_instances.end(); it++)
       {
         // Check to see if we already have an instance for this memory
         // or if the future doesn't have any size to begin with
-        std::map<Memory,FutureInstanceTracker>::iterator finder =
-          instances.find(it->first);
+        std::map<Memory, FutureInstanceTracker>::iterator finder =
+            instances.find(it->first);
         if ((finder != instances.end()) || (future_size == 0))
         {
           // If we do then we just trigger any events that we need to
           if (it->second.inst_ready.exists())
-            Runtime::trigger_event_untraced(it->second.inst_ready,
-                finder->second.ready_event);
+            Runtime::trigger_event_untraced(
+                it->second.inst_ready, finder->second.ready_event);
           // Delete the instance we had made since it can't have escaped
           // yet and therefore we can replace it with the new instance
           if (!it->second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
@@ -1514,7 +1549,7 @@ namespace Legion {
           continue;
         }
         ApEvent inst_ready =
-          record_instance(it->second.instance, it->second.creator_uid);
+            record_instance(it->second.instance, it->second.creator_uid);
         if (it->second.inst_ready.exists())
           Runtime::trigger_event_untraced(it->second.inst_ready, inst_ready);
       }
@@ -1522,8 +1557,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FutureInstance* FutureImpl::find_or_create_instance(Memory target,
-        ApEvent &inst_ready, bool silence_warnings, const char *warning_string)
+    FutureInstance* FutureImpl::find_or_create_instance(
+        Memory target, ApEvent& inst_ready, bool silence_warnings,
+        const char* warning_string)
     //--------------------------------------------------------------------------
     {
       // No need to track subscribe since that was done in the caller
@@ -1534,13 +1570,13 @@ namespace Legion {
         assert(future_size_set);
         assert((future_size == 0) == instances.empty());
 #endif
-        // This is safe for control replication because all shards will 
-        // see the same size for the future and know if they need to 
+        // This is safe for control replication because all shards will
+        // see the same size for the future and know if they need to
         // sync or not
         if (instances.empty())
           return nullptr;
-        std::map<Memory,FutureInstanceTracker>::const_iterator finder =
-          instances.find(target);
+        std::map<Memory, FutureInstanceTracker>::const_iterator finder =
+            instances.find(target);
         if (finder != instances.end())
         {
           inst_ready = finder->second.ready_event;
@@ -1553,7 +1589,7 @@ namespace Legion {
       assert(known_upper_bound_size < SIZE_MAX);
 #endif
       // Make the instance and then try to record it
-      FutureInstance *instance = nullptr;
+      FutureInstance* instance = nullptr;
       if (implicit_context == nullptr)
       {
         // This only happens with external requests for futures, this happens
@@ -1561,41 +1597,44 @@ namespace Legion {
         // being able to do this in a sane way, we need to make an external
         // instance for this using malloc
         if (target != runtime->runtime_system_memory)
-          REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
+          REPORT_LEGION_ERROR(
+              ERROR_DEFERRED_ALLOCATION_FAILURE,
               "Request for Legion to allocate a future instance in a "
               "non-system memory by external code. All requests for "
               "future instances by external code are required to ask "
               "for the data in the system memory.")
-        instance = new FutureInstance(malloc(known_upper_bound_size),
-            known_upper_bound_size, true/*external*/, true/*own allocation*/);
-      }
-      else
-        instance = implicit_context->create_task_local_future(target,
-            known_upper_bound_size, silence_warnings, warning_string);
+        instance = new FutureInstance(
+            malloc(known_upper_bound_size), known_upper_bound_size,
+            true /*external*/, true /*own allocation*/);
+      } else
+        instance = implicit_context->create_task_local_future(
+            target, known_upper_bound_size, silence_warnings, warning_string);
       if (instance == nullptr)
         return instance;
       // Retake the lock and see if we lost the race to register it
       AutoLock f_lock(future_lock);
-      std::map<Memory,FutureInstanceTracker>::const_iterator finder =
-        instances.find(target);
+      std::map<Memory, FutureInstanceTracker>::const_iterator finder =
+          instances.find(target);
       if (finder != instances.end())
       {
-        FutureInstance *result = finder->second.instance;
+        FutureInstance* result = finder->second.instance;
         inst_ready = finder->second.ready_event;
         f_lock.release();
         if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
           delete instance;
         return result;
-      }
-      else
-        inst_ready = record_instance(instance, 
-            (implicit_context == nullptr) ? 0 : implicit_context->get_unique_id());
+      } else
+        inst_ready = record_instance(
+            instance, (implicit_context == nullptr) ?
+                          0 :
+                          implicit_context->get_unique_id());
       return instance;
     }
 
     //--------------------------------------------------------------------------
-    FutureInstance* FutureImpl::create_instance(Operation *op, Memory memory,
-        size_t size, RtEvent *safe_for_unbounded_pools)
+    FutureInstance* FutureImpl::create_instance(
+        Operation* op, Memory memory, size_t size,
+        RtEvent* safe_for_unbounded_pools)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1603,24 +1642,24 @@ namespace Legion {
       assert(instances.find(memory) == instances.end());
       assert(memory.address_space() == runtime->address_space);
 #endif
-      MemoryManager *manager = runtime->find_memory_manager(memory);
+      MemoryManager* manager = runtime->find_memory_manager(memory);
       TaskTreeCoordinates coordinates;
       op->compute_task_tree_coordinates(coordinates);
-      FutureInstance *instance = manager->create_future_instance(
+      FutureInstance* instance = manager->create_future_instance(
           op->get_unique_op_id(), coordinates, size, safe_for_unbounded_pools);
       if (instance == nullptr)
-        REPORT_LEGION_ERROR(ERROR_DEFERRED_ALLOCATION_FAILURE,
-          "Failed to allocate future of %zd bytes for %s (UID %lld) "
-          "in parent task %s (UID %lld) because %s memory " IDFMT 
-          " is full.", size, op->get_logging_name(), op->get_unique_op_id(),
-          op->get_context()->get_task_name(),
-          op->get_context()->get_unique_id(),
-          manager->get_name(), memory.id)
+        REPORT_LEGION_ERROR(
+            ERROR_DEFERRED_ALLOCATION_FAILURE,
+            "Failed to allocate future of %zd bytes for %s (UID %lld) "
+            "in parent task %s (UID %lld) because %s memory " IDFMT " is full.",
+            size, op->get_logging_name(), op->get_unique_op_id(),
+            op->get_context()->get_task_name(),
+            op->get_context()->get_unique_id(), manager->get_name(), memory.id)
       return instance;
     }
 
     //--------------------------------------------------------------------------
-    ApEvent FutureImpl::record_instance(FutureInstance *instance, UniqueID uid)
+    ApEvent FutureImpl::record_instance(FutureInstance* instance, UniqueID uid)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1631,24 +1670,24 @@ namespace Legion {
 #endif
       // Initialize the instance from one of the existing instances
       const Memory source = find_best_source(instance->memory);
-      FutureInstanceTracker &tracker = instances[source];
+      FutureInstanceTracker& tracker = instances[source];
 #ifdef DEBUG_LEGION
       assert(tracker.instance != nullptr);
 #endif
       const ApEvent ready_event =
-        instance->copy_from(tracker.instance, uid, tracker.ready_event); 
+          instance->copy_from(tracker.instance, uid, tracker.ready_event);
       if (tracker.remote_postcondition.exists())
       {
         // This is a remote instance that we don't own so once we're
         // done with the copy we can clean it up
-        Runtime::trigger_event_untraced(tracker.remote_postcondition, ready_event);
+        Runtime::trigger_event_untraced(
+            tracker.remote_postcondition, ready_event);
         delete tracker.instance;
         instances.erase(source);
-      }
-      else if (ready_event.exists())
+      } else if (ready_event.exists())
         tracker.read_events.push_back(ready_event);
-      instances.emplace(std::make_pair(instance->memory, 
-            FutureInstanceTracker(instance, ready_event)));
+      instances.emplace(std::make_pair(
+          instance->memory, FutureInstanceTracker(instance, ready_event)));
       if (!local_visible_memory.exists() && instance->is_meta_visible)
         local_visible_memory = instance->memory;
       return ready_event;
@@ -1671,8 +1710,9 @@ namespace Legion {
         size_t best_bandwidth = 0;
         Memory best = Memory::NO_MEMORY;
         std::vector<Machine::MemoryMemoryAffinity> affinity;
-        for (std::map<Memory,FutureInstanceTracker>::const_iterator it =
-              instances.begin(); it != instances.end(); it++)
+        for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
+                 instances.begin();
+             it != instances.end(); it++)
         {
           affinity.clear();
           runtime->machine.get_mem_mem_affinity(affinity, target, it->first);
@@ -1705,9 +1745,9 @@ namespace Legion {
       if (!subscription_event.exists())
       {
         subscription_event = Runtime::create_rt_user_event();
-        FutureCallbackArgs args(this);    
-        runtime->issue_application_processor_task(args, 
-            LG_LATENCY_WORK_PRIORITY, callback_proc);
+        FutureCallbackArgs args(this);
+        runtime->issue_application_processor_task(
+            args, LG_LATENCY_WORK_PRIORITY, callback_proc);
       }
       return subscription_event;
     }
@@ -1722,22 +1762,24 @@ namespace Legion {
 #endif
       size_t result_size = 0;
       bool owned = false;
-      const Realm::ExternalInstanceResource *resource = nullptr;
+      const Realm::ExternalInstanceResource* resource = nullptr;
       void (*freefunc)(const Realm::ExternalInstanceResource&) = nullptr;
-      const void *metaptr = nullptr;
-      const void *result = callback_functor->callback_get_future(
-                    result_size, owned, resource, freefunc, metaptr, metasize);
-      FutureInstance *instance;
+      const void* metaptr = nullptr;
+      const void* result = callback_functor->callback_get_future(
+          result_size, owned, resource, freefunc, metaptr, metasize);
+      FutureInstance* instance;
       if (resource == nullptr)
       {
         const Realm::ExternalMemoryResource local(
-           reinterpret_cast<uintptr_t>(result), result_size, true/*read only*/);
-        instance = new FutureInstance(result, result_size, owned, local.clone(),
+            reinterpret_cast<uintptr_t>(result), result_size,
+            true /*read only*/);
+        instance = new FutureInstance(
+            result, result_size, owned, local.clone(),
             FutureInstance::free_host_memory, callback_proc);
-      }
-      else
-        instance = new FutureInstance(result, result_size, owned,
-            resource->clone(), freefunc, callback_proc);
+      } else
+        instance = new FutureInstance(
+            result, result_size, owned, resource->clone(), freefunc,
+            callback_proc);
       // If we have any metadata, copy that now
       if (metasize > 0)
       {
@@ -1757,8 +1799,9 @@ namespace Legion {
       }
       // Retake the lock and remove the guards
       AutoLock f_lock(future_lock);
-      instances.emplace(std::make_pair(instance->memory,
-            FutureInstanceTracker(instance, ApEvent::NO_AP_EVENT)));
+      instances.emplace(std::make_pair(
+          instance->memory,
+          FutureInstanceTracker(instance, ApEvent::NO_AP_EVENT)));
       if (!local_visible_memory.exists() && instance->is_meta_visible)
         local_visible_memory = instance->memory;
       if (!pending_instances.empty())
@@ -1779,7 +1822,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FutureImpl::FutureCallbackArgs::FutureCallbackArgs(FutureImpl *i)
+    FutureImpl::FutureCallbackArgs::FutureCallbackArgs(FutureImpl* i)
       : LgTaskArgs<FutureCallbackArgs>(implicit_provenance), impl(i)
     //--------------------------------------------------------------------------
     {
@@ -1787,16 +1830,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    FutureImpl::CallbackReleaseArgs::CallbackReleaseArgs(FutureFunctor *f,
-                                                         bool own)
-      : LgTaskArgs<CallbackReleaseArgs>(implicit_provenance),
-        functor(f), own_functor(own)
+    FutureImpl::CallbackReleaseArgs::CallbackReleaseArgs(
+        FutureFunctor* f, bool own)
+      : LgTaskArgs<CallbackReleaseArgs>(implicit_provenance), functor(f),
+        own_functor(own)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    FutureImpl::FutureBroadcastArgs::FutureBroadcastArgs(FutureImpl *i)
+    FutureImpl::FutureBroadcastArgs::FutureBroadcastArgs(FutureImpl* i)
       : LgTaskArgs<FutureBroadcastArgs>(implicit_provenance), impl(i)
     //--------------------------------------------------------------------------
     {
@@ -1804,37 +1846,37 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_callback(const void *args)
+    /*static*/ void FutureImpl::handle_callback(const void* args)
     //--------------------------------------------------------------------------
     {
-      const FutureCallbackArgs *fargs = (const FutureCallbackArgs*)args;
+      const FutureCallbackArgs* fargs = (const FutureCallbackArgs*)args;
       fargs->impl->perform_callback();
       if (fargs->impl->remove_base_gc_ref(DEFERRED_TASK_REF))
         delete fargs->impl;
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_release(const void *args)
+    /*static*/ void FutureImpl::handle_release(const void* args)
     //--------------------------------------------------------------------------
     {
-      const CallbackReleaseArgs *cargs = (const CallbackReleaseArgs*)args;
+      const CallbackReleaseArgs* cargs = (const CallbackReleaseArgs*)args;
       cargs->functor->callback_release_future();
       if (cargs->own_functor)
         delete cargs->functor;
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_broadcast(const void *args)
+    /*static*/ void FutureImpl::handle_broadcast(const void* args)
     //--------------------------------------------------------------------------
     {
-      const FutureBroadcastArgs *fargs = (const FutureBroadcastArgs*)args;
+      const FutureBroadcastArgs* fargs = (const FutureBroadcastArgs*)args;
       fargs->impl->perform_broadcast();
       if (fargs->impl->remove_base_gc_ref(DEFERRED_TASK_REF))
         delete fargs->impl;
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::unpack_future_result(Deserializer &derez)
+    void FutureImpl::unpack_future_result(Deserializer& derez)
     //-------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1854,7 +1896,7 @@ namespace Legion {
         derez.deserialize(num_instances);
         for (unsigned idx1 = 0; idx1 < num_instances; idx1++)
         {
-          FutureInstance *instance = FutureInstance::unpack_instance(derez);
+          FutureInstance* instance = FutureInstance::unpack_instance(derez);
           if (instance->memory.address_space() == runtime->address_space)
           {
             has_local = true;
@@ -1866,9 +1908,12 @@ namespace Legion {
 #endif
           ApEvent ready_event;
           derez.deserialize(ready_event);
-          FutureInstanceTracker &tracker = 
-            instances.emplace(std::make_pair(instance->memory,
-                FutureInstanceTracker(instance, ready_event))).first->second;
+          FutureInstanceTracker& tracker =
+              instances
+                  .emplace(std::make_pair(
+                      instance->memory,
+                      FutureInstanceTracker(instance, ready_event)))
+                  .first->second;
           size_t num_read_events;
           derez.deserialize(num_read_events);
           tracker.read_events.resize(num_read_events);
@@ -1879,7 +1924,7 @@ namespace Legion {
         {
           // If we didn't get a local instance then we'll also get a copy
           // of the future instance from the source
-          FutureInstance *instance = FutureInstance::unpack_instance(derez);
+          FutureInstance* instance = FutureInstance::unpack_instance(derez);
           if (instance->is_meta_visible)
           {
             // We unpacked by value if it is meta-visible here
@@ -1887,11 +1932,11 @@ namespace Legion {
             assert(!local_visible_memory.exists());
             assert(instances.find(instance->memory) == instances.end());
 #endif
-            instances.emplace(std::make_pair(instance->memory,
-                  FutureInstanceTracker(instance, ApEvent::NO_AP_EVENT)));
+            instances.emplace(std::make_pair(
+                instance->memory,
+                FutureInstanceTracker(instance, ApEvent::NO_AP_EVENT)));
             local_visible_memory = instance->memory;
-          }
-          else
+          } else
           {
             // The instance is remote from us, we need to copy to one of the
             // pending instances so we can fill in the rest of the results
@@ -1901,23 +1946,26 @@ namespace Legion {
             derez.deserialize(postcondition);
             if (pending_instances.empty())
             {
-              // Save this in the list of instances to consume once 
+              // Save this in the list of instances to consume once
               // someone tries to read from it
-              instances.emplace(std::make_pair(instance->memory,
-                FutureInstanceTracker(instance, precondition, postcondition)));
-            }
-            else
+              instances.emplace(std::make_pair(
+                  instance->memory,
+                  FutureInstanceTracker(
+                      instance, precondition, postcondition)));
+            } else
             {
-              std::map<Memory,PendingInstance>::iterator pending =
-                pending_instances.begin();
+              std::map<Memory, PendingInstance>::iterator pending =
+                  pending_instances.begin();
               // Issue the copy to the pending instance
-              ApEvent ready = pending->second.instance->copy_from(instance,
-                    pending->second.creator_uid, precondition);
+              ApEvent ready = pending->second.instance->copy_from(
+                  instance, pending->second.creator_uid, precondition);
               Runtime::trigger_event_untraced(postcondition, ready);
               if (pending->second.inst_ready.exists())
-                Runtime::trigger_event_untraced(pending->second.inst_ready, ready);
-              instances.emplace(std::make_pair(pending->second.instance->memory,
-                    FutureInstanceTracker(pending->second.instance, ready)));
+                Runtime::trigger_event_untraced(
+                    pending->second.inst_ready, ready);
+              instances.emplace(std::make_pair(
+                  pending->second.instance->memory,
+                  FutureInstanceTracker(pending->second.instance, ready)));
 #ifdef DEBUG_LEGION
               assert(!local_visible_memory.exists());
 #endif
@@ -1936,8 +1984,7 @@ namespace Legion {
         ApEvent precondition;
         derez.deserialize(precondition);
         Runtime::trigger_event_untraced(to_trigger, precondition);
-      }
-      else
+      } else
         derez.deserialize(future_complete);
       derez.deserialize(metasize);
       if (metasize > 0)
@@ -1984,21 +2031,21 @@ namespace Legion {
         if (!future_complete.exists())
           future_complete = Runtime::create_ap_user_event(nullptr);
         if (!subscription_event.exists())
-          subscribe(false/*need lock*/);
+          subscribe(false /*need lock*/);
       }
       return future_complete;
     }
 
     //--------------------------------------------------------------------------
-    bool FutureImpl::get_boolean_value(TaskContext *ctx)
+    bool FutureImpl::get_boolean_value(TaskContext* ctx)
     //--------------------------------------------------------------------------
     {
       size_t size = 0;
-      const void *result = find_runtime_buffer(ctx, size);
+      const void* result = find_runtime_buffer(ctx, size);
 #ifdef DEBUG_LEGION
       assert(sizeof(bool) == size);
 #endif
-      return *((const bool*)result); 
+      return *((const bool*)result);
     }
 
     //--------------------------------------------------------------------------
@@ -2010,7 +2057,7 @@ namespace Legion {
       if (need_lock)
       {
         AutoLock f_lock(future_lock);
-        return subscribe(false/*need lock*/);
+        return subscribe(false /*need lock*/);
       }
       // See if we lost the race
       if (empty.load())
@@ -2024,19 +2071,18 @@ namespace Legion {
             Serializer rez;
             rez.serialize(did);
             pack_global_ref();
-            if ((collective_mapping != nullptr) && 
+            if ((collective_mapping != nullptr) &&
                 collective_mapping->contains(local_space))
               runtime->send_future_subscription(
-                 collective_mapping->get_parent(owner_space, local_space), rez);
+                  collective_mapping->get_parent(owner_space, local_space),
+                  rez);
             else
               runtime->send_future_subscription(owner_space, rez);
-          }
-          else
-            record_subscription(local_space, false/*need lock*/);
+          } else
+            record_subscription(local_space, false /*need lock*/);
         }
         return subscription_event;
-      }
-      else
+      } else
       {
         if (callback_functor != nullptr)
           return invoke_callback();
@@ -2049,14 +2095,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock f_lock(future_lock,1,false/*exclusive*/);
+        AutoLock f_lock(future_lock, 1, false /*exclusive*/);
         if (!empty.load() || future_size_set)
           return upper_bound_size;
       }
       const RtEvent subscribed = subscribe();
       if (subscribed.exists() && !subscribed.has_triggered())
         subscribed.wait();
-      AutoLock f_lock(future_lock,1,false/*exclusive*/);
+      AutoLock f_lock(future_lock, 1, false /*exclusive*/);
 #ifdef DEBUG_LEGION
       assert(!empty.load() || future_size_set);
 #endif
@@ -2064,8 +2110,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool FutureImpl::get_context_coordinate(const TaskContext *ctx,
-                                            ContextCoordinate &coord) const
+    bool FutureImpl::get_context_coordinate(
+        const TaskContext* ctx, ContextCoordinate& coord) const
     //--------------------------------------------------------------------------
     {
       // If contexts don't match then we don't return the coordinate
@@ -2079,24 +2125,24 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::pack_future(Serializer &rez, AddressSpaceID target)
+    void FutureImpl::pack_future(Serializer& rez, AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
       pack_global_ref();
       rez.serialize<DistributedID>(did);
-      if ((collective_mapping != nullptr) && collective_mapping->contains(target))
+      if ((collective_mapping != nullptr) &&
+          collective_mapping->contains(target))
       {
-        rez.serialize<bool>(true); // collective
+        rez.serialize<bool>(true);  // collective
         return;
-      }
-      else
-        rez.serialize<bool>(false); // collective
+      } else
+        rez.serialize<bool>(false);  // collective
       rez.serialize(context->did);
       coordinate.serialize(rez);
       if (collective_mapping != nullptr)
         collective_mapping->pack(rez);
       else
-        rez.serialize<size_t>(0); // no collective mapping
+        rez.serialize<size_t>(0);  // no collective mapping
       if (provenance != nullptr)
         provenance->serialize(rez);
       else
@@ -2105,9 +2151,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ Future FutureImpl::unpack_future(
-                                Deserializer &derez,
-                                Operation *op, GenerationID op_gen,
-                                UniqueID op_uid, int op_depth)
+        Deserializer& derez, Operation* op, GenerationID op_gen,
+        UniqueID op_uid, int op_depth)
     //--------------------------------------------------------------------------
     {
       DistributedID future_did, ctx_did;
@@ -2120,7 +2165,7 @@ namespace Legion {
       {
         // Wait until we find it here
         Future result(static_cast<FutureImpl*>(
-              runtime->find_distributed_collectable(future_did)));
+            runtime->find_distributed_collectable(future_did)));
         result.impl->unpack_global_ref();
         return result;
       }
@@ -2129,19 +2174,19 @@ namespace Legion {
       coordinate.deserialize(derez);
       size_t collective_spaces;
       derez.deserialize(collective_spaces);
-      CollectiveMapping *collective_mapping = (collective_spaces == 0) ? nullptr :
-        new CollectiveMapping(derez, collective_spaces);
+      CollectiveMapping* collective_mapping =
+          (collective_spaces == 0) ?
+              nullptr :
+              new CollectiveMapping(derez, collective_spaces);
       if (collective_mapping != nullptr)
         collective_mapping->add_reference();
       AutoProvenance provenance(Provenance::deserialize(derez));
       RtEvent dummy;
-      Future result(runtime->find_or_create_future(future_did, ctx_did,
-                                            coordinate, provenance,
-                                            true/*has global ref*/, dummy,
-                                            op, op_gen, op_uid, op_depth,
-                                            collective_mapping));
+      Future result(runtime->find_or_create_future(
+          future_did, ctx_did, coordinate, provenance, true /*has global ref*/,
+          dummy, op, op_gen, op_uid, op_depth, collective_mapping));
       result.impl->unpack_global_ref();
-      if ((collective_mapping != nullptr) && 
+      if ((collective_mapping != nullptr) &&
           collective_mapping->remove_reference())
         delete collective_mapping;
       return result;
@@ -2155,16 +2200,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::register_dependence(Operation *consumer_op)
+    void FutureImpl::register_dependence(Operation* consumer_op)
     //--------------------------------------------------------------------------
     {
       if (producer_op != nullptr)
       {
         // Only record dependences on things from the same context
         // We know futures can never flow up the task tree so the
-        // only way they have the same depth is if they are from 
+        // only way they have the same depth is if they are from
         // the same parent context
-        TaskContext *consumer_context = consumer_op->get_context();
+        TaskContext* consumer_context = consumer_op->get_context();
         if (consumer_context == context)
         {
           consumer_op->register_dependence(producer_op, op_gen);
@@ -2173,8 +2218,7 @@ namespace Legion {
               context->get_unique_id(), producer_uid,
               consumer_op->get_unique_op_id());
 #endif
-        }
-        else
+        } else
         {
           // Check that the consumer is contained within the task
           // sub-tree of the producer task
@@ -2194,24 +2238,26 @@ namespace Legion {
           }
           if (!contained)
           {
-            Provenance *provenance = consumer_op->get_provenance();
-            REPORT_LEGION_ERROR(ERROR_ILLEGAL_FUTURE_USE,
+            Provenance* provenance = consumer_op->get_provenance();
+            REPORT_LEGION_ERROR(
+                ERROR_ILLEGAL_FUTURE_USE,
                 "Illegal use of future produced in context %s (UID %lld) "
                 "but consumed in context %s (UID %lld) by operation %s "
                 "(UID %lld) launched from %.*s. Futures are only permitted "
                 "to be used in the task sub-tree rooted by the context "
-                "that produced the future.", context->get_task_name(),
-                context->get_unique_id(), consumer_context->get_task_name(), 
+                "that produced the future.",
+                context->get_task_name(), context->get_unique_id(),
+                consumer_context->get_task_name(),
                 consumer_context->get_unique_id(),
                 consumer_op->get_logging_name(),
-                consumer_op->get_unique_op_id(), 
+                consumer_op->get_unique_op_id(),
                 int(provenance->human.length()), provenance->human.data())
           }
         }
       }
 #ifdef DEBUG_LEGION
       else
-        assert(!empty.load()); // better not be empty if it doesn't have an op
+        assert(!empty.load());  // better not be empty if it doesn't have an op
 #endif
     }
 
@@ -2234,8 +2280,9 @@ namespace Legion {
         // Handle the special case where the only subscriber is the local
         // node so we can lazily defer this until later and the user
         // actually asks us for the result
-        if (!subscribers.empty() && ((subscribers.size() > 1) ||
-              (subscribers.find(local_space) == subscribers.end())))
+        if (!subscribers.empty() &&
+            ((subscribers.size() > 1) ||
+             (subscribers.find(local_space) == subscribers.end())))
         {
           // If we still have a callback to perform do
           // that now to get it in flight, it will send
@@ -2254,8 +2301,9 @@ namespace Legion {
           // Check to see if we have targets for all the subscribers
           // if so then we don't need to make a local copy
           std::set<AddressSpaceID> subscribers_without_instances = subscribers;
-          for (std::map<Memory,FutureInstanceTracker>::const_iterator it =
-                instances.begin(); it != instances.end(); it++)
+          for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
+                   instances.begin();
+               it != instances.end(); it++)
           {
             subscribers_without_instances.erase(it->first.address_space());
             if (subscribers_without_instances.empty())
@@ -2267,29 +2315,28 @@ namespace Legion {
             // stage of the pipeline for some operation, but it's a "small"
             // future and it's going to the host memory so it will hit the
             // path that just calls malloc and not perform an allocation
-            FutureInstance *instance = create_instance(context->owner_task,
-                runtime->runtime_system_memory, future_size,
-                nullptr/*safe_for_unbounded_pools*/);
+            FutureInstance* instance = create_instance(
+                context->owner_task, runtime->runtime_system_memory,
+                future_size, nullptr /*safe_for_unbounded_pools*/);
             inst_ready = record_instance(instance, context->get_unique_id());
 #ifdef DEBUG_LEGION
             assert(local_visible_memory.exists());
 #endif
           }
-        }
-        else
+        } else
           inst_ready = instances[local_visible_memory].ready_event;
         if (inst_ready.exists() && !inst_ready.has_triggered_faultignorant())
         {
           // Defer until the instance can be packed by value
           const RtEvent precondition = Runtime::protect_event(inst_ready);
           FutureBroadcastArgs args(this);
-          runtime->issue_runtime_meta_task(args, 
-              LG_LATENCY_WORK_PRIORITY, precondition);
+          runtime->issue_runtime_meta_task(
+              args, LG_LATENCY_WORK_PRIORITY, precondition);
           return;
         }
       }
-      for (std::set<AddressSpaceID>::const_iterator it = 
-            subscribers.begin(); it != subscribers.end(); it++)
+      for (std::set<AddressSpaceID>::const_iterator it = subscribers.begin();
+           it != subscribers.end(); it++)
       {
         if (((*it) == local_space) || ((*it) == result_set_space))
           continue;
@@ -2304,14 +2351,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::record_subscription(AddressSpaceID subscriber, 
-                                         bool need_lock)
+    void FutureImpl::record_subscription(
+        AddressSpaceID subscriber, bool need_lock)
     //--------------------------------------------------------------------------
     {
       if (need_lock)
       {
         AutoLock f_lock(future_lock);
-        record_subscription(subscriber, false/*need lock*/);
+        record_subscription(subscriber, false /*need lock*/);
         return;
       }
       if (empty.load())
@@ -2340,10 +2387,9 @@ namespace Legion {
           assert(collective_mapping != nullptr);
           assert(collective_mapping->contains(local_space));
 #endif
-          subscribe(false/*needs lock*/);
+          subscribe(false /*needs lock*/);
         }
-      }
-      else
+      } else
       {
         // Handle the race where the subscription from the node that
         // ultimately set the future result arrives after the future
@@ -2357,13 +2403,14 @@ namespace Legion {
           // it is in flight and that the subscriber is there
           // for it to be messaged when the callback is done
           subscribers.insert(subscriber);
-        }
-        else if (!instances.empty() && (future_size <= LEGION_MAX_RETURN_SIZE))
+        } else if (
+            !instances.empty() && (future_size <= LEGION_MAX_RETURN_SIZE))
         {
           // Check to see if we have any instances to send directly
           bool has_local_target = false;
-          for (std::map<Memory,FutureInstanceTracker>::const_iterator it =
-                instances.begin(); it != instances.end(); it++)
+          for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
+                   instances.begin();
+               it != instances.end(); it++)
           {
             if (it->first.address_space() != subscriber)
               continue;
@@ -2380,19 +2427,18 @@ namespace Legion {
               // stage of the pipeline for some operation, but it's a "small"
               // future and it's going to the host memory so it will hit the
               // path that just calls malloc and not perform an allocation
-              FutureInstance *instance = create_instance(
+              FutureInstance* instance = create_instance(
                   context->owner_task, runtime->runtime_system_memory,
-                  future_size, nullptr/*safe_for_unbounded_pools*/);
-              local_visible_ready = 
-                record_instance(instance, context->get_unique_id());
+                  future_size, nullptr /*safe_for_unbounded_pools*/);
+              local_visible_ready =
+                  record_instance(instance, context->get_unique_id());
 #ifdef DEBUG_LEGION
               assert(local_visible_memory.exists());
 #endif
-            }
-            else
+            } else
               local_visible_ready = instances[local_visible_memory].ready_event;
           }
-          if (local_visible_ready.exists() && 
+          if (local_visible_ready.exists() &&
               !local_visible_ready.has_triggered_faultignorant())
           {
             // Save the subscriber and launch a broadcast task
@@ -2402,13 +2448,12 @@ namespace Legion {
             {
               // First one so launch the broadcast task
               FutureBroadcastArgs args(this);
-              runtime->issue_runtime_meta_task(args, 
-                  LG_LATENCY_WORK_PRIORITY, 
+              runtime->issue_runtime_meta_task(
+                  args, LG_LATENCY_WORK_PRIORITY,
                   Runtime::protect_event(local_visible_ready));
             }
             subscribers.insert(subscriber);
-          }
-          else
+          } else
           {
             // We can send the result right now
             Serializer rez;
@@ -2416,8 +2461,7 @@ namespace Legion {
             pack_global_ref();
             runtime->send_future_result(subscriber, rez);
           }
-        }
-        else
+        } else
         {
           // Send the result back to the subscriber since right away
           Serializer rez;
@@ -2429,7 +2473,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::pack_future_result(Serializer &rez, AddressSpaceID target)
+    void FutureImpl::pack_future_result(Serializer& rez, AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2444,28 +2488,29 @@ namespace Legion {
         // Find any target instances to pack up to send to the subscriber
         bool has_exact_target = false;
         std::vector<Memory> target_memories;
-        for (std::map<Memory,FutureInstanceTracker>::const_iterator it =
-              instances.begin(); it != instances.end(); it++)
+        for (std::map<Memory, FutureInstanceTracker>::const_iterator it =
+                 instances.begin();
+             it != instances.end(); it++)
         {
           AddressSpaceID inst_space = it->first.address_space();
           if (inst_space == target)
           {
             has_exact_target = true;
             target_memories.push_back(it->first);
-          }
-          else if ((collective_mapping != nullptr) &&
-              collective_mapping->contains(inst_space) && 
+          } else if (
+              (collective_mapping != nullptr) &&
+              collective_mapping->contains(inst_space) &&
               (subscribers.find(inst_space) == subscribers.end()))
           {
             // If there is a collective mapping we need to check whether
-            // we should send the instance to the target because the 
+            // we should send the instance to the target because the
             // actual subscriber will come through the collective mapping
             // subscriber tree to the target.
             while ((inst_space != owner_space) && (inst_space != target) &&
-                    (inst_space != local_space) &&
-                    (subscribers.find(inst_space) == subscribers.end()))
+                   (inst_space != local_space) &&
+                   (subscribers.find(inst_space) == subscribers.end()))
               inst_space =
-                collective_mapping->get_parent(owner_space, inst_space);
+                  collective_mapping->get_parent(owner_space, inst_space);
             if (inst_space == target)
               target_memories.push_back(it->first);
             else if ((inst_space == owner_space) && (target == owner_space))
@@ -2477,62 +2522,66 @@ namespace Legion {
           // Check to see if we're packing all our instances to send away.
           // If we are we still need to keep one of them around to be able
           // to copy from it if we need to
-          const Memory keep = (target_memories.size() < instances.size()) ?
-           Memory::NO_MEMORY : find_best_source(runtime->runtime_system_memory);
+          const Memory keep =
+              (target_memories.size() < instances.size()) ?
+                  Memory::NO_MEMORY :
+                  find_best_source(runtime->runtime_system_memory);
           // Send the instances to the future impl that should own them
           rez.serialize<size_t>(target_memories.size());
           for (std::vector<Memory>::const_iterator mit =
-                target_memories.begin(); mit != target_memories.end(); mit++)
+                   target_memories.begin();
+               mit != target_memories.end(); mit++)
           {
-            std::map<Memory,FutureInstanceTracker>::iterator finder =
-              instances.find(*mit);
+            std::map<Memory, FutureInstanceTracker>::iterator finder =
+                instances.find(*mit);
 #ifdef DEBUG_LEGION
             assert(finder != instances.end());
 #endif
             // Don't allow this to be packed by value
-            finder->second.instance->pack_instance(rez, ApEvent::NO_AP_EVENT,
-                true/*move ownership*/, false/*allow by value*/);
+            finder->second.instance->pack_instance(
+                rez, ApEvent::NO_AP_EVENT, true /*move ownership*/,
+                false /*allow by value*/);
             rez.serialize(finder->second.ready_event);
             if ((*mit) == keep)
             {
-              finder->second.remote_postcondition = 
-                Runtime::create_ap_user_event(nullptr);
+              finder->second.remote_postcondition =
+                  Runtime::create_ap_user_event(nullptr);
               finder->second.read_events.push_back(
                   finder->second.remote_postcondition);
             }
             rez.serialize<size_t>(finder->second.read_events.size());
             for (std::vector<ApEvent>::const_iterator it =
-                  finder->second.read_events.begin(); it !=
-                  finder->second.read_events.end(); it++)
+                     finder->second.read_events.begin();
+                 it != finder->second.read_events.end(); it++)
               rez.serialize(*it);
             if ((*mit) != keep)
             {
               // Now we can delete the instance remove it from the entry
               delete finder->second.instance;
               instances.erase(finder);
-            }
-            else
+            } else
               finder->second.read_events.clear();
           }
-        }
-        else
+        } else
           rez.serialize<size_t>(0);
         if (!has_exact_target)
         {
           // Pack our local visible copy by value so that the subscriber
           // will have it's own local copy of the data
-          std::map<Memory,FutureInstanceTracker>::iterator finder =
-            local_visible_memory.exists() ?
-              instances.find(local_visible_memory) : instances.begin();
+          std::map<Memory, FutureInstanceTracker>::iterator finder =
+              local_visible_memory.exists() ?
+                  instances.find(local_visible_memory) :
+                  instances.begin();
 #ifdef DEBUG_LEGION
           assert(finder != instances.end());
 #endif
-          if (!finder->second.instance->pack_instance(rez,
-                finder->second.ready_event, false/*move ownership*/))
+          if (!finder->second.instance->pack_instance(
+                  rez, finder->second.ready_event, false /*move ownership*/))
           {
             // Couldn't pack this by value so we need to pack up events
             rez.serialize(finder->second.ready_event);
-            const ApUserEvent read_done = Runtime::create_ap_user_event(nullptr);
+            const ApUserEvent read_done =
+                Runtime::create_ap_user_event(nullptr);
             rez.serialize(read_done);
             finder->second.read_events.push_back(read_done);
           }
@@ -2541,7 +2590,7 @@ namespace Legion {
       rez.serialize(future_complete);
       rez.serialize(metasize);
       if (metasize > 0)
-        rez.serialize(metadata, metasize); 
+        rez.serialize(metadata, metasize);
     }
 
     //--------------------------------------------------------------------------
@@ -2562,38 +2611,38 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_future_result(Deserializer &derez)
+    /*static*/ void FutureImpl::handle_future_result(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
       derez.deserialize(did);
-      DistributedCollectable *dc = runtime->find_distributed_collectable(did);
+      DistributedCollectable* dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
-      FutureImpl *future = dynamic_cast<FutureImpl*>(dc);
+      FutureImpl* future = dynamic_cast<FutureImpl*>(dc);
       assert(future != nullptr);
 #else
-      FutureImpl *future = static_cast<FutureImpl*>(dc);
+      FutureImpl* future = static_cast<FutureImpl*>(dc);
 #endif
       future->unpack_future_result(derez);
       future->unpack_global_ref();
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureImpl::handle_future_result_size(Deserializer &derez,
-                                        AddressSpaceID source)
+    /*static*/ void FutureImpl::handle_future_result_size(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
-      // The future might be a collective future so wait for it if 
+      // The future might be a collective future so wait for it if
       // it hasn't been registered yet
-      DistributedCollectable *dc = runtime->find_distributed_collectable(did);
+      DistributedCollectable* dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
-      FutureImpl *future = dynamic_cast<FutureImpl*>(dc);
+      FutureImpl* future = dynamic_cast<FutureImpl*>(dc);
       assert(future != nullptr);
 #else
-      FutureImpl *future = static_cast<FutureImpl*>(dc);
+      FutureImpl* future = static_cast<FutureImpl*>(dc);
 #endif
       size_t future_size;
       derez.deserialize(future_size);
@@ -2603,25 +2652,25 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FutureImpl::handle_future_subscription(
-                   Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DistributedID did;
       derez.deserialize(did);
-      DistributedCollectable *dc = runtime->find_distributed_collectable(did);
+      DistributedCollectable* dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
-      FutureImpl *future = dynamic_cast<FutureImpl*>(dc);
+      FutureImpl* future = dynamic_cast<FutureImpl*>(dc);
       assert(future != nullptr);
 #else
-      FutureImpl *future = static_cast<FutureImpl*>(dc);
+      FutureImpl* future = static_cast<FutureImpl*>(dc);
 #endif
-      future->record_subscription(source, true/*need lock*/);
+      future->record_subscription(source, true /*need lock*/);
       future->unpack_global_ref();
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FutureImpl::handle_future_create_instance_request(
-                   Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -2634,18 +2683,19 @@ namespace Legion {
       derez.deserialize(creator_uid);
       TaskTreeCoordinates coordinates;
       coordinates.deserialize(derez);
-      RtEvent *remote_safe_for_unbounded_pools;
+      RtEvent* remote_safe_for_unbounded_pools;
       derez.deserialize(remote_safe_for_unbounded_pools);
       RtUserEvent done_event;
       derez.deserialize(done_event);
-      bool *result;
+      bool* result;
       derez.deserialize(result);
 
       RtEvent safe_for_unbounded_pools;
-      if (!f.impl->find_or_create_application_instance(target,
-            known_upper_bound_size, creator_uid, coordinates,
-            (remote_safe_for_unbounded_pools == nullptr) ? nullptr :
-            &safe_for_unbounded_pools))
+      if (!f.impl->find_or_create_application_instance(
+              target, known_upper_bound_size, creator_uid, coordinates,
+              (remote_safe_for_unbounded_pools == nullptr) ?
+                  nullptr :
+                  &safe_for_unbounded_pools))
       {
         Serializer rez;
         {
@@ -2657,21 +2707,19 @@ namespace Legion {
           rez.serialize(done_event);
         }
         runtime->send_future_create_instance_response(source, rez);
-      }
-      else
+      } else
         Runtime::trigger_event(done_event);
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::handle_future_create_instance_response(
-                                          Deserializer &derez)
+    void FutureImpl::handle_future_create_instance_response(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      bool *result;
+      bool* result;
       derez.deserialize(result);
       *result = false;
-      RtEvent *safe_for_unbounded_pools;
+      RtEvent* safe_for_unbounded_pools;
       derez.deserialize(safe_for_unbounded_pools);
       if (safe_for_unbounded_pools != nullptr)
         derez.deserialize(*safe_for_unbounded_pools);
@@ -2681,8 +2729,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void FutureImpl::contribute_to_collective(const DynamicCollective &dc, 
-                                              unsigned count)
+    void FutureImpl::contribute_to_collective(
+        const DynamicCollective& dc, unsigned count)
     //--------------------------------------------------------------------------
     {
       const RtEvent ready = subscribe();
@@ -2695,25 +2743,25 @@ namespace Legion {
         ContributeCollectiveArgs args(this, dc, count);
         // Spawn the task dependent on the future being ready
         runtime->issue_runtime_meta_task(args, LG_LATENCY_WORK_PRIORITY, ready);
-      }
-      else // If we've already triggered, then we can do the arrival now
+      } else  // If we've already triggered, then we can do the arrival now
       {
         size_t result_size = 0;
-        const void *result = get_buffer(runtime->runtime_system_memory,
-            &result_size, false/*check size*/, true/*silence warnings*/);
-        runtime->phase_barrier_arrive(dc, count, ApEvent::NO_AP_EVENT,
-                                      result, result_size);
+        const void* result = get_buffer(
+            runtime->runtime_system_memory, &result_size, false /*check size*/,
+            true /*silence warnings*/);
+        runtime->phase_barrier_arrive(
+            dc, count, ApEvent::NO_AP_EVENT, result, result_size);
       }
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void FutureImpl::handle_contribute_to_collective(
-                                                               const void *args)
+        const void* args)
     //--------------------------------------------------------------------------
     {
-      const ContributeCollectiveArgs *cargs = (ContributeCollectiveArgs*)args;
+      const ContributeCollectiveArgs* cargs = (ContributeCollectiveArgs*)args;
       cargs->impl->contribute_to_collective(cargs->dc, cargs->count);
-      // Now remote the garbage collection reference and see if we can 
+      // Now remote the garbage collection reference and see if we can
       // reclaim the future
       if (cargs->impl->remove_base_gc_ref(PENDING_COLLECTIVE_REF))
         delete cargs->impl;
@@ -2722,22 +2770,24 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
     // Future Instance
     /////////////////////////////////////////////////////////////
-      
+
     //--------------------------------------------------------------------------
-    FutureInstance::FutureInstance(const void *d, size_t s,
-                              bool external, bool own,
-                              LgEvent unique, PhysicalInstance inst,
-                              Processor p, RtEvent use)
-      : size(s), memory(inst.exists() ? inst.get_location() : 
-          runtime->runtime_system_memory),
-        resource(inst.exists() ? nullptr : 
-            new Realm::ExternalMemoryResource(reinterpret_cast<uintptr_t>(d),
-              s, false/*read only*/)), freefunc(inst.exists() || !p.exists() ? 
-              nullptr : free_host_memory), freeproc(p),
-        external_allocation(external),
-        is_meta_visible(check_meta_visible(memory)),
-        own_allocation(own), data(d), instance(inst), use_event(use),
-        unique_event(unique), own_instance(own && inst.exists())
+    FutureInstance::FutureInstance(
+        const void* d, size_t s, bool external, bool own, LgEvent unique,
+        PhysicalInstance inst, Processor p, RtEvent use)
+      : size(s), memory(
+                     inst.exists() ? inst.get_location() :
+                                     runtime->runtime_system_memory),
+        resource(
+            inst.exists() ?
+                nullptr :
+                new Realm::ExternalMemoryResource(
+                    reinterpret_cast<uintptr_t>(d), s, false /*read only*/)),
+        freefunc(inst.exists() || !p.exists() ? nullptr : free_host_memory),
+        freeproc(p), external_allocation(external),
+        is_meta_visible(check_meta_visible(memory)), own_allocation(own),
+        data(d), instance(inst), use_event(use), unique_event(unique),
+        own_instance(own && inst.exists())
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2748,21 +2798,23 @@ namespace Legion {
       assert(!freeproc.exists() || (freeproc.kind() != Processor::UTIL_PROC));
       assert(instance.exists() || external_allocation);
       assert((data != nullptr) || instance.exists());
-      assert(unique_event.exists() || !instance.exists() || 
+      assert(
+          unique_event.exists() || !instance.exists() ||
           (runtime->profiler == nullptr));
 #endif
     }
 
     //--------------------------------------------------------------------------
-    FutureInstance::FutureInstance(const void *d, size_t s, bool own,
-                          const Realm::ExternalInstanceResource *allocation,
-                          void (*func)(const Realm::ExternalInstanceResource&),
-                          Processor proc, LgEvent unique, PhysicalInstance inst,
-                          RtEvent use)
-      : size(s), memory(inst.exists() ?
-          inst.get_location() : allocation->suggested_memory()),
+    FutureInstance::FutureInstance(
+        const void* d, size_t s, bool own,
+        const Realm::ExternalInstanceResource* allocation,
+        void (*func)(const Realm::ExternalInstanceResource&), Processor proc,
+        LgEvent unique, PhysicalInstance inst, RtEvent use)
+      : size(s), memory(
+                     inst.exists() ? inst.get_location() :
+                                     allocation->suggested_memory()),
         resource(allocation), freefunc(func), freeproc(proc),
-        external_allocation(true), is_meta_visible(check_meta_visible(memory)), 
+        external_allocation(true), is_meta_visible(check_meta_visible(memory)),
         own_allocation(own), data(d), instance(inst), use_event(use),
         unique_event(unique), own_instance(own && inst.exists())
     //--------------------------------------------------------------------------
@@ -2776,7 +2828,8 @@ namespace Legion {
       assert(instance.exists() || external_allocation);
       assert((data != nullptr) || instance.exists());
       assert((resource != nullptr) || inst.exists());
-      assert(unique_event.exists() || !instance.exists() || 
+      assert(
+          unique_event.exists() || !instance.exists() ||
           (runtime->profiler == nullptr));
 #endif
     }
@@ -2798,8 +2851,8 @@ namespace Legion {
           if (target_space != runtime->address_space)
           {
 #ifdef DEBUG_LEGION
-            assert(!freeproc.exists() || 
-                freeproc.address_space() == target_space);
+            assert(
+                !freeproc.exists() || freeproc.address_space() == target_space);
 #endif
             // Send the message to the remote node to do the free
             Serializer rez;
@@ -2810,25 +2863,24 @@ namespace Legion {
               rez.serialize(instance);
             }
             runtime->send_free_external_allocation(target_space, rez);
-          }
-          else
+          } else
           {
             // We're already local, see if we need to launch a task
             if (freeproc.exists())
             {
-              FreeExternalArgs args(resource, 
-                  (freefunc != nullptr) ? freefunc : free_host_memory, instance);
+              FreeExternalArgs args(
+                  resource, (freefunc != nullptr) ? freefunc : free_host_memory,
+                  instance);
               if (freeproc.exists())
-                runtime->issue_application_processor_task(args,
-                    LG_THROUGHPUT_WORK_PRIORITY, freeproc); 
+                runtime->issue_application_processor_task(
+                    args, LG_THROUGHPUT_WORK_PRIORITY, freeproc);
               else
-                runtime->issue_runtime_meta_task(args,
-                    LG_THROUGHPUT_WORK_PRIORITY);
+                runtime->issue_runtime_meta_task(
+                    args, LG_THROUGHPUT_WORK_PRIORITY);
               // No longer safe to free the resource since that is going
               // to be done by the free external args task
               free_resource = false;
-            }
-            else
+            } else
             {
               // We can do the free now
               free(const_cast<void*>(data.load()));
@@ -2836,20 +2888,17 @@ namespace Legion {
                 instance.destroy();
             }
           }
-        }
-        else
+        } else
         {
 #ifdef DEBUG_LEGION
           assert(instance.exists());
           assert(own_instance);
 #endif
           // Free the future instance through the memory manager
-          MemoryManager *manager =
-            runtime->find_memory_manager(memory);
+          MemoryManager* manager = runtime->find_memory_manager(memory);
           manager->free_future_instance(instance, size, RtEvent::NO_RT_EVENT);
         }
-      }
-      else if (own_instance)
+      } else if (own_instance)
       {
 #ifdef DEBUG_LEGION
         assert(instance.exists());
@@ -2861,21 +2910,21 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ApEvent FutureInstance::initialize(const ReductionOp *redop, Operation *op,
-                                       ApEvent precondition)
+    ApEvent FutureInstance::initialize(
+        const ReductionOp* redop, Operation* op, ApEvent precondition)
     //--------------------------------------------------------------------------
     {
       // Check to see if this is visible or not
-      if (!is_meta_visible || (precondition.exists() && 
-           !precondition.has_triggered_faultignorant()))
+      if (!is_meta_visible || (precondition.exists() &&
+                               !precondition.has_triggered_faultignorant()))
       {
         Realm::CopySrcDstField src, dst;
         src.set_fill(redop->identity, redop->sizeof_rhs);
         bool own_inst = false;
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
         LgEvent inst_event;
-        PhysicalInstance dst_inst = 
-          get_instance(redop->sizeof_rhs, inst_event, own_inst);
+        PhysicalInstance dst_inst =
+            get_instance(redop->sizeof_rhs, inst_event, own_inst);
 #else
         PhysicalInstance dst_inst = get_instance(redop->sizeof_rhs, own_inst);
 #endif
@@ -2883,22 +2932,23 @@ namespace Legion {
         // Should only be writing to instances that this future instance owns
         assert(own_instance);
 #endif
-        dst.set_field(dst_inst, 0/*field id*/, size);
+        dst.set_field(dst_inst, 0 /*field id*/, size);
         std::vector<Realm::CopySrcDstField> srcs(1, src);
         std::vector<Realm::CopySrcDstField> dsts(1, dst);
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
         {
-          SmallNameClosure<1> *closure = new SmallNameClosure<1>();
+          SmallNameClosure<1>* closure = new SmallNameClosure<1>();
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
           closure->record_instance_name(dst_inst, inst_event);
 #else
           closure->record_instance_name(dst_inst, unique_event);
 #endif
-          runtime->profiler->add_fill_request(requests,closure,op,precondition);
+          runtime->profiler->add_fill_request(
+              requests, closure, op, precondition);
         }
-        const Point<1,coord_t> zero(0);
-        const Rect<1,coord_t> rect(zero, zero);
+        const Point<1, coord_t> zero(0);
+        const Rect<1, coord_t> rect(zero, zero);
         const ApEvent result(rect.copy(srcs, dsts, requests, precondition));
         if (own_inst)
         {
@@ -2908,25 +2958,25 @@ namespace Legion {
             dst_inst.destroy();
         }
         return result;
-      }
-      else
+      } else
       {
-        memcpy(const_cast<void*>(get_data()),redop->identity,redop->sizeof_rhs);
+        memcpy(
+            const_cast<void*>(get_data()), redop->identity, redop->sizeof_rhs);
         return ApEvent::NO_AP_EVENT;
       }
     }
 
     //--------------------------------------------------------------------------
-    ApEvent FutureInstance::copy_from(FutureInstance *source, Operation *op,
-                                      ApEvent precondition)
+    ApEvent FutureInstance::copy_from(
+        FutureInstance* source, Operation* op, ApEvent precondition)
     //--------------------------------------------------------------------------
     {
       return copy_from(source, op->get_unique_op_id(), precondition);
     }
 
     //--------------------------------------------------------------------------
-    ApEvent FutureInstance::copy_from(FutureInstance *source, UniqueID uid,
-                                      ApEvent precondition)
+    ApEvent FutureInstance::copy_from(
+        FutureInstance* source, UniqueID uid, ApEvent precondition)
     //--------------------------------------------------------------------------
     {
       // Only copying the minimum size between the two, this is not very
@@ -2934,15 +2984,15 @@ namespace Legion {
       // just trusing that the caller code is correct
       const size_t copy_size = std::min(size, source->size);
       if (!is_meta_visible || !source->is_meta_visible ||
-          (precondition.exists() && 
+          (precondition.exists() &&
            !precondition.has_triggered_faultignorant()))
       {
         // We need to offload this to realm
         bool own_src = false, own_dst = false;
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
         LgEvent src_event, dst_event;
-        PhysicalInstance src_inst = 
-          source->get_instance(copy_size, src_event, own_src);
+        PhysicalInstance src_inst =
+            source->get_instance(copy_size, src_event, own_src);
         PhysicalInstance dst_inst = get_instance(copy_size, dst_event, own_dst);
 #else
         PhysicalInstance src_inst = source->get_instance(copy_size, own_src);
@@ -2951,19 +3001,20 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         // Should only be writing to instances that this future instance owns
         // Might also happen if we have an "external" (not really external but
-        // made-using-malloc instance) that is bigger than the copy and we 
+        // made-using-malloc instance) that is bigger than the copy and we
         // make an intermediate instance to handle that.
-        assert(own_instance || 
+        assert(
+            own_instance ||
             (own_dst && external_allocation && (copy_size < size)));
 #endif
         std::vector<Realm::CopySrcDstField> srcs(1);
         std::vector<Realm::CopySrcDstField> dsts(1);
-        srcs.back().set_field(src_inst, 0/*field id*/, copy_size);
-        dsts.back().set_field(dst_inst, 0/*field id*/, copy_size);
+        srcs.back().set_field(src_inst, 0 /*field id*/, copy_size);
+        dsts.back().set_field(dst_inst, 0 /*field id*/, copy_size);
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
         {
-          SmallNameClosure<2> *closure = new SmallNameClosure<2>();
+          SmallNameClosure<2>* closure = new SmallNameClosure<2>();
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
           closure->record_instance_name(src_inst, src_event);
           closure->record_instance_name(dst_inst, dst_event);
@@ -2974,8 +3025,8 @@ namespace Legion {
           runtime->profiler->add_copy_request(
               requests, closure, uid, precondition);
         }
-        const Point<1,coord_t> zero(0);
-        const Rect<1,coord_t> rect(zero, zero);
+        const Point<1, coord_t> zero(0);
+        const Rect<1, coord_t> rect(zero, zero);
         const ApEvent result(rect.copy(srcs, dsts, requests, precondition));
         RtEvent protect;
         if (own_src)
@@ -2984,8 +3035,7 @@ namespace Legion {
           {
             protect = Runtime::protect_event(result);
             src_inst.destroy(protect);
-          }
-          else
+          } else
             src_inst.destroy();
         }
         if (own_dst)
@@ -2995,28 +3045,26 @@ namespace Legion {
             if (!protect.exists())
               protect = Runtime::protect_event(result);
             dst_inst.destroy(protect);
-          }
-          else
+          } else
             dst_inst.destroy();
         }
         return result;
-      }
-      else
+      } else
       {
         // We can do this as a straight memcpy, no need to offload to realm
         memcpy(const_cast<void*>(get_data()), source->get_data(), copy_size);
         return ApEvent::NO_AP_EVENT;
       }
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    ApEvent FutureInstance::reduce_from(FutureInstance *source, Operation *op,
-                       const ReductionOpID redop_id, const ReductionOp *redop, 
-                       bool exclusive, ApEvent precondition)
+    ApEvent FutureInstance::reduce_from(
+        FutureInstance* source, Operation* op, const ReductionOpID redop_id,
+        const ReductionOp* redop, bool exclusive, ApEvent precondition)
     //--------------------------------------------------------------------------
     {
-      if (!is_meta_visible || !source->is_meta_visible || 
-          (precondition.exists() && 
+      if (!is_meta_visible || !source->is_meta_visible ||
+          (precondition.exists() &&
            !precondition.has_triggered_faultignorant()))
       {
         // We need to offload this to realm
@@ -3024,31 +3072,32 @@ namespace Legion {
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
         LgEvent src_event, dst_event;
         PhysicalInstance src_inst =
-          source->get_instance(redop->sizeof_rhs, src_event, own_src);
+            source->get_instance(redop->sizeof_rhs, src_event, own_src);
         PhysicalInstance dst_inst =
-          get_instance(redop->sizeof_rhs, dst_event, own_dst);
+            get_instance(redop->sizeof_rhs, dst_event, own_dst);
 #else
         PhysicalInstance src_inst =
-          source->get_instance(redop->sizeof_rhs, own_src);
+            source->get_instance(redop->sizeof_rhs, own_src);
         PhysicalInstance dst_inst = get_instance(redop->sizeof_rhs, own_dst);
 #endif
 #ifdef DEBUG_LEGION
         // Should only be reducing to instances that this future instance owns
         // Might also happen if we have an "external" (not really external but
-        // made-using-malloc instance) that is bigger than the copy and we 
+        // made-using-malloc instance) that is bigger than the copy and we
         // make an intermediate instance to handle that.
-        assert(own_instance ||
+        assert(
+            own_instance ||
             (own_dst && external_allocation && (redop->sizeof_rhs < size)));
 #endif
         std::vector<Realm::CopySrcDstField> srcs(1);
         std::vector<Realm::CopySrcDstField> dsts(1);
-        srcs.back().set_field(src_inst, 0/*field id*/, size);
-        dsts.back().set_field(dst_inst, 0/*field id*/, size);
-        dsts.back().set_redop(redop_id, true/*fold*/, exclusive);
+        srcs.back().set_field(src_inst, 0 /*field id*/, size);
+        dsts.back().set_field(dst_inst, 0 /*field id*/, size);
+        dsts.back().set_redop(redop_id, true /*fold*/, exclusive);
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
         {
-          SmallNameClosure<2> *closure = new SmallNameClosure<2>();
+          SmallNameClosure<2>* closure = new SmallNameClosure<2>();
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
           closure->record_instance_name(src_inst, src_event);
           closure->record_instance_name(dst_inst, dst_event);
@@ -3056,10 +3105,11 @@ namespace Legion {
           closure->record_instance_name(src_inst, source->unique_event);
           closure->record_instance_name(dst_inst, unique_event);
 #endif
-          runtime->profiler->add_copy_request(requests,closure,op,precondition);
+          runtime->profiler->add_copy_request(
+              requests, closure, op, precondition);
         }
-        const Point<1,coord_t> zero(0);
-        const Rect<1,coord_t> rect(zero, zero);
+        const Point<1, coord_t> zero(0);
+        const Rect<1, coord_t> rect(zero, zero);
         const ApEvent result(rect.copy(srcs, dsts, requests, precondition));
         RtEvent protect;
         if (own_src)
@@ -3068,8 +3118,7 @@ namespace Legion {
           {
             protect = Runtime::protect_event(result);
             src_inst.destroy(protect);
-          }
-          else
+          } else
             src_inst.destroy();
         }
         if (own_dst)
@@ -3079,13 +3128,11 @@ namespace Legion {
             if (!protect.exists())
               protect = Runtime::protect_event(result);
             dst_inst.destroy(protect);
-          }
-          else
+          } else
             dst_inst.destroy();
         }
         return result;
-      }
-      else
+      } else
       {
         // We can do this as a straight fold, no need to offload to realm
         if (exclusive)
@@ -3093,17 +3140,17 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(redop->cpu_fold_excl_fn);
 #endif
-          (redop->cpu_fold_excl_fn)(const_cast<void*>(get_data()), 0/*stride*/,
-                  source->get_data(), 0/*stride*/, 1/*count*/, redop->userdata);
-        }
-        else
+          (redop->cpu_fold_excl_fn)(
+              const_cast<void*>(get_data()), 0 /*stride*/, source->get_data(),
+              0 /*stride*/, 1 /*count*/, redop->userdata);
+        } else
         {
 #ifdef DEBUG_LEGION
           assert(redop->cpu_fold_nonexcl_fn);
 #endif
-          (redop->cpu_fold_nonexcl_fn)(const_cast<void*>(get_data()), 
-              0/*stride*/, source->get_data(), 0/*stride*/,
-              1/*count*/, redop->userdata);
+          (redop->cpu_fold_nonexcl_fn)(
+              const_cast<void*>(get_data()), 0 /*stride*/, source->get_data(),
+              0 /*stride*/, 1 /*count*/, redop->userdata);
         }
         return ApEvent::NO_AP_EVENT;
       }
@@ -3115,7 +3162,7 @@ namespace Legion {
     {
       if (size == 0)
         return nullptr;
-      const void *result = data.load();
+      const void* result = data.load();
       if (result != nullptr)
         return result;
       if (use_event.exists() && !use_event.has_triggered())
@@ -3133,10 +3180,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
-    PhysicalInstance FutureInstance::get_instance(size_t needed, 
-                                            LgEvent &inst_event, bool &own_inst)
+    PhysicalInstance FutureInstance::get_instance(
+        size_t needed, LgEvent& inst_event, bool& own_inst)
 #else
-    PhysicalInstance FutureInstance::get_instance(size_t needed, bool &own_inst)
+    PhysicalInstance FutureInstance::get_instance(size_t needed, bool& own_inst)
 #endif
     //--------------------------------------------------------------------------
     {
@@ -3147,53 +3194,55 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(needed < size);
 #endif
-        const Point<1,coord_t> zero(0);
-        const Realm::IndexSpace<1,coord_t> rect_space(
-                      Realm::Rect<1,coord_t>(zero, zero));
-        const Realm::ExternalInstanceResource *alt_resource = resource;
+        const Point<1, coord_t> zero(0);
+        const Realm::IndexSpace<1, coord_t> rect_space(
+            Realm::Rect<1, coord_t>(zero, zero));
+        const Realm::ExternalInstanceResource* alt_resource = resource;
         // Check to see if we already have a resource or not
         if (alt_resource == nullptr)
         {
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
-          const PhysicalInstance inst = get_instance(size, inst_event,own_inst);
+          const PhysicalInstance inst =
+              get_instance(size, inst_event, own_inst);
 #else
-          const PhysicalInstance inst = get_instance(size, own_inst); 
+          const PhysicalInstance inst = get_instance(size, own_inst);
 #endif
-          alt_resource =
-            inst.generate_resource_info(rect_space,0/*fid*/,false/*read only*/);
+          alt_resource = inst.generate_resource_info(
+              rect_space, 0 /*fid*/, false /*read only*/);
 #ifdef DEBUG_LEGION
-          // Note that if you hit this then that likely means that Realm 
+          // Note that if you hit this then that likely means that Realm
           // doesn't support 'generate_resource_info' yet for that kind of
           // memory and it probably just needs to be implemented
           assert(alt_resource != nullptr);
 #endif
         }
-        const std::vector<Realm::FieldID> fids(1, 0/*field id*/);
+        const std::vector<Realm::FieldID> fids(1, 0 /*field id*/);
         const std::vector<size_t> sizes(1, needed);
-        const int dim_order[1] = { 0 };
+        const int dim_order[1] = {0};
         const Realm::InstanceLayoutConstraints constraints(fids, sizes, 1);
-        Realm::InstanceLayoutGeneric *ilg =
-            Realm::InstanceLayoutGeneric::choose_instance_layout<1,coord_t>(
+        Realm::InstanceLayoutGeneric* ilg =
+            Realm::InstanceLayoutGeneric::choose_instance_layout<1, coord_t>(
                 rect_space, constraints, dim_order);
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
         const Realm::UserEvent temp_unique_event =
-          Realm::UserEvent::create_user_event();
+            Realm::UserEvent::create_user_event();
         temp_unique_event.trigger();
 #endif
         // If it is not an external allocation then ignore suggested_memory
         // because we know we're making this on top of an existing instance
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
-          runtime->profiler->add_inst_request(requests, 
+          runtime->profiler->add_inst_request(
+              requests,
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
-                      implicit_provenance, LgEvent(temp_unique_event));
+              implicit_provenance, LgEvent(temp_unique_event));
 #else
-                      implicit_provenance, unique_event);
+              implicit_provenance, unique_event);
 #endif
         PhysicalInstance result;
         const RtEvent inst_ready(PhysicalInstance::create_external_instance(
-              result, alt_resource->suggested_memory(), ilg,
-              *alt_resource, requests));
+            result, alt_resource->suggested_memory(), ilg, *alt_resource,
+            requests));
         if (inst_ready.exists() && (implicit_profiler != nullptr))
           implicit_profiler->record_instance_ready(inst_ready, unique_event);
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
@@ -3205,8 +3254,7 @@ namespace Legion {
         if (inst_ready.exists() && !inst_ready.has_triggered())
           inst_ready.wait();
         return result;
-      }
-      else if (!instance.exists())
+      } else if (!instance.exists())
       {
 #ifdef DEBUG_LEGION
         assert(!own_instance);
@@ -3216,16 +3264,16 @@ namespace Legion {
 #endif
         RtEvent wait_on;
         // Make our instance and see if we lost the race
-        const std::vector<Realm::FieldID> fids(1, 0/*field id*/);
+        const std::vector<Realm::FieldID> fids(1, 0 /*field id*/);
         const std::vector<size_t> sizes(1, size);
-        const int dim_order[1] = { 0 };
+        const int dim_order[1] = {0};
         const Realm::InstanceLayoutConstraints constraints(fids, sizes, 1);
-        const Point<1,coord_t> zero(0);
-        const Realm::IndexSpace<1,coord_t> rect_space(
-                      Realm::Rect<1,coord_t>(zero, zero));
-        Realm::InstanceLayoutGeneric *ilg =
-          Realm::InstanceLayoutGeneric::choose_instance_layout<1,coord_t>(
-              rect_space, constraints, dim_order);
+        const Point<1, coord_t> zero(0);
+        const Realm::IndexSpace<1, coord_t> rect_space(
+            Realm::Rect<1, coord_t>(zero, zero));
+        Realm::InstanceLayoutGeneric* ilg =
+            Realm::InstanceLayoutGeneric::choose_instance_layout<1, coord_t>(
+                rect_space, constraints, dim_order);
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
         {
@@ -3233,13 +3281,13 @@ namespace Legion {
           Realm::UserEvent unique = Realm::UserEvent::create_user_event();
           unique.trigger();
           unique_event = LgEvent(unique);
-          runtime->profiler->add_inst_request(requests,
-                      implicit_provenance, unique_event);
+          runtime->profiler->add_inst_request(
+              requests, implicit_provenance, unique_event);
         }
         // If it is not an external allocation then ignore suggested_memory
         // because we know we're making this on top of an existing instance
-        use_event = RtEvent(PhysicalInstance::create_external_instance(instance,
-              resource->suggested_memory(), ilg, *resource, requests));
+        use_event = RtEvent(PhysicalInstance::create_external_instance(
+            instance, resource->suggested_memory(), ilg, *resource, requests));
         own_instance = true;
         if (use_event.exists() && (implicit_profiler != nullptr))
           implicit_profiler->record_instance_ready(use_event, unique_event);
@@ -3262,21 +3310,21 @@ namespace Legion {
     {
       if (own_allocation)
       {
-        if (precondition.exists() && 
+        if (precondition.exists() &&
             !precondition.has_triggered_faultignorant())
         {
           DeferDeleteFutureInstanceArgs args(this);
-          runtime->issue_runtime_meta_task(args,
-            LG_THROUGHPUT_WORK_PRIORITY, Runtime::protect_event(precondition));
+          runtime->issue_runtime_meta_task(
+              args, LG_THROUGHPUT_WORK_PRIORITY,
+              Runtime::protect_event(precondition));
           return true;
         }
-      }
-      else if (own_instance)
+      } else if (own_instance)
       {
 #ifdef DEBUG_LEGION
         assert(instance.exists());
 #endif
-        if (precondition.exists() && 
+        if (precondition.exists() &&
             !precondition.has_triggered_faultignorant())
         {
           instance.destroy(Runtime::protect_event(precondition));
@@ -3301,8 +3349,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool FutureInstance::pack_instance(Serializer &rez, ApEvent ready_event,
-        bool pack_ownership, bool allow_value)
+    bool FutureInstance::pack_instance(
+        Serializer& rez, ApEvent ready_event, bool pack_ownership,
+        bool allow_value)
     //--------------------------------------------------------------------------
     {
       rez.serialize(size);
@@ -3312,14 +3361,13 @@ namespace Legion {
       {
         // We can just pass this future by value because we can
         // see it here, it's tiny, and it's ready to be read
-        rez.serialize<bool>(true); // by value
+        rez.serialize<bool>(true);  // by value
         rez.serialize(data.load(), size);
         // We packed this by value so return true
         return true;
-      }
-      else
+      } else
       {
-        rez.serialize<bool>(false); // by value
+        rez.serialize<bool>(false);  // by value
         rez.serialize(data.load());
         bool dummy_owner = true;
 #ifndef LEGION_UNDO_FUTURE_INSTANCE_HACK
@@ -3339,28 +3387,26 @@ namespace Legion {
           assert(own_instance);
           assert(own_allocation);
 #endif
-          rez.serialize<bool>(true); // own the allocation on the destination
+          rez.serialize<bool>(true);  // own the allocation on the destination
           own_allocation = false;
           // we no longer own this instance either
           own_instance = false;
-        }
-        else
-          rez.serialize<bool>(false); // do not own allocation on destination
+        } else
+          rez.serialize<bool>(false);  // do not own allocation on destination
         if (external_allocation)
         {
-          rez.serialize<bool>(true); // external allocation
+          rez.serialize<bool>(true);  // external allocation
           rez.serialize(freefunc);
           rez.serialize(freeproc);
-        }
-        else
-          rez.serialize<bool>(false); // external allocation
+        } else
+          rez.serialize<bool>(false);  // external allocation
         // Not packed by value
         return false;
       }
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureInstance::pack_null(Serializer &rez)
+    /*static*/ void FutureInstance::pack_null(Serializer& rez)
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(0);
@@ -3368,7 +3414,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ FutureInstance* FutureInstance::unpack_instance(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       size_t size;
@@ -3379,11 +3425,11 @@ namespace Legion {
       derez.deserialize<bool>(pass_by_value);
       if (pass_by_value)
       {
-        void *data = malloc(size);
+        void* data = malloc(size);
         derez.deserialize(data, size);
-        return new FutureInstance(data, size, true/*external*/);
+        return new FutureInstance(data, size, true /*external*/);
       }
-      void *data;
+      void* data;
       derez.deserialize(data);
       PhysicalInstance instance;
       derez.deserialize(instance);
@@ -3391,8 +3437,8 @@ namespace Legion {
       derez.deserialize(unique_event);
       RtEvent use_event;
       if (instance.exists())
-        use_event = RtEvent(instance.fetch_metadata(
-              Processor::get_executing_processor()));
+        use_event = RtEvent(
+            instance.fetch_metadata(Processor::get_executing_processor()));
       bool own_allocation, external_allocation;
       derez.deserialize<bool>(own_allocation);
       derez.deserialize<bool>(external_allocation);
@@ -3402,13 +3448,13 @@ namespace Legion {
         derez.deserialize(freefunc);
         Processor proc;
         derez.deserialize(proc);
-        return new FutureInstance(data, size, own_allocation,
-           nullptr/*resource*/, freefunc, proc, unique_event, instance, use_event);
-      }
-      else
-        return new FutureInstance(data, size,
-                    false/*external*/, own_allocation, unique_event,
-                    instance, Processor::NO_PROC, use_event);
+        return new FutureInstance(
+            data, size, own_allocation, nullptr /*resource*/, freefunc, proc,
+            unique_event, instance, use_event);
+      } else
+        return new FutureInstance(
+            data, size, false /*external*/, own_allocation, unique_event,
+            instance, Processor::NO_PROC, use_event);
     }
 
     //--------------------------------------------------------------------------
@@ -3437,23 +3483,23 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ FutureInstance* FutureInstance::create_local(const void *value,
-                                                          size_t size, bool own)
+    /*static*/ FutureInstance* FutureInstance::create_local(
+        const void* value, size_t size, bool own)
     //--------------------------------------------------------------------------
     {
       // Copy the data into a buffer we own if we don't already
       if (!own)
       {
-        void *buffer = malloc(size);
+        void* buffer = malloc(size);
         memcpy(buffer, value, size);
         value = buffer;
         own = true;
       }
-      return new FutureInstance(value, size, true/*external*/);
+      return new FutureInstance(value, size, true /*external*/);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureInstance::handle_free_external(Deserializer &derez)
+    /*static*/ void FutureInstance::handle_free_external(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -3466,22 +3512,23 @@ namespace Legion {
       PhysicalInstance instance;
       derez.deserialize(instance);
       const RtEvent use_event(instance.fetch_metadata(freeproc));
-      FreeExternalArgs args(nullptr/*no resource*/, freefunc, instance);
+      FreeExternalArgs args(nullptr /*no resource*/, freefunc, instance);
       if (freeproc.exists())
-        runtime->issue_application_processor_task(args,
-            LG_THROUGHPUT_WORK_PRIORITY, freeproc, use_event);
+        runtime->issue_application_processor_task(
+            args, LG_THROUGHPUT_WORK_PRIORITY, freeproc, use_event);
       else
-        runtime->issue_runtime_meta_task(args,
-            LG_THROUGHPUT_WORK_PRIORITY, use_event);
+        runtime->issue_runtime_meta_task(
+            args, LG_THROUGHPUT_WORK_PRIORITY, use_event);
     }
 
     //--------------------------------------------------------------------------
     FutureInstance::FreeExternalArgs::FreeExternalArgs(
-                          const Realm::ExternalInstanceResource *r,
-                          void (*func)(const Realm::ExternalInstanceResource&),
-                          PhysicalInstance inst)
+        const Realm::ExternalInstanceResource* r,
+        void (*func)(const Realm::ExternalInstanceResource&),
+        PhysicalInstance inst)
       : LgTaskArgs<FreeExternalArgs>(implicit_provenance),
-        resource((r == nullptr) ? r : r->clone()), freefunc(func), instance(inst)
+        resource((r == nullptr) ? r : r->clone()), freefunc(func),
+        instance(inst)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -3490,18 +3537,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureInstance::handle_free_external(const void *args)
+    /*static*/ void FutureInstance::handle_free_external(const void* args)
     //--------------------------------------------------------------------------
     {
-      const FreeExternalArgs *fargs = (const FreeExternalArgs*)args;
-      const Realm::ExternalInstanceResource *resource = fargs->resource;
+      const FreeExternalArgs* fargs = (const FreeExternalArgs*)args;
+      const Realm::ExternalInstanceResource* resource = fargs->resource;
       if (resource == nullptr)
       {
-        const Point<1,coord_t> zero(0);
-        const Realm::IndexSpace<1,coord_t> rect_space(
-                      Realm::Rect<1,coord_t>(zero, zero));
-        resource = fargs->instance.generate_resource_info(rect_space,
-                                          0/*fid*/, true/*read only*/);
+        const Point<1, coord_t> zero(0);
+        const Realm::IndexSpace<1, coord_t> rect_space(
+            Realm::Rect<1, coord_t>(zero, zero));
+        resource = fargs->instance.generate_resource_info(
+            rect_space, 0 /*fid*/, true /*read only*/);
       }
       (*(fargs->freefunc))(*resource);
       if (fargs->instance.exists())
@@ -3511,22 +3558,22 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void FutureInstance::free_host_memory(
-                                const Realm::ExternalInstanceResource &resource)
+        const Realm::ExternalInstanceResource& resource)
     //--------------------------------------------------------------------------
     {
-      const Realm::ExternalMemoryResource &allocation =
-        static_cast<const Realm::ExternalMemoryResource&>(resource);
+      const Realm::ExternalMemoryResource& allocation =
+          static_cast<const Realm::ExternalMemoryResource&>(resource);
       free(reinterpret_cast<void*>(allocation.base));
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FutureInstance::handle_defer_deletion(const void *args)
+    /*static*/ void FutureInstance::handle_defer_deletion(const void* args)
     //--------------------------------------------------------------------------
     {
-      const DeferDeleteFutureInstanceArgs *dargs = 
-        (const DeferDeleteFutureInstanceArgs*)args;
+      const DeferDeleteFutureInstanceArgs* dargs =
+          (const DeferDeleteFutureInstanceArgs*)args;
       delete dargs->instance;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

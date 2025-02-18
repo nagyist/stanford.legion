@@ -23,7 +23,7 @@ namespace Legion {
 
     /**
      * \class AutoTracing
-     * The auto-tracing class provides an overload of the 
+     * The auto-tracing class provides an overload of the
      * add_to_dependence_queue method that will hook in the auto tracing
      * infrastructure and use the trace recognizer to see if we can find
      * traces that we will try to replay.
@@ -31,24 +31,26 @@ namespace Legion {
     template<typename T>
     class AutoTracing : public T {
     public:
-      template <typename ... Args>
-      AutoTracing(const Mapper::ContextConfigOutput &config, Args&& ... args)
-        : T(config, std::forward<Args>(args) ... ),
-          recognizer(this, config), opidx(0) { }
+      template<typename... Args>
+      AutoTracing(const Mapper::ContextConfigOutput& config, Args&&... args)
+        : T(config, std::forward<Args>(args)...), recognizer(this, config),
+          opidx(0)
+      { }
     public:
-      virtual bool add_to_dependence_queue(Operation *op,
+      virtual bool add_to_dependence_queue(
+          Operation* op,
           const std::vector<StaticDependence>* dependences = nullptr,
           bool unordered = false, bool outermost = true) override;
       // If the application performs a blocking operation, we need to know
       // about that, so override TaskContext::record_blocking_call().
-      virtual void record_blocking_call(uint64_t future_coordinate,
-                                        bool invalidate_trace = true) override;
+      virtual void record_blocking_call(
+          uint64_t future_coordinate, bool invalidate_trace = true) override;
     private:
       TraceRecognizer recognizer;
       uint64_t opidx;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_AUTOMATIC_TRACING_H__
+#endif  // __LEGION_AUTOMATIC_TRACING_H__

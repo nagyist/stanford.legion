@@ -25,59 +25,57 @@ namespace Legion {
     /**
      * \class RegistrationAnalysis
      * A registration analysis is a kind of physical analysis that
-     * also supports performing registration on the views of the 
+     * also supports performing registration on the views of the
      */
     class RegistrationAnalysis : public PhysicalAnalysis {
     public:
-      RegistrationAnalysis(Operation *op, unsigned index,
-                           RegionNode *node, bool on_heap,
-                           const PhysicalTraceInfo &trace_info, bool exclusive);
-      RegistrationAnalysis(AddressSpaceID src, AddressSpaceID prev,
-                           Operation *op, unsigned index, 
-                           RegionNode *node, bool on_heap, 
-                           std::vector<PhysicalManager*> &&target_insts,
-                           LegionVector<
-                              FieldMaskSet<InstanceView> > &&target_views,
-                           std::vector<IndividualView*> &&source_views,
-                           const PhysicalTraceInfo &trace_info,
-                           CollectiveMapping *collective_mapping,
-                           bool first_local, bool exclusive);
+      RegistrationAnalysis(
+          Operation* op, unsigned index, RegionNode* node, bool on_heap,
+          const PhysicalTraceInfo& trace_info, bool exclusive);
+      RegistrationAnalysis(
+          AddressSpaceID src, AddressSpaceID prev, Operation* op,
+          unsigned index, RegionNode* node, bool on_heap,
+          std::vector<PhysicalManager*>&& target_insts,
+          LegionVector<FieldMaskSet<InstanceView> >&& target_views,
+          std::vector<IndividualView*>&& source_views,
+          const PhysicalTraceInfo& trace_info,
+          CollectiveMapping* collective_mapping, bool first_local,
+          bool exclusive);
       // Remote registration analysis with no views
-      RegistrationAnalysis(AddressSpaceID src, AddressSpaceID prev,
-                           Operation *op, unsigned index, 
-                           RegionNode *node, bool on_heap, 
-                           const PhysicalTraceInfo &trace_info,
-                           CollectiveMapping *collective_mapping,
-                           bool first_local, bool exclusive);
+      RegistrationAnalysis(
+          AddressSpaceID src, AddressSpaceID prev, Operation* op,
+          unsigned index, RegionNode* node, bool on_heap,
+          const PhysicalTraceInfo& trace_info,
+          CollectiveMapping* collective_mapping, bool first_local,
+          bool exclusive);
     public:
       virtual ~RegistrationAnalysis(void);
     public:
-      RtEvent convert_views(LogicalRegion region, const InstanceSet &targets,
-          const std::vector<PhysicalManager*> *sources = nullptr,
-          const RegionUsage *usage = nullptr, bool collective_rendezvous = false,
-          unsigned analysis_index = 0);
+      RtEvent convert_views(
+          LogicalRegion region, const InstanceSet& targets,
+          const std::vector<PhysicalManager*>* sources = nullptr,
+          const RegionUsage* usage = nullptr,
+          bool collective_rendezvous = false, unsigned analysis_index = 0);
     public:
-      virtual RtEvent perform_registration(RtEvent precondition,
-                                           const RegionUsage &usage,
-                                           std::set<RtEvent> &applied_events,
-                                           ApEvent init_precondition,
-                                           ApEvent termination_event,
-                                           ApEvent &instances_ready,
-                                           bool symbolic = false);
-      virtual IndexSpaceID get_collective_match_space(void) const; 
+      virtual RtEvent perform_registration(
+          RtEvent precondition, const RegionUsage& usage,
+          std::set<RtEvent>& applied_events, ApEvent init_precondition,
+          ApEvent termination_event, ApEvent& instances_ready,
+          bool symbolic = false);
+      virtual IndexSpaceID get_collective_match_space(void) const;
     public:
-      RegionNode *const region;
+      RegionNode* const region;
       const size_t context_index;
       const PhysicalTraceInfo trace_info;
     public:
       // Be careful to only access these after they are ready
       std::vector<PhysicalManager*> target_instances;
       LegionVector<FieldMaskSet<InstanceView> > target_views;
-      std::map<InstanceView*,size_t> collective_arrivals;
+      std::map<InstanceView*, size_t> collective_arrivals;
       std::vector<IndividualView*> source_views;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_REGISTRATION_ANALYSIS_H__
+#endif  // __LEGION_REGISTRATION_ANALYSIS_H__

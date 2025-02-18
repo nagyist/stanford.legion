@@ -24,17 +24,16 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // VersionInfo 
+    // VersionInfo
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
     VersionInfo::VersionInfo(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    VersionInfo::VersionInfo(const VersionInfo &rhs)
+    VersionInfo::VersionInfo(const VersionInfo& rhs)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -46,11 +45,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     VersionInfo::~VersionInfo(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    VersionInfo& VersionInfo::operator=(const VersionInfo &rhs)
+    VersionInfo& VersionInfo::operator=(const VersionInfo& rhs)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -61,12 +59,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void VersionInfo::pack_equivalence_sets(Serializer &rez) const
+    void VersionInfo::pack_equivalence_sets(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
       rez.serialize<size_t>(equivalence_sets.size());
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it = 
-            equivalence_sets.begin(); it != equivalence_sets.end(); it++)
+      for (FieldMaskSet<EquivalenceSet>::const_iterator it =
+               equivalence_sets.begin();
+           it != equivalence_sets.end(); it++)
       {
         rez.serialize(it->first->did);
         rez.serialize(it->second);
@@ -74,8 +73,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void VersionInfo::unpack_equivalence_sets(Deserializer &derez, 
-                              std::set<RtEvent> &ready_events)
+    void VersionInfo::unpack_equivalence_sets(
+        Deserializer& derez, std::set<RtEvent>& ready_events)
     //--------------------------------------------------------------------------
     {
       size_t num_sets;
@@ -87,8 +86,8 @@ namespace Legion {
         FieldMask mask;
         derez.deserialize(mask);
         RtEvent ready_event;
-        EquivalenceSet *set = 
-          runtime->find_or_request_equivalence_set(did, ready_event);
+        EquivalenceSet* set =
+            runtime->find_or_request_equivalence_set(did, ready_event);
         equivalence_sets.insert(set, mask);
         if (ready_event.exists())
           ready_events.insert(ready_event);
@@ -96,8 +95,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void VersionInfo::record_equivalence_set(EquivalenceSet *set,
-                                             const FieldMask &mask)
+    void VersionInfo::record_equivalence_set(
+        EquivalenceSet* set, const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
       equivalence_sets.insert(set, mask);
@@ -111,28 +110,27 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Version Manager 
-    ///////////////////////////////////////////////////////////// 
+    // Version Manager
+    /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    VersionManager::VersionManager(RegionTreeNode *n, ContextID c)
+    VersionManager::VersionManager(RegionTreeNode* n, ContextID c)
       : EqSetTracker(manager_lock), ctx(c), node(n)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     VersionManager::~VersionManager(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void VersionManager::perform_versioning_analysis(InnerContext *outermost,
-                 VersionInfo *version_info, RegionNode *region_node,
-                 const FieldMask &version_mask, Operation *op, unsigned index,
-                 unsigned parent_req_index, std::set<RtEvent> &ready_events,
-                 RtEvent *output_region_ready, bool collective_rendezvous)
+    void VersionManager::perform_versioning_analysis(
+        InnerContext* outermost, VersionInfo* version_info,
+        RegionNode* region_node, const FieldMask& version_mask, Operation* op,
+        unsigned index, unsigned parent_req_index,
+        std::set<RtEvent>& ready_events, RtEvent* output_region_ready,
+        bool collective_rendezvous)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -151,17 +149,20 @@ namespace Legion {
         // here even before they can compute it in the EqKDTree which is
         // an important optimization for many applications
         const DistributedID did = runtime->get_available_distributed_id();
-        EquivalenceSet *set = new EquivalenceSet(did,
-            runtime->address_space/*logical owner*/, region_node->row_source,
-            region_node->handle.get_tree_id(), outermost, true/*register*/);
+        EquivalenceSet* set = new EquivalenceSet(
+            did, runtime->address_space /*logical owner*/,
+            region_node->row_source, region_node->handle.get_tree_id(),
+            outermost, true /*register*/);
         version_info->record_equivalence_set(set, version_mask);
         // Launch a meta-task to register this equivalence set with
         // EqKDTree once the index space domain is ready
         RtUserEvent done_event = Runtime::create_rt_user_event();
         // Always register with the operation's immediate enclosing context
-        FinalizeOutputEquivalenceSetArgs args(this, op->get_unique_op_id(),
-            op->get_context(), parent_req_index, set, done_event);
-        runtime->issue_runtime_meta_task(args, LG_LATENCY_DEFERRED_PRIORITY,
+        FinalizeOutputEquivalenceSetArgs args(
+            this, op->get_unique_op_id(), op->get_context(), parent_req_index,
+            set, done_event);
+        runtime->issue_runtime_meta_task(
+            args, LG_LATENCY_DEFERRED_PRIORITY,
             region_node->row_source->get_ready_event());
         *output_region_ready = done_event;
         AutoLock m_lock(manager_lock);
@@ -172,20 +173,20 @@ namespace Legion {
           set->add_base_gc_ref(get_reference_source_kind());
         return;
       }
-      // If we don't have equivalence classes for this region yet we 
+      // If we don't have equivalence classes for this region yet we
       // either need to compute them or request them from the owner
       FieldMask remaining_mask(version_mask);
       bool has_waiter = false;
       {
-        AutoLock m_lock(manager_lock,1,false/*exclusive*/);
+        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
         // Check to see if any computations of equivalence sets are in progress
         // If so we'll skip out early and go down the slow path which should
         // be a fairly rare thing to do
         if (equivalence_sets_ready != nullptr)
         {
-          for (LegionMap<RtUserEvent,FieldMask>::const_iterator it =
-                equivalence_sets_ready->begin(); it != 
-                equivalence_sets_ready->end(); it++)
+          for (LegionMap<RtUserEvent, FieldMask>::const_iterator it =
+                   equivalence_sets_ready->begin();
+               it != equivalence_sets_ready->end(); it++)
           {
             if (remaining_mask * it->second)
               continue;
@@ -216,9 +217,9 @@ namespace Legion {
         AutoLock m_lock(manager_lock);
         if (equivalence_sets_ready != nullptr)
         {
-          for (LegionMap<RtUserEvent,FieldMask>::const_iterator it =
-                equivalence_sets_ready->begin(); it != 
-                equivalence_sets_ready->end(); it++)
+          for (LegionMap<RtUserEvent, FieldMask>::const_iterator it =
+                   equivalence_sets_ready->begin();
+               it != equivalence_sets_ready->end(); it++)
           {
             const FieldMask overlap = remaining_mask & it->second;
             if (!overlap)
@@ -237,7 +238,7 @@ namespace Legion {
           if (version_info != nullptr)
             record_equivalence_sets(version_info, remaining_mask);
           remaining_mask -= equivalence_sets.get_valid_mask();
-          // If we got all our fields here and we're not waiting 
+          // If we got all our fields here and we're not waiting
           // on any other computations then we're done
           if (!remaining_mask && !waiting_mask && !collective_rendezvous)
             return;
@@ -248,9 +249,9 @@ namespace Legion {
         {
           compute_event = Runtime::create_rt_user_event();
           if (equivalence_sets_ready == nullptr)
-            equivalence_sets_ready = new LegionMap<RtUserEvent,FieldMask>();
+            equivalence_sets_ready = new LegionMap<RtUserEvent, FieldMask>();
           equivalence_sets_ready->insert(
-              std::make_pair(compute_event,remaining_mask));
+              std::make_pair(compute_event, remaining_mask));
           ready_events.insert(compute_event);
           waiting_mask |= remaining_mask;
         }
@@ -275,57 +276,54 @@ namespace Legion {
           std::vector<EqSetTracker*> targets(1, this);
           std::vector<AddressSpaceID> target_spaces(1, runtime->address_space);
           // Always start this computation at the operation's immediate context
-          ready = op->get_context()->compute_equivalence_sets(parent_req_index,
-              targets, target_spaces, runtime->address_space, 
+          ready = op->get_context()->compute_equivalence_sets(
+              parent_req_index, targets, target_spaces, runtime->address_space,
               region_node->row_source, remaining_mask);
-        }
-        else
-          ready = op->perform_collective_versioning_analysis(index, 
-              region_node->handle, this, remaining_mask, parent_req_index);
+        } else
+          ready = op->perform_collective_versioning_analysis(
+              index, region_node->handle, this, remaining_mask,
+              parent_req_index);
         if (ready.exists() && !ready.has_triggered())
         {
           // Launch task to finalize the sets once they are ready
-          LgFinalizeEqSetsArgs args(this, compute_event, 
-              op->get_unique_op_id(), op->get_context(), outermost,
-              parent_req_index, region_node->row_source);
-          runtime->issue_runtime_meta_task(args, 
-                             LG_LATENCY_DEFERRED_PRIORITY, ready);
-        }
-        else
-          finalize_equivalence_sets(compute_event, op->get_context(),
-              outermost, parent_req_index,
+          LgFinalizeEqSetsArgs args(
+              this, compute_event, op->get_unique_op_id(), op->get_context(),
+              outermost, parent_req_index, region_node->row_source);
+          runtime->issue_runtime_meta_task(
+              args, LG_LATENCY_DEFERRED_PRIORITY, ready);
+        } else
+          finalize_equivalence_sets(
+              compute_event, op->get_context(), outermost, parent_req_index,
               region_node->row_source, op->get_unique_op_id());
-      }
-      else if (collective_rendezvous)
+      } else if (collective_rendezvous)
       {
 #ifdef DEBUG_LEGION
         assert(!remaining_mask);
 #endif
         // Just need to rendezvous, no need to wait for any computation
-        op->perform_collective_versioning_analysis(index, region_node->handle,
-            this, remaining_mask, parent_req_index);
+        op->perform_collective_versioning_analysis(
+            index, region_node->handle, this, remaining_mask, parent_req_index);
       }
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    RtEvent VersionManager::finalize_output_equivalence_set(EquivalenceSet *set,
-                                                      InnerContext *enclosing,
-                                                      unsigned parent_req_index)
+    RtEvent VersionManager::finalize_output_equivalence_set(
+        EquivalenceSet* set, InnerContext* enclosing, unsigned parent_req_index)
     //--------------------------------------------------------------------------
     {
       FieldMask set_mask;
       {
-        AutoLock m_lock(manager_lock,1,false/*exclusive*/);
+        AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
         FieldMaskSet<EquivalenceSet>::const_iterator finder =
-          equivalence_sets.find(set);
+            equivalence_sets.find(set);
 #ifdef DEBUG_LEGION
         assert(finder != equivalence_sets.end());
 #endif
         set_mask = finder->second;
       }
-      return enclosing->record_output_equivalence_set(this,
-          runtime->address_space, parent_req_index, set, set_mask);
-    } 
+      return enclosing->record_output_equivalence_set(
+          this, runtime->address_space, parent_req_index, set, set_mask);
+    }
 
     //--------------------------------------------------------------------------
     RegionTreeID VersionManager::get_region_tree_id(void) const
@@ -368,7 +366,7 @@ namespace Legion {
     {
       // We need to remove any tracked equivalence sets that we have
       FieldMaskSet<EquivalenceSet> to_remove;
-      LegionMap<AddressSpaceID,FieldMaskSet<EqKDTree> > to_cancel;
+      LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> > to_cancel;
       {
         AutoLock m_lock(manager_lock);
 #ifdef DEBUG_LEGION
@@ -390,14 +388,14 @@ namespace Legion {
 #endif
       if (!to_cancel.empty())
         cancel_subscriptions(to_cancel);
-      for (FieldMaskSet<EquivalenceSet>::const_iterator it = 
-            to_remove.begin(); it != to_remove.end(); it++)
+      for (FieldMaskSet<EquivalenceSet>::const_iterator it = to_remove.begin();
+           it != to_remove.end(); it++)
       {
 #ifdef DEBUG_LEGION
         // This would be a valid assertion except for cases with control
         // replication where there is another node that owns the equivalence
         // set and we just happen to have a copy of it here
-        //assert((it->first->region_node != node) ||
+        // assert((it->first->region_node != node) ||
         //        it->first->region_node->row_source->is_empty());
 #endif
         if (it->first->remove_base_gc_ref(VERSION_MANAGER_REF))
@@ -407,17 +405,17 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void VersionManager::handle_finalize_output_eq_set(
-                                                               const void *args)
+        const void* args)
     //--------------------------------------------------------------------------
     {
-      const FinalizeOutputEquivalenceSetArgs *fargs =
-        (const FinalizeOutputEquivalenceSetArgs*)args;
+      const FinalizeOutputEquivalenceSetArgs* fargs =
+          (const FinalizeOutputEquivalenceSetArgs*)args;
       RtEvent done = fargs->proxy_this->finalize_output_equivalence_set(
-        fargs->set, fargs->context, fargs->parent_req_index);
+          fargs->set, fargs->context, fargs->parent_req_index);
       Runtime::trigger_event(fargs->done_event, done);
       if (fargs->set->remove_base_gc_ref(META_TASK_REF))
         delete fargs->set;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

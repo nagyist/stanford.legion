@@ -29,19 +29,19 @@ namespace Legion {
      */
     class Provenance : public Collectable {
     public:
-      Provenance(ProvenanceID pid, const char *prov);
-      Provenance(ProvenanceID pid, const void *buffer, size_t size);
-      Provenance(ProvenanceID pid, const std::string &prov);
-      Provenance(const Provenance &rhs) = delete;
+      Provenance(ProvenanceID pid, const char* prov);
+      Provenance(ProvenanceID pid, const void* buffer, size_t size);
+      Provenance(ProvenanceID pid, const std::string& prov);
+      Provenance(const Provenance& rhs) = delete;
       ~Provenance(void) { }
     public:
-      Provenance& operator=(const Provenance &rhs) = delete;
+      Provenance& operator=(const Provenance& rhs) = delete;
     public:
       void initialize(void);
       bool parse_provenance_parts(void);
-      void serialize(Serializer &rez) const;
-      static void serialize_null(Serializer &rez);
-      static Provenance* deserialize(Deserializer &derez);
+      void serialize(Serializer& rez) const;
+      static void serialize_null(Serializer& rez);
+      static Provenance* deserialize(Deserializer& derez);
     public:
       const ProvenanceID pid;
     public:
@@ -61,32 +61,40 @@ namespace Legion {
     class AutoProvenance {
     public:
       AutoProvenance(void) : provenance(nullptr) { }
-      AutoProvenance(const char *prov)
-        : provenance((prov == nullptr) ? nullptr :
-            runtime->find_or_create_provenance(prov, strlen(prov)))
-        { }
-      AutoProvenance(const std::string &prov)
-        : provenance(prov.empty() ? nullptr : 
-            runtime->find_or_create_provenance(prov.c_str(), prov.size()))
-        { }
-      AutoProvenance(Provenance *prov)
-        : provenance(prov)
-        { if (provenance != nullptr) provenance->add_reference(); }
-      AutoProvenance(AutoProvenance &&rhs) = delete;
-      AutoProvenance(const AutoProvenance &rhs) = delete;
+      AutoProvenance(const char* prov)
+        : provenance(
+              (prov == nullptr) ?
+                  nullptr :
+                  runtime->find_or_create_provenance(prov, strlen(prov)))
+      { }
+      AutoProvenance(const std::string& prov)
+        : provenance(
+              prov.empty() ?
+                  nullptr :
+                  runtime->find_or_create_provenance(prov.c_str(), prov.size()))
+      { }
+      AutoProvenance(Provenance* prov) : provenance(prov)
+      {
+        if (provenance != nullptr)
+          provenance->add_reference();
+      }
+      AutoProvenance(AutoProvenance&& rhs) = delete;
+      AutoProvenance(const AutoProvenance& rhs) = delete;
       ~AutoProvenance(void)
-        { if ((provenance != nullptr) && provenance->remove_reference()) 
-            delete provenance; }
+      {
+        if ((provenance != nullptr) && provenance->remove_reference())
+          delete provenance;
+      }
     public:
-      AutoProvenance& operator=(AutoProvenance &&rhs) = delete;
-      AutoProvenance& operator=(const AutoProvenance &rhs) = delete;
+      AutoProvenance& operator=(AutoProvenance&& rhs) = delete;
+      AutoProvenance& operator=(const AutoProvenance& rhs) = delete;
     public:
       inline operator Provenance*(void) const { return provenance; }
     private:
-      Provenance *const provenance;
+      Provenance* const provenance;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_PROVENANCE_H__
+#endif  // __LEGION_PROVENANCE_H__

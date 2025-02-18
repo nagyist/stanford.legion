@@ -25,37 +25,34 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    DynamicCollectiveOp::DynamicCollectiveOp(void)
-      : MemoizableOp()
+    DynamicCollectiveOp::DynamicCollectiveOp(void) : MemoizableOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     DynamicCollectiveOp::~DynamicCollectiveOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    Future DynamicCollectiveOp::initialize(InnerContext *ctx, 
-                            const DynamicCollective &dc, Provenance *provenance)
+    Future DynamicCollectiveOp::initialize(
+        InnerContext* ctx, const DynamicCollective& dc, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
-      future = Future(new FutureImpl(parent_ctx, true/*register*/,
-            runtime->get_available_distributed_id(),
-            get_provenance(), this));
+      future = Future(new FutureImpl(
+          parent_ctx, true /*register*/,
+          runtime->get_available_distributed_id(), get_provenance(), this));
       collective = dc;
-      const ReductionOp *redop = Runtime::get_reduction_op(collective.redop);
-      future.impl->set_future_result_size(redop->sizeof_rhs, 
-                                          runtime->address_space);
+      const ReductionOp* redop = Runtime::get_reduction_op(collective.redop);
+      future.impl->set_future_result_size(
+          redop->sizeof_rhs, runtime->address_space);
       if (runtime->legion_spy_enabled)
       {
         LegionSpy::log_dynamic_collective(ctx->get_unique_id(), unique_op_id);
         DomainPoint empty_point;
-        LegionSpy::log_future_creation(unique_op_id, 
-                                       future.impl->did, empty_point);
+        LegionSpy::log_future_creation(
+            unique_op_id, future.impl->did, empty_point);
       }
       return future;
     }
@@ -81,7 +78,7 @@ namespace Legion {
     void DynamicCollectiveOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MemoizableOp::deactivate(false/*free*/);
+      MemoizableOp::deactivate(false /*free*/);
       // Free the future
       future = Future();
       if (freeop)
@@ -108,8 +105,8 @@ namespace Legion {
     {
       std::vector<PhaseBarrier> wait_barriers, no_arrival_barriers;
       wait_barriers.push_back(collective);
-      parent_ctx->perform_barrier_dependence_analysis(this,
-                        wait_barriers, no_arrival_barriers);
+      parent_ctx->perform_barrier_dependence_analysis(
+          this, wait_barriers, no_arrival_barriers);
     }
 
     //--------------------------------------------------------------------------
@@ -125,8 +122,7 @@ namespace Legion {
           parent_ctx->add_to_trigger_execution_queue(this, safe);
         else
           trigger_execution();
-      }
-      else
+      } else
         trigger_execution();
     }
 
@@ -134,22 +130,22 @@ namespace Legion {
     void DynamicCollectiveOp::trigger_execution(void)
     //--------------------------------------------------------------------------
     {
-      const ReductionOp *redop = Runtime::get_reduction_op(collective.redop);
+      const ReductionOp* redop = Runtime::get_reduction_op(collective.redop);
       const size_t result_size = redop->sizeof_lhs;
-      void *result_buffer = std::malloc(result_size);
+      void* result_buffer = std::malloc(result_size);
       ApBarrier prev = Runtime::get_previous_phase(collective.phase_barrier);
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
-      bool result = 
+      bool result =
 #endif
 #endif
-      Runtime::get_barrier_result(prev, result_buffer, result_size);
+          Runtime::get_barrier_result(prev, result_buffer, result_size);
 #ifdef DEBUG_LEGION
       assert(result);
 #endif
-      future.impl->set_local(result_buffer, result_size, true/*own*/);
+      future.impl->set_local(result_buffer, result_size, true /*own*/);
       complete_execution();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

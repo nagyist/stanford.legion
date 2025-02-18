@@ -26,17 +26,18 @@ namespace Legion {
 
     /**
      * \class ExternalAcquire
-     * An extension of the external-facing Acquire to help 
+     * An extension of the external-facing Acquire to help
      * with packing and unpacking them
      */
-    class ExternalAcquire : public Acquire, public ExternalMappable {
+    class ExternalAcquire : public Acquire,
+                            public ExternalMappable {
     public:
       ExternalAcquire(void);
     public:
       virtual void set_context_index(uint64_t index) = 0;
     public:
-      void pack_external_acquire(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_acquire(Deserializer &derez);
+      void pack_external_acquire(Serializer& rez, AddressSpaceID target) const;
+      void unpack_external_acquire(Deserializer& derez);
     };
 
     /**
@@ -45,20 +46,22 @@ namespace Legion {
      * user-level software coherence when tasks own
      * regions with simultaneous coherence.
      */
-    class AcquireOp : public ExternalAcquire, public PredicatedOp {
+    class AcquireOp : public ExternalAcquire,
+                      public PredicatedOp {
     public:
       AcquireOp(void);
-      AcquireOp(const AcquireOp &rhs) = delete;
+      AcquireOp(const AcquireOp& rhs) = delete;
       virtual ~AcquireOp(void);
     public:
-      AcquireOp& operator=(const AcquireOp &rhs) = delete;
+      AcquireOp& operator=(const AcquireOp& rhs) = delete;
     public:
-      void initialize(InnerContext *ctx, const AcquireLauncher &launcher,
-                      Provenance *provenance);
+      void initialize(
+          InnerContext* ctx, const AcquireLauncher& launcher,
+          Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
-      virtual const char* get_logging_name(void) const; 
+      virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
       virtual size_t get_region_count(void) const;
       virtual Mappable* get_mappable(void);
@@ -69,15 +72,15 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
       virtual void trigger_complete(ApEvent complete);
-      virtual bool record_trace_hash(TraceRecognizer &recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
     public:
       virtual void predicate_false(void);
     public:
       virtual void trigger_commit(void);
       virtual unsigned find_parent_index(unsigned idx);
-      virtual std::map<PhysicalManager*,unsigned>*
-                   get_acquired_instances_ref(void);
-    public: 
+      virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
+          void);
+    public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
       virtual void set_context_index(uint64_t index);
@@ -99,44 +102,44 @@ namespace Legion {
     protected:
       void invoke_mapper(void);
       void log_acquire_requirement(void);
-      virtual int add_copy_profiling_request(const PhysicalTraceInfo &info,
-                               Realm::ProfilingRequestSet &requests,
-                               bool fill, unsigned count = 1);
+      virtual int add_copy_profiling_request(
+          const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
+          bool fill, unsigned count = 1);
       virtual bool handle_profiling_response(
-          const Realm::ProfilingResponse &response, const void *orig,
-          size_t orig_length, LgEvent &fevent, bool &failed_alloc);
+          const Realm::ProfilingResponse& response, const void* orig,
+          size_t orig_length, LgEvent& fevent, bool& failed_alloc);
       virtual void handle_profiling_update(int count);
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
     protected:
-      ApEvent acquire_restrictions(const RegionRequirement &req,
-                                   const VersionInfo &version_info,
-                                   unsigned index,
-                                   ApEvent precondition, ApEvent term_event,
-                                   InstanceSet &restricted_instances,
-                                   const PhysicalTraceInfo &trace_info,
-                                   std::set<RtEvent> &map_applied_events
+      ApEvent acquire_restrictions(
+          const RegionRequirement& req, const VersionInfo& version_info,
+          unsigned index, ApEvent precondition, ApEvent term_event,
+          InstanceSet& restricted_instances,
+          const PhysicalTraceInfo& trace_info,
+          std::set<RtEvent>& map_applied_events
 #ifdef DEBUG_LEGION
-                                   , const char *log_name
-                                   , UniqueID uid
+          ,
+          const char* log_name, UniqueID uid
 #endif
-                                   );
+      );
     protected:
       RegionRequirement requirement;
-      PhysicalRegion    restricted_region;
-      VersionInfo       version_info;
-      unsigned          parent_req_index;
-      std::map<PhysicalManager*,unsigned> acquired_instances;
+      PhysicalRegion restricted_region;
+      VersionInfo version_info;
+      unsigned parent_req_index;
+      std::map<PhysicalManager*, unsigned> acquired_instances;
       std::set<RtEvent> map_applied_conditions;
     protected:
-      MapperManager*    mapper;
+      MapperManager* mapper;
     protected:
-      std::vector<ProfilingMeasurementID>            profiling_requests;
-      RtUserEvent                                    profiling_reported;
-      int                                            profiling_priority;
-      int                                            copy_fill_priority;
-      std::atomic<int>                   outstanding_profiling_requests;
-      std::atomic<int>                   outstanding_profiling_reported;
+      std::vector<ProfilingMeasurementID> profiling_requests;
+      RtUserEvent profiling_reported;
+      int profiling_priority;
+      int copy_fill_priority;
+      std::atomic<int> outstanding_profiling_requests;
+      std::atomic<int> outstanding_profiling_reported;
     };
 
     /**
@@ -144,17 +147,17 @@ namespace Legion {
      * An acquire op that is aware that it is
      * executing in a control replicated context
      */
-    class ReplAcquireOp : 
-      public ReplCollectiveViewCreator<CollectiveViewCreator<AcquireOp> > {
+    class ReplAcquireOp
+      : public ReplCollectiveViewCreator<CollectiveViewCreator<AcquireOp> > {
     public:
       ReplAcquireOp(void);
-      ReplAcquireOp(const ReplAcquireOp &rhs) = delete;
+      ReplAcquireOp(const ReplAcquireOp& rhs) = delete;
       virtual ~ReplAcquireOp(void);
     public:
-      ReplAcquireOp& operator=(const ReplAcquireOp &rhs) = delete;
+      ReplAcquireOp& operator=(const ReplAcquireOp& rhs) = delete;
     public:
-      void initialize_replication(ReplicateContext *context,
-                                  bool first_local_shard);
+      void initialize_replication(
+          ReplicateContext* context, bool first_local_shard);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -164,11 +167,11 @@ namespace Legion {
       virtual void trigger_replay(void);
       virtual void predicate_false(void);
       virtual RtEvent finalize_complete_mapping(RtEvent precondition);
-      virtual bool perform_collective_analysis(CollectiveMapping *&mapping,
-                                               bool &first_local);
-      virtual RtEvent perform_collective_versioning_analysis(unsigned index,
-                       LogicalRegion handle, EqSetTracker *tracker,
-                       const FieldMask &mask, unsigned parent_req_index);
+      virtual bool perform_collective_analysis(
+          CollectiveMapping*& mapping, bool& first_local);
+      virtual RtEvent perform_collective_versioning_analysis(
+          unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+          const FieldMask& mask, unsigned parent_req_index);
     protected:
       RtBarrier collective_map_barrier;
       bool is_first_local_shard;
@@ -179,14 +182,16 @@ namespace Legion {
      * This is a remote copy of a AcquireOp to be used
      * for mapper calls and other operations
      */
-    class RemoteAcquireOp : public ExternalAcquire, public RemoteOp,
-      public Heapify<RemoteAcquireOp,OPERATION_LIFETIME> {
+    class RemoteAcquireOp
+      : public ExternalAcquire,
+        public RemoteOp,
+        public Heapify<RemoteAcquireOp, OPERATION_LIFETIME> {
     public:
-      RemoteAcquireOp(Operation *ptr, AddressSpaceID src);
-      RemoteAcquireOp(const RemoteAcquireOp &rhs) = delete;
+      RemoteAcquireOp(Operation* ptr, AddressSpaceID src);
+      RemoteAcquireOp(const RemoteAcquireOp& rhs) = delete;
       virtual ~RemoteAcquireOp(void);
     public:
-      RemoteAcquireOp& operator=(const RemoteAcquireOp &rhs) = delete;
+      RemoteAcquireOp& operator=(const RemoteAcquireOp& rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -198,12 +203,13 @@ namespace Legion {
     public:
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual void unpack(Deserializer &derez);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual void unpack(Deserializer& derez);
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_ACQUIRE_H__
+#endif  // __LEGION_ACQUIRE_H__

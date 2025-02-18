@@ -19,12 +19,12 @@
 #include "legion/operations/operation.h"
 
 namespace Legion {
-  namespace Internal { 
+  namespace Internal {
 
     /**
      * \class LogicalTrace
      * The logical trace class captures the tracing information
-     * for the logical dependence analysis so that it can be 
+     * for the logical dependence analysis so that it can be
      * replayed without needing to perform the analysis again
      */
     class LogicalTrace : public Collectable {
@@ -33,18 +33,19 @@ namespace Legion {
       public:
         DependenceRecord(int idx)
           : operation_idx(idx), prev_idx(-1), next_idx(-1),
-            dtype(LEGION_TRUE_DEPENDENCE) { }
-        DependenceRecord(int op_idx, int pidx, int nidx,
-                         DependenceType d, const FieldMask &m)
-          : operation_idx(op_idx), prev_idx(pidx), 
-            next_idx(nidx),
-            dtype(d), dependent_mask(m) { }
+            dtype(LEGION_TRUE_DEPENDENCE)
+        { }
+        DependenceRecord(
+            int op_idx, int pidx, int nidx, DependenceType d,
+            const FieldMask& m)
+          : operation_idx(op_idx), prev_idx(pidx), next_idx(nidx), dtype(d),
+            dependent_mask(m)
+        { }
       public:
-        inline bool merge(const DependenceRecord &record)
+        inline bool merge(const DependenceRecord& record)
         {
           if ((operation_idx != record.operation_idx) ||
-              (prev_idx != record.prev_idx) ||
-              (next_idx != record.next_idx) ||
+              (prev_idx != record.prev_idx) || (next_idx != record.next_idx) ||
               (dtype != record.dtype))
             return false;
           dependent_mask |= record.dependent_mask;
@@ -52,31 +53,33 @@ namespace Legion {
         }
       public:
         int operation_idx;
-        int prev_idx; // previous region requirement index
-        int next_idx; // next region requirement index
+        int prev_idx;  // previous region requirement index
+        int next_idx;  // next region requirement index
         DependenceType dtype;
         FieldMask dependent_mask;
       };
       struct CloseInfo {
       public:
-        CloseInfo(MergeCloseOp *op, unsigned idx,
+        CloseInfo(
+            MergeCloseOp* op, unsigned idx,
 #ifdef DEBUG_LEGION_COLLECTIVES
-                  RegionTreeNode *n,
+            RegionTreeNode* n,
 #endif
-                  const RegionRequirement &r)
+            const RegionRequirement& r)
           : close_op(op), requirement(r), creator_idx(idx)
 #ifdef DEBUG_LEGION_COLLECTIVES
-            , node(n)
+            ,
+            node(n)
 #endif
         { }
       public:
-        MergeCloseOp *close_op; // only valid during capture
+        MergeCloseOp* close_op;  // only valid during capture
         RegionRequirement requirement;
         LegionVector<DependenceRecord> dependences;
         FieldMask close_mask;
         unsigned creator_idx;
 #ifdef DEBUG_LEGION_COLLECTIVES
-        RegionTreeNode *node;
+        RegionTreeNode* node;
 #endif
       };
       struct OperationInfo {
@@ -85,8 +88,8 @@ namespace Legion {
         // Note that in this data structure the "context_index"
         // field of PointwiseDependence data structure is actually the
         // relative offset in the trace of the prior operation
-        std::map<unsigned,
-          std::vector<PointwiseDependence> > pointwise_dependences;
+        std::map<unsigned, std::vector<PointwiseDependence>>
+            pointwise_dependences;
         LegionVector<CloseInfo> closes;
         // Only need this during trace capture
         // It records dependences for internal operations (that are not merge
@@ -94,14 +97,16 @@ namespace Legion {
         // requirement the internal operations were made for so we can forward
         // them on when later things depende on them. This data structure is
         // cleared after we're done with the trace recording
-        std::map<unsigned,LegionVector<DependenceRecord> > internal_dependences;
+        std::map<unsigned, LegionVector<DependenceRecord>> internal_dependences;
       };
       struct VerificationInfo {
       public:
-        VerificationInfo(OpKind k, TaskID tid,
-            unsigned r, uint64_t h[2])
+        VerificationInfo(OpKind k, TaskID tid, unsigned r, uint64_t h[2])
           : kind(k), task_id(tid), regions(r)
-        { hash[0] = h[0]; hash[1] = h[1]; }
+        {
+          hash[0] = h[0];
+          hash[1] = h[1];
+        }
       public:
         OpKind kind;
         TaskID task_id;
@@ -110,13 +115,20 @@ namespace Legion {
       };
       class StaticTranslator {
       public:
-        StaticTranslator(const std::set<RegionTreeID> *trs)
-        { if (trs != nullptr) trees.insert(trs->begin(), trs->end()); }
+        StaticTranslator(const std::set<RegionTreeID>* trs)
+        {
+          if (trs != nullptr)
+            trees.insert(trs->begin(), trs->end());
+        }
       public:
         inline bool skip_analysis(RegionTreeID tid) const
-        { if (trees.empty()) return true; 
-          else return (trees.find(tid) != trees.end()); }
-        inline void push_dependences(const std::vector<StaticDependence> *deps)
+        {
+          if (trees.empty())
+            return true;
+          else
+            return (trees.find(tid) != trees.end());
+        }
+        inline void push_dependences(const std::vector<StaticDependence>* deps)
         {
           AutoLock t_lock(translator_lock);
           if (deps != nullptr)
@@ -124,7 +136,7 @@ namespace Legion {
           else
             dependences.resize(dependences.size() + 1);
         }
-        inline void pop_dependences(std::vector<StaticDependence> &deps)
+        inline void pop_dependences(std::vector<StaticDependence>& deps)
         {
           AutoLock t_lock(translator_lock);
 #ifdef DEBUG_LEGION
@@ -135,94 +147,106 @@ namespace Legion {
         }
       public:
         LocalLock translator_lock;
-        std::deque<std::vector<StaticDependence> > dependences;
+        std::deque<std::vector<StaticDependence>> dependences;
         std::set<RegionTreeID> trees;
       };
     public:
-      LogicalTrace(InnerContext *ctx, TraceID tid, bool logical_only,
-                   bool static_trace, Provenance *provenance,
-                   const std::set<RegionTreeID> *trees);
+      LogicalTrace(
+          InnerContext* ctx, TraceID tid, bool logical_only, bool static_trace,
+          Provenance* provenance, const std::set<RegionTreeID>* trees);
       ~LogicalTrace(void);
     public:
       inline TraceID get_trace_id(void) const { return tid; }
-      inline size_t get_operation_count(void) const 
-        { return replay_info.size(); }
+      inline size_t get_operation_count(void) const
+      {
+        return replay_info.size();
+      }
     public:
-      bool initialize_op_tracing(Operation *op,
-                     const std::vector<StaticDependence> *dependences = nullptr);
+      bool initialize_op_tracing(
+          Operation* op,
+          const std::vector<StaticDependence>* dependences = nullptr);
       void check_operation_count(void);
       bool skip_analysis(RegionTreeID tid) const;
-      size_t register_operation(Operation *op, GenerationID gen);
-      void register_internal(InternalOp *op);
-      void register_close(MergeCloseOp *op, unsigned creator_idx,
+      size_t register_operation(Operation* op, GenerationID gen);
+      void register_internal(InternalOp* op);
+      void register_close(
+          MergeCloseOp* op, unsigned creator_idx,
 #ifdef DEBUG_LEGION_COLLECTIVES
-                          RegionTreeNode *node,
+          RegionTreeNode* node,
 #endif
-                          const RegionRequirement &req);
-      bool record_dependence(Operation *target, GenerationID target_gen,
-                                Operation *source, GenerationID source_gen);
-      bool record_region_dependence(Operation *target, GenerationID target_gen,
-                                    Operation *source, GenerationID source_gen,
-                                    unsigned target_idx, unsigned source_idx,
-                                    DependenceType dtype,
-                                    const FieldMask &dependent_mask);
-      void record_pointwise_dependence(Operation *target, GenerationID target_gen,
-          Operation *source, GenerationID source_gen, unsigned idx,
-          const PointwiseDependence &dependence);
+          const RegionRequirement& req);
+      bool record_dependence(
+          Operation* target, GenerationID target_gen, Operation* source,
+          GenerationID source_gen);
+      bool record_region_dependence(
+          Operation* target, GenerationID target_gen, Operation* source,
+          GenerationID source_gen, unsigned target_idx, unsigned source_idx,
+          DependenceType dtype, const FieldMask& dependent_mask);
+      void record_pointwise_dependence(
+          Operation* target, GenerationID target_gen, Operation* source,
+          GenerationID source_gen, unsigned idx,
+          const PointwiseDependence& dependence);
     public:
       // Called by task execution thread
       inline bool is_fixed(void) const { return fixed; }
-      void fix_trace(Provenance *provenance);
+      void fix_trace(Provenance* provenance);
       inline void record_blocking_call(void) { blocking_call_observed = true; }
       inline bool get_and_clear_blocking_call(void)
-        {
-          const bool result = blocking_call_observed; 
-          blocking_call_observed = false;
-          return result;
-        }
-      inline void record_intermediate_fence(void)
-        { intermediate_fence = true; }
+      {
+        const bool result = blocking_call_observed;
+        blocking_call_observed = false;
+        return result;
+      }
+      inline void record_intermediate_fence(void) { intermediate_fence = true; }
       inline bool has_intermediate_fence(void) const
-        { return intermediate_fence; }
-      inline void reset_intermediate_fence(void)
-        { intermediate_fence = false; }
+      {
+        return intermediate_fence;
+      }
+      inline void reset_intermediate_fence(void) { intermediate_fence = false; }
     public:
       // Called during logical dependence analysis stage
       inline bool is_recording(void) const { return recording; }
-      void begin_logical_trace(FenceOp *fence_op);
-      void end_logical_trace(FenceOp *fence_op);
+      void begin_logical_trace(FenceOp* fence_op);
+      void end_logical_trace(FenceOp* fence_op);
     public:
-      bool has_physical_trace(void) const { return (physical_trace != nullptr); }
+      bool has_physical_trace(void) const
+      {
+        return (physical_trace != nullptr);
+      }
       PhysicalTrace* get_physical_trace(void) { return physical_trace; }
       void invalidate_equivalence_sets(void) const;
     public:
       // A little bit of help for recording the set of colors for
       // control replicated concurrent index space task launches
-      bool find_concurrent_colors(ReplIndexTask *task,
-          std::map<Color,CollectiveID> &concurrent_exchange_colors);
-      void record_concurrent_colors(ReplIndexTask *task,
-          const std::map<Color,CollectiveID> &concurrent_exchange_colors);
+      bool find_concurrent_colors(
+          ReplIndexTask* task,
+          std::map<Color, CollectiveID>& concurrent_exchange_colors);
+      void record_concurrent_colors(
+          ReplIndexTask* task,
+          const std::map<Color, CollectiveID>& concurrent_exchange_colors);
     protected:
-      void replay_operation_dependences(Operation *op,
-          const LegionVector<DependenceRecord> &dependences);
-      void replay_pointwise_dependences(Operation *op,
-          const std::map<unsigned,
-            std::vector<PointwiseDependence> > &dependences);
-      void translate_dependence_records(Operation *op, const unsigned index,
-          const std::vector<StaticDependence> &dependences);
+      void replay_operation_dependences(
+          Operation* op, const LegionVector<DependenceRecord>& dependences);
+      void replay_pointwise_dependences(
+          Operation* op,
+          const std::map<unsigned, std::vector<PointwiseDependence>>&
+              dependences);
+      void translate_dependence_records(
+          Operation* op, const unsigned index,
+          const std::vector<StaticDependence>& dependences);
 #ifdef LEGION_SPY
     public:
       UniqueID get_current_uid_by_index(unsigned op_idx) const;
 #endif
     public:
-      InnerContext *const context;
+      InnerContext* const context;
       const TraceID tid;
-      Provenance *const begin_provenance;
+      Provenance* const begin_provenance;
       // Set after end_trace is called
-      Provenance *end_provenance;
+      Provenance* end_provenance;
     protected:
       // Pointer to a physical trace
-      PhysicalTrace *const physical_trace;
+      PhysicalTrace* const physical_trace;
     protected:
       // Application stage of the pipeline
       std::vector<VerificationInfo> verification_infos;
@@ -233,10 +257,11 @@ namespace Legion {
     protected:
       struct OpInfo {
       public:
-        OpInfo(Operation *o)
+        OpInfo(Operation* o)
           : op(o), gen(op->get_generation()),
             context_index(op->get_context_index()),
-            unique_id(op->get_unique_op_id()) { }
+            unique_id(op->get_unique_op_id())
+        { }
       public:
         Operation* op;
         GenerationID gen;
@@ -247,25 +272,26 @@ namespace Legion {
       bool recording;
       size_t replay_index;
       std::deque<OperationInfo> replay_info;
-      std::set<std::pair<Operation*,GenerationID> > frontiers;
+      std::set<std::pair<Operation*, GenerationID>> frontiers;
       std::vector<OpInfo> operations;
       // Only need this backwards lookup for trace capture
-      std::map<std::pair<Operation*,GenerationID>,
-        std::pair<unsigned,unsigned>> op_map;
-      FenceOp *trace_fence;
+      std::map<
+          std::pair<Operation*, GenerationID>, std::pair<unsigned, unsigned>>
+          op_map;
+      FenceOp* trace_fence;
       GenerationID trace_fence_gen;
-      StaticTranslator *static_translator;
+      StaticTranslator* static_translator;
     protected:
       // Help for control replicated concurrent index task launches
-      std::map<TraceLocalID,std::vector<Color> > concurrent_colors;
+      std::map<TraceLocalID, std::vector<Color>> concurrent_colors;
 #ifdef LEGION_SPY
     protected:
-      std::map<std::pair<Operation*,GenerationID>,UniqueID> current_uids;
-      std::map<std::pair<Operation*,GenerationID>,unsigned> num_regions;
+      std::map<std::pair<Operation*, GenerationID>, UniqueID> current_uids;
+      std::map<std::pair<Operation*, GenerationID>, unsigned> num_regions;
 #endif
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_LOGICAL_TRACE_H__
+#endif  // __LEGION_LOGICAL_TRACE_H__

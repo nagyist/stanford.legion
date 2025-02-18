@@ -28,22 +28,24 @@ namespace Legion {
     class FuturePredOp : public Operation {
     public:
       FuturePredOp(void);
-      FuturePredOp(const FuturePredOp &rhs) = delete;
+      FuturePredOp(const FuturePredOp& rhs) = delete;
       virtual ~FuturePredOp(void);
     public:
-      FuturePredOp& operator=(const FuturePredOp &rhs) = delete;
+      FuturePredOp& operator=(const FuturePredOp& rhs) = delete;
     public:
-      Predicate initialize(InnerContext *ctx, 
-                           const Future &f, Provenance *provenance);
-      Future initialize(InnerContext *ctx,
-                        const Predicate &p, Provenance *provenance);
+      Predicate initialize(
+          InnerContext* ctx, const Future& f, Provenance* provenance);
+      Future initialize(
+          InnerContext* ctx, const Predicate& p, Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       const char* get_logging_name(void) const;
       OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_mapping(void);
@@ -61,20 +63,22 @@ namespace Legion {
     class NotPredOp : public Operation {
     public:
       NotPredOp(void);
-      NotPredOp(const NotPredOp &rhs) = delete;
+      NotPredOp(const NotPredOp& rhs) = delete;
       virtual ~NotPredOp(void);
     public:
-      NotPredOp& operator=(const NotPredOp &rhs) = delete;
+      NotPredOp& operator=(const NotPredOp& rhs) = delete;
     public:
-      Predicate initialize(InnerContext *task, const Predicate &p,
-                           Provenance *provenance);
+      Predicate initialize(
+          InnerContext* task, const Predicate& p, Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
@@ -90,28 +94,30 @@ namespace Legion {
     class AndPredOp : public Operation {
     public:
       AndPredOp(void);
-      AndPredOp(const AndPredOp &rhs) = delete;
+      AndPredOp(const AndPredOp& rhs) = delete;
       virtual ~AndPredOp(void);
     public:
-      AndPredOp& operator=(const AndPredOp &rhs) = delete;
+      AndPredOp& operator=(const AndPredOp& rhs) = delete;
     public:
-      Predicate initialize(InnerContext *task, 
-                           std::vector<Predicate> &predicates,
-                           Provenance *provenance);
+      Predicate initialize(
+          InnerContext* task, std::vector<Predicate>& predicates,
+          Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_execution(void);
     protected:
       std::vector<Predicate> previous;
-      Predicate              to_set;
+      Predicate to_set;
     };
 
     /**
@@ -121,31 +127,33 @@ namespace Legion {
     class OrPredOp : public Operation {
     public:
       OrPredOp(void);
-      OrPredOp(const OrPredOp &rhs) = delete;
+      OrPredOp(const OrPredOp& rhs) = delete;
       virtual ~OrPredOp(void);
     public:
-      OrPredOp& operator=(const OrPredOp &rhs) = delete;
+      OrPredOp& operator=(const OrPredOp& rhs) = delete;
     public:
-      Predicate initialize(InnerContext *task, 
-                           std::vector<Predicate> &predicates,
-                           Provenance *provenance);
+      Predicate initialize(
+          InnerContext* task, std::vector<Predicate>& predicates,
+          Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_execution(void);
     protected:
       std::vector<Predicate> previous;
-      Predicate              to_set;
+      Predicate to_set;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_BOOLEAN_OPERATIONS_H__
+#endif  // __LEGION_BOOLEAN_OPERATIONS_H__

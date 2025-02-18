@@ -34,25 +34,28 @@ namespace Legion {
      *
      * Note that we don't need to protect physical region impls
      * with any kind of synchronization mechanism since they
-     * will only be manipulated by a single task which is 
+     * will only be manipulated by a single task which is
      * guaranteed to only be running on one processor.
      */
-    class PhysicalRegionImpl : public Collectable,
-                               public Heapify<PhysicalRegionImpl,CONTEXT_LIFETIME> {
+    class PhysicalRegionImpl
+      : public Collectable,
+        public Heapify<PhysicalRegionImpl, CONTEXT_LIFETIME> {
     public:
-      PhysicalRegionImpl(const RegionRequirement &req, RtEvent mapped_event,
-            ApEvent ready_event, ApUserEvent term_event, bool mapped, 
-            TaskContext *ctx, MapperID mid, MappingTagID tag, bool leaf, 
-            bool virt, bool collective, uint64_t blocking);
-      PhysicalRegionImpl(const PhysicalRegionImpl &rhs) = delete;
+      PhysicalRegionImpl(
+          const RegionRequirement& req, RtEvent mapped_event,
+          ApEvent ready_event, ApUserEvent term_event, bool mapped,
+          TaskContext* ctx, MapperID mid, MappingTagID tag, bool leaf,
+          bool virt, bool collective, uint64_t blocking);
+      PhysicalRegionImpl(const PhysicalRegionImpl& rhs) = delete;
       ~PhysicalRegionImpl(void);
     public:
-      PhysicalRegionImpl& operator=(const PhysicalRegionImpl &rhs) = delete;
+      PhysicalRegionImpl& operator=(const PhysicalRegionImpl& rhs) = delete;
     public:
       inline bool created_accessor(void) const { return made_accessor; }
     public:
-      void wait_until_valid(bool silence_warnings, const char *warning_string, 
-                            bool warn = false, const char *src = nullptr);
+      void wait_until_valid(
+          bool silence_warnings, const char* warning_string, bool warn = false,
+          const char* src = nullptr);
       bool is_valid(void) const;
       bool is_mapped(void) const;
       LogicalRegion get_logical_region(void) const;
@@ -62,52 +65,48 @@ namespace Legion {
       ApEvent remap_region(ApEvent new_ready_event, uint64_t blocking);
       const RegionRequirement& get_requirement(void) const;
       void add_padded_field(FieldID fid);
-      void set_reference(const InstanceRef &references, bool safe = false);
-      void set_references(const InstanceSet &instances, bool safe = false);
+      void set_reference(const InstanceRef& references, bool safe = false);
+      void set_references(const InstanceSet& instances, bool safe = false);
       bool has_references(void) const;
-      void get_references(InstanceSet &instances) const;
-      void get_memories(std::set<Memory>& memories, 
-          bool silence_warnings, const char *warning_string) const;
+      void get_references(InstanceSet& instances) const;
+      void get_memories(
+          std::set<Memory>& memories, bool silence_warnings,
+          const char* warning_string) const;
       void get_fields(std::vector<FieldID>& fields) const;
     public:
-      void get_bounds(void *realm_is, TypeTag type_tag);
-      PieceIteratorImpl* get_piece_iterator(FieldID fid, bool privilege_only,
-                          bool silence_warnings, const char *warning_string);
-      PhysicalInstance get_instance_info(PrivilegeMode mode, 
-                                         FieldID fid, size_t field_size, 
-                                         void *realm_is, TypeTag type_tag,
-                                         const char *warning_string,
-                                         bool silence_warnings, 
-                                         bool generic_accessor,
-                                         bool check_field_size,
-                                         ReductionOpID redop);
-      PhysicalInstance get_padding_info(FieldID fid, size_t field_size,
-                                        Domain *inner, Domain &outer,
-                                        const char *warning_string,
-                                        bool silence_warnings,
-                                        bool generic_accessor,
-                                        bool check_field_size);
-      void report_incompatible_accessor(const char *accessor_kind,
-                             PhysicalInstance instance, FieldID fid);
-      void report_incompatible_multi_accessor(unsigned index, FieldID fid,
-                           PhysicalInstance inst1, PhysicalInstance inst2);
-      void report_colocation_violation(const char *accessor_kind,
-                           FieldID fid, PhysicalInstance inst1,
-                           PhysicalInstance ins2, const PhysicalRegion &other,
-                           bool reduction);
-      static void empty_colocation_regions(const char *accessor_kind,
-                                           FieldID fid, bool reduction);
-      static void fail_bounds_check(DomainPoint p, FieldID fid, 
-                                    PrivilegeMode mode, bool multi);
-      static void fail_bounds_check(Domain d, FieldID fid, 
-                                    PrivilegeMode mode, bool multi);
-      static void fail_privilege_check(DomainPoint p, FieldID fid, 
-                                    PrivilegeMode mode);
-      static void fail_privilege_check(Domain d, FieldID fid, 
-                                    PrivilegeMode mode);
+      void get_bounds(void* realm_is, TypeTag type_tag);
+      PieceIteratorImpl* get_piece_iterator(
+          FieldID fid, bool privilege_only, bool silence_warnings,
+          const char* warning_string);
+      PhysicalInstance get_instance_info(
+          PrivilegeMode mode, FieldID fid, size_t field_size, void* realm_is,
+          TypeTag type_tag, const char* warning_string, bool silence_warnings,
+          bool generic_accessor, bool check_field_size, ReductionOpID redop);
+      PhysicalInstance get_padding_info(
+          FieldID fid, size_t field_size, Domain* inner, Domain& outer,
+          const char* warning_string, bool silence_warnings,
+          bool generic_accessor, bool check_field_size);
+      void report_incompatible_accessor(
+          const char* accessor_kind, PhysicalInstance instance, FieldID fid);
+      void report_incompatible_multi_accessor(
+          unsigned index, FieldID fid, PhysicalInstance inst1,
+          PhysicalInstance inst2);
+      void report_colocation_violation(
+          const char* accessor_kind, FieldID fid, PhysicalInstance inst1,
+          PhysicalInstance ins2, const PhysicalRegion& other, bool reduction);
+      static void empty_colocation_regions(
+          const char* accessor_kind, FieldID fid, bool reduction);
+      static void fail_bounds_check(
+          DomainPoint p, FieldID fid, PrivilegeMode mode, bool multi);
+      static void fail_bounds_check(
+          Domain d, FieldID fid, PrivilegeMode mode, bool multi);
+      static void fail_privilege_check(
+          DomainPoint p, FieldID fid, PrivilegeMode mode);
+      static void fail_privilege_check(
+          Domain d, FieldID fid, PrivilegeMode mode);
       static void fail_padding_check(DomainPoint d, FieldID fid);
     public:
-      TaskContext *const context;
+      TaskContext* const context;
       const MapperID map_id;
       const MappingTagID tag;
       const bool leaf_region;
@@ -127,7 +126,7 @@ namespace Legion {
       // triggered by mapping stage code
       ApEvent ready_event;
       // Event for when the mapped application code is done accessing
-      // the physical region, set in "application" side code 
+      // the physical region, set in "application" side code
       // should only be accessed there as well
       ApUserEvent termination_event;
       // Physical instances for this mapping
@@ -141,9 +140,9 @@ namespace Legion {
       uint64_t blocking_index;
       // "appliciation side" state
       // whether it is currently mapped
-      bool mapped; 
+      bool mapped;
       // whether it is currently valid -> mapped and ready_event has triggered
-      bool valid; 
+      bool valid;
       bool made_accessor;
 #ifdef LEGION_BOUNDS_CHECKS
     private:
@@ -157,31 +156,33 @@ namespace Legion {
      * physical regions that represent external data that have been attached
      * to logical regions in the same region tree
      */
-    class ExternalResourcesImpl : public Collectable,
-                                  public Heapify<ExternalResourcesImpl,SHORT_BOUNDED_LIFETIME> {
+    class ExternalResourcesImpl
+      : public Collectable,
+        public Heapify<ExternalResourcesImpl, SHORT_BOUNDED_LIFETIME> {
     public:
-      ExternalResourcesImpl(InnerContext *context, size_t num_regions,
-                            RegionTreeNode *upper, IndexSpaceNode *launch,
-                            LogicalRegion parent,
-                            const std::set<FieldID> &privilege_fields);
-      ExternalResourcesImpl(const ExternalResourcesImpl &rhs) = delete;
+      ExternalResourcesImpl(
+          InnerContext* context, size_t num_regions, RegionTreeNode* upper,
+          IndexSpaceNode* launch, LogicalRegion parent,
+          const std::set<FieldID>& privilege_fields);
+      ExternalResourcesImpl(const ExternalResourcesImpl& rhs) = delete;
       ~ExternalResourcesImpl(void);
     public:
-      ExternalResourcesImpl& operator=(const ExternalResourcesImpl &rhs) = delete;
+      ExternalResourcesImpl& operator=(const ExternalResourcesImpl& rhs) =
+          delete;
     public:
       size_t size(void) const;
-      void set_region(unsigned index, PhysicalRegionImpl *region);
+      void set_region(unsigned index, PhysicalRegionImpl* region);
       PhysicalRegion get_region(unsigned index) const;
       void set_projection(ProjectionID pid);
       inline ProjectionID get_projection(void) const { return pid; }
-      Future detach(InnerContext *context, IndexDetachOp *op, 
-                    const bool flush, const bool unordered,
-                    Provenance *provenance);
+      Future detach(
+          InnerContext* context, IndexDetachOp* op, const bool flush,
+          const bool unordered, Provenance* provenance);
     public:
-      InnerContext *const context;
+      InnerContext* const context;
       // Save these for when we go to do the detach
-      RegionTreeNode *const upper_bound;
-      IndexSpaceNode *const launch_bounds;
+      RegionTreeNode* const upper_bound;
+      IndexSpaceNode* const launch_bounds;
       const std::vector<FieldID> privilege_fields;
       const LogicalRegion parent;
     protected:
@@ -192,16 +193,16 @@ namespace Legion {
 
     /**
      * \class PieceIteratorImpl
-     * This is an interface for iterating over pieces 
+     * This is an interface for iterating over pieces
      * which in this case are just a list of rectangles
      */
     class PieceIteratorImpl : public Collectable {
     public:
       virtual ~PieceIteratorImpl(void) { }
-      virtual int get_next(int index, Domain &next_piece) = 0;
-    }; 
+      virtual int get_next(int index, Domain& next_piece) = 0;
+    };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_PHYSICAL_REGION_IMPL_H__
+#endif  // __LEGION_PHYSICAL_REGION_IMPL_H__

@@ -32,28 +32,24 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    inline bool ExprView::has_local_precondition(PhysicalUser *user,
-                                                 const RegionUsage &next_user,
-                                                 IndexSpaceExpression *expr,
-                                                 const UniqueID op_id,
-                                                 const unsigned index,
-                                                 const bool next_covers,
-                                                 const bool copy_user,
-                                                 bool *dominates) const
+    inline bool ExprView::has_local_precondition(
+        PhysicalUser* user, const RegionUsage& next_user,
+        IndexSpaceExpression* expr, const UniqueID op_id, const unsigned index,
+        const bool next_covers, const bool copy_user, bool* dominates) const
     //--------------------------------------------------------------------------
     {
       // We order these tests in a entirely based on cost
 
-      // Different region requirements of the same operation 
-      // Copies from different region requirements though still 
+      // Different region requirements of the same operation
+      // Copies from different region requirements though still
       // need to wait on each other correctly
-      if ((op_id == user->op_id) && (index != user->index) && 
+      if ((op_id == user->op_id) && (index != user->index) &&
           (!copy_user || !user->copy_user))
         return false;
       // Now do a dependence test for privilege non-interference
       // Only reductions here are copy reductions which we know do not interfere
       DependenceType dt =
-        check_dependence_type<false,false>(user->usage, next_user);
+          check_dependence_type<false, false>(user->usage, next_user);
       switch (dt)
       {
         case LEGION_NO_DEPENDENCE:
@@ -64,7 +60,7 @@ namespace Legion {
         case LEGION_ANTI_DEPENDENCE:
           break;
         default:
-          std::abort(); // should never get here
+          std::abort();  // should never get here
       }
       if (!next_covers)
       {
@@ -72,8 +68,8 @@ namespace Legion {
         {
           // Neither one covers so we actually need to do the
           // full intersection test and see if next covers
-          IndexSpaceExpression *overlap = 
-            runtime->intersect_index_spaces(expr, user->expr);
+          IndexSpaceExpression* overlap =
+              runtime->intersect_index_spaces(expr, user->expr);
           if (overlap->is_empty())
             return false;
         }
@@ -87,5 +83,5 @@ namespace Legion {
       return true;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

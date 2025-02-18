@@ -23,33 +23,39 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<bool ADD>
-    static inline void log_base_ref(ReferenceKind kind, DistributedID did,
-                  AddressSpaceID local_space, ReferenceSource src, unsigned cnt)
+    static inline void log_base_ref(
+        ReferenceKind kind, DistributedID did, AddressSpaceID local_space,
+        ReferenceSource src, unsigned cnt)
     //--------------------------------------------------------------------------
     {
       did = LEGION_DISTRIBUTED_ID_FILTER(did);
       if (ADD)
-        log_garbage.info("GC Add Base Ref %d %lld %d %d %d",
-                          kind, did, local_space, src, cnt);
+        log_garbage.info(
+            "GC Add Base Ref %d %lld %d %d %d", kind, did, local_space, src,
+            cnt);
       else
-        log_garbage.info("GC Remove Base Ref %d %lld %d %d %d",
-                          kind, did, local_space, src, cnt);
+        log_garbage.info(
+            "GC Remove Base Ref %d %lld %d %d %d", kind, did, local_space, src,
+            cnt);
     }
 
     //--------------------------------------------------------------------------
     template<bool ADD>
-    static inline void log_nested_ref(ReferenceKind kind, DistributedID did, 
-                    AddressSpaceID local_space, DistributedID src, unsigned cnt)
+    static inline void log_nested_ref(
+        ReferenceKind kind, DistributedID did, AddressSpaceID local_space,
+        DistributedID src, unsigned cnt)
     //--------------------------------------------------------------------------
     {
       did = LEGION_DISTRIBUTED_ID_FILTER(did);
       src = LEGION_DISTRIBUTED_ID_FILTER(src);
       if (ADD)
-        log_garbage.info("GC Add Nested Ref %d %lld %d %lld %d",
-                          kind, did, local_space, src, cnt);
+        log_garbage.info(
+            "GC Add Nested Ref %d %lld %d %lld %d", kind, did, local_space, src,
+            cnt);
       else
-        log_garbage.info("GC Remove Nested Ref %d %lld %d %lld %d",
-                          kind, did, local_space, src, cnt);
+        log_garbage.info(
+            "GC Remove Nested Ref %d %lld %d %lld %d", kind, did, local_space,
+            src, cnt);
     }
 
     //--------------------------------------------------------------------------
@@ -65,7 +71,7 @@ namespace Legion {
     {
       unsigned prev = references.fetch_sub(cnt);
 #ifdef DEBUG_LEGION
-      assert(prev >= cnt); // check for underflow
+      assert(prev >= cnt);  // check for underflow
 #endif
       // If previous is equal to count, the value is now
       // zero so it is safe to reclaim this object
@@ -90,7 +96,7 @@ namespace Legion {
     inline bool DistributedCollectable::has_remote_instances(void) const
     //--------------------------------------------------------------------------
     {
-      AutoLock gc(gc_lock,1,false/*exclusive*/);
+      AutoLock gc(gc_lock, 1, false /*exclusive*/);
       return !remote_instances.empty();
     }
 
@@ -98,22 +104,22 @@ namespace Legion {
     inline size_t DistributedCollectable::count_remote_instances(void) const
     //--------------------------------------------------------------------------
     {
-      AutoLock gc(gc_lock,1,false/*exclusive*/);
+      AutoLock gc(gc_lock, 1, false /*exclusive*/);
       return remote_instances.pop_count();
     }
 
     //--------------------------------------------------------------------------
     template<typename FUNCTOR>
-    void DistributedCollectable::map_over_remote_instances(FUNCTOR &functor)
+    void DistributedCollectable::map_over_remote_instances(FUNCTOR& functor)
     //--------------------------------------------------------------------------
     {
-      AutoLock gc(gc_lock,1,false/*exclusive*/); 
-      remote_instances.map(functor); 
+      AutoLock gc(gc_lock, 1, false /*exclusive*/);
+      remote_instances.map(functor);
     }
 
     //--------------------------------------------------------------------------
-    inline void DistributedCollectable::add_base_gc_ref(ReferenceSource source,
-                                                        int cnt /*=1*/)
+    inline void DistributedCollectable::add_base_gc_ref(
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -123,7 +129,7 @@ namespace Legion {
       log_base_ref<true>(GC_REF_KIND, did, local_space, source, cnt);
 #endif
 #ifdef DEBUG_LEGION_GC
-      add_base_gc_ref_internal(source, cnt); 
+      add_base_gc_ref_internal(source, cnt);
 #else
       int current = gc_references.load();
       while (current > 0)
@@ -138,7 +144,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline void DistributedCollectable::add_nested_gc_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -163,7 +169,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool DistributedCollectable::remove_base_gc_ref(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -191,7 +197,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool DistributedCollectable::remove_nested_gc_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -220,7 +226,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline void DistributedCollectable::add_base_resource_ref(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -245,7 +251,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline void DistributedCollectable::add_nested_resource_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -271,7 +277,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool DistributedCollectable::remove_base_resource_ref(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -299,7 +305,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool DistributedCollectable::remove_nested_resource_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -328,7 +334,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool DistributedCollectable::check_global_and_increment(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -360,7 +366,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool DistributedCollectable::check_global_and_increment(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -392,7 +398,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline void ValidDistributedCollectable::add_base_valid_ref(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -417,7 +423,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline void ValidDistributedCollectable::add_nested_valid_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -427,8 +433,7 @@ namespace Legion {
       log_nested_ref<true>(VALID_REF_KIND, did, local_space, source, cnt);
 #endif
 #ifdef DEBUG_LEGION_GC
-      add_nested_valid_ref_internal(LEGION_DISTRIBUTED_ID_FILTER(source), 
-                                    cnt);
+      add_nested_valid_ref_internal(LEGION_DISTRIBUTED_ID_FILTER(source), cnt);
 #else
       int current = valid_references.load();
       while (current > 0)
@@ -443,7 +448,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool ValidDistributedCollectable::remove_base_valid_ref(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -471,7 +476,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool ValidDistributedCollectable::remove_nested_valid_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -500,7 +505,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool ValidDistributedCollectable::check_valid_and_increment(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -532,7 +537,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool ValidDistributedCollectable::check_valid_and_increment(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -553,7 +558,8 @@ namespace Legion {
       }
       bool result = acquire_valid(cnt);
 #else
-      bool result = acquire_valid(cnt, source,detailed_nested_valid_references);
+      bool result =
+          acquire_valid(cnt, source, detailed_nested_valid_references);
 #endif
 #ifdef LEGION_GC
       if (result)
@@ -562,5 +568,5 @@ namespace Legion {
       return result;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

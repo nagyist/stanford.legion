@@ -23,27 +23,30 @@ namespace Legion {
 
     /**
      * \class RefinementOp
-     * A refinement operation is an internal operation that 
+     * A refinement operation is an internal operation that
      * is used to update the equivalence sets being used to
      * represent logical regions.
      */
     class RefinementOp : public InternalOp {
     public:
       RefinementOp(void);
-      RefinementOp(const RefinementOp &rhs) = delete;
+      RefinementOp(const RefinementOp& rhs) = delete;
       virtual ~RefinementOp(void);
     public:
-      RefinementOp& operator=(const RefinementOp &rhs) = delete;
+      RefinementOp& operator=(const RefinementOp& rhs) = delete;
     public:
       // For ordering refinement operations in the logical analysis
       // based on their monotonically increasing unique ID
-      inline bool deterministic_pointer_less(const RefinementOp *rhs) const
-        { return (unique_op_id < rhs->get_unique_op_id()); }
+      inline bool deterministic_pointer_less(const RefinementOp* rhs) const
+      {
+        return (unique_op_id < rhs->get_unique_op_id());
+      }
     public:
-      void initialize(Operation *creator, unsigned idx, LogicalRegion parent, 
-          RegionTreeNode *refinement_node, unsigned parent_req_index);
-      void record_refinement_mask(unsigned refinement_number,
-                                  const FieldMask &refinement_mask);
+      void initialize(
+          Operation* creator, unsigned idx, LogicalRegion parent,
+          RegionTreeNode* refinement_node, unsigned parent_req_index);
+      void record_refinement_mask(
+          unsigned refinement_number, const FieldMask& refinement_mask);
       RegionTreeNode* get_refinement_node(void) const;
     public:
       virtual void activate(void);
@@ -52,13 +55,14 @@ namespace Legion {
       virtual OpKind get_operation_kind(void) const;
       virtual const FieldMask& get_internal_mask(void) const;
       // Ignore interfering requirements reports here
-      virtual void report_interfering_requirements(unsigned idx1,unsigned idx2) { }
+      virtual void report_interfering_requirements(unsigned idx1, unsigned idx2)
+      { }
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_mapping(void);
     protected:
       FieldMask refinement_mask;
-      RegionTreeNode *refinement_node;
+      RegionTreeNode* refinement_node;
       // The parent region requirement for the refinement to update
       unsigned parent_req_index;
       // For uniquely identify this refinement in the context of
@@ -74,24 +78,24 @@ namespace Legion {
     class ReplRefinementOp : public RefinementOp {
     public:
       ReplRefinementOp(void);
-      ReplRefinementOp(const ReplRefinementOp &rhs) = delete;
+      ReplRefinementOp(const ReplRefinementOp& rhs) = delete;
       virtual ~ReplRefinementOp(void);
     public:
-      ReplRefinementOp& operator=(const ReplRefinementOp &rhs) = delete;
+      ReplRefinementOp& operator=(const ReplRefinementOp& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
     public:
-      void set_repl_refinement_info(RtBarrier mapped_barrier, 
-                                    RtBarrier refinement_barrier);
+      void set_repl_refinement_info(
+          RtBarrier mapped_barrier, RtBarrier refinement_barrier);
       virtual void trigger_ready(void);
-      virtual void trigger_mapping(void); 
+      virtual void trigger_mapping(void);
     protected:
       RtBarrier mapped_barrier;
       RtBarrier refinement_barrier;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_REFINEMENT_OPERATION_H__
+#endif  // __LEGION_REFINEMENT_OPERATION_H__

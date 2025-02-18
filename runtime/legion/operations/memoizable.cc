@@ -21,21 +21,18 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Memoizable Operation 
+    // Memoizable Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MemoizableOp::MemoizableOp(void)
-      : Operation()
+    MemoizableOp::MemoizableOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     MemoizableOp::~MemoizableOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void MemoizableOp::activate(void)
@@ -60,9 +57,10 @@ namespace Legion {
       // Can be called multiple times so handle that case
       if (memo_state != NO_MEMO)
         return;
-      if ((trace != nullptr) && trace->has_physical_trace() && !is_tracing_fence())
+      if ((trace != nullptr) && trace->has_physical_trace() &&
+          !is_tracing_fence())
       {
-        PhysicalTrace *physical = trace->get_physical_trace();
+        PhysicalTrace* physical = trace->get_physical_trace();
         tpl = physical->get_current_template();
 #ifdef DEBUG_LEGION
         assert(tpl != nullptr);
@@ -75,8 +73,7 @@ namespace Legion {
           // this recording needs to be invalidated
           if (!can_memoize_operation())
             tpl->record_no_consensus();
-        }
-        else
+        } else
         {
           memo_state = MEMO_REPLAY;
           tpl->register_operation(this);
@@ -93,26 +90,25 @@ namespace Legion {
       assert(!runtime->no_tracing);
       assert(!runtime->no_physical_tracing);
 #endif
-      Mappable *mappable = get_mappable();
+      Mappable* mappable = get_mappable();
       if (mappable != nullptr)
       {
-        Mapper::MemoizeInput  input;
+        Mapper::MemoizeInput input;
         Mapper::MemoizeOutput output;
         input.trace_id = trace->get_trace_id();
         // Mappers have to opt-out of tracing
         output.memoize = true;
         Processor mapper_proc = parent_ctx->get_executing_processor();
-        MapperManager *mapper = runtime->find_mapper(mapper_proc, 
-                                                     mappable->map_id);
+        MapperManager* mapper =
+            runtime->find_mapper(mapper_proc, mappable->map_id);
 #ifdef DEBUG_LEGION
         assert(mappable != nullptr);
 #endif
         mapper->invoke_memoize_operation(mappable, input, output);
         return output.memoize;
-      }
-      else
+      } else
         return true;
-    } 
+    }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

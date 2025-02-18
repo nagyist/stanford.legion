@@ -29,16 +29,15 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    InstanceBuilder::InstanceBuilder(const std::vector<LogicalRegion> &regs,
-                      IndexSpaceExpression *expr, FieldSpaceNode *node, 
-                      RegionTreeID tid, const LayoutConstraintSet &cons, 
-                      MemoryManager *memory, UniqueID cid,
-                      const void *pl, size_t pl_size)
+    InstanceBuilder::InstanceBuilder(
+        const std::vector<LogicalRegion>& regs, IndexSpaceExpression* expr,
+        FieldSpaceNode* node, RegionTreeID tid, const LayoutConstraintSet& cons,
+        MemoryManager* memory, UniqueID cid, const void* pl, size_t pl_size)
       : regions(regs), constraints(cons), memory_manager(memory),
-        creator_id(cid), instance(PhysicalInstance::NO_INST), 
-        field_space_node(node), instance_domain(expr), tree_id(tid), 
-        redop_id(0), reduction_op(nullptr), realm_layout(nullptr), piece_list(nullptr),
-        piece_list_size(0), valid(true), allocated(false)
+        creator_id(cid), instance(PhysicalInstance::NO_INST),
+        field_space_node(node), instance_domain(expr), tree_id(tid),
+        redop_id(0), reduction_op(nullptr), realm_layout(nullptr),
+        piece_list(nullptr), piece_list_size(0), valid(true), allocated(false)
     //--------------------------------------------------------------------------
     {
       if (pl != nullptr)
@@ -62,9 +61,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     PhysicalManager* InstanceBuilder::create_physical_instance(
-        LayoutConstraintKind *unsat_kind,
-        unsigned *unsat_index, size_t *footprint, RtEvent precondition,
-        PhysicalInstance hole)
+        LayoutConstraintKind* unsat_kind, unsigned* unsat_index,
+        size_t* footprint, RtEvent precondition, PhysicalInstance hole)
     //--------------------------------------------------------------------------
     {
       if (!valid)
@@ -72,10 +70,11 @@ namespace Legion {
       // If there are no fields then we are done
       if (field_sizes.empty())
       {
-        REPORT_LEGION_WARNING(LEGION_WARNING_IGNORE_MEMORY_REQUEST,
-                        "Ignoring request to create instance in "
-                        "memory " IDFMT " with no fields.",
-                        memory_manager->memory.id);
+        REPORT_LEGION_WARNING(
+            LEGION_WARNING_IGNORE_MEMORY_REQUEST,
+            "Ignoring request to create instance in "
+            "memory " IDFMT " with no fields.",
+            memory_manager->memory.id);
         if (footprint != nullptr)
           *footprint = 0;
         if (unsat_kind != nullptr)
@@ -86,10 +85,10 @@ namespace Legion {
       }
       if (realm_layout == nullptr)
       {
-        const std::vector<FieldID> &field_set = 
-          constraints.field_constraint.get_field_set();
+        const std::vector<FieldID>& field_set =
+            constraints.field_constraint.get_field_set();
         bool compact = false;
-        const SpecializedConstraint &spec = constraints.specialized_constraint;
+        const SpecializedConstraint& spec = constraints.specialized_constraint;
         switch (spec.get_kind())
         {
           case LEGION_COMPACT_SPECIALIZE:
@@ -102,13 +101,13 @@ namespace Legion {
             break;
         }
         size_t num_pieces = 0;
-        realm_layout =
-          instance_domain->create_layout(constraints, field_set,
-             field_sizes, compact, &piece_list, &piece_list_size, &num_pieces);
+        realm_layout = instance_domain->create_layout(
+            constraints, field_set, field_sizes, compact, &piece_list,
+            &piece_list_size, &num_pieces);
 #ifdef DEBUG_LEGION
         assert(realm_layout != nullptr);
 #endif
-        // If we were doing a compact layout then Check that we met 
+        // If we were doing a compact layout then Check that we met
         // the constraints for efficiency and number of pieces
         if (compact && (spec.max_pieces < num_pieces))
         {
@@ -121,10 +120,10 @@ namespace Legion {
           return nullptr;
         }
       }
-      // Clone the realm layout each time since (realm will take ownership 
+      // Clone the realm layout each time since (realm will take ownership
       // after every instance call, so we need a new one each time)
-      Realm::InstanceLayoutGeneric *inst_layout = 
-        hole.exists() ? realm_layout : realm_layout->clone();
+      Realm::InstanceLayoutGeneric* inst_layout =
+          hole.exists() ? realm_layout : realm_layout->clone();
 #ifdef DEBUG_LEGION
       assert(inst_layout != nullptr);
 #endif
@@ -137,18 +136,18 @@ namespace Legion {
       Realm::ProfilingRequestSet requests;
       // Add a profiling request to see if the instance is actually allocated
       // Make it very high priority so we get the response quickly
-      ProfilingResponseBase base(this, creator_id, false/*completion*/);
+      ProfilingResponseBase base(this, creator_id, false /*completion*/);
 #ifndef LEGION_MALLOC_INSTANCES
-      Realm::ProfilingRequest &req = requests.add_request(
-          runtime->find_local_group(), LG_LEGION_PROFILING_ID,
-          &base, sizeof(base), LG_RESOURCE_PRIORITY);
+      Realm::ProfilingRequest& req = requests.add_request(
+          runtime->find_local_group(), LG_LEGION_PROFILING_ID, &base,
+          sizeof(base), LG_RESOURCE_PRIORITY);
       req.add_measurement<Realm::ProfilingMeasurements::InstanceAllocResult>();
       // Create a user event to wait on for the result of the profiling response
       profiling_ready = Runtime::create_rt_user_event();
 #endif
 #ifdef DEBUG_LEGION
       assert(!allocated);
-      assert(!instance.exists()); // shouldn't exist before this
+      assert(!instance.exists());  // shouldn't exist before this
 #endif
       LgEvent unique_event;
       if (runtime->legion_spy_enabled || (runtime->profiler != nullptr))
@@ -168,16 +167,17 @@ namespace Legion {
         ready = ApEvent(
             hole.redistrict(instance, inst_layout, requests, precondition));
       else
-        ready = ApEvent(PhysicalInstance::create_instance(instance,
-              memory_manager->memory, inst_layout, requests, precondition)); 
+        ready = ApEvent(PhysicalInstance::create_instance(
+            instance, memory_manager->memory, inst_layout, requests,
+            precondition));
       // Wait for the profiling response
       if (!profiling_ready.has_triggered())
         profiling_ready.wait();
 #else
       if (precondition.exists() && !precondition.has_triggered())
         precondition.wait();
-      ready = ApEvent(memory_manager->allocate_legion_instance(inst_layout,
-            requests, instance, unique_event));
+      ready = ApEvent(memory_manager->allocate_legion_instance(
+          inst_layout, requests, instance, unique_event));
       allocated = instance.exists();
 #endif
       // If we couldn't make it then we are done
@@ -198,34 +198,32 @@ namespace Legion {
 #ifdef LEGION_DEBUG
       assert(!constraints.pointer_constraint.is_valid);
 #endif
-      // If we successfully made the instance then Realm 
+      // If we successfully made the instance then Realm
       // took over ownership of the layout
-      PhysicalManager *result = nullptr;
-      // If we successfully made it then we can 
+      PhysicalManager* result = nullptr;
+      // If we successfully made it then we can
       // switch over the polarity of our constraints, this
       // shouldn't be necessary once Realm gets its act together
       // and actually tells us what the resulting constraints are
       constraints.field_constraint.contiguous = true;
       constraints.field_constraint.inorder = true;
       constraints.ordering_constraint.contiguous = true;
-      constraints.memory_constraint = MemoryConstraint(
-                                        memory_manager->memory.kind());
+      constraints.memory_constraint =
+          MemoryConstraint(memory_manager->memory.kind());
       const unsigned num_dims = instance_domain->get_num_dims();
       // Now let's find the layout constraints to use for this instance
-      LayoutDescription *layout = field_space_node->find_layout_description(
-                                        instance_mask, num_dims, constraints);
+      LayoutDescription* layout = field_space_node->find_layout_description(
+          instance_mask, num_dims, constraints);
       // If we couldn't find one then we make one
       if (layout == nullptr)
       {
         // First make a new layout constraint
-        LayoutConstraints *layout_constraints = 
-          runtime->register_layout(field_space_node->handle,
-                                           constraints, true/*internal*/);
+        LayoutConstraints* layout_constraints = runtime->register_layout(
+            field_space_node->handle, constraints, true /*internal*/);
         // Then make our description
-        layout = field_space_node->create_layout_description(instance_mask, 
-                                  num_dims, layout_constraints, mask_index_map,
-                                  constraints.field_constraint.get_field_set(),
-                                  field_sizes, serdez);
+        layout = field_space_node->create_layout_description(
+            instance_mask, num_dims, layout_constraints, mask_index_map,
+            constraints.field_constraint.get_field_set(), field_sizes, serdez);
       }
       // Creating an individual manager
       DistributedID did = runtime->get_available_distributed_id();
@@ -237,34 +235,25 @@ namespace Legion {
         case LEGION_COMPACT_SPECIALIZE:
           {
             // Now we can make the manager
-            result = new PhysicalManager(did, memory_manager,
-                                         instance, instance_domain, 
-                                         piece_list, piece_list_size,
-                                         field_space_node, tree_id,
-                                         layout, 0/*redop id*/,
-                                         true/*register now*/, 
-                                         instance_footprint,
-                                         ready, unique_event,
-                                     PhysicalManager::INTERNAL_INSTANCE_KIND); 
+            result = new PhysicalManager(
+                did, memory_manager, instance, instance_domain, piece_list,
+                piece_list_size, field_space_node, tree_id, layout,
+                0 /*redop id*/, true /*register now*/, instance_footprint,
+                ready, unique_event, PhysicalManager::INTERNAL_INSTANCE_KIND);
             break;
           }
         case LEGION_AFFINE_REDUCTION_SPECIALIZE:
         case LEGION_COMPACT_REDUCTION_SPECIALIZE:
           {
-            result = new PhysicalManager(did,
-                                         memory_manager, instance, 
-                                         instance_domain, piece_list,
-                                         piece_list_size, field_space_node,
-                                         tree_id, layout, redop_id,
-                                         true/*register now*/,
-                                         instance_footprint,
-                                         ready, unique_event,
-                                      PhysicalManager::INTERNAL_INSTANCE_KIND,
-                                         reduction_op);
+            result = new PhysicalManager(
+                did, memory_manager, instance, instance_domain, piece_list,
+                piece_list_size, field_space_node, tree_id, layout, redop_id,
+                true /*register now*/, instance_footprint, ready, unique_event,
+                PhysicalManager::INTERNAL_INSTANCE_KIND, reduction_op);
             break;
           }
         default:
-          std::abort(); // illegal specialized case
+          std::abort();  // illegal specialized case
       }
       // manager takes ownership of the piece list
       piece_list = nullptr;
@@ -283,36 +272,35 @@ namespace Legion {
       if (implicit_profiler != nullptr)
       {
         // Log the logical regions and fields that make up this instance
-        for (std::vector<LogicalRegion>::const_iterator it =
-              regions.begin(); it != regions.end(); it++)
+        for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
+             it != regions.end(); it++)
           if (it->exists())
-            implicit_profiler->register_physical_instance_region(unique_event,
-                                                                 *it);
-        implicit_profiler->register_physical_instance_layout(unique_event,
-                                                     layout->owner->handle,
-                                                     *layout->constraints);
+            implicit_profiler->register_physical_instance_region(
+                unique_event, *it);
+        implicit_profiler->register_physical_instance_layout(
+            unique_event, layout->owner->handle, *layout->constraints);
       }
       return result;
     }
 
     //--------------------------------------------------------------------------
     bool InstanceBuilder::handle_profiling_response(
-        const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
+        const Realm::ProfilingResponse& response, const void* orig,
+        size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::InstanceAllocResult>());
+             Realm::ProfilingMeasurements::InstanceAllocResult>());
 #endif
       Realm::ProfilingMeasurements::InstanceAllocResult result;
-      result.success = false; // Need this to avoid compiler warnings
+      result.success = false;  // Need this to avoid compiler warnings
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
-      const bool measured =  
+      const bool measured =
 #endif
 #endif
-        response.get_measurement<
+          response.get_measurement<
               Realm::ProfilingMeasurements::InstanceAllocResult>(result);
 #ifdef DEBUG_LEGION
       assert(measured);
@@ -334,7 +322,7 @@ namespace Legion {
     void InstanceBuilder::initialize(void)
     //--------------------------------------------------------------------------
     {
-      compute_space_and_domain(); 
+      compute_space_and_domain();
       compute_layout_parameters();
       valid = true;
     }
@@ -350,8 +338,8 @@ namespace Legion {
       assert(tree_id == 0);
 #endif
       std::set<IndexSpaceExpression*> region_exprs;
-      for (std::vector<LogicalRegion>::const_iterator it = 
-            regions.begin(); it != regions.end(); it++)
+      for (std::vector<LogicalRegion>::const_iterator it = regions.begin();
+           it != regions.end(); it++)
       {
         if (!it->exists())
           continue;
@@ -366,8 +354,9 @@ namespace Legion {
 #endif
         region_exprs.insert(runtime->get_node(it->get_index_space()));
       }
-      instance_domain = (region_exprs.size() == 1) ? 
-        *(region_exprs.begin()) : runtime->union_index_spaces(region_exprs);
+      instance_domain = (region_exprs.size() == 1) ?
+                            *(region_exprs.begin()) :
+                            runtime->union_index_spaces(region_exprs);
     }
 
     //--------------------------------------------------------------------------
@@ -377,7 +366,7 @@ namespace Legion {
       // First look at the OrderingConstraint to Figure out what kind
       // of instance we are building here, SOA, AOS, or hybrid
       const size_t num_dims = instance_domain->get_num_dims();
-      OrderingConstraint &ord = constraints.ordering_constraint;
+      OrderingConstraint& ord = constraints.ordering_constraint;
       if (!ord.ordering.empty())
       {
         // Find the index of the fields, if it is specified
@@ -387,19 +376,20 @@ namespace Legion {
         {
           if (ord.ordering[idx] == LEGION_DIM_F)
           {
-            // Should never be duplicated 
+            // Should never be duplicated
             if (field_idx != -1)
-              REPORT_LEGION_ERROR(ERROR_ILLEGAL_LAYOUT_CONSTRAINT,
+              REPORT_LEGION_ERROR(
+                  ERROR_ILLEGAL_LAYOUT_CONSTRAINT,
                   "Illegal ordering constraint used during instance "
                   "creation contained multiple instances of DIM_F")
             else
               field_idx = idx;
-          }
-          else
+          } else
           {
             // Should never be duplicated
             if (spatial_dims.find(ord.ordering[idx]) != spatial_dims.end())
-              REPORT_LEGION_ERROR(ERROR_ILLEGAL_LAYOUT_CONSTRAINT,
+              REPORT_LEGION_ERROR(
+                  ERROR_ILLEGAL_LAYOUT_CONSTRAINT,
                   "Illegal ordering constraint used during instance "
                   "creation contained multiple instances of dimension %d",
                   ord.ordering[idx])
@@ -418,7 +408,8 @@ namespace Legion {
         if (!to_remove.empty())
         {
           for (std::vector<DimensionKind>::iterator it = ord.ordering.begin();
-                it != ord.ordering.end(); /*nothing*/)
+               it != ord.ordering.end();
+               /*nothing*/)
           {
             if (to_remove.find(*it) != to_remove.end())
               it = ord.ordering.erase(it);
@@ -445,21 +436,18 @@ namespace Legion {
                 if (spatial_dims.find(dim) == spatial_dims.end())
                   ord.ordering.push_back(dim);
               }
-            }
-            else if (field_idx == int(ord.ordering.size()-1))
+            } else if (field_idx == int(ord.ordering.size() - 1))
             {
               // Add them to the front
-              for (int idx = (num_dims-1); idx >= 0; idx--)
+              for (int idx = (num_dims - 1); idx >= 0; idx--)
               {
                 DimensionKind dim = (DimensionKind)(LEGION_DIM_X + idx);
                 if (spatial_dims.find(dim) == spatial_dims.end())
                   ord.ordering.insert(ord.ordering.begin(), dim);
               }
-            }
-            else // Should either be AOS or SOA for now
+            } else  // Should either be AOS or SOA for now
               std::abort();
-          }
-          else
+          } else
           {
             // No field dimension so just add the spatial ones on the back
             for (unsigned idx = 0; idx < num_dims; idx++)
@@ -477,10 +465,9 @@ namespace Legion {
         // We've now got all our dimensions so we can set the
         // contiguous flag to true
         ord.contiguous = true;
-      }
-      else
+      } else
       {
-        // We had no ordering constraints so populate it with 
+        // We had no ordering constraints so populate it with
         // SOA constraints for now
         for (unsigned idx = 0; idx < num_dims; idx++)
           ord.ordering.push_back((DimensionKind)(LEGION_DIM_X + idx));
@@ -499,7 +486,8 @@ namespace Legion {
         {
           case LEGION_COMPACT_SPECIALIZE:
           case LEGION_COMPACT_REDUCTION_SPECIALIZE:
-            REPORT_LEGION_ERROR(ERROR_ILLEGAL_LAYOUT_CONSTRAINT,
+            REPORT_LEGION_ERROR(
+                ERROR_ILLEGAL_LAYOUT_CONSTRAINT,
                 "Illegal tiling constraints specified for compact-sparse "
                 "instance creation. Tiling constraints can only be specified "
                 "on affine instances currently. If you have a compelling use "
@@ -511,28 +499,28 @@ namespace Legion {
         // Make sure that each of the dimensions are valid and aren't duplicated
         std::vector<bool> observed(num_dims, false);
         for (std::vector<TilingConstraint>::iterator it =
-              constraints.tiling_constraints.begin(); it !=
-              constraints.tiling_constraints.end(); /*nothing*/)
+                 constraints.tiling_constraints.begin();
+             it != constraints.tiling_constraints.end();
+             /*nothing*/)
         {
           if ((it->dim < num_dims) && !observed[it->dim])
           {
             observed[it->dim] = true;
             it++;
-          }
-          else
+          } else
             it = constraints.tiling_constraints.erase(it);
         }
       }
-      // From this we should be able to compute the field groups 
+      // From this we should be able to compute the field groups
       // Use the FieldConstraint to put any fields in the proper order
-      const std::vector<FieldID> &field_set = 
-        constraints.field_constraint.get_field_set(); 
+      const std::vector<FieldID>& field_set =
+          constraints.field_constraint.get_field_set();
       field_sizes.resize(field_set.size());
       mask_index_map.resize(field_set.size());
       serdez.resize(field_set.size());
-      field_space_node->compute_field_layout(field_set, field_sizes,
-                                       mask_index_map, serdez, instance_mask);
-      // See if we have any specialization here that will 
+      field_space_node->compute_field_layout(
+          field_set, field_sizes, mask_index_map, serdez, instance_mask);
+      // See if we have any specialization here that will
       // require us to update the field sizes
       switch (constraints.specialized_constraint.get_kind())
       {
@@ -549,39 +537,43 @@ namespace Legion {
             for (unsigned idx = 0; idx < field_sizes.size(); idx++)
             {
               if (field_sizes[idx] != reduction_op->sizeof_lhs)
-                REPORT_LEGION_ERROR(ERROR_UNSUPPORTED_LAYOUT_CONSTRAINT,
+                REPORT_LEGION_ERROR(
+                    ERROR_UNSUPPORTED_LAYOUT_CONSTRAINT,
                     "Illegal reduction instance request with field %d "
                     "which has size %d but the LHS type of reduction "
-                    "operator %d is %d", field_set[idx], int(field_sizes[idx]),
-                    redop_id, int(reduction_op->sizeof_lhs))
+                    "operator %d is %d",
+                    field_set[idx], int(field_sizes[idx]), redop_id,
+                    int(reduction_op->sizeof_lhs))
               // Update the field sizes to the rhs of the reduction op
               field_sizes[idx] = reduction_op->sizeof_rhs;
             }
             break;
           }
         case LEGION_VIRTUAL_SPECIALIZE:
-          REPORT_LEGION_ERROR(ERROR_ILLEGAL_REQUEST_VIRTUAL_INSTANCE,
-                        "Illegal request to create a virtual instance");
+          REPORT_LEGION_ERROR(
+              ERROR_ILLEGAL_REQUEST_VIRTUAL_INSTANCE,
+              "Illegal request to create a virtual instance");
         default:
-          REPORT_LEGION_ERROR(ERROR_ILLEGAL_REQUEST_VIRTUAL_INSTANCE,
-                        "Illegal request to create instance of type %d", 
-                        constraints.specialized_constraint.get_kind())
+          REPORT_LEGION_ERROR(
+              ERROR_ILLEGAL_REQUEST_VIRTUAL_INSTANCE,
+              "Illegal request to create instance of type %d",
+              constraints.specialized_constraint.get_kind())
       }
 #ifdef DEBUG_LEGION
-      assert((constraints.padding_constraint.delta.get_dim() == 0) ||
-             (constraints.padding_constraint.delta.get_dim() == (int)num_dims));
+      assert(
+          (constraints.padding_constraint.delta.get_dim() == 0) ||
+          (constraints.padding_constraint.delta.get_dim() == (int)num_dims));
 #endif
-      // If we don't have a padding constraint then record that we 
+      // If we don't have a padding constraint then record that we
       // don't have any padding on this instance
       if (constraints.padding_constraint.delta.get_dim() == 0)
       {
         DomainPoint empty;
         empty.dim = num_dims;
         for (unsigned dim = 0; dim < num_dims; dim++)
-          empty[dim] = 0; // no padding
+          empty[dim] = 0;  // no padding
         constraints.padding_constraint.delta = Domain(empty, empty);
-      }
-      else
+      } else
       {
         DomainPoint lo = constraints.padding_constraint.delta.lo();
         DomainPoint hi = constraints.padding_constraint.delta.hi();
@@ -596,5 +588,5 @@ namespace Legion {
       }
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

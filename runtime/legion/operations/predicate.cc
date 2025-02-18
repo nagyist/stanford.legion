@@ -19,15 +19,13 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Predicated Operation 
+    // Predicated Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PredicatedOp::PredicatedOp(void)
-      : MemoizableOp()
+    PredicatedOp::PredicatedOp(void) : MemoizableOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void PredicatedOp::activate(void)
@@ -50,8 +48,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PredicatedOp::initialize_predication(InnerContext *ctx,
-        const Predicate &p, Provenance *provenance)
+    void PredicatedOp::initialize_predication(
+        InnerContext* ctx, const Predicate& p, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -59,13 +57,11 @@ namespace Legion {
       {
         predication_state = PREDICATED_TRUE_STATE;
         predicate = nullptr;
-      }
-      else if (p == Predicate::FALSE_PRED)
+      } else if (p == Predicate::FALSE_PRED)
       {
         predication_state = PREDICATED_FALSE_STATE;
         predicate = nullptr;
-      }
-      else
+      } else
       {
         predication_state = PENDING_PREDICATE_STATE;
         predicate = p.impl;
@@ -99,12 +95,11 @@ namespace Legion {
         if (false_guard.exists())
           // Wait for the predicate to resolve
           // If false was poisoned then the predicate resolved true
-          false_guard.wait_faultaware(value, true/*from application*/);
+          false_guard.wait_faultaware(value, true /*from application*/);
         return value;
-      }
-      else
+      } else
         return (predication_state == PREDICATED_TRUE_STATE);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

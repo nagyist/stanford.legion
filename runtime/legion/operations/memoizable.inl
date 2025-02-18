@@ -36,34 +36,33 @@ namespace Legion {
         OP::trigger_replay();
         if (this->tpl->can_start_replay())
           this->tpl->start_replay();
-      }
-      else
+      } else
         OP::trigger_ready();
     }
 
     //--------------------------------------------------------------------------
     template<typename OP>
     ApEvent Memoizable<OP>::compute_sync_precondition(
-                                              const TraceInfo &trace_info) const
+        const TraceInfo& trace_info) const
     //--------------------------------------------------------------------------
     {
       // If you get a compiler error here, don't forget that you can statically
-      // specialize this method for particular OP types, see FenceOp or 
+      // specialize this method for particular OP types, see FenceOp or
       // AllReduceOp in runtime.cc
       if (!this->wait_barriers.empty() || !this->grants.empty())
       {
         std::vector<ApEvent> sync_preconditions;
-        for (std::vector<PhaseBarrier>::const_iterator it = 
-              this->wait_barriers.begin(); it != 
-              this->wait_barriers.end(); it++)
+        for (std::vector<PhaseBarrier>::const_iterator it =
+                 this->wait_barriers.begin();
+             it != this->wait_barriers.end(); it++)
         {
           ApEvent e = Runtime::get_previous_phase(it->phase_barrier);
           sync_preconditions.push_back(e);
           if (runtime->legion_spy_enabled)
             LegionSpy::log_phase_barrier_wait(this->get_unique_op_id(), e);
         }
-        for (std::vector<Grant>::const_iterator it =
-              this->grants.begin(); it != this->grants.end(); it++)
+        for (std::vector<Grant>::const_iterator it = this->grants.begin();
+             it != this->grants.end(); it++)
         {
           ApEvent e = it->impl->acquire_grant();
           sync_preconditions.push_back(e);
@@ -74,10 +73,9 @@ namespace Legion {
         if (this->is_recording())
           trace_info.record_op_sync_event(result);
         return result;
-      }
-      else // nothing to record since we just depend on the fence
+      } else  // nothing to record since we just depend on the fence
         return this->get_execution_fence_event();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

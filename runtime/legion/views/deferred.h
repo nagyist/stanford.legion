@@ -33,25 +33,24 @@ namespace Legion {
      * data there are no InstanceView managers captured in its
      * representations, which is an important invariant for the
      * equivalence sets. Think long and hard about what you're
-     * doing if you ever decide that you want to break that 
+     * doing if you ever decide that you want to break that
      * invariant and capture the names of instance views inside
      * of a deferred view.
      */
     class DeferredView : public LogicalView {
     public:
-      DeferredView(DistributedID did,
-                   bool register_now, CollectiveMapping *mapping = nullptr);
+      DeferredView(
+          DistributedID did, bool register_now,
+          CollectiveMapping* mapping = nullptr);
       virtual ~DeferredView(void);
     public:
-      virtual void send_view(AddressSpaceID target) = 0; 
+      virtual void send_view(AddressSpaceID target) = 0;
     public:
-      virtual void flatten(CopyFillAggregator &aggregator,
-                           InstanceView *dst_view, const FieldMask &src_mask,
-                           IndexSpaceExpression *expr, 
-                           PredEvent pred_guard,
-                           const PhysicalTraceInfo &trace_info,
-                           EquivalenceSet *tracing_eq,
-                           CopyAcrossHelper *helper) = 0;
+      virtual void flatten(
+          CopyFillAggregator& aggregator, InstanceView* dst_view,
+          const FieldMask& src_mask, IndexSpaceExpression* expr,
+          PredEvent pred_guard, const PhysicalTraceInfo& trace_info,
+          EquivalenceSet* tracing_eq, CopyAcrossHelper* helper) = 0;
     public:
       virtual void notify_valid(void);
       virtual bool notify_invalid(void);
@@ -67,7 +66,7 @@ namespace Legion {
       return static_cast<DeferredView*>(const_cast<LogicalView*>(this));
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_DEFERRED_VIEW_H__
+#endif  // __LEGION_DEFERRED_VIEW_H__

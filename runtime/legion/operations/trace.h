@@ -29,14 +29,15 @@ namespace Legion {
     class TraceOp : public FenceOp {
     public:
       TraceOp(void);
-      TraceOp(const TraceOp &rhs) = delete;
+      TraceOp(const TraceOp& rhs) = delete;
       virtual ~TraceOp(void);
     public:
-      TraceOp& operator=(const TraceOp &rhs) = delete;
+      TraceOp& operator=(const TraceOp& rhs) = delete;
     public:
       virtual bool is_tracing_fence(void) const override { return true; }
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                     std::set<RtEvent> &applied) const override;
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const override;
     };
 
     /**
@@ -46,14 +47,15 @@ namespace Legion {
     class ReplTraceOp : public ReplFenceOp {
     public:
       ReplTraceOp(void);
-      ReplTraceOp(const ReplTraceOp &rhs) = delete;
+      ReplTraceOp(const ReplTraceOp& rhs) = delete;
       virtual ~ReplTraceOp(void);
     public:
-      ReplTraceOp& operator=(const ReplTraceOp &rhs) = delete;
+      ReplTraceOp& operator=(const ReplTraceOp& rhs) = delete;
     public:
       virtual bool is_tracing_fence(void) const override { return true; }
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                     std::set<RtEvent> &applied) const override;
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const override;
     protected:
       struct TemplateStatus {
         bool all_valid;
@@ -62,7 +64,7 @@ namespace Legion {
       struct StatusReduction {
         typedef TemplateStatus RHS;
         template<bool EXCLUSIVE>
-        static inline void fold(RHS &rhs1, RHS rhs2) 
+        static inline void fold(RHS& rhs1, RHS rhs2)
         {
           if (!rhs2.all_valid)
             rhs1.all_valid = false;
@@ -80,13 +82,13 @@ namespace Legion {
      * physical template replays
      */
     class RemoteTraceOp : public RemoteOp,
-      public Heapify<RemoteTraceOp,OPERATION_LIFETIME> {
+                          public Heapify<RemoteTraceOp, OPERATION_LIFETIME> {
     public:
-      RemoteTraceOp(Operation *ptr, AddressSpaceID src, OpKind k);
-      RemoteTraceOp(const RemoteTraceOp &rhs) = delete;
+      RemoteTraceOp(Operation* ptr, AddressSpaceID src, OpKind k);
+      RemoteTraceOp(const RemoteTraceOp& rhs) = delete;
       virtual ~RemoteTraceOp(void);
     public:
-      RemoteTraceOp& operator=(const RemoteTraceOp &rhs) = delete;
+      RemoteTraceOp& operator=(const RemoteTraceOp& rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -95,14 +97,15 @@ namespace Legion {
     public:
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual void unpack(Deserializer &derez);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual void unpack(Deserializer& derez);
     public:
       const OpKind kind;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_TRACE_OPERATION_H__
+#endif  // __LEGION_TRACE_OPERATION_H__

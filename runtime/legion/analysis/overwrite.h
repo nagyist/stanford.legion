@@ -23,82 +23,77 @@ namespace Legion {
   namespace Internal {
 
     /**
-     * \class OverwriteAnalysis 
+     * \class OverwriteAnalysis
      * For performing overwrite traversals on equivalence set trees
      */
-    class OverwriteAnalysis : public PhysicalAnalysis,
-      public Heapify<OverwriteAnalysis,OPERATION_LIFETIME> {
+    class OverwriteAnalysis
+      : public PhysicalAnalysis,
+        public Heapify<OverwriteAnalysis, OPERATION_LIFETIME> {
     public:
-      OverwriteAnalysis(Operation *op, unsigned index,
-                        const RegionUsage &usage, IndexSpaceExpression *expr,
-                        LogicalView *view, const FieldMask &mask,
-                        const PhysicalTraceInfo &trace_info,
-                        CollectiveMapping *collective_mapping,
-                        const ApEvent precondition,
-                        const PredEvent true_guard = PredEvent::NO_PRED_EVENT,
-                        const PredEvent false_guard = PredEvent::NO_PRED_EVENT,
-                        const bool add_restriction = false,
-                        const bool first_local = true);
-      // Also local but with a full set of instances 
-      OverwriteAnalysis(Operation *op, unsigned index,
-                        const RegionUsage &usage, IndexSpaceExpression *expr,
-                        const PhysicalTraceInfo &trace_info,
-                        const ApEvent precondition,
-                        const bool add_restriction = false);
+      OverwriteAnalysis(
+          Operation* op, unsigned index, const RegionUsage& usage,
+          IndexSpaceExpression* expr, LogicalView* view, const FieldMask& mask,
+          const PhysicalTraceInfo& trace_info,
+          CollectiveMapping* collective_mapping, const ApEvent precondition,
+          const PredEvent true_guard = PredEvent::NO_PRED_EVENT,
+          const PredEvent false_guard = PredEvent::NO_PRED_EVENT,
+          const bool add_restriction = false, const bool first_local = true);
+      // Also local but with a full set of instances
+      OverwriteAnalysis(
+          Operation* op, unsigned index, const RegionUsage& usage,
+          IndexSpaceExpression* expr, const PhysicalTraceInfo& trace_info,
+          const ApEvent precondition, const bool add_restriction = false);
       // Also local but with a full set of views
-      OverwriteAnalysis(Operation *op, unsigned index,
-                        const RegionUsage &usage, IndexSpaceExpression *expr,
-                        const FieldMaskSet<LogicalView> &overwrite_views,
-                        const PhysicalTraceInfo &trace_info,
-                        const ApEvent precondition,
-                        const bool add_restriction = false);
-      OverwriteAnalysis(AddressSpaceID src, AddressSpaceID prev,
-                        Operation *op, unsigned index,
-                        IndexSpaceExpression *expr, const RegionUsage &usage, 
-                        FieldMaskSet<LogicalView> &views,
-                        FieldMaskSet<InstanceView> &reduction_views,
-                        const PhysicalTraceInfo &trace_info,
-                        const ApEvent precondition,
-                        const PredEvent true_guard,
-                        const PredEvent false_guard,
-                        CollectiveMapping *mapping,
-                        const bool first_local,
-                        const bool add_restriction);
-      OverwriteAnalysis(const OverwriteAnalysis &rhs) = delete;
+      OverwriteAnalysis(
+          Operation* op, unsigned index, const RegionUsage& usage,
+          IndexSpaceExpression* expr,
+          const FieldMaskSet<LogicalView>& overwrite_views,
+          const PhysicalTraceInfo& trace_info, const ApEvent precondition,
+          const bool add_restriction = false);
+      OverwriteAnalysis(
+          AddressSpaceID src, AddressSpaceID prev, Operation* op,
+          unsigned index, IndexSpaceExpression* expr, const RegionUsage& usage,
+          FieldMaskSet<LogicalView>& views,
+          FieldMaskSet<InstanceView>& reduction_views,
+          const PhysicalTraceInfo& trace_info, const ApEvent precondition,
+          const PredEvent true_guard, const PredEvent false_guard,
+          CollectiveMapping* mapping, const bool first_local,
+          const bool add_restriction);
+      OverwriteAnalysis(const OverwriteAnalysis& rhs) = delete;
       virtual ~OverwriteAnalysis(void);
     public:
-      OverwriteAnalysis& operator=(const OverwriteAnalysis &rhs) = delete;
+      OverwriteAnalysis& operator=(const OverwriteAnalysis& rhs) = delete;
     public:
-      bool has_output_updates(void) const 
-        { return (output_aggregator != nullptr); }
+      bool has_output_updates(void) const
+      {
+        return (output_aggregator != nullptr);
+      }
     public:
-      virtual RtEvent perform_traversal(RtEvent precondition,
-                                        const VersionInfo &version_info,
-                                        std::set<RtEvent> &applied_events);
-      virtual bool perform_analysis(EquivalenceSet *set,
-                                    IndexSpaceExpression *expr,
-                                    const bool expr_covers,
-                                    const FieldMask &mask,
-                                    std::set<RtEvent> &applied_events,
-                                    const bool already_deferred = false);
-      virtual RtEvent perform_remote(RtEvent precondition, 
-                                     std::set<RtEvent> &applied_events,
-                                     const bool already_deferred = false);
-      virtual RtEvent perform_registration(RtEvent precondition,
-                                           const RegionUsage &usage,
-                                           std::set<RtEvent> &applied_events,
-                                           ApEvent init_precondition,
-                                           ApEvent termination_event,
-                                           ApEvent &instances_ready,
-                                           bool symbolic = false);
-      virtual ApEvent perform_output(RtEvent precondition,
-                                     std::set<RtEvent> &applied_events,
-                                     const bool already_deferred = false);
+      virtual RtEvent perform_traversal(
+          RtEvent precondition, const VersionInfo& version_info,
+          std::set<RtEvent>& applied_events);
+      virtual bool perform_analysis(
+          EquivalenceSet* set, IndexSpaceExpression* expr,
+          const bool expr_covers, const FieldMask& mask,
+          std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_remote(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_registration(
+          RtEvent precondition, const RegionUsage& usage,
+          std::set<RtEvent>& applied_events, ApEvent init_precondition,
+          ApEvent termination_event, ApEvent& instances_ready,
+          bool symbolic = false);
+      virtual ApEvent perform_output(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
     public:
-      RtEvent convert_views(LogicalRegion region, const InstanceSet &targets,
-                            unsigned analysis_index = 0);
-      static void handle_remote_overwrites(Deserializer &derez,
-                                           AddressSpaceID previous); 
+      RtEvent convert_views(
+          LogicalRegion region, const InstanceSet& targets,
+          unsigned analysis_index = 0);
+      static void handle_remote_overwrites(
+          Deserializer& derez, AddressSpaceID previous);
     public:
       const RegionUsage usage;
       const PhysicalTraceInfo trace_info;
@@ -110,14 +105,14 @@ namespace Legion {
       const bool add_restriction;
     public:
       // Can only safely be accessed when analysis is locked
-      CopyFillAggregator *output_aggregator;
+      CopyFillAggregator* output_aggregator;
     protected:
       std::vector<PhysicalManager*> target_instances;
       LegionVector<FieldMaskSet<InstanceView> > target_views;
-      std::map<InstanceView*,size_t> collective_arrivals;
+      std::map<InstanceView*, size_t> collective_arrivals;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_OVERWRITE_ANALYSIS_H__
+#endif  // __LEGION_OVERWRITE_ANALYSIS_H__

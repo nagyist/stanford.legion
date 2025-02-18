@@ -23,24 +23,22 @@
 #include "legion/api/types.h"
 #include "legion/api/geometry.h"
 
-#define LEGION_EXECUTION_CONSTRAINT_KINDS(__op__) \
-  __op__(ISA_CONSTRAINT, "ISA") \
-  __op__(PROCESSOR_CONSTRAINT, "Processor") \
-  __op__(RESOURCE_CONSTRAINT, "Resource") \
-  __op__(LAUNCH_CONSTRAINT, "Launch") \
-  __op__(COLOCATION_CONSTRAINT, "Co-Location")
+#define LEGION_EXECUTION_CONSTRAINT_KINDS(__op__)                         \
+  __op__(ISA_CONSTRAINT, "ISA") __op__(PROCESSOR_CONSTRAINT, "Processor") \
+      __op__(RESOURCE_CONSTRAINT, "Resource")                             \
+          __op__(LAUNCH_CONSTRAINT, "Launch")                             \
+              __op__(COLOCATION_CONSTRAINT, "Co-Location")
 
-#define LEGION_LAYOUT_CONSTRAINT_KINDS(__op__) \
-  __op__(SPECIALIZED_CONSTRAINT, "Specialized") \
-  __op__(MEMORY CONSTRAINT, "Memory") \
-  __op__(FIELD_CONSTRAINT, "Field") \
-  __op__(ORDERING_CONSTRAINT, "Ordering") \
-  __op__(TILING_CONSTRAINT, "Tiling") \
-  __op__(DIMENSION_CONSTRAINT, "Dimension") \
-  __op__(ALIGNMENT_CONSTRAINT, "Alignment") \
-  __op__(OFFSET_CONSTRAINT, "Offset") \
-  __op__(POINTER_CONSTRAINT, "Pointer") \
-  __op__(PADDING_CONSTRAINT, "Padding")
+#define LEGION_LAYOUT_CONSTRAINT_KINDS(__op__)                              \
+  __op__(SPECIALIZED_CONSTRAINT, "Specialized")                             \
+      __op__(MEMORY CONSTRAINT, "Memory") __op__(FIELD_CONSTRAINT, "Field") \
+          __op__(ORDERING_CONSTRAINT, "Ordering")                           \
+              __op__(TILING_CONSTRAINT, "Tiling")                           \
+                  __op__(DIMENSION_CONSTRAINT, "Dimension")                 \
+                      __op__(ALIGNMENT_CONSTRAINT, "Alignment")             \
+                          __op__(OFFSET_CONSTRAINT, "Offset")               \
+                              __op__(POINTER_CONSTRAINT, "Pointer")         \
+                                  __op__(PADDING_CONSTRAINT, "Padding")
 
 namespace Legion {
 
@@ -51,29 +49,33 @@ namespace Legion {
    * will be controlling which kind of low-level runtime processor
    * we can map this onto.  Note that some constraints such as Terra
    * and LLVM do not correspond to actual low-level processor kinds, but
-   * represent variants which can be JIT-ed to different target 
+   * represent variants which can be JIT-ed to different target
    * processors on demand. The LLVM and Terra kinds can also be mixed
    * with other constraints to say specifically which target processors
    * the task can be JIT-ed to.
    */
   class ISAConstraint {
   public:
-    static const ExecutionConstraintKind constraint_kind = 
-                                              LEGION_ISA_CONSTRAINT;
+    static const ExecutionConstraintKind constraint_kind =
+        LEGION_ISA_CONSTRAINT;
   public:
     ISAConstraint(uint64_t prop = 0);
   public:
-    inline bool operator==(const ISAConstraint &other) const
-    { return isa_prop == other.isa_prop; }
-    inline bool operator!=(const ISAConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const ISAConstraint& other) const
+    {
+      return isa_prop == other.isa_prop;
+    }
+    inline bool operator!=(const ISAConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
-    bool entails(const ISAConstraint &other) const;
-    bool conflicts(const ISAConstraint &other) const;
+    bool entails(const ISAConstraint& other) const;
+    bool conflicts(const ISAConstraint& other) const;
   public:
-    void swap(ISAConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(ISAConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     uint64_t isa_prop;
   };
@@ -88,26 +90,30 @@ namespace Legion {
    */
   class ProcessorConstraint {
   public:
-    static const ExecutionConstraintKind constraint_kind = 
-                                          LEGION_PROCESSOR_CONSTRAINT;
+    static const ExecutionConstraintKind constraint_kind =
+        LEGION_PROCESSOR_CONSTRAINT;
   public:
     ProcessorConstraint(Processor::Kind kind = Processor::NO_KIND);
   public:
-    inline bool operator==(const ProcessorConstraint &other) const
-    { return valid_kinds == other.valid_kinds; }
-    inline bool operator!=(const ProcessorConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const ProcessorConstraint& other) const
+    {
+      return valid_kinds == other.valid_kinds;
+    }
+    inline bool operator!=(const ProcessorConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     inline bool is_valid(void) const { return !valid_kinds.empty(); }
     void add_kind(Processor::Kind kind);
     bool can_use(Processor::Kind kind) const;
   public:
-    bool entails(const ProcessorConstraint &other) const;
-    bool conflicts(const ProcessorConstraint &other) const;
+    bool entails(const ProcessorConstraint& other) const;
+    bool conflicts(const ProcessorConstraint& other) const;
   public:
-    void swap(ProcessorConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(ProcessorConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     std::vector<Processor::Kind> valid_kinds;
   };
@@ -116,28 +122,30 @@ namespace Legion {
    * \class ResourceConstraint
    * Resource constraints provide a way of specifying the expected
    * constraints for a task variant on a particular architecture.
-   * The target low-level processor must meet the constraint in 
+   * The target low-level processor must meet the constraint in
    * order for the invariant to run on the target processor.
    */
   class ResourceConstraint {
   public:
-    static const ExecutionConstraintKind constraint_kind = 
-                                          LEGION_RESOURCE_CONSTRAINT;
+    static const ExecutionConstraintKind constraint_kind =
+        LEGION_RESOURCE_CONSTRAINT;
   public:
     ResourceConstraint(void);
-    ResourceConstraint(ResourceKind resource_kind, 
-                       EqualityKind eq_kind, size_t value);
+    ResourceConstraint(
+        ResourceKind resource_kind, EqualityKind eq_kind, size_t value);
   public:
-    bool operator==(const ResourceConstraint &other) const;
-    inline bool operator!=(const ResourceConstraint &other) const
-    { return !(*this == other); }
+    bool operator==(const ResourceConstraint& other) const;
+    inline bool operator!=(const ResourceConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
-    bool entails(const ResourceConstraint &other) const;
-    bool conflicts(const ResourceConstraint &other) const;
+    bool entails(const ResourceConstraint& other) const;
+    bool conflicts(const ResourceConstraint& other) const;
   public:
-    void swap(ResourceConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(ResourceConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     ResourceKind resource_kind;
     EqualityKind equality_kind;
@@ -147,30 +155,32 @@ namespace Legion {
   /**
    * \class LaunchConstraint
    * Constraints on the launch configuration for this task.
-   * Right now this mainly applies to GPU tasks which can 
+   * Right now this mainly applies to GPU tasks which can
    * specify things like required CTA and grid shape. In
    * the future we can imagine extending this to other
    * processor kinds.
    */
   class LaunchConstraint {
   public:
-    static const ExecutionConstraintKind constraint_kind = 
-                                          LEGION_LAUNCH_CONSTRAINT;
+    static const ExecutionConstraintKind constraint_kind =
+        LEGION_LAUNCH_CONSTRAINT;
   public:
     LaunchConstraint(void);
     LaunchConstraint(LaunchKind kind, size_t value);
-    LaunchConstraint(LaunchKind kind, const size_t *value, int dims);
+    LaunchConstraint(LaunchKind kind, const size_t* value, int dims);
   public:
-    bool operator==(const LaunchConstraint &other) const;
-    inline bool operator!=(const LaunchConstraint &other) const
-    { return !(*this == other); }
+    bool operator==(const LaunchConstraint& other) const;
+    inline bool operator!=(const LaunchConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
-    bool entails(const LaunchConstraint &other) const;
-    bool conflicts(const LaunchConstraint &other) const;
+    bool entails(const LaunchConstraint& other) const;
+    bool conflicts(const LaunchConstraint& other) const;
   public:
-    void swap(LaunchConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(LaunchConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     LaunchKind launch_kind;
     size_t values[3];
@@ -180,35 +190,39 @@ namespace Legion {
   /**
    * \class ColocationConstraint
    * Co-location constraints can be used to specify that two
-   * region requirements for a task need to be located in the 
+   * region requirements for a task need to be located in the
    * same physical instance for layout purposes. A colocation
    * constraint without fields will apply to all such fields
    * in the region requirements at those indexes.
    */
   class ColocationConstraint {
   public:
-    static const ExecutionConstraintKind constraint_kind = 
-                                          LEGION_COLOCATION_CONSTRAINT;
+    static const ExecutionConstraintKind constraint_kind =
+        LEGION_COLOCATION_CONSTRAINT;
   public:
     ColocationConstraint(void);
     ColocationConstraint(unsigned index1, unsigned index2);
     ColocationConstraint(unsigned index1, unsigned index2, FieldID fid);
-    ColocationConstraint(unsigned index1, unsigned index2,
-                         const std::set<FieldID> &fields);
-    ColocationConstraint(const std::vector<unsigned> &indexes,
-                         const std::set<FieldID> &fields);
+    ColocationConstraint(
+        unsigned index1, unsigned index2, const std::set<FieldID>& fields);
+    ColocationConstraint(
+        const std::vector<unsigned>& indexes, const std::set<FieldID>& fields);
   public:
-    inline bool operator==(const ColocationConstraint &o) const
-    { return fields == o.fields && indexes == o.indexes; }
-    inline bool operator!=(const ColocationConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const ColocationConstraint& o) const
+    {
+      return fields == o.fields && indexes == o.indexes;
+    }
+    inline bool operator!=(const ColocationConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
-    bool entails(const ColocationConstraint &other) const;
-    bool conflicts(const ColocationConstraint &other) const;
+    bool entails(const ColocationConstraint& other) const;
+    bool conflicts(const ColocationConstraint& other) const;
   public:
-    void swap(ColocationConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(ColocationConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     std::set<FieldID> fields;
     std::set<unsigned> indexes;
@@ -216,37 +230,37 @@ namespace Legion {
 
   /**
    * \class ExecutionConstraintSet
-   * Provide a class for tracking all the associated 
+   * Provide a class for tracking all the associated
    * constraints for a given task variant.
    */
   class ExecutionConstraintSet {
   public:
-    // Make sure these methods return ourself so we 
+    // Make sure these methods return ourself so we
     // can easily chain together adding constraints
-    ExecutionConstraintSet& 
-      add_constraint(const ISAConstraint &constraint);
-    ExecutionConstraintSet&
-      add_constraint(const ProcessorConstraint &constraint);
-    ExecutionConstraintSet&
-      add_constraint(const ResourceConstraint &constraint);
-    ExecutionConstraintSet&
-      add_constraint(const LaunchConstraint &constraint);
-    ExecutionConstraintSet&
-      add_constraint(const ColocationConstraint &constraint);
+    ExecutionConstraintSet& add_constraint(const ISAConstraint& constraint);
+    ExecutionConstraintSet& add_constraint(
+        const ProcessorConstraint& constraint);
+    ExecutionConstraintSet& add_constraint(
+        const ResourceConstraint& constraint);
+    ExecutionConstraintSet& add_constraint(const LaunchConstraint& constraint);
+    ExecutionConstraintSet& add_constraint(
+        const ColocationConstraint& constraint);
   public:
-    bool operator==(const ExecutionConstraintSet &other) const;
-    inline bool operator!=(const ExecutionConstraintSet &other) const
-    { return !(*this == other); }
+    bool operator==(const ExecutionConstraintSet& other) const;
+    inline bool operator!=(const ExecutionConstraintSet& other) const
+    {
+      return !(*this == other);
+    }
   public:
-    void swap(ExecutionConstraintSet &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(ExecutionConstraintSet& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
-    ISAConstraint                              isa_constraint;
-    ProcessorConstraint                  processor_constraint;
-    std::vector<ResourceConstraint>      resource_constraints;
-    std::vector<LaunchConstraint>          launch_constraints;
-    std::vector<ColocationConstraint>  colocation_constraints;
+    ISAConstraint isa_constraint;
+    ProcessorConstraint processor_constraint;
+    std::vector<ResourceConstraint> resource_constraints;
+    std::vector<LaunchConstraint> launch_constraints;
+    std::vector<ColocationConstraint> colocation_constraints;
   };
 
   /**
@@ -261,46 +275,65 @@ namespace Legion {
     virtual LayoutConstraintKind get_constraint_kind(void) const = 0;
   public:
     virtual SpecializedConstraint* as_specialized_constraint(void)
-      { return nullptr; }
-    virtual MemoryConstraint* as_memory_constraint(void)
-      { return nullptr; }
-    virtual FieldConstraint* as_field_constraint(void)
-      { return nullptr; }
-    virtual OrderingConstraint* as_ordering_constraint(void)
-      { return nullptr; }
-    virtual TilingConstraint* as_tiling_constraint(void)
-      { return nullptr; }
+    {
+      return nullptr;
+    }
+    virtual MemoryConstraint* as_memory_constraint(void) { return nullptr; }
+    virtual FieldConstraint* as_field_constraint(void) { return nullptr; }
+    virtual OrderingConstraint* as_ordering_constraint(void) { return nullptr; }
+    virtual TilingConstraint* as_tiling_constraint(void) { return nullptr; }
     virtual DimensionConstraint* as_dimension_constraint(void)
-      { return nullptr; } 
+    {
+      return nullptr;
+    }
     virtual AlignmentConstraint* as_alignment_constraint(void)
-      { return nullptr; }
-    virtual OffsetConstraint* as_offset_constraint(void)
-      { return nullptr; }
-    virtual PointerConstraint* as_pointer_constraint(void)
-      { return nullptr; }
-    virtual PaddingConstraint* as_padding_constraint(void)
-      { return nullptr; }
+    {
+      return nullptr;
+    }
+    virtual OffsetConstraint* as_offset_constraint(void) { return nullptr; }
+    virtual PointerConstraint* as_pointer_constraint(void) { return nullptr; }
+    virtual PaddingConstraint* as_padding_constraint(void) { return nullptr; }
   public:
-    virtual const SpecializedConstraint* 
-      as_specialized_constraint(void) const { return nullptr; }
-    virtual const MemoryConstraint* 
-      as_memory_constraint(void) const { return nullptr; }
-    virtual const FieldConstraint* 
-      as_field_constraint(void) const { return nullptr; }
-    virtual const OrderingConstraint* 
-      as_ordering_constraint(void) const { return nullptr; }
-    virtual const TilingConstraint* 
-      as_tiling_constraint(void) const { return nullptr; }
-    virtual const DimensionConstraint* 
-      as_dimension_constraint(void) const { return nullptr; }
-    virtual const AlignmentConstraint* 
-      as_alignment_constraint(void) const { return nullptr; }
-    virtual const OffsetConstraint* 
-      as_offset_constraint(void) const { return nullptr; }
-    virtual const PointerConstraint* 
-      as_pointer_constraint(void) const { return nullptr; }
-    virtual const PaddingConstraint*
-      as_padding_constraint(void) const { return nullptr; }
+    virtual const SpecializedConstraint* as_specialized_constraint(void) const
+    {
+      return nullptr;
+    }
+    virtual const MemoryConstraint* as_memory_constraint(void) const
+    {
+      return nullptr;
+    }
+    virtual const FieldConstraint* as_field_constraint(void) const
+    {
+      return nullptr;
+    }
+    virtual const OrderingConstraint* as_ordering_constraint(void) const
+    {
+      return nullptr;
+    }
+    virtual const TilingConstraint* as_tiling_constraint(void) const
+    {
+      return nullptr;
+    }
+    virtual const DimensionConstraint* as_dimension_constraint(void) const
+    {
+      return nullptr;
+    }
+    virtual const AlignmentConstraint* as_alignment_constraint(void) const
+    {
+      return nullptr;
+    }
+    virtual const OffsetConstraint* as_offset_constraint(void) const
+    {
+      return nullptr;
+    }
+    virtual const PointerConstraint* as_pointer_constraint(void) const
+    {
+      return nullptr;
+    }
+    virtual const PaddingConstraint* as_padding_constraint(void) const
+    {
+      return nullptr;
+    }
   };
 
   /**
@@ -308,47 +341,53 @@ namespace Legion {
    * This is a pretty basic constraint for physical instances.
    * Normal is a standard physical instance, while specialized
    * values are for indiciating the need for a custom kind of
-   * physical instance like a reduction-list or a 
-   * reduction fold instance. You can also use redop of 0 with 
+   * physical instance like a reduction-list or a
+   * reduction fold instance. You can also use redop of 0 with
    * either of the reduction specializations to indicate that
    * you expect a reduction instance, but it does not matter
-   * which reduction instance is required. We can provide other 
+   * which reduction instance is required. We can provide other
    * kinds of specializations here in the future. Note the default
    * constructor will fall back to the normal case so this
    * kind of constraint won't need to be set in the default case.
    */
-  class SpecializedConstraint : public LayoutConstraint { 
+  class SpecializedConstraint : public LayoutConstraint {
   public:
-    static const LayoutConstraintKind constraint_kind = 
-                                          LEGION_SPECIALIZED_CONSTRAINT;
+    static const LayoutConstraintKind constraint_kind =
+        LEGION_SPECIALIZED_CONSTRAINT;
   public:
-    SpecializedConstraint(SpecializedKind kind = LEGION_AFFINE_SPECIALIZE,
-                          ReductionOpID redop = 0, 
-                          bool no_access = false,
-                          bool exact = false,
-                          size_t max_pieces = SIZE_MAX,
-                          int max_overhead = 0);
+    SpecializedConstraint(
+        SpecializedKind kind = LEGION_AFFINE_SPECIALIZE,
+        ReductionOpID redop = 0, bool no_access = false, bool exact = false,
+        size_t max_pieces = SIZE_MAX, int max_overhead = 0);
   public:
-    bool operator==(const SpecializedConstraint &other) const;
-    inline bool operator!=(const SpecializedConstraint &other) const
-    { return !(*this == other); }
+    bool operator==(const SpecializedConstraint& other) const;
+    inline bool operator!=(const SpecializedConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual SpecializedConstraint* as_specialized_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual SpecializedConstraint* as_specialized_constraint(void)
+    {
+      return this;
+    }
     virtual const SpecializedConstraint* as_specialized_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
-    bool entails(const SpecializedConstraint &other) const;
-    bool conflicts(const SpecializedConstraint &other) const;
+    bool entails(const SpecializedConstraint& other) const;
+    bool conflicts(const SpecializedConstraint& other) const;
   public:
     inline SpecializedKind get_kind(void) const { return kind; }
     inline ReductionOpID get_reduction_op(void) const { return redop; }
   public:
-    void swap(SpecializedConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(SpecializedConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     bool is_affine(void) const;
     bool is_compact(void) const;
@@ -361,49 +400,56 @@ namespace Legion {
     bool is_normal(void) const;
   public:
     SpecializedKind kind;
-    ReductionOpID  redop;
-    size_t    max_pieces;
-    int     max_overhead;
-    bool       no_access;
-    bool           exact;
+    ReductionOpID redop;
+    size_t max_pieces;
+    int max_overhead;
+    bool no_access;
+    bool exact;
   };
 
   /**
    * \class MemoryConstraint
-   * A placement constraint is used to specify where in 
-   * memory to create physical instances. This is just an 
+   * A placement constraint is used to specify where in
+   * memory to create physical instances. This is just an
    * ordering of memories in which the runtime should attempt
    * to create a physical instance.
    */
   class MemoryConstraint : public LayoutConstraint {
   public:
-    static const LayoutConstraintKind constraint_kind = 
-                                          LEGION_MEMORY_CONSTRAINT;
+    static const LayoutConstraintKind constraint_kind =
+        LEGION_MEMORY_CONSTRAINT;
   public:
     MemoryConstraint(void);
     MemoryConstraint(Memory::Kind kind);
   public:
-    inline bool operator==(const MemoryConstraint &other) const
-    { return kind == other.kind && has_kind == other.has_kind; }
-    inline bool operator!=(const MemoryConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const MemoryConstraint& other) const
+    {
+      return kind == other.kind && has_kind == other.has_kind;
+    }
+    inline bool operator!=(const MemoryConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual MemoryConstraint* as_memory_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual MemoryConstraint* as_memory_constraint(void) { return this; }
     virtual const MemoryConstraint* as_memory_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
     inline bool is_valid(void) const { return has_kind; }
     inline Memory::Kind get_kind(void) const { return kind; }
   public:
-    bool entails(const MemoryConstraint &other) const;
-    bool conflicts(const MemoryConstraint &other) const;
+    bool entails(const MemoryConstraint& other) const;
+    bool conflicts(const MemoryConstraint& other) const;
   public:
-    void swap(MemoryConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(MemoryConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     Memory::Kind kind;
     bool has_kind;
@@ -412,7 +458,7 @@ namespace Legion {
   /**
    * \class FieldConstraint
    * A field constraint controls the ordering of fields in the
-   * layout. Multiple field constraints can be specified 
+   * layout. Multiple field constraints can be specified
    * an instance layout so that partial orders on fields can
    * be established. Users can also say with the contiguous
    * flag whether they want the fields to be contiguous in
@@ -420,37 +466,45 @@ namespace Legion {
    */
   class FieldConstraint : public LayoutConstraint {
   public:
-    static const LayoutConstraintKind constraint_kind = 
-                                          LEGION_FIELD_CONSTRAINT;
+    static const LayoutConstraintKind constraint_kind = LEGION_FIELD_CONSTRAINT;
   public:
     FieldConstraint(bool contiguous = false, bool inorder = false);
-    FieldConstraint(const std::vector<FieldID> &field_set,
-                    bool contiguous, bool inorder = true);
-    FieldConstraint(const std::set<FieldID> &field_set,
-                    bool contiguous, bool inorder = true);
+    FieldConstraint(
+        const std::vector<FieldID>& field_set, bool contiguous,
+        bool inorder = true);
+    FieldConstraint(
+        const std::set<FieldID>& field_set, bool contiguous,
+        bool inorder = true);
   public:
-    bool operator==(const FieldConstraint &other) const;
-    inline bool operator!=(const FieldConstraint &other) const
-    { return !(*this == other); }
+    bool operator==(const FieldConstraint& other) const;
+    inline bool operator!=(const FieldConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual FieldConstraint* as_field_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual FieldConstraint* as_field_constraint(void) { return this; }
     virtual const FieldConstraint* as_field_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
     inline bool is_contiguous(void) const { return contiguous; }
     inline bool is_inorder(void) const { return inorder; }
-    inline const std::vector<FieldID>& get_field_set(void) const 
-      { return field_set; }
+    inline const std::vector<FieldID>& get_field_set(void) const
+    {
+      return field_set;
+    }
   public:
-    bool entails(const FieldConstraint &other) const;
-    bool conflicts(const FieldConstraint &other) const;
+    bool entails(const FieldConstraint& other) const;
+    bool conflicts(const FieldConstraint& other) const;
   public:
-    void swap(FieldConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(FieldConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     std::vector<FieldID> field_set;
     bool contiguous;
@@ -459,7 +513,7 @@ namespace Legion {
 
   /**
    * \class OrderingConstraint
-   * An ordering constraint specifies an ordering on 
+   * An ordering constraint specifies an ordering on
    * index space dimensions as well as the special 'field'
    * dimension. The earliest dimensions are assumed to
    * be the most-rapidly changing in memory, therefore:
@@ -467,7 +521,7 @@ namespace Legion {
    * Array-of-structs (AOS): DIM_F is listed first
    * Struct-of-arrays (SOA): DIM_F is listed last
    *
-   * Again users can specify multiple of these constraints 
+   * Again users can specify multiple of these constraints
    * to describe a partial order, but the common case will
    * almost certainly be to specify a total order. Users
    * can also specify whether or not the related constraints
@@ -475,31 +529,38 @@ namespace Legion {
    */
   class OrderingConstraint : public LayoutConstraint {
   public:
-    static const LayoutConstraintKind constraint_kind = 
-                                          LEGION_ORDERING_CONSTRAINT;
+    static const LayoutConstraintKind constraint_kind =
+        LEGION_ORDERING_CONSTRAINT;
   public:
     OrderingConstraint(bool contiguous = false);
-    OrderingConstraint(const std::vector<DimensionKind> &ordering,
-                       bool contiguous);
+    OrderingConstraint(
+        const std::vector<DimensionKind>& ordering, bool contiguous);
   public:
-    inline bool operator==(const OrderingConstraint &other) const
-    { return ordering == other.ordering && contiguous == other.contiguous; }
-    inline bool operator!=(const OrderingConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const OrderingConstraint& other) const
+    {
+      return ordering == other.ordering && contiguous == other.contiguous;
+    }
+    inline bool operator!=(const OrderingConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual OrderingConstraint* as_ordering_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual OrderingConstraint* as_ordering_constraint(void) { return this; }
     virtual const OrderingConstraint* as_ordering_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
-    bool entails(const OrderingConstraint &other, unsigned total_dims) const;
-    bool conflicts(const OrderingConstraint &other,unsigned total_dims) const;
+    bool entails(const OrderingConstraint& other, unsigned total_dims) const;
+    bool conflicts(const OrderingConstraint& other, unsigned total_dims) const;
   public:
-    void swap(OrderingConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(OrderingConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     static bool is_skip_dimension(DimensionKind dim, unsigned total_dims);
   public:
@@ -508,41 +569,48 @@ namespace Legion {
   };
 
   /**
-   * \class TilingConstraint 
-   * Specify how to tile a dimension of an index space, The tile can 
+   * \class TilingConstraint
+   * Specify how to tile a dimension of an index space, The tile can
    * be specified in one of two ways: either by saying how many tiles
    * to break the dimension into, or by specifying a tiling
    * factor that will create as many tiles as necessary.
    * These two constructors provide both top-down and bottom-up
    * ways of saying how to break a dimension apart.
    */
-  class TilingConstraint : public LayoutConstraint { 
+  class TilingConstraint : public LayoutConstraint {
   public:
-    static const LayoutConstraintKind constraint_kind = 
-                                          LEGION_TILING_CONSTRAINT;
+    static const LayoutConstraintKind constraint_kind =
+        LEGION_TILING_CONSTRAINT;
   public:
     TilingConstraint(void);
-    TilingConstraint(DimensionKind dim); // tiles
+    TilingConstraint(DimensionKind dim);  // tiles
     TilingConstraint(DimensionKind dim, size_t value, bool tiles = false);
   public:
-    inline bool operator==(const TilingConstraint &o) const
-    { return dim == o.dim && value == o.value && tiles == o.tiles; }
-    inline bool operator!=(const TilingConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const TilingConstraint& o) const
+    {
+      return dim == o.dim && value == o.value && tiles == o.tiles;
+    }
+    inline bool operator!=(const TilingConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual TilingConstraint* as_tiling_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual TilingConstraint* as_tiling_constraint(void) { return this; }
     virtual const TilingConstraint* as_tiling_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
-    bool entails(const TilingConstraint &other) const;
-    bool conflicts(const TilingConstraint &other) const;
+    bool entails(const TilingConstraint& other) const;
+    bool conflicts(const TilingConstraint& other) const;
   public:
-    void swap(TilingConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(TilingConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     DimensionKind dim;
     size_t value;
@@ -551,35 +619,42 @@ namespace Legion {
 
   /**
    * \class DimensionConstraint
-   * Dimension constraints specify the minimum or maximum 
+   * Dimension constraints specify the minimum or maximum
    * necessary size of a given dimension.
    */
   class DimensionConstraint : public LayoutConstraint {
   public:
-    static const LayoutConstraintKind constraint_kind = 
-                                        LEGION_DIMENSION_CONSTRAINT;
+    static const LayoutConstraintKind constraint_kind =
+        LEGION_DIMENSION_CONSTRAINT;
   public:
     DimensionConstraint(void);
     DimensionConstraint(DimensionKind dim, EqualityKind eq, size_t value);
   public:
-    inline bool operator==(const DimensionConstraint &o) const
-    { return kind == o.kind && eqk == o.eqk && value == o.value; }
-    inline bool operator!=(const DimensionConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const DimensionConstraint& o) const
+    {
+      return kind == o.kind && eqk == o.eqk && value == o.value;
+    }
+    inline bool operator!=(const DimensionConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual DimensionConstraint* as_dimension_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual DimensionConstraint* as_dimension_constraint(void) { return this; }
     virtual const DimensionConstraint* as_dimension_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
-    bool entails(const DimensionConstraint &other) const;
-    bool conflicts(const DimensionConstraint &other) const;
+    bool entails(const DimensionConstraint& other) const;
+    bool conflicts(const DimensionConstraint& other) const;
   public:
-    void swap(DimensionConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(DimensionConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     DimensionKind kind;
     EqualityKind eqk;
@@ -589,36 +664,42 @@ namespace Legion {
   /**
    * \class AlignmentConstraint
    * Specify the alignment constraint for a field. Users can
-   * set lower or upper bounds or equality for a the 
+   * set lower or upper bounds or equality for a the
    * byte-alignment of a given field.
    */
   class AlignmentConstraint : public LayoutConstraint {
   public:
-    static const LayoutConstraintKind constraint_kind = 
-                                          LEGION_ALIGNMENT_CONSTRAINT;
+    static const LayoutConstraintKind constraint_kind =
+        LEGION_ALIGNMENT_CONSTRAINT;
   public:
     AlignmentConstraint(void);
-    AlignmentConstraint(FieldID fid, EqualityKind kind, 
-                        size_t byte_boundary);
+    AlignmentConstraint(FieldID fid, EqualityKind kind, size_t byte_boundary);
   public:
-    inline bool operator==(const AlignmentConstraint &o) const
-    { return fid == o.fid && eqk == o.eqk && alignment == o.alignment; }
-    inline bool operator!=(const AlignmentConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const AlignmentConstraint& o) const
+    {
+      return fid == o.fid && eqk == o.eqk && alignment == o.alignment;
+    }
+    inline bool operator!=(const AlignmentConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual AlignmentConstraint* as_alignment_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual AlignmentConstraint* as_alignment_constraint(void) { return this; }
     virtual const AlignmentConstraint* as_alignment_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
-    bool entails(const AlignmentConstraint &other) const;
-    bool conflicts(const AlignmentConstraint &other) const;
+    bool entails(const AlignmentConstraint& other) const;
+    bool conflicts(const AlignmentConstraint& other) const;
   public:
-    void swap(AlignmentConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(AlignmentConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     FieldID fid;
     EqualityKind eqk;
@@ -632,30 +713,37 @@ namespace Legion {
    */
   class OffsetConstraint : public LayoutConstraint {
   public:
-    static const LayoutConstraintKind constraint_kind = 
-                                          LEGION_OFFSET_CONSTRAINT;
+    static const LayoutConstraintKind constraint_kind =
+        LEGION_OFFSET_CONSTRAINT;
   public:
     OffsetConstraint(void);
     OffsetConstraint(FieldID fid, size_t offset);
   public:
-    inline bool operator==(const OffsetConstraint &o) const
-    { return fid == o.fid && offset == o.offset; }
-    inline bool operator!=(const OffsetConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const OffsetConstraint& o) const
+    {
+      return fid == o.fid && offset == o.offset;
+    }
+    inline bool operator!=(const OffsetConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual OffsetConstraint* as_offset_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual OffsetConstraint* as_offset_constraint(void) { return this; }
     virtual const OffsetConstraint* as_offset_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
-    bool entails(const OffsetConstraint &other) const;
-    bool conflicts(const OffsetConstraint &other) const;
+    bool entails(const OffsetConstraint& other) const;
+    bool conflicts(const OffsetConstraint& other) const;
   public:
-    void swap(OffsetConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(OffsetConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     FieldID fid;
     off_t offset;
@@ -668,30 +756,37 @@ namespace Legion {
    */
   class PointerConstraint : public LayoutConstraint {
   public:
-    static const LayoutConstraintKind constraint_kind = 
-                                          LEGION_POINTER_CONSTRAINT;
+    static const LayoutConstraintKind constraint_kind =
+        LEGION_POINTER_CONSTRAINT;
   public:
     PointerConstraint(void);
     PointerConstraint(Memory memory, uintptr_t ptr);
   public:
-    inline bool operator==(const PointerConstraint &o) const
-    { return is_valid == o.is_valid && memory == o.memory && ptr == o.ptr; }
-    inline bool operator!=(const PointerConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const PointerConstraint& o) const
+    {
+      return is_valid == o.is_valid && memory == o.memory && ptr == o.ptr;
+    }
+    inline bool operator!=(const PointerConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual PointerConstraint* as_pointer_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual PointerConstraint* as_pointer_constraint(void) { return this; }
     virtual const PointerConstraint* as_pointer_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
-    bool entails(const PointerConstraint &other) const;
-    bool conflicts(const PointerConstraint &other) const;
+    bool entails(const PointerConstraint& other) const;
+    bool conflicts(const PointerConstraint& other) const;
   public:
-    void swap(PointerConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(PointerConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     bool is_valid;
     Memory memory;
@@ -706,30 +801,37 @@ namespace Legion {
   class PaddingConstraint : public LayoutConstraint {
   public:
     static const LayoutConstraintKind constraint_kind =
-                                        LEGION_PADDING_CONSTRAINT;
+        LEGION_PADDING_CONSTRAINT;
   public:
     PaddingConstraint(void) = default;
-    PaddingConstraint(const Domain &delta);
-    PaddingConstraint(const DomainPoint &lower, const DomainPoint &upper);
+    PaddingConstraint(const Domain& delta);
+    PaddingConstraint(const DomainPoint& lower, const DomainPoint& upper);
   public:
-    inline bool operator==(const PaddingConstraint &rhs) const 
-    { return (delta == rhs.delta); }
-    inline bool operator!=(const PaddingConstraint &other) const
-    { return !(*this == other); }
+    inline bool operator==(const PaddingConstraint& rhs) const
+    {
+      return (delta == rhs.delta);
+    }
+    inline bool operator!=(const PaddingConstraint& other) const
+    {
+      return !(*this == other);
+    }
   public:
     virtual LayoutConstraintKind get_constraint_kind(void) const
-      { return constraint_kind; }
-    virtual PaddingConstraint* as_padding_constraint(void) 
-      { return this; }
+    {
+      return constraint_kind;
+    }
+    virtual PaddingConstraint* as_padding_constraint(void) { return this; }
     virtual const PaddingConstraint* as_padding_constraint(void) const
-      { return this; }
+    {
+      return this;
+    }
   public:
-    bool entails(const PaddingConstraint &other) const;
-    bool conflicts(const PaddingConstraint &other) const;
+    bool entails(const PaddingConstraint& other) const;
+    bool conflicts(const PaddingConstraint& other) const;
   public:
-    void swap(PaddingConstraint &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(PaddingConstraint& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
     // Positive integers mean you must have that much padding
     // Zero means that there should never be any padding
@@ -740,68 +842,60 @@ namespace Legion {
 
   /**
    * \class LayoutConstraintSet
-   * Provide a class for tracking all the associated 
+   * Provide a class for tracking all the associated
    * layout constraints for a given region requirement
    * of a task.
    */
   class LayoutConstraintSet {
   public:
-    LayoutConstraintSet(void) { } // provided for dumb c++ compilers
-  public: 
-    LayoutConstraintSet&
-      add_constraint(const SpecializedConstraint &constraint);
-    LayoutConstraintSet&
-      add_constraint(const FieldConstraint &constraint);
-    LayoutConstraintSet&
-      add_constraint(const MemoryConstraint &constraint);
-    LayoutConstraintSet&
-      add_constraint(const OrderingConstraint &constraint);
-    LayoutConstraintSet&
-      add_constraint(const TilingConstraint &constraint);
-    LayoutConstraintSet&
-      add_constraint(const DimensionConstraint &constraint);
-    LayoutConstraintSet&
-      add_constraint(const AlignmentConstraint &constraint);
-    LayoutConstraintSet&
-      add_constraint(const OffsetConstraint &constraint);
-    LayoutConstraintSet&
-      add_constraint(const PointerConstraint &constraint);
-    LayoutConstraintSet&
-      add_constraint(const PaddingConstraint &constraint);
+    LayoutConstraintSet(void) { }  // provided for dumb c++ compilers
   public:
-    bool operator==(const LayoutConstraintSet &other) const;
-    bool operator!=(const LayoutConstraintSet &other) const;
-    bool equals(const LayoutConstraintSet &other,
-                LayoutConstraintKind *bad_kind = nullptr,
-                size_t *bad_index = nullptr) const;
+    LayoutConstraintSet& add_constraint(
+        const SpecializedConstraint& constraint);
+    LayoutConstraintSet& add_constraint(const FieldConstraint& constraint);
+    LayoutConstraintSet& add_constraint(const MemoryConstraint& constraint);
+    LayoutConstraintSet& add_constraint(const OrderingConstraint& constraint);
+    LayoutConstraintSet& add_constraint(const TilingConstraint& constraint);
+    LayoutConstraintSet& add_constraint(const DimensionConstraint& constraint);
+    LayoutConstraintSet& add_constraint(const AlignmentConstraint& constraint);
+    LayoutConstraintSet& add_constraint(const OffsetConstraint& constraint);
+    LayoutConstraintSet& add_constraint(const PointerConstraint& constraint);
+    LayoutConstraintSet& add_constraint(const PaddingConstraint& constraint);
+  public:
+    bool operator==(const LayoutConstraintSet& other) const;
+    bool operator!=(const LayoutConstraintSet& other) const;
+    bool equals(
+        const LayoutConstraintSet& other,
+        LayoutConstraintKind* bad_kind = nullptr,
+        size_t* bad_index = nullptr) const;
   public:
     // failed_constraint will be the one from 'other' that wasn't entailed
-    bool entails(const LayoutConstraintSet &other, 
-                 unsigned total_dims = 0,
-                 const LayoutConstraint **failed_constraint = nullptr,
-                 bool test_pointer = true) const;
+    bool entails(
+        const LayoutConstraintSet& other, unsigned total_dims = 0,
+        const LayoutConstraint** failed_constraint = nullptr,
+        bool test_pointer = true) const;
     // conflict_constraint will be the one from 'this' that conficted
     // with a constraint from 'other'
-    bool conflicts(const LayoutConstraintSet &other,
-                   unsigned total_dims = 0,
-                   const LayoutConstraint **conflict_constraint = nullptr) const;
-    const LayoutConstraint* convert_unsatisfied(LayoutConstraintKind kind,
-                                                unsigned index) const;
+    bool conflicts(
+        const LayoutConstraintSet& other, unsigned total_dims = 0,
+        const LayoutConstraint** conflict_constraint = nullptr) const;
+    const LayoutConstraint* convert_unsatisfied(
+        LayoutConstraintKind kind, unsigned index) const;
   public:
-    void swap(LayoutConstraintSet &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(LayoutConstraintSet& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
-    SpecializedConstraint            specialized_constraint;
-    FieldConstraint                  field_constraint;
-    MemoryConstraint                 memory_constraint;
-    PointerConstraint                pointer_constraint;
-    PaddingConstraint                padding_constraint;
-    OrderingConstraint               ordering_constraint;
-    std::vector<TilingConstraint>    tiling_constraints;
+    SpecializedConstraint specialized_constraint;
+    FieldConstraint field_constraint;
+    MemoryConstraint memory_constraint;
+    PointerConstraint pointer_constraint;
+    PaddingConstraint padding_constraint;
+    OrderingConstraint ordering_constraint;
+    std::vector<TilingConstraint> tiling_constraints;
     std::vector<DimensionConstraint> dimension_constraints;
-    std::vector<AlignmentConstraint> alignment_constraints; 
-    std::vector<OffsetConstraint>    offset_constraints;
+    std::vector<AlignmentConstraint> alignment_constraints;
+    std::vector<OffsetConstraint> offset_constraints;
   };
 
   /**
@@ -815,16 +909,16 @@ namespace Legion {
    */
   class TaskLayoutConstraintSet {
   public:
-    TaskLayoutConstraintSet&
-      add_layout_constraint(unsigned idx, LayoutConstraintID desc);
+    TaskLayoutConstraintSet& add_layout_constraint(
+        unsigned idx, LayoutConstraintID desc);
   public:
-    void swap(TaskLayoutConstraintSet &rhs);
-    void serialize(Serializer &rez) const;
-    void deserialize(Deserializer &derez);
+    void swap(TaskLayoutConstraintSet& rhs);
+    void serialize(Serializer& rez) const;
+    void deserialize(Deserializer& derez);
   public:
-    std::multimap<unsigned,LayoutConstraintID> layouts;
+    std::multimap<unsigned, LayoutConstraintID> layouts;
   };
 
-} // namespace Legion
+}  // namespace Legion
 
-#endif // __LEGION_CONSTRAINT_H__
+#endif  // __LEGION_CONSTRAINT_H__

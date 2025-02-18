@@ -26,43 +26,43 @@ namespace Legion {
      * For performing filter traversals on equivalence set trees
      */
     class FilterAnalysis : public RegistrationAnalysis,
-      public Heapify<FilterAnalysis,OPERATION_LIFETIME> {
+                           public Heapify<FilterAnalysis, OPERATION_LIFETIME> {
     public:
-      FilterAnalysis(Operation *op, unsigned index,
-                     RegionNode *node, const PhysicalTraceInfo &trace_info,
-                     const bool remove_restriction = false);
-      FilterAnalysis(AddressSpaceID src, AddressSpaceID prev,
-                     Operation *op, unsigned index, RegionNode *node,
-                     const PhysicalTraceInfo &trace_info,
-                     const FieldMaskSet<InstanceView> &filter_views,
-                     CollectiveMapping *mapping, const bool first_local,
-                     const bool remove_restriction);
-      FilterAnalysis(const FilterAnalysis &rhs) = delete;
+      FilterAnalysis(
+          Operation* op, unsigned index, RegionNode* node,
+          const PhysicalTraceInfo& trace_info,
+          const bool remove_restriction = false);
+      FilterAnalysis(
+          AddressSpaceID src, AddressSpaceID prev, Operation* op,
+          unsigned index, RegionNode* node, const PhysicalTraceInfo& trace_info,
+          const FieldMaskSet<InstanceView>& filter_views,
+          CollectiveMapping* mapping, const bool first_local,
+          const bool remove_restriction);
+      FilterAnalysis(const FilterAnalysis& rhs) = delete;
       virtual ~FilterAnalysis(void);
     public:
-      FilterAnalysis& operator=(const FilterAnalysis &rhs) = delete;
+      FilterAnalysis& operator=(const FilterAnalysis& rhs) = delete;
     public:
-      virtual RtEvent perform_traversal(RtEvent precondition,
-                                        const VersionInfo &version_info,
-                                        std::set<RtEvent> &applied_events);
-      virtual bool perform_analysis(EquivalenceSet *set,
-                                    IndexSpaceExpression *expr,
-                                    const bool expr_covers,
-                                    const FieldMask &mask,
-                                    std::set<RtEvent> &applied_events,
-                                    const bool already_deferred = false);
-      virtual RtEvent perform_remote(RtEvent precondition, 
-                                     std::set<RtEvent> &applied_events,
-                                     const bool already_deferred = false);
+      virtual RtEvent perform_traversal(
+          RtEvent precondition, const VersionInfo& version_info,
+          std::set<RtEvent>& applied_events);
+      virtual bool perform_analysis(
+          EquivalenceSet* set, IndexSpaceExpression* expr,
+          const bool expr_covers, const FieldMask& mask,
+          std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
+      virtual RtEvent perform_remote(
+          RtEvent precondition, std::set<RtEvent>& applied_events,
+          const bool already_deferred = false);
     public:
-      static void handle_remote_filters(Deserializer &derez,
-                                        AddressSpaceID previous);
+      static void handle_remote_filters(
+          Deserializer& derez, AddressSpaceID previous);
     public:
       FieldMaskSet<InstanceView> filter_views;
       const bool remove_restriction;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_FILTER_ANALYSIS_H__
+#endif  // __LEGION_FILTER_ANALYSIS_H__

@@ -35,15 +35,17 @@ namespace Legion {
      * locks.  Grants continues accepting registrations
      * until the runtime marks that it is no longer active.
      */
-    class GrantImpl : public Collectable, public Heapify<GrantImpl,SHORT_BOUNDED_LIFETIME> {
+    class GrantImpl : public Collectable,
+                      public Heapify<GrantImpl, SHORT_BOUNDED_LIFETIME> {
     public:
       struct ReservationRequest {
       public:
         ReservationRequest(void)
-          : reservation(Reservation::NO_RESERVATION),
-            mode(0), exclusive(true) { }
+          : reservation(Reservation::NO_RESERVATION), mode(0), exclusive(true)
+        { }
         ReservationRequest(Reservation r, unsigned m, bool e)
-          : reservation(r), mode(m), exclusive(e) { }
+          : reservation(r), mode(m), exclusive(e)
+        { }
       public:
         Reservation reservation;
         unsigned mode;
@@ -51,18 +53,18 @@ namespace Legion {
       };
     public:
       GrantImpl(void);
-      GrantImpl(const std::vector<ReservationRequest> &requests);
-      GrantImpl(const GrantImpl &rhs) = delete;
+      GrantImpl(const std::vector<ReservationRequest>& requests);
+      GrantImpl(const GrantImpl& rhs) = delete;
       ~GrantImpl(void);
     public:
-      GrantImpl& operator=(const GrantImpl &rhs) = delete;
+      GrantImpl& operator=(const GrantImpl& rhs) = delete;
     public:
       void register_operation(ApEvent completion_event);
       ApEvent acquire_grant(void);
       void release_grant(void);
     public:
-      void pack_grant(Serializer &rez);
-      void unpack_grant(Deserializer &derez);
+      void pack_grant(Serializer& rez);
+      void unpack_grant(Deserializer& derez);
     private:
       std::vector<ReservationRequest> requests;
       bool acquired;
@@ -71,7 +73,7 @@ namespace Legion {
       mutable LocalLock grant_lock;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_SYNC_IMPL_H__
+#endif  // __LEGION_SYNC_IMPL_H__

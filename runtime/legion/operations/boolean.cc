@@ -26,17 +26,14 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    FuturePredOp::FuturePredOp(void)
-      : Operation()
+    FuturePredOp::FuturePredOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     FuturePredOp::~FuturePredOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void FuturePredOp::activate(void)
@@ -49,7 +46,7 @@ namespace Legion {
     void FuturePredOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       future = Future();
       predicate = Predicate();
       if (freeop)
@@ -71,8 +68,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    Predicate FuturePredOp::initialize(InnerContext *ctx, const Future &f,
-                                       Provenance *provenance)
+    Predicate FuturePredOp::initialize(
+        InnerContext* ctx, const Future& f, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -87,14 +84,14 @@ namespace Legion {
       {
         LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
         if (future.impl != nullptr)
-          LegionSpy::log_future_use(unique_op_id, future.impl->did); 
+          LegionSpy::log_future_use(unique_op_id, future.impl->did);
       }
       return predicate;
     }
 
     //--------------------------------------------------------------------------
-    Future FuturePredOp::initialize(InnerContext *ctx, const Predicate &p,
-                                    Provenance *provenance)
+    Future FuturePredOp::initialize(
+        InnerContext* ctx, const Predicate& p, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -103,9 +100,9 @@ namespace Legion {
 #endif
       initialize_operation(ctx, provenance);
       predicate = p;
-      future = Future(new FutureImpl(parent_ctx, true/*register*/,
-                runtime->get_available_distributed_id(),
-                get_provenance(), this));
+      future = Future(new FutureImpl(
+          parent_ctx, true /*register*/,
+          runtime->get_available_distributed_id(), get_provenance(), this));
       to_predicate = false;
       if (runtime->legion_spy_enabled)
       {
@@ -127,14 +124,13 @@ namespace Legion {
         // Register this operation as dependent on task that
         // generated the future
         future.impl->register_dependence(this);
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
         assert(predicate.impl != nullptr);
 #endif
-        register_dependence(predicate.impl->creator,
-                            predicate.impl->creator_gen);
+        register_dependence(
+            predicate.impl->creator, predicate.impl->creator_gen);
       }
     }
 
@@ -152,8 +148,7 @@ namespace Legion {
           parent_ctx->add_to_trigger_execution_queue(this, ready);
         else
           trigger_execution();
-      }
-      else
+      } else
       {
         complete_mapping();
         RtEvent ready;
@@ -176,36 +171,32 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(!ready.exists());
 #endif
-        FutureInstance *result = 
-          FutureInstance::create_local(&value, sizeof(value), false/*own*/);
+        FutureInstance* result =
+            FutureInstance::create_local(&value, sizeof(value), false /*own*/);
         future.impl->set_result(ApEvent::NO_AP_EVENT, result);
-      }
-      else
+      } else
         predicate.impl->set_predicate(
             future.impl->get_boolean_value(parent_ctx));
       complete_execution();
-    } 
+    }
 
     /////////////////////////////////////////////////////////////
     // Not Predicate Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    NotPredOp::NotPredOp(void)
-      : Operation()
+    NotPredOp::NotPredOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     NotPredOp::~NotPredOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    Predicate NotPredOp::initialize(InnerContext *ctx, 
-                                    const Predicate &p, Provenance *provenance)
+    Predicate NotPredOp::initialize(
+        InnerContext* ctx, const Predicate& p, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -233,7 +224,7 @@ namespace Legion {
     void NotPredOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       previous = Predicate();
       to_set = Predicate();
       if (freeop)
@@ -272,8 +263,7 @@ namespace Legion {
       {
         to_set.impl->set_predicate(!value);
         complete_execution();
-      }
-      else
+      } else
         parent_ctx->add_to_trigger_execution_queue(this, ready);
     }
 
@@ -295,22 +285,19 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    AndPredOp::AndPredOp(void)
-      : Operation()
+    AndPredOp::AndPredOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     AndPredOp::~AndPredOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    Predicate AndPredOp::initialize(InnerContext *ctx, 
-                                    std::vector<Predicate> &predicates,
-                                    Provenance *provenance)
+    Predicate AndPredOp::initialize(
+        InnerContext* ctx, std::vector<Predicate>& predicates,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -323,8 +310,8 @@ namespace Legion {
       {
         LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
         for (std::vector<Predicate>::const_iterator it = previous.begin();
-              it != previous.end(); it++)
-          LegionSpy::log_predicate_use(unique_op_id, it->impl->creator_uid); 
+             it != previous.end(); it++)
+          LegionSpy::log_predicate_use(unique_op_id, it->impl->creator_uid);
       }
       return to_set;
     }
@@ -340,7 +327,7 @@ namespace Legion {
     void AndPredOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       previous.clear();
       to_set = Predicate();
       if (freeop)
@@ -366,8 +353,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (std::vector<Predicate>::const_iterator it = previous.begin();
-            it != previous.end(); it++)
-        register_dependence(it->impl->creator, it->impl->creator_gen); 
+           it != previous.end(); it++)
+        register_dependence(it->impl->creator, it->impl->creator_gen);
     }
 
     //--------------------------------------------------------------------------
@@ -376,8 +363,8 @@ namespace Legion {
     {
       complete_mapping();
       std::vector<RtEvent> ready_events;
-      for (std::vector<Predicate>::const_iterator it =
-            previous.begin(); it != previous.end(); it++)
+      for (std::vector<Predicate>::const_iterator it = previous.begin();
+           it != previous.end(); it++)
       {
         RtEvent ready;
         it->impl->get_predicate(ready);
@@ -391,8 +378,7 @@ namespace Legion {
           parent_ctx->add_to_trigger_execution_queue(this, ready);
         else
           trigger_execution();
-      }
-      else
+      } else
         trigger_execution();
     }
 
@@ -401,8 +387,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool result = true;
-      for (std::vector<Predicate>::const_iterator it =
-            previous.begin(); it != previous.end(); it++)
+      for (std::vector<Predicate>::const_iterator it = previous.begin();
+           it != previous.end(); it++)
       {
         RtEvent ready;
         bool value = it->impl->get_predicate(ready);
@@ -423,22 +409,19 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    OrPredOp::OrPredOp(void)
-      : Operation()
+    OrPredOp::OrPredOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     OrPredOp::~OrPredOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    Predicate OrPredOp::initialize(InnerContext *ctx, 
-                                   std::vector<Predicate> &predicates,
-                                   Provenance *provenance)
+    Predicate OrPredOp::initialize(
+        InnerContext* ctx, std::vector<Predicate>& predicates,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -451,7 +434,7 @@ namespace Legion {
       {
         LegionSpy::log_predicate_operation(ctx->get_unique_id(), unique_op_id);
         for (std::vector<Predicate>::const_iterator it = previous.begin();
-              it != previous.end(); it++)
+             it != previous.end(); it++)
           LegionSpy::log_predicate_use(unique_op_id, it->impl->creator_uid);
       }
       return to_set;
@@ -468,7 +451,7 @@ namespace Legion {
     void OrPredOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       previous.clear();
       to_set = Predicate();
       if (freeop)
@@ -494,7 +477,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       for (std::vector<Predicate>::const_iterator it = previous.begin();
-            it != previous.end(); it++)
+           it != previous.end(); it++)
         register_dependence(it->impl->creator, it->impl->creator_gen);
     }
 
@@ -504,8 +487,8 @@ namespace Legion {
     {
       complete_mapping();
       std::vector<RtEvent> ready_events;
-      for (std::vector<Predicate>::const_iterator it =
-            previous.begin(); it != previous.end(); it++)
+      for (std::vector<Predicate>::const_iterator it = previous.begin();
+           it != previous.end(); it++)
       {
         RtEvent ready;
         it->impl->get_predicate(ready);
@@ -519,8 +502,7 @@ namespace Legion {
           parent_ctx->add_to_trigger_execution_queue(this, ready);
         else
           trigger_execution();
-      }
-      else
+      } else
         trigger_execution();
     }
 
@@ -529,8 +511,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       bool result = false;
-      for (std::vector<Predicate>::const_iterator it =
-            previous.begin(); it != previous.end(); it++)
+      for (std::vector<Predicate>::const_iterator it = previous.begin();
+           it != previous.end(); it++)
       {
         RtEvent ready;
         bool value = it->impl->get_predicate(ready);
@@ -546,5 +528,5 @@ namespace Legion {
       complete_execution();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

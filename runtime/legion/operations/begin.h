@@ -23,12 +23,12 @@ namespace Legion {
 
     /**
      * \class BeginOp
-     * This is a pure virtual interface for operations that need to be 
+     * This is a pure virtual interface for operations that need to be
      * performed across any kind of begin operation for tracing
      */
     class BeginOp {
     public:
-      virtual bool allreduce_template_status(bool &valid, bool acquired)
+      virtual bool allreduce_template_status(bool& valid, bool acquired)
       {
         if (acquired)
           return false;
@@ -37,7 +37,7 @@ namespace Legion {
       }
       virtual ApEvent get_begin_completion(void) = 0;
       virtual FenceOp* get_begin_operation(void) = 0;
-      virtual PhysicalTemplate* create_fresh_template(PhysicalTrace *trace) = 0;
+      virtual PhysicalTemplate* create_fresh_template(PhysicalTrace* trace) = 0;
     };
 
     /**
@@ -46,16 +46,17 @@ namespace Legion {
      * into the operation stream to begin a trace.  This fence
      * is by a TraceReplayOp if the trace allows physical tracing.
      */
-    class TraceBeginOp : public TraceOp, public BeginOp {
+    class TraceBeginOp : public TraceOp,
+                         public BeginOp {
     public:
       TraceBeginOp(void);
-      TraceBeginOp(const TraceBeginOp &rhs) = delete;
+      TraceBeginOp(const TraceBeginOp& rhs) = delete;
       virtual ~TraceBeginOp(void);
     public:
-      TraceBeginOp& operator=(const TraceBeginOp &rhs) = delete;
+      TraceBeginOp& operator=(const TraceBeginOp& rhs) = delete;
     public:
-      void initialize_begin(InnerContext *ctx, LogicalTrace *trace,
-                            Provenance *provenance);
+      void initialize_begin(
+          InnerContext* ctx, LogicalTrace* trace, Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -64,15 +65,18 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceRecognizer &identifier, uint64_t idx);
+      virtual bool record_trace_hash(TraceRecognizer& identifier, uint64_t idx);
     public:
-      virtual ApEvent get_begin_completion(void) 
-        { return get_completion_event(); }
+      virtual ApEvent get_begin_completion(void)
+      {
+        return get_completion_event();
+      }
       virtual FenceOp* get_begin_operation(void) { return this; }
-      virtual PhysicalTemplate* create_fresh_template(PhysicalTrace *trace);
+      virtual PhysicalTemplate* create_fresh_template(PhysicalTrace* trace);
     };
 
-    class ReplBeginOp : public ReplTraceOp, public BeginOp {
+    class ReplBeginOp : public ReplTraceOp,
+                        public BeginOp {
     public:
       ReplBeginOp(void) : ReplTraceOp() { }
       virtual ~ReplBeginOp(void) { }
@@ -85,16 +89,18 @@ namespace Legion {
       ReplTraceBegin(void);
       virtual ~ReplTraceBegin(void) { }
     protected:
-      void initialize_begin(ReplicateContext *ctx, LogicalTrace *trace);
+      void initialize_begin(ReplicateContext* ctx, LogicalTrace* trace);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
     public:
-      virtual ApEvent get_begin_completion(void) 
-        { return this->get_completion_event(); }
+      virtual ApEvent get_begin_completion(void)
+      {
+        return this->get_completion_event();
+      }
       virtual FenceOp* get_begin_operation(void) { return this; }
-      virtual PhysicalTemplate* create_fresh_template(PhysicalTrace *trace);
-      virtual bool allreduce_template_status(bool &valid, bool acquired);
+      virtual PhysicalTemplate* create_fresh_template(PhysicalTrace* trace);
+      virtual bool allreduce_template_status(bool& valid, bool acquired);
     protected:
       void perform_template_creation_barrier(void);
     private:
@@ -102,7 +108,7 @@ namespace Legion {
       // then we fuse the invalidation of the previous trace into the
       // begin operation of the next trace
       std::vector<CollectiveID> status_collective_ids;
-      SlowBarrier *slow_barrier;
+      SlowBarrier* slow_barrier;
       CollectiveID slow_barrier_id;
     };
 
@@ -113,13 +119,13 @@ namespace Legion {
     class ReplTraceBeginOp : public ReplTraceBegin<ReplBeginOp> {
     public:
       ReplTraceBeginOp(void);
-      ReplTraceBeginOp(const ReplTraceBeginOp &rhs) = delete;
+      ReplTraceBeginOp(const ReplTraceBeginOp& rhs) = delete;
       virtual ~ReplTraceBeginOp(void);
     public:
-      ReplTraceBeginOp& operator=(const ReplTraceBeginOp &rhs) = delete;
+      ReplTraceBeginOp& operator=(const ReplTraceBeginOp& rhs) = delete;
     public:
-      void initialize_begin(ReplicateContext *ctx, LogicalTrace *trace,
-                            Provenance *provenance);
+      void initialize_begin(
+          ReplicateContext* ctx, LogicalTrace* trace, Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -128,10 +134,10 @@ namespace Legion {
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
-      virtual bool record_trace_hash(TraceRecognizer &recognizer, uint64_t idx);
-    }; 
+      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
+    };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_BEGIN_OPERATION_H__
+#endif  // __LEGION_BEGIN_OPERATION_H__

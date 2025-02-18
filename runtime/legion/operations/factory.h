@@ -22,20 +22,20 @@ namespace Legion {
   namespace Internal {
 
     /**
-     * The operation factory class helps with the creation and 
-     * reuse of operations. It will 
+     * The operation factory class helps with the creation and
+     * reuse of operations. It will
      */
     template<typename OP, typename WRAP = OP, bool CAN_DELETE = false>
     class OperationFactory {
     public:
       OperationFactory(void) { }
-      OperationFactory(const OperationFactory &rhs) = delete;
+      OperationFactory(const OperationFactory& rhs) = delete;
       ~OperationFactory(void);
     public:
-      OperationFactory& operator=(const OperationFactory &rhs) = delete;
+      OperationFactory& operator=(const OperationFactory& rhs) = delete;
     public:
-      void create(OP *&op);
-      void recycle(OP *op);
+      void create(OP*& op);
+      void recycle(OP* op);
     private:
       std::vector<OP*> available;
     };
@@ -44,16 +44,16 @@ namespace Legion {
      * Specialization for when CAN_DELETE is true
      */
     template<typename OP, typename WRAP>
-    class OperationFactory<OP,WRAP,true> {
+    class OperationFactory<OP, WRAP, true> {
     public:
       OperationFactory(void) { }
-      OperationFactory(const OperationFactory &rhs) = delete;
+      OperationFactory(const OperationFactory& rhs) = delete;
       ~OperationFactory(void);
     public:
-      OperationFactory& operator=(const OperationFactory &rhs) = delete;
+      OperationFactory& operator=(const OperationFactory& rhs) = delete;
     public:
-      void create(OP *&op);
-      void recycle(OP *op);
+      void create(OP*& op);
+      void recycle(OP* op);
     private:
       std::deque<OP*> available;
     };
@@ -62,21 +62,21 @@ namespace Legion {
      * Specialization for when OP == WRAP
      */
     template<typename OP>
-    class OperationFactory<OP,OP,false> {
+    class OperationFactory<OP, OP, false> {
     public:
       OperationFactory(void) { }
-      OperationFactory(const OperationFactory &rhs) = delete;
+      OperationFactory(const OperationFactory& rhs) = delete;
       ~OperationFactory(void);
     public:
-      OperationFactory& operator=(const OperationFactory &rhs) = delete;
+      OperationFactory& operator=(const OperationFactory& rhs) = delete;
     public:
-      void create(OP *&op);
-      void recycle(OP *op);
+      void create(OP*& op);
+      void recycle(OP* op);
     private:
       std::vector<OP*> available;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_OPERATION_FACTORY_H__
+#endif  // __LEGION_OPERATION_FACTORY_H__

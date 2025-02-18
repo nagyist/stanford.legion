@@ -31,22 +31,24 @@ namespace Legion {
     class ResetOp : public Operation {
     public:
       ResetOp(void);
-      ResetOp(const ResetOp &rhs) = delete;
+      ResetOp(const ResetOp& rhs) = delete;
       virtual ~ResetOp(void);
     public:
-      ResetOp& operator=(const ResetOp &rhs) = delete;
+      ResetOp& operator=(const ResetOp& rhs) = delete;
     public:
-      void initialize(InnerContext *ctx, LogicalRegion parent,
-                      LogicalRegion region,
-                      const std::set<FieldID> &fields);
+      void initialize(
+          InnerContext* ctx, LogicalRegion parent, LogicalRegion region,
+          const std::set<FieldID>& fields);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
       virtual size_t get_region_count(void) const;
-      virtual const RegionRequirement &get_requirement(unsigned idx) const
-        { return requirement; }
+      virtual const RegionRequirement& get_requirement(unsigned idx) const
+      {
+        return requirement;
+      }
     public:
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_mapping(void);
@@ -66,10 +68,10 @@ namespace Legion {
     class ReplResetOp : public ResetOp {
     public:
       ReplResetOp(void);
-      ReplResetOp(const ReplResetOp &rhs) = delete;
+      ReplResetOp(const ReplResetOp& rhs) = delete;
       virtual ~ReplResetOp(void);
     public:
-      ReplResetOp& operator=(const ReplResetOp &rhs) = delete;
+      ReplResetOp& operator=(const ReplResetOp& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -81,7 +83,7 @@ namespace Legion {
       RtBarrier reset_barrier;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_RESET_OPERATION_H__
+#endif  // __LEGION_RESET_OPERATION_H__

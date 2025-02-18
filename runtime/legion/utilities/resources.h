@@ -35,151 +35,154 @@ namespace Legion {
       struct DeletedRegion {
       public:
         DeletedRegion(void);
-        DeletedRegion(LogicalRegion r, Provenance *provenance = nullptr);
-        DeletedRegion(const DeletedRegion &rhs);
-        DeletedRegion(DeletedRegion &&rhs);
+        DeletedRegion(LogicalRegion r, Provenance* provenance = nullptr);
+        DeletedRegion(const DeletedRegion& rhs);
+        DeletedRegion(DeletedRegion&& rhs);
         ~DeletedRegion(void);
       public:
-        DeletedRegion& operator=(const DeletedRegion &rhs);
-        DeletedRegion& operator=(DeletedRegion &&rhs);
+        DeletedRegion& operator=(const DeletedRegion& rhs);
+        DeletedRegion& operator=(DeletedRegion&& rhs);
       public:
-        void serialize(Serializer &rez) const;
-        void deserialize(Deserializer &derez);
+        void serialize(Serializer& rez) const;
+        void deserialize(Deserializer& derez);
       public:
         LogicalRegion region;
-        Provenance *provenance;
+        Provenance* provenance;
       };
       struct DeletedField {
       public:
         DeletedField(void);
-        DeletedField(FieldSpace sp, FieldID f, Provenance *provenance = nullptr);
-        DeletedField(const DeletedField &rhs);
-        DeletedField(DeletedField &&rhs);
+        DeletedField(
+            FieldSpace sp, FieldID f, Provenance* provenance = nullptr);
+        DeletedField(const DeletedField& rhs);
+        DeletedField(DeletedField&& rhs);
         ~DeletedField(void);
       public:
-        DeletedField& operator=(const DeletedField &rhs);
-        DeletedField& operator=(DeletedField &&rhs);
+        DeletedField& operator=(const DeletedField& rhs);
+        DeletedField& operator=(DeletedField&& rhs);
       public:
-        void serialize(Serializer &rez) const;
-        void deserialize(Deserializer &derez);
+        void serialize(Serializer& rez) const;
+        void deserialize(Deserializer& derez);
       public:
         FieldSpace space;
         FieldID fid;
-        Provenance *provenance;
+        Provenance* provenance;
       };
       struct DeletedFieldSpace {
       public:
         DeletedFieldSpace(void);
-        DeletedFieldSpace(FieldSpace sp, Provenance *provenance = nullptr);
-        DeletedFieldSpace(const DeletedFieldSpace &rhs);
-        DeletedFieldSpace(DeletedFieldSpace &&rhs);
+        DeletedFieldSpace(FieldSpace sp, Provenance* provenance = nullptr);
+        DeletedFieldSpace(const DeletedFieldSpace& rhs);
+        DeletedFieldSpace(DeletedFieldSpace&& rhs);
         ~DeletedFieldSpace(void);
       public:
-        DeletedFieldSpace& operator=(const DeletedFieldSpace &rhs);
-        DeletedFieldSpace& operator=(DeletedFieldSpace &&rhs);
+        DeletedFieldSpace& operator=(const DeletedFieldSpace& rhs);
+        DeletedFieldSpace& operator=(DeletedFieldSpace&& rhs);
       public:
-        void serialize(Serializer &rez) const;
-        void deserialize(Deserializer &derez);
+        void serialize(Serializer& rez) const;
+        void deserialize(Deserializer& derez);
       public:
         FieldSpace space;
-        Provenance *provenance;
+        Provenance* provenance;
       };
       struct DeletedIndexSpace {
       public:
         DeletedIndexSpace(void);
-        DeletedIndexSpace(IndexSpace sp, bool recurse, 
-                          Provenance *provenance = nullptr);
-        DeletedIndexSpace(const DeletedIndexSpace &rhs);
-        DeletedIndexSpace(DeletedIndexSpace &&rhs);
+        DeletedIndexSpace(
+            IndexSpace sp, bool recurse, Provenance* provenance = nullptr);
+        DeletedIndexSpace(const DeletedIndexSpace& rhs);
+        DeletedIndexSpace(DeletedIndexSpace&& rhs);
         ~DeletedIndexSpace(void);
       public:
-        DeletedIndexSpace& operator=(const DeletedIndexSpace &rhs);
-        DeletedIndexSpace& operator=(DeletedIndexSpace &&rhs);
+        DeletedIndexSpace& operator=(const DeletedIndexSpace& rhs);
+        DeletedIndexSpace& operator=(DeletedIndexSpace&& rhs);
       public:
-        void serialize(Serializer &rez) const;
-        void deserialize(Deserializer &derez);
+        void serialize(Serializer& rez) const;
+        void deserialize(Deserializer& derez);
       public:
         IndexSpace space;
-        Provenance *provenance;
+        Provenance* provenance;
         bool recurse;
       };
       struct DeletedPartition {
       public:
         DeletedPartition(void);
-        DeletedPartition(IndexPartition p, bool recurse,
-                         Provenance *provenance = nullptr);
-        DeletedPartition(const DeletedPartition &rhs);
-        DeletedPartition(DeletedPartition &&rhs);
+        DeletedPartition(
+            IndexPartition p, bool recurse, Provenance* provenance = nullptr);
+        DeletedPartition(const DeletedPartition& rhs);
+        DeletedPartition(DeletedPartition&& rhs);
         ~DeletedPartition(void);
       public:
-        DeletedPartition& operator=(const DeletedPartition &rhs);
-        DeletedPartition& operator=(DeletedPartition &&rhs);
+        DeletedPartition& operator=(const DeletedPartition& rhs);
+        DeletedPartition& operator=(DeletedPartition&& rhs);
       public:
-        void serialize(Serializer &rez) const;
-        void deserialize(Deserializer &derez);
+        void serialize(Serializer& rez) const;
+        void deserialize(Deserializer& derez);
       public:
         IndexPartition partition;
-        Provenance *provenance;
+        Provenance* provenance;
         bool recurse;
       };
     public:
       ResourceTracker(void);
-      ResourceTracker(const ResourceTracker &rhs) = delete;
+      ResourceTracker(const ResourceTracker& rhs) = delete;
       virtual ~ResourceTracker(void);
     public:
-      ResourceTracker& operator=(const ResourceTracker &rhs) = delete;
+      ResourceTracker& operator=(const ResourceTracker& rhs) = delete;
     public:
       // Delete this function once MustEpochOps are gone
-      void return_resources(ResourceTracker *target, uint64_t return_index,
-                            std::set<RtEvent> &preconditions);
-      virtual void receive_resources(uint64_t return_index,
-              std::map<LogicalRegion,unsigned> &created_regions,
-              std::vector<DeletedRegion> &deleted_regions,
-              std::set<std::pair<FieldSpace,FieldID> > &created_fields,
-              std::vector<DeletedField> &deleted_fields,
-              std::map<FieldSpace,unsigned> &created_field_spaces,
-              std::map<FieldSpace,std::set<LogicalRegion> > &latent_spaces,
-              std::vector<DeletedFieldSpace> &deleted_field_spaces,
-              std::map<IndexSpace,unsigned> &created_index_spaces,
-              std::vector<DeletedIndexSpace> &deleted_index_spaces,
-              std::map<IndexPartition,unsigned> &created_partitions,
-              std::vector<DeletedPartition> &deleted_partitions,
-              std::set<RtEvent> &preconditions) = 0;
-      void pack_resources_return(Serializer &rez, uint64_t return_index);
-      static void pack_empty_resources(Serializer &rez, uint64_t return_index);
-      static RtEvent unpack_resources_return(Deserializer &derez,
-                                             ResourceTracker *target);
+      void return_resources(
+          ResourceTracker* target, uint64_t return_index,
+          std::set<RtEvent>& preconditions);
+      virtual void receive_resources(
+          uint64_t return_index,
+          std::map<LogicalRegion, unsigned>& created_regions,
+          std::vector<DeletedRegion>& deleted_regions,
+          std::set<std::pair<FieldSpace, FieldID> >& created_fields,
+          std::vector<DeletedField>& deleted_fields,
+          std::map<FieldSpace, unsigned>& created_field_spaces,
+          std::map<FieldSpace, std::set<LogicalRegion> >& latent_spaces,
+          std::vector<DeletedFieldSpace>& deleted_field_spaces,
+          std::map<IndexSpace, unsigned>& created_index_spaces,
+          std::vector<DeletedIndexSpace>& deleted_index_spaces,
+          std::map<IndexPartition, unsigned>& created_partitions,
+          std::vector<DeletedPartition>& deleted_partitions,
+          std::set<RtEvent>& preconditions) = 0;
+      void pack_resources_return(Serializer& rez, uint64_t return_index);
+      static void pack_empty_resources(Serializer& rez, uint64_t return_index);
+      static RtEvent unpack_resources_return(
+          Deserializer& derez, ResourceTracker* target);
     protected:
       void merge_received_resources(
-              std::map<LogicalRegion,unsigned> &created_regions,
-              std::vector<DeletedRegion> &deleted_regions,
-              std::set<std::pair<FieldSpace,FieldID> > &created_fields,
-              std::vector<DeletedField> &deleted_fields,
-              std::map<FieldSpace,unsigned> &created_field_spaces,
-              std::map<FieldSpace,std::set<LogicalRegion> > &latent_spaces,
-              std::vector<DeletedFieldSpace> &deleted_field_spaces,
-              std::map<IndexSpace,unsigned> &created_index_spaces,
-              std::vector<DeletedIndexSpace> &deleted_index_spaces,
-              std::map<IndexPartition,unsigned> &created_partitions,
-              std::vector<DeletedPartition> &deleted_partitions);
+          std::map<LogicalRegion, unsigned>& created_regions,
+          std::vector<DeletedRegion>& deleted_regions,
+          std::set<std::pair<FieldSpace, FieldID> >& created_fields,
+          std::vector<DeletedField>& deleted_fields,
+          std::map<FieldSpace, unsigned>& created_field_spaces,
+          std::map<FieldSpace, std::set<LogicalRegion> >& latent_spaces,
+          std::vector<DeletedFieldSpace>& deleted_field_spaces,
+          std::map<IndexSpace, unsigned>& created_index_spaces,
+          std::vector<DeletedIndexSpace>& deleted_index_spaces,
+          std::map<IndexPartition, unsigned>& created_partitions,
+          std::vector<DeletedPartition>& deleted_partitions);
     protected:
-      std::map<LogicalRegion,unsigned>                 created_regions;
-      std::map<LogicalRegion,bool>                     local_regions;
-      std::set<std::pair<FieldSpace,FieldID> >         created_fields;
-      std::map<std::pair<FieldSpace,FieldID>,bool>     local_fields;
-      std::map<FieldSpace,unsigned>                    created_field_spaces;
-      std::map<IndexSpace,unsigned>                    created_index_spaces;
-      std::map<IndexPartition,unsigned>                created_index_partitions;
+      std::map<LogicalRegion, unsigned> created_regions;
+      std::map<LogicalRegion, bool> local_regions;
+      std::set<std::pair<FieldSpace, FieldID> > created_fields;
+      std::map<std::pair<FieldSpace, FieldID>, bool> local_fields;
+      std::map<FieldSpace, unsigned> created_field_spaces;
+      std::map<IndexSpace, unsigned> created_index_spaces;
+      std::map<IndexPartition, unsigned> created_index_partitions;
     protected:
-      std::vector<DeletedRegion>                       deleted_regions;
-      std::vector<DeletedField>                        deleted_fields;
-      std::vector<DeletedFieldSpace>                   deleted_field_spaces;
-      std::map<FieldSpace,std::set<LogicalRegion> >    latent_field_spaces;
-      std::vector<DeletedIndexSpace>                   deleted_index_spaces;
-      std::vector<DeletedPartition>                    deleted_index_partitions;
+      std::vector<DeletedRegion> deleted_regions;
+      std::vector<DeletedField> deleted_fields;
+      std::vector<DeletedFieldSpace> deleted_field_spaces;
+      std::map<FieldSpace, std::set<LogicalRegion> > latent_field_spaces;
+      std::vector<DeletedIndexSpace> deleted_index_spaces;
+      std::vector<DeletedPartition> deleted_index_partitions;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_RESOURCE_TRACKER_H__
+#endif  // __LEGION_RESOURCE_TRACKER_H__

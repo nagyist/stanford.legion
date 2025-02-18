@@ -33,20 +33,18 @@ namespace Legion {
   class LegionHandshake : public Unserializable {
   public:
     LegionHandshake(void);
-    LegionHandshake(const LegionHandshake &rhs);
+    LegionHandshake(const LegionHandshake& rhs);
     ~LegionHandshake(void);
   protected:
-    Internal::LegionHandshakeImpl *impl;
+    Internal::LegionHandshakeImpl* impl;
   protected:
     // Only the runtime should be able to make these
     FRIEND_ALL_RUNTIME_CLASSES
-    explicit LegionHandshake(Internal::LegionHandshakeImpl *impl);
+    explicit LegionHandshake(Internal::LegionHandshakeImpl* impl);
   public:
-    bool operator==(const LegionHandshake &h) const
-      { return impl == h.impl; }
-    bool operator<(const LegionHandshake &h) const
-      { return impl < h.impl; }
-    LegionHandshake& operator=(const LegionHandshake &rhs);
+    bool operator==(const LegionHandshake& h) const { return impl == h.impl; }
+    bool operator<(const LegionHandshake& h) const { return impl < h.impl; }
+    LegionHandshake& operator=(const LegionHandshake& rhs);
   public:
     /**
      * Non-blocking call to signal to Legion that this participant
@@ -61,7 +59,7 @@ namespace Legion {
     void ext_wait_on_legion(void) const;
   public:
     /**
-     * A non-blocking call to signal to the external application 
+     * A non-blocking call to signal to the external application
      * that this participant is ready to pass control to to it.
      */
     void legion_handoff_to_ext(void) const;
@@ -73,11 +71,11 @@ namespace Legion {
   public:
     /*
      * For asynchronous Legion execution, you can use these
-     * methods to get a phase barrier associated with the 
+     * methods to get a phase barrier associated with the
      * handshake object instead of blocking on the legion side
      */
     /**
-     * Get the Legion phase barrier associated with waiting on the handshake 
+     * Get the Legion phase barrier associated with waiting on the handshake
      */
     PhaseBarrier get_legion_wait_phase_barrier(void) const;
     /**
@@ -98,18 +96,19 @@ namespace Legion {
   class MPILegionHandshake : public LegionHandshake {
   public:
     MPILegionHandshake(void);
-    MPILegionHandshake(const MPILegionHandshake &rhs);
+    MPILegionHandshake(const MPILegionHandshake& rhs);
     ~MPILegionHandshake(void);
   protected:
     // Only the runtime should be able to make these
     FRIEND_ALL_RUNTIME_CLASSES
-    explicit MPILegionHandshake(Internal::LegionHandshakeImpl *impl);
+    explicit MPILegionHandshake(Internal::LegionHandshakeImpl* impl);
   public:
-    bool operator==(const MPILegionHandshake &h) const
-      { return impl == h.impl; }
-    bool operator<(const MPILegionHandshake &h) const
-      { return impl < h.impl; }
-    MPILegionHandshake& operator=(const MPILegionHandshake &rhs);
+    bool operator==(const MPILegionHandshake& h) const
+    {
+      return impl == h.impl;
+    }
+    bool operator<(const MPILegionHandshake& h) const { return impl < h.impl; }
+    MPILegionHandshake& operator=(const MPILegionHandshake& rhs);
   public:
     /**
      * Non-blocking call to signal to Legion that this participant
@@ -134,6 +133,6 @@ namespace Legion {
     inline void legion_wait_on_mpi(void) const { legion_wait_on_ext(); }
   };
 
-} // namespace Legion
+}  // namespace Legion
 
-#endif // __LEGION_INTEROP_H__
+#endif  // __LEGION_INTEROP_H__

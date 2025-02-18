@@ -33,14 +33,14 @@ namespace Legion {
     class DetachOp : public Operation {
     public:
       DetachOp(void);
-      DetachOp(const DetachOp &rhs) = delete;
+      DetachOp(const DetachOp& rhs) = delete;
       virtual ~DetachOp(void);
     public:
-      DetachOp& operator=(const DetachOp &rhs) = delete;
+      DetachOp& operator=(const DetachOp& rhs) = delete;
     public:
-      Future initialize_detach(InnerContext *ctx, PhysicalRegion region,
-                               const bool flush, const bool unordered,
-                               Provenance *provenance);
+      Future initialize_detach(
+          InnerContext* ctx, PhysicalRegion region, const bool flush,
+          const bool unordered, Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -56,27 +56,30 @@ namespace Legion {
       virtual void trigger_mapping(void);
       virtual void trigger_complete(ApEvent effects_done);
       virtual void trigger_commit(void);
-      virtual void select_sources(const unsigned index, PhysicalManager *target,
-                                  const std::vector<InstanceView*> &sources,
-                                  std::vector<unsigned> &ranking,
-                                  std::map<unsigned,PhysicalManager*> &points);
-      virtual int add_copy_profiling_request(const PhysicalTraceInfo &info,
-                               Realm::ProfilingRequestSet &requests,
-                               bool fill, unsigned count = 1);
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
+      virtual void select_sources(
+          const unsigned index, PhysicalManager* target,
+          const std::vector<InstanceView*>& sources,
+          std::vector<unsigned>& ranking,
+          std::map<unsigned, PhysicalManager*>& points);
+      virtual int add_copy_profiling_request(
+          const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
+          bool fill, unsigned count = 1);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }
-      virtual void detach_external_instance(PhysicalManager *manager);
+      virtual void detach_external_instance(PhysicalManager* manager);
       virtual bool is_point_detach(void) const { return false; }
-      virtual const RegionRequirement &get_requirement(unsigned idx = 0) const
-      { return requirement; }
+      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
+      {
+        return requirement;
+      }
     protected:
       void log_requirement(void);
-      ApEvent detach_external(const InstanceSet &target_instances,
-                              const ApEvent termination_event,
-                              const PhysicalTraceInfo &trace_info,
-                              RtEvent filter_precondition,
-                              const bool second_analysis);
+      ApEvent detach_external(
+          const InstanceSet& target_instances, const ApEvent termination_event,
+          const PhysicalTraceInfo& trace_info, RtEvent filter_precondition,
+          const bool second_analysis);
     public:
       PhysicalRegion region;
       RegionRequirement requirement;
@@ -92,22 +95,21 @@ namespace Legion {
      * \class IndexDetachOp
      * This is an index space detach operation for performing many detaches
      */
-    class IndexDetachOp : public PointwiseAnalyzable<CollectiveViewCreator<Operation> > {
+    class IndexDetachOp
+      : public PointwiseAnalyzable<CollectiveViewCreator<Operation> > {
     public:
       IndexDetachOp(void);
-      IndexDetachOp(const IndexDetachOp &rhs) = delete;
+      IndexDetachOp(const IndexDetachOp& rhs) = delete;
       virtual ~IndexDetachOp(void);
     public:
-      IndexDetachOp& operator=(const IndexDetachOp &rhs) = delete;
+      IndexDetachOp& operator=(const IndexDetachOp& rhs) = delete;
     public:
-      Future initialize_detach(InnerContext *ctx, LogicalRegion parent,
-                               RegionTreeNode *upper_bound,
-                               IndexSpaceNode *launch_bounds,
-                               ExternalResourcesImpl *external,
-                               const std::vector<FieldID> &privilege_fields,
-                               const std::vector<PhysicalRegion> &regions,
-                               bool flush, bool unordered,
-                               Provenance *provenance);
+      Future initialize_detach(
+          InnerContext* ctx, LogicalRegion parent, RegionTreeNode* upper_bound,
+          IndexSpaceNode* launch_bounds, ExternalResourcesImpl* external,
+          const std::vector<FieldID>& privilege_fields,
+          const std::vector<PhysicalRegion>& regions, bool flush,
+          bool unordered, Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -124,28 +126,30 @@ namespace Legion {
       virtual unsigned find_parent_index(unsigned idx);
       virtual size_t get_collective_points(void) const;
       virtual RtEvent find_pointwise_dependence(
-          const DomainPoint &point, GenerationID gen,
+          const DomainPoint& point, GenerationID gen,
           RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
     public:
       // Override for control replication
       void handle_point_complete(ApEvent effects);
       void handle_point_commit(void);
-      virtual const RegionRequirement &get_requirement(unsigned idx = 0) const
-      { return requirement; }
+      virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
+      {
+        return requirement;
+      }
     protected:
       void log_requirement(void);
     protected:
-      RegionRequirement                             requirement;
-      ExternalResources                             resources;
-      IndexSpaceNode*                               launch_space;
-      std::vector<PointDetachOp*>                   points;
-      std::set<RtEvent>                             map_applied_conditions;
-      Future                                        result;
-      unsigned                                      parent_req_index;
-      std::atomic<unsigned>                         points_completed;
-      unsigned                                      points_committed;
-      bool                                          commit_request;
-      bool                                          flush;
+      RegionRequirement requirement;
+      ExternalResources resources;
+      IndexSpaceNode* launch_space;
+      std::vector<PointDetachOp*> points;
+      std::set<RtEvent> map_applied_conditions;
+      Future result;
+      unsigned parent_req_index;
+      std::atomic<unsigned> points_completed;
+      unsigned points_committed;
+      bool commit_request;
+      bool flush;
     };
 
     /**
@@ -155,41 +159,47 @@ namespace Legion {
     class PointDetachOp : public DetachOp {
     public:
       PointDetachOp(void);
-      PointDetachOp(const PointDetachOp &rhs) = delete;
+      PointDetachOp(const PointDetachOp& rhs) = delete;
       virtual ~PointDetachOp(void);
     public:
-      PointDetachOp& operator=(const PointDetachOp &rhs) = delete;
+      PointDetachOp& operator=(const PointDetachOp& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
     public:
-      void initialize_detach(IndexDetachOp *owner, InnerContext *ctx,
-            const PhysicalRegion &region, const DomainPoint &point, bool flush);
+      void initialize_detach(
+          IndexDetachOp* owner, InnerContext* ctx, const PhysicalRegion& region,
+          const DomainPoint& point, bool flush);
     public:
       virtual void trigger_complete(ApEvent effects_done);
       virtual void trigger_commit(void);
       virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID> &shards);
-      virtual RtEvent convert_collective_views(unsigned requirement_index,
-                       unsigned analysis_index, LogicalRegion region,
-                       const InstanceSet &targets, InnerContext *physical_ctx,
-                       CollectiveMapping *&analysis_mapping, bool &first_local,
-                       LegionVector<FieldMaskSet<InstanceView> > &target_views,
-                       std::map<InstanceView*,size_t> &collective_arrivals);
-      virtual bool perform_collective_analysis(CollectiveMapping *&mapping,
-                                               bool &first_local);
-      virtual RtEvent perform_collective_versioning_analysis(unsigned index,
-                       LogicalRegion handle, EqSetTracker *tracker,
-                       const FieldMask &mask, unsigned parent_req_index);
+      virtual bool find_shard_participants(std::vector<ShardID>& shards);
+      virtual RtEvent convert_collective_views(
+          unsigned requirement_index, unsigned analysis_index,
+          LogicalRegion region, const InstanceSet& targets,
+          InnerContext* physical_ctx, CollectiveMapping*& analysis_mapping,
+          bool& first_local,
+          LegionVector<FieldMaskSet<InstanceView> >& target_views,
+          std::map<InstanceView*, size_t>& collective_arrivals);
+      virtual bool perform_collective_analysis(
+          CollectiveMapping*& mapping, bool& first_local);
+      virtual RtEvent perform_collective_versioning_analysis(
+          unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+          const FieldMask& mask, unsigned parent_req_index);
       virtual unsigned find_parent_index(unsigned idx)
-        { return owner->find_parent_index(idx); }
+      {
+        return owner->find_parent_index(idx);
+      }
       virtual bool is_point_detach(void) const { return true; }
       virtual ContextCoordinate get_task_tree_coordinate(void) const
-        { return ContextCoordinate(context_index, index_point); }
+      {
+        return ContextCoordinate(context_index, index_point);
+      }
     public:
       DomainPoint index_point;
     protected:
-      IndexDetachOp *owner;
+      IndexDetachOp* owner;
     };
 
     /**
@@ -197,35 +207,35 @@ namespace Legion {
      * An detach operation that is aware that it is being
      * executed in a control replicated context.
      */
-    class ReplDetachOp : 
-      public ReplCollectiveViewCreator<CollectiveViewCreator<DetachOp> > {
+    class ReplDetachOp
+      : public ReplCollectiveViewCreator<CollectiveViewCreator<DetachOp> > {
     public:
       ReplDetachOp(void);
-      ReplDetachOp(const ReplDetachOp &rhs) = delete;
+      ReplDetachOp(const ReplDetachOp& rhs) = delete;
       virtual ~ReplDetachOp(void);
     public:
-      ReplDetachOp& operator=(const ReplDetachOp &rhs) = delete;
+      ReplDetachOp& operator=(const ReplDetachOp& rhs) = delete;
     public:
-      void initialize_replication(ReplicateContext *ctx,
-                                  bool collective_instances,
-                                  bool first_local_shard);
+      void initialize_replication(
+          ReplicateContext* ctx, bool collective_instances,
+          bool first_local_shard);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
       virtual RtEvent finalize_complete_mapping(RtEvent event);
-      virtual void detach_external_instance(PhysicalManager *manager);
-      virtual bool perform_collective_analysis(CollectiveMapping *&mapping,
-                                               bool &first_local);
-      virtual RtEvent perform_collective_versioning_analysis(unsigned index,
-                       LogicalRegion handle, EqSetTracker *tracker,
-                       const FieldMask &mask, unsigned parent_req_index);
-      virtual bool find_shard_participants(std::vector<ShardID> &shards);
+      virtual void detach_external_instance(PhysicalManager* manager);
+      virtual bool perform_collective_analysis(
+          CollectiveMapping*& mapping, bool& first_local);
+      virtual RtEvent perform_collective_versioning_analysis(
+          unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+          const FieldMask& mask, unsigned parent_req_index);
+      virtual bool find_shard_participants(std::vector<ShardID>& shards);
     public:
       // Help for unordered detachments
       void record_unordered_kind(
-        std::map<std::pair<LogicalRegion,FieldID>,Operation*> &detachments);
+          std::map<std::pair<LogicalRegion, FieldID>, Operation*>& detachments);
     protected:
       RtBarrier collective_map_barrier;
       ApBarrier effects_barrier;
@@ -242,64 +252,69 @@ namespace Legion {
     class ReplIndexDetachOp : public ReplCollectiveViewCreator<IndexDetachOp> {
     public:
       ReplIndexDetachOp(void);
-      ReplIndexDetachOp(const ReplIndexDetachOp &rhs) = delete;
+      ReplIndexDetachOp(const ReplIndexDetachOp& rhs) = delete;
       virtual ~ReplIndexDetachOp(void);
     public:
-      ReplIndexDetachOp& operator=(const ReplIndexDetachOp &rhs) = delete;
+      ReplIndexDetachOp& operator=(const ReplIndexDetachOp& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual void trigger_prepipeline_stage(void);
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
-      virtual bool find_shard_participants(std::vector<ShardID> &shards);
+      virtual bool find_shard_participants(std::vector<ShardID>& shards);
     public:
-      void initialize_replication(ReplicateContext *ctx);
-      void record_unordered_kind(std::map<
-          std::pair<LogicalRegion,FieldID>,Operation*> &region_detachments,
-          std::map<std::pair<
-            LogicalPartition,FieldID>,Operation*> &partition_detachments);
+      void initialize_replication(ReplicateContext* ctx);
+      void record_unordered_kind(
+          std::map<std::pair<LogicalRegion, FieldID>, Operation*>&
+              region_detachments,
+          std::map<std::pair<LogicalPartition, FieldID>, Operation*>&
+              partition_detachments);
     protected:
-      ShardingFunction *sharding_function;
-      ShardParticipantsExchange *participants;
+      ShardingFunction* sharding_function;
+      ShardParticipantsExchange* participants;
       ApBarrier effects_barrier;
     };
 
     /**
      * \class RemoteDetachOp
-     * This is a remote copy of a DetachOp to be used for 
+     * This is a remote copy of a DetachOp to be used for
      * mapper calls and other operations
      */
     class RemoteDetachOp : public RemoteOp,
-      public Heapify<RemoteDetachOp,OPERATION_LIFETIME> {
+                           public Heapify<RemoteDetachOp, OPERATION_LIFETIME> {
     public:
-      RemoteDetachOp(Operation *ptr, AddressSpaceID src);
-      RemoteDetachOp(const RemoteDetachOp &rhs) = delete;
+      RemoteDetachOp(Operation* ptr, AddressSpaceID src);
+      RemoteDetachOp(const RemoteDetachOp& rhs) = delete;
       virtual ~RemoteDetachOp(void);
     public:
-      RemoteDetachOp& operator=(const RemoteDetachOp &rhs) = delete;
+      RemoteDetachOp& operator=(const RemoteDetachOp& rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
       virtual void set_context_index(uint64_t index);
       virtual int get_depth(void) const;
       virtual ContextCoordinate get_task_tree_coordinate(void) const
-        { return ContextCoordinate(context_index, index_point); }
+      {
+        return ContextCoordinate(context_index, index_point);
+      }
     public:
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual void select_sources(const unsigned index, PhysicalManager *target,
-                                  const std::vector<InstanceView*> &sources,
-                                  std::vector<unsigned> &ranking,
-                                  std::map<unsigned,PhysicalManager*> &points);
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual void unpack(Deserializer &derez);
+      virtual void select_sources(
+          const unsigned index, PhysicalManager* target,
+          const std::vector<InstanceView*>& sources,
+          std::vector<unsigned>& ranking,
+          std::map<unsigned, PhysicalManager*>& points);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual void unpack(Deserializer& derez);
     protected:
       DomainPoint index_point;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_DETACH_H__
+#endif  // __LEGION_DETACH_H__

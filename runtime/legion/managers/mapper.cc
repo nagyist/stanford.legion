@@ -37,16 +37,19 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Mapping Call Info 
+    // Mapping Call Info
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MappingCallInfo::MappingCallInfo(MapperManager *man, MappingCallKind k,
-                                     Operation *op, bool prioritize)
-      : manager(man), resume(RtUserEvent::NO_RT_USER_EVENT), 
-        kind(k), operation(op), acquired_instances((op == nullptr) ? nullptr :
-            operation->get_acquired_instances_ref()), profiling_ranges(nullptr),
-        start_time(0), reentrant(manager->initially_reentrant), paused(false),
+    MappingCallInfo::MappingCallInfo(
+        MapperManager* man, MappingCallKind k, Operation* op, bool prioritize)
+      : manager(man), resume(RtUserEvent::NO_RT_USER_EVENT), kind(k),
+        operation(op),
+        acquired_instances(
+            (op == nullptr) ? nullptr :
+                              operation->get_acquired_instances_ref()),
+        profiling_ranges(nullptr), start_time(0),
+        reentrant(manager->initially_reentrant), paused(false),
         runtime_call(false), priority(prioritize)
     //--------------------------------------------------------------------------
     {
@@ -69,30 +72,31 @@ namespace Legion {
       if (profiling_ranges != nullptr)
       {
         if (!profiling_ranges->empty())
-          REPORT_LEGION_ERROR(ERROR_MISMATCHED_PROFILING_RANGE,
-            "Detected mismatched profiling range calls, missing %zd stop calls "
-            "at the end of mapper call %s by mapper %s for %s (UID %lld)",
-            profiling_ranges->size(), get_mapper_call_name(),
-            get_mapper_name(), operation->get_logging_name(),
-            operation->get_unique_op_id())
+          REPORT_LEGION_ERROR(
+              ERROR_MISMATCHED_PROFILING_RANGE,
+              "Detected mismatched profiling range calls, missing %zd stop "
+              "calls "
+              "at the end of mapper call %s by mapper %s for %s (UID %lld)",
+              profiling_ranges->size(), get_mapper_call_name(),
+              get_mapper_name(), operation->get_logging_name(),
+              operation->get_unique_op_id())
         delete profiling_ranges;
       }
     }
 
     //--------------------------------------------------------------------------
-    void MappingCallInfo::record_acquired_instance(InstanceManager *man)
+    void MappingCallInfo::record_acquired_instance(InstanceManager* man)
     //--------------------------------------------------------------------------
     {
       if (man->is_virtual_manager())
         return;
-      PhysicalManager *manager = man->as_physical_manager();
+      PhysicalManager* manager = man->as_physical_manager();
 #ifdef DEBUG_LEGION
       assert(acquired_instances != nullptr);
 #endif
-      std::map<PhysicalManager*,unsigned> &acquired =
-        *(acquired_instances);
-      std::map<PhysicalManager*,unsigned>::iterator finder = 
-        acquired.find(manager);
+      std::map<PhysicalManager*, unsigned>& acquired = *(acquired_instances);
+      std::map<PhysicalManager*, unsigned>::iterator finder =
+          acquired.find(manager);
       if (finder == acquired.end())
         acquired[manager] = 1;
       else
@@ -100,22 +104,21 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MappingCallInfo::release_acquired_instance(InstanceManager *man)
+    void MappingCallInfo::release_acquired_instance(InstanceManager* man)
     //--------------------------------------------------------------------------
     {
       if (man->is_virtual_manager())
         return;
-      PhysicalManager *manager = man->as_physical_manager();
+      PhysicalManager* manager = man->as_physical_manager();
 #ifdef DEBUG_LEGION
       assert(acquired_instances != nullptr);
 #endif
-      std::map<PhysicalManager*,unsigned> &acquired = 
-        *(acquired_instances);
-      std::map<PhysicalManager*,unsigned>::iterator finder = 
-        acquired.find(manager);
+      std::map<PhysicalManager*, unsigned>& acquired = *(acquired_instances);
+      std::map<PhysicalManager*, unsigned>::iterator finder =
+          acquired.find(manager);
       if (finder == acquired.end())
         return;
-      // Release the refrences and then keep going, we know there is 
+      // Release the refrences and then keep going, we know there is
       // a resource reference so no need to check for deletion
       manager->remove_base_valid_ref(MAPPING_ACQUIRE_REF, finder->second);
       acquired.erase(finder);
@@ -123,23 +126,22 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool MappingCallInfo::perform_acquires(
-                                const std::vector<MappingInstance> &instances,
-                                std::vector<unsigned> *to_erase,
-                                bool filter_acquired_instances)
+        const std::vector<MappingInstance>& instances,
+        std::vector<unsigned>* to_erase, bool filter_acquired_instances)
     //--------------------------------------------------------------------------
     {
-      std::map<PhysicalManager*,unsigned> &already_acquired =
-        *(acquired_instances);
+      std::map<PhysicalManager*, unsigned>& already_acquired =
+          *(acquired_instances);
       bool all_acquired = true;
       for (unsigned idx = 0; idx < instances.size(); idx++)
       {
-        const MappingInstance &inst = instances[idx];
+        const MappingInstance& inst = instances[idx];
         if (!inst.exists())
           continue;
-        InstanceManager *man = inst.impl;
+        InstanceManager* man = inst.impl;
         if (man->is_virtual_manager())
           continue;
-        PhysicalManager *manager = man->as_physical_manager();
+        PhysicalManager* manager = man->as_physical_manager();
         if (already_acquired.find(manager) != already_acquired.end())
         {
           if ((to_erase != nullptr) && filter_acquired_instances)
@@ -155,8 +157,7 @@ namespace Legion {
           already_acquired[manager] = 1;
           if ((to_erase != nullptr) && filter_acquired_instances)
             to_erase->push_back(idx);
-        }
-        else
+        } else
         {
           all_acquired = false;
           if ((to_erase != nullptr) && !filter_acquired_instances)
@@ -180,30 +181,33 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MappingCallInfo::stop_profiling_range(const char *prov)
+    void MappingCallInfo::stop_profiling_range(const char* prov)
     //--------------------------------------------------------------------------
     {
       if (prov == nullptr)
-        REPORT_LEGION_ERROR(ERROR_MISSING_PROFILING_PROVENANCE,
+        REPORT_LEGION_ERROR(
+            ERROR_MISSING_PROFILING_PROVENANCE,
             "Missing provenance string for mapper profiling range "
-            "in mapper call %s by mapper %s for %s (UID %lld)", 
+            "in mapper call %s by mapper %s for %s (UID %lld)",
             get_mapper_call_name(), get_mapper_name(),
             operation->get_logging_name(), operation->get_unique_op_id())
       if (implicit_profiler != nullptr)
       {
-        Provenance *provenance = 
-          runtime->find_or_create_provenance(prov, strlen(prov));
+        Provenance* provenance =
+            runtime->find_or_create_provenance(prov, strlen(prov));
         if ((profiling_ranges == nullptr) || profiling_ranges->empty())
-          REPORT_LEGION_ERROR(ERROR_MISMATCHED_PROFILING_RANGE,
-            "Detected mismatched profiling range calls, received a stop call "
-            "without a corresponding start call in mapper call %s by mapper %s "
-            "for %s (UID %lld) at %.*s", get_mapper_call_name(),
-            get_mapper_name(), operation->get_logging_name(),
-            operation->get_unique_op_id(), int(provenance->human.length()),
-            provenance->human.data())
+          REPORT_LEGION_ERROR(
+              ERROR_MISMATCHED_PROFILING_RANGE,
+              "Detected mismatched profiling range calls, received a stop call "
+              "without a corresponding start call in mapper call %s by mapper "
+              "%s "
+              "for %s (UID %lld) at %.*s",
+              get_mapper_call_name(), get_mapper_name(),
+              operation->get_logging_name(), operation->get_unique_op_id(),
+              int(provenance->human.length()), provenance->human.data())
         const long long stop = Realm::Clock::current_time_in_nanoseconds();
-        implicit_profiler->record_application_range(provenance->pid,
-            profiling_ranges->back(), stop);
+        implicit_profiler->record_application_range(
+            provenance->pid, profiling_ranges->back(), stop);
         profiling_ranges->pop_back();
         if (provenance->remove_reference())
           delete provenance;
@@ -211,26 +215,27 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Mapper Manager 
+    // Mapper Manager
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MapperManager::MapperManager(Mapping::Mapper *mp, 
-                                 MapperID mid, Processor p, bool is_default)
+    MapperManager::MapperManager(
+        Mapping::Mapper* mp, MapperID mid, Processor p, bool is_default)
       : mapper(mp), mapper_id(mid), processor(p),
         profile_mapper(runtime->profiler != nullptr),
         request_valid_instances(mp->request_valid_instances()),
-        is_default_mapper(is_default), initially_reentrant(
-            mapper->get_mapper_sync_model() != 
-             Mapper::SERIALIZED_NON_REENTRANT_MAPPER_MODEL)
+        is_default_mapper(is_default),
+        initially_reentrant(
+            mapper->get_mapper_sync_model() !=
+            Mapper::SERIALIZED_NON_REENTRANT_MAPPER_MODEL)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(processor.exists());
 #endif
       if (profile_mapper)
-        runtime->profiler->record_mapper_name(mapper_id, processor, 
-                                              get_mapper_name());
+        runtime->profiler->record_mapper_name(
+            mapper_id, processor, get_mapper_name());
     }
 
     //--------------------------------------------------------------------------
@@ -239,7 +244,7 @@ namespace Legion {
     {
       // We can now delete our mapper
       delete mapper;
-    } 
+    }
 
     //--------------------------------------------------------------------------
     const char* MapperManager::get_mapper_name(void) const
@@ -249,8 +254,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_task_options(TaskOp *task, 
-                                  Mapper::TaskOptions &options, bool prioritize)
+    void MapperManager::invoke_select_task_options(
+        TaskOp* task, Mapper::TaskOptions& options, bool prioritize)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, SELECT_TASK_OPTIONS_CALL, task, prioritize);
@@ -259,9 +264,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_premap_task(TaskOp *task, 
-                                           Mapper::PremapTaskInput &input,
-                                           Mapper::PremapTaskOutput &output) 
+    void MapperManager::invoke_premap_task(
+        TaskOp* task, Mapper::PremapTaskInput& input,
+        Mapper::PremapTaskOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, PREMAP_TASK_CALL, task);
@@ -269,9 +274,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_slice_task(TaskOp *task, 
-                                          Mapper::SliceTaskInput &input,
-                                          Mapper::SliceTaskOutput &output) 
+    void MapperManager::invoke_slice_task(
+        TaskOp* task, Mapper::SliceTaskInput& input,
+        Mapper::SliceTaskOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, SLICE_TASK_CALL, task);
@@ -279,9 +284,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_map_task(TaskOp *task, 
-                                        Mapper::MapTaskInput &input,
-                                        Mapper::MapTaskOutput &output) 
+    void MapperManager::invoke_map_task(
+        TaskOp* task, Mapper::MapTaskInput& input,
+        Mapper::MapTaskOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MAP_TASK_CALL, task);
@@ -289,9 +294,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_replicate_task(TaskOp *task,
-                                     Mapper::ReplicateTaskInput &input,
-                                     Mapper::ReplicateTaskOutput &output)
+    void MapperManager::invoke_replicate_task(
+        TaskOp* task, Mapper::ReplicateTaskInput& input,
+        Mapper::ReplicateTaskOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, REPLICATE_TASK_CALL, task);
@@ -299,9 +304,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_task_variant(TaskOp *task,
-                                            Mapper::SelectVariantInput &input,
-                                            Mapper::SelectVariantOutput &output)
+    void MapperManager::invoke_select_task_variant(
+        TaskOp* task, Mapper::SelectVariantInput& input,
+        Mapper::SelectVariantOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, SELECT_VARIANT_CALL, task);
@@ -309,9 +314,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_post_map_task(TaskOp *task, 
-                                             Mapper::PostMapInput &input,
-                                             Mapper::PostMapOutput &output)
+    void MapperManager::invoke_post_map_task(
+        TaskOp* task, Mapper::PostMapInput& input,
+        Mapper::PostMapOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, POSTMAP_TASK_CALL, task);
@@ -319,9 +324,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_task_sources(TaskOp *task, 
-                                    Mapper::SelectTaskSrcInput &input,
-                                    Mapper::SelectTaskSrcOutput &output)
+    void MapperManager::invoke_select_task_sources(
+        TaskOp* task, Mapper::SelectTaskSrcInput& input,
+        Mapper::SelectTaskSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, TASK_SELECT_SOURCES_CALL, task);
@@ -329,9 +334,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_task_sources(RemoteTaskOp *task, 
-                                    Mapper::SelectTaskSrcInput &input,
-                                    Mapper::SelectTaskSrcOutput &output)
+    void MapperManager::invoke_select_task_sources(
+        RemoteTaskOp* task, Mapper::SelectTaskSrcInput& input,
+        Mapper::SelectTaskSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, TASK_SELECT_SOURCES_CALL, task);
@@ -339,8 +344,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_task_report_profiling(TaskOp *task, 
-                                               Mapper::TaskProfilingInfo &input)
+    void MapperManager::invoke_task_report_profiling(
+        TaskOp* task, Mapper::TaskProfilingInfo& input)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, TASK_REPORT_PROFILING_CALL, task);
@@ -348,9 +353,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_task_select_sharding_functor(TaskOp *task,
-                              Mapper::SelectShardingFunctorInput &input,
-                              Mapper::SelectShardingFunctorOutput &output)
+    void MapperManager::invoke_task_select_sharding_functor(
+        TaskOp* task, Mapper::SelectShardingFunctorInput& input,
+        Mapper::SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, TASK_SELECT_SHARDING_FUNCTOR_CALL, task);
@@ -358,9 +363,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_map_inline(MapOp *op, 
-                                          Mapper::MapInlineInput &input,
-                                          Mapper::MapInlineOutput &output) 
+    void MapperManager::invoke_map_inline(
+        MapOp* op, Mapper::MapInlineInput& input,
+        Mapper::MapInlineOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MAP_INLINE_CALL, op);
@@ -368,9 +373,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_inline_sources(MapOp *op, 
-                                      Mapper::SelectInlineSrcInput &input,
-                                      Mapper::SelectInlineSrcOutput &output)
+    void MapperManager::invoke_select_inline_sources(
+        MapOp* op, Mapper::SelectInlineSrcInput& input,
+        Mapper::SelectInlineSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, INLINE_SELECT_SOURCES_CALL, op);
@@ -378,9 +383,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_inline_sources(RemoteMapOp *op, 
-                                      Mapper::SelectInlineSrcInput &input,
-                                      Mapper::SelectInlineSrcOutput &output)
+    void MapperManager::invoke_select_inline_sources(
+        RemoteMapOp* op, Mapper::SelectInlineSrcInput& input,
+        Mapper::SelectInlineSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, INLINE_SELECT_SOURCES_CALL, op);
@@ -388,8 +393,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_inline_report_profiling(MapOp *op, 
-                                     Mapper::InlineProfilingInfo &input)
+    void MapperManager::invoke_inline_report_profiling(
+        MapOp* op, Mapper::InlineProfilingInfo& input)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, INLINE_REPORT_PROFILING_CALL, op);
@@ -397,9 +402,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_map_copy(CopyOp *op,
-                                        Mapper::MapCopyInput &input,
-                                        Mapper::MapCopyOutput &output)
+    void MapperManager::invoke_map_copy(
+        CopyOp* op, Mapper::MapCopyInput& input, Mapper::MapCopyOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MAP_COPY_CALL, op);
@@ -407,9 +411,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_copy_sources(CopyOp *op,
-                                    Mapper::SelectCopySrcInput &input,
-                                    Mapper::SelectCopySrcOutput &output)
+    void MapperManager::invoke_select_copy_sources(
+        CopyOp* op, Mapper::SelectCopySrcInput& input,
+        Mapper::SelectCopySrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, COPY_SELECT_SOURCES_CALL, op);
@@ -417,9 +421,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_copy_sources(RemoteCopyOp *op,
-                                    Mapper::SelectCopySrcInput &input,
-                                    Mapper::SelectCopySrcOutput &output)
+    void MapperManager::invoke_select_copy_sources(
+        RemoteCopyOp* op, Mapper::SelectCopySrcInput& input,
+        Mapper::SelectCopySrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, COPY_SELECT_SOURCES_CALL, op);
@@ -427,8 +431,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_copy_report_profiling(CopyOp *op,
-                                             Mapper::CopyProfilingInfo &input)
+    void MapperManager::invoke_copy_report_profiling(
+        CopyOp* op, Mapper::CopyProfilingInfo& input)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, COPY_REPORT_PROFILING_CALL, op);
@@ -436,9 +440,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_copy_select_sharding_functor(CopyOp *op,
-                              Mapper::SelectShardingFunctorInput &input,
-                              Mapper::SelectShardingFunctorOutput &output)
+    void MapperManager::invoke_copy_select_sharding_functor(
+        CopyOp* op, Mapper::SelectShardingFunctorInput& input,
+        Mapper::SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, COPY_SELECT_SHARDING_FUNCTOR_CALL, op);
@@ -446,9 +450,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_close_sources(CloseOp *op,
-                                         Mapper::SelectCloseSrcInput &input,
-                                         Mapper::SelectCloseSrcOutput &output)
+    void MapperManager::invoke_select_close_sources(
+        CloseOp* op, Mapper::SelectCloseSrcInput& input,
+        Mapper::SelectCloseSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, CLOSE_SELECT_SOURCES_CALL, op);
@@ -456,9 +460,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_close_sources(RemoteCloseOp *op,
-                                         Mapper::SelectCloseSrcInput &input,
-                                         Mapper::SelectCloseSrcOutput &output)
+    void MapperManager::invoke_select_close_sources(
+        RemoteCloseOp* op, Mapper::SelectCloseSrcInput& input,
+        Mapper::SelectCloseSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, CLOSE_SELECT_SOURCES_CALL, op);
@@ -466,8 +470,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_close_report_profiling(CloseOp *op,
-                                          Mapper::CloseProfilingInfo &input)
+    void MapperManager::invoke_close_report_profiling(
+        CloseOp* op, Mapper::CloseProfilingInfo& input)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, CLOSE_REPORT_PROFILING_CALL, op);
@@ -475,9 +479,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_close_select_sharding_functor(CloseOp *op,
-                              Mapper::SelectShardingFunctorInput &input,
-                              Mapper::SelectShardingFunctorOutput &output)
+    void MapperManager::invoke_close_select_sharding_functor(
+        CloseOp* op, Mapper::SelectShardingFunctorInput& input,
+        Mapper::SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, CLOSE_SELECT_SHARDING_FUNCTOR_CALL, op);
@@ -485,9 +489,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_map_acquire(AcquireOp *op,
-                                           Mapper::MapAcquireInput &input,
-                                           Mapper::MapAcquireOutput &output)
+    void MapperManager::invoke_map_acquire(
+        AcquireOp* op, Mapper::MapAcquireInput& input,
+        Mapper::MapAcquireOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MAP_ACQUIRE_CALL, op);
@@ -495,8 +499,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_acquire_report_profiling(AcquireOp *op,
-                                         Mapper::AcquireProfilingInfo &input)
+    void MapperManager::invoke_acquire_report_profiling(
+        AcquireOp* op, Mapper::AcquireProfilingInfo& input)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, ACQUIRE_REPORT_PROFILING_CALL, op);
@@ -504,9 +508,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_acquire_select_sharding_functor(AcquireOp *op,
-                              Mapper::SelectShardingFunctorInput &input,
-                              Mapper::SelectShardingFunctorOutput &output)
+    void MapperManager::invoke_acquire_select_sharding_functor(
+        AcquireOp* op, Mapper::SelectShardingFunctorInput& input,
+        Mapper::SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, ACQUIRE_SELECT_SHARDING_FUNCTOR_CALL, op);
@@ -514,9 +518,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_map_release(ReleaseOp *op,
-                                           Mapper::MapReleaseInput &input,
-                                           Mapper::MapReleaseOutput &output)
+    void MapperManager::invoke_map_release(
+        ReleaseOp* op, Mapper::MapReleaseInput& input,
+        Mapper::MapReleaseOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MAP_RELEASE_CALL, op);
@@ -524,9 +528,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_release_sources(ReleaseOp *op,
-                                       Mapper::SelectReleaseSrcInput &input,
-                                       Mapper::SelectReleaseSrcOutput &output)
+    void MapperManager::invoke_select_release_sources(
+        ReleaseOp* op, Mapper::SelectReleaseSrcInput& input,
+        Mapper::SelectReleaseSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, RELEASE_SELECT_SOURCES_CALL, op);
@@ -534,9 +538,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_release_sources(RemoteReleaseOp *op,
-                                       Mapper::SelectReleaseSrcInput &input,
-                                       Mapper::SelectReleaseSrcOutput &output)
+    void MapperManager::invoke_select_release_sources(
+        RemoteReleaseOp* op, Mapper::SelectReleaseSrcInput& input,
+        Mapper::SelectReleaseSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, RELEASE_SELECT_SOURCES_CALL, op);
@@ -544,8 +548,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_release_report_profiling(ReleaseOp *op,
-                                         Mapper::ReleaseProfilingInfo &input)
+    void MapperManager::invoke_release_report_profiling(
+        ReleaseOp* op, Mapper::ReleaseProfilingInfo& input)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, RELEASE_REPORT_PROFILING_CALL, op);
@@ -553,9 +557,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_release_select_sharding_functor(ReleaseOp *op,
-                              Mapper::SelectShardingFunctorInput &input,
-                              Mapper::SelectShardingFunctorOutput &output)
+    void MapperManager::invoke_release_select_sharding_functor(
+        ReleaseOp* op, Mapper::SelectShardingFunctorInput& input,
+        Mapper::SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, RELEASE_SELECT_SHARDING_FUNCTOR_CALL, op);
@@ -564,9 +568,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_select_partition_projection(
-                          DependentPartitionOp *op,
-                          Mapper::SelectPartitionProjectionInput &input,
-                          Mapper::SelectPartitionProjectionOutput &output)
+        DependentPartitionOp* op, Mapper::SelectPartitionProjectionInput& input,
+        Mapper::SelectPartitionProjectionOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, SELECT_PARTITION_PROJECTION_CALL, op);
@@ -574,9 +577,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_map_partition(DependentPartitionOp *op,
-                                  Mapper::MapPartitionInput &input,
-                                  Mapper::MapPartitionOutput &output)
+    void MapperManager::invoke_map_partition(
+        DependentPartitionOp* op, Mapper::MapPartitionInput& input,
+        Mapper::MapPartitionOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MAP_PARTITION_CALL, op);
@@ -585,9 +588,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_select_partition_sources(
-                                  DependentPartitionOp *op,
-                                  Mapper::SelectPartitionSrcInput &input,
-                                  Mapper::SelectPartitionSrcOutput &output)
+        DependentPartitionOp* op, Mapper::SelectPartitionSrcInput& input,
+        Mapper::SelectPartitionSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, PARTITION_SELECT_SOURCES_CALL, op);
@@ -595,9 +597,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_partition_sources(RemotePartitionOp *op,
-                                  Mapper::SelectPartitionSrcInput &input,
-                                  Mapper::SelectPartitionSrcOutput &output)
+    void MapperManager::invoke_select_partition_sources(
+        RemotePartitionOp* op, Mapper::SelectPartitionSrcInput& input,
+        Mapper::SelectPartitionSrcOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, PARTITION_SELECT_SOURCES_CALL, op);
@@ -606,8 +608,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_partition_report_profiling(
-                                         DependentPartitionOp *op,
-                                         Mapper::PartitionProfilingInfo &input)
+        DependentPartitionOp* op, Mapper::PartitionProfilingInfo& input)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, PARTITION_REPORT_PROFILING_CALL, op);
@@ -616,9 +617,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_partition_select_sharding_functor(
-                              DependentPartitionOp *op,
-                              Mapper::SelectShardingFunctorInput &input,
-                              Mapper::SelectShardingFunctorOutput &output)
+        DependentPartitionOp* op, Mapper::SelectShardingFunctorInput& input,
+        Mapper::SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, PARTITION_SELECT_SHARDING_FUNCTOR_CALL, op);
@@ -626,9 +626,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_fill_select_sharding_functor(FillOp *op,
-                              Mapper::SelectShardingFunctorInput &input,
-                              Mapper::SelectShardingFunctorOutput &output)
+    void MapperManager::invoke_fill_select_sharding_functor(
+        FillOp* op, Mapper::SelectShardingFunctorInput& input,
+        Mapper::SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, FILL_SELECT_SHARDING_FUNCTOR_CALL, op);
@@ -636,9 +636,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_map_future_map_reduction(AllReduceOp *op,
-                                       Mapper::FutureMapReductionInput &input,
-                                       Mapper::FutureMapReductionOutput &output)
+    void MapperManager::invoke_map_future_map_reduction(
+        AllReduceOp* op, Mapper::FutureMapReductionInput& input,
+        Mapper::FutureMapReductionOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MAP_FUTURE_MAP_REDUCTION_CALL, op);
@@ -646,8 +646,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_configure_context(TaskOp *task,
-                                         Mapper::ContextConfigOutput &output)
+    void MapperManager::invoke_configure_context(
+        TaskOp* task, Mapper::ContextConfigOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, CONFIGURE_CONTEXT_CALL, task);
@@ -655,9 +655,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_select_tunable_value(TaskOp *task,
-                                     Mapper::SelectTunableInput &input,
-                                     Mapper::SelectTunableOutput &output)
+    void MapperManager::invoke_select_tunable_value(
+        TaskOp* task, Mapper::SelectTunableInput& input,
+        Mapper::SelectTunableOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, SELECT_TUNABLE_VALUE_CALL, task);
@@ -666,9 +666,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_must_epoch_select_sharding_functor(
-                                MustEpochOp *op,
-                                Mapper::SelectShardingFunctorInput &input,
-                                Mapper::MustEpochShardingFunctorOutput &output)
+        MustEpochOp* op, Mapper::SelectShardingFunctorInput& input,
+        Mapper::MustEpochShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MUST_EPOCH_SELECT_SHARDING_FUNCTOR_CALL, op);
@@ -676,9 +675,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_map_must_epoch(MustEpochOp *op,
-                                            Mapper::MapMustEpochInput &input,
-                                            Mapper::MapMustEpochOutput &output)
+    void MapperManager::invoke_map_must_epoch(
+        MustEpochOp* op, Mapper::MapMustEpochInput& input,
+        Mapper::MapMustEpochOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MAP_MUST_EPOCH_CALL, op);
@@ -687,8 +686,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_map_dataflow_graph(
-                                   Mapper::MapDataflowGraphInput &input,
-                                   Mapper::MapDataflowGraphOutput &output)
+        Mapper::MapDataflowGraphInput& input,
+        Mapper::MapDataflowGraphOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MAP_DATAFLOW_GRAPH_CALL, nullptr);
@@ -696,9 +695,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_memoize_operation(Mappable *mappable,
-                                                 Mapper::MemoizeInput &input,
-                                                 Mapper::MemoizeOutput &output)
+    void MapperManager::invoke_memoize_operation(
+        Mappable* mappable, Mapper::MemoizeInput& input,
+        Mapper::MemoizeOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, MEMOIZE_OPERATION_CALL, nullptr);
@@ -707,8 +706,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_select_tasks_to_map(
-                                    Mapper::SelectMappingInput &input,
-                                    Mapper::SelectMappingOutput &output)
+        Mapper::SelectMappingInput& input, Mapper::SelectMappingOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, SELECT_TASKS_TO_MAP_CALL, nullptr);
@@ -717,8 +715,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_select_steal_targets(
-                                     Mapper::SelectStealingInput &input,
-                                     Mapper::SelectStealingOutput &output)
+        Mapper::SelectStealingInput& input,
+        Mapper::SelectStealingOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, SELECT_STEAL_TARGETS_CALL, nullptr);
@@ -727,8 +725,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_permit_steal_request(
-                                     Mapper::StealRequestInput &input,
-                                     Mapper::StealRequestOutput &output)
+        Mapper::StealRequestInput& input, Mapper::StealRequestOutput& output)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, PERMIT_STEAL_REQUEST_CALL, nullptr);
@@ -736,23 +733,22 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::invoke_handle_message(Mapper::MapperMessage *message)
+    void MapperManager::invoke_handle_message(Mapper::MapperMessage* message)
     //--------------------------------------------------------------------------
     {
-      MappingCallInfo *previous = implicit_mapper_call;
+      MappingCallInfo* previous = implicit_mapper_call;
       // This is subtle: in order to avoid deadlock between mapper calls either
       // to the same mapper or between mappers, all we need to check is that
       // the mapper call is still in a reentrant mode, if it is then we can do
       // the next mapper call directly, otherwise we need to defer it
       if ((previous != nullptr) && !previous->reentrant)
       {
-        DeferMessageArgs args(this, message->sender, message->kind, 
-                              malloc(message->size), message->size,
-                              message->broadcast);
+        DeferMessageArgs args(
+            this, message->sender, message->kind, malloc(message->size),
+            message->size, message->broadcast);
         memcpy(args.message, message->message, args.size);
         runtime->issue_runtime_meta_task(args, LG_LATENCY_DEFERRED_PRIORITY);
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
         implicit_mapper_call = nullptr;
@@ -765,7 +761,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::invoke_handle_task_result(
-                                   Mapper::MapperTaskResult &result)
+        Mapper::MapperTaskResult& result)
     //--------------------------------------------------------------------------
     {
       MappingCallInfo ctx(this, HANDLE_TASK_RESULT_CALL, nullptr);
@@ -773,21 +769,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::notify_instance_deletion(PhysicalManager *manager)
+    void MapperManager::notify_instance_deletion(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
-      MappingCallInfo *previous = implicit_mapper_call;
+      MappingCallInfo* previous = implicit_mapper_call;
       // This is subtle: in order to avoid deadlock between mapper calls either
       // to the same mapper or between mappers, all we need to check is that
       // the mapper call is still in a reentrant mode, if it is then we can do
       // the next mapper call directly, otherwise we need to defer it
-      if ((previous != nullptr) && !previous->reentrant) 
+      if ((previous != nullptr) && !previous->reentrant)
       {
         DeferInstanceCollectionArgs args(this, manager);
         manager->add_base_resource_ref(MAPPER_REF);
         runtime->issue_runtime_meta_task(args, LG_LATENCY_DEFERRED_PRIORITY);
-      }
-      else
+      } else
       {
 #ifdef DEBUG_LEGION
         implicit_mapper_call = nullptr;
@@ -800,14 +795,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void MapperManager::add_subscriber_reference(PhysicalManager *manager)
+    void MapperManager::add_subscriber_reference(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
       // Nothing to do currently
     }
 
     //--------------------------------------------------------------------------
-    bool MapperManager::remove_subscriber_reference(PhysicalManager *manager)
+    bool MapperManager::remove_subscriber_reference(PhysicalManager* manager)
     //--------------------------------------------------------------------------
     {
       // Nothing to do, make sure we don't get deleted
@@ -816,10 +811,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ const char* MapperManager::get_mapper_call_name(
-                                                           MappingCallKind kind)
+        MappingCallKind kind)
     //--------------------------------------------------------------------------
     {
-      static MAPPER_CALL_NAMES(call_names); 
+      static MAPPER_CALL_NAMES(call_names);
 #ifdef DEBUG_LEGION
       assert(kind < LAST_MAPPER_CALL);
 #endif
@@ -827,10 +822,10 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MapperManager::handle_deferred_message(const void *args)
+    /*static*/ void MapperManager::handle_deferred_message(const void* args)
     //--------------------------------------------------------------------------
     {
-      const DeferMessageArgs *margs = (const DeferMessageArgs*)args;
+      const DeferMessageArgs* margs = (const DeferMessageArgs*)args;
       Mapper::MapperMessage message;
       message.sender = margs->sender;
       message.kind = margs->kind;
@@ -843,11 +838,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void MapperManager::handle_deferred_collection(const void *args)
+    /*static*/ void MapperManager::handle_deferred_collection(const void* args)
     //--------------------------------------------------------------------------
     {
-      const DeferInstanceCollectionArgs *dargs = 
-        (const DeferInstanceCollectionArgs*)args;
+      const DeferInstanceCollectionArgs* dargs =
+          (const DeferInstanceCollectionArgs*)args;
       dargs->manager->notify_instance_deletion(dargs->instance);
       if (dargs->instance->remove_base_resource_ref(MAPPER_REF))
         delete dargs->instance;
@@ -859,36 +854,35 @@ namespace Legion {
     {
       AutoLock m_lock(mapper_lock);
 #ifdef DEBUG_LEGION
-      assert(steal_blacklist.find(advertiser) !=
-             steal_blacklist.end());
+      assert(steal_blacklist.find(advertiser) != steal_blacklist.end());
 #endif
       steal_blacklist.erase(advertiser);
     }
 
     //--------------------------------------------------------------------------
     void MapperManager::perform_stealing(
-                                     std::multimap<Processor,MapperID> &targets)
+        std::multimap<Processor, MapperID>& targets)
     //--------------------------------------------------------------------------
     {
       Mapper::SelectStealingInput steal_input;
       Mapper::SelectStealingOutput steal_output;
       {
-        AutoLock m_lock(mapper_lock, 1, false/*exclusive*/);
-        steal_input.blacklist = steal_blacklist; 
+        AutoLock m_lock(mapper_lock, 1, false /*exclusive*/);
+        steal_input.blacklist = steal_blacklist;
       }
       invoke_select_steal_targets(steal_input, steal_output);
       if (steal_output.targets.empty())
         return;
       // Retake the lock and process the results
       AutoLock m_lock(mapper_lock);
-      for (std::set<Processor>::const_iterator it = 
-            steal_output.targets.begin(); it != 
-            steal_output.targets.end(); it++)
+      for (std::set<Processor>::const_iterator it =
+               steal_output.targets.begin();
+           it != steal_output.targets.end(); it++)
       {
         if (it->exists() && ((*it) != processor) &&
             (steal_blacklist.find(*it) == steal_blacklist.end()))
         {
-          targets.insert(std::pair<Processor,MapperID>(*it,mapper_id));
+          targets.insert(std::pair<Processor, MapperID>(*it, mapper_id));
           steal_blacklist.insert(*it);
         }
       }
@@ -907,7 +901,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void MapperManager::perform_advertisements(
-                                            std::set<Processor> &failed_waiters)
+        std::set<Processor>& failed_waiters)
     //--------------------------------------------------------------------------
     {
       AutoLock m_lock(mapper_lock);
@@ -916,14 +910,16 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Serializing Manager 
+    // Serializing Manager
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    SerializingManager::SerializingManager(Mapping::Mapper *mp,
-             MapperID map_id, Processor p, bool init_reentrant, bool def)
-      : MapperManager(mp,map_id,p,def),executing_call(nullptr),paused_calls(0),
-        allow_reentrant(init_reentrant), permit_reentrant(init_reentrant)
+    SerializingManager::SerializingManager(
+        Mapping::Mapper* mp, MapperID map_id, Processor p, bool init_reentrant,
+        bool def)
+      : MapperManager(mp, map_id, p, def), executing_call(nullptr),
+        paused_calls(0), allow_reentrant(init_reentrant),
+        permit_reentrant(init_reentrant)
     //--------------------------------------------------------------------------
     {
       pending_pause_call.store(false);
@@ -933,11 +929,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     SerializingManager::~SerializingManager(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    bool SerializingManager::is_locked(MappingCallInfo *info)
+    bool SerializingManager::is_locked(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
       // Serializing managers are always effectively locked
@@ -945,27 +940,31 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SerializingManager::lock_mapper(MappingCallInfo *info, bool read_only)
+    void SerializingManager::lock_mapper(MappingCallInfo* info, bool read_only)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_MAPPER_SYNCHRONIZATION,
-                          "Illegal 'lock_mapper' call performed in mapper %s "
-                          "with the serialized synchronization model. Use the "
-                          "'disable_reentrant' call instead.",get_mapper_name())
+      REPORT_LEGION_ERROR(
+          ERROR_MAPPER_SYNCHRONIZATION,
+          "Illegal 'lock_mapper' call performed in mapper %s "
+          "with the serialized synchronization model. Use the "
+          "'disable_reentrant' call instead.",
+          get_mapper_name())
     }
 
     //--------------------------------------------------------------------------
-    void SerializingManager::unlock_mapper(MappingCallInfo *info)
+    void SerializingManager::unlock_mapper(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_MAPPER_SYNCHRONIZATION,
-                          "Illegal 'unlock_mapper' call performed in mapper %s "
-                          "with the serialized synchronization model. Use the "
-                          "'enable_reentrant' call instead.", get_mapper_name())
+      REPORT_LEGION_ERROR(
+          ERROR_MAPPER_SYNCHRONIZATION,
+          "Illegal 'unlock_mapper' call performed in mapper %s "
+          "with the serialized synchronization model. Use the "
+          "'enable_reentrant' call instead.",
+          get_mapper_name())
     }
 
     //--------------------------------------------------------------------------
-    bool SerializingManager::is_reentrant(MappingCallInfo *info)
+    bool SerializingManager::is_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -976,56 +975,61 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SerializingManager::enable_reentrant(MappingCallInfo *info)
+    void SerializingManager::enable_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(executing_call == info);
 #endif
       if (!allow_reentrant)
-        REPORT_LEGION_ERROR(ERROR_MAPPER_SYNCHRONIZATION,
-                        "Illegal 'enable_reentrant' call performed in mapper "
-                        "%s with the SERIALIZED_NON_REENTRANT_MAPPER_MODEL. "
-                        "Reentrant calls are never allowed with this model.", 
-                        get_mapper_name())
+        REPORT_LEGION_ERROR(
+            ERROR_MAPPER_SYNCHRONIZATION,
+            "Illegal 'enable_reentrant' call performed in mapper "
+            "%s with the SERIALIZED_NON_REENTRANT_MAPPER_MODEL. "
+            "Reentrant calls are never allowed with this model.",
+            get_mapper_name())
       else if (info->reentrant)
-        REPORT_LEGION_ERROR(ERROR_MAPPER_SYNCHRONIZATION,
-                        "Illegal 'disable_reentrant' call performed in mapper "
-                        "%s. Reentrant calls were already enabled and we do "
-                        "not support nested calls to enable them.",
-                        get_mapper_name())
+        REPORT_LEGION_ERROR(
+            ERROR_MAPPER_SYNCHRONIZATION,
+            "Illegal 'disable_reentrant' call performed in mapper "
+            "%s. Reentrant calls were already enabled and we do "
+            "not support nested calls to enable them.",
+            get_mapper_name())
       info->reentrant = true;
       AutoLock m_lock(mapper_lock);
       permit_reentrant = true;
     }
 
     //--------------------------------------------------------------------------
-    void SerializingManager::disable_reentrant(MappingCallInfo *info)
+    void SerializingManager::disable_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(executing_call == info);
 #endif
       if (!allow_reentrant)
-        REPORT_LEGION_ERROR(ERROR_MAPPER_SYNCHRONIZATION,
-                        "Illegal 'disable_reentrant' call performed in mapper "
-                        "%s with the SERIALIZED_NON_REENTRANT_MAPPER_MODEL. "
-                        "Reentrant calls are already disallowed with this "
-                        "model.", get_mapper_name())
+        REPORT_LEGION_ERROR(
+            ERROR_MAPPER_SYNCHRONIZATION,
+            "Illegal 'disable_reentrant' call performed in mapper "
+            "%s with the SERIALIZED_NON_REENTRANT_MAPPER_MODEL. "
+            "Reentrant calls are already disallowed with this "
+            "model.",
+            get_mapper_name())
       else if (!info->reentrant)
-        REPORT_LEGION_ERROR(ERROR_MAPPER_SYNCHRONIZATION,
-                        "Illegal 'disable_reentrant' call performed in mapper "
-                        "%s. Reentrant calls were already disabled and we do "
-                        "not support nested calls to disable them.",
-                        get_mapper_name())
+        REPORT_LEGION_ERROR(
+            ERROR_MAPPER_SYNCHRONIZATION,
+            "Illegal 'disable_reentrant' call performed in mapper "
+            "%s. Reentrant calls were already disabled and we do "
+            "not support nested calls to disable them.",
+            get_mapper_name())
       info->reentrant = false;
       AutoLock m_lock(mapper_lock);
       permit_reentrant = false;
     }
 
     //--------------------------------------------------------------------------
-    void SerializingManager::begin_mapper_call(MappingCallInfo *info,
-                                               bool prioritize)
+    void SerializingManager::begin_mapper_call(
+        MappingCallInfo* info, bool prioritize)
     //--------------------------------------------------------------------------
     {
       RtEvent precondition;
@@ -1038,8 +1042,8 @@ namespace Legion {
         else if (pending_finish_call.load())
           to_trigger = complete_pending_finish_mapper_call();
         // See if we are ready to run this or not
-        if ((executing_call != nullptr) || (!permit_reentrant && 
-              ((paused_calls > 0) || !ready_calls.empty())))
+        if ((executing_call != nullptr) ||
+            (!permit_reentrant && ((paused_calls > 0) || !ready_calls.empty())))
         {
           // Put this on the list of pending calls
           info->resume = Runtime::create_rt_user_event();
@@ -1048,8 +1052,7 @@ namespace Legion {
             pending_calls.push_front(info);
           else
             pending_calls.push_back(info);
-        }
-        else
+        } else
           executing_call = info;
       }
       // Wake up a pending mapper call to run if necessary
@@ -1058,8 +1061,8 @@ namespace Legion {
       if (profile_mapper)
       {
         if (is_default_mapper)
-          runtime->profiler->issue_default_mapper_warning(info->operation,
-                                      get_mapper_call_name(info->kind));
+          runtime->profiler->issue_default_mapper_warning(
+              info->operation, get_mapper_call_name(info->kind));
         info->start_time = Realm::Clock::current_time_in_nanoseconds();
       }
       if (precondition.exists() && !precondition.has_triggered())
@@ -1070,16 +1073,16 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SerializingManager::pause_mapper_call(MappingCallInfo *info)
+    void SerializingManager::pause_mapper_call(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!pending_pause_call.load());
 #endif
       // Set the flag indicating there is a paused mapper call that
-      // needs to be handled, do this asynchronoulsy and check to 
+      // needs to be handled, do this asynchronoulsy and check to
       // see if we lost the race later
-      pending_pause_call.store(true); 
+      pending_pause_call.store(true);
       // We definitely know we can't start any non_reentrant calls
       // Screw fairness, we care about throughput, see if there are any
       // pending calls to wake up, and then go to sleep ourself
@@ -1099,7 +1102,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SerializingManager::resume_mapper_call(MappingCallInfo *info)
+    void SerializingManager::resume_mapper_call(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
       // See if we are ready to be woken up
@@ -1122,8 +1125,7 @@ namespace Legion {
               ready_calls.push_front(info);
             else
               ready_calls.push_back(info);
-          }
-          else
+          } else
             executing_call = info;
         }
       }
@@ -1135,7 +1137,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void SerializingManager::finish_mapper_call(MappingCallInfo *info)
+    void SerializingManager::finish_mapper_call(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -1143,14 +1145,16 @@ namespace Legion {
 #endif
       // Record our finish time when we're done
       if (profile_mapper)
-        implicit_profiler->record_mapper_call(mapper_id, processor, info->kind,
-            (info->operation == nullptr) ? 0 : info->operation->get_unique_op_id(),
+        implicit_profiler->record_mapper_call(
+            mapper_id, processor, info->kind,
+            (info->operation == nullptr) ? 0 :
+                                           info->operation->get_unique_op_id(),
             info->start_time, Realm::Clock::current_time_in_nanoseconds());
-      // Set this flag asynchronously without the lock, there will
-      // be a race to see who gets the lock next and therefore can
-      // do the rest of the finish mapper call routine, we do this
-      // to avoid the priority inversion that can occur where this
-      // lock acquire gets stuck behind a bunch of pending ones
+        // Set this flag asynchronously without the lock, there will
+        // be a race to see who gets the lock next and therefore can
+        // do the rest of the finish mapper call routine, we do this
+        // to avoid the priority inversion that can occur where this
+        // lock acquire gets stuck behind a bunch of pending ones
 #ifdef DEBUG_LEGION
       assert(!pending_finish_call.load());
 #endif
@@ -1160,7 +1164,7 @@ namespace Legion {
         AutoLock m_lock(mapper_lock);
         // We've got the lock, see if we won the race to the flag
         if (pending_finish_call.load())
-          to_trigger = complete_pending_finish_mapper_call();  
+          to_trigger = complete_pending_finish_mapper_call();
         // Can happen if we lost the race and the other mapper call started
         // running and is now trying to pause while we are holding the lock
         else if (pending_pause_call.load())
@@ -1266,8 +1270,7 @@ namespace Legion {
         executing_call = pending_calls.front();
         pending_calls.pop_front();
         return executing_call->resume;
-      }
-      else
+      } else
       {
         executing_call = nullptr;
         return RtUserEvent::NO_RT_USER_EVENT;
@@ -1283,13 +1286,14 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void SerializingManager::report_unsafe_allocation_in_unbounded_pool(
-        const MappingCallInfo *info, Memory memory, RuntimeCallKind kind)
+        const MappingCallInfo* info, Memory memory, RuntimeCallKind kind)
     //--------------------------------------------------------------------------
     {
       RUNTIME_CALL_DESCRIPTIONS(lg_runtime_calls);
-      MemoryManager *manager = runtime->find_memory_manager(memory);
+      MemoryManager* manager = runtime->find_memory_manager(memory);
       if (permit_reentrant)
-        REPORT_LEGION_FATAL(LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS,
+        REPORT_LEGION_FATAL(
+            LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS,
             "Encountered a non-permissive unbouned memory pool in memory %s "
             "while invoking %s in mapper call %s by mapper %s with reentrant "
             "mapper calls disabled. This situation can and most likely will "
@@ -1299,10 +1303,12 @@ namespace Legion {
             "around this currently, all serializing reentrant mappers need "
             "to ensure that reentrant mapper calls are allowed while "
             "attempting to allocated in a memory containing non-permissive "
-            "unbounded pools.", manager->get_name(), lg_runtime_calls[kind],
-            get_mapper_call_name(info->kind), get_mapper_name()) 
+            "unbounded pools.",
+            manager->get_name(), lg_runtime_calls[kind],
+            get_mapper_call_name(info->kind), get_mapper_name())
       else
-        REPORT_LEGION_FATAL(LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS,
+        REPORT_LEGION_FATAL(
+            LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS,
             "Encountered a non-permissive unbounded memory pool in memory %s "
             "while invoking %s in mapper call %s by serializing non-reentrant "
             "mapper %s. This situation can and most likely will lead to a "
@@ -1312,48 +1318,48 @@ namespace Legion {
             "currently, all mappers attempting to allocate in a memory "
             "continaing non-permissive unbounded pools must use either "
             "the serializing reentrant or concurrent mapper synchronization "
-            "model.", manager->get_name(), lg_runtime_calls[kind],
+            "model.",
+            manager->get_name(), lg_runtime_calls[kind],
             get_mapper_call_name(info->kind), get_mapper_name())
     }
 
     /////////////////////////////////////////////////////////////
-    // Concurrent Manager 
+    // Concurrent Manager
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ConcurrentManager::ConcurrentManager(Mapping::Mapper *mp,
-                                         MapperID map_id, Processor p, bool def)
+    ConcurrentManager::ConcurrentManager(
+        Mapping::Mapper* mp, MapperID map_id, Processor p, bool def)
       : MapperManager(mp, map_id, p, def), lock_state(UNLOCKED_STATE)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ConcurrentManager::~ConcurrentManager(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    bool ConcurrentManager::is_locked(MappingCallInfo *info)
+    bool ConcurrentManager::is_locked(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
       // Can read this without holding the lock
-      return (lock_state != UNLOCKED_STATE);  
+      return (lock_state != UNLOCKED_STATE);
     }
 
     //--------------------------------------------------------------------------
-    void ConcurrentManager::lock_mapper(MappingCallInfo *info, bool read_only)
+    void ConcurrentManager::lock_mapper(MappingCallInfo* info, bool read_only)
     //--------------------------------------------------------------------------
     {
       RtEvent wait_on;
       {
-        AutoLock m_lock(mapper_lock); 
+        AutoLock m_lock(mapper_lock);
         if (current_holders.find(info) != current_holders.end())
-          REPORT_LEGION_ERROR(ERROR_INVALID_DUPLICATE_MAPPER,
-                        "Invalid duplicate mapper lock request in mapper call "
-                        "%s for mapper %s", get_mapper_call_name(info->kind),
-                        mapper->get_mapper_name())
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_DUPLICATE_MAPPER,
+              "Invalid duplicate mapper lock request in mapper call "
+              "%s for mapper %s",
+              get_mapper_call_name(info->kind), mapper->get_mapper_name())
         switch (lock_state)
         {
           case UNLOCKED_STATE:
@@ -1373,8 +1379,7 @@ namespace Legion {
                 info->resume = Runtime::create_rt_user_event();
                 wait_on = info->resume;
                 exclusive_waiters.push_back(info);
-              }
-              else // add it to the set of current holders
+              } else  // add it to the set of current holders
                 current_holders.insert(info);
               break;
             }
@@ -1398,20 +1403,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ConcurrentManager::unlock_mapper(MappingCallInfo *info)
+    void ConcurrentManager::unlock_mapper(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
       std::vector<RtUserEvent> to_trigger;
       {
         AutoLock m_lock(mapper_lock);
-        std::set<MappingCallInfo*>::iterator finder = 
-          current_holders.find(info);
+        std::set<MappingCallInfo*>::iterator finder =
+            current_holders.find(info);
         if (finder == current_holders.end())
-          REPORT_LEGION_ERROR(ERROR_INVALID_UNLOCK_MAPPER,
-                        "Invalid unlock mapper call with no prior lock call "
-                        "in mapper call %s for mapper %s",
-                        get_mapper_call_name(info->kind),
-                        mapper->get_mapper_name())
+          REPORT_LEGION_ERROR(
+              ERROR_INVALID_UNLOCK_MAPPER,
+              "Invalid unlock mapper call with no prior lock call "
+              "in mapper call %s for mapper %s",
+              get_mapper_call_name(info->kind), mapper->get_mapper_name())
         current_holders.erase(finder);
         // See if we can now give the lock to someone else
         if (current_holders.empty())
@@ -1419,14 +1424,14 @@ namespace Legion {
       }
       if (!to_trigger.empty())
       {
-        for (std::vector<RtUserEvent>::const_iterator it = 
-              to_trigger.begin(); it != to_trigger.end(); it++)
+        for (std::vector<RtUserEvent>::const_iterator it = to_trigger.begin();
+             it != to_trigger.end(); it++)
           Runtime::trigger_event(*it);
       }
     }
 
     //--------------------------------------------------------------------------
-    bool ConcurrentManager::is_reentrant(MappingCallInfo *info)
+    bool ConcurrentManager::is_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
       // Always reentrant for the concurrent manager
@@ -1434,67 +1439,71 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ConcurrentManager::enable_reentrant(MappingCallInfo *info)
+    void ConcurrentManager::enable_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_MAPPER_SYNCHRONIZATION,
-                          "Illegal 'enable_reentrant' call performed in mapper "
-                          "%s with the concurrent synchronization model. Use "
-                          "the 'unlock_mapper' call instead.",get_mapper_name())
+      REPORT_LEGION_ERROR(
+          ERROR_MAPPER_SYNCHRONIZATION,
+          "Illegal 'enable_reentrant' call performed in mapper "
+          "%s with the concurrent synchronization model. Use "
+          "the 'unlock_mapper' call instead.",
+          get_mapper_name())
     }
 
     //--------------------------------------------------------------------------
-    void ConcurrentManager::disable_reentrant(MappingCallInfo *info)
+    void ConcurrentManager::disable_reentrant(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
-      REPORT_LEGION_ERROR(ERROR_MAPPER_SYNCHRONIZATION,
-                          "Illegal 'disable_reentrant' call performed in mapper"
-                          " %s with the concurrent synchronization model. Use "
-                          "the 'lock_mapper' call instead.", get_mapper_name())
+      REPORT_LEGION_ERROR(
+          ERROR_MAPPER_SYNCHRONIZATION,
+          "Illegal 'disable_reentrant' call performed in mapper"
+          " %s with the concurrent synchronization model. Use "
+          "the 'lock_mapper' call instead.",
+          get_mapper_name())
     }
 
     //--------------------------------------------------------------------------
-    void ConcurrentManager::begin_mapper_call(MappingCallInfo *info,
-                                              bool prioritize)
+    void ConcurrentManager::begin_mapper_call(
+        MappingCallInfo* info, bool prioritize)
     //--------------------------------------------------------------------------
     {
       // Record our mapper start time when we're ready to run
       if (profile_mapper)
       {
         if (is_default_mapper)
-          runtime->profiler->issue_default_mapper_warning(info->operation,
-                                        get_mapper_call_name(info->kind));
+          runtime->profiler->issue_default_mapper_warning(
+              info->operation, get_mapper_call_name(info->kind));
         info->start_time = Realm::Clock::current_time_in_nanoseconds();
       }
     }
 
     //--------------------------------------------------------------------------
-    void ConcurrentManager::pause_mapper_call(MappingCallInfo *info)
+    void ConcurrentManager::pause_mapper_call(MappingCallInfo* info)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ConcurrentManager::resume_mapper_call(MappingCallInfo *info)
+    void ConcurrentManager::resume_mapper_call(MappingCallInfo* info)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ConcurrentManager::finish_mapper_call(MappingCallInfo *info)
+    void ConcurrentManager::finish_mapper_call(MappingCallInfo* info)
     //--------------------------------------------------------------------------
     {
       // Record our finish time when we are done
       if (profile_mapper)
-        implicit_profiler->record_mapper_call(mapper_id, processor, info->kind,
-            (info->operation == nullptr) ? 0 : info->operation->get_unique_op_id(),
+        implicit_profiler->record_mapper_call(
+            mapper_id, processor, info->kind,
+            (info->operation == nullptr) ? 0 :
+                                           info->operation->get_unique_op_id(),
             info->start_time, Realm::Clock::current_time_in_nanoseconds());
       std::vector<RtUserEvent> to_trigger;
       {
         AutoLock m_lock(mapper_lock);
         // Check to see if we need to release the lock for the mapper call
-        std::set<MappingCallInfo*>::iterator finder = 
-            current_holders.find(info);     
+        std::set<MappingCallInfo*>::iterator finder =
+            current_holders.find(info);
         if (finder != current_holders.end())
         {
           current_holders.erase(finder);
@@ -1503,8 +1512,8 @@ namespace Legion {
       }
       if (!to_trigger.empty())
       {
-        for (std::vector<RtUserEvent>::const_iterator it = 
-              to_trigger.begin(); it != to_trigger.end(); it++)
+        for (std::vector<RtUserEvent>::const_iterator it = to_trigger.begin();
+             it != to_trigger.end(); it++)
           Runtime::trigger_event(*it);
       }
     }
@@ -1518,28 +1527,29 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ConcurrentManager::report_unsafe_allocation_in_unbounded_pool(
-        const MappingCallInfo *info, Memory memory, RuntimeCallKind kind)
+        const MappingCallInfo* info, Memory memory, RuntimeCallKind kind)
     //--------------------------------------------------------------------------
     {
       RUNTIME_CALL_DESCRIPTIONS(lg_runtime_calls);
-      MemoryManager *manager = runtime->find_memory_manager(memory);
-      REPORT_LEGION_FATAL(LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS,
-            "Encountered a non-permissive unbouned memory pool in memory %s "
-            "while invoking %s in mapper call %s by mapper %s while holding "
-            "the concurrent mapper lock. This situation can and most likely "
-            "will lead to a deadlock as mapper calls needed to ensure forward "
-            "progress will not be able to run while this mapper is holding "
-            "the lock and waiting for the unbounded pool allocation to "
-            "finish. To work around this currently, concurrent mappers need "
-            "to ensure that they are not holding the concurrent mapper lock "
-            "while attempting to allocated in a memory containing "
-            "non-permissive unbounded pools.", manager->get_name(), 
-            lg_runtime_calls[kind], get_mapper_call_name(info->kind),
-            get_mapper_name())
+      MemoryManager* manager = runtime->find_memory_manager(memory);
+      REPORT_LEGION_FATAL(
+          LEGION_FATAL_UNSAFE_ALLOCATION_WITH_UNBOUNDED_POOLS,
+          "Encountered a non-permissive unbouned memory pool in memory %s "
+          "while invoking %s in mapper call %s by mapper %s while holding "
+          "the concurrent mapper lock. This situation can and most likely "
+          "will lead to a deadlock as mapper calls needed to ensure forward "
+          "progress will not be able to run while this mapper is holding "
+          "the lock and waiting for the unbounded pool allocation to "
+          "finish. To work around this currently, concurrent mappers need "
+          "to ensure that they are not holding the concurrent mapper lock "
+          "while attempting to allocated in a memory containing "
+          "non-permissive unbounded pools.",
+          manager->get_name(), lg_runtime_calls[kind],
+          get_mapper_call_name(info->kind), get_mapper_name())
     }
 
     //--------------------------------------------------------------------------
-    void ConcurrentManager::release_lock(std::vector<RtUserEvent> &to_trigger)
+    void ConcurrentManager::release_lock(std::vector<RtUserEvent>& to_trigger)
     //--------------------------------------------------------------------------
     {
       switch (lock_state)
@@ -1552,8 +1562,7 @@ namespace Legion {
               to_trigger.push_back(exclusive_waiters.front()->resume);
               exclusive_waiters.pop_front();
               lock_state = EXCLUSIVE_STATE;
-            }
-            else
+            } else
               lock_state = UNLOCKED_STATE;
             break;
           }
@@ -1566,8 +1575,7 @@ namespace Legion {
                 to_trigger[idx] = read_only_waiters[idx]->resume;
               read_only_waiters.clear();
               lock_state = READ_ONLY_STATE;
-            }
-            else
+            } else
               lock_state = UNLOCKED_STATE;
             break;
           }
@@ -1576,5 +1584,5 @@ namespace Legion {
       }
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

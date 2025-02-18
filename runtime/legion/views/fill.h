@@ -25,34 +25,33 @@ namespace Legion {
 
     /**
      * \class FillView
-     * This is a deferred view that is used for filling in 
+     * This is a deferred view that is used for filling in
      * fields with a default value.
      */
     class FillView : public DeferredView,
-                     public Heapify<FillView,CONTEXT_LIFETIME> {
+                     public Heapify<FillView, CONTEXT_LIFETIME> {
     public:
       struct DeferIssueFill : public LgTaskArgs<DeferIssueFill> {
       public:
         static const LgTaskID TASK_ID = LG_DEFER_ISSUE_FILL_TASK_ID;
       public:
-        DeferIssueFill(FillView *view, Operation *op,
-                       IndexSpaceExpression *fill_expr,
-                       IndividualView *dst_view,
-                       const FieldMask &fill_mask,
-                       const PhysicalTraceInfo &trace_info,
-                       const std::vector<CopySrcDstField> &dst_fields,
-                       PhysicalManager *manager, ApEvent precondition,
-                       PredEvent pred_guard, CollectiveKind collective,
-                       bool fill_restrict, std::set<RtEvent> &applied);
+        DeferIssueFill(
+            FillView* view, Operation* op, IndexSpaceExpression* fill_expr,
+            IndividualView* dst_view, const FieldMask& fill_mask,
+            const PhysicalTraceInfo& trace_info,
+            const std::vector<CopySrcDstField>& dst_fields,
+            PhysicalManager* manager, ApEvent precondition,
+            PredEvent pred_guard, CollectiveKind collective, bool fill_restrict,
+            std::set<RtEvent>& applied);
       public:
-        FillView *const view;
-        Operation *const op;
-        IndexSpaceExpression *const fill_expr;
-        IndividualView *const dst_view;
-        const FieldMask *const fill_mask;
-        PhysicalTraceInfo *const trace_info;
-        std::vector<CopySrcDstField> *const dst_fields;
-        PhysicalManager *const manager;
+        FillView* const view;
+        Operation* const op;
+        IndexSpaceExpression* const fill_expr;
+        IndividualView* const dst_view;
+        const FieldMask* const fill_mask;
+        PhysicalTraceInfo* const trace_info;
+        std::vector<CopySrcDstField>* const dst_fields;
+        PhysicalManager* const manager;
         const ApEvent precondition;
         const PredEvent pred_guard;
         const CollectiveKind collective;
@@ -62,53 +61,54 @@ namespace Legion {
       };
     public:
       // Don't know the fill value yet, will be set later
-      FillView(DistributedID did,
+      FillView(
+          DistributedID did,
 #ifdef LEGION_SPY
-               UniqueID fill_op_uid,
+          UniqueID fill_op_uid,
 #endif
-               bool register_now,
-               CollectiveMapping *mapping = nullptr);
+          bool register_now, CollectiveMapping* mapping = nullptr);
       // Already know the fill value
-      FillView(DistributedID did,
+      FillView(
+          DistributedID did,
 #ifdef LEGION_SPY
-               UniqueID fill_op_uid,
+          UniqueID fill_op_uid,
 #endif
-               const void *value, size_t size, bool register_now,
-               CollectiveMapping *mapping = nullptr);
-      FillView(const FillView &rhs) = delete;
+          const void* value, size_t size, bool register_now,
+          CollectiveMapping* mapping = nullptr);
+      FillView(const FillView& rhs) = delete;
       virtual ~FillView(void);
     public:
-      FillView& operator=(const FillView &rhs) = delete;
+      FillView& operator=(const FillView& rhs) = delete;
     public:
-      virtual void notify_local(void) { /*nothing to do*/ }
+      virtual void notify_local(void)
+      { /*nothing to do*/
+      }
       virtual void pack_valid_ref(void);
       virtual void unpack_valid_ref(void);
     public:
-      virtual void send_view(AddressSpaceID target); 
+      virtual void send_view(AddressSpaceID target);
     public:
-      virtual void flatten(CopyFillAggregator &aggregator,
-                           InstanceView *dst_view, const FieldMask &src_mask,
-                           IndexSpaceExpression *expr, 
-                           PredEvent pred_guard,
-                           const PhysicalTraceInfo &trace_info,
-                           EquivalenceSet *tracing_eq,
-                           CopyAcrossHelper *helper); 
+      virtual void flatten(
+          CopyFillAggregator& aggregator, InstanceView* dst_view,
+          const FieldMask& src_mask, IndexSpaceExpression* expr,
+          PredEvent pred_guard, const PhysicalTraceInfo& trace_info,
+          EquivalenceSet* tracing_eq, CopyAcrossHelper* helper);
     public:
-      bool matches(FillView *other);
-      bool matches(const void *value, size_t size);
-      bool set_value(const void *value, size_t size);
-      ApEvent issue_fill(Operation *op, IndexSpaceExpression *fill_expr,
-                         IndividualView *dst_view, const FieldMask &fill_mask,
-                         const PhysicalTraceInfo &trace_info,
-                         const std::vector<CopySrcDstField> &dst_fields,
-                         std::set<RtEvent> &applied_events,
-                         PhysicalManager *manager,
-                         ApEvent precondition, PredEvent pred_guard,
-                         CollectiveKind collective, bool fill_restricted);
-      static void handle_defer_issue_fill(const void *args);
+      bool matches(FillView* other);
+      bool matches(const void* value, size_t size);
+      bool set_value(const void* value, size_t size);
+      ApEvent issue_fill(
+          Operation* op, IndexSpaceExpression* fill_expr,
+          IndividualView* dst_view, const FieldMask& fill_mask,
+          const PhysicalTraceInfo& trace_info,
+          const std::vector<CopySrcDstField>& dst_fields,
+          std::set<RtEvent>& applied_events, PhysicalManager* manager,
+          ApEvent precondition, PredEvent pred_guard, CollectiveKind collective,
+          bool fill_restricted);
+      static void handle_defer_issue_fill(const void* args);
     public:
-      static void handle_send_fill_view(Deserializer &derez);
-      static void handle_send_fill_view_value(Deserializer &derez);
+      static void handle_send_fill_view(Deserializer& derez);
+      static void handle_send_fill_view_value(Deserializer& derez);
 #ifdef LEGION_SPY
     public:
       const UniqueID fill_op_uid;
@@ -136,7 +136,7 @@ namespace Legion {
       return static_cast<FillView*>(const_cast<LogicalView*>(this));
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_FILL_VIEW_H__
+#endif  // __LEGION_FILL_VIEW_H__

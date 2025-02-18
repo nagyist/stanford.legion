@@ -24,21 +24,18 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Remote Task 
+    // Remote Task
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteTask::RemoteTask(RemoteContext *own)
-      : owner(own), context_index(0)
+    RemoteTask::RemoteTask(RemoteContext* own) : owner(own), context_index(0)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     RemoteTask::~RemoteTask(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UniqueID RemoteTask::get_unique_id(void) const
@@ -116,13 +113,13 @@ namespace Legion {
     const std::string_view& RemoteTask::get_provenance_string(bool human) const
     //--------------------------------------------------------------------------
     {
-      Provenance *provenance = owner->get_provenance();
+      Provenance* provenance = owner->get_provenance();
       if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
         return Provenance::no_provenance;
     }
-    
+
     //--------------------------------------------------------------------------
     int RemoteTask::get_depth(void) const
     //--------------------------------------------------------------------------
@@ -134,7 +131,7 @@ namespace Legion {
     const char* RemoteTask::get_task_name(void) const
     //--------------------------------------------------------------------------
     {
-      TaskImpl *task_impl = runtime->find_task_impl(task_id);
+      TaskImpl* task_impl = runtime->find_task_impl(task_id);
       return task_impl->get_name();
     }
 
@@ -146,28 +143,26 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Remote Context 
+    // Remote Context
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteContext::RemoteContext(DistributedID id,
-                                 CollectiveMapping *mapping)
-      : HeapifyMixin<RemoteContext,InnerContext,CONTEXT_LIFETIME>(
-          configure_remote_context(),
-          (SingleTask*)nullptr, -1, false/*full inner*/, remote_task.regions,
-                     remote_task.output_regions, local_parent_req_indexes,
-                     local_virtual_mapped, 0/*priority*/, ApEvent::NO_AP_EVENT,
-                     id, false, false, false, mapping),
+    RemoteContext::RemoteContext(DistributedID id, CollectiveMapping* mapping)
+      : HeapifyMixin<RemoteContext, InnerContext, CONTEXT_LIFETIME>(
+            configure_remote_context(), (SingleTask*)nullptr, -1,
+            false /*full inner*/, remote_task.regions,
+            remote_task.output_regions, local_parent_req_indexes,
+            local_virtual_mapped, 0 /*priority*/, ApEvent::NO_AP_EVENT, id,
+            false, false, false, mapping),
         parent_ctx(nullptr), shard_manager(nullptr), provenance(nullptr),
-        top_level_context(false), remote_task(RemoteTask(this)),
-        remote_uid(0), repl_id(0)
+        top_level_context(false), remote_task(RemoteTask(this)), remote_uid(0),
+        repl_id(0)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     /*static*/ Mapper::ContextConfigOutput
-                                   RemoteContext::configure_remote_context(void)
+        RemoteContext::configure_remote_context(void)
     //--------------------------------------------------------------------------
     {
       // Remote contexts are never going to have to act as a context in the
@@ -177,15 +172,15 @@ namespace Legion {
       // configuration for how far to map into the future.
       Mapper::ContextConfigOutput configuration;
       configuration.max_window_size = runtime->initial_task_window_size;
-      configuration.hysteresis_percentage = 
-        runtime->initial_task_window_hysteresis;
+      configuration.hysteresis_percentage =
+          runtime->initial_task_window_hysteresis;
       configuration.max_outstanding_frames = 0;
       configuration.min_tasks_to_schedule = runtime->initial_tasks_to_schedule;
       configuration.min_frames_to_schedule = 0;
-      configuration.meta_task_vector_width = 
-        runtime->initial_meta_task_vector_width;
+      configuration.meta_task_vector_width =
+          runtime->initial_meta_task_vector_width;
       configuration.max_templates_per_trace =
-        LEGION_DEFAULT_MAX_TEMPLATES_PER_TRACE;
+          LEGION_DEFAULT_MAX_TEMPLATES_PER_TRACE;
       configuration.mutable_priority = false;
       configuration.auto_tracing_enabled = false;
       configuration.auto_tracing_window_size = 0;
@@ -203,12 +198,12 @@ namespace Legion {
       if (!local_field_infos.empty())
       {
         // If we have any local fields then tell field space that
-        // we can remove them and then clear them 
-        for (std::map<FieldSpace,std::vector<LocalFieldInfo> >::const_iterator
-              it = local_field_infos.begin(); 
-              it != local_field_infos.end(); it++)
+        // we can remove them and then clear them
+        for (std::map<FieldSpace, std::vector<LocalFieldInfo> >::const_iterator
+                 it = local_field_infos.begin();
+             it != local_field_infos.end(); it++)
         {
-          const std::vector<LocalFieldInfo> &infos = it->second;
+          const std::vector<LocalFieldInfo>& infos = it->second;
           std::vector<FieldID> to_remove;
           for (unsigned idx = 0; idx < infos.size(); idx++)
           {
@@ -220,7 +215,7 @@ namespace Legion {
             runtime->remove_local_fields(it->first, to_remove);
         }
         local_field_infos.clear();
-      } 
+      }
       if ((provenance != nullptr) && provenance->remove_reference())
         delete provenance;
     }
@@ -240,17 +235,17 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    InnerContext* RemoteContext::find_top_context(InnerContext *previous)
+    InnerContext* RemoteContext::find_top_context(InnerContext* previous)
     //--------------------------------------------------------------------------
     {
       if (!top_level_context)
         return find_parent_context()->find_top_context(this);
- #ifdef DEBUG_LEGION
+#ifdef DEBUG_LEGION
       assert(previous != nullptr);
 #endif
-      return previous;     
+      return previous;
     }
-    
+
     //--------------------------------------------------------------------------
     InnerContext* RemoteContext::find_parent_context(void)
     //--------------------------------------------------------------------------
@@ -258,7 +253,7 @@ namespace Legion {
       if (top_level_context)
         return nullptr;
       // See if we already have it
-      InnerContext *result = parent_ctx.load();
+      InnerContext* result = parent_ctx.load();
       if (result != nullptr)
         return result;
 #ifdef DEBUG_LEGION
@@ -276,11 +271,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent RemoteContext::compute_equivalence_sets(unsigned req_index,
-                       const std::vector<EqSetTracker*> &targets,
-                       const std::vector<AddressSpaceID> &target_spaces,
-                       AddressSpaceID creation_target_space,
-                       IndexSpaceExpression *expr, const FieldMask &mask)
+    RtEvent RemoteContext::compute_equivalence_sets(
+        unsigned req_index, const std::vector<EqSetTracker*>& targets,
+        const std::vector<AddressSpaceID>& target_spaces,
+        AddressSpaceID creation_target_space, IndexSpaceExpression* expr,
+        const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -310,15 +305,15 @@ namespace Legion {
         rez.serialize(req_index);
         rez.serialize(ready_event);
       }
-      // Send it to the owner space 
+      // Send it to the owner space
       runtime->send_compute_equivalence_sets_request(owner_space, rez);
       return ready_event;
     }
 
     //--------------------------------------------------------------------------
-    RtEvent RemoteContext::record_output_equivalence_set(EqSetTracker *source,
-                              AddressSpaceID source_space, unsigned req_index,
-                              EquivalenceSet *set, const FieldMask &mask)
+    RtEvent RemoteContext::record_output_equivalence_set(
+        EqSetTracker* source, AddressSpaceID source_space, unsigned req_index,
+        EquivalenceSet* set, const FieldMask& mask)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -348,17 +343,16 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(regions.size() <= virtual_mapped.size());
       assert(regions.size() <= parent_req_indexes.size());
-#endif     
+#endif
       if (index < regions.size())
       {
         // See if it is virtual mapped
         if (virtual_mapped[index])
           return find_parent_context()->find_parent_physical_context(
-                                            parent_req_indexes[index]);
-        else // We mapped a physical instance so we're it
+              parent_req_indexes[index]);
+        else  // We mapped a physical instance so we're it
           return this;
-      }
-      else // We created it
+      } else  // We created it
       {
         // But we're the remote note, so we don't have updated created
         // requirements or returnable privileges so we need to see if
@@ -367,20 +361,19 @@ namespace Legion {
         RtUserEvent request;
         {
           AutoLock rem_lock(remote_lock);
-          std::map<unsigned,InnerContext*>::const_iterator finder = 
-            physical_contexts.find(index);
+          std::map<unsigned, InnerContext*>::const_iterator finder =
+              physical_contexts.find(index);
           if (finder != physical_contexts.end())
             return finder->second;
-          std::map<unsigned,RtEvent>::const_iterator pending_finder = 
-            pending_physical_contexts.find(index);
+          std::map<unsigned, RtEvent>::const_iterator pending_finder =
+              pending_physical_contexts.find(index);
           if (pending_finder == pending_physical_contexts.end())
           {
             // Make a new request
             request = Runtime::create_rt_user_event();
             pending_physical_contexts[index] = request;
             wait_on = request;
-          }
-          else // Already sent it so just get the wait event
+          } else  // Already sent it so just get the wait event
             wait_on = pending_finder->second;
         }
         if (request.exists())
@@ -399,33 +392,34 @@ namespace Legion {
         // Wait for the result to come back to us
         wait_on.wait();
         // When we wake up it should be there
-        AutoLock rem_lock(remote_lock, 1, false/*exclusive*/);
+        AutoLock rem_lock(remote_lock, 1, false /*exclusive*/);
 #ifdef DEBUG_LEGION
         assert(physical_contexts.find(index) != physical_contexts.end());
 #endif
-        return physical_contexts[index]; 
+        return physical_contexts[index];
       }
     }
 
     //--------------------------------------------------------------------------
-    void RemoteContext::pack_inner_context(Serializer &rez) const
+    void RemoteContext::pack_inner_context(Serializer& rez) const
     //--------------------------------------------------------------------------
     {
-      rez.serialize(did); // pack our distributed ID
-      rez.serialize<DistributedID>(repl_id); // shard manager ID
+      rez.serialize(did);                     // pack our distributed ID
+      rez.serialize<DistributedID>(repl_id);  // shard manager ID
     }
 
     //--------------------------------------------------------------------------
-    InnerContext::CollectiveResult* 
-      RemoteContext::find_or_create_collective_view(RegionTreeID tid,
-          const std::vector<DistributedID> &instances, RtEvent &ready)
+    InnerContext::CollectiveResult*
+        RemoteContext::find_or_create_collective_view(
+            RegionTreeID tid, const std::vector<DistributedID>& instances,
+            RtEvent& ready)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(instances.size() > 1);
 #endif
       const RtUserEvent to_trigger = Runtime::create_rt_user_event();
-      CollectiveResult *result = new CollectiveResult(instances);
+      CollectiveResult* result = new CollectiveResult(instances);
       result->add_reference();
       Serializer rez;
       {
@@ -438,17 +432,17 @@ namespace Legion {
         rez.serialize(result);
         rez.serialize(to_trigger);
       }
-      runtime->send_remote_context_find_collective_view_request(owner_space, 
-                                                                rez);
+      runtime->send_remote_context_find_collective_view_request(
+          owner_space, rez);
       ready = to_trigger;
       return result;
     }
 
     //--------------------------------------------------------------------------
-    void RemoteContext::refine_equivalence_sets(unsigned req_index,
-                        IndexSpaceNode *node, const FieldMask &refinement_mask,
-                        std::vector<RtEvent> &applied_events, bool sharded,
-                        bool first, const CollectiveMapping *mapping)
+    void RemoteContext::refine_equivalence_sets(
+        unsigned req_index, IndexSpaceNode* node,
+        const FieldMask& refinement_mask, std::vector<RtEvent>& applied_events,
+        bool sharded, bool first, const CollectiveMapping* mapping)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -458,11 +452,12 @@ namespace Legion {
       {
         find_parent_context()->refine_equivalence_sets(
             parent_req_indexes[req_index], node, refinement_mask,
-            applied_events, sharded, false/*first*/, mapping);
+            applied_events, sharded, false /*first*/, mapping);
         return;
       }
-      if ((mapping == nullptr) || (!mapping->contains(owner_space) &&
-            (local_space == mapping->find_nearest(owner_space))))
+      if ((mapping == nullptr) ||
+          (!mapping->contains(owner_space) &&
+           (local_space == mapping->find_nearest(owner_space))))
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
         Serializer rez;
@@ -480,8 +475,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    RtEvent RemoteContext::find_pointwise_dependence(uint64_t context_index,
-        const DomainPoint &point, ShardID shard, RtUserEvent to_trigger)
+    RtEvent RemoteContext::find_pointwise_dependence(
+        uint64_t context_index, const DomainPoint& point, ShardID shard,
+        RtUserEvent to_trigger)
     //--------------------------------------------------------------------------
     {
       if (!to_trigger.exists())
@@ -500,21 +496,23 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteContext::find_trace_local_sets(unsigned req_index,
-        const FieldMask &mask, std::map<EquivalenceSet*,unsigned> &current_sets,
-        IndexSpaceNode *node, const CollectiveMapping *mapping)
+    void RemoteContext::find_trace_local_sets(
+        unsigned req_index, const FieldMask& mask,
+        std::map<EquivalenceSet*, unsigned>& current_sets, IndexSpaceNode* node,
+        const CollectiveMapping* mapping)
     //--------------------------------------------------------------------------
     {
       if ((req_index < regions.size()) && virtual_mapped[req_index])
       {
         if (node == nullptr)
           node = runtime->get_node(regions[req_index].region.get_index_space());
-        find_parent_context()->find_trace_local_sets(req_index, mask,
-            current_sets, node, mapping);
+        find_parent_context()->find_trace_local_sets(
+            req_index, mask, current_sets, node, mapping);
         return;
       }
-      if ((mapping == nullptr) || (!mapping->contains(owner_space) &&
-            (local_space == mapping->find_nearest(owner_space))))
+      if ((mapping == nullptr) ||
+          (!mapping->contains(owner_space) &&
+           (local_space == mapping->find_nearest(owner_space))))
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
         Serializer rez;
@@ -546,8 +544,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void RemoteContext::invalidate_region_tree_contexts(
-                       const bool is_top_level_task, std::set<RtEvent> &applied,
-                       const ShardMapping *mapping, ShardID source_shard)
+        const bool is_top_level_task, std::set<RtEvent>& applied,
+        const ShardMapping* mapping, ShardID source_shard)
     //--------------------------------------------------------------------------
     {
       // Should never be called
@@ -556,10 +554,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void RemoteContext::receive_created_region_contexts(
-                        const std::vector<RegionNode*> &created_nodes,
-                        const std::vector<EqKDTree*> &created_trees,
-                        std::set<RtEvent> &applied_events,
-                        const ShardMapping *shard_mapping, ShardID source_shard)
+        const std::vector<RegionNode*>& created_nodes,
+        const std::vector<EqKDTree*>& created_trees,
+        std::set<RtEvent>& applied_events, const ShardMapping* shard_mapping,
+        ShardID source_shard)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -574,19 +572,20 @@ namespace Legion {
         {
           shard_mapping->pack_mapping(rez);
           rez.serialize(source_shard);
-        }
-        else
+        } else
           ShardMapping::pack_empty(rez);
         rez.serialize<size_t>(created_nodes.size());
         for (unsigned idx = 0; idx < created_nodes.size(); idx++)
         {
-          RegionNode *region = created_nodes[idx];
+          RegionNode* region = created_nodes[idx];
           rez.serialize(region->handle);
           FieldMaskSet<EquivalenceSet> eq_sets;
-          created_trees[idx]->find_local_equivalence_sets(eq_sets,source_shard);
+          created_trees[idx]->find_local_equivalence_sets(
+              eq_sets, source_shard);
           rez.serialize<size_t>(eq_sets.size());
           for (FieldMaskSet<EquivalenceSet>::const_iterator it =
-                eq_sets.begin(); it != eq_sets.end(); it++)
+                   eq_sets.begin();
+               it != eq_sets.end(); it++)
           {
             it->first->pack_global_ref();
             rez.serialize(it->first->did);
@@ -602,7 +601,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_created_region_contexts(
-                   Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -622,10 +621,10 @@ namespace Legion {
       {
         LogicalRegion handle;
         derez.deserialize(handle);
-        RegionNode *node = runtime->get_node(handle);
+        RegionNode* node = runtime->get_node(handle);
         created_nodes[idx1] = node;
-        EqKDTree *tree = node->row_source->create_equivalence_set_kd_tree(
-                            src_mapping.empty() ? 1 : src_mapping.size());
+        EqKDTree* tree = node->row_source->create_equivalence_set_kd_tree(
+            src_mapping.empty() ? 1 : src_mapping.size());
         size_t num_sets;
         derez.deserialize(num_sets);
         for (unsigned idx2 = 0; idx2 < num_sets; idx2++)
@@ -633,14 +632,14 @@ namespace Legion {
           DistributedID did;
           derez.deserialize(did);
           RtEvent ready;
-          EquivalenceSet *set = 
-            runtime->find_or_request_equivalence_set(did, ready);
+          EquivalenceSet* set =
+              runtime->find_or_request_equivalence_set(did, ready);
           FieldMask mask;
           derez.deserialize(mask);
           if (ready.exists() && !ready.has_triggered())
             ready.wait();
           set->set_expr->initialize_equivalence_set_kd_tree(
-              tree, set, mask, source_shard, true/*current*/);
+              tree, set, mask, source_shard, true /*current*/);
           set->unpack_global_ref();
         }
         tree->add_reference();
@@ -649,25 +648,25 @@ namespace Legion {
       RtUserEvent done_event;
       derez.deserialize(done_event);
 
-      InnerContext *context = static_cast<InnerContext*>(
+      InnerContext* context = static_cast<InnerContext*>(
           runtime->find_distributed_collectable(context_did));
-      context->receive_created_region_contexts(created_nodes,
-          created_trees, applied_events, 
+      context->receive_created_region_contexts(
+          created_nodes, created_trees, applied_events,
           src_mapping.empty() ? nullptr : &src_mapping, source_shard);
       if (!applied_events.empty())
-        Runtime::trigger_event(done_event, 
-            Runtime::merge_events(applied_events));
+        Runtime::trigger_event(
+            done_event, Runtime::merge_events(applied_events));
       else
         Runtime::trigger_event(done_event);
-      for (std::vector<EqKDTree*>::const_iterator it =
-            created_trees.begin(); it != created_trees.end(); it++)
+      for (std::vector<EqKDTree*>::const_iterator it = created_trees.begin();
+           it != created_trees.end(); it++)
         if (((*it) != nullptr) && (*it)->remove_reference())
           delete (*it);
       context->unpack_global_ref();
     }
 
     //--------------------------------------------------------------------------
-    void RemoteContext::unpack_remote_context(Deserializer &derez)
+    void RemoteContext::unpack_remote_context(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       derez.deserialize(depth);
@@ -676,7 +675,7 @@ namespace Legion {
       if (top_level_context)
         return;
       remote_task.unpack_external_task(derez);
-      local_parent_req_indexes.resize(remote_task.regions.size()); 
+      local_parent_req_indexes.resize(remote_task.regions.size());
       for (unsigned idx = 0; idx < local_parent_req_indexes.size(); idx++)
         derez.deserialize(local_parent_req_indexes[idx]);
       size_t num_virtual;
@@ -707,13 +706,13 @@ namespace Legion {
         derez.deserialize(shard_domain);
         derez.deserialize(repl_id);
         // See if we have a local shard manager
-        shard_manager = runtime->find_shard_manager(repl_id, true/*can fail*/);
+        shard_manager = runtime->find_shard_manager(repl_id, true /*can fail*/);
       }
       // See if we can find our parent task, if not don't worry about it
-      // DO NOT CHANGE THIS UNLESS YOU THINK REALLY HARD ABOUT VIRTUAL 
+      // DO NOT CHANGE THIS UNLESS YOU THINK REALLY HARD ABOUT VIRTUAL
       // CHANNELS AND HOW CONTEXT META-DATA IS MOVED!
-      InnerContext *parent = static_cast<InnerContext*>(
-        runtime->weak_find_distributed_collectable(parent_context_did));
+      InnerContext* parent = static_cast<InnerContext*>(
+          runtime->weak_find_distributed_collectable(parent_context_did));
       if (parent != nullptr)
       {
         parent_ctx.store(parent);
@@ -730,21 +729,20 @@ namespace Legion {
       // Note that it safe to actually perform the find_context call here
       // because we are no longer in the virtual channel for unpacking
       // remote contexts therefore we can page in the context
-      InnerContext *parent = parent_ctx.load();
+      InnerContext* parent = parent_ctx.load();
       if (parent == nullptr)
       {
         parent = runtime->find_or_request_inner_context(parent_context_did);
-        const Task *result = parent->get_task();
+        const Task* result = parent->get_task();
         if (parent_ctx.exchange(parent) == nullptr)
           remote_task.parent_task = result;
         return result;
-      }
-      else
+      } else
         return parent->get_task();
     }
 
     //--------------------------------------------------------------------------
-    void RemoteContext::unpack_local_field_update(Deserializer &derez)
+    void RemoteContext::unpack_local_field_update(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       size_t num_field_spaces;
@@ -755,11 +753,11 @@ namespace Legion {
       {
         FieldSpace handle;
         derez.deserialize(handle);
-        Provenance *provenance = Provenance::deserialize(derez);
+        Provenance* provenance = Provenance::deserialize(derez);
         if (provenance != nullptr)
           provenance->add_reference();
         size_t num_local;
-        derez.deserialize(num_local); 
+        derez.deserialize(num_local);
         std::vector<FieldID> fields(num_local);
         std::vector<size_t> field_sizes(num_local);
         std::vector<CustomSerdezID> serdez_ids(num_local);
@@ -767,11 +765,11 @@ namespace Legion {
         {
           // Take the lock for updating this data structure
           AutoLock local_lock(local_field_lock);
-          std::vector<LocalFieldInfo> &infos = local_field_infos[handle];
+          std::vector<LocalFieldInfo>& infos = local_field_infos[handle];
           infos.resize(num_local);
           for (unsigned idx = 0; idx < num_local; idx++)
           {
-            LocalFieldInfo &info = infos[idx];
+            LocalFieldInfo& info = infos[idx];
             derez.deserialize(info);
             // Update data structures for notifying the field space
             fields[idx] = info.fid;
@@ -780,8 +778,8 @@ namespace Legion {
             indexes[idx] = info.index;
           }
         }
-        runtime->update_local_fields(handle, fields, field_sizes,
-                                             serdez_ids, indexes, provenance);
+        runtime->update_local_fields(
+            handle, fields, field_sizes, serdez_ids, indexes, provenance);
         if ((provenance != nullptr) && provenance->remove_reference())
           delete provenance;
       }
@@ -789,13 +787,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_local_field_update(
-                                          Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
-      RemoteContext *context = static_cast<RemoteContext*>(
+      RemoteContext* context = static_cast<RemoteContext*>(
           runtime->find_or_request_inner_context(did));
       context->unpack_local_field_update(derez);
       RtUserEvent done_event;
@@ -805,8 +803,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_physical_request(Deserializer &derez,
-                                        AddressSpaceID source)
+    /*static*/ void RemoteContext::handle_physical_request(
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -814,13 +812,13 @@ namespace Legion {
       derez.deserialize(context_did);
       unsigned index;
       derez.deserialize(index);
-      RemoteContext *target;
+      RemoteContext* target;
       derez.deserialize(target);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
       RtEvent ctx_ready;
-      InnerContext *local = runtime->find_or_request_inner_context(context_did);
-      InnerContext *result = local->find_parent_physical_context(index);
+      InnerContext* local = runtime->find_or_request_inner_context(context_did);
+      InnerContext* result = local->find_parent_physical_context(index);
       Serializer rez;
       {
         RezCheck z(rez);
@@ -833,8 +831,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteContext::set_physical_context_result(unsigned index,
-                                                    InnerContext *result)
+    void RemoteContext::set_physical_context_result(
+        unsigned index, InnerContext* result)
     //--------------------------------------------------------------------------
     {
       AutoLock rem_lock(remote_lock);
@@ -842,8 +840,8 @@ namespace Legion {
       assert(physical_contexts.find(index) == physical_contexts.end());
 #endif
       physical_contexts[index] = result;
-      std::map<unsigned,RtEvent>::iterator finder = 
-        pending_physical_contexts.find(index);
+      std::map<unsigned, RtEvent>::iterator finder =
+          pending_physical_contexts.find(index);
 #ifdef DEBUG_LEGION
       assert(finder != pending_physical_contexts.end());
 #endif
@@ -851,15 +849,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_physical_response(Deserializer &derez)
+    /*static*/ void RemoteContext::handle_physical_response(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      RemoteContext *target;
+      RemoteContext* target;
       derez.deserialize(target);
       unsigned index;
       derez.deserialize(index);
-      InnerContext *result = unpack_inner_context(derez);
+      InnerContext* result = unpack_inner_context(derez);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
       target->set_physical_context_result(index, result);
@@ -868,13 +866,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_find_collective_view_request(
-                   Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID context_did;
       derez.deserialize(context_did);
-      InnerContext *local = runtime->find_or_request_inner_context(context_did);
+      InnerContext* local = runtime->find_or_request_inner_context(context_did);
       RegionTreeID tid;
       derez.deserialize(tid);
       size_t num_insts;
@@ -882,14 +880,14 @@ namespace Legion {
       std::vector<DistributedID> instances(num_insts);
       for (unsigned idx = 0; idx < num_insts; idx++)
         derez.deserialize(instances[idx]);
-      CollectiveResult *target;
+      CollectiveResult* target;
       derez.deserialize(target);
       RtUserEvent to_trigger;
       derez.deserialize(to_trigger);
 
       RtEvent result_ready;
-      CollectiveResult *result = local->find_or_create_collective_view(tid, 
-                                                  instances, result_ready);
+      CollectiveResult* result =
+          local->find_or_create_collective_view(tid, instances, result_ready);
       if (result_ready.exists() && !result_ready.has_triggered())
         result_ready.wait();
       Serializer rez;
@@ -907,11 +905,11 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_find_collective_view_response(
-                                          Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      CollectiveResult *target;
+      CollectiveResult* target;
       derez.deserialize(target);
       derez.deserialize(target->collective_did);
       derez.deserialize(target->ready_event);
@@ -925,18 +923,18 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_refine_equivalence_sets(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID context_did;
       derez.deserialize(context_did);
-      InnerContext *local = runtime->find_or_request_inner_context(context_did);
+      InnerContext* local = runtime->find_or_request_inner_context(context_did);
       unsigned req_index;
       derez.deserialize(req_index);
       IndexSpace handle;
       derez.deserialize(handle);
-      IndexSpaceNode *node = runtime->get_node(handle);
+      IndexSpaceNode* node = runtime->get_node(handle);
       FieldMask mask;
       derez.deserialize(mask);
       RtUserEvent done;
@@ -951,13 +949,13 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_pointwise_dependence(
-                                                            Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID context_did;
       derez.deserialize(context_did);
-      InnerContext *local = runtime->find_or_request_inner_context(context_did);
+      InnerContext* local = runtime->find_or_request_inner_context(context_did);
       uint64_t context_index;
       derez.deserialize(context_index);
       DomainPoint point;
@@ -971,25 +969,25 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_find_trace_local_sets_request(
-        Deserializer &derez, AddressSpaceID source)
+        Deserializer& derez, AddressSpaceID source)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID context_did;
       derez.deserialize(context_did);
-      InnerContext *local = runtime->find_or_request_inner_context(context_did);
+      InnerContext* local = runtime->find_or_request_inner_context(context_did);
       unsigned req_index;
       derez.deserialize(req_index);
       FieldMask mask;
       derez.deserialize(mask);
       IndexSpace handle;
       derez.deserialize(handle);
-      IndexSpaceNode *node = nullptr;
+      IndexSpaceNode* node = nullptr;
       if (handle.exists())
         node = runtime->get_node(handle);
-      std::map<EquivalenceSet*,unsigned> current_sets;
+      std::map<EquivalenceSet*, unsigned> current_sets;
       local->find_trace_local_sets(req_index, mask, current_sets, node);
-      std::map<EquivalenceSet*,unsigned> *target;
+      std::map<EquivalenceSet*, unsigned>* target;
       derez.deserialize(target);
       RtUserEvent done;
       derez.deserialize(done);
@@ -1002,8 +1000,9 @@ namespace Legion {
           rez.serialize<LocalLock*>(nullptr);
           rez.serialize(req_index);
           rez.serialize<size_t>(current_sets.size());
-          for (std::map<EquivalenceSet*,unsigned>::const_iterator it =
-                current_sets.begin(); it != current_sets.end(); it++)
+          for (std::map<EquivalenceSet*, unsigned>::const_iterator it =
+                   current_sets.begin();
+               it != current_sets.end(); it++)
           {
 #ifdef DEBUG_LEGION
             assert(req_index == it->second);
@@ -1014,20 +1013,19 @@ namespace Legion {
         }
         runtime->send_remote_context_find_trace_local_sets_response(
             source, rez);
-      }
-      else
+      } else
         Runtime::trigger_event(done);
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void RemoteContext::handle_find_trace_local_sets_response(
-        Deserializer &derez)
+        Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
-      std::map<EquivalenceSet*,unsigned> *target;
+      std::map<EquivalenceSet*, unsigned>* target;
       derez.deserialize(target);
-      LocalLock *target_lock;
+      LocalLock* target_lock;
       derez.deserialize(target_lock);
       unsigned req_index;
       derez.deserialize(req_index);
@@ -1042,22 +1040,21 @@ namespace Legion {
           DistributedID did;
           derez.deserialize(did);
           RtEvent ready;
-          EquivalenceSet *set =
-            runtime->find_or_request_equivalence_set(did, ready);
+          EquivalenceSet* set =
+              runtime->find_or_request_equivalence_set(did, ready);
           target->emplace(std::make_pair(set, req_index));
           if (ready.exists())
             ready_events.push_back(ready);
         }
-      }
-      else
+      } else
       {
         for (unsigned idx = 0; idx < num_sets; idx++)
         {
           DistributedID did;
           derez.deserialize(did);
           RtEvent ready;
-          EquivalenceSet *set =
-            runtime->find_or_request_equivalence_set(did, ready);
+          EquivalenceSet* set =
+              runtime->find_or_request_equivalence_set(did, ready);
           target->emplace(std::make_pair(set, req_index));
           if (ready.exists())
             ready_events.push_back(ready);
@@ -1072,7 +1069,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_context_request(Deserializer &derez)
+    /*static*/ void RemoteContext::handle_context_request(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
@@ -1080,29 +1077,30 @@ namespace Legion {
       derez.deserialize(did);
       AddressSpaceID source;
       derez.deserialize(source);
-      DistributedCollectable *dc = runtime->find_distributed_collectable(did);
+      DistributedCollectable* dc = runtime->find_distributed_collectable(did);
 #ifdef DEBUG_LEGION
-      InnerContext *context = dynamic_cast<InnerContext*>(dc);
+      InnerContext* context = dynamic_cast<InnerContext*>(dc);
       assert(context != nullptr);
 #else
-      InnerContext *context = static_cast<InnerContext*>(dc);
+      InnerContext* context = static_cast<InnerContext*>(dc);
 #endif
       context->send_context(source);
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void RemoteContext::handle_context_response(Deserializer &derez)
+    /*static*/ void RemoteContext::handle_context_response(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       DerezCheck z(derez);
       DistributedID did;
       derez.deserialize(did);
-      void *location = runtime->find_or_create_pending_collectable_location<
-                                                          RemoteContext>(did);
-      RemoteContext *context = new(location) RemoteContext(did);
+      void* location =
+          runtime->find_or_create_pending_collectable_location<RemoteContext>(
+              did);
+      RemoteContext* context = new (location) RemoteContext(did);
       context->unpack_remote_context(derez);
       context->register_with_runtime();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

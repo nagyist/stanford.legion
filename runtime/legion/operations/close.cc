@@ -25,18 +25,17 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // External Close 
+    // External Close
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
     ExternalClose::ExternalClose(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void ExternalClose::pack_external_close(Serializer &rez, 
-                                            AddressSpaceID target) const
+    void ExternalClose::pack_external_close(
+        Serializer& rez, AddressSpaceID target) const
     //--------------------------------------------------------------------------
     {
       pack_region_requirement(requirement, rez);
@@ -44,7 +43,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ExternalClose::unpack_external_close(Deserializer &derez)
+    void ExternalClose::unpack_external_close(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       unpack_region_requirement(requirement, derez);
@@ -54,21 +53,18 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Close Operation 
+    // Close Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    CloseOp::CloseOp(void)
-      : InternalOp()
+    CloseOp::CloseOp(void) : InternalOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     CloseOp::~CloseOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UniqueID CloseOp::get_unique_id(void) const
@@ -111,7 +107,7 @@ namespace Legion {
     const std::string_view& CloseOp::get_provenance_string(bool human) const
     //--------------------------------------------------------------------------
     {
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
@@ -141,8 +137,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void CloseOp::initialize_close(InnerContext *ctx,
-                                   const RegionRequirement &req)
+    void CloseOp::initialize_close(
+        InnerContext* ctx, const RegionRequirement& req)
     //--------------------------------------------------------------------------
     {
       // Only initialize the operation here, this is not a trace-able op
@@ -150,11 +146,11 @@ namespace Legion {
       // Never track this so don't get the close index
       parent_task = ctx->get_task();
       requirement = req;
-    } 
+    }
 
     //--------------------------------------------------------------------------
-    void CloseOp::initialize_close(Operation *creator, unsigned idx,
-                                   const RegionRequirement &req)
+    void CloseOp::initialize_close(
+        Operation* creator, unsigned idx, const RegionRequirement& req)
     //--------------------------------------------------------------------------
     {
       initialize_internal(creator, idx);
@@ -164,38 +160,35 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void CloseOp::perform_logging(Operation *creator, unsigned index,bool merge)
+    void CloseOp::perform_logging(
+        Operation* creator, unsigned index, bool merge)
     //--------------------------------------------------------------------------
     {
       if (!runtime->legion_spy_enabled)
         return;
-      LegionSpy::log_close_operation(parent_ctx->get_unique_id(), unique_op_id,
-                                     merge);
-      LegionSpy::log_internal_op_creator(unique_op_id, 
-                                         creator->get_unique_op_id(), index);
+      LegionSpy::log_close_operation(
+          parent_ctx->get_unique_id(), unique_op_id, merge);
+      LegionSpy::log_internal_op_creator(
+          unique_op_id, creator->get_unique_op_id(), index);
       if (requirement.handle_type == LEGION_PARTITION_PROJECTION)
-        LegionSpy::log_logical_requirement(unique_op_id, 0/*idx*/,
-                                  false/*region*/,
-                                  requirement.partition.index_partition.get_id(),
-                                  requirement.partition.field_space.get_id(),
-                                  requirement.partition.get_tree_id(),
-                                  requirement.privilege,
-                                  requirement.prop,
-                                  requirement.redop,
-                                  requirement.parent.index_space.get_id());
+        LegionSpy::log_logical_requirement(
+            unique_op_id, 0 /*idx*/, false /*region*/,
+            requirement.partition.index_partition.get_id(),
+            requirement.partition.field_space.get_id(),
+            requirement.partition.get_tree_id(), requirement.privilege,
+            requirement.prop, requirement.redop,
+            requirement.parent.index_space.get_id());
       else
-        LegionSpy::log_logical_requirement(unique_op_id, 0/*idx*/,
-                                  true/*region*/,
-                                  requirement.region.index_space.get_id(),
-                                  requirement.region.field_space.get_id(),
-                                  requirement.region.get_tree_id(),
-                                  requirement.privilege,
-                                  requirement.prop,
-                                  requirement.redop,
-                                  requirement.parent.index_space.get_id());
-      LegionSpy::log_requirement_fields(unique_op_id, 0/*idx*/,
-                                requirement.privilege_fields);
-    } 
+        LegionSpy::log_logical_requirement(
+            unique_op_id, 0 /*idx*/, true /*region*/,
+            requirement.region.index_space.get_id(),
+            requirement.region.field_space.get_id(),
+            requirement.region.get_tree_id(), requirement.privilege,
+            requirement.prop, requirement.redop,
+            requirement.parent.index_space.get_id());
+      LegionSpy::log_requirement_fields(
+          unique_op_id, 0 /*idx*/, requirement.privilege_fields);
+    }
 
     //--------------------------------------------------------------------------
     void CloseOp::activate(void)
@@ -215,36 +208,33 @@ namespace Legion {
         mapper_data = nullptr;
         mapper_data_size = 0;
       }
-    } 
+    }
 
     //--------------------------------------------------------------------------
     void CloseOp::trigger_commit(void)
     //--------------------------------------------------------------------------
     {
-      commit_operation(true/*deactivate*/);
+      commit_operation(true /*deactivate*/);
     }
 
     /////////////////////////////////////////////////////////////
-    // Inter Close Operation 
+    // Inter Close Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    MergeCloseOp::MergeCloseOp(void)
-      : CloseOp()
+    MergeCloseOp::MergeCloseOp(void) : CloseOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     MergeCloseOp::~MergeCloseOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void MergeCloseOp::initialize(InnerContext *ctx,
-                                  const RegionRequirement &req, int close_idx,
-                                  Operation *creator)
+    void MergeCloseOp::initialize(
+        InnerContext* ctx, const RegionRequirement& req, int close_idx,
+        Operation* creator)
     //--------------------------------------------------------------------------
     {
       initialize_close(creator, close_idx, req);
@@ -252,15 +242,16 @@ namespace Legion {
       {
         parent_req_index = creator->find_parent_index(close_idx);
 #ifdef DEBUG_LEGION_COLLECTIVES
-        trace->register_close(this, creator_req_idx,
+        trace->register_close(
+            this, creator_req_idx,
             (req.handle_type == LEGION_SINGULAR_PROJECTION) ?
-            (RegionTreeNode*) runtime->get_node(req.region) :
-            (RegionTreeNode*) runtime->get_node(req.partition), req);
+                (RegionTreeNode*)runtime->get_node(req.region) :
+                (RegionTreeNode*)runtime->get_node(req.partition),
+            req);
 #else
         trace->register_close(this, creator_req_idx, req);
 #endif
-      }
-      else
+      } else
       {
         if (trace == nullptr)
           parent_req_index = creator->find_parent_index(close_idx);
@@ -280,12 +271,12 @@ namespace Legion {
     void MergeCloseOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      CloseOp::deactivate(false/*free*/);
+      CloseOp::deactivate(false /*free*/);
       close_mask.clear();
       if (freeop)
         runtime->free_operation(this);
     }
-    
+
     //--------------------------------------------------------------------------
     const char* MergeCloseOp::get_logging_name(void) const
     //--------------------------------------------------------------------------
@@ -322,16 +313,16 @@ namespace Legion {
     void MergeCloseOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      // Populate our privilege fields 
-      RegionTreeNode *node = 
-        (requirement.handle_type == LEGION_SINGULAR_PROJECTION) ? 
-        (RegionTreeNode*)runtime->get_node(requirement.region) :
-        (RegionTreeNode*)runtime->get_node(requirement.partition);
-      node->column_source->get_field_set(close_mask, parent_ctx,
-                                         requirement.privilege_fields);
+      // Populate our privilege fields
+      RegionTreeNode* node =
+          (requirement.handle_type == LEGION_SINGULAR_PROJECTION) ?
+              (RegionTreeNode*)runtime->get_node(requirement.region) :
+              (RegionTreeNode*)runtime->get_node(requirement.partition);
+      node->column_source->get_field_set(
+          close_mask, parent_ctx, requirement.privilege_fields);
       // Do our logging
       if (runtime->legion_spy_enabled)
-        perform_logging(create_op, creator_req_idx, true/*merge close*/);
+        perform_logging(create_op, creator_req_idx, true /*merge close*/);
     }
 
     //--------------------------------------------------------------------------
@@ -343,25 +334,22 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Post Close Operation 
+    // Post Close Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PostCloseOp::PostCloseOp(void)
-      : CloseOp()
+    PostCloseOp::PostCloseOp(void) : CloseOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     PostCloseOp::~PostCloseOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void PostCloseOp::initialize(InnerContext *ctx, unsigned idx,
-                                 const InstanceSet &targets) 
+    void PostCloseOp::initialize(
+        InnerContext* ctx, unsigned idx, const InstanceSet& targets)
     //--------------------------------------------------------------------------
     {
       initialize_close(ctx, ctx->regions[idx]);
@@ -369,7 +357,7 @@ namespace Legion {
       target_instances = targets;
       localize_region_requirement(requirement);
       if (runtime->legion_spy_enabled)
-        perform_logging(ctx->owner_task, idx, false/*merge close*/);
+        perform_logging(ctx->owner_task, idx, false /*merge close*/);
     }
 
     //--------------------------------------------------------------------------
@@ -388,7 +376,7 @@ namespace Legion {
     void PostCloseOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      CloseOp::deactivate(false/*free*/);
+      CloseOp::deactivate(false /*free*/);
       if (!acquired_instances.empty())
         release_acquired_instances(acquired_instances);
       map_applied_conditions.clear();
@@ -420,7 +408,7 @@ namespace Legion {
       // This stage is only done for close operations issued
       // at the end of the task as dependence analysis for other
       // close operations is done inline in the region tree traversal
-      // for other kinds of operations 
+      // for other kinds of operations
       // see RegionTreeNode::register_logical_node
       analyze_region_requirements();
     }
@@ -430,10 +418,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::set<RtEvent> preconditions;
-      perform_versioning_analysis(0/*idx*/,
-                                                   requirement,
-                                                   version_info,
-                                                   preconditions);
+      perform_versioning_analysis(
+          0 /*idx*/, requirement, version_info, preconditions);
       if (!preconditions.empty())
         enqueue_ready_operation(Runtime::merge_events(preconditions));
       else
@@ -444,33 +430,25 @@ namespace Legion {
     void PostCloseOp::trigger_mapping(void)
     //--------------------------------------------------------------------------
     {
-      const PhysicalTraceInfo trace_info(this, 0/*index*/);
+      const PhysicalTraceInfo trace_info(this, 0 /*index*/);
       ApUserEvent close_event = Runtime::create_ap_user_event(&trace_info);
       std::vector<PhysicalManager*> dummy_sources;
-      ApEvent instances_ready =
-        physical_perform_updates_and_registration(
-                                              requirement, version_info,
-                                              0/*idx*/,
-                                              ApEvent::NO_AP_EVENT,
-                                              close_event,
-                                              target_instances, 
-                                              dummy_sources,
-                                              trace_info,
-                                              map_applied_conditions,
-                                              false/*check collective*/,
-                                              true/*record valid*/,
-                                              false/*check initialized*/);
-      Runtime::trigger_event(close_event, instances_ready,
-          trace_info, map_applied_conditions);
+      ApEvent instances_ready = physical_perform_updates_and_registration(
+          requirement, version_info, 0 /*idx*/, ApEvent::NO_AP_EVENT,
+          close_event, target_instances, dummy_sources, trace_info,
+          map_applied_conditions, false /*check collective*/,
+          true /*record valid*/, false /*check initialized*/);
+      Runtime::trigger_event(
+          close_event, instances_ready, trace_info, map_applied_conditions);
       record_completion_effect(close_event);
-      log_mapping_decision(0/*idx*/, requirement, target_instances);
+      log_mapping_decision(0 /*idx*/, requirement, target_instances);
       // No need to apply our mapping because we are done!
       RtEvent mapping_applied;
       if (!map_applied_conditions.empty())
         mapping_applied = Runtime::merge_events(map_applied_conditions);
       if (!acquired_instances.empty())
-        mapping_applied = release_nonempty_acquired_instances(mapping_applied, 
-                                                          acquired_instances);
+        mapping_applied = release_nonempty_acquired_instances(
+            mapping_applied, acquired_instances);
       complete_mapping(mapping_applied);
       complete_execution();
     }
@@ -486,12 +464,12 @@ namespace Legion {
         // do one ourself to inform the mapper that there won't be any
         Mapping::Mapper::CloseProfilingInfo info;
         info.total_reports = 0;
-        info.fill_response = false; // make valgrind happy
-        mapper->invoke_close_report_profiling(this, info);    
+        info.fill_response = false;  // make valgrind happy
+        mapper->invoke_close_report_profiling(this, info);
         Runtime::trigger_event(profiling_reported);
       }
       // Only commit this operation if we are done profiling
-      commit_operation(true/*deactivate*/, profiling_reported);
+      commit_operation(true /*deactivate*/, profiling_reported);
     }
 
     //--------------------------------------------------------------------------
@@ -506,11 +484,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PostCloseOp::select_sources(const unsigned index,
-                                     PhysicalManager *target,
-                                     const std::vector<InstanceView*> &sources,
-                                     std::vector<unsigned> &ranking,
-                                     std::map<unsigned,PhysicalManager*> &points)
+    void PostCloseOp::select_sources(
+        const unsigned index, PhysicalManager* target,
+        const std::vector<InstanceView*>& sources,
+        std::vector<unsigned>& ranking,
+        std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -519,8 +497,8 @@ namespace Legion {
       Mapper::SelectCloseSrcInput input;
       Mapper::SelectCloseSrcOutput output;
       prepare_for_mapping(target, input.target);
-      prepare_for_mapping(sources, input.source_instances,
-                          input.collective_views);
+      prepare_for_mapping(
+          sources, input.source_instances, input.collective_views);
       if (mapper == nullptr)
       {
         Processor exec_proc = parent_ctx->get_executing_processor();
@@ -531,31 +509,33 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    std::map<PhysicalManager*,unsigned>* 
-                                   PostCloseOp::get_acquired_instances_ref(void)
+    std::map<PhysicalManager*, unsigned>*
+        PostCloseOp::get_acquired_instances_ref(void)
     //--------------------------------------------------------------------------
     {
       return &acquired_instances;
     }
 
     //--------------------------------------------------------------------------
-    int PostCloseOp::add_copy_profiling_request(const PhysicalTraceInfo &info,
-                Realm::ProfilingRequestSet &requests, bool fill, unsigned count)
+    int PostCloseOp::add_copy_profiling_request(
+        const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
+        bool fill, unsigned count)
     //--------------------------------------------------------------------------
     {
       // Nothing to do if we don't have any profiling requests
       if (profiling_requests.empty())
         return 0;
       OpProfilingResponse response(this, info.index, info.dst_index, fill);
-      Realm::ProfilingRequest &request = requests.add_request( 
-          runtime->find_utility_group(), LG_LEGION_PROFILING_ID, 
-          &response, sizeof(response), profiling_priority);
+      Realm::ProfilingRequest& request = requests.add_request(
+          runtime->find_utility_group(), LG_LEGION_PROFILING_ID, &response,
+          sizeof(response), profiling_priority);
       bool has_finish = false;
-      for (std::vector<ProfilingMeasurementID>::const_iterator it = 
-            profiling_requests.begin(); it != profiling_requests.end(); it++)
+      for (std::vector<ProfilingMeasurementID>::const_iterator it =
+               profiling_requests.begin();
+           it != profiling_requests.end(); it++)
       {
-        const Realm::ProfilingMeasurementID measurement = 
-          (Realm::ProfilingMeasurementID)*it;
+        const Realm::ProfilingMeasurementID measurement =
+            (Realm::ProfilingMeasurementID)*it;
         request.add_measurement(measurement);
         if (measurement == Realm::PMID_OP_FINISH_EVENT)
           has_finish = true;
@@ -570,15 +550,15 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool PostCloseOp::handle_profiling_response(
-        const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
+        const Realm::ProfilingResponse& response, const void* orig,
+        size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(mapper != nullptr);
 #endif
-      const OpProfilingResponse *op_info = 
-        static_cast<const OpProfilingResponse*>(response.user_data());
+      const OpProfilingResponse* op_info =
+          static_cast<const OpProfilingResponse*>(response.user_data());
       Realm::ProfilingMeasurements::OperationFinishEvent finish_event;
       if (response.get_measurement(finish_event))
         fevent = LgEvent(finish_event.finish_event);
@@ -588,7 +568,7 @@ namespace Legion {
       if (!mapped.has_triggered())
         mapped.wait();
       // If we get here then we can handle the response now
-      Mapping::Mapper::CloseProfilingInfo info; 
+      Mapping::Mapper::CloseProfilingInfo info;
       info.profiling_responses.attach_realm_profiling_response(response);
       info.total_reports = outstanding_profiling_requests;
       info.fill_response = op_info->fill;
@@ -615,8 +595,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void PostCloseOp::pack_remote_operation(Serializer &rez, 
-                 AddressSpaceID target, std::set<RtEvent> &applied_events) const
+    void PostCloseOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_local_remote_operation(rez);
@@ -637,21 +618,18 @@ namespace Legion {
     }
 
     /////////////////////////////////////////////////////////////
-    // Repl Merge Close Op 
+    // Repl Merge Close Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplMergeCloseOp::ReplMergeCloseOp(void)
-      : MergeCloseOp()
+    ReplMergeCloseOp::ReplMergeCloseOp(void) : MergeCloseOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplMergeCloseOp::~ReplMergeCloseOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void ReplMergeCloseOp::activate(void)
@@ -665,7 +643,7 @@ namespace Legion {
     void ReplMergeCloseOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MergeCloseOp::deactivate(false/*free*/);
+      MergeCloseOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -687,41 +665,38 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(mapped_barrier.exists());
 #endif
-      runtime->phase_barrier_arrive(mapped_barrier, 1/*count*/);
+      runtime->phase_barrier_arrive(mapped_barrier, 1 /*count*/);
       // Then complete the mapping once the barrier has triggered
       // A small performance optimization here: if we have a physical trace
-      // and we're replaying it then we don't need to actually do the 
+      // and we're replaying it then we don't need to actually do the
       // synchronization across the shards since we know all the shards
       // can replay independently
       if ((trace != nullptr) && trace->has_physical_trace())
       {
-        PhysicalTrace *physical = trace->get_physical_trace();
+        PhysicalTrace* physical = trace->get_physical_trace();
         if (physical->is_replaying())
           complete_mapping();
         else
           complete_mapping(mapped_barrier);
-      }
-      else
+      } else
         complete_mapping(mapped_barrier);
       complete_execution();
     }
 
-    ///////////////////////////////////////////////////////////// 
-    // Remote Close Op 
+    /////////////////////////////////////////////////////////////
+    // Remote Close Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteCloseOp::RemoteCloseOp(Operation *ptr,AddressSpaceID src)
+    RemoteCloseOp::RemoteCloseOp(Operation* ptr, AddressSpaceID src)
       : ExternalClose(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     RemoteCloseOp::~RemoteCloseOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     UniqueID RemoteCloseOp::get_unique_id(void) const
@@ -762,10 +737,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     const std::string_view& RemoteCloseOp::get_provenance_string(
-                                                               bool human) const
+        bool human) const
     //--------------------------------------------------------------------------
     {
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
@@ -787,11 +762,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteCloseOp::select_sources(const unsigned index,
-                                    PhysicalManager *target,
-                                    const std::vector<InstanceView*> &sources,
-                                    std::vector<unsigned> &ranking,
-                                    std::map<unsigned,PhysicalManager*> &points)
+    void RemoteCloseOp::select_sources(
+        const unsigned index, PhysicalManager* target,
+        const std::vector<InstanceView*>& sources,
+        std::vector<unsigned>& ranking,
+        std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
       if (source == runtime->address_space)
@@ -805,8 +780,8 @@ namespace Legion {
 #endif
       Mapper::SelectCloseSrcInput input;
       Mapper::SelectCloseSrcOutput output;
-      prepare_for_mapping(sources, input.source_instances,
-                          input.collective_views); 
+      prepare_for_mapping(
+          sources, input.source_instances, input.collective_views);
       prepare_for_mapping(target, input.target);
       if (mapper == nullptr)
         mapper = runtime->find_mapper(map_id);
@@ -815,8 +790,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteCloseOp::pack_remote_operation(Serializer &rez,
-                 AddressSpaceID target, std::set<RtEvent> &applied_events) const
+    void RemoteCloseOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_remote_base(rez);
@@ -825,12 +801,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteCloseOp::unpack(Deserializer &derez)
+    void RemoteCloseOp::unpack(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       unpack_external_close(derez);
       unpack_profiling_requests(derez);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -37,9 +37,9 @@ namespace Legion {
     class MemoizableOp : public Operation {
     public:
       enum MemoizableState {
-        NO_MEMO,   // The operation is not subject to memoization
-        MEMO_RECORD,    // The runtime is recording analysis for this operation
-        MEMO_REPLAY,    // The runtime is replaying analysis for this opeartion
+        NO_MEMO,      // The operation is not subject to memoization
+        MEMO_RECORD,  // The runtime is recording analysis for this operation
+        MEMO_REPLAY,  // The runtime is replaying analysis for this opeartion
       };
     public:
       MemoizableOp(void);
@@ -49,32 +49,36 @@ namespace Legion {
       virtual void deactivate(bool free = true);
     public:
       inline PhysicalTemplate* get_template(void) const { return tpl; }
-      inline bool is_recording(void) const { return memo_state == MEMO_RECORD;}
+      inline bool is_recording(void) const { return memo_state == MEMO_RECORD; }
       inline bool is_replaying(void) const { return memo_state == MEMO_REPLAY; }
-      inline MemoizableState get_memoizable_state(void) const 
-        { return memo_state; }
+      inline MemoizableState get_memoizable_state(void) const
+      {
+        return memo_state;
+      }
     public:
       virtual void trigger_replay(void) = 0;
       virtual TraceLocalID get_trace_local_id(void) const
-        { return TraceLocalID(trace_local_id, DomainPoint()); }
-      virtual ApEvent compute_sync_precondition(const TraceInfo &info) const
-        { std::abort(); }
-      virtual void complete_replay(ApEvent complete)
-        { std::abort(); }
-      virtual ApEvent replay_mapping(void)
-        { std::abort(); }
+      {
+        return TraceLocalID(trace_local_id, DomainPoint());
+      }
+      virtual ApEvent compute_sync_precondition(const TraceInfo& info) const
+      {
+        std::abort();
+      }
+      virtual void complete_replay(ApEvent complete) { std::abort(); }
+      virtual ApEvent replay_mapping(void) { std::abort(); }
       virtual MemoizableOp* get_memoizable(void) { return this; }
     protected:
       void set_memoizable_state(void);
       bool can_memoize_operation(void);
       template<typename OP, bool HAS_SYNCS>
-      static ApEvent compute_sync_precondition_with_syncs(OP *op, 
-                                    const TraceInfo &trace_info);
+      static ApEvent compute_sync_precondition_with_syncs(
+          OP* op, const TraceInfo& trace_info);
     protected:
       // The physical trace for this operation if any
-      PhysicalTemplate *tpl;
+      PhysicalTemplate* tpl;
       // Track whether we are memoizing physical analysis for this operation
-      MemoizableState memo_state; 
+      MemoizableState memo_state;
     };
 
     /**
@@ -85,19 +89,19 @@ namespace Legion {
     template<typename OP>
     class Memoizable : public OP {
     public:
-      template<typename ... Args>
-      Memoizable(Args&& ... args) 
-        : OP(std::forward<Args>(args) ...) { }
+      template<typename... Args>
+      Memoizable(Args&&... args) : OP(std::forward<Args>(args)...)
+      { }
       virtual ~Memoizable(void) { }
     public:
       virtual void trigger_ready(void) override;
       virtual ApEvent compute_sync_precondition(
-                        const TraceInfo &info) const override;
+          const TraceInfo& info) const override;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
 #include "legion/operations/memoizable.inl"
 
-#endif // __LEGION_MEMOIZABLE_H__
+#endif  // __LEGION_MEMOIZABLE_H__

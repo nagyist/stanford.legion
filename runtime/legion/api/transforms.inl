@@ -21,8 +21,8 @@
 namespace Legion {
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline AffineTransform<M,N,T>::AffineTransform(void)
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline AffineTransform<M, N, T>::AffineTransform(void)
   //----------------------------------------------------------------------------
   {
     for (int i = 0; i < M; i++)
@@ -31,33 +31,32 @@ namespace Legion {
           transform[i][j] = 1;
         else
           transform[i][j] = 0;
-    for (int i = 0; i < M; i++)
-      offset[i] = 0;
+    for (int i = 0; i < M; i++) offset[i] = 0;
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> template<typename T2> __LEGION_CUDA_HD__
-  inline AffineTransform<M,N,T>::AffineTransform(
-                                             const AffineTransform<M,N,T2> &rhs)
+  template<int M, int N, typename T>
+  template<typename T2>
+  __LEGION_CUDA_HD__ inline AffineTransform<M, N, T>::AffineTransform(
+      const AffineTransform<M, N, T2>& rhs)
     : transform(rhs.transform), offset(rhs.offset)
   //----------------------------------------------------------------------------
-  {
-  }
+  { }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> 
-    template<typename T2, typename T3> __LEGION_CUDA_HD__
-  inline AffineTransform<M,N,T>::AffineTransform(
-                               const Transform<M,N,T2> t, const Point<M,T3> off)
+  template<int M, int N, typename T>
+  template<typename T2, typename T3>
+  __LEGION_CUDA_HD__ inline AffineTransform<M, N, T>::AffineTransform(
+      const Transform<M, N, T2> t, const Point<M, T3> off)
     : transform(t), offset(off)
   //----------------------------------------------------------------------------
-  {
-  }
+  { }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> template<typename T2> __LEGION_CUDA_HD__
-  inline AffineTransform<M,N,T>& AffineTransform<M,N,T>::operator=(
-                                             const AffineTransform<M,N,T2> &rhs)
+  template<int M, int N, typename T>
+  template<typename T2>
+  __LEGION_CUDA_HD__ inline AffineTransform<M, N, T>&
+      AffineTransform<M, N, T>::operator=(const AffineTransform<M, N, T2>& rhs)
   //----------------------------------------------------------------------------
   {
     transform = rhs.transform;
@@ -66,27 +65,31 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> template<typename T2> __LEGION_CUDA_HD__
-  inline Point<M,T> AffineTransform<M,N,T>::operator[](
-                                                  const Point<N,T2> point) const
+  template<int M, int N, typename T>
+  template<typename T2>
+  __LEGION_CUDA_HD__ inline Point<M, T> AffineTransform<M, N, T>::operator[](
+      const Point<N, T2> point) const
   //----------------------------------------------------------------------------
   {
     return (transform * point) + offset;
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline bool AffineTransform<M,N,T>::is_identity(void) const
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline bool AffineTransform<M, N, T>::is_identity(
+      void) const
   //----------------------------------------------------------------------------
   {
     if (M == N)
     {
       for (int i = 0; i < M; i++)
         for (int j = 0; j < N; j++)
-          if (i == j) {
+          if (i == j)
+          {
             if (transform[i][j] != 1)
               return false;
-          } else {
+          } else
+          {
             if (transform[i][j] != 0)
               return false;
           }
@@ -94,14 +97,13 @@ namespace Legion {
         if (offset[i] != 0)
           return false;
       return true;
-    }
-    else
+    } else
       return false;
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline ScaleTransform<M,N,T>::ScaleTransform(void)
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline ScaleTransform<M, N, T>::ScaleTransform(void)
   //----------------------------------------------------------------------------
   {
     for (int i = 0; i < M; i++)
@@ -110,36 +112,35 @@ namespace Legion {
           transform[i][j] = 1;
         else
           transform[i][j] = 0;
-    for (int i = 0; i < M; i++)
-      extent.lo[i] = 0;
+    for (int i = 0; i < M; i++) extent.lo[i] = 0;
     extent.hi = extent.lo;
-    for (int i = 0; i < M; i++)
-      divisor[i] = 1;
+    for (int i = 0; i < M; i++) divisor[i] = 1;
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> template<typename T2> __LEGION_CUDA_HD__
-  inline ScaleTransform<M,N,T>::ScaleTransform(
-                                              const ScaleTransform<M,N,T2> &rhs)
+  template<int M, int N, typename T>
+  template<typename T2>
+  __LEGION_CUDA_HD__ inline ScaleTransform<M, N, T>::ScaleTransform(
+      const ScaleTransform<M, N, T2>& rhs)
     : transform(rhs.transform), extent(rhs.extent), divisor(rhs.divisor)
   //----------------------------------------------------------------------------
-  {
-  }
+  { }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> 
-    template<typename T2, typename T3, typename T4> __LEGION_CUDA_HD__
-  inline ScaleTransform<M,N,T>::ScaleTransform(const Transform<M,N,T2> t,
-                                    const Rect<M,T3> ext, const Point<M,T4> div)
+  template<int M, int N, typename T>
+  template<typename T2, typename T3, typename T4>
+  __LEGION_CUDA_HD__ inline ScaleTransform<M, N, T>::ScaleTransform(
+      const Transform<M, N, T2> t, const Rect<M, T3> ext,
+      const Point<M, T4> div)
     : transform(t), extent(ext), divisor(div)
   //----------------------------------------------------------------------------
-  {
-  }
+  { }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> template<typename T2> __LEGION_CUDA_HD__
-  inline ScaleTransform<M,N,T>& ScaleTransform<M,N,T>::operator=(
-                                              const ScaleTransform<M,N,T2> &rhs)
+  template<int M, int N, typename T>
+  template<typename T2>
+  __LEGION_CUDA_HD__ inline ScaleTransform<M, N, T>&
+      ScaleTransform<M, N, T>::operator=(const ScaleTransform<M, N, T2>& rhs)
   //----------------------------------------------------------------------------
   {
     transform = rhs.transform;
@@ -149,38 +150,44 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> template<typename T2> __LEGION_CUDA_HD__
-  inline Rect<M,T> ScaleTransform<M,N,T>::operator[](
-                                                  const Point<N,T2> point) const
+  template<int M, int N, typename T>
+  template<typename T2>
+  __LEGION_CUDA_HD__ inline Rect<M, T> ScaleTransform<M, N, T>::operator[](
+      const Point<N, T2> point) const
   //----------------------------------------------------------------------------
   {
-    return ((transform * point) + extent) / divisor; 
+    return ((transform * point) + extent) / divisor;
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> template<int P> __LEGION_CUDA_HD__
-  inline AffineTransform<M,P,T> AffineTransform<M,N,T>::operator()(
-                                        const AffineTransform<N,P,T> &rhs) const
+  template<int M, int N, typename T>
+  template<int P>
+  __LEGION_CUDA_HD__ inline AffineTransform<M, P, T>
+      AffineTransform<M, N, T>::operator()(
+          const AffineTransform<N, P, T>& rhs) const
   //----------------------------------------------------------------------------
   {
-    const Transform<M,P,T> t2 = transform * rhs.transform;
-    const Point<M,T> p2 = transform * rhs.offset + offset;
-    return AffineTransform<M,P,T>(t2, p2);
+    const Transform<M, P, T> t2 = transform * rhs.transform;
+    const Point<M, T> p2 = transform * rhs.offset + offset;
+    return AffineTransform<M, P, T>(t2, p2);
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline bool ScaleTransform<M,N,T>::is_identity(void) const
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline bool ScaleTransform<M, N, T>::is_identity(
+      void) const
   //----------------------------------------------------------------------------
   {
     if (M == N)
     {
       for (int i = 0; i < M; i++)
         for (int j = 0; j < N; j++)
-          if (i == j) {
+          if (i == j)
+          {
             if (transform[i][j] != 1)
               return false;
-          } else {
+          } else
+          {
             if (transform[i][j] != 0)
               return false;
           }
@@ -193,47 +200,43 @@ namespace Legion {
         if (divisor[i] != 1)
           return false;
       return true;
-    }
-    else
+    } else
       return false;
-  } 
-
-  //----------------------------------------------------------------------------
-  __LEGION_CUDA_HD__ inline DomainTransform::DomainTransform(void)
-    : m(0), n(0)
-  //----------------------------------------------------------------------------
-  {
   }
 
   //----------------------------------------------------------------------------
+  __LEGION_CUDA_HD__ inline DomainTransform::DomainTransform(void) : m(0), n(0)
+  //----------------------------------------------------------------------------
+  { }
+
+  //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
-  inline DomainTransform::DomainTransform(const DomainTransform &rhs)
+  inline DomainTransform::DomainTransform(const DomainTransform& rhs)
     : m(rhs.m), n(rhs.n)
   //----------------------------------------------------------------------------
   {
     assert(m <= LEGION_MAX_DIM);
     assert(n <= LEGION_MAX_DIM);
     for (int i = 0; i < m; i++)
-      for (int j = 0; j < n; j++)
-        matrix[i * n + j] = rhs.matrix[i * n + j];
+      for (int j = 0; j < n; j++) matrix[i * n + j] = rhs.matrix[i * n + j];
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline DomainTransform::DomainTransform(const Transform<M,N,T> &rhs)
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline DomainTransform::DomainTransform(
+      const Transform<M, N, T>& rhs)
     : m(M), n(N)
   //----------------------------------------------------------------------------
   {
     assert(m <= LEGION_MAX_DIM);
     assert(n <= LEGION_MAX_DIM);
     for (int i = 0; i < M; i++)
-      for (int j = 0; j < N; j++)
-        matrix[i * n + j] = rhs[i][j];
+      for (int j = 0; j < N; j++) matrix[i * n + j] = rhs[i][j];
   }
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
-  inline DomainTransform& DomainTransform::operator=(const DomainTransform &rhs)
+  inline DomainTransform& DomainTransform::operator=(const DomainTransform& rhs)
   //----------------------------------------------------------------------------
   {
     m = rhs.m;
@@ -241,15 +244,14 @@ namespace Legion {
     assert(m <= LEGION_MAX_DIM);
     assert(n <= LEGION_MAX_DIM);
     for (int i = 0; i < m; i++)
-      for (int j = 0; j < n; j++)
-        matrix[i * n + j] = rhs.matrix[i * n + j];
+      for (int j = 0; j < n; j++) matrix[i * n + j] = rhs.matrix[i * n + j];
     return *this;
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline DomainTransform& 
-                         DomainTransform::operator=(const Transform<M,N,T> &rhs)
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline DomainTransform& DomainTransform::operator=(
+      const Transform<M, N, T>& rhs)
   //----------------------------------------------------------------------------
   {
     m = M;
@@ -257,14 +259,13 @@ namespace Legion {
     assert(m <= LEGION_MAX_DIM);
     assert(n <= LEGION_MAX_DIM);
     for (int i = 0; i < M; i++)
-      for (int j = 0; j < N; j++)
-        matrix[i * n + j] = rhs[i][j];
+      for (int j = 0; j < N; j++) matrix[i * n + j] = rhs[i][j];
     return *this;
   }
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
-  inline bool DomainTransform::operator==(const DomainTransform &rhs) const
+  inline bool DomainTransform::operator==(const DomainTransform& rhs) const
   //----------------------------------------------------------------------------
   {
     if (m != rhs.m)
@@ -280,29 +281,29 @@ namespace Legion {
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
-  inline bool DomainTransform::operator!=(const DomainTransform &rhs) const
+  inline bool DomainTransform::operator!=(const DomainTransform& rhs) const
   //----------------------------------------------------------------------------
   {
     return !(*this == rhs);
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline DomainTransform::operator Transform<M,N,T>(void) const
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline DomainTransform::operator Transform<M, N, T>(
+      void) const
   //----------------------------------------------------------------------------
   {
     assert(M == m);
     assert(N == n);
-    Transform<M,N,T> result;
+    Transform<M, N, T> result;
     for (int i = 0; i < M; i++)
-      for (int j = 0; j < N; j++)
-        result[i][j] = matrix[i * n + j];
+      for (int j = 0; j < N; j++) result[i][j] = matrix[i * n + j];
     return result;
   }
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
-  inline DomainPoint DomainTransform::operator*(const DomainPoint &p) const
+  inline DomainPoint DomainTransform::operator*(const DomainPoint& p) const
   //----------------------------------------------------------------------------
   {
     assert(n == p.dim);
@@ -319,7 +320,7 @@ namespace Legion {
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
-  inline Domain DomainTransform::operator*(const Domain &domain) const
+  inline Domain DomainTransform::operator*(const Domain& domain) const
   //----------------------------------------------------------------------------
   {
     assert(domain.dense());
@@ -332,7 +333,7 @@ namespace Legion {
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
   inline DomainTransform DomainTransform::operator*(
-                                               const DomainTransform &rhs) const
+      const DomainTransform& rhs) const
   //----------------------------------------------------------------------------
   {
     assert(n == rhs.m);
@@ -344,8 +345,8 @@ namespace Legion {
       {
         coord_t product = 0;
         for (int k = 0; k < n; k++)
-          product += (matrix[i*n + k] * rhs.matrix[k*rhs.n + j]);
-        result.matrix[i*rhs.n + j] = product;
+          product += (matrix[i * n + k] * rhs.matrix[k * rhs.n + j]);
+        result.matrix[i * rhs.n + j] = product;
       }
     return result;
   }
@@ -360,8 +361,7 @@ namespace Legion {
         {
           if (matrix[i * n + j] != 1)
             return false;
-        }
-        else
+        } else
         {
           if (matrix[i * n + j] != 0)
             return false;
@@ -372,12 +372,11 @@ namespace Legion {
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__ inline DomainAffineTransform::DomainAffineTransform(void)
   //----------------------------------------------------------------------------
-  {
-  }
+  { }
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__ inline DomainAffineTransform::DomainAffineTransform(
-                                               const DomainAffineTransform &rhs)
+      const DomainAffineTransform& rhs)
     : transform(rhs.transform), offset(rhs.offset)
   //----------------------------------------------------------------------------
   {
@@ -386,7 +385,7 @@ namespace Legion {
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__ inline DomainAffineTransform::DomainAffineTransform(
-                                 const DomainTransform &t, const DomainPoint &p)
+      const DomainTransform& t, const DomainPoint& p)
     : transform(t), offset(p)
   //----------------------------------------------------------------------------
   {
@@ -394,9 +393,9 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline DomainAffineTransform::DomainAffineTransform(
-                                              const AffineTransform<M,N,T> &rhs)
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline DomainAffineTransform::DomainAffineTransform(
+      const AffineTransform<M, N, T>& rhs)
     : transform(rhs.transform), offset(rhs.offset)
   //----------------------------------------------------------------------------
   {
@@ -404,8 +403,8 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  __LEGION_CUDA_HD__ inline DomainAffineTransform& DomainAffineTransform::operator=(
-                                               const DomainAffineTransform &rhs)
+  __LEGION_CUDA_HD__ inline DomainAffineTransform&
+      DomainAffineTransform::operator=(const DomainAffineTransform& rhs)
   //----------------------------------------------------------------------------
   {
     transform = rhs.transform;
@@ -415,9 +414,9 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline DomainAffineTransform& DomainAffineTransform::operator=(
-                                              const AffineTransform<M,N,T> &rhs)
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline DomainAffineTransform&
+      DomainAffineTransform::operator=(const AffineTransform<M, N, T>& rhs)
   //----------------------------------------------------------------------------
   {
     transform = rhs.transform;
@@ -428,7 +427,7 @@ namespace Legion {
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
   inline bool DomainAffineTransform::operator==(
-                                         const DomainAffineTransform &rhs) const
+      const DomainAffineTransform& rhs) const
   //----------------------------------------------------------------------------
   {
     if (transform != rhs.transform)
@@ -441,18 +440,19 @@ namespace Legion {
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
   inline bool DomainAffineTransform::operator!=(
-                                         const DomainAffineTransform &rhs) const
+      const DomainAffineTransform& rhs) const
   //----------------------------------------------------------------------------
   {
     return !(*this == rhs);
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline DomainAffineTransform::operator AffineTransform<M,N,T>(void) const
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline DomainAffineTransform::operator AffineTransform<
+      M, N, T>(void) const
   //----------------------------------------------------------------------------
   {
-    AffineTransform<M,N,T> result;
+    AffineTransform<M, N, T> result;
     result.transform = transform;
     result.offset = offset;
     return result;
@@ -460,12 +460,11 @@ namespace Legion {
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__ inline DomainPoint DomainAffineTransform::operator[](
-                                                     const DomainPoint &p) const
+      const DomainPoint& p) const
   //----------------------------------------------------------------------------
   {
     DomainPoint result = transform * p;
-    for (int i = 0; i < result.dim; i++)
-      result[i] += offset[i];
+    for (int i = 0; i < result.dim; i++) result[i] += offset[i];
     return result;
   }
 
@@ -484,12 +483,11 @@ namespace Legion {
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__ inline DomainScaleTransform::DomainScaleTransform(void)
   //----------------------------------------------------------------------------
-  {
-  }
+  { }
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__ inline DomainScaleTransform::DomainScaleTransform(
-                                                const DomainScaleTransform &rhs)
+      const DomainScaleTransform& rhs)
     : transform(rhs.transform), extent(rhs.extent), divisor(rhs.divisor)
   //----------------------------------------------------------------------------
   {
@@ -499,7 +497,7 @@ namespace Legion {
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__ inline DomainScaleTransform::DomainScaleTransform(
-                const DomainTransform &t, const Domain &e, const DomainPoint &d)
+      const DomainTransform& t, const Domain& e, const DomainPoint& d)
     : transform(t), extent(e), divisor(d)
   //----------------------------------------------------------------------------
   {
@@ -508,17 +506,16 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline DomainScaleTransform::DomainScaleTransform(
-                                               const ScaleTransform<M,N,T> &rhs)
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline DomainScaleTransform::DomainScaleTransform(
+      const ScaleTransform<M, N, T>& rhs)
     : transform(rhs.transform), extent(rhs.extent), divisor(rhs.divisor)
   //----------------------------------------------------------------------------
-  {
-  }
-  
+  { }
+
   //----------------------------------------------------------------------------
-  __LEGION_CUDA_HD__ inline DomainScaleTransform& DomainScaleTransform::operator=(
-                                                const DomainScaleTransform &rhs)
+  __LEGION_CUDA_HD__ inline DomainScaleTransform&
+      DomainScaleTransform::operator=(const DomainScaleTransform& rhs)
   //----------------------------------------------------------------------------
   {
     transform = rhs.transform;
@@ -530,9 +527,9 @@ namespace Legion {
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline DomainScaleTransform& DomainScaleTransform::operator=(
-                                               const ScaleTransform<M,N,T> &rhs)
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline DomainScaleTransform&
+      DomainScaleTransform::operator=(const ScaleTransform<M, N, T>& rhs)
   //----------------------------------------------------------------------------
   {
     transform = rhs.transform;
@@ -544,7 +541,7 @@ namespace Legion {
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
   inline bool DomainScaleTransform::operator==(
-                                          const DomainScaleTransform &rhs) const
+      const DomainScaleTransform& rhs) const
   //----------------------------------------------------------------------------
   {
     if (transform != rhs.transform)
@@ -559,18 +556,19 @@ namespace Legion {
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
   inline bool DomainScaleTransform::operator!=(
-                                          const DomainScaleTransform &rhs) const
+      const DomainScaleTransform& rhs) const
   //----------------------------------------------------------------------------
   {
     return !(*this == rhs);
   }
 
   //----------------------------------------------------------------------------
-  template<int M, int N, typename T> __LEGION_CUDA_HD__
-  inline DomainScaleTransform::operator ScaleTransform<M,N,T>(void) const
+  template<int M, int N, typename T>
+  __LEGION_CUDA_HD__ inline DomainScaleTransform::operator ScaleTransform<
+      M, N, T>(void) const
   //----------------------------------------------------------------------------
   {
-    ScaleTransform<M,N,T> result;
+    ScaleTransform<M, N, T> result;
     result.transform = transform;
     result.extent = extent;
     result.divisor = divisor;
@@ -579,7 +577,7 @@ namespace Legion {
 
   //----------------------------------------------------------------------------
   __LEGION_CUDA_HD__
-  inline Domain DomainScaleTransform::operator[](const DomainPoint &p) const
+  inline Domain DomainScaleTransform::operator[](const DomainPoint& p) const
   //----------------------------------------------------------------------------
   {
     DomainPoint p2 = transform * p;
@@ -606,4 +604,4 @@ namespace Legion {
     return true;
   }
 
-} // namespace Legion
+}  // namespace Legion

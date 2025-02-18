@@ -29,17 +29,18 @@ namespace Legion {
 
     /**
      * \class ExternalFill
-     * An extension of the external-facing Fill to help 
+     * An extension of the external-facing Fill to help
      * with packing and unpacking them
      */
-    class ExternalFill : public Fill, public ExternalMappable {
+    class ExternalFill : public Fill,
+                         public ExternalMappable {
     public:
       ExternalFill(void);
     public:
       virtual void set_context_index(uint64_t index) = 0;
     public:
-      void pack_external_fill(Serializer &rez, AddressSpaceID target) const;
-      void unpack_external_fill(Deserializer &derez);
+      void pack_external_fill(Serializer& rez, AddressSpaceID target) const;
+      void unpack_external_fill(Deserializer& derez);
     };
 
     /**
@@ -47,16 +48,18 @@ namespace Legion {
      * Fill operations are used to initialize a field to a
      * specific value for a particular logical region.
      */
-    class FillOp : public PredicatedOp, public ExternalFill {
+    class FillOp : public PredicatedOp,
+                   public ExternalFill {
     public:
       FillOp(void);
-      FillOp(const FillOp &rhs) = delete;
+      FillOp(const FillOp& rhs) = delete;
       virtual ~FillOp(void);
     public:
-      FillOp& operator=(const FillOp &rhs) = delete;
+      FillOp& operator=(const FillOp& rhs) = delete;
     public:
-      void initialize(InnerContext *ctx, const FillLauncher &launcher,
-                      Provenance *provenance);
+      void initialize(
+          InnerContext* ctx, const FillLauncher& launcher,
+          Provenance* provenance);
       void perform_base_dependence_analysis(void);
     public:
       virtual void activate(void);
@@ -72,11 +75,11 @@ namespace Legion {
       virtual const Task* get_parent_task(void) const;
       virtual const std::string_view& get_provenance_string(
           bool human = true) const;
-      virtual std::map<PhysicalManager*,unsigned>*
-                                       get_acquired_instances_ref(void);
-      virtual int add_copy_profiling_request(const PhysicalTraceInfo &info,
-                               Realm::ProfilingRequestSet &requests,
-                               bool fill, unsigned count = 1);
+      virtual std::map<PhysicalManager*, unsigned>* get_acquired_instances_ref(
+          void);
+      virtual int add_copy_profiling_request(
+          const PhysicalTraceInfo& info, Realm::ProfilingRequestSet& requests,
+          bool fill, unsigned count = 1);
       virtual RtEvent initialize_fill_view(void);
       virtual FillView* get_fill_view(void) const;
     public:
@@ -86,7 +89,7 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual void trigger_mapping(void);
       virtual void trigger_complete(ApEvent effects_done);
-      virtual bool record_trace_hash(TraceRecognizer &recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
     public:
       // This is a helper method for ReplFillOp
       virtual RtEvent finalize_complete_mapping(RtEvent event) { return event; }
@@ -97,54 +100,59 @@ namespace Legion {
       virtual void trigger_commit(void);
     public:
       void log_fill_requirement(void) const;
-      // This call only happens from control replication when we had to 
+      // This call only happens from control replication when we had to
       // make a new view because not everyone agreed on which view to use
-      void register_fill_view_creation(FillView *view, bool set);
+      void register_fill_view_creation(FillView* view, bool set);
     public:
       // From Memoizable
       virtual const VersionInfo& get_version_info(unsigned idx) const
-        { return version_info; }
+      {
+        return version_info;
+      }
       virtual const RegionRequirement& get_requirement(unsigned idx = 0) const
-        { return requirement; }
+      {
+        return requirement;
+      }
     public:
       // From MemoizableOp
       virtual void trigger_replay(void);
       virtual void complete_replay(ApEvent fill_complete_event);
     public:
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
     protected:
-      void fill_fields(FillView *fill_view,
-                       ApEvent precondition,
-                       const PhysicalTraceInfo &trace_info);
+      void fill_fields(
+          FillView* fill_view, ApEvent precondition,
+          const PhysicalTraceInfo& trace_info);
     public:
       VersionInfo version_info;
       unsigned parent_req_index;
-      FillView *fill_view;
+      FillView* fill_view;
       Future future;
-      void *value;
+      void* value;
       size_t value_size;
       bool set_view;
       std::set<RtEvent> map_applied_conditions;
     };
-    
+
     /**
      * \class IndexFillOp
      * This is the same as a fill operation except for
-     * applying a number of fill operations over an 
+     * applying a number of fill operations over an
      * index space of points with projection functions.
      */
     class IndexFillOp : public PointwiseAnalyzable<FillOp> {
     public:
       IndexFillOp(void);
-      IndexFillOp(const IndexFillOp &rhs) = delete;
+      IndexFillOp(const IndexFillOp& rhs) = delete;
       virtual ~IndexFillOp(void);
     public:
-      IndexFillOp& operator=(const IndexFillOp &rhs) = delete;
+      IndexFillOp& operator=(const IndexFillOp& rhs) = delete;
     public:
-      void initialize(InnerContext *ctx,
-                      const IndexFillLauncher &launcher,
-                      IndexSpace launch_space, Provenance *provenance);
+      void initialize(
+          InnerContext* ctx, const IndexFillLauncher& launcher,
+          IndexSpace launch_space, Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -162,10 +170,12 @@ namespace Legion {
       virtual void trigger_replay(void);
     public:
       virtual size_t get_collective_points(void) const;
-      virtual IndexSpaceNode* get_shard_points(void) const 
-        { return launch_space; }
+      virtual IndexSpaceNode* get_shard_points(void) const
+      {
+        return launch_space;
+      }
       virtual RtEvent find_pointwise_dependence(
-          const DomainPoint &point, GenerationID gen,
+          const DomainPoint& point, GenerationID gen,
           RtUserEvent to_trigger = RtUserEvent::NO_RT_USER_EVENT);
       void enumerate_points(void);
       void handle_point_complete(ApEvent effect);
@@ -173,13 +183,13 @@ namespace Legion {
     protected:
       void log_index_fill_requirement(void);
     public:
-      IndexSpaceNode*               launch_space;
+      IndexSpaceNode* launch_space;
     protected:
-      std::vector<PointFillOp*>     points;
-      std::map<DomainPoint,RtUserEvent> pending_pointwise_dependences;
-      std::atomic<unsigned>         points_completed;
-      unsigned                      points_committed;
-      bool                          commit_request;
+      std::vector<PointFillOp*> points;
+      std::map<DomainPoint, RtUserEvent> pending_pointwise_dependences;
+      std::atomic<unsigned> points_completed;
+      unsigned points_committed;
+      bool commit_request;
     };
 
     /**
@@ -188,15 +198,16 @@ namespace Legion {
      * physical part of the analysis for an index
      * fill operation.
      */
-    class PointFillOp : public FillOp, public ProjectionPoint {
+    class PointFillOp : public FillOp,
+                        public ProjectionPoint {
     public:
       PointFillOp(void);
-      PointFillOp(const PointFillOp &rhs) = delete;
+      PointFillOp(const PointFillOp& rhs) = delete;
       virtual ~PointFillOp(void);
     public:
-      PointFillOp& operator=(const PointFillOp &rhs) = delete;
+      PointFillOp& operator=(const PointFillOp& rhs) = delete;
     public:
-      void initialize(IndexFillOp *owner, const DomainPoint &point);
+      void initialize(IndexFillOp* owner, const DomainPoint& point);
       void launch(RtEvent view_ready);
     public:
       virtual void activate(void);
@@ -210,27 +221,32 @@ namespace Legion {
       virtual void trigger_commit(void);
       virtual FillView* get_fill_view(void) const;
       virtual unsigned find_parent_index(unsigned idx)
-        { return owner->find_parent_index(idx); }
+      {
+        return owner->find_parent_index(idx);
+      }
       virtual ContextCoordinate get_task_tree_coordinate(void) const
-        { return ContextCoordinate(context_index, index_point); }
+      {
+        return ContextCoordinate(context_index, index_point);
+      }
     public:
       virtual size_t get_collective_points(void) const;
-      virtual bool find_shard_participants(std::vector<ShardID> &shards);
+      virtual bool find_shard_participants(std::vector<ShardID>& shards);
     public:
       // From ProjectionPoint
       virtual const DomainPoint& get_domain_point(void) const;
       virtual void set_projection_result(unsigned idx, LogicalRegion result);
-      virtual void record_intra_space_dependences(unsigned idx,
-                               const std::vector<DomainPoint> &region_deps);
-      virtual void record_pointwise_dependence(uint64_t previous_context_index,
-          const DomainPoint &previous_point, ShardID shard);
+      virtual void record_intra_space_dependences(
+          unsigned idx, const std::vector<DomainPoint>& region_deps);
+      virtual void record_pointwise_dependence(
+          uint64_t previous_context_index, const DomainPoint& previous_point,
+          ShardID shard);
       virtual const Operation* as_operation(void) const { return this; }
     public:
       // From Memoizable
       virtual TraceLocalID get_trace_local_id(void) const;
     protected:
-      IndexFillOp*              owner;
-      std::vector<RtEvent>      pointwise_mapping_dependences;
+      IndexFillOp* owner;
+      std::vector<RtEvent> pointwise_mapping_dependences;
     };
 
     /**
@@ -241,23 +257,25 @@ namespace Legion {
      */
     class CreateCollectiveFillView : public AllGatherCollective<false> {
     public:
-      CreateCollectiveFillView(ReplicateContext *ctx, CollectiveID id,
-                               FillOp *op, DistributedID fill_view,
-                               DistributedID fresh_did);
-      CreateCollectiveFillView(const CreateCollectiveFillView &rhs) = delete;
+      CreateCollectiveFillView(
+          ReplicateContext* ctx, CollectiveID id, FillOp* op,
+          DistributedID fill_view, DistributedID fresh_did);
+      CreateCollectiveFillView(const CreateCollectiveFillView& rhs) = delete;
       virtual ~CreateCollectiveFillView(void) { }
     public:
-      CreateCollectiveFillView& operator=(
-                               const CreateCollectiveFillView &rhs) = delete;
+      CreateCollectiveFillView& operator=(const CreateCollectiveFillView& rhs) =
+          delete;
     public:
       virtual MessageKind get_message_kind(void) const
-        { return SEND_CONTROL_REPLICATION_CREATE_FILL_VIEW; }
-      virtual void pack_collective_stage(ShardID target,
-                                         Serializer &rez, int stage);
-      virtual void unpack_collective_stage(Deserializer &derez, int stage);
+      {
+        return SEND_CONTROL_REPLICATION_CREATE_FILL_VIEW;
+      }
+      virtual void pack_collective_stage(
+          ShardID target, Serializer& rez, int stage);
+      virtual void unpack_collective_stage(Deserializer& derez, int stage);
       virtual RtEvent post_complete_exchange(void);
     protected:
-      FillOp *const fill_op;
+      FillOp* const fill_op;
       const DistributedID fresh_did;
       std::set<DistributedID> selected_views;
     };
@@ -267,18 +285,17 @@ namespace Legion {
      * A copy operation that is aware that it is being
      * executed in a control replication context.
      */
-    class ReplFillOp : 
-      public ReplCollectiveVersioning<CollectiveVersioning<FillOp> > {
+    class ReplFillOp
+      : public ReplCollectiveVersioning<CollectiveVersioning<FillOp> > {
     public:
       ReplFillOp(void);
-      ReplFillOp(const ReplFillOp &rhs) = delete;
+      ReplFillOp(const ReplFillOp& rhs) = delete;
       virtual ~ReplFillOp(void);
     public:
-      ReplFillOp& operator=(const ReplFillOp &rhs) = delete;
+      ReplFillOp& operator=(const ReplFillOp& rhs) = delete;
     public:
-      void initialize_replication(ReplicateContext *ctx,
-                                  DistributedID fresh_did,
-                                  bool is_first_local);
+      void initialize_replication(
+          ReplicateContext* ctx, DistributedID fresh_did, bool is_first_local);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -287,18 +304,20 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual void trigger_replay(void);
       virtual bool is_collective_first_local_shard(void) const
-        { return is_first_local_shard; }
+      {
+        return is_first_local_shard;
+      }
       virtual RtEvent finalize_complete_mapping(RtEvent event);
-      virtual bool perform_collective_analysis(CollectiveMapping *&mapping,
-                                               bool &first_local);
-      virtual RtEvent perform_collective_versioning_analysis(unsigned index,
-                       LogicalRegion handle, EqSetTracker *tracker,
-                       const FieldMask &mask, unsigned parent_req_index);
+      virtual bool perform_collective_analysis(
+          CollectiveMapping*& mapping, bool& first_local);
+      virtual RtEvent perform_collective_versioning_analysis(
+          unsigned index, LogicalRegion handle, EqSetTracker* tracker,
+          const FieldMask& mask, unsigned parent_req_index);
       virtual RtEvent initialize_fill_view(void);
       virtual void predicate_false(void);
     public:
       RtBarrier collective_map_barrier;
-      CreateCollectiveFillView *collective;
+      CreateCollectiveFillView* collective;
       CollectiveID collective_id;
       DistributedID fresh_did;
       bool is_first_local_shard;
@@ -306,16 +325,16 @@ namespace Legion {
 
     /**
      * \class ReplIndexFillOp
-     * An index fill operation that is aware that it is 
+     * An index fill operation that is aware that it is
      * being executed in a control replication context.
      */
     class ReplIndexFillOp : public IndexFillOp {
     public:
       ReplIndexFillOp(void);
-      ReplIndexFillOp(const ReplIndexFillOp &rhs) = delete;
+      ReplIndexFillOp(const ReplIndexFillOp& rhs) = delete;
       virtual ~ReplIndexFillOp(void);
     public:
-      ReplIndexFillOp& operator=(const ReplIndexFillOp &rhs) = delete;
+      ReplIndexFillOp& operator=(const ReplIndexFillOp& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -325,26 +344,30 @@ namespace Legion {
       virtual void trigger_ready(void);
       virtual void trigger_replay(void);
       virtual RtEvent initialize_fill_view(void);
-      virtual IndexSpaceNode* get_shard_points(void) const 
-        { return shard_points; }
-      virtual bool find_shard_participants(std::vector<ShardID> &shards);
+      virtual IndexSpaceNode* get_shard_points(void) const
+      {
+        return shard_points;
+      }
+      virtual bool find_shard_participants(std::vector<ShardID>& shards);
     public:
-      void initialize_replication(ReplicateContext *ctx,
-                                  DistributedID fresh_did);
+      void initialize_replication(
+          ReplicateContext* ctx, DistributedID fresh_did);
     protected:
       ShardingID sharding_functor;
-      ShardingFunction *sharding_function;
-      IndexSpaceNode *shard_points;
-      MapperManager *mapper;
-      CreateCollectiveFillView *collective;
+      ShardingFunction* sharding_function;
+      IndexSpaceNode* shard_points;
+      MapperManager* mapper;
+      CreateCollectiveFillView* collective;
       CollectiveID collective_id;
       DistributedID fresh_did;
 #ifdef DEBUG_LEGION
     public:
-      inline void set_sharding_collective(ShardingGatherCollective *collective)
-        { sharding_collective = collective; }
+      inline void set_sharding_collective(ShardingGatherCollective* collective)
+      {
+        sharding_collective = collective;
+      }
     protected:
-      ShardingGatherCollective *sharding_collective;
+      ShardingGatherCollective* sharding_collective;
 #endif
     };
 
@@ -353,14 +376,15 @@ namespace Legion {
      * This is a remote copy of a FillOp to be used
      * for mapper calls and other operations
      */
-    class RemoteFillOp : public ExternalFill, public RemoteOp,
-      public Heapify<RemoteFillOp,OPERATION_LIFETIME> {
+    class RemoteFillOp : public ExternalFill,
+                         public RemoteOp,
+                         public Heapify<RemoteFillOp, OPERATION_LIFETIME> {
     public:
-      RemoteFillOp(Operation *ptr, AddressSpaceID src);
-      RemoteFillOp(const RemoteFillOp &rhs) = delete;
+      RemoteFillOp(Operation* ptr, AddressSpaceID src);
+      RemoteFillOp(const RemoteFillOp& rhs) = delete;
       virtual ~RemoteFillOp(void);
     public:
-      RemoteFillOp& operator=(const RemoteFillOp &rhs) = delete;
+      RemoteFillOp& operator=(const RemoteFillOp& rhs) = delete;
     public:
       virtual UniqueID get_unique_id(void) const;
       virtual uint64_t get_context_index(void) const;
@@ -370,16 +394,19 @@ namespace Legion {
       virtual const std::string_view& get_provenance_string(
           bool human = true) const;
       virtual ContextCoordinate get_task_tree_coordinate(void) const
-        { return ContextCoordinate(context_index, index_point); }
+      {
+        return ContextCoordinate(context_index, index_point);
+      }
     public:
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual void pack_remote_operation(Serializer &rez, AddressSpaceID target,
-                                         std::set<RtEvent> &applied) const;
-      virtual void unpack(Deserializer &derez);
+      virtual void pack_remote_operation(
+          Serializer& rez, AddressSpaceID target,
+          std::set<RtEvent>& applied) const;
+      virtual void unpack(Deserializer& derez);
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_FILL_H__
+#endif  // __LEGION_FILL_H__

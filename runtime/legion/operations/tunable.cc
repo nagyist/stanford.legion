@@ -22,26 +22,24 @@
 namespace Legion {
   namespace Internal {
 
-    ///////////////////////////////////////////////////////////// 
-    // Tunable Op 
+    /////////////////////////////////////////////////////////////
+    // Tunable Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TunableOp::TunableOp(void)
-      : Operation()
+    TunableOp::TunableOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     TunableOp::~TunableOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    Future TunableOp::initialize(InnerContext *ctx, 
-                        const TunableLauncher &launcher, Provenance *provenance)
+    Future TunableOp::initialize(
+        InnerContext* ctx, const TunableLauncher& launcher,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
@@ -56,14 +54,15 @@ namespace Legion {
         memcpy(arg, launcher.arg.get_ptr(), argsize);
       }
       return_type_size = launcher.return_type_size;
-      result = Future(new FutureImpl(parent_ctx, true/*register*/,
-            runtime->get_available_distributed_id(), get_provenance(), this));
+      result = Future(new FutureImpl(
+          parent_ctx, true /*register*/,
+          runtime->get_available_distributed_id(), get_provenance(), this));
       if (runtime->legion_spy_enabled)
       {
         LegionSpy::log_tunable_operation(ctx->get_unique_id(), unique_op_id);
         const DomainPoint empty_point;
-        LegionSpy::log_future_creation(unique_op_id, result.impl->did,
-                                       empty_point);
+        LegionSpy::log_future_creation(
+            unique_op_id, result.impl->did, empty_point);
         tunable_index = parent_ctx->get_tunable_index();
       }
       return result;
@@ -88,7 +87,7 @@ namespace Legion {
     void TunableOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       if (arg != nullptr)
         free(arg);
       result = Future();
@@ -117,8 +116,8 @@ namespace Legion {
     void TunableOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<Future>::const_iterator it =
-            futures.begin(); it != futures.end(); it++)
+      for (std::vector<Future>::const_iterator it = futures.begin();
+           it != futures.end(); it++)
         it->impl->register_dependence(this);
     }
 
@@ -127,8 +126,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<RtEvent> mapped_events, ready_events;
-      for (std::vector<Future>::const_iterator it =
-            futures.begin(); it != futures.end(); it++)
+      for (std::vector<Future>::const_iterator it = futures.begin();
+           it != futures.end(); it++)
       {
         it->impl->request_runtime_instance(this);
         const RtEvent ready = it->impl->find_runtime_instance_ready();
@@ -141,13 +140,14 @@ namespace Legion {
       // and we have futures we'll likely need to defer on
       if (return_type_size < SIZE_MAX)
       {
-        MemoryManager *manager = 
-          runtime->find_memory_manager(runtime->runtime_system_memory);
+        MemoryManager* manager =
+            runtime->find_memory_manager(runtime->runtime_system_memory);
         TaskTreeCoordinates coordinates;
         compute_task_tree_coordinates(coordinates);
         // Safe to block here indefinitely waiting for unbounded pools
-        instance = manager->create_future_instance(unique_op_id,
-            coordinates, return_type_size, nullptr/*safe_for_unbounded_pools*/);
+        instance = manager->create_future_instance(
+            unique_op_id, coordinates, return_type_size,
+            nullptr /*safe_for_unbounded_pools*/);
         complete_mapping(futures_mapped);
       }
       // Also make sure we wait for any execution fences that we have
@@ -169,8 +169,8 @@ namespace Legion {
     void TunableOp::trigger_execution(void)
     //--------------------------------------------------------------------------
     {
-      MapperManager *mapper =
-        runtime->find_mapper(parent_ctx->get_executing_processor(), mapper_id);
+      MapperManager* mapper = runtime->find_mapper(
+          parent_ctx->get_executing_processor(), mapper_id);
       Mapper::SelectTunableInput input;
       Mapper::SelectTunableOutput output;
       input.tunable_id = tunable_id;
@@ -181,59 +181,56 @@ namespace Legion {
       output.value = nullptr;
       output.size = 0;
       output.take_ownership = true;
-      mapper->invoke_select_tunable_value(parent_ctx->get_owner_task(), 
-                                          input, output);
+      mapper->invoke_select_tunable_value(
+          parent_ctx->get_owner_task(), input, output);
       process_result(mapper, output.value, output.size);
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_tunable_value(parent_ctx->get_unique_id(), 
-                        tunable_index, output.value, output.size);
+        LegionSpy::log_tunable_value(
+            parent_ctx->get_unique_id(), tunable_index, output.value,
+            output.size);
       if (instance != nullptr)
       {
         if (output.size > return_type_size)
           Exception(MAPPER_EXCEPTION, this)
-            << "Mapper " << *mapper 
-            << " returned tunable value of size " << output.size
-            << " for selection of tunable value " << tunable_id
-            << " but the upper bound size set by the launcher was only "
-            << return_type_size << ".";
+              << "Mapper " << *mapper << " returned tunable value of size "
+              << output.size << " for selection of tunable value " << tunable_id
+              << " but the upper bound size set by the launcher was only "
+              << return_type_size << ".";
         // Copy the result into the instance
-        FutureInstance *local = 
-            new FutureInstance(output.value, output.size,
-                true/*external*/, output.take_ownership);
-        const ApEvent done = 
-          instance->copy_from(local, this, ApEvent::NO_AP_EVENT);
+        FutureInstance* local = new FutureInstance(
+            output.value, output.size, true /*external*/,
+            output.take_ownership);
+        const ApEvent done =
+            instance->copy_from(local, this, ApEvent::NO_AP_EVENT);
         if (done.exists())
           record_completion_effect(done);
         result.impl->set_result(done, instance);
         // Future takes ownership of instance, so save local to instance
         // so we can reclaim it when it is safe to do so
         instance = local;
-      }
-      else
+      } else
       {
         // Set and complete the future
-        result.impl->set_local(output.value,output.size,output.take_ownership);
+        result.impl->set_local(
+            output.value, output.size, output.take_ownership);
         complete_mapping();
       }
       complete_execution();
     }
 
     /////////////////////////////////////////////////////////////
-    // Repl Tunable Op 
+    // Repl Tunable Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTunableOp::ReplTunableOp(void)
-      : TunableOp()
+    ReplTunableOp::ReplTunableOp(void) : TunableOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplTunableOp::~ReplTunableOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void ReplTunableOp::activate(void)
@@ -247,7 +244,7 @@ namespace Legion {
     void ReplTunableOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      TunableOp::deactivate(false/*freeop*/);
+      TunableOp::deactivate(false /*freeop*/);
       if (value_broadcast != nullptr)
       {
         delete value_broadcast;
@@ -258,60 +255,60 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplTunableOp::initialize_replication(ReplicateContext *repl_ctx)
+    void ReplTunableOp::initialize_replication(ReplicateContext* repl_ctx)
     //--------------------------------------------------------------------------
     {
       if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
         assert(value_broadcast == nullptr);
-        ReplicateContext *repl_ctx = 
-          dynamic_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx =
+            dynamic_cast<ReplicateContext*>(parent_ctx);
         assert(repl_ctx != nullptr);
 #else
-        ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
         // We'll always make node zero the owner shard here
         if (repl_ctx->owner_shard->shard_id > 0)
-          value_broadcast = new BufferBroadcast(repl_ctx, 0/*owner shard*/,
-                                                COLLECTIVE_LOC_100);
+          value_broadcast = new BufferBroadcast(
+              repl_ctx, 0 /*owner shard*/, COLLECTIVE_LOC_100);
         else
           value_broadcast = new BufferBroadcast(repl_ctx, COLLECTIVE_LOC_100);
       }
     }
 
     //--------------------------------------------------------------------------
-    void ReplTunableOp::process_result(MapperManager *mapper, 
-                                       void *buffer, size_t size) const
+    void ReplTunableOp::process_result(
+        MapperManager* mapper, void* buffer, size_t size) const
     //--------------------------------------------------------------------------
     {
       if (runtime->safe_mapper)
       {
 #ifdef DEBUG_LEGION
         assert(value_broadcast != nullptr);
-        ReplicateContext *repl_ctx = 
-          dynamic_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx =
+            dynamic_cast<ReplicateContext*>(parent_ctx);
         assert(repl_ctx != nullptr);
 #else
-        ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+        ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
         if (repl_ctx->owner_shard->shard_id != value_broadcast->origin)
         {
           size_t expected_size = 0;
-          const void *expected_buffer =
-            value_broadcast->get_buffer(expected_size);
+          const void* expected_buffer =
+              value_broadcast->get_buffer(expected_size);
           if ((expected_size != size) ||
               (memcmp(buffer, expected_buffer, size) != 0))
-            REPORT_LEGION_ERROR(ERROR_INVALID_MAPPER_OUTPUT,
+            REPORT_LEGION_ERROR(
+                ERROR_INVALID_MAPPER_OUTPUT,
                 "Mapper %s returned different values for selection of "
                 "tunable value %d in parent task %s (UID %lld)",
                 mapper->get_mapper_name(), tunable_id,
                 parent_ctx->get_task_name(), parent_ctx->get_unique_id())
-        }
-        else
+        } else
           value_broadcast->broadcast(buffer, size);
       }
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

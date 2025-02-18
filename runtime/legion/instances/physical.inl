@@ -33,7 +33,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline void PhysicalManager::add_base_valid_ref(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -58,7 +58,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline void PhysicalManager::add_nested_valid_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -82,7 +82,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    inline bool PhysicalManager::acquire_instance(ReferenceSource source) 
+    inline bool PhysicalManager::acquire_instance(ReferenceSource source)
     //--------------------------------------------------------------------------
     {
 #ifndef DEBUG_LEGION_GC
@@ -117,7 +117,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    inline bool PhysicalManager::acquire_instance(DistributedID source) 
+    inline bool PhysicalManager::acquire_instance(DistributedID source)
     //--------------------------------------------------------------------------
     {
 #ifndef DEBUG_LEGION_GC
@@ -142,8 +142,9 @@ namespace Legion {
       }
       bool result = acquire_internal();
 #else
-      bool result = acquire_internal(LEGION_DISTRIBUTED_ID_FILTER(source),
-                                     detailed_nested_valid_references);
+      bool result = acquire_internal(
+          LEGION_DISTRIBUTED_ID_FILTER(source),
+          detailed_nested_valid_references);
 #endif
 #ifdef LEGION_GC
       if (result)
@@ -154,7 +155,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool PhysicalManager::remove_base_valid_ref(
-                                         ReferenceSource source, int cnt /*=1*/)
+        ReferenceSource source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -182,7 +183,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     inline bool PhysicalManager::remove_nested_valid_ref(
-                                           DistributedID source, int cnt /*=1*/)
+        DistributedID source, int cnt /*=1*/)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -209,5 +210,5 @@ namespace Legion {
 #endif
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

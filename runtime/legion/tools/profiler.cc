@@ -26,16 +26,14 @@ namespace Legion {
     ArrivalInfo::ArrivalInfo(void)
       : arrival_time(0), trigger_time(std::numeric_limits<timestamp_t>::min())
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    ArrivalInfo::ArrivalInfo(const ArrivalInfo &rhs)
+    ArrivalInfo::ArrivalInfo(const ArrivalInfo& rhs)
       : arrival_time(rhs.arrival_time), trigger_time(rhs.trigger_time.load()),
         arrival_precondition(rhs.arrival_precondition), fevent(rhs.fevent)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ArrivalInfo::ArrivalInfo(LgEvent pre)
@@ -50,21 +48,20 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    ArrivalInfo::ArrivalInfo(timestamp_t arrival, timestamp_t trigger,
-                             LgEvent pre, LgEvent f)
-      : arrival_time(arrival), trigger_time(trigger),
-        arrival_precondition(pre), fevent(f)
+    ArrivalInfo::ArrivalInfo(
+        timestamp_t arrival, timestamp_t trigger, LgEvent pre, LgEvent f)
+      : arrival_time(arrival), trigger_time(trigger), arrival_precondition(pre),
+        fevent(f)
     //--------------------------------------------------------------------------
-    {
-    }
-    
-    /*static*/ const ArrivalInfo BarrierArrivalReduction::identity = 
-      ArrivalInfo();
+    { }
+
+    /*static*/ const ArrivalInfo BarrierArrivalReduction::identity =
+        ArrivalInfo();
 
     //--------------------------------------------------------------------------
     template<>
-    /*static*/ void BarrierArrivalReduction::apply<true>(LHS &lhs, 
-                                                         const RHS &rhs)
+    /*static*/ void BarrierArrivalReduction::apply<true>(
+        LHS& lhs, const RHS& rhs)
     //--------------------------------------------------------------------------
     {
       if (lhs.trigger_time < rhs.trigger_time)
@@ -78,20 +75,19 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<>
-    /*static*/ void BarrierArrivalReduction::apply<false>(LHS &lhs, 
-                                                          const RHS &rhs)
+    /*static*/ void BarrierArrivalReduction::apply<false>(
+        LHS& lhs, const RHS& rhs)
     //--------------------------------------------------------------------------
     {
       timestamp_t previous = lhs.trigger_time.load();
       while (true)
       {
         // Spin until the previous is not the sentinel
-        while (previous == SENTINEL)
-          previous = lhs.trigger_time.load();
+        while (previous == SENTINEL) previous = lhs.trigger_time.load();
         // Quick test to see if we even need to do the compare and swap
         if (rhs.trigger_time <= previous)
           break;
-        // Once it's not the sentinel then do a compare and swap to 
+        // Once it's not the sentinel then do a compare and swap to
         // see if we can add ourselves as the sentinel
         if (!lhs.trigger_time.compare_exchange_weak(previous, SENTINEL))
           // Exchange was not successful so go around again
@@ -107,8 +103,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<>
-    /*static*/ void BarrierArrivalReduction::fold<true>(RHS &rhs1,
-                                                        const RHS &rhs2)
+    /*static*/ void BarrierArrivalReduction::fold<true>(
+        RHS& rhs1, const RHS& rhs2)
     //--------------------------------------------------------------------------
     {
       if (rhs1.trigger_time < rhs2.trigger_time)
@@ -122,20 +118,19 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<>
-    /*static*/ void BarrierArrivalReduction::fold<false>(LHS &rhs1, 
-                                                         const RHS &rhs2)
+    /*static*/ void BarrierArrivalReduction::fold<false>(
+        LHS& rhs1, const RHS& rhs2)
     //--------------------------------------------------------------------------
     {
       timestamp_t previous = rhs1.trigger_time.load();
       while (true)
       {
         // Spin until the previous is not the sentinel
-        while (previous == SENTINEL)
-          previous = rhs1.trigger_time.load();
+        while (previous == SENTINEL) previous = rhs1.trigger_time.load();
         // Quick test to see if we even need to do the compare and swap
         if (rhs2.trigger_time <= previous)
           break;
-        // Once it's not the sentinel then do a compare and swap to 
+        // Once it's not the sentinel then do a compare and swap to
         // see if we can add ourselves as the sentinel
         if (!rhs1.trigger_time.compare_exchange_weak(previous, SENTINEL))
           // Exchange was not successful so go around again
@@ -161,7 +156,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<size_t ENTRIES>
     void SmallNameClosure<ENTRIES>::record_instance_name(
-                                        PhysicalInstance instance, LgEvent name)
+        PhysicalInstance instance, LgEvent name)
     //--------------------------------------------------------------------------
     {
       for (unsigned idx = 0; idx < ENTRIES; idx++)
@@ -187,7 +182,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     template<size_t ENTRIES>
     LgEvent SmallNameClosure<ENTRIES>::find_instance_name(
-                                                    PhysicalInstance inst) const
+        PhysicalInstance inst) const
     //--------------------------------------------------------------------------
     {
       for (unsigned idx = 0; idx < ENTRIES; idx++)
@@ -214,9 +209,10 @@ namespace Legion {
     LegionProfMarker::~LegionProfMarker()
     //--------------------------------------------------------------------------
     {
-      if (!stopped) mark_stop();
-      log_prof.print("Prof User Info " IDFMT " %llu %llu %s", proc.id,
-		     start, stop, name);
+      if (!stopped)
+        mark_stop();
+      log_prof.print(
+          "Prof User Info " IDFMT " %llu %llu %s", proc.id, start, stop, name);
     }
 
     //--------------------------------------------------------------------------
@@ -229,38 +225,35 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     LegionProfInstance::ProfilingInfo::ProfilingInfo(
-                                      ProfilingResponseHandler *h, UniqueID uid)
+        ProfilingResponseHandler* h, UniqueID uid)
       : ProfilingResponseBase(h, uid), creator(implicit_fevent)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    LegionProfInstance::LegionProfInstance(LegionProfiler *own)
-      : owner(own)
+    LegionProfInstance::LegionProfInstance(LegionProfiler* own) : owner(own)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     LegionProfInstance::~LegionProfInstance(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_operation(Operation *op)
+    void LegionProfInstance::register_operation(Operation* op)
     //--------------------------------------------------------------------------
     {
       operation_instances.emplace_back(OperationInstance());
-      OperationInstance &inst = operation_instances.back();
+      OperationInstance& inst = operation_instances.back();
       inst.op_id = op->get_unique_op_id();
-      InnerContext *parent_ctx = op->get_context();
+      InnerContext* parent_ctx = op->get_context();
       // Legion prof uses ULLONG_MAX to represent the unique IDs of the root
-      inst.parent_id = 
-       (parent_ctx->get_depth() < 0) ? ULLONG_MAX : parent_ctx->get_unique_id();
+      inst.parent_id = (parent_ctx->get_depth() < 0) ?
+                           ULLONG_MAX :
+                           parent_ctx->get_unique_id();
       inst.kind = op->get_operation_kind();
-      Provenance *prov = op->get_provenance();
+      Provenance* prov = op->get_provenance();
       if (prov != nullptr)
         inst.provenance = prov->pid;
       else
@@ -269,11 +262,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_multi_task(Operation *op, TaskID task_id)
+    void LegionProfInstance::register_multi_task(Operation* op, TaskID task_id)
     //--------------------------------------------------------------------------
     {
       multi_tasks.emplace_back(MultiTask());
-      MultiTask &task = multi_tasks.back();
+      MultiTask& task = multi_tasks.back();
       task.op_id = op->get_unique_op_id();
       task.task_id = task_id;
       owner->update_footprint(sizeof(MultiTask), this);
@@ -284,30 +277,30 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       slice_owners.emplace_back(SliceOwner());
-      SliceOwner &task = slice_owners.back();
+      SliceOwner& task = slice_owners.back();
       task.parent_id = pid;
       task.op_id = id;
       owner->update_footprint(sizeof(SliceOwner), this);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_index_space_rect(IndexSpaceRectDesc
-							&_ispace_rect_desc)
+    void LegionProfInstance::register_index_space_rect(
+        IndexSpaceRectDesc& _ispace_rect_desc)
     //--------------------------------------------------------------------------
     {
       ispace_rect_desc.emplace_back(IndexSpaceRectDesc());
-      IndexSpaceRectDesc &desc = ispace_rect_desc.back();
+      IndexSpaceRectDesc& desc = ispace_rect_desc.back();
       desc = _ispace_rect_desc;
       owner->update_footprint(sizeof(IndexSpaceRectDesc), this);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_index_space_point(IndexSpacePointDesc
-							&_ispace_point_desc)
+    void LegionProfInstance::register_index_space_point(
+        IndexSpacePointDesc& _ispace_point_desc)
     //--------------------------------------------------------------------------
     {
       ispace_point_desc.emplace_back(IndexSpacePointDesc());
-      IndexSpacePointDesc &desc = ispace_point_desc.back();
+      IndexSpacePointDesc& desc = ispace_point_desc.back();
       desc = _ispace_point_desc;
       owner->update_footprint(sizeof(IndexSpacePointDesc), this);
     }
@@ -317,20 +310,18 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       ispace_empty_desc.emplace_back(IndexSpaceEmptyDesc());
-      IndexSpaceEmptyDesc &desc = ispace_empty_desc.back();
+      IndexSpaceEmptyDesc& desc = ispace_empty_desc.back();
       desc.unique_id = handle;
       owner->update_footprint(sizeof(IndexSpaceEmptyDesc), this);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_field(UniqueID unique_id,
-					    unsigned field_id,
-					    size_t size,
-					    const char* name)
+    void LegionProfInstance::register_field(
+        UniqueID unique_id, unsigned field_id, size_t size, const char* name)
     //--------------------------------------------------------------------------
     {
       field_desc.emplace_back(FieldDesc());
-      FieldDesc &desc = field_desc.back();
+      FieldDesc& desc = field_desc.back();
       desc.unique_id = unique_id;
       desc.field_id = field_id;
       desc.size = (long long)size;
@@ -339,24 +330,24 @@ namespace Legion {
       owner->update_footprint(diff, this);
     }
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_field_space(UniqueID unique_id,
-						  const char* name)
+    void LegionProfInstance::register_field_space(
+        UniqueID unique_id, const char* name)
     //--------------------------------------------------------------------------
     {
       field_space_desc.emplace_back(FieldSpaceDesc());
-      FieldSpaceDesc &desc = field_space_desc.back();
+      FieldSpaceDesc& desc = field_space_desc.back();
       desc.unique_id = unique_id;
       desc.name = strdup(name);
       const size_t diff = sizeof(FieldSpaceDesc) + strlen(name);
       owner->update_footprint(diff, this);
     }
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_index_part(UniqueID unique_id,
-						  const char* name)
+    void LegionProfInstance::register_index_part(
+        UniqueID unique_id, const char* name)
     //--------------------------------------------------------------------------
     {
       index_part_desc.emplace_back(IndexPartDesc());
-      IndexPartDesc &desc = index_part_desc.back();
+      IndexPartDesc& desc = index_part_desc.back();
       desc.unique_id = unique_id;
       desc.name = strdup(name);
       const size_t diff = sizeof(IndexPartDesc) + strlen(name);
@@ -364,12 +355,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_index_space(UniqueID unique_id,
-						  const char* name)
+    void LegionProfInstance::register_index_space(
+        UniqueID unique_id, const char* name)
     //--------------------------------------------------------------------------
     {
       index_space_desc.emplace_back(IndexSpaceDesc());
-      IndexSpaceDesc &desc = index_space_desc.back();
+      IndexSpaceDesc& desc = index_space_desc.back();
       desc.unique_id = unique_id;
       desc.name = strdup(name);
       const size_t diff = sizeof(IndexSpaceDesc) + strlen(name);
@@ -377,27 +368,26 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_index_subspace(DistributedID parent_id,
-						     DistributedID unique_id,
-						     const DomainPoint &point)
+    void LegionProfInstance::register_index_subspace(
+        DistributedID parent_id, DistributedID unique_id,
+        const DomainPoint& point)
     //--------------------------------------------------------------------------
     {
       index_subspace_desc.emplace_back(IndexSubSpaceDesc());
-      IndexSubSpaceDesc &desc = index_subspace_desc.back();
+      IndexSubSpaceDesc& desc = index_subspace_desc.back();
       desc.parent_id = parent_id;
       desc.unique_id = unique_id;
       owner->update_footprint(sizeof(IndexSubSpaceDesc), this);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_index_partition(DistributedID parent_id,
-						      DistributedID unique_id,
-						      bool disjoint,
-						      LegionColor point)
+    void LegionProfInstance::register_index_partition(
+        DistributedID parent_id, DistributedID unique_id, bool disjoint,
+        LegionColor point)
     //--------------------------------------------------------------------------
     {
       index_partition_desc.emplace_back(IndexPartitionDesc());
-      IndexPartitionDesc &desc = index_partition_desc.back();
+      IndexPartitionDesc& desc = index_partition_desc.back();
       desc.parent_id = parent_id;
       desc.unique_id = unique_id;
       desc.disjoint = disjoint;
@@ -406,14 +396,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_logical_region(DistributedID index_space,
-						     DistributedID field_space,
-						     unsigned tree_id,
-						     const char* name)
+    void LegionProfInstance::register_logical_region(
+        DistributedID index_space, DistributedID field_space, unsigned tree_id,
+        const char* name)
     //--------------------------------------------------------------------------
     {
       lr_desc.emplace_back(LogicalRegionDesc());
-      LogicalRegionDesc &desc = lr_desc.back();
+      LogicalRegionDesc& desc = lr_desc.back();
       desc.ispace_id = index_space;
       desc.fspace_id = field_space;
       desc.tree_id = tree_id;
@@ -423,16 +412,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_physical_instance_field(LgEvent inst_uid,
-						              unsigned field_id,
-						              DistributedID field_sp,
-                                                              unsigned align,
-                                                              bool align_set,
-                                                              EqualityKind eqk)
+    void LegionProfInstance::register_physical_instance_field(
+        LgEvent inst_uid, unsigned field_id, DistributedID field_sp,
+        unsigned align, bool align_set, EqualityKind eqk)
     //--------------------------------------------------------------------------
     {
       phy_inst_layout_rdesc.emplace_back(PhysicalInstLayoutDesc());
-      PhysicalInstLayoutDesc &pdesc = phy_inst_layout_rdesc.back();
+      PhysicalInstLayoutDesc& pdesc = phy_inst_layout_rdesc.back();
       pdesc.inst_uid = inst_uid;
       pdesc.field_id = field_id;
       pdesc.fspace_id = field_sp;
@@ -443,13 +429,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_physical_instance_region(LgEvent inst_uid,
-							       LogicalRegion
-							       handle)
+    void LegionProfInstance::register_physical_instance_region(
+        LgEvent inst_uid, LogicalRegion handle)
     //--------------------------------------------------------------------------
     {
       phy_inst_rdesc.emplace_back(PhysicalInstRegionDesc());
-      PhysicalInstRegionDesc &phy_instance_rdesc = phy_inst_rdesc.back();
+      PhysicalInstRegionDesc& phy_instance_rdesc = phy_inst_rdesc.back();
       phy_instance_rdesc.inst_uid = inst_uid;
       phy_instance_rdesc.ispace_id = handle.get_index_space().get_id();
       phy_instance_rdesc.fspace_id = handle.get_field_space().get_id();
@@ -459,25 +444,25 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LegionProfInstance::register_physical_instance_layout(
-             LgEvent unique_event, FieldSpace fs, const LayoutConstraintSet &lc)
+        LgEvent unique_event, FieldSpace fs, const LayoutConstraintSet& lc)
     //--------------------------------------------------------------------------
     {
       // get fields_constraints
       // get_alignment_constraints
       std::map<FieldID, AlignmentConstraint> align_map;
-      const std::vector<AlignmentConstraint> &alignment_constraints =
-        lc.alignment_constraints;
+      const std::vector<AlignmentConstraint>& alignment_constraints =
+          lc.alignment_constraints;
       for (std::vector<AlignmentConstraint>::const_iterator it =
-             alignment_constraints.begin(); it !=
-             alignment_constraints.end(); it++)
+               alignment_constraints.begin();
+           it != alignment_constraints.end(); it++)
         align_map[it->fid] = *it;
-      const std::vector<FieldID> &fields = lc.field_constraint.field_set;
-      for (std::vector<FieldID>::const_iterator it =
-             fields.begin(); it != fields.end(); it++)
+      const std::vector<FieldID>& fields = lc.field_constraint.field_set;
+      for (std::vector<FieldID>::const_iterator it = fields.begin();
+           it != fields.end(); it++)
       {
         std::map<FieldID, AlignmentConstraint>::const_iterator align =
-          align_map.find(*it);
-        bool has_align=false;
+            align_map.find(*it);
+        bool has_align = false;
         unsigned alignment = 0;
         EqualityKind eqk = LEGION_LT_EK;
         if (align != align_map.end())
@@ -486,15 +471,15 @@ namespace Legion {
           alignment = align->second.alignment;
           eqk = align->second.eqk;
         }
-        register_physical_instance_field(unique_event, *it, fs.get_id(),
-                                         alignment, has_align, eqk);
+        register_physical_instance_field(
+            unique_event, *it, fs.get_id(), alignment, has_align, eqk);
       }
-      const std::vector<DimensionKind> &dim_ordering_constr =
-        lc.ordering_constraint.ordering;
-      unsigned dim=0;
+      const std::vector<DimensionKind>& dim_ordering_constr =
+          lc.ordering_constraint.ordering;
+      unsigned dim = 0;
       for (std::vector<DimensionKind>::const_iterator it =
-             dim_ordering_constr.begin();
-           it != dim_ordering_constr.end(); it++) 
+               dim_ordering_constr.begin();
+           it != dim_ordering_constr.end(); it++)
       {
         register_physical_instance_dim_order(unique_event, dim, *it);
         dim++;
@@ -503,14 +488,12 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LegionProfInstance::register_physical_instance_dim_order(
-                                                               LgEvent inst_uid,
-                                                               unsigned dim,
-                                                               DimensionKind k)
+        LgEvent inst_uid, unsigned dim, DimensionKind k)
     //--------------------------------------------------------------------------
     {
       phy_inst_dim_order_rdesc.emplace_back(PhysicalInstDimOrderDesc());
-      PhysicalInstDimOrderDesc &phy_instance_d_rdesc =
-        phy_inst_dim_order_rdesc.back();
+      PhysicalInstDimOrderDesc& phy_instance_d_rdesc =
+          phy_inst_dim_order_rdesc.back();
       phy_instance_d_rdesc.inst_uid = inst_uid;
       phy_instance_d_rdesc.dim = dim;
       phy_instance_d_rdesc.k = k;
@@ -518,35 +501,33 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::register_physical_instance_use(LgEvent inst_uid,
-             UniqueID op_id, unsigned index, const std::vector<FieldID> &fields)
+    void LegionProfInstance::register_physical_instance_use(
+        LgEvent inst_uid, UniqueID op_id, unsigned index,
+        const std::vector<FieldID>& fields)
     //--------------------------------------------------------------------------
     {
       const unsigned offset = phy_inst_usage.size();
       phy_inst_usage.resize(offset + fields.size());
       for (unsigned idx = 0; idx < fields.size(); idx++)
       {
-        PhysicalInstanceUsage &usage = phy_inst_usage[offset+idx];
+        PhysicalInstanceUsage& usage = phy_inst_usage[offset + idx];
         usage.inst_uid = inst_uid;
         usage.op_id = op_id;
         usage.index = index;
         usage.field = fields[idx];
       }
-      owner->update_footprint(fields.size()*sizeof(PhysicalInstanceUsage),this);
+      owner->update_footprint(
+          fields.size() * sizeof(PhysicalInstanceUsage), this);
     }
 
     //--------------------------------------------------------------------------
     void LegionProfInstance::register_index_space_size(
-                                                       UniqueID id,
-                                                       unsigned long long
-                                                       dense_size,
-                                                       unsigned long long
-                                                       sparse_size,
-                                                       bool is_sparse)
+        UniqueID id, unsigned long long dense_size,
+        unsigned long long sparse_size, bool is_sparse)
     //--------------------------------------------------------------------------
     {
       index_space_size_desc.emplace_back(IndexSpaceSizeDesc());
-      IndexSpaceSizeDesc &size_info = index_space_size_desc.back();
+      IndexSpaceSizeDesc& size_info = index_space_size_desc.back();
       size_info.id = id;
       size_info.dense_size = dense_size;
       size_info.sparse_size = sparse_size;
@@ -555,8 +536,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::record_event_merger(LgEvent result,
-        const LgEvent *preconditions, size_t count)
+    void LegionProfInstance::record_event_merger(
+        LgEvent result, const LgEvent* preconditions, size_t count)
     //--------------------------------------------------------------------------
     {
       if (owner->no_critical_paths)
@@ -568,8 +549,8 @@ namespace Legion {
       for (unsigned idx = 0; idx < count; idx++)
         if (preconditions[idx] == result)
           return;
-      EventMergerInfo &info = event_merger_infos.emplace_back(
-          EventMergerInfo());
+      EventMergerInfo& info =
+          event_merger_infos.emplace_back(EventMergerInfo());
       // Take the timing measurement of when this happened first
       info.performed = Realm::Clock::current_time_in_nanoseconds();
       info.result = result;
@@ -590,8 +571,8 @@ namespace Legion {
     {
       if (owner->no_critical_paths)
         return;
-      EventTriggerInfo &info = event_trigger_infos.emplace_back(
-          EventTriggerInfo());
+      EventTriggerInfo& info =
+          event_trigger_infos.emplace_back(EventTriggerInfo());
       info.performed = Realm::Clock::current_time_in_nanoseconds();
       info.result = result;
       info.precondition = pre;
@@ -621,8 +602,8 @@ namespace Legion {
     {
       if (owner->no_critical_paths)
         return;
-      EventPoisonInfo &info = event_poison_infos.emplace_back(
-          EventPoisonInfo());
+      EventPoisonInfo& info =
+          event_poison_infos.emplace_back(EventPoisonInfo());
       info.performed = Realm::Clock::current_time_in_nanoseconds();
       info.result = result;
       info.fevent = implicit_fevent;
@@ -653,8 +634,8 @@ namespace Legion {
       assert(result.is_barrier());
       assert(owner->all_critical_arrivals);
 #endif
-      BarrierArrivalInfo &info = barrier_arrival_infos.emplace_back(
-          BarrierArrivalInfo());
+      BarrierArrivalInfo& info =
+          barrier_arrival_infos.emplace_back(BarrierArrivalInfo());
       info.performed = Realm::Clock::current_time_in_nanoseconds();
       info.result = result;
       info.precondition = pre;
@@ -699,14 +680,14 @@ namespace Legion {
             const bool found =
 #endif
 #endif
-              // TODO: what happens if the barrier is poisoned
-              barrier.get_result(&arrival_info, sizeof(arrival_info));
+                // TODO: what happens if the barrier is poisoned
+                barrier.get_result(&arrival_info, sizeof(arrival_info));
 #ifdef DEBUG_LEGION
             assert(found);
             assert(arrival_info.fevent.exists());
 #endif
-            BarrierArrivalInfo &info = barrier_arrival_infos.emplace_back(
-                BarrierArrivalInfo());
+            BarrierArrivalInfo& info =
+                barrier_arrival_infos.emplace_back(BarrierArrivalInfo());
             info.result = LgEvent(barrier);
             info.fevent = arrival_info.fevent;
             info.precondition = arrival_info.arrival_precondition;
@@ -715,22 +696,21 @@ namespace Legion {
             barrier = barrier.get_previous_phase();
           }
         }
-      }
-      else
+      } else
         // The barrier hasn't triggered yet so launch a profiling task to
         // record it has triggered
         owner->profile_barrier_trigger(barrier, uid);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::record_reservation_acquire(Reservation r,
-        LgEvent result, LgEvent precondition)
+    void LegionProfInstance::record_reservation_acquire(
+        Reservation r, LgEvent result, LgEvent precondition)
     //--------------------------------------------------------------------------
     {
       if (owner->no_critical_paths)
         return;
-      ReservationAcquireInfo &info = reservation_acquire_infos.emplace_back(
-          ReservationAcquireInfo());
+      ReservationAcquireInfo& info =
+          reservation_acquire_infos.emplace_back(ReservationAcquireInfo());
       info.performed = Realm::Clock::current_time_in_nanoseconds();
       info.result = result;
       info.precondition = precondition;
@@ -742,14 +722,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::record_instance_ready(LgEvent result,
-                                     LgEvent unique_event, LgEvent precondition)
+    void LegionProfInstance::record_instance_ready(
+        LgEvent result, LgEvent unique_event, LgEvent precondition)
     //--------------------------------------------------------------------------
     {
       if (owner->no_critical_paths)
         return;
-      InstanceReadyInfo &info = instance_ready_infos.emplace_back(
-          InstanceReadyInfo());
+      InstanceReadyInfo& info =
+          instance_ready_infos.emplace_back(InstanceReadyInfo());
       info.performed = Realm::Clock::current_time_in_nanoseconds();
       info.result = result;
       info.unique = unique_event;
@@ -760,9 +740,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::record_completion_queue_event(LgEvent result,
-        LgEvent fevent, timestamp_t performed, 
-        const LgEvent *preconditions, size_t count)
+    void LegionProfInstance::record_completion_queue_event(
+        LgEvent result, LgEvent fevent, timestamp_t performed,
+        const LgEvent* preconditions, size_t count)
     //--------------------------------------------------------------------------
     {
       if (owner->no_critical_paths)
@@ -774,8 +754,8 @@ namespace Legion {
       for (unsigned idx = 0; idx < count; idx++)
         if (preconditions[idx] == result)
           return;
-      CompletionQueueInfo &info = completion_queue_infos.emplace_back(
-          CompletionQueueInfo());
+      CompletionQueueInfo& info =
+          completion_queue_infos.emplace_back(CompletionQueueInfo());
       info.result = result;
       info.preconditions.resize(count);
       for (unsigned idx = 0; idx < count; idx++)
@@ -790,21 +770,23 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_task(const ProfilingInfo *prof_info,
-             const Realm::ProfilingResponse &response,
-             const Realm::ProfilingMeasurements::OperationProcessorUsage &usage)
+    void LegionProfInstance::process_task(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingResponse& response,
+        const Realm::ProfilingMeasurements::OperationProcessorUsage& usage)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::OperationTimeline>());
+             Realm::ProfilingMeasurements::OperationTimeline>());
 #endif
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<
-            Realm::ProfilingMeasurements::OperationTimeline>(timeline);
+      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
+          timeline);
       Realm::ProfilingMeasurements::OperationEventWaits waits;
-      response.get_measurement<
-            Realm::ProfilingMeasurements::OperationEventWaits>(waits);
+      response
+          .get_measurement<Realm::ProfilingMeasurements::OperationEventWaits>(
+              waits);
 #ifdef DEBUG_LEGION
       assert(timeline.is_valid());
 #endif
@@ -812,13 +794,13 @@ namespace Legion {
         record_barrier_use(prof_info->critical, prof_info->op_id);
       Realm::ProfilingMeasurements::OperationTimelineGPU timeline_gpu;
       if (response.get_measurement<
-            Realm::ProfilingMeasurements::OperationTimelineGPU>(timeline_gpu))
+              Realm::ProfilingMeasurements::OperationTimelineGPU>(timeline_gpu))
       {
 #ifdef DEBUG_LEGION
         assert(timeline_gpu.is_valid());
 #endif
         gpu_task_infos.emplace_back(GPUTaskInfo());
-        GPUTaskInfo &info = gpu_task_infos.back();
+        GPUTaskInfo& info = gpu_task_infos.back();
         info.op_id = prof_info->op_id;
         info.task_id = prof_info->id;
         info.variant_id = prof_info->extra.id2;
@@ -850,14 +832,13 @@ namespace Legion {
         Realm::ProfilingMeasurements::OperationFinishEvent finish;
         if (response.get_measurement(finish))
           info.finish_event = LgEvent(finish.finish_event);
-        const size_t diff = sizeof(GPUTaskInfo) + 
-          num_intervals * sizeof(WaitInfo);
+        const size_t diff =
+            sizeof(GPUTaskInfo) + num_intervals * sizeof(WaitInfo);
         owner->update_footprint(diff, this);
-      }
-      else
+      } else
       {
-        task_infos.emplace_back(TaskInfo()); 
-        TaskInfo &info = task_infos.back();
+        task_infos.emplace_back(TaskInfo());
+        TaskInfo& info = task_infos.back();
         info.op_id = prof_info->op_id;
         info.task_id = prof_info->id;
         info.variant_id = prof_info->extra.id2;
@@ -891,26 +872,28 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_meta(const ProfilingInfo *prof_info,
-             const Realm::ProfilingResponse &response,
-             const Realm::ProfilingMeasurements::OperationProcessorUsage &usage)
+    void LegionProfInstance::process_meta(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingResponse& response,
+        const Realm::ProfilingMeasurements::OperationProcessorUsage& usage)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::OperationTimeline>());
+             Realm::ProfilingMeasurements::OperationTimeline>());
 #endif
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<
-            Realm::ProfilingMeasurements::OperationTimeline>(timeline);
+      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
+          timeline);
       Realm::ProfilingMeasurements::OperationEventWaits waits;
-      response.get_measurement<
-            Realm::ProfilingMeasurements::OperationEventWaits>(waits);
+      response
+          .get_measurement<Realm::ProfilingMeasurements::OperationEventWaits>(
+              waits);
 #ifdef DEBUG_LEGION
       assert(timeline.is_valid());
 #endif
       meta_infos.emplace_back(MetaInfo());
-      MetaInfo &info = meta_infos.back();
+      MetaInfo& info = meta_infos.back();
       info.op_id = prof_info->op_id;
       info.lg_id = prof_info->id;
       info.proc_id = usage.proc.id;
@@ -944,14 +927,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_message(const ProfilingInfo *prof_info,
-             const Realm::ProfilingResponse &response,
-             const Realm::ProfilingMeasurements::OperationProcessorUsage &usage)
+    void LegionProfInstance::process_message(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingResponse& response,
+        const Realm::ProfilingMeasurements::OperationProcessorUsage& usage)
     //--------------------------------------------------------------------------
     {
       // Do a quick check to see if this is a message task we're profiling
       // If it is then we only profile it if we're self-profiling the profiler
-      const MessageKind kind = (MessageKind)(prof_info->id - LG_MESSAGE_ID); 
+      const MessageKind kind = (MessageKind)(prof_info->id - LG_MESSAGE_ID);
 #ifdef DEBUG_LEGION
       assert(kind < LAST_SEND_KIND);
 #endif
@@ -960,19 +944,20 @@ namespace Legion {
         return;
 #ifdef DEBUG_LEGION
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::OperationTimeline>());
+             Realm::ProfilingMeasurements::OperationTimeline>());
 #endif
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<
-            Realm::ProfilingMeasurements::OperationTimeline>(timeline);
+      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
+          timeline);
       Realm::ProfilingMeasurements::OperationEventWaits waits;
-      response.get_measurement<
-            Realm::ProfilingMeasurements::OperationEventWaits>(waits);
+      response
+          .get_measurement<Realm::ProfilingMeasurements::OperationEventWaits>(
+              waits);
 #ifdef DEBUG_LEGION
       assert(timeline.is_valid());
 #endif
       message_infos.emplace_back(MessageInfo());
-      MessageInfo &info = message_infos.back();
+      MessageInfo& info = message_infos.back();
       info.op_id = prof_info->op_id;
       info.lg_id = prof_info->id;
       info.proc_id = usage.proc.id;
@@ -1006,17 +991,17 @@ namespace Legion {
         // Lookup the renamed fevent that we gave it
         info.finish_event = owner->find_message_fevent(original_event);
         // Check to see if this message kind was sent on an ordered
-        // virtual channel in which case we need to send a message 
+        // virtual channel in which case we need to send a message
         // back to the spawning node for the message to tell it about
         // the implicit fevent that we made to represent the completion
         // event for the task.
         // Only send this back if it's not a profiler message otherwise
         // we'll create an infinite loop of profiling messages
-        if ((LAST_UNORDERED_VIRTUAL_CHANNEL < vc) && 
+        if ((LAST_UNORDERED_VIRTUAL_CHANNEL < vc) &&
             (vc != PROFILING_VIRTUAL_CHANNEL))
         {
-          const EventTriggerInfo remote_info = 
-            { original_event, info.creator, info.finish_event, info.spawn };
+          const EventTriggerInfo remote_info = {
+              original_event, info.creator, info.finish_event, info.spawn};
           Serializer rez;
           rez.serialize(remote_info);
           const Realm::ID id = original_event.id;
@@ -1024,44 +1009,46 @@ namespace Legion {
           runtime->send_profiler_event_trigger(target, rez);
         }
       }
-      const size_t diff = sizeof(MessageInfo) + 
-        num_intervals * sizeof(WaitInfo);
+      const size_t diff =
+          sizeof(MessageInfo) + num_intervals * sizeof(WaitInfo);
       owner->update_footprint(diff, this);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_copy(const ProfilingInfo *prof_info,
-            const Realm::ProfilingResponse &response,
-            const Realm::ProfilingMeasurements::OperationMemoryUsage &usage)
+    void LegionProfInstance::process_copy(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingResponse& response,
+        const Realm::ProfilingMeasurements::OperationMemoryUsage& usage)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::OperationTimeline>());
+             Realm::ProfilingMeasurements::OperationTimeline>());
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::OperationCopyInfo>());
+             Realm::ProfilingMeasurements::OperationCopyInfo>());
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::OperationFinishEvent>());
+             Realm::ProfilingMeasurements::OperationFinishEvent>());
 #endif
 
       Realm::ProfilingMeasurements::OperationCopyInfo cpinfo;
-      response.get_measurement<
-        Realm::ProfilingMeasurements::OperationCopyInfo>(cpinfo);
+      response.get_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>(
+          cpinfo);
 
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<
-        Realm::ProfilingMeasurements::OperationTimeline>(timeline);
+      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
+          timeline);
 
       Realm::ProfilingMeasurements::OperationFinishEvent fevent;
       fevent.finish_event = Realm::Event::NO_EVENT;
-      response.get_measurement<
-        Realm::ProfilingMeasurements::OperationFinishEvent>(fevent);
+      response
+          .get_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>(
+              fevent);
 
 #ifdef DEBUG_LEGION
       assert(timeline.is_valid());
 #endif
       copy_infos.emplace_back(CopyInfo());
-      CopyInfo &info = copy_infos.back();
+      CopyInfo& info = copy_infos.back();
       info.op_id = prof_info->op_id;
       info.size = usage.size;
       info.create = timeline.create_time;
@@ -1072,11 +1059,11 @@ namespace Legion {
       info.fevent = LgEvent(fevent.finish_event);
       info.collective = (CollectiveKind)prof_info->id;
       assert(!cpinfo.inst_info.empty());
-      InstanceNameClosure *closure = prof_info->extra.closure;
-      typedef Realm::ProfilingMeasurements::OperationCopyInfo::InstInfo 
-        InstInfo;
-      for (std::vector<InstInfo>::const_iterator it =
-            cpinfo.inst_info.begin(); it != cpinfo.inst_info.end(); it++)
+      InstanceNameClosure* closure = prof_info->extra.closure;
+      typedef Realm::ProfilingMeasurements::OperationCopyInfo::InstInfo
+          InstInfo;
+      for (std::vector<InstInfo>::const_iterator it = cpinfo.inst_info.begin();
+           it != cpinfo.inst_info.end(); it++)
       {
 #ifdef DEBUG_LEGION
         assert(it->src_fields.size() == it->dst_fields.size());
@@ -1089,21 +1076,22 @@ namespace Legion {
           // log what the Realm developers say and redirect any
           // questions from the profiler back to Realm
           unsigned offset = info.inst_infos.size();
-          info.inst_infos.resize(offset + (it->src_insts.size() * 
-                it->src_fields.size() * it->dst_insts.size() *
-                it->dst_fields.size()) + 1/*extra for indirection*/);
+          info.inst_infos.resize(
+              offset +
+              (it->src_insts.size() * it->src_fields.size() *
+               it->dst_insts.size() * it->dst_fields.size()) +
+              1 /*extra for indirection*/);
           // Finally log the indirection instance(s)
-          CopyInstInfo &indirect = info.inst_infos[offset++];
+          CopyInstInfo& indirect = info.inst_infos[offset++];
           indirect.indirect = true;
           indirect.num_hops = it->num_hops;
           if (it->src_indirection_inst.exists())
           {
             indirect.src = it->src_indirection_inst.get_location().id;
             indirect.src_fid = it->src_indirection_field;
-            indirect.src_inst_uid = 
-              closure->find_instance_name(it->src_indirection_inst);
-          }
-          else
+            indirect.src_inst_uid =
+                closure->find_instance_name(it->src_indirection_inst);
+          } else
           {
             indirect.src = 0;
             indirect.src_fid = 0;
@@ -1114,9 +1102,8 @@ namespace Legion {
             indirect.dst = it->dst_indirection_inst.get_location().id;
             indirect.dst_fid = it->dst_indirection_field;
             indirect.dst_inst_uid =
-              closure->find_instance_name(it->dst_indirection_inst);
-          }
-          else
+                closure->find_instance_name(it->dst_indirection_inst);
+          } else
           {
             indirect.dst = 0;
             indirect.dst_fid = 0;
@@ -1138,7 +1125,7 @@ namespace Legion {
                 for (unsigned idx4 = 0; idx4 < it->dst_fields.size(); idx4++)
                 {
                   const FieldID dst_fid = it->dst_fields[idx4];
-                  CopyInstInfo &inst_info = info.inst_infos[offset++];
+                  CopyInstInfo& inst_info = info.inst_infos[offset++];
                   inst_info.src = src_location.id;
                   inst_info.dst = dst_location.id;
                   inst_info.src_fid = src_fid;
@@ -1151,8 +1138,7 @@ namespace Legion {
               }
             }
           }
-        }
-        else
+        } else
         {
 #ifdef DEBUG_LEGION
           // Ask the Realm developers about why these assertions are true
@@ -1170,7 +1156,7 @@ namespace Legion {
           info.inst_infos.resize(offset + it->src_fields.size());
           for (unsigned idx = 0; idx < it->src_fields.size(); idx++)
           {
-            CopyInstInfo &inst_info = info.inst_infos[offset+idx];
+            CopyInstInfo& inst_info = info.inst_infos[offset + idx];
             inst_info.src = src_location.id;
             inst_info.dst = dst_location.id;
             inst_info.src_fid = it->src_fields[idx];
@@ -1186,36 +1172,38 @@ namespace Legion {
       info.critical = prof_info->critical;
       if (prof_info->critical.is_barrier())
         record_barrier_use(prof_info->critical, prof_info->op_id);
-      owner->update_footprint(sizeof(CopyInfo) +
-          info.inst_infos.size() * sizeof(CopyInstInfo), this);
+      owner->update_footprint(
+          sizeof(CopyInfo) + info.inst_infos.size() * sizeof(CopyInstInfo),
+          this);
       if (closure->remove_reference())
         delete closure;
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_fill(const ProfilingInfo *prof_info,
-            const Realm::ProfilingResponse &response,
-            const Realm::ProfilingMeasurements::OperationMemoryUsage &usage)
+    void LegionProfInstance::process_fill(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingResponse& response,
+        const Realm::ProfilingMeasurements::OperationMemoryUsage& usage)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::OperationCopyInfo>());
+             Realm::ProfilingMeasurements::OperationCopyInfo>());
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::OperationTimeline>());
+             Realm::ProfilingMeasurements::OperationTimeline>());
 #endif
       Realm::ProfilingMeasurements::OperationCopyInfo cpinfo;
-      response.get_measurement<
-        Realm::ProfilingMeasurements::OperationCopyInfo>(cpinfo);
+      response.get_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>(
+          cpinfo);
 
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<
-            Realm::ProfilingMeasurements::OperationTimeline>(timeline);
+      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
+          timeline);
 #ifdef DEBUG_LEGION
       assert(timeline.is_valid());
 #endif
       fill_infos.emplace_back(FillInfo());
-      FillInfo &info = fill_infos.back();
+      FillInfo& info = fill_infos.back();
       info.op_id = prof_info->op_id;
       info.size = usage.size;
       info.create = timeline.create_time;
@@ -1227,11 +1215,11 @@ namespace Legion {
       if (response.get_measurement(fevent))
         info.fevent = LgEvent(fevent.finish_event);
       info.collective = (CollectiveKind)prof_info->id;
-      InstanceNameClosure *closure = prof_info->extra.closure;
-      typedef Realm::ProfilingMeasurements::OperationCopyInfo::InstInfo 
-        InstInfo;
-      for (std::vector<InstInfo>::const_iterator it =
-            cpinfo.inst_info.begin(); it != cpinfo.inst_info.end(); it++)
+      InstanceNameClosure* closure = prof_info->extra.closure;
+      typedef Realm::ProfilingMeasurements::OperationCopyInfo::InstInfo
+          InstInfo;
+      for (std::vector<InstInfo>::const_iterator it = cpinfo.inst_info.begin();
+           it != cpinfo.inst_info.end(); it++)
       {
 #ifdef DEBUG_LEGION
         assert(!it->dst_fields.empty());
@@ -1244,32 +1232,33 @@ namespace Legion {
         info.inst_infos.resize(offset + it->dst_fields.size());
         for (unsigned idx = 0; idx < it->dst_fields.size(); idx++)
         {
-          FillInstInfo &inst_info = info.inst_infos[offset+idx];
+          FillInstInfo& inst_info = info.inst_infos[offset + idx];
           inst_info.dst = location.id;
           inst_info.fid = it->dst_fields[idx];
-          inst_info.dst_inst_uid = name; 
+          inst_info.dst_inst_uid = name;
         }
       }
       info.creator = prof_info->creator;
       info.critical = prof_info->critical;
       if (prof_info->critical.is_barrier())
         record_barrier_use(prof_info->critical, prof_info->op_id);
-      owner->update_footprint(sizeof(FillInfo) + 
-          info.inst_infos.size() * sizeof(FillInstInfo), this);
+      owner->update_footprint(
+          sizeof(FillInfo) + info.inst_infos.size() * sizeof(FillInstInfo),
+          this);
       if (closure->remove_reference())
         delete closure;
     }
 
     //--------------------------------------------------------------------------
     void LegionProfInstance::process_inst_timeline(
-                 const ProfilingInfo *prof_info,
-                 const Realm::ProfilingResponse &response,
-                 const Realm::ProfilingMeasurements::InstanceMemoryUsage &usage,
-                 const Realm::ProfilingMeasurements::InstanceTimeline &timeline)
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingResponse& response,
+        const Realm::ProfilingMeasurements::InstanceMemoryUsage& usage,
+        const Realm::ProfilingMeasurements::InstanceTimeline& timeline)
     //--------------------------------------------------------------------------
     {
       inst_timeline_infos.emplace_back(InstTimelineInfo());
-      InstTimelineInfo &info = inst_timeline_infos.back();
+      InstTimelineInfo& info = inst_timeline_infos.back();
       info.inst_uid.id = prof_info->id;
       info.inst_id = usage.instance.id;
       info.mem_id = usage.memory.id;
@@ -1283,13 +1272,14 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_partition(const ProfilingInfo *prof_info,
-                                       const Realm::ProfilingResponse &response)
+    void LegionProfInstance::process_partition(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingResponse& response)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(response.has_measurement<
-          Realm::ProfilingMeasurements::OperationTimeline>());
+             Realm::ProfilingMeasurements::OperationTimeline>());
 #endif
       // Check to see if this dependent partition operation has a finish event
       // If it doesn't that means that it was executed inline and we don't
@@ -1298,10 +1288,10 @@ namespace Legion {
       if (!response.get_measurement(fevent) || !fevent.finish_event.exists())
         return;
       Realm::ProfilingMeasurements::OperationTimeline timeline;
-      response.get_measurement<
-            Realm::ProfilingMeasurements::OperationTimeline>(timeline);
+      response.get_measurement<Realm::ProfilingMeasurements::OperationTimeline>(
+          timeline);
       partition_infos.emplace_back(PartitionInfo());
-      PartitionInfo &info = partition_infos.back();
+      PartitionInfo& info = partition_infos.back();
       info.op_id = prof_info->op_id;
       info.part_op = (DepPartOpKind)prof_info->id;
       info.create = timeline.create_time;
@@ -1318,32 +1308,35 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_arrival(const ProfilingInfo *prof_info,
-                const Realm::ProfilingMeasurements::OperationTimeline &timeline)
+    void LegionProfInstance::process_arrival(
+        const ProfilingInfo* prof_info,
+        const Realm::ProfilingMeasurements::OperationTimeline& timeline)
     //--------------------------------------------------------------------------
     {
       // The arrival occurred when we created the no-op task
       // The precondition event triggered when the no-op task became ready
-      const ArrivalInfo info(timeline.create_time, timeline.ready_time,
-          prof_info->critical, prof_info->creator);
+      const ArrivalInfo info(
+          timeline.create_time, timeline.ready_time, prof_info->critical,
+          prof_info->creator);
       // Do the barrier arrival with the arrival info argument
       // Still chain on the precondition to propagate poison (if any)
       Realm::Barrier bar;
       bar.id = prof_info->id;
       bar.timestamp = 0;
-      bar.arrive(prof_info->extra.id2, prof_info->critical, &info,sizeof(info));
+      bar.arrive(
+          prof_info->extra.id2, prof_info->critical, &info, sizeof(info));
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_implicit(UniqueID op_id, TaskID tid,
-        long long start_time, long long stop_time,
-        std::deque<WaitInfo> &waits, LgEvent finish_event)
+    void LegionProfInstance::process_implicit(
+        UniqueID op_id, TaskID tid, long long start_time, long long stop_time,
+        std::deque<WaitInfo>& waits, LgEvent finish_event)
     //--------------------------------------------------------------------------
     {
-      TaskInfo &info = implicit_infos.emplace_back(TaskInfo()); 
+      TaskInfo& info = implicit_infos.emplace_back(TaskInfo());
       info.op_id = op_id;
       info.task_id = tid;
-      info.variant_id = 0; // no variants for implicit tasks
+      info.variant_id = 0;  // no variants for implicit tasks
       info.proc_id = owner->get_implicit_processor();
       // We make create, ready, and start all the same for implicit tasks
       info.create = start_time;
@@ -1355,7 +1348,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_mem_desc(const Memory &m)
+    void LegionProfInstance::process_mem_desc(const Memory& m)
     //--------------------------------------------------------------------------
     {
       if (m == Memory::NO_MEMORY)
@@ -1368,7 +1361,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_proc_desc(const Processor &p)
+    void LegionProfInstance::process_proc_desc(const Processor& p)
     //--------------------------------------------------------------------------
     {
       if (std::binary_search(proc_ids.begin(), proc_ids.end(), p.id))
@@ -1379,29 +1372,29 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_event_trigger(Deserializer &derez)
+    void LegionProfInstance::process_event_trigger(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-      EventTriggerInfo &info = event_trigger_infos.emplace_back(
-          EventTriggerInfo());
+      EventTriggerInfo& info =
+          event_trigger_infos.emplace_back(EventTriggerInfo());
       derez.deserialize(info);
       owner->update_footprint(sizeof(info), this);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::process_event_poison(Deserializer &derez)
+    void LegionProfInstance::process_event_poison(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
-      EventPoisonInfo &info = event_poison_infos.emplace_back(
-          EventPoisonInfo());
+      EventPoisonInfo& info =
+          event_poison_infos.emplace_back(EventPoisonInfo());
       derez.deserialize(info);
       owner->update_footprint(sizeof(info), this);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::record_mapper_call(MapperID mapper,
-                              Processor mapper_proc, MappingCallKind kind, 
-                              UniqueID uid, long long start, long long stop)
+    void LegionProfInstance::record_mapper_call(
+        MapperID mapper, Processor mapper_proc, MappingCallKind kind,
+        UniqueID uid, long long start, long long stop)
     //--------------------------------------------------------------------------
     {
       Processor current = Processor::get_executing_processor();
@@ -1415,14 +1408,13 @@ namespace Legion {
         // on a Realm processor so we need to get the proxy processor
         // for the context instead
         current.id = owner->get_implicit_processor();
-      }
-      else
+      } else
         process_proc_desc(current);
       // Check to see if it exceeds the call threshold
       if ((stop - start) < owner->minimum_call_threshold)
         return;
       mapper_call_infos.emplace_back(MapperCallInfo());
-      MapperCallInfo &info = mapper_call_infos.back();
+      MapperCallInfo& info = mapper_call_infos.back();
       info.mapper = mapper;
       info.mapper_proc = mapper_proc.id;
       info.kind = kind;
@@ -1435,8 +1427,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::record_runtime_call(RuntimeCallKind kind,
-                                                long long start, long long stop)
+    void LegionProfInstance::record_runtime_call(
+        RuntimeCallKind kind, long long start, long long stop)
     //--------------------------------------------------------------------------
     {
       Processor current = Processor::get_executing_processor();
@@ -1450,14 +1442,13 @@ namespace Legion {
         // on a Realm processor so we need to get the proxy processor
         // for the context instead
         current.id = owner->get_implicit_processor();
-      }
-      else
+      } else
         process_proc_desc(current);
       // Check to see if it exceeds the call threshold
       if ((stop - start) < owner->minimum_call_threshold)
         return;
       runtime_call_infos.emplace_back(RuntimeCallInfo());
-      RuntimeCallInfo &info = runtime_call_infos.back();
+      RuntimeCallInfo& info = runtime_call_infos.back();
       info.kind = kind;
       info.start = start;
       info.stop = stop;
@@ -1468,7 +1459,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LegionProfInstance::record_application_range(
-                              ProvenanceID pid, long long start, long long stop)
+        ProvenanceID pid, long long start, long long stop)
     //--------------------------------------------------------------------------
     {
       Processor current = Processor::get_executing_processor();
@@ -1479,10 +1470,10 @@ namespace Legion {
         // for the context instead
         current.id = owner->get_implicit_processor();
       }
-      // We don't filter application call ranges currently since presumably 
-      // the application knows what its doing and wants to see everything 
+      // We don't filter application call ranges currently since presumably
+      // the application knows what its doing and wants to see everything
       application_call_infos.emplace_back(ApplicationCallInfo());
-      ApplicationCallInfo &info = application_call_infos.back();
+      ApplicationCallInfo& info = application_call_infos.back();
       info.pid = pid;
       info.start = start;
       info.stop = stop;
@@ -1492,8 +1483,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::record_event_wait(LgEvent event,
-                                               Realm::Backtrace &bt)
+    void LegionProfInstance::record_event_wait(
+        LgEvent event, Realm::Backtrace& bt)
     //--------------------------------------------------------------------------
     {
       Processor current = Processor::get_executing_processor();
@@ -1504,7 +1495,7 @@ namespace Legion {
         // for the context instead
         current.id = owner->get_implicit_processor();
       }
-      // Check to see if we have a backtrace ID for this backtrace yet 
+      // Check to see if we have a backtrace ID for this backtrace yet
       unsigned long long backtrace_id = owner->find_backtrace_id(bt);
       event_wait_infos.emplace_back(
           EventWaitInfo{current.id, implicit_fevent, event, backtrace_id});
@@ -1514,14 +1505,13 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::record_proftask(Processor proc, UniqueID op_id,
-					     long long start, long long stop,
-                                             LgEvent creator,
-                                             LgEvent finish_event,bool complete)
+    void LegionProfInstance::record_proftask(
+        Processor proc, UniqueID op_id, long long start, long long stop,
+        LgEvent creator, LgEvent finish_event, bool complete)
     //--------------------------------------------------------------------------
     {
       prof_task_infos.emplace_back(ProfTaskInfo());
-      ProfTaskInfo &info = prof_task_infos.back();
+      ProfTaskInfo& info = prof_task_infos.back();
       info.proc_id = proc.id;
       info.op_id = op_id;
       info.start = start;
@@ -1533,159 +1523,173 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfInstance::dump_state(LegionProfSerializer *serializer)
+    void LegionProfInstance::dump_state(LegionProfSerializer* serializer)
     //--------------------------------------------------------------------------
     {
-      for (std::deque<OperationInstance>::const_iterator it = 
-            operation_instances.begin(); it != operation_instances.end(); it++)
+      for (std::deque<OperationInstance>::const_iterator it =
+               operation_instances.begin();
+           it != operation_instances.end(); it++)
       {
         serializer->serialize(*it);
       }
-      for (std::deque<MultiTask>::const_iterator it = 
-            multi_tasks.begin(); it != multi_tasks.end(); it++)
+      for (std::deque<MultiTask>::const_iterator it = multi_tasks.begin();
+           it != multi_tasks.end(); it++)
       {
         serializer->serialize(*it);
       }
-      for (std::deque<SliceOwner>::const_iterator it = 
-            slice_owners.begin(); it != slice_owners.end(); it++)
+      for (std::deque<SliceOwner>::const_iterator it = slice_owners.begin();
+           it != slice_owners.end(); it++)
       {
         serializer->serialize(*it);
       }
       for (std::deque<TaskInfo>::const_iterator it = task_infos.begin();
-            it != task_infos.end(); it++)
+           it != task_infos.end(); it++)
       {
-        serializer->serialize(*it, false/*not implicit*/);
+        serializer->serialize(*it, false /*not implicit*/);
         for (std::deque<WaitInfo>::const_iterator wit =
-             it->wait_intervals.begin(); wit != it->wait_intervals.end(); wit++)
+                 it->wait_intervals.begin();
+             wit != it->wait_intervals.end(); wit++)
         {
           serializer->serialize(*wit, *it);
         }
       }
       for (std::deque<TaskInfo>::const_iterator it = implicit_infos.begin();
-            it != implicit_infos.end(); it++)
+           it != implicit_infos.end(); it++)
       {
-        serializer->serialize(*it, true/*implicit*/);
+        serializer->serialize(*it, true /*implicit*/);
         for (std::deque<WaitInfo>::const_iterator wit =
-             it->wait_intervals.begin(); wit != it->wait_intervals.end(); wit++)
+                 it->wait_intervals.begin();
+             wit != it->wait_intervals.end(); wit++)
         {
           serializer->serialize(*wit, *it);
         }
       }
       for (std::deque<GPUTaskInfo>::const_iterator it = gpu_task_infos.begin();
-            it != gpu_task_infos.end(); it++)
+           it != gpu_task_infos.end(); it++)
       {
         serializer->serialize(*it);
         for (std::deque<WaitInfo>::const_iterator wit =
-             it->wait_intervals.begin(); wit != it->wait_intervals.end(); wit++)
+                 it->wait_intervals.begin();
+             wit != it->wait_intervals.end(); wit++)
         {
           serializer->serialize(*wit, *it);
         }
       }
       for (std::deque<IndexSpaceRectDesc>::const_iterator it =
-	     ispace_rect_desc.begin(); it != ispace_rect_desc.end(); it++)
+               ispace_rect_desc.begin();
+           it != ispace_rect_desc.end(); it++)
       {
         serializer->serialize(*it);
       }
 
       for (std::deque<IndexSpacePointDesc>::const_iterator it =
-	     ispace_point_desc.begin(); it != ispace_point_desc.end(); it++)
+               ispace_point_desc.begin();
+           it != ispace_point_desc.end(); it++)
       {
         serializer->serialize(*it);
       }
       for (std::deque<IndexSpaceEmptyDesc>::const_iterator it =
-	     ispace_empty_desc.begin(); it != ispace_empty_desc.end(); it++)
+               ispace_empty_desc.begin();
+           it != ispace_empty_desc.end(); it++)
       {
         serializer->serialize(*it);
       }
-      for (std::deque<FieldDesc>::const_iterator it =
-	     field_desc.begin(); it != field_desc.end(); it++)
+      for (std::deque<FieldDesc>::const_iterator it = field_desc.begin();
+           it != field_desc.end(); it++)
       {
         serializer->serialize(*it);
       }
       for (std::deque<FieldSpaceDesc>::const_iterator it =
-	     field_space_desc.begin(); it != field_space_desc.end(); it++)
+               field_space_desc.begin();
+           it != field_space_desc.end(); it++)
       {
         serializer->serialize(*it);
       }
       for (std::deque<IndexPartDesc>::const_iterator it =
-	     index_part_desc.begin(); it != index_part_desc.end(); it++)
+               index_part_desc.begin();
+           it != index_part_desc.end(); it++)
       {
         serializer->serialize(*it);
       }
 
       for (std::deque<IndexSubSpaceDesc>::const_iterator it =
-	     index_subspace_desc.begin(); it != index_subspace_desc.end(); it++)
+               index_subspace_desc.begin();
+           it != index_subspace_desc.end(); it++)
       {
         serializer->serialize(*it);
       }
 
       for (std::deque<IndexPartitionDesc>::const_iterator it =
-	     index_partition_desc.begin(); it != index_partition_desc.end(); it++)
+               index_partition_desc.begin();
+           it != index_partition_desc.end(); it++)
       {
         serializer->serialize(*it);
       }
 
-      for (std::deque<LogicalRegionDesc>::const_iterator it =
-	     lr_desc.begin(); it != lr_desc.end(); it++)
+      for (std::deque<LogicalRegionDesc>::const_iterator it = lr_desc.begin();
+           it != lr_desc.end(); it++)
       {
         serializer->serialize(*it);
       }
 
       for (std::deque<PhysicalInstRegionDesc>::const_iterator it =
-	     phy_inst_rdesc.begin();
-	   it != phy_inst_rdesc.end(); it++)
+               phy_inst_rdesc.begin();
+           it != phy_inst_rdesc.end(); it++)
       {
         serializer->serialize(*it);
       }
       for (std::deque<PhysicalInstLayoutDesc>::const_iterator it =
-	     phy_inst_layout_rdesc.begin();
-	   it != phy_inst_layout_rdesc.end(); it++)
+               phy_inst_layout_rdesc.begin();
+           it != phy_inst_layout_rdesc.end(); it++)
       {
         serializer->serialize(*it);
       }
 
       for (std::deque<PhysicalInstDimOrderDesc>::const_iterator it =
-	     phy_inst_dim_order_rdesc.begin();
-	   it != phy_inst_dim_order_rdesc.end(); it++)
+               phy_inst_dim_order_rdesc.begin();
+           it != phy_inst_dim_order_rdesc.end(); it++)
       {
         serializer->serialize(*it);
       }
 
       for (std::deque<PhysicalInstanceUsage>::const_iterator it =
-            phy_inst_usage.begin(); it != phy_inst_usage.end(); it++)
+               phy_inst_usage.begin();
+           it != phy_inst_usage.end(); it++)
       {
         serializer->serialize(*it);
       }
 
       for (std::deque<IndexSpaceSizeDesc>::const_iterator it =
-             index_space_size_desc.begin();
+               index_space_size_desc.begin();
            it != index_space_size_desc.end(); it++)
-        {
-          serializer->serialize(*it);
-        }
+      {
+        serializer->serialize(*it);
+      }
 
       for (std::deque<MetaInfo>::const_iterator it = meta_infos.begin();
-            it != meta_infos.end(); it++)
+           it != meta_infos.end(); it++)
       {
         serializer->serialize(*it);
         for (std::deque<WaitInfo>::const_iterator wit =
-             it->wait_intervals.begin(); wit != it->wait_intervals.end(); wit++)
+                 it->wait_intervals.begin();
+             wit != it->wait_intervals.end(); wit++)
         {
           serializer->serialize(*wit, *it);
         }
       }
       for (std::deque<MessageInfo>::const_iterator it = message_infos.begin();
-            it != message_infos.end(); it++)
+           it != message_infos.end(); it++)
       {
         serializer->serialize(*it);
         for (std::deque<WaitInfo>::const_iterator wit =
-             it->wait_intervals.begin(); wit != it->wait_intervals.end(); wit++)
+                 it->wait_intervals.begin();
+             wit != it->wait_intervals.end(); wit++)
         {
           serializer->serialize(*wit, *it);
         }
       }
       for (std::deque<FillInfo>::const_iterator it = fill_infos.begin();
-            it != fill_infos.end(); it++)
+           it != fill_infos.end(); it++)
       {
         serializer->serialize(*it);
       }
@@ -1694,65 +1698,73 @@ namespace Legion {
       {
         serializer->serialize(*it);
       }
-      for (std::deque<InstTimelineInfo>::const_iterator it = 
-            inst_timeline_infos.begin(); it != inst_timeline_infos.end(); it++)
+      for (std::deque<InstTimelineInfo>::const_iterator it =
+               inst_timeline_infos.begin();
+           it != inst_timeline_infos.end(); it++)
       {
         serializer->serialize(*it);
       }
-      for (std::deque<PartitionInfo>::const_iterator it = 
-            partition_infos.begin(); it != partition_infos.end(); it++)
+      for (std::deque<PartitionInfo>::const_iterator it =
+               partition_infos.begin();
+           it != partition_infos.end(); it++)
       {
         serializer->serialize(*it);
       }
-      for (std::deque<MapperCallInfo>::const_iterator it = 
-            mapper_call_infos.begin(); it != mapper_call_infos.end(); it++)
+      for (std::deque<MapperCallInfo>::const_iterator it =
+               mapper_call_infos.begin();
+           it != mapper_call_infos.end(); it++)
       {
         serializer->serialize(*it);
       }
-      for (std::deque<RuntimeCallInfo>::const_iterator it = 
-            runtime_call_infos.begin(); it != runtime_call_infos.end(); it++)
+      for (std::deque<RuntimeCallInfo>::const_iterator it =
+               runtime_call_infos.begin();
+           it != runtime_call_infos.end(); it++)
       {
         serializer->serialize(*it);
       }
       for (std::deque<ApplicationCallInfo>::const_iterator it =
-            application_call_infos.begin(); it != 
-            application_call_infos.end(); it++)
+               application_call_infos.begin();
+           it != application_call_infos.end(); it++)
       {
         serializer->serialize(*it);
       }
       for (std::deque<EventWaitInfo>::const_iterator it =
-            event_wait_infos.begin(); it !=
-            event_wait_infos.end(); it++)
+               event_wait_infos.begin();
+           it != event_wait_infos.end(); it++)
       {
         serializer->serialize(*it);
       }
       for (std::deque<EventMergerInfo>::const_iterator it =
-            event_merger_infos.begin(); it != event_merger_infos.end(); it++)
+               event_merger_infos.begin();
+           it != event_merger_infos.end(); it++)
         serializer->serialize(*it);
       for (std::deque<EventTriggerInfo>::const_iterator it =
-            event_trigger_infos.begin(); it != event_trigger_infos.end(); it++)
+               event_trigger_infos.begin();
+           it != event_trigger_infos.end(); it++)
         serializer->serialize(*it);
       for (std::deque<EventPoisonInfo>::const_iterator it =
-            event_poison_infos.begin(); it != event_poison_infos.end(); it++)
+               event_poison_infos.begin();
+           it != event_poison_infos.end(); it++)
         serializer->serialize(*it);
       for (std::deque<BarrierArrivalInfo>::const_iterator it =
-            barrier_arrival_infos.begin(); it !=
-            barrier_arrival_infos.end(); it++)
+               barrier_arrival_infos.begin();
+           it != barrier_arrival_infos.end(); it++)
         serializer->serialize(*it);
       for (std::deque<ReservationAcquireInfo>::const_iterator it =
-            reservation_acquire_infos.begin(); it !=
-            reservation_acquire_infos.end(); it++)
+               reservation_acquire_infos.begin();
+           it != reservation_acquire_infos.end(); it++)
         serializer->serialize(*it);
       for (std::deque<InstanceReadyInfo>::const_iterator it =
-            instance_ready_infos.begin(); it !=
-            instance_ready_infos.end(); it++)
+               instance_ready_infos.begin();
+           it != instance_ready_infos.end(); it++)
         serializer->serialize(*it);
       for (std::deque<CompletionQueueInfo>::const_iterator it =
-            completion_queue_infos.begin(); it !=
-            completion_queue_infos.end(); it++)
+               completion_queue_infos.begin();
+           it != completion_queue_infos.end(); it++)
         serializer->serialize(*it);
-      for (std::deque<ProfTaskInfo>::const_iterator it = 
-            prof_task_infos.begin(); it != prof_task_infos.end(); it++)
+      for (std::deque<ProfTaskInfo>::const_iterator it =
+               prof_task_infos.begin();
+           it != prof_task_infos.end(); it++)
       {
         serializer->serialize(*it);
       }
@@ -1791,18 +1803,18 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    size_t LegionProfInstance::dump_inter(LegionProfSerializer *serializer,
-                                          const double over)
+    size_t LegionProfInstance::dump_inter(
+        LegionProfSerializer* serializer, const double over)
     //--------------------------------------------------------------------------
     {
       // Start the timing so we know how long we are taking
       const long long t_start = Realm::Clock::current_time_in_microseconds();
       // Scale our latency by how much we are over the space limit
       const long long t_stop = t_start + over * owner->output_target_latency;
-      size_t diff = 0; 
+      size_t diff = 0;
       while (!operation_instances.empty())
       {
-        OperationInstance &front = operation_instances.front();
+        OperationInstance& front = operation_instances.front();
         serializer->serialize(front);
         diff += sizeof(front);
         operation_instances.pop_front();
@@ -1812,7 +1824,7 @@ namespace Legion {
       }
       while (!multi_tasks.empty())
       {
-        MultiTask &front = multi_tasks.front();
+        MultiTask& front = multi_tasks.front();
         serializer->serialize(front);
         diff += sizeof(front);
         multi_tasks.pop_front();
@@ -1822,7 +1834,7 @@ namespace Legion {
       }
       while (!slice_owners.empty())
       {
-        SliceOwner &front = slice_owners.front();
+        SliceOwner& front = slice_owners.front();
         serializer->serialize(front);
         diff += sizeof(front);
         slice_owners.pop_front();
@@ -1832,12 +1844,12 @@ namespace Legion {
       }
       while (!task_infos.empty())
       {
-        TaskInfo &front = task_infos.front();
-        serializer->serialize(front, false/*not implicit*/);
+        TaskInfo& front = task_infos.front();
+        serializer->serialize(front, false /*not implicit*/);
         // Have to do all of these now
         for (std::deque<WaitInfo>::const_iterator wit =
-              front.wait_intervals.begin(); wit != 
-              front.wait_intervals.end(); wit++)
+                 front.wait_intervals.begin();
+             wit != front.wait_intervals.end(); wit++)
           serializer->serialize(*wit, front);
         diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         task_infos.pop_front();
@@ -1847,12 +1859,12 @@ namespace Legion {
       }
       while (!implicit_infos.empty())
       {
-        TaskInfo &front = implicit_infos.front();
-        serializer->serialize(front, true/*implicit*/);
+        TaskInfo& front = implicit_infos.front();
+        serializer->serialize(front, true /*implicit*/);
         // Have to do all of these now
         for (std::deque<WaitInfo>::const_iterator wit =
-              front.wait_intervals.begin(); wit != 
-              front.wait_intervals.end(); wit++)
+                 front.wait_intervals.begin();
+             wit != front.wait_intervals.end(); wit++)
           serializer->serialize(*wit, front);
         diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         implicit_infos.pop_front();
@@ -1862,7 +1874,7 @@ namespace Legion {
       }
       while (!ispace_rect_desc.empty())
       {
-        IndexSpaceRectDesc &front = ispace_rect_desc.front();
+        IndexSpaceRectDesc& front = ispace_rect_desc.front();
         serializer->serialize(front);
         diff += sizeof(front);
         ispace_rect_desc.pop_front();
@@ -1872,7 +1884,7 @@ namespace Legion {
       }
       while (!ispace_point_desc.empty())
       {
-        IndexSpacePointDesc &front = ispace_point_desc.front();
+        IndexSpacePointDesc& front = ispace_point_desc.front();
         serializer->serialize(front);
         diff += sizeof(front);
         ispace_point_desc.pop_front();
@@ -1882,7 +1894,7 @@ namespace Legion {
       }
       while (!ispace_empty_desc.empty())
       {
-        IndexSpaceEmptyDesc &front = ispace_empty_desc.front();
+        IndexSpaceEmptyDesc& front = ispace_empty_desc.front();
         serializer->serialize(front);
         diff += sizeof(front);
         ispace_empty_desc.pop_front();
@@ -1892,7 +1904,7 @@ namespace Legion {
       }
       while (!field_desc.empty())
       {
-        FieldDesc &front = field_desc.front();
+        FieldDesc& front = field_desc.front();
         serializer->serialize(front);
         diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
@@ -1903,7 +1915,7 @@ namespace Legion {
       }
       while (!field_space_desc.empty())
       {
-        FieldSpaceDesc &front = field_space_desc.front();
+        FieldSpaceDesc& front = field_space_desc.front();
         serializer->serialize(front);
         diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
@@ -1914,7 +1926,7 @@ namespace Legion {
       }
       while (!index_part_desc.empty())
       {
-        IndexPartDesc &front = index_part_desc.front();
+        IndexPartDesc& front = index_part_desc.front();
         serializer->serialize(front);
         diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
@@ -1925,7 +1937,7 @@ namespace Legion {
       }
       while (!index_space_desc.empty())
       {
-        IndexSpaceDesc &front = index_space_desc.front();
+        IndexSpaceDesc& front = index_space_desc.front();
         serializer->serialize(front);
         diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
@@ -1936,7 +1948,7 @@ namespace Legion {
       }
       while (!index_subspace_desc.empty())
       {
-        IndexSubSpaceDesc &front = index_subspace_desc.front();
+        IndexSubSpaceDesc& front = index_subspace_desc.front();
         serializer->serialize(front);
         diff += sizeof(front);
         index_subspace_desc.pop_front();
@@ -1946,7 +1958,7 @@ namespace Legion {
       }
       while (!index_partition_desc.empty())
       {
-        IndexPartitionDesc &front = index_partition_desc.front();
+        IndexPartitionDesc& front = index_partition_desc.front();
         serializer->serialize(front);
         diff += sizeof(front);
         index_partition_desc.pop_front();
@@ -1956,7 +1968,7 @@ namespace Legion {
       }
       while (!lr_desc.empty())
       {
-        LogicalRegionDesc &front = lr_desc.front();
+        LogicalRegionDesc& front = lr_desc.front();
         serializer->serialize(front);
         diff += sizeof(front) + strlen(front.name);
         free(const_cast<char*>(front.name));
@@ -1967,7 +1979,7 @@ namespace Legion {
       }
       while (!phy_inst_rdesc.empty())
       {
-        PhysicalInstRegionDesc &front = phy_inst_rdesc.front();
+        PhysicalInstRegionDesc& front = phy_inst_rdesc.front();
         serializer->serialize(front);
         diff += sizeof(front);
         phy_inst_rdesc.pop_front();
@@ -1978,7 +1990,7 @@ namespace Legion {
 
       while (!phy_inst_dim_order_rdesc.empty())
       {
-        PhysicalInstDimOrderDesc &front = phy_inst_dim_order_rdesc.front();
+        PhysicalInstDimOrderDesc& front = phy_inst_dim_order_rdesc.front();
         serializer->serialize(front);
         diff += sizeof(front);
         phy_inst_dim_order_rdesc.pop_front();
@@ -1989,7 +2001,7 @@ namespace Legion {
 
       while (!index_space_size_desc.empty())
       {
-        IndexSpaceSizeDesc &front = index_space_size_desc.front();
+        IndexSpaceSizeDesc& front = index_space_size_desc.front();
         serializer->serialize(front);
         diff += sizeof(front);
         index_space_size_desc.pop_front();
@@ -2000,7 +2012,7 @@ namespace Legion {
 
       while (!phy_inst_layout_rdesc.empty())
       {
-        PhysicalInstLayoutDesc &front = phy_inst_layout_rdesc.front();
+        PhysicalInstLayoutDesc& front = phy_inst_layout_rdesc.front();
         serializer->serialize(front);
         diff += sizeof(front);
         phy_inst_layout_rdesc.pop_front();
@@ -2010,12 +2022,12 @@ namespace Legion {
       }
       while (!meta_infos.empty())
       {
-        MetaInfo &front = meta_infos.front();
+        MetaInfo& front = meta_infos.front();
         serializer->serialize(front);
         // Have to do all of these now
         for (std::deque<WaitInfo>::const_iterator wit =
-              front.wait_intervals.begin(); wit != 
-              front.wait_intervals.end(); wit++)
+                 front.wait_intervals.begin();
+             wit != front.wait_intervals.end(); wit++)
           serializer->serialize(*wit, front);
         diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         meta_infos.pop_front();
@@ -2025,12 +2037,12 @@ namespace Legion {
       }
       while (!message_infos.empty())
       {
-        MessageInfo &front = message_infos.front();
+        MessageInfo& front = message_infos.front();
         serializer->serialize(front);
         // Have to do all of these now
         for (std::deque<WaitInfo>::const_iterator wit =
-              front.wait_intervals.begin(); wit != 
-              front.wait_intervals.end(); wit++)
+                 front.wait_intervals.begin();
+             wit != front.wait_intervals.end(); wit++)
           serializer->serialize(*wit, front);
         diff += sizeof(front) + front.wait_intervals.size() * sizeof(WaitInfo);
         message_infos.pop_front();
@@ -2040,7 +2052,7 @@ namespace Legion {
       }
       while (!copy_infos.empty())
       {
-        CopyInfo &front = copy_infos.front();
+        CopyInfo& front = copy_infos.front();
         serializer->serialize(front);
         diff += sizeof(front) + front.inst_infos.size() * sizeof(CopyInstInfo);
         copy_infos.pop_front();
@@ -2050,7 +2062,7 @@ namespace Legion {
       }
       while (!fill_infos.empty())
       {
-        FillInfo &front = fill_infos.front();
+        FillInfo& front = fill_infos.front();
         serializer->serialize(front);
         diff += sizeof(front) + front.inst_infos.size() * sizeof(FillInstInfo);
         fill_infos.pop_front();
@@ -2060,7 +2072,7 @@ namespace Legion {
       }
       while (!inst_timeline_infos.empty())
       {
-        InstTimelineInfo &front = inst_timeline_infos.front();
+        InstTimelineInfo& front = inst_timeline_infos.front();
         serializer->serialize(front);
         diff += sizeof(front);
         inst_timeline_infos.pop_front();
@@ -2070,7 +2082,7 @@ namespace Legion {
       }
       while (!partition_infos.empty())
       {
-        PartitionInfo &front = partition_infos.front();
+        PartitionInfo& front = partition_infos.front();
         serializer->serialize(front);
         diff += sizeof(front);
         partition_infos.pop_front();
@@ -2080,7 +2092,7 @@ namespace Legion {
       }
       while (!mapper_call_infos.empty())
       {
-        MapperCallInfo &front = mapper_call_infos.front();
+        MapperCallInfo& front = mapper_call_infos.front();
         serializer->serialize(front);
         diff += sizeof(front);
         mapper_call_infos.pop_front();
@@ -2090,7 +2102,7 @@ namespace Legion {
       }
       while (!runtime_call_infos.empty())
       {
-        RuntimeCallInfo &front = runtime_call_infos.front();
+        RuntimeCallInfo& front = runtime_call_infos.front();
         serializer->serialize(front);
         diff += sizeof(front);
         runtime_call_infos.pop_front();
@@ -2100,7 +2112,7 @@ namespace Legion {
       }
       while (!application_call_infos.empty())
       {
-        ApplicationCallInfo &front = application_call_infos.front();
+        ApplicationCallInfo& front = application_call_infos.front();
         serializer->serialize(front);
         diff += sizeof(front);
         application_call_infos.pop_front();
@@ -2110,7 +2122,7 @@ namespace Legion {
       }
       while (!event_wait_infos.empty())
       {
-        EventWaitInfo &info = event_wait_infos.front();
+        EventWaitInfo& info = event_wait_infos.front();
         serializer->serialize(info);
         diff += sizeof(info);
         event_wait_infos.pop_front();
@@ -2120,7 +2132,7 @@ namespace Legion {
       }
       while (!event_merger_infos.empty())
       {
-        EventMergerInfo &info = event_merger_infos.front();
+        EventMergerInfo& info = event_merger_infos.front();
         serializer->serialize(info);
         diff += (sizeof(info) + (info.preconditions.size() * sizeof(LgEvent)));
         event_merger_infos.pop_front();
@@ -2130,7 +2142,7 @@ namespace Legion {
       }
       while (!event_trigger_infos.empty())
       {
-        EventTriggerInfo &info = event_trigger_infos.front();
+        EventTriggerInfo& info = event_trigger_infos.front();
         serializer->serialize(info);
         diff += sizeof(info);
         event_trigger_infos.pop_front();
@@ -2140,7 +2152,7 @@ namespace Legion {
       }
       while (!event_poison_infos.empty())
       {
-        EventPoisonInfo &info = event_poison_infos.front();
+        EventPoisonInfo& info = event_poison_infos.front();
         serializer->serialize(info);
         diff += sizeof(info);
         event_poison_infos.pop_front();
@@ -2150,7 +2162,7 @@ namespace Legion {
       }
       while (!barrier_arrival_infos.empty())
       {
-        BarrierArrivalInfo &info = barrier_arrival_infos.front();
+        BarrierArrivalInfo& info = barrier_arrival_infos.front();
         serializer->serialize(info);
         diff += sizeof(info);
         barrier_arrival_infos.pop_front();
@@ -2160,7 +2172,7 @@ namespace Legion {
       }
       while (!reservation_acquire_infos.empty())
       {
-        ReservationAcquireInfo &info = reservation_acquire_infos.front();
+        ReservationAcquireInfo& info = reservation_acquire_infos.front();
         serializer->serialize(info);
         diff += sizeof(info);
         reservation_acquire_infos.pop_front();
@@ -2170,7 +2182,7 @@ namespace Legion {
       }
       while (!instance_ready_infos.empty())
       {
-        InstanceReadyInfo &info = instance_ready_infos.front();
+        InstanceReadyInfo& info = instance_ready_infos.front();
         serializer->serialize(info);
         diff += sizeof(info);
         instance_ready_infos.pop_front();
@@ -2180,7 +2192,7 @@ namespace Legion {
       }
       while (!completion_queue_infos.empty())
       {
-        CompletionQueueInfo &info = completion_queue_infos.front();
+        CompletionQueueInfo& info = completion_queue_infos.front();
         serializer->serialize(info);
         diff += (sizeof(info) + (info.preconditions.size() * sizeof(LgEvent)));
         completion_queue_infos.pop_front();
@@ -2190,7 +2202,7 @@ namespace Legion {
       }
       while (!prof_task_infos.empty())
       {
-        ProfTaskInfo &front = prof_task_infos.front();
+        ProfTaskInfo& front = prof_task_infos.front();
         serializer->serialize(front);
         diff += sizeof(front);
         prof_task_infos.pop_front();
@@ -2202,41 +2214,33 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    LegionProfiler::LegionProfiler(Processor target, const Machine &machine,
-                                   unsigned num_meta_tasks,
-                                   const char *const *const task_descriptions,
-                                   unsigned num_message_kinds,
-                                   const char *const *const 
-                                                         message_descriptions,
-                                   unsigned num_operation_kinds,
-                                   const char *const *const 
-                                                  operation_kind_descriptions,
-                                   const char *serializer_type,
-                                   const char *prof_logfile,
-                                   const size_t total_runtime_instances,
-                                   const size_t footprint_threshold,
-                                   const size_t target_latency,
-                                   const size_t call_threshold,
-                                   const bool slow_config_ok,
-                                   const bool self_prof,
-                                   const bool no_critical,
-                                   const bool all_arrivals)
-      : done_event(Runtime::create_rt_user_event()), 
+    LegionProfiler::LegionProfiler(
+        Processor target, const Machine& machine, unsigned num_meta_tasks,
+        const char* const * const task_descriptions, unsigned num_message_kinds,
+        const char* const * const message_descriptions,
+        unsigned num_operation_kinds,
+        const char* const * const operation_kind_descriptions,
+        const char* serializer_type, const char* prof_logfile,
+        const size_t total_runtime_instances, const size_t footprint_threshold,
+        const size_t target_latency, const size_t call_threshold,
+        const bool slow_config_ok, const bool self_prof, const bool no_critical,
+        const bool all_arrivals)
+      : done_event(Runtime::create_rt_user_event()),
         minimum_call_threshold(call_threshold * 1000 /*convert us to ns*/),
-        output_footprint_threshold(footprint_threshold), 
-        output_target_latency(target_latency),
-        target_proc(target), self_profile(self_prof),
-        no_critical_paths(no_critical),
+        output_footprint_threshold(footprint_threshold),
+        output_target_latency(target_latency), target_proc(target),
+        self_profile(self_prof), no_critical_paths(no_critical),
 #ifdef DEBUG_LEGION_COLLECTIVES
         // Can't rely on the barrier reduction in this case
         all_critical_arrivals(true),
 #else
         all_critical_arrivals(all_arrivals),
 #endif
-        next_backtrace_id((runtime->address_space == 0) ?
-            runtime->total_address_spaces : runtime->address_space),
+        next_backtrace_id(
+            (runtime->address_space == 0) ? runtime->total_address_spaces :
+                                            runtime->address_space),
 #ifndef DEBUG_LEGION
-        total_outstanding_requests(1/*start with guard*/),
+        total_outstanding_requests(1 /*start with guard*/),
 #endif
         total_memory_footprint(0), implicit_top_level_task_proc(0),
         need_default_mapper_warning(!slow_config_ok)
@@ -2245,54 +2249,56 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(target_proc.exists());
 #endif
-      if (!strcmp(serializer_type, "binary")) 
+      if (!strcmp(serializer_type, "binary"))
       {
-        if (prof_logfile == nullptr) 
-          REPORT_LEGION_ERROR(ERROR_UNKNOWN_PROFILER_OPTION,
+        if (prof_logfile == nullptr)
+          REPORT_LEGION_ERROR(
+              ERROR_UNKNOWN_PROFILER_OPTION,
               "ERROR: Please specify -lg:prof_logfile "
               "<logfile_name> when running with -lg:serializer binary")
         std::string filename(prof_logfile);
         size_t pct = filename.find_first_of('%', 0);
-        if (pct == std::string::npos) 
+        if (pct == std::string::npos)
         {
           // This is only an error if we have multiple runtimes
           if (total_runtime_instances > 1)
-            REPORT_LEGION_ERROR(ERROR_MISSING_PROFILER_OPTION,
+            REPORT_LEGION_ERROR(
+                ERROR_MISSING_PROFILER_OPTION,
                 "ERROR: The logfile name must contain '%%' "
                 "which will be replaced with the node id\n")
           serializer = new LegionProfBinarySerializer(filename.c_str());
-        }
-        else
+        } else
         {
           // replace % with node number
           std::stringstream ss;
-          ss << filename.substr(0, pct) << target.address_space() <<
-                filename.substr(pct + 1);
+          ss << filename.substr(0, pct) << target.address_space()
+             << filename.substr(pct + 1);
           serializer = new LegionProfBinarySerializer(ss.str());
         }
-      } 
-      else if (!strcmp(serializer_type, "ascii")) 
+      } else if (!strcmp(serializer_type, "ascii"))
       {
-        if (prof_logfile != nullptr) 
-          REPORT_LEGION_WARNING(LEGION_WARNING_UNUSED_PROFILING_FILE_NAME,
-                    "You should not specify -lg:prof_logfile "
-                    "<logfile_name> when running with -lg:serializer ascii\n"
-                    "       legion_prof output will be written to '-logfile "
-                    "<logfile_name>' instead")
+        if (prof_logfile != nullptr)
+          REPORT_LEGION_WARNING(
+              LEGION_WARNING_UNUSED_PROFILING_FILE_NAME,
+              "You should not specify -lg:prof_logfile "
+              "<logfile_name> when running with -lg:serializer ascii\n"
+              "       legion_prof output will be written to '-logfile "
+              "<logfile_name>' instead")
         serializer = new LegionProfASCIISerializer();
-      } 
-      else 
-        REPORT_LEGION_ERROR(ERROR_INVALID_PROFILER_SERIALIZER,
-                "Invalid serializer (%s), must be 'binary' "
-                "or 'ascii'\n", serializer_type)
+      } else
+        REPORT_LEGION_ERROR(
+            ERROR_INVALID_PROFILER_SERIALIZER,
+            "Invalid serializer (%s), must be 'binary' "
+            "or 'ascii'\n",
+            serializer_type)
 
       // log machine info, this needs to be the first log
       LegionProfDesc::MachineDesc machine_desc;
 
       machine.get_process_info(target, &machine_desc.process_info);
       machine_desc.node_id = static_cast<unsigned>(runtime->address_space);
-      machine_desc.num_nodes = static_cast<unsigned>(
-        runtime->total_address_spaces);
+      machine_desc.num_nodes =
+          static_cast<unsigned>(runtime->total_address_spaces);
       machine_desc.version = LEGION_PROF_VERSION;
 
       serializer->serialize(machine_desc);
@@ -2317,8 +2323,8 @@ namespace Legion {
         LegionProfDesc::MetaDesc meta_desc;
         meta_desc.kind = num_meta_tasks + idx;
         meta_desc.message = true;
-        const VirtualChannelKind vc = 
-          MessageManager::find_message_vc((MessageKind)idx);
+        const VirtualChannelKind vc =
+            MessageManager::find_message_vc((MessageKind)idx);
         meta_desc.ordered_vc = (vc <= LAST_UNORDERED_VIRTUAL_CHANNEL);
         meta_desc.name = message_descriptions[idx];
         serializer->serialize(meta_desc);
@@ -2337,33 +2343,33 @@ namespace Legion {
       // Log the runtime configuration
       const LegionProfDesc::RuntimeConfig config = {
 #ifdef DEBUG_LEGION
-        true,
+          true,
 #else
-        false,
+          false,
 #endif
-        runtime->legion_spy_enabled,
+          runtime->legion_spy_enabled,
 #ifdef LEGION_GC
-        true,
+          true,
 #else
-        false,
+          false,
 #endif
-        runtime->program_order_execution,
-        runtime->safe_mapper,
-        runtime->check_privileges,
-        runtime->safe_control_replication > 0,
-        runtime->verify_partitions,
+          runtime->program_order_execution,
+          runtime->safe_mapper,
+          runtime->check_privileges,
+          runtime->safe_control_replication > 0,
+          runtime->verify_partitions,
 #ifdef LEGION_BOUNDS_CHECKS
-        true,
+          true,
 #else
-        false,
+          false,
 #endif
-        runtime->resilient_mode,
+          runtime->resilient_mode,
       };
       serializer->serialize(config);
 #ifdef DEBUG_LEGION
       for (unsigned idx = 0; idx < LEGION_PROF_LAST; idx++)
         total_outstanding_requests[idx] = 0;
-      total_outstanding_requests[LEGION_PROF_META] = 1; // guard
+      total_outstanding_requests[LEGION_PROF_META] = 1;  // guard
 #endif
     }
 
@@ -2371,66 +2377,64 @@ namespace Legion {
     LegionProfiler::~LegionProfiler(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<LegionProfInstance*>::const_iterator it = 
-            instances.begin(); it != instances.end(); it++)
+      for (std::vector<LegionProfInstance*>::const_iterator it =
+               instances.begin();
+           it != instances.end(); it++)
         delete (*it);
 
       // remove our serializer
       delete serializer;
-    } 
-
-    //--------------------------------------------------------------------------
-    LegionProfiler::ProfilingInfo::ProfilingInfo(LegionProfiler *p,
-                                                 ProfilingKind k, Operation *op)
-      : LegionProfInstance::ProfilingInfo(p, 
-          (op == nullptr) ? 0 : op->get_unique_op_id()), kind(k)
-    //--------------------------------------------------------------------------
-    {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::register_task_kind(TaskID task_id,
-                                            const char *name,bool overwrite)
+    LegionProfiler::ProfilingInfo::ProfilingInfo(
+        LegionProfiler* p, ProfilingKind k, Operation* op)
+      : LegionProfInstance::ProfilingInfo(
+            p, (op == nullptr) ? 0 : op->get_unique_op_id()),
+        kind(k)
+    //--------------------------------------------------------------------------
+    { }
+
+    //--------------------------------------------------------------------------
+    void LegionProfiler::register_task_kind(
+        TaskID task_id, const char* name, bool overwrite)
     //--------------------------------------------------------------------------
     {
-      const LegionProfDesc::TaskKind task_kind = { task_id, name, overwrite };
+      const LegionProfDesc::TaskKind task_kind = {task_id, name, overwrite};
       if (!serializer->is_thread_safe())
       {
         // Need a lock to protect the serializer
         AutoLock p_lock(profiler_lock);
         serializer->serialize(task_kind);
-      }
-      else
+      } else
         serializer->serialize(task_kind);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::register_task_variant(TaskID task_id,
-                                               VariantID variant_id,
-                                               const char *variant_name)
+    void LegionProfiler::register_task_variant(
+        TaskID task_id, VariantID variant_id, const char* variant_name)
     //--------------------------------------------------------------------------
     {
-      const LegionProfDesc::TaskVariant task_variant = 
-        { task_id, variant_id, variant_name };
+      const LegionProfDesc::TaskVariant task_variant = {
+          task_id, variant_id, variant_name};
       if (!serializer->is_thread_safe())
       {
         // Need a lock to protect the serializer
         AutoLock p_lock(profiler_lock);
         serializer->serialize(task_variant);
-      }
-      else
+      } else
         serializer->serialize(task_variant);
     }
 
     //--------------------------------------------------------------------------
-    unsigned long long LegionProfiler::find_backtrace_id(Realm::Backtrace &bt)
+    unsigned long long LegionProfiler::find_backtrace_id(Realm::Backtrace& bt)
     //--------------------------------------------------------------------------
     {
       const uintptr_t hash = bt.hash();
       {
-        AutoLock p_lock(profiler_lock,1,false/*exclusive*/);
-        std::map<uintptr_t,unsigned long long>::const_iterator finder =
-          backtrace_ids.find(hash);
+        AutoLock p_lock(profiler_lock, 1, false /*exclusive*/);
+        std::map<uintptr_t, unsigned long long>::const_iterator finder =
+            backtrace_ids.find(hash);
         if (finder != backtrace_ids.end())
           return finder->second;
       }
@@ -2440,14 +2444,14 @@ namespace Legion {
       const std::string str = ss.str();
       // Now retake the lock and see if we lost the race
       AutoLock p_lock(profiler_lock);
-      std::map<uintptr_t,unsigned long long>::const_iterator finder =
-        backtrace_ids.find(hash);
+      std::map<uintptr_t, unsigned long long>::const_iterator finder =
+          backtrace_ids.find(hash);
       if (finder != backtrace_ids.end())
         return finder->second;
       // Didn't lose the race so generate a new ID for this backtrace
       unsigned long long result = next_backtrace_id;
       next_backtrace_id += runtime->total_address_spaces;
-      const LegionProfDesc::Backtrace backtrace = { result, str.c_str() };
+      const LegionProfDesc::Backtrace backtrace = {result, str.c_str()};
       serializer->serialize(backtrace);
       backtrace_ids[hash] = result;
       return result;
@@ -2458,18 +2462,18 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock p_lock(profiler_lock,1,false/*exclusive*/);
-        if (std::binary_search(recorded_memories.begin(),
-              recorded_memories.end(), m))
+        AutoLock p_lock(profiler_lock, 1, false /*exclusive*/);
+        if (std::binary_search(
+                recorded_memories.begin(), recorded_memories.end(), m))
           return;
       }
       AutoLock p_lock(profiler_lock);
-      if (std::binary_search(recorded_memories.begin(),
-            recorded_memories.end(), m))
+      if (std::binary_search(
+              recorded_memories.begin(), recorded_memories.end(), m))
         return;
       // Also log all the affinities for this memory
       std::vector<Memory> memories_to_log(1, m);
-      record_affinities(memories_to_log); 
+      record_affinities(memories_to_log);
     }
 
     //--------------------------------------------------------------------------
@@ -2477,14 +2481,14 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       {
-        AutoLock p_lock(profiler_lock,1,false/*exclusive*/);
-        if (std::binary_search(recorded_processors.begin(),
-              recorded_processors.end(), p))
+        AutoLock p_lock(profiler_lock, 1, false /*exclusive*/);
+        if (std::binary_search(
+                recorded_processors.begin(), recorded_processors.end(), p))
           return;
       }
       AutoLock p_lock(profiler_lock);
-      if (std::binary_search(recorded_processors.begin(),
-            recorded_processors.end(), p))
+      if (std::binary_search(
+              recorded_processors.begin(), recorded_processors.end(), p))
         return;
       LegionProfDesc::ProcDesc proc;
       proc.proc_id = p.id;
@@ -2500,24 +2504,25 @@ namespace Legion {
       std::vector<ProcessorMemoryAffinity> affinities;
       runtime->machine.get_proc_mem_affinity(affinities, p);
       for (std::vector<ProcessorMemoryAffinity>::const_iterator pit =
-            affinities.begin(); pit != affinities.end(); pit++)
-        if (!std::binary_search(recorded_memories.begin(),
-              recorded_memories.end(), pit->m))
+               affinities.begin();
+           pit != affinities.end(); pit++)
+        if (!std::binary_search(
+                recorded_memories.begin(), recorded_memories.end(), pit->m))
           memories_to_log.push_back(pit->m);
       record_affinities(memories_to_log);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::record_affinities(std::vector<Memory> &memories_to_log)
+    void LegionProfiler::record_affinities(std::vector<Memory>& memories_to_log)
     //--------------------------------------------------------------------------
     {
       while (!memories_to_log.empty())
       {
         const Memory m = memories_to_log.back();
         memories_to_log.pop_back();
-        // Eagerly log the processor description to the logging file so 
+        // Eagerly log the processor description to the logging file so
         // that it appears before anything that needs it
-        const LegionProfDesc::MemDesc mem = { m.id, m.kind(), m.capacity() };
+        const LegionProfDesc::MemDesc mem = {m.id, m.kind(), m.capacity()};
         serializer->serialize(mem);
         recorded_memories.push_back(m);
         std::sort(recorded_memories.begin(), recorded_memories.end());
@@ -2525,17 +2530,19 @@ namespace Legion {
         runtime->machine.get_proc_mem_affinity(
             memory_affinities, Processor::NO_PROC, m);
         for (std::vector<ProcessorMemoryAffinity>::const_iterator mit =
-              memory_affinities.begin(); mit != memory_affinities.end(); mit++)
+                 memory_affinities.begin();
+             mit != memory_affinities.end(); mit++)
         {
-          if (!std::binary_search(recorded_processors.begin(),
-                recorded_processors.end(), mit->p))
+          if (!std::binary_search(
+                  recorded_processors.begin(), recorded_processors.end(),
+                  mit->p))
           {
             LegionProfDesc::ProcDesc proc;
             proc.proc_id = mit->p.id;
             proc.kind = mit->p.kind();
 #ifdef LEGION_USE_CUDA
-            if (!Realm::Cuda::get_cuda_device_uuid(mit->p, 
-                  &proc.cuda_device_uuid))
+            if (!Realm::Cuda::get_cuda_device_uuid(
+                    mit->p, &proc.cuda_device_uuid))
               proc.cuda_device_uuid[0] = 0;
 #endif
             serializer->serialize(proc);
@@ -2545,15 +2552,16 @@ namespace Legion {
             runtime->machine.get_proc_mem_affinity(
                 processor_affinities, mit->p);
             for (std::vector<ProcessorMemoryAffinity>::const_iterator pit =
-                  processor_affinities.begin(); pit != 
-                  processor_affinities.end(); pit++)
-              if (!std::binary_search(recorded_memories.begin(),
-                    recorded_memories.end(), pit->m))
+                     processor_affinities.begin();
+                 pit != processor_affinities.end(); pit++)
+              if (!std::binary_search(
+                      recorded_memories.begin(), recorded_memories.end(),
+                      pit->m))
                 memories_to_log.push_back(pit->m);
           }
-          const LegionProfDesc::ProcMemDesc info =
-            { mit->p.id, m.id, mit->bandwidth, mit->latency };
-          serializer->serialize(info); 
+          const LegionProfDesc::ProcMemDesc info = {
+              mit->p.id, m.id, mit->bandwidth, mit->latency};
+          serializer->serialize(info);
         }
       }
     }
@@ -2568,7 +2576,8 @@ namespace Legion {
       // Figure out how many local processors there are on this node
       Machine::ProcessorQuery query(runtime->machine);
       query.local_address_space();
-      proc = Realm::ID::make_processor(runtime->address_space,query.count()).id;
+      proc =
+          Realm::ID::make_processor(runtime->address_space, query.count()).id;
       AutoLock p_lock(profiler_lock);
       // Check to see if we lost the race
       if (implicit_top_level_task_proc.load() > 0)
@@ -2589,8 +2598,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_task_request(Realm::ProfilingRequestSet &requests,
-    TaskID tid, VariantID vid, UniqueID task_uid, Processor p, LgEvent critical)
+    void LegionProfiler::add_task_request(
+        Realm::ProfilingRequestSet& requests, TaskID tid, VariantID vid,
+        UniqueID task_uid, Processor p, LgEvent critical)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2598,28 +2608,27 @@ namespace Legion {
 #else
       increment_total_outstanding_requests();
 #endif
-      ProfilingInfo info(this, LEGION_PROF_TASK, task_uid); 
+      ProfilingInfo info(this, LEGION_PROF_TASK, task_uid);
       info.id = tid;
       info.extra.id2 = vid;
       info.critical = critical;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
       req.add_measurement<
-                Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationProcessorUsage>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationEventWaits>();
+          Realm::ProfilingMeasurements::OperationProcessorUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationEventWaits>();
       if (p.kind() == Processor::TOC_PROC)
         req.add_measurement<
-          Realm::ProfilingMeasurements::OperationTimelineGPU>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationFinishEvent>();
+            Realm::ProfilingMeasurements::OperationTimelineGPU>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_meta_request(Realm::ProfilingRequestSet &requests,
-                                  LgTaskID tid, Operation *op, LgEvent critical)
+    void LegionProfiler::add_meta_request(
+        Realm::ProfilingRequestSet& requests, LgTaskID tid, Operation* op,
+        LgEvent critical)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2627,24 +2636,22 @@ namespace Legion {
 #else
       increment_total_outstanding_requests();
 #endif
-      ProfilingInfo info(this, LEGION_PROF_META, op); 
+      ProfilingInfo info(this, LEGION_PROF_META, op);
       info.id = tid;
       info.critical = critical;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
       req.add_measurement<
-                Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationProcessorUsage>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationEventWaits>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationFinishEvent>();
+          Realm::ProfilingMeasurements::OperationProcessorUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationEventWaits>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
     /*static*/ void LegionProfiler::add_message_request(
-        Realm::ProfilingRequestSet &requests, MessageKind k,
+        Realm::ProfilingRequestSet& requests, MessageKind k,
         Processor remote_target, LgEvent critical)
     //--------------------------------------------------------------------------
     {
@@ -2659,24 +2666,21 @@ namespace Legion {
       // see how long it took for that active message to make it there
       // Do this last so it is as close the actual spawn as possible
       info.extra.spawn_time = Realm::Clock::current_time_in_nanoseconds();
-      Realm::ProfilingRequest &req = requests.add_request(remote_target,
-                LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
+      Realm::ProfilingRequest& req = requests.add_request(
+          remote_target, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
       req.add_measurement<
-                Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationProcessorUsage>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationEventWaits>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationFinishEvent>();
+          Realm::ProfilingMeasurements::OperationProcessorUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationEventWaits>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_copy_request(Realm::ProfilingRequestSet &requests,
-                                          InstanceNameClosure *closure,
-                                          Operation *op, LgEvent critical,
-                                          unsigned count,
-                                          CollectiveKind collective)
+    void LegionProfiler::add_copy_request(
+        Realm::ProfilingRequestSet& requests, InstanceNameClosure* closure,
+        Operation* op, LgEvent critical, unsigned count,
+        CollectiveKind collective)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2684,29 +2688,25 @@ namespace Legion {
 #else
       increment_total_outstanding_requests(count);
 #endif
-      ProfilingInfo info(this, LEGION_PROF_COPY, op); 
+      ProfilingInfo info(this, LEGION_PROF_COPY, op);
       // Use ID to encode the collective copy kind
       info.id = collective;
       info.critical = critical;
       closure->add_reference(count);
       info.extra.closure = closure;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationMemoryUsage>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationCopyInfo>();
-      req.add_measurement<
-        Realm::ProfilingMeasurements::OperationFinishEvent>();
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationMemoryUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_fill_request(Realm::ProfilingRequestSet &requests,
-                                          InstanceNameClosure *closure,
-                                          Operation *op, LgEvent critical, 
-                                          CollectiveKind collective)
+    void LegionProfiler::add_fill_request(
+        Realm::ProfilingRequestSet& requests, InstanceNameClosure* closure,
+        Operation* op, LgEvent critical, CollectiveKind collective)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2720,39 +2720,36 @@ namespace Legion {
       info.critical = critical;
       closure->add_reference();
       info.extra.closure = closure;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationMemoryUsage>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationCopyInfo>();
-      req.add_measurement<
-        Realm::ProfilingMeasurements::OperationFinishEvent>();
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationMemoryUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_inst_request(Realm::ProfilingRequestSet &requests,
-                                          Operation *op, LgEvent unique_event)
+    void LegionProfiler::add_inst_request(
+        Realm::ProfilingRequestSet& requests, Operation* op,
+        LgEvent unique_event)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      increment_total_outstanding_requests(LEGION_PROF_INST); 
+      increment_total_outstanding_requests(LEGION_PROF_INST);
 #else
       increment_total_outstanding_requests();
 #endif
-      ProfilingInfo info(this, LEGION_PROF_INST, op); 
+      ProfilingInfo info(this, LEGION_PROF_INST, op);
       // No ID here
       info.id = unique_event.id;
       // Instances use two profiling requests so that we can get MemoryUsage
       // right away - the Timeline doesn't come until we delete the instance
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                 LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
-      req.add_measurement<
-                 Realm::ProfilingMeasurements::InstanceMemoryUsage>();
-      req.add_measurement<
-                 Realm::ProfilingMeasurements::InstanceTimeline>();
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::InstanceMemoryUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::InstanceTimeline>();
     }
 
     //--------------------------------------------------------------------------
@@ -2768,9 +2765,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LegionProfiler::add_partition_request(
-                                           Realm::ProfilingRequestSet &requests,
-                                           Operation *op, DepPartOpKind part_op,
-                                           LgEvent critical)
+        Realm::ProfilingRequestSet& requests, Operation* op,
+        DepPartOpKind part_op, LgEvent critical)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2782,18 +2778,18 @@ namespace Legion {
       // Pass the part_op as the ID
       info.id = part_op;
       info.critical = critical;
-      Realm::ProfilingRequest &req = requests.add_request((target_proc.exists())
-                        ? target_proc : Processor::get_executing_processor(),
-                        LG_LEGION_PROFILING_ID, &info, sizeof(info));
-      req.add_measurement<
-                  Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-        Realm::ProfilingMeasurements::OperationFinishEvent>();
+      Realm::ProfilingRequest& req = requests.add_request(
+          (target_proc.exists()) ? target_proc :
+                                   Processor::get_executing_processor(),
+          LG_LEGION_PROFILING_ID, &info, sizeof(info));
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_task_request(Realm::ProfilingRequestSet &requests,
-                      TaskID tid, VariantID vid, UniqueID uid, LgEvent critical)
+    void LegionProfiler::add_task_request(
+        Realm::ProfilingRequestSet& requests, TaskID tid, VariantID vid,
+        UniqueID uid, LgEvent critical)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2801,25 +2797,24 @@ namespace Legion {
 #else
       increment_total_outstanding_requests();
 #endif
-      ProfilingInfo info(this, LEGION_PROF_TASK, uid); 
+      ProfilingInfo info(this, LEGION_PROF_TASK, uid);
       info.id = tid;
       info.extra.id2 = vid;
       info.critical = critical;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
       req.add_measurement<
-                Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationProcessorUsage>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationEventWaits>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationFinishEvent>();
+          Realm::ProfilingMeasurements::OperationProcessorUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationEventWaits>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_meta_request(Realm::ProfilingRequestSet &requests,
-                                   LgTaskID tid, UniqueID uid, LgEvent critical)
+    void LegionProfiler::add_meta_request(
+        Realm::ProfilingRequestSet& requests, LgTaskID tid, UniqueID uid,
+        LgEvent critical)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2827,27 +2822,24 @@ namespace Legion {
 #else
       increment_total_outstanding_requests();
 #endif
-      ProfilingInfo info(this, LEGION_PROF_META, uid); 
+      ProfilingInfo info(this, LEGION_PROF_META, uid);
       info.id = tid;
       info.critical = critical;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
       req.add_measurement<
-                Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationProcessorUsage>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationEventWaits>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationFinishEvent>();
+          Realm::ProfilingMeasurements::OperationProcessorUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationEventWaits>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_copy_request(Realm::ProfilingRequestSet &requests,
-                                          InstanceNameClosure *closure,
-                                          UniqueID uid, LgEvent critical,
-                                          unsigned count,
-                                          CollectiveKind collective)
+    void LegionProfiler::add_copy_request(
+        Realm::ProfilingRequestSet& requests, InstanceNameClosure* closure,
+        UniqueID uid, LgEvent critical, unsigned count,
+        CollectiveKind collective)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2855,29 +2847,25 @@ namespace Legion {
 #else
       increment_total_outstanding_requests(count);
 #endif
-      ProfilingInfo info(this, LEGION_PROF_COPY, uid); 
+      ProfilingInfo info(this, LEGION_PROF_COPY, uid);
       // Use ID to encode the collective copy kind
       info.id = collective;
       info.critical = critical;
       closure->add_reference(count);
       info.extra.closure = closure;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationMemoryUsage>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationCopyInfo>();
-      req.add_measurement<
-        Realm::ProfilingMeasurements::OperationFinishEvent>();
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationMemoryUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_fill_request(Realm::ProfilingRequestSet &requests,
-                                          InstanceNameClosure *closure,
-                                          UniqueID uid, LgEvent critical,
-                                          CollectiveKind collective)
+    void LegionProfiler::add_fill_request(
+        Realm::ProfilingRequestSet& requests, InstanceNameClosure* closure,
+        UniqueID uid, LgEvent critical, CollectiveKind collective)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2891,21 +2879,19 @@ namespace Legion {
       info.critical = critical;
       closure->add_reference();
       info.extra.closure = closure;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationMemoryUsage>();
-      req.add_measurement<
-                Realm::ProfilingMeasurements::OperationCopyInfo>();
-      req.add_measurement<
-        Realm::ProfilingMeasurements::OperationFinishEvent>();
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationMemoryUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationCopyInfo>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::add_inst_request(Realm::ProfilingRequestSet &requests,
-                                          UniqueID uid, LgEvent unique_event)
+    void LegionProfiler::add_inst_request(
+        Realm::ProfilingRequestSet& requests, UniqueID uid,
+        LgEvent unique_event)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2913,24 +2899,22 @@ namespace Legion {
 #else
       increment_total_outstanding_requests();
 #endif
-      ProfilingInfo info(this, LEGION_PROF_INST, uid); 
+      ProfilingInfo info(this, LEGION_PROF_INST, uid);
       // No ID here
       info.id = unique_event.id;
       // Instances use two profiling requests so that we can get MemoryUsage
       // right away - the Timeline doesn't come until we delete the instance
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                 LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
-      req.add_measurement<
-                 Realm::ProfilingMeasurements::InstanceMemoryUsage>();
-      req.add_measurement<
-                 Realm::ProfilingMeasurements::InstanceTimeline>();
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::InstanceMemoryUsage>();
+      req.add_measurement<Realm::ProfilingMeasurements::InstanceTimeline>();
     }
 
     //--------------------------------------------------------------------------
     void LegionProfiler::add_partition_request(
-                                           Realm::ProfilingRequestSet &requests,
-                                           UniqueID uid, DepPartOpKind part_op,
-                                           LgEvent critical)
+        Realm::ProfilingRequestSet& requests, UniqueID uid,
+        DepPartOpKind part_op, LgEvent critical)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2942,17 +2926,17 @@ namespace Legion {
       // Pass the partition op kind as the ID
       info.id = part_op;
       info.critical = critical;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-                  LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_MIN_PRIORITY);
-      req.add_measurement<
-                  Realm::ProfilingMeasurements::OperationTimeline>();
-      req.add_measurement<
-        Realm::ProfilingMeasurements::OperationFinishEvent>();
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_MIN_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
+      req.add_measurement<Realm::ProfilingMeasurements::OperationFinishEvent>();
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::profile_barrier_arrival(Realm::Barrier bar, 
-        size_t count, LgEvent precondition, Realm::Event protected_precondition)
+    void LegionProfiler::profile_barrier_arrival(
+        Realm::Barrier bar, size_t count, LgEvent precondition,
+        Realm::Event protected_precondition)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2962,7 +2946,7 @@ namespace Legion {
       increment_total_outstanding_requests();
 #endif
       // This is tricky: to measure when the arrival for this barrier is
-      // actually done then we are going to run a no-op task when the 
+      // actually done then we are going to run a no-op task when the
       // protected precondition triggers. It's a no-op because it is not
       // actually going to do anything, we're just using the 'ready' time
       // from its timeline to establish when the precondition has triggered
@@ -2975,19 +2959,20 @@ namespace Legion {
       info.critical = precondition;
       Realm::ProfilingRequestSet requests;
       // Give this high priority since it actually needs to arrive on the bar
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-          LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_RESOURCE_PRIORITY);
-      req.add_measurement<
-                  Realm::ProfilingMeasurements::OperationTimeline>();
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_RESOURCE_PRIORITY);
+      req.add_measurement<Realm::ProfilingMeasurements::OperationTimeline>();
       // Also give this high priority to run as soon as possible when ready
       // so we can get its profiling response back as well
-      target_proc.spawn(Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0,
-          requests, protected_precondition, LG_RESOURCE_PRIORITY);
+      target_proc.spawn(
+          Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0, requests,
+          protected_precondition, LG_RESOURCE_PRIORITY);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::profile_barrier_trigger(Realm::Barrier bar,
-                                                 UniqueID uid)
+    void LegionProfiler::profile_barrier_trigger(
+        Realm::Barrier bar, UniqueID uid)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -2998,19 +2983,21 @@ namespace Legion {
       ProfilingInfo info(this, LEGION_PROF_BARRIER, uid);
       info.id = bar.id;
       Realm::ProfilingRequestSet requests;
-      Realm::ProfilingRequest &req = requests.add_request(target_proc,
-          LG_LEGION_PROFILING_ID, &info, sizeof(info), LG_LOW_PRIORITY);
+      Realm::ProfilingRequest& req = requests.add_request(
+          target_proc, LG_LEGION_PROFILING_ID, &info, sizeof(info),
+          LG_LOW_PRIORITY);
       req.add_measurement<Realm::ProfilingMeasurements::OperationStatus>();
       // Launch a no-op task with low priority just to get a profiling
       // response back once the barrier has triggered. This will also
       // ensure we subscribe to the barrier and get its result
-      target_proc.spawn(Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0,
-          requests, bar, LG_LOW_PRIORITY);
+      target_proc.spawn(
+          Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0, requests, bar,
+          LG_LOW_PRIORITY);
     }
 
     //--------------------------------------------------------------------------
-    bool LegionProfiler::update_previous_recorded_barrier(Realm::Barrier bar,
-                                                       Realm::Barrier &previous)
+    bool LegionProfiler::update_previous_recorded_barrier(
+        Realm::Barrier bar, Realm::Barrier& previous)
     //--------------------------------------------------------------------------
     {
       Realm::ID id(bar.id);
@@ -3018,29 +3005,31 @@ namespace Legion {
       assert(bar.exists());
       assert(id.is_barrier());
 #endif
-      const std::pair<unsigned,unsigned> key(
+      const std::pair<unsigned, unsigned> key(
           id.barrier_creator_node(), id.barrier_barrier_idx());
       const unsigned generation = id.barrier_generation();
       AutoLock prof_lock(profiler_lock);
-      std::map<std::pair<unsigned,unsigned>,unsigned>::iterator finder =
-        recorded_barriers.find(key);
+      std::map<std::pair<unsigned, unsigned>, unsigned>::iterator finder =
+          recorded_barriers.find(key);
       if (finder != recorded_barriers.end())
       {
         // Already recorded through this generation
         if (generation <= finder->second)
           return false;
-        previous.id = Realm::ID::make_barrier(finder->first.first,
-            finder->first.second, finder->second).id;
-        if ((generation+1) == Realm::Barrier::MAX_PHASES)
+        previous.id =
+            Realm::ID::make_barrier(
+                finder->first.first, finder->first.second, finder->second)
+                .id;
+        if ((generation + 1) == Realm::Barrier::MAX_PHASES)
           recorded_barriers.erase(finder);
         else
           finder->second = generation;
-      }
-      else
+      } else
       {
-        previous.id = Realm::ID::make_barrier(key.first,
-            key.second, 0/*base generation*/).id;
-        if ((generation+1) < Realm::Barrier::MAX_PHASES)
+        previous.id = Realm::ID::make_barrier(
+                          key.first, key.second, 0 /*base generation*/)
+                          .id;
+        if ((generation + 1) < Realm::Barrier::MAX_PHASES)
           recorded_barriers[key] = generation;
       }
       return true;
@@ -3048,8 +3037,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool LegionProfiler::handle_profiling_response(
-        const Realm::ProfilingResponse &response, const void *orig,
-        size_t orig_length, LgEvent &fevent, bool &failed_alloc)
+        const Realm::ProfilingResponse& response, const void* orig,
+        size_t orig_length, LgEvent& fevent, bool& failed_alloc)
     //--------------------------------------------------------------------------
     {
       long long start = 0;
@@ -3058,8 +3047,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(response.user_data_size() == sizeof(ProfilingInfo));
 #endif
-      const ProfilingInfo *info =
-        static_cast<const ProfilingInfo*>(response.user_data());
+      const ProfilingInfo* info =
+          static_cast<const ProfilingInfo*>(response.user_data());
       switch (info->kind)
       {
         case LEGION_PROF_TASK:
@@ -3067,7 +3056,9 @@ namespace Legion {
             Realm::ProfilingMeasurements::OperationProcessorUsage usage;
             // Check for predication and speculation
             if (response.get_measurement<
-                Realm::ProfilingMeasurements::OperationProcessorUsage>(usage)) {
+                    Realm::ProfilingMeasurements::OperationProcessorUsage>(
+                    usage))
+            {
               implicit_profiler->process_proc_desc(usage.proc);
               implicit_profiler->process_task(info, response, usage);
             }
@@ -3078,9 +3069,11 @@ namespace Legion {
             Realm::ProfilingMeasurements::OperationProcessorUsage usage;
             // Check for predication and speculation
             if (response.get_measurement<
-                Realm::ProfilingMeasurements::OperationProcessorUsage>(usage)) {
+                    Realm::ProfilingMeasurements::OperationProcessorUsage>(
+                    usage))
+            {
               implicit_profiler->process_proc_desc(usage.proc);
-              implicit_profiler->process_meta(info, response, usage); 
+              implicit_profiler->process_meta(info, response, usage);
             }
             break;
           }
@@ -3089,7 +3082,9 @@ namespace Legion {
             Realm::ProfilingMeasurements::OperationProcessorUsage usage;
             // Check for predication and speculation
             if (response.get_measurement<
-                Realm::ProfilingMeasurements::OperationProcessorUsage>(usage)) {
+                    Realm::ProfilingMeasurements::OperationProcessorUsage>(
+                    usage))
+            {
               implicit_profiler->process_proc_desc(usage.proc);
               implicit_profiler->process_message(info, response, usage);
             }
@@ -3100,7 +3095,8 @@ namespace Legion {
             Realm::ProfilingMeasurements::OperationMemoryUsage usage;
             // Check for predication and speculation
             if (response.get_measurement<
-                Realm::ProfilingMeasurements::OperationMemoryUsage>(usage)) {
+                    Realm::ProfilingMeasurements::OperationMemoryUsage>(usage))
+            {
               implicit_profiler->process_mem_desc(usage.source);
               implicit_profiler->process_mem_desc(usage.target);
               implicit_profiler->process_copy(info, response, usage);
@@ -3112,7 +3108,8 @@ namespace Legion {
             Realm::ProfilingMeasurements::OperationMemoryUsage usage;
             // Check for predication and speculation
             if (response.get_measurement<
-                Realm::ProfilingMeasurements::OperationMemoryUsage>(usage)) {
+                    Realm::ProfilingMeasurements::OperationMemoryUsage>(usage))
+            {
               implicit_profiler->process_mem_desc(usage.target);
               implicit_profiler->process_fill(info, response, usage);
             }
@@ -3120,17 +3117,17 @@ namespace Legion {
           }
         case LEGION_PROF_INST:
           {
-	    // Record data based on which measurements we got back this time
+            // Record data based on which measurements we got back this time
             Realm::ProfilingMeasurements::InstanceTimeline timeline;
             Realm::ProfilingMeasurements::InstanceMemoryUsage usage;
-	    if (response.get_measurement<
+            if (response.get_measurement<
                     Realm::ProfilingMeasurements::InstanceTimeline>(timeline) &&
                 response.get_measurement<
                     Realm::ProfilingMeasurements::InstanceMemoryUsage>(usage))
             {
               implicit_profiler->process_mem_desc(usage.memory);
-	      implicit_profiler->process_inst_timeline(info,
-                                                      response, usage, timeline);
+              implicit_profiler->process_inst_timeline(
+                  info, response, usage, timeline);
             }
             break;
           }
@@ -3151,7 +3148,7 @@ namespace Legion {
             Realm::ProfilingMeasurements::OperationStatus status;
             if (response.get_measurement(status) &&
                 (status.result == Realm::ProfilingMeasurements::
-                 OperationStatus::COMPLETED_SUCCESSFULLY))
+                                      OperationStatus::COMPLETED_SUCCESSFULLY))
             {
               LgEvent barrier;
               barrier.id = info->id;
@@ -3172,18 +3169,18 @@ namespace Legion {
         {
           fevent.id = info->id;
           const long long stop = Realm::Clock::current_time_in_nanoseconds();
-          implicit_profiler->record_proftask(proc, info->op_id,
-              start, stop, fevent, implicit_fevent, true/*completion*/);
-        }
-        else
+          implicit_profiler->record_proftask(
+              proc, info->op_id, start, stop, fevent, implicit_fevent,
+              true /*completion*/);
+        } else
         {
           Realm::ProfilingMeasurements::OperationFinishEvent finish;
           if (response.get_measurement(finish))
           {
             const long long stop = Realm::Clock::current_time_in_nanoseconds();
-            implicit_profiler->record_proftask(proc, info->op_id,
-                start, stop, LgEvent(finish.finish_event), 
-                implicit_fevent, true/*completion*/);
+            implicit_profiler->record_proftask(
+                proc, info->op_id, start, stop, LgEvent(finish.finish_event),
+                implicit_fevent, true /*completion*/);
           }
         }
       }
@@ -3211,31 +3208,33 @@ namespace Legion {
       serializer->serialize(calibration_err);
       if (!done_event.has_triggered())
         done_event.wait();
-      for (std::vector<LegionProfInstance*>::const_iterator it = 
-            instances.begin(); it != instances.end(); it++) {
+      for (std::vector<LegionProfInstance*>::const_iterator it =
+               instances.begin();
+           it != instances.end(); it++)
+      {
         (*it)->dump_state(serializer);
-      }  
+      }
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::record_mapper_name(MapperID mapper, Processor proc,
-                                            const char *name)
+    void LegionProfiler::record_mapper_name(
+        MapperID mapper, Processor proc, const char* name)
     //--------------------------------------------------------------------------
     {
-      LegionProfDesc::MapperName mapper_name = { mapper, proc.id, name };
+      LegionProfDesc::MapperName mapper_name = {mapper, proc.id, name};
       if (!serializer->is_thread_safe())
       {
         // Need a lock to protect the serializer
         AutoLock p_lock(profiler_lock);
         serializer->serialize(mapper_name);
-      }
-      else
+      } else
         serializer->serialize(mapper_name);
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::record_mapper_call_kinds(const char *const *const
-                               mapper_call_names, unsigned int num_mapper_calls)
+    void LegionProfiler::record_mapper_call_kinds(
+        const char* const * const mapper_call_names,
+        unsigned int num_mapper_calls)
     //--------------------------------------------------------------------------
     {
       for (unsigned idx = 0; idx < num_mapper_calls; idx++)
@@ -3248,8 +3247,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::record_runtime_call_kinds(const char *const *const
-                             runtime_call_names, unsigned int num_runtime_calls)
+    void LegionProfiler::record_runtime_call_kinds(
+        const char* const * const runtime_call_names,
+        unsigned int num_runtime_calls)
     //--------------------------------------------------------------------------
     {
       for (unsigned idx = 0; idx < num_runtime_calls; idx++)
@@ -3262,11 +3262,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::record_provenance(ProvenanceID pid,
-                                           const char *provenance, size_t size)
+    void LegionProfiler::record_provenance(
+        ProvenanceID pid, const char* provenance, size_t size)
     //--------------------------------------------------------------------------
     {
-      LegionProfDesc::Provenance prov = { pid, provenance, size };
+      LegionProfDesc::Provenance prov = {pid, provenance, size};
       // This one cannot be buffered, we need to log it right away so that it is
       // available to the profiler for all logging statements that come after it
       if (!serializer->is_thread_safe())
@@ -3274,8 +3274,7 @@ namespace Legion {
         // Need a lock to protect the serializer
         AutoLock p_lock(profiler_lock);
         serializer->serialize(prov);
-      }
-      else
+      } else
         serializer->serialize(prov);
     }
 
@@ -3293,21 +3292,21 @@ namespace Legion {
       // This part is a bit tricky: we want the implicit_fevent to always be
       // an event local to this node so that the profiler can always look up
       // which node ot consult based on the fevent for a task. However, Realm
-      // creates the finish_event for messages on the node where they are 
-      // spawned and not where they are run, so we have to rename the 
+      // creates the finish_event for messages on the node where they are
+      // spawned and not where they are run, so we have to rename the
       // implicit_fevent here to an event local to this node, so we do that
       // here before we handle the message, and then we pretend like the
-      // actuall finish event is a user event triggered after we get the 
+      // actuall finish event is a user event triggered after we get the
       // profiling response for this task.
       const Realm::UserEvent rename = Realm::UserEvent::create_user_event();
       rename.trigger();
       const LgEvent fevent(rename);
-      // Well this is fun, we might even block on this lock acquire so 
+      // Well this is fun, we might even block on this lock acquire so
       // make sure we've set up our implicit fevent correctly
       const LgEvent original_fevent = implicit_fevent;
       implicit_fevent = fevent;
       // Save the current implicit fevent so we can look it up later
-      AutoLock prof_lock(profiler_lock); 
+      AutoLock prof_lock(profiler_lock);
       message_fevents[original_fevent] = fevent;
     }
 
@@ -3316,8 +3315,8 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock prof_lock(profiler_lock);
-      std::map<LgEvent,LgEvent>::iterator finder = 
-        message_fevents.find(original_fevent);
+      std::map<LgEvent, LgEvent>::iterator finder =
+          message_fevents.find(original_fevent);
 #ifdef DEBUG_LEGION
       assert(finder != message_fevents.end());
 #endif
@@ -3329,7 +3328,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
     //--------------------------------------------------------------------------
     void LegionProfiler::increment_total_outstanding_requests(
-                                               ProfilingKind kind, unsigned cnt)
+        ProfilingKind kind, unsigned cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock p_lock(profiler_lock);
@@ -3338,7 +3337,7 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void LegionProfiler::decrement_total_outstanding_requests(
-                                               ProfilingKind kind, unsigned cnt)
+        ProfilingKind kind, unsigned cnt)
     //--------------------------------------------------------------------------
     {
       AutoLock p_lock(profiler_lock);
@@ -3384,7 +3383,7 @@ namespace Legion {
 #endif
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::update_footprint(size_t diff, LegionProfInstance *inst)
+    void LegionProfiler::update_footprint(size_t diff, LegionProfInstance* inst)
     //--------------------------------------------------------------------------
     {
       size_t footprint = total_memory_footprint.fetch_add(diff) + diff;
@@ -3395,10 +3394,12 @@ namespace Legion {
         // the limit we are then the more time we give the profiler to dump
         // out things to the output file. We'll try to make this continuous
         // so there are no discontinuities in performance. If the threshold
-        // is zero we'll just choose an arbitrarily large scale factor to 
+        // is zero we'll just choose an arbitrarily large scale factor to
         // ensure that things work properly.
-        double over_scale = output_footprint_threshold == 0 ? double(1 << 20) :
-                        double(footprint) / double(output_footprint_threshold);
+        double over_scale =
+            output_footprint_threshold == 0 ?
+                double(1 << 20) :
+                double(footprint) / double(output_footprint_threshold);
         // Let's actually make this quadratic so it's not just linear
         if (output_footprint_threshold > 0)
           over_scale *= over_scale;
@@ -3407,31 +3408,30 @@ namespace Legion {
           // Need a lock to protect the serializer
           AutoLock p_lock(profiler_lock);
           diff = inst->dump_inter(serializer, over_scale);
-        }
-        else
+        } else
           diff = inst->dump_inter(serializer, over_scale);
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
-        footprint = 
+        footprint =
 #endif
 #endif
-          total_memory_footprint.fetch_sub(diff);
+            total_memory_footprint.fetch_sub(diff);
 #ifdef DEBUG_LEGION
-        assert(footprint >= diff); // check for wrap-around
+        assert(footprint >= diff);  // check for wrap-around
 #endif
       }
     }
 
     //--------------------------------------------------------------------------
-    void LegionProfiler::issue_default_mapper_warning(Operation *op,
-                                                   const char *mapper_call_name)
+    void LegionProfiler::issue_default_mapper_warning(
+        Operation* op, const char* mapper_call_name)
     //--------------------------------------------------------------------------
     {
       // We'll skip any warnings for now with no operation
       if (op == nullptr)
         return;
       // We'll only issue this warning once on each node for now
-      if (!need_default_mapper_warning.exchange(false/*no longer needed*/))
+      if (!need_default_mapper_warning.exchange(false /*no longer needed*/))
         return;
       // Check to see if the application has registered other mappers other
       // than the default mapper, if it has then we don't issue this warning
@@ -3439,47 +3439,52 @@ namespace Legion {
         return;
       // Give a massive warning for profilig when using the default mapper
       for (int i = 0; i < 2; i++)
-        fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
       for (int i = 0; i < 4; i++)
-        fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        fprintf(stderr, "!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
       for (int i = 0; i < 2; i++)
-        fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-      fprintf(stderr,"!!! YOU ARE PROFILING USING THE DEFAULT MAPPER!!!\n");
-      fprintf(stderr,"!!! THE DEFAULT MAPPER IS NOT FOR PERFORMANCE !!!\n");
-      fprintf(stderr,"!!! PLEASE CUSTOMIZE YOUR MAPPER TO YOUR      !!!\n");
-      fprintf(stderr,"!!! APPLICATION AND TO YOUR TARGET MACHINE    !!!\n");
-      InnerContext *context = op->get_context();
+        fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+      fprintf(stderr, "!!! YOU ARE PROFILING USING THE DEFAULT MAPPER!!!\n");
+      fprintf(stderr, "!!! THE DEFAULT MAPPER IS NOT FOR PERFORMANCE !!!\n");
+      fprintf(stderr, "!!! PLEASE CUSTOMIZE YOUR MAPPER TO YOUR      !!!\n");
+      fprintf(stderr, "!!! APPLICATION AND TO YOUR TARGET MACHINE    !!!\n");
+      InnerContext* context = op->get_context();
       if (op->get_operation_kind() == TASK_OP_KIND)
       {
-        TaskOp *task = static_cast<TaskOp*>(op);
-        if (context->get_owner_task() != nullptr) 
-          fprintf(stderr,"First use of the default mapper in address space %d\n"
-                         "occurred when task %s (UID %lld) in parent task %s "
-                         "(UID %lld)\ninvoked the \"%s\" mapper call\n",
-                         runtime->address_space, task->get_task_name(),
-                         task->get_unique_op_id(), context->get_task_name(),
-                         context->get_unique_id(), mapper_call_name);
+        TaskOp* task = static_cast<TaskOp*>(op);
+        if (context->get_owner_task() != nullptr)
+          fprintf(
+              stderr,
+              "First use of the default mapper in address space %d\n"
+              "occurred when task %s (UID %lld) in parent task %s "
+              "(UID %lld)\ninvoked the \"%s\" mapper call\n",
+              runtime->address_space, task->get_task_name(),
+              task->get_unique_op_id(), context->get_task_name(),
+              context->get_unique_id(), mapper_call_name);
         else
-          fprintf(stderr,"First use of the default mapper in address space %d\n"
-                         "occurred when task %s (UID %lld) invoked the \"%s\" "
-                         "mapper call\n", runtime->address_space,
-                         task->get_task_name(), task->get_unique_op_id(),
-                         mapper_call_name);
-      }
-      else
-        fprintf(stderr,"First use of the default mapper in address space %d\n"
-                       "occurred when %s (UID %lld) in parent task %s "
-                       "(UID %lld)\ninvoked the \"%s\" mapper call\n",
-                       runtime->address_space, op->get_logging_name(),
-                       op->get_unique_op_id(), context->get_task_name(),
-                       context->get_unique_id(), mapper_call_name);
+          fprintf(
+              stderr,
+              "First use of the default mapper in address space %d\n"
+              "occurred when task %s (UID %lld) invoked the \"%s\" "
+              "mapper call\n",
+              runtime->address_space, task->get_task_name(),
+              task->get_unique_op_id(), mapper_call_name);
+      } else
+        fprintf(
+            stderr,
+            "First use of the default mapper in address space %d\n"
+            "occurred when %s (UID %lld) in parent task %s "
+            "(UID %lld)\ninvoked the \"%s\" mapper call\n",
+            runtime->address_space, op->get_logging_name(),
+            op->get_unique_op_id(), context->get_task_name(),
+            context->get_unique_id(), mapper_call_name);
       for (int i = 0; i < 2; i++)
-        fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
       for (int i = 0; i < 4; i++)
-        fprintf(stderr,"!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
+        fprintf(stderr, "!WARNING WARNING WARNING WARNING WARNING WARNING!\n");
       for (int i = 0; i < 2; i++)
-        fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-      fprintf(stderr,"\n");
+        fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+      fprintf(stderr, "\n");
       fflush(stderr);
     }
 
@@ -3495,30 +3500,29 @@ namespace Legion {
       // running at the same time
       if (current.exists() && (current.kind() != Processor::IO_PROC))
       {
-        AutoLock p_lock(profiler_lock,1,false/*exclusive*/);
-        std::map<Processor,LegionProfInstance*>::const_iterator finder =
-          processor_instances.find(current);
+        AutoLock p_lock(profiler_lock, 1, false /*exclusive*/);
+        std::map<Processor, LegionProfInstance*>::const_iterator finder =
+            processor_instances.find(current);
         if (finder != processor_instances.end())
           return finder->second;
       }
-      LegionProfInstance *instance = new LegionProfInstance(this);
-      // Take the lock and save the instance 
+      LegionProfInstance* instance = new LegionProfInstance(this);
+      // Take the lock and save the instance
       AutoLock p_lock(profiler_lock);
       if (current.exists() && (current.kind() != Processor::IO_PROC))
       {
-        std::map<Processor,LegionProfInstance*>::const_iterator finder =
-          processor_instances.find(current);
+        std::map<Processor, LegionProfInstance*>::const_iterator finder =
+            processor_instances.find(current);
         if (finder != processor_instances.end())
         {
           delete instance;
           return finder->second;
-        }
-        else
+        } else
           processor_instances[current] = instance;
       }
       instances.push_back(instance);
       return instance;
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -27,9 +27,9 @@ namespace Legion {
      * enforce ordering guarantees between different tasks
      * in the same context which may become important when
      * certain updates to the region tree are desired to be
-     * observed before a later operation either maps or 
+     * observed before a later operation either maps or
      * runs. All fences are mapping fences for correctness.
-     * Fences all support the optional ability to be an 
+     * Fences all support the optional ability to be an
      * execution fence.
      */
     class FenceOp : public MemoizableOp {
@@ -39,37 +39,45 @@ namespace Legion {
         EXECUTION_FENCE,
       };
     public:
-      struct DeferTimingMeasurementArgs : 
-        public LgTaskArgs<DeferTimingMeasurementArgs> {
+      struct DeferTimingMeasurementArgs
+        : public LgTaskArgs<DeferTimingMeasurementArgs> {
       public:
         static const LgTaskID TASK_ID = LG_DEFER_TIMING_MEASUREMENT_TASK_ID;
       public:
-        DeferTimingMeasurementArgs(FenceOp *o)
-          : LgTaskArgs<DeferTimingMeasurementArgs>(o->get_unique_op_id()),
-            op(o) { }
+        DeferTimingMeasurementArgs(FenceOp* o)
+          : LgTaskArgs<DeferTimingMeasurementArgs>(o->get_unique_op_id()), op(o)
+        { }
       public:
-        FenceOp *const op;
+        FenceOp* const op;
       };
     public:
       FenceOp(void);
-      FenceOp(const FenceOp &rhs) = delete;
+      FenceOp(const FenceOp& rhs) = delete;
       virtual ~FenceOp(void);
     public:
-      FenceOp& operator=(const FenceOp &rhs) = delete;
+      FenceOp& operator=(const FenceOp& rhs) = delete;
     public:
-      Future initialize(InnerContext *ctx, FenceKind kind, bool need_future,
-                        Provenance *provenance);
+      Future initialize(
+          InnerContext* ctx, FenceKind kind, bool need_future,
+          Provenance* provenance);
       inline void add_mapping_applied_condition(RtEvent precondition)
-        { map_applied_conditions.insert(precondition); }
+      {
+        map_applied_conditions.insert(precondition);
+      }
       inline void record_execution_precondition(ApEvent precondition)
-        { execution_preconditions.insert(precondition); }
+      {
+        execution_preconditions.insert(precondition);
+      }
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { exec_fence = (fence_kind == EXECUTION_FENCE); return exec_fence; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        exec_fence = (fence_kind == EXECUTION_FENCE);
+        return exec_fence;
+      }
       FenceKind get_fence_kind(void) { return fence_kind; }
     public:
       virtual void trigger_dependence_analysis(void);
@@ -77,11 +85,11 @@ namespace Legion {
       virtual void trigger_replay(void);
       virtual void complete_replay(ApEvent complete_event);
       virtual void trigger_complete(ApEvent complete);
-      virtual bool record_trace_hash(TraceRecognizer &recognizer, uint64_t idx);
+      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
       virtual const VersionInfo& get_version_info(unsigned idx) const;
     public:
       virtual void perform_measurement(void);
-      static void handle_deferred_measurement(const void *args);
+      static void handle_deferred_measurement(const void* args);
     protected:
       FenceKind fence_kind;
       std::set<RtEvent> map_applied_conditions;
@@ -91,17 +99,17 @@ namespace Legion {
 
     /**
      * \class ReplFenceOp
-     * A fence operation that is aware that it is being 
+     * A fence operation that is aware that it is being
      * executed in a control replicated context. Currently
      * this only applies to mixed and execution fences.
      */
     class ReplFenceOp : public FenceOp {
     public:
       ReplFenceOp(void);
-      ReplFenceOp(const ReplFenceOp &rhs) = delete;
+      ReplFenceOp(const ReplFenceOp& rhs) = delete;
       virtual ~ReplFenceOp(void);
     public:
-      ReplFenceOp& operator=(const ReplFenceOp &rhs) = delete;
+      ReplFenceOp& operator=(const ReplFenceOp& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -111,13 +119,13 @@ namespace Legion {
       virtual void trigger_replay(void);
       virtual void trigger_complete(ApEvent complete);
     protected:
-      void initialize_fence_barriers(ReplicateContext *repl_ctx = nullptr);
+      void initialize_fence_barriers(ReplicateContext* repl_ctx = nullptr);
     protected:
       RtBarrier mapping_fence_barrier;
       ApBarrier execution_fence_barrier;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_FENCE_H__
+#endif  // __LEGION_FENCE_H__

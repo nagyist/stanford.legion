@@ -20,24 +20,21 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Internal Operation 
+    // Internal Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    InternalOp::InternalOp(void)
-      : Operation()
+    InternalOp::InternalOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     InternalOp::~InternalOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void InternalOp::initialize_internal(Operation *creator, int intern_idx)
+    void InternalOp::initialize_internal(Operation* creator, int intern_idx)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -76,12 +73,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void InternalOp::record_trace_dependence(Operation *target, 
-                                             GenerationID target_gen,
-                                             int target_idx,
-                                             int source_idx, 
-                                             DependenceType dtype,
-                                             const FieldMask &dependent_mask)
+    void InternalOp::record_trace_dependence(
+        Operation* target, GenerationID target_gen, int target_idx,
+        int source_idx, DependenceType dtype, const FieldMask& dependent_mask)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -99,8 +93,8 @@ namespace Legion {
       if (!overlap)
         return;
       // Otherwise do the registration
-      register_region_dependence(0/*idx*/, target, target_gen,
-                                 target_idx, dtype, overlap);
+      register_region_dependence(
+          0 /*idx*/, target, target_gen, target_idx, dtype, overlap);
     }
 
     //--------------------------------------------------------------------------
@@ -113,5 +107,5 @@ namespace Legion {
       return create_op->find_parent_index(creator_req_idx);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -23,22 +23,20 @@ namespace Legion {
   /////////////////////////////////////////////////////////////
 
   //--------------------------------------------------------------------------
-  PieceIterator::PieceIterator(void)
-    : impl(nullptr), index(-1)
+  PieceIterator::PieceIterator(void) : impl(nullptr), index(-1)
   //--------------------------------------------------------------------------
-  {
-  }
+  { }
 
   //--------------------------------------------------------------------------
-  PieceIterator::PieceIterator(const PhysicalRegion &region, FieldID fid,
-                               bool privilege_only, bool silence_warnings,
-                               const char *warning_string)
+  PieceIterator::PieceIterator(
+      const PhysicalRegion& region, FieldID fid, bool privilege_only,
+      bool silence_warnings, const char* warning_string)
     : impl(nullptr), index(-1)
   //--------------------------------------------------------------------------
   {
     if (region.impl != nullptr)
-      impl = region.impl->get_piece_iterator(fid, privilege_only,
-                                silence_warnings, warning_string);
+      impl = region.impl->get_piece_iterator(
+          fid, privilege_only, silence_warnings, warning_string);
     if (impl != nullptr)
     {
       impl->add_reference();
@@ -47,7 +45,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  PieceIterator::PieceIterator(const PieceIterator &rhs)
+  PieceIterator::PieceIterator(const PieceIterator& rhs)
     : impl(rhs.impl), index(rhs.index), current_piece(rhs.current_piece)
   //--------------------------------------------------------------------------
   {
@@ -56,7 +54,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  PieceIterator::PieceIterator(PieceIterator &&rhs) noexcept
+  PieceIterator::PieceIterator(PieceIterator&& rhs) noexcept
     : impl(rhs.impl), index(rhs.index), current_piece(rhs.current_piece)
   //--------------------------------------------------------------------------
   {
@@ -72,7 +70,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  PieceIterator& PieceIterator::operator=(const PieceIterator &rhs)
+  PieceIterator& PieceIterator::operator=(const PieceIterator& rhs)
   //--------------------------------------------------------------------------
   {
     if ((impl != nullptr) && impl->remove_reference())
@@ -86,7 +84,7 @@ namespace Legion {
   }
 
   //--------------------------------------------------------------------------
-  PieceIterator& PieceIterator::operator=(PieceIterator &&rhs) noexcept
+  PieceIterator& PieceIterator::operator=(PieceIterator&& rhs) noexcept
   //--------------------------------------------------------------------------
   {
     if ((impl != nullptr) && impl->remove_reference())
@@ -107,4 +105,4 @@ namespace Legion {
     return valid();
   }
 
-} // namespace Legion
+}  // namespace Legion

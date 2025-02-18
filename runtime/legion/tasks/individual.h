@@ -27,13 +27,13 @@ namespace Legion {
      * launch calls performed by the runtime.
      */
     class IndividualTask : public SingleTask,
-      public Heapify<IndividualTask,RUNTIME_LIFETIME> {
+                           public Heapify<IndividualTask, RUNTIME_LIFETIME> {
     public:
       IndividualTask(void);
-      IndividualTask(const IndividualTask &rhs) = delete;
+      IndividualTask(const IndividualTask& rhs) = delete;
       virtual ~IndividualTask(void);
     public:
-      IndividualTask& operator=(const IndividualTask &rhs) = delete;
+      IndividualTask& operator=(const IndividualTask& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -44,41 +44,45 @@ namespace Legion {
       virtual size_t get_total_shards(void) const { return 1; }
       virtual DomainPoint get_shard_point(void) const { return DomainPoint(0); }
       virtual Domain get_shard_domain(void) const
-        { return Domain(DomainPoint(0),DomainPoint(0)); }
-      virtual Operation* get_origin_operation(void) 
-        { return is_remote() ? orig_task : this; } 
+      {
+        return Domain(DomainPoint(0), DomainPoint(0));
+      }
+      virtual Operation* get_origin_operation(void)
+      {
+        return is_remote() ? orig_task : this;
+      }
     public:
-      Future initialize_task(InnerContext *ctx,
-                             const TaskLauncher &launcher,
-                             Provenance *provenance,
-                             bool top_level=false,
-                             bool must_epoch_launch = false,
-                             std::vector<OutputRequirement> *outputs = nullptr);
+      Future initialize_task(
+          InnerContext* ctx, const TaskLauncher& launcher,
+          Provenance* provenance, bool top_level = false,
+          bool must_epoch_launch = false,
+          std::vector<OutputRequirement>* outputs = nullptr);
       void perform_base_dependence_analysis(void);
     protected:
-      void create_output_regions(std::vector<OutputRequirement> &outputs);
+      void create_output_regions(std::vector<OutputRequirement>& outputs);
     public:
       virtual bool has_prepipeline_stage(void) const { return true; }
       virtual void trigger_prepipeline_stage(void);
       virtual void trigger_dependence_analysis(void);
       virtual void trigger_ready(void);
-      virtual void report_interfering_requirements(unsigned idx1,unsigned idx2); 
-      virtual bool record_trace_hash(TraceRecognizer &recognizer, uint64_t idx);
+      virtual void report_interfering_requirements(
+          unsigned idx1, unsigned idx2);
+      virtual bool record_trace_hash(TraceRecognizer& recognizer, uint64_t idx);
       // Virtual method for creating the future for this task so that
       // we can overload for control replication
       virtual Future create_future(void);
     public:
       virtual void predicate_false(void);
       virtual bool distribute_task(void);
-      virtual bool perform_mapping(MustEpochOp *owner = nullptr,
-                                   const DeferMappingArgs *args = nullptr);
-      virtual bool finalize_map_task_output(Mapper::MapTaskInput &input,
-                                            Mapper::MapTaskOutput &output,
-                                            MustEpochOp *must_epoch_owner);
-      virtual void handle_future_size(size_t return_type_size,
-                                      std::set<RtEvent> &applied_events);
-      virtual void record_output_registered(RtEvent registered,
-                                      std::set<RtEvent> &applied_events); 
+      virtual bool perform_mapping(
+          MustEpochOp* owner = nullptr, const DeferMappingArgs* args = nullptr);
+      virtual bool finalize_map_task_output(
+          Mapper::MapTaskInput& input, Mapper::MapTaskOutput& output,
+          MustEpochOp* must_epoch_owner);
+      virtual void handle_future_size(
+          size_t return_type_size, std::set<RtEvent>& applied_events);
+      virtual void record_output_registered(
+          RtEvent registered, std::set<RtEvent>& applied_events);
       virtual bool is_stealable(void) const;
       virtual bool replicate_task(void);
     public:
@@ -90,48 +94,49 @@ namespace Legion {
       virtual void trigger_complete(ApEvent effects);
       virtual void trigger_task_commit(void);
     public:
-      virtual void handle_future(ApEvent effects, FutureInstance *instance,
-                                 const void *metadata, size_t metasize,
-                                 FutureFunctor *functor,
-                                 Processor future_proc,
-                                 bool own_functor);
+      virtual void handle_future(
+          ApEvent effects, FutureInstance* instance, const void* metadata,
+          size_t metasize, FutureFunctor* functor, Processor future_proc,
+          bool own_functor);
       virtual void handle_mispredication(void);
       virtual void prepare_map_must_epoch(void);
     public:
-      virtual bool send_task(Processor target,
-          std::vector<SingleTask*> &others);
-      virtual bool pack_task(Serializer &rez, AddressSpaceID target);
-      virtual bool unpack_task(Deserializer &derez, Processor current,
-                               std::set<RtEvent> &ready_events);
+      virtual bool send_task(
+          Processor target, std::vector<SingleTask*>& others);
+      virtual bool pack_task(Serializer& rez, AddressSpaceID target);
+      virtual bool unpack_task(
+          Deserializer& derez, Processor current,
+          std::set<RtEvent>& ready_events);
       virtual bool is_top_level_task(void) const { return top_level_task; }
     public:
       void set_concurrent_postcondition(RtEvent postcondition);
       virtual uint64_t order_collectively_mapped_unbounded_pools(
           uint64_t lamport_clock, bool need_result);
-      virtual ApEvent order_concurrent_launch(ApEvent start, VariantImpl *impl);
-      virtual void concurrent_allreduce(ProcessorManager *manager, 
-          uint64_t lamport_clock, VariantID vid, bool poisoned);
+      virtual ApEvent order_concurrent_launch(ApEvent start, VariantImpl* impl);
+      virtual void concurrent_allreduce(
+          ProcessorManager* manager, uint64_t lamport_clock, VariantID vid,
+          bool poisoned);
       virtual void perform_concurrent_task_barrier(void);
       void finish_concurrent_allreduce(uint64_t lamport_clock, bool poisoned);
     protected:
-      void pack_remote_complete(Serializer &rez, ApEvent effect);
-      void pack_remote_commit(Serializer &rez, RtEvent precondition);
-      void unpack_remote_complete(Deserializer &derez);
-      void unpack_remote_commit(Deserializer &derez);
+      void pack_remote_complete(Serializer& rez, ApEvent effect);
+      void pack_remote_commit(Serializer& rez, RtEvent precondition);
+      void unpack_remote_complete(Deserializer& derez);
+      void unpack_remote_commit(Deserializer& derez);
     public:
       // From MemoizableOp
       virtual void complete_replay(ApEvent pre);
     public:
-      static void process_unpack_remote_future_size(Deserializer &derez);
-      static void process_unpack_remote_mapped(Deserializer &derez);
-      static void process_unpack_remote_complete(Deserializer &derez);
-      static void process_unpack_remote_commit(Deserializer &derez);
-      static void handle_remote_output_registration(Deserializer &derez);
-      static void handle_concurrent_request(Deserializer &derez,
-                                            AddressSpaceID source);
-      static void handle_concurrent_response(Deserializer &derez);
-    protected: 
-      Future result; 
+      static void process_unpack_remote_future_size(Deserializer& derez);
+      static void process_unpack_remote_mapped(Deserializer& derez);
+      static void process_unpack_remote_complete(Deserializer& derez);
+      static void process_unpack_remote_commit(Deserializer& derez);
+      static void handle_remote_output_registration(Deserializer& derez);
+      static void handle_concurrent_request(
+          Deserializer& derez, AddressSpaceID source);
+      static void handle_concurrent_response(Deserializer& derez);
+    protected:
+      Future result;
     protected:
       std::vector<OutputOptions> output_region_options;
       // Event for when the output regions are registered with the context
@@ -144,11 +149,11 @@ namespace Legion {
       RtEvent concurrent_postcondition;
     protected:
       // Information for remotely executing task
-      IndividualTask *orig_task; // Not a valid pointer when remote
+      IndividualTask* orig_task;  // Not a valid pointer when remote
       UniqueID remote_unique_id;
     protected:
       Future predicate_false_future;
-      BufferManager<IndividualTask,OPERATION_LIFETIME> predicate_false_result;
+      BufferManager<IndividualTask, OPERATION_LIFETIME> predicate_false_result;
     protected:
       bool sent_remotely;
     protected:
@@ -159,16 +164,16 @@ namespace Legion {
 
     /**
      * \class ReplIndividualTask
-     * An individual task that is aware that it is 
+     * An individual task that is aware that it is
      * being executed in a control replication context.
      */
     class ReplIndividualTask : public IndividualTask {
     public:
       ReplIndividualTask(void);
-      ReplIndividualTask(const ReplIndividualTask &rhs) = delete;
+      ReplIndividualTask(const ReplIndividualTask& rhs) = delete;
       virtual ~ReplIndividualTask(void);
     public:
-      ReplIndividualTask& operator=(const ReplIndividualTask &rhs) = delete;
+      ReplIndividualTask& operator=(const ReplIndividualTask& rhs) = delete;
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
@@ -185,27 +190,30 @@ namespace Legion {
       virtual Future create_future(void);
     public:
       // Override for saying when it is safe to use output region trees
-      virtual void record_output_registered(RtEvent registered,
-                                      std::set<RtEvent> &applied_events);
+      virtual void record_output_registered(
+          RtEvent registered, std::set<RtEvent>& applied_events);
     public:
-      void initialize_replication(ReplicateContext *ctx);
-      void set_sharding_function(ShardingID functor,ShardingFunction *function);
+      void initialize_replication(ReplicateContext* ctx);
+      void set_sharding_function(
+          ShardingID functor, ShardingFunction* function);
     protected:
       ShardID owner_shard;
-      IndexSpaceNode *launch_space;
+      IndexSpaceNode* launch_space;
       ShardingID sharding_functor;
-      ShardingFunction *sharding_function;
+      ShardingFunction* sharding_function;
       RtBarrier output_bar;
 #ifdef DEBUG_LEGION
     public:
-      inline void set_sharding_collective(ShardingGatherCollective *collective)
-        { sharding_collective = collective; }
+      inline void set_sharding_collective(ShardingGatherCollective* collective)
+      {
+        sharding_collective = collective;
+      }
     protected:
-      ShardingGatherCollective *sharding_collective;
+      ShardingGatherCollective* sharding_collective;
 #endif
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_INDVIDUAL_TASK_H__
+#endif  // __LEGION_INDVIDUAL_TASK_H__

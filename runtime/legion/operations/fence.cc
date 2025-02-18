@@ -23,36 +23,35 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Fence Operation 
+    // Fence Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    FenceOp::FenceOp(void)
-      : MemoizableOp()
+    FenceOp::FenceOp(void) : MemoizableOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     FenceOp::~FenceOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    Future FenceOp::initialize(InnerContext *ctx, FenceKind kind,
-                           bool need_future, Provenance *provenance)
+    Future FenceOp::initialize(
+        InnerContext* ctx, FenceKind kind, bool need_future,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
       initialize_operation(ctx, provenance);
       fence_kind = kind;
       if (need_future)
-        result = Future(new FutureImpl(parent_ctx, true/*register*/,
-              runtime->get_available_distributed_id(),
-              get_provenance(), this));
+        result = Future(new FutureImpl(
+            parent_ctx, true /*register*/,
+            runtime->get_available_distributed_id(), get_provenance(), this));
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_fence_operation(parent_ctx->get_unique_id(),
-            unique_op_id, (kind == EXECUTION_FENCE));
+        LegionSpy::log_fence_operation(
+            parent_ctx->get_unique_id(), unique_op_id,
+            (kind == EXECUTION_FENCE));
       return result;
     }
 
@@ -67,10 +66,10 @@ namespace Legion {
     void FenceOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      MemoizableOp::deactivate(false/*free*/);
+      MemoizableOp::deactivate(false /*free*/);
       map_applied_conditions.clear();
       execution_preconditions.clear();
-      result = Future(); // clear out our future reference
+      result = Future();  // clear out our future reference
       if (freeop)
         runtime->free_operation(this);
     }
@@ -94,7 +93,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       parent_ctx->perform_mapping_fence_analysis(this);
-      parent_ctx->update_current_mapping_fence(this); 
+      parent_ctx->update_current_mapping_fence(this);
     }
 
     //--------------------------------------------------------------------------
@@ -108,22 +107,22 @@ namespace Legion {
           {
             // Still need to get a callback if we're going to be replaying
             if (is_recording())
-              trace_info.record_complete_replay(map_applied_conditions);      
+              trace_info.record_complete_replay(map_applied_conditions);
             break;
           }
         case EXECUTION_FENCE:
           {
             if (is_recording())
               tpl->record_execution_fence(get_trace_local_id());
-            parent_ctx->perform_execution_fence_analysis(this,
-                execution_preconditions);
+            parent_ctx->perform_execution_fence_analysis(
+                this, execution_preconditions);
             record_completion_effects(execution_preconditions);
-            parent_ctx->update_current_execution_fence(this, 
-                get_completion_event());
+            parent_ctx->update_current_execution_fence(
+                this, get_completion_event());
             break;
           }
         default:
-          std::abort(); // should never get here
+          std::abort();  // should never get here
       }
       if (!map_applied_conditions.empty())
         complete_mapping(Runtime::merge_events(map_applied_conditions));
@@ -162,7 +161,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool FenceOp::record_trace_hash(TraceRecognizer &recognizer, uint64_t opidx)
+    bool FenceOp::record_trace_hash(TraceRecognizer& recognizer, uint64_t opidx)
     //--------------------------------------------------------------------------
     {
       Murmur3Hasher hasher;
@@ -187,30 +186,27 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    /*static*/ void FenceOp::handle_deferred_measurement(const void *args)
+    /*static*/ void FenceOp::handle_deferred_measurement(const void* args)
     //--------------------------------------------------------------------------
     {
-      const DeferTimingMeasurementArgs *dargs =
-        (const DeferTimingMeasurementArgs*)args;
+      const DeferTimingMeasurementArgs* dargs =
+          (const DeferTimingMeasurementArgs*)args;
       dargs->op->perform_measurement();
     }
 
     /////////////////////////////////////////////////////////////
-    // Repl Fence Op 
+    // Repl Fence Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplFenceOp::ReplFenceOp(void)
-      : FenceOp()
+    ReplFenceOp::ReplFenceOp(void) : FenceOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplFenceOp::~ReplFenceOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     void ReplFenceOp::activate(void)
@@ -225,7 +221,7 @@ namespace Legion {
     void ReplFenceOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      FenceOp::deactivate(false/*free*/);
+      FenceOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -239,7 +235,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void ReplFenceOp::initialize_fence_barriers(ReplicateContext *repl_ctx)
+    void ReplFenceOp::initialize_fence_barriers(ReplicateContext* repl_ctx)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -269,29 +265,30 @@ namespace Legion {
           {
             // Still need to get a callback if we're going to be replaying
             if (is_recording())
-              trace_info.record_complete_replay(map_applied_conditions);      
+              trace_info.record_complete_replay(map_applied_conditions);
             break;
           }
         case EXECUTION_FENCE:
           {
             if (is_recording())
               tpl->record_execution_fence(get_trace_local_id());
-            parent_ctx->perform_execution_fence_analysis(this,
-                execution_preconditions);
+            parent_ctx->perform_execution_fence_analysis(
+                this, execution_preconditions);
             record_completion_effects(execution_preconditions);
-            parent_ctx->update_current_execution_fence(this, 
-                get_completion_event());
+            parent_ctx->update_current_execution_fence(
+                this, get_completion_event());
             break;
           }
         default:
-          std::abort(); // should never get here
+          std::abort();  // should never get here
       }
       // Do our arrival
       if (!map_applied_conditions.empty())
-        runtime->phase_barrier_arrive(mapping_fence_barrier, 1/*count*/,
+        runtime->phase_barrier_arrive(
+            mapping_fence_barrier, 1 /*count*/,
             Runtime::merge_events(map_applied_conditions));
       else
-        runtime->phase_barrier_arrive(mapping_fence_barrier, 1/*count*/);
+        runtime->phase_barrier_arrive(mapping_fence_barrier, 1 /*count*/);
       // We're mapped when everyone is mapped
       complete_mapping(mapping_fence_barrier);
       complete_execution();
@@ -305,7 +302,7 @@ namespace Legion {
       assert(mapping_fence_barrier.exists());
 #endif
       // We don't need the mapping fence barrier
-      runtime->phase_barrier_arrive(mapping_fence_barrier, 1/*count*/);
+      runtime->phase_barrier_arrive(mapping_fence_barrier, 1 /*count*/);
       FenceOp::trigger_replay();
     }
 
@@ -318,13 +315,12 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(execution_fence_barrier.exists());
 #endif
-        runtime->phase_barrier_arrive(execution_fence_barrier, 
-                                      1/*count*/, complete);
+        runtime->phase_barrier_arrive(
+            execution_fence_barrier, 1 /*count*/, complete);
         FenceOp::trigger_complete(execution_fence_barrier);
-      }
-      else
+      } else
         FenceOp::trigger_complete(complete);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

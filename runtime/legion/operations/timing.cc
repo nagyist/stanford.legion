@@ -20,30 +20,28 @@
 namespace Legion {
   namespace Internal {
 
-    ///////////////////////////////////////////////////////////// 
-    // Timing Op 
+    /////////////////////////////////////////////////////////////
+    // Timing Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    TimingOp::TimingOp(void)
-      : FenceOp()
+    TimingOp::TimingOp(void) : FenceOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     TimingOp::~TimingOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    Future TimingOp::initialize(InnerContext *ctx,
-                         const TimingLauncher &launcher, Provenance *provenance)
+    Future TimingOp::initialize(
+        InnerContext* ctx, const TimingLauncher& launcher,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      Future f = FenceOp::initialize(ctx, EXECUTION_FENCE,
-          true/*need future*/, provenance);
+      Future f = FenceOp::initialize(
+          ctx, EXECUTION_FENCE, true /*need future*/, provenance);
       measurement = launcher.measurement;
       if (runtime->legion_spy_enabled)
         LegionSpy::log_timing_operation(ctx->get_unique_id(), unique_op_id);
@@ -62,7 +60,7 @@ namespace Legion {
     void TimingOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      FenceOp::deactivate(false/*free*/);
+      FenceOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -88,13 +86,13 @@ namespace Legion {
       if (complete.exists() && !complete.has_triggered_faultignorant())
       {
         DeferTimingMeasurementArgs args(this);
-        measured = runtime->issue_runtime_meta_task(args,
-            LG_LATENCY_DEFERRED_PRIORITY, Runtime::protect_event(complete));
-      }
-      else
+        measured = runtime->issue_runtime_meta_task(
+            args, LG_LATENCY_DEFERRED_PRIORITY,
+            Runtime::protect_event(complete));
+      } else
         perform_measurement();
       complete_operation(complete);
-    } 
+    }
 
     //--------------------------------------------------------------------------
     void TimingOp::perform_measurement(void)
@@ -121,7 +119,7 @@ namespace Legion {
             break;
           }
         default:
-          std::abort(); // should never get here
+          std::abort();  // should never get here
       }
     }
 
@@ -129,33 +127,31 @@ namespace Legion {
     void TimingOp::trigger_commit(void)
     //--------------------------------------------------------------------------
     {
-      commit_operation(true/*deactivate*/, measured);
+      commit_operation(true /*deactivate*/, measured);
     }
 
     /////////////////////////////////////////////////////////////
-    // Repl Timing Op 
+    // Repl Timing Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplTimingOp::ReplTimingOp(void)
-      : ReplFenceOp()
+    ReplTimingOp::ReplTimingOp(void) : ReplFenceOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplTimingOp::~ReplTimingOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    Future ReplTimingOp::initialize(InnerContext *ctx,
-                         const TimingLauncher &launcher, Provenance *provenance)
+    Future ReplTimingOp::initialize(
+        InnerContext* ctx, const TimingLauncher& launcher,
+        Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      Future f = ReplFenceOp::initialize(ctx, EXECUTION_FENCE,
-          true/*need future*/, provenance);
+      Future f = ReplFenceOp::initialize(
+          ctx, EXECUTION_FENCE, true /*need future*/, provenance);
       measurement = launcher.measurement;
       if (runtime->legion_spy_enabled)
         LegionSpy::log_timing_operation(ctx->get_unique_id(), unique_op_id);
@@ -175,7 +171,7 @@ namespace Legion {
     void ReplTimingOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      ReplFenceOp::deactivate(false/*freeop*/);
+      ReplFenceOp::deactivate(false /*freeop*/);
       if (timing_collective != nullptr)
       {
         delete timing_collective;
@@ -206,25 +202,24 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(execution_fence_barrier.exists());
 #endif
-      runtime->phase_barrier_arrive(execution_fence_barrier, 
-                                    1/*count*/, complete);
+      runtime->phase_barrier_arrive(
+          execution_fence_barrier, 1 /*count*/, complete);
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       DeferTimingMeasurementArgs args(this);
       // Shard 0 will handle the timing operation
       if (repl_ctx->owner_shard->shard_id > 0)
       {
         const RtEvent ready = timing_collective->perform_collective_wait();
-        measured = runtime->issue_runtime_meta_task(args,
-          LG_LATENCY_DEFERRED_PRIORITY, ready);
-      }
-      else
-        measured = runtime->issue_runtime_meta_task(args,
-            LG_LATENCY_DEFERRED_PRIORITY,
+        measured = runtime->issue_runtime_meta_task(
+            args, LG_LATENCY_DEFERRED_PRIORITY, ready);
+      } else
+        measured = runtime->issue_runtime_meta_task(
+            args, LG_LATENCY_DEFERRED_PRIORITY,
             Runtime::protect_event(execution_fence_barrier));
       complete_operation(execution_fence_barrier);
     }
@@ -234,18 +229,18 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
-      ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
 #else
-      ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
+      ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(parent_ctx);
 #endif
       // Shard 0 will handle the timing operation
-      if (repl_ctx->owner_shard->shard_id > 0)     
+      if (repl_ctx->owner_shard->shard_id > 0)
       {
-        long long value = timing_collective->get_value(false/*already waited*/);
+        long long value =
+            timing_collective->get_value(false /*already waited*/);
         result.impl->set_local(&value, sizeof(value));
-      }
-      else
+      } else
       {
         // Perform the measurement and then arrive on the barrier
         // with the result to broadcast it to the other shards
@@ -276,7 +271,7 @@ namespace Legion {
               break;
             }
           default:
-            std::abort(); // should never get here
+            std::abort();  // should never get here
         }
       }
     }
@@ -285,8 +280,8 @@ namespace Legion {
     void ReplTimingOp::trigger_commit(void)
     //--------------------------------------------------------------------------
     {
-      commit_operation(true/*deactivate*/, measured);
+      commit_operation(true /*deactivate*/, measured);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

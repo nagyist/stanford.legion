@@ -23,20 +23,21 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     /*static*/ inline DistributedID InstanceManager::encode_instance_did(
-                               DistributedID did, bool external, bool reduction)
+        DistributedID did, bool external, bool reduction)
     //--------------------------------------------------------------------------
     {
-      return LEGION_DISTRIBUTED_HELP_ENCODE(did, PHYSICAL_MANAGER_DC | 
-                                        (external ? EXTERNAL_CODE : 0) | 
-                                        (reduction ? REDUCTION_CODE : 0));
+      return LEGION_DISTRIBUTED_HELP_ENCODE(
+          did, PHYSICAL_MANAGER_DC | (external ? EXTERNAL_CODE : 0) |
+                   (reduction ? REDUCTION_CODE : 0));
     }
 
     //--------------------------------------------------------------------------
     /*static*/ inline bool InstanceManager::is_physical_did(DistributedID did)
     //--------------------------------------------------------------------------
     {
-      return ((LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC-1)) ==
-                                                        PHYSICAL_MANAGER_DC);
+      return (
+          (LEGION_DISTRIBUTED_HELP_DECODE(did) & (DIST_TYPE_LAST_DC - 1)) ==
+          PHYSICAL_MANAGER_DC);
     }
 
     //--------------------------------------------------------------------------
@@ -44,7 +45,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const unsigned decode = LEGION_DISTRIBUTED_HELP_DECODE(did);
-      if ((decode & (DIST_TYPE_LAST_DC-1)) != PHYSICAL_MANAGER_DC)
+      if ((decode & (DIST_TYPE_LAST_DC - 1)) != PHYSICAL_MANAGER_DC)
         return false;
       return ((decode & REDUCTION_CODE) != 0);
     }
@@ -54,7 +55,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       const unsigned decode = LEGION_DISTRIBUTED_HELP_DECODE(did);
-      if ((decode & (DIST_TYPE_LAST_DC-1)) != PHYSICAL_MANAGER_DC)
+      if ((decode & (DIST_TYPE_LAST_DC - 1)) != PHYSICAL_MANAGER_DC)
         return false;
       return ((decode & EXTERNAL_CODE) != 0);
     }
@@ -85,7 +86,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       return is_external_did(did);
-    } 
+    }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

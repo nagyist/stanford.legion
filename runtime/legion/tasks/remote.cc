@@ -21,16 +21,15 @@
 namespace Legion {
   namespace Internal {
 
-    ///////////////////////////////////////////////////////////// 
-    // Remote Task Op 
+    /////////////////////////////////////////////////////////////
+    // Remote Task Op
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    RemoteTaskOp::RemoteTaskOp(Operation *ptr, AddressSpaceID src)
+    RemoteTaskOp::RemoteTaskOp(Operation* ptr, AddressSpaceID src)
       : ExternalTask(), RemoteOp(ptr, src)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     RemoteTaskOp::~RemoteTaskOp(void)
@@ -84,10 +83,10 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     const std::string_view& RemoteTaskOp::get_provenance_string(
-                                                               bool human) const
+        bool human) const
     //--------------------------------------------------------------------------
     {
-      Provenance *provenance = get_provenance();
+      Provenance* provenance = get_provenance();
       if (provenance != nullptr)
         return human ? provenance->human : provenance->machine;
       else
@@ -98,7 +97,7 @@ namespace Legion {
     const char* RemoteTaskOp::get_task_name(void) const
     //--------------------------------------------------------------------------
     {
-      TaskImpl *impl = runtime->find_or_create_task_impl(task_id);
+      TaskImpl* impl = runtime->find_or_create_task_impl(task_id);
       return impl->get_name();
     }
 
@@ -137,7 +136,7 @@ namespace Legion {
     Domain RemoteTaskOp::get_shard_domain(void) const
     //--------------------------------------------------------------------------
     {
-      return Domain(DomainPoint(0),DomainPoint(0));
+      return Domain(DomainPoint(0), DomainPoint(0));
     }
 
     //--------------------------------------------------------------------------
@@ -155,11 +154,11 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteTaskOp::select_sources(const unsigned index,
-                                    PhysicalManager *target,
-                                    const std::vector<InstanceView*> &sources,
-                                    std::vector<unsigned> &ranking,
-                                    std::map<unsigned,PhysicalManager*> &points)
+    void RemoteTaskOp::select_sources(
+        const unsigned index, PhysicalManager* target,
+        const std::vector<InstanceView*>& sources,
+        std::vector<unsigned>& ranking,
+        std::map<unsigned, PhysicalManager*>& points)
     //--------------------------------------------------------------------------
     {
       if (source == runtime->address_space)
@@ -170,8 +169,8 @@ namespace Legion {
       }
       Mapper::SelectTaskSrcInput input;
       Mapper::SelectTaskSrcOutput output;
-      prepare_for_mapping(sources, input.source_instances,
-                          input.collective_views);
+      prepare_for_mapping(
+          sources, input.source_instances, input.collective_views);
       prepare_for_mapping(target, input.target);
       input.region_req_index = index;
       if (mapper == nullptr)
@@ -181,8 +180,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteTaskOp::pack_remote_operation(Serializer &rez,
-                 AddressSpaceID target, std::set<RtEvent> &applied_events) const
+    void RemoteTaskOp::pack_remote_operation(
+        Serializer& rez, AddressSpaceID target,
+        std::set<RtEvent>& applied_events) const
     //--------------------------------------------------------------------------
     {
       pack_remote_base(rez);
@@ -191,12 +191,12 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RemoteTaskOp::unpack(Deserializer &derez)
+    void RemoteTaskOp::unpack(Deserializer& derez)
     //--------------------------------------------------------------------------
     {
       unpack_external_task(derez);
       unpack_profiling_requests(derez);
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

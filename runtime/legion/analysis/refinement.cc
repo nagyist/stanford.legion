@@ -30,7 +30,7 @@ namespace Legion {
     /*static*/ constexpr uint64_t RefinementTracker::MAX_INCOMPLETE_WRITES;
 
     //--------------------------------------------------------------------------
-    RegionRefinementTracker::RegionRefinementTracker(RegionNode *node)
+    RegionRefinementTracker::RegionRefinementTracker(RegionNode* node)
       : region(node), refinement_state(UNREFINED_STATE), refined_child(nullptr),
         refined_projection(nullptr), total_traversals(0), return_timeout(0)
     //--------------------------------------------------------------------------
@@ -42,22 +42,20 @@ namespace Legion {
     RegionRefinementTracker::~RegionRefinementTracker(void)
     //--------------------------------------------------------------------------
     {
-      if ((refined_child != nullptr) && 
+      if ((refined_child != nullptr) &&
           refined_child->remove_base_resource_ref(REFINEMENT_REF))
         delete refined_child;
-      if ((refined_projection != nullptr) && 
-            refined_projection->remove_reference())
+      if ((refined_projection != nullptr) &&
+          refined_projection->remove_reference())
         delete refined_projection;
-      for (std::unordered_map<PartitionNode*,
-                std::pair<double,uint64_t> >::const_iterator it =
-            candidate_partitions.begin(); it != 
-            candidate_partitions.end(); it++)
+      for (std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
+               const_iterator it = candidate_partitions.begin();
+           it != candidate_partitions.end(); it++)
         if (it->first->remove_base_resource_ref(REFINEMENT_REF))
           delete it->first;
-      for (std::unordered_map<ProjectionRegion*,
-                std::pair<double,uint64_t> >::const_iterator it =
-            candidate_projections.begin(); it != 
-            candidate_projections.end(); it++)
+      for (std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t> >::
+               const_iterator it = candidate_projections.begin();
+           it != candidate_projections.end(); it++)
         if (it->first->remove_reference())
           delete it->first;
       if (region->remove_base_resource_ref(REFINEMENT_REF))
@@ -68,7 +66,7 @@ namespace Legion {
     RefinementTracker* RegionRefinementTracker::clone(void) const
     //--------------------------------------------------------------------------
     {
-      RegionRefinementTracker *tracker = new RegionRefinementTracker(region);
+      RegionRefinementTracker* tracker = new RegionRefinementTracker(region);
       tracker->refinement_state = refinement_state;
       if (refined_child != nullptr)
       {
@@ -80,18 +78,16 @@ namespace Legion {
         tracker->refined_projection = refined_projection;
         refined_projection->add_reference();
       }
-      for (std::unordered_map<PartitionNode*,
-                std::pair<double,uint64_t> >::const_iterator it =
-            candidate_partitions.begin(); it != 
-            candidate_partitions.end(); it++)
+      for (std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
+               const_iterator it = candidate_partitions.begin();
+           it != candidate_partitions.end(); it++)
       {
         it->first->add_base_resource_ref(REFINEMENT_REF);
         tracker->candidate_partitions.insert(*it);
       }
-      for (std::unordered_map<ProjectionRegion*,
-                std::pair<double,uint64_t> >::const_iterator it =
-            candidate_projections.begin(); it != 
-            candidate_projections.end(); it++)
+      for (std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t> >::
+               const_iterator it = candidate_projections.begin();
+           it != candidate_projections.end(); it++)
       {
         it->first->add_reference();
         tracker->candidate_projections.insert(*it);
@@ -113,15 +109,15 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool RegionRefinementTracker::update_child(RegionTreeNode *node,
-                               const RegionUsage &usage, bool &allow_refinement)
+    bool RegionRefinementTracker::update_child(
+        RegionTreeNode* node, const RegionUsage& usage, bool& allow_refinement)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(!allow_refinement);
       assert(!node->is_region());
 #endif
-      PartitionNode *child = node->as_partition_node();
+      PartitionNode* child = node->as_partition_node();
       switch (refinement_state)
       {
         case UNREFINED_STATE:
@@ -132,12 +128,13 @@ namespace Legion {
 #endif
             // If we don't have any refinements, we'll always allow them
             if (child->row_source->is_complete())
-              refinement_state = IS_WRITE(usage) ? 
-                COMPLETE_WRITE_REFINED_STATE : COMPLETE_NONWRITE_REFINED_STATE;
+              refinement_state = IS_WRITE(usage) ?
+                                     COMPLETE_WRITE_REFINED_STATE :
+                                     COMPLETE_NONWRITE_REFINED_STATE;
             else
               refinement_state = IS_WRITE(usage) ?
-                INCOMPLETE_WRITE_REFINED_STATE : 
-                INCOMPLETE_NONWRITE_REFINED_STATE;
+                                     INCOMPLETE_WRITE_REFINED_STATE :
+                                     INCOMPLETE_NONWRITE_REFINED_STATE;
             child->add_base_resource_ref(REFINEMENT_REF);
             refined_child = child;
             break;
@@ -151,7 +148,7 @@ namespace Legion {
               // any kind of field coalescing happening
               return true;
             }
-            // Don't bother refining for other kinds of partitions 
+            // Don't bother refining for other kinds of partitions
             break;
           }
         case INCOMPLETE_NONWRITE_REFINED_STATE:
@@ -180,50 +177,51 @@ namespace Legion {
               // Step the clock for a new traversal
               total_traversals++;
               // Check to see if we've observed this refinement before
-              std::unordered_map<PartitionNode*,
-                std::pair<double,uint64_t> >::iterator finder =
-                  candidate_partitions.find(child);
+              std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
+                  iterator finder = candidate_partitions.find(child);
               if (finder != candidate_partitions.end())
               {
                 // Update the score using exponentially weighted moving average
-                finder->second.first = std::pow(CHANGE_REFINEMENT_RETURN_WEIGHT,
-                    (total_traversals - finder->second.second)) *
-                      finder->second.first + 1.0;
-                // Since CHANGE_REFINEMENT_RETURN_COUNT is a power of 2 the 
-                // compiler should be able to optimize integer division to a 
+                finder->second.first =
+                    std::pow(
+                        CHANGE_REFINEMENT_RETURN_WEIGHT,
+                        (total_traversals - finder->second.second)) *
+                        finder->second.first +
+                    1.0;
+                // Since CHANGE_REFINEMENT_RETURN_COUNT is a power of 2 the
+                // compiler should be able to optimize integer division to a
                 // basic bit shift
-                const uint64_t previous_epoch = 
-                  finder->second.second / CHANGE_REFINEMENT_RETURN_COUNT;
-                const uint64_t current_epoch = 
-                  total_traversals / CHANGE_REFINEMENT_RETURN_COUNT;
+                const uint64_t previous_epoch =
+                    finder->second.second / CHANGE_REFINEMENT_RETURN_COUNT;
+                const uint64_t current_epoch =
+                    total_traversals / CHANGE_REFINEMENT_RETURN_COUNT;
                 finder->second.second = total_traversals;
                 // Reset the timeout since we saw a return
                 return_timeout = 0;
-                // If the last time we saw this child was in a previous epoch 
+                // If the last time we saw this child was in a previous epoch
                 // then we can check to see if this is now the dominant child
                 if ((previous_epoch != current_epoch) &&
-                    is_dominant_candidate(finder->second.first,
-                                          (child == refined_child)))
+                    is_dominant_candidate(
+                        finder->second.first, (child == refined_child)))
                 {
                   // If we're current refinement we don't switch but just end
-                  // invalidating all the other candidates so they can start again
+                  // invalidating all the other candidates so they can start
+                  // again
                   if (child == refined_child)
                     invalidate_unused_candidates();
                   else
                     return true;
                 }
-              }
-              else if (child == refined_child)
+              } else if (child == refined_child)
               {
                 // This counts as a return too since we're refined this way
-                candidate_partitions[child] = 
-                  std::pair<double,uint64_t>(1.0, total_traversals);
+                candidate_partitions[child] =
+                    std::pair<double, uint64_t>(1.0, total_traversals);
                 child->add_base_resource_ref(REFINEMENT_REF);
                 // Reset the timeout since we saw a return
                 return_timeout = 0;
                 // No need to switch, we're already the refinement
-              }
-              else
+              } else
               {
                 if (++return_timeout == CHANGE_REFINEMENT_TIMEOUT)
                 {
@@ -231,8 +229,8 @@ namespace Legion {
                   return_timeout = 0;
                 }
                 child->add_base_resource_ref(REFINEMENT_REF);
-                candidate_partitions[child] = 
-                  std::pair<double,uint64_t>(0.0, total_traversals);
+                candidate_partitions[child] =
+                    std::pair<double, uint64_t>(0.0, total_traversals);
               }
             }
             break;
@@ -247,8 +245,7 @@ namespace Legion {
                 // We can delete this tracker and make a new one to
                 // get any kind of field coalescing happening
                 return true;
-              }
-              else
+              } else
               {
                 // Always allow refinements down writing incomplete children
                 allow_refinement = true;
@@ -263,7 +260,7 @@ namespace Legion {
           // Don't allow anything to happen here
           break;
         default:
-          std::abort(); // should never hit this
+          std::abort();  // should never hit this
       }
       // Allow alternative refinements of our current child
       allow_refinement = (child == refined_child);
@@ -271,8 +268,9 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool RegionRefinementTracker::update_projection(ProjectionSummary *summary,
-                               const RegionUsage &usage, bool &allow_refinement)
+    bool RegionRefinementTracker::update_projection(
+        ProjectionSummary* summary, const RegionUsage& usage,
+        bool& allow_refinement)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -294,12 +292,13 @@ namespace Legion {
             // If we don't have any refinements, we'll always allow them
             allow_refinement = true;
             if (summary->is_complete())
-              refinement_state = IS_WRITE(usage) ? 
-                COMPLETE_WRITE_REFINED_STATE : COMPLETE_NONWRITE_REFINED_STATE;
+              refinement_state = IS_WRITE(usage) ?
+                                     COMPLETE_WRITE_REFINED_STATE :
+                                     COMPLETE_NONWRITE_REFINED_STATE;
             else
               refinement_state = IS_WRITE(usage) ?
-                INCOMPLETE_WRITE_REFINED_STATE : 
-                INCOMPLETE_NONWRITE_REFINED_STATE;
+                                     INCOMPLETE_WRITE_REFINED_STATE :
+                                     INCOMPLETE_NONWRITE_REFINED_STATE;
             refined_projection = summary->get_tree()->as_region_projection();
             refined_projection->add_reference();
             break;
@@ -313,7 +312,7 @@ namespace Legion {
               // any kind of field coalescing happening
               return true;
             }
-            // Don't bother refining for other kinds of partitions 
+            // Don't bother refining for other kinds of partitions
             break;
           }
         case INCOMPLETE_NONWRITE_REFINED_STATE:
@@ -338,60 +337,64 @@ namespace Legion {
           {
             if (IS_WRITE(usage) && summary->is_complete())
             {
-              ProjectionRegion *projection = 
-                summary->get_tree()->as_region_projection();
+              ProjectionRegion* projection =
+                  summary->get_tree()->as_region_projection();
               // Step the clock for a new traversal
               total_traversals++;
               // Check to see if we observed this refinement before
-              std::unordered_map<ProjectionRegion*,
-                std::pair<double,uint64_t> >::iterator finder =
-                  candidate_projections.find(projection);
+              std::unordered_map<
+                  ProjectionRegion*, std::pair<double, uint64_t> >::iterator
+                  finder = candidate_projections.find(projection);
               if (finder != candidate_projections.end())
               {
                 // Update the score using exponentially weighted moving average
-                finder->second.first = std::pow(CHANGE_REFINEMENT_RETURN_WEIGHT,
-                    (total_traversals - finder->second.second)) *
-                  finder->second.first + 1.0;
-                const uint64_t previous_epoch = 
-                  finder->second.second / CHANGE_REFINEMENT_RETURN_COUNT;
-                const uint64_t current_epoch = 
-                  total_traversals / CHANGE_REFINEMENT_RETURN_COUNT;
+                finder->second.first =
+                    std::pow(
+                        CHANGE_REFINEMENT_RETURN_WEIGHT,
+                        (total_traversals - finder->second.second)) *
+                        finder->second.first +
+                    1.0;
+                const uint64_t previous_epoch =
+                    finder->second.second / CHANGE_REFINEMENT_RETURN_COUNT;
+                const uint64_t current_epoch =
+                    total_traversals / CHANGE_REFINEMENT_RETURN_COUNT;
                 finder->second.second = total_traversals;
                 // Reset the timeout since we saw a return
                 return_timeout = 0;
-                // If the last time we saw this projection was in a previous epoch 
-                // then we can check to see if this is now the dominant child
+                // If the last time we saw this projection was in a previous
+                // epoch then we can check to see if this is now the dominant
+                // child
                 if ((previous_epoch != current_epoch) &&
-                    is_dominant_candidate(finder->second.first, 
-                                          (projection == refined_projection)))
+                    is_dominant_candidate(
+                        finder->second.first,
+                        (projection == refined_projection)))
                 {
                   // If we're current refinement we don't switch but just end
-                  // invalidating all the other candidates so they can start again
+                  // invalidating all the other candidates so they can start
+                  // again
                   if (projection == refined_projection)
                     invalidate_unused_candidates();
                   else
                     return true;
                 }
-              }
-              else if (projection == refined_projection)
+              } else if (projection == refined_projection)
               {
                 // This counts as a return too since we're refined this way
                 candidate_projections[projection] =
-                  std::pair<double,uint64_t>(1.0, total_traversals);
+                    std::pair<double, uint64_t>(1.0, total_traversals);
                 projection->add_reference();
                 // Reset the timeout since we saw a return
                 return_timeout = 0;
                 // No need to switch, we're already using the refinement
-              }
-              else
+              } else
               {
                 if (++return_timeout == CHANGE_REFINEMENT_TIMEOUT)
                 {
                   invalidate_unused_candidates();
                   return_timeout = 0;
                 }
-                candidate_projections[projection] = 
-                  std::pair<double,uint64_t>(0.0, total_traversals);
+                candidate_projections[projection] =
+                    std::pair<double, uint64_t>(0.0, total_traversals);
                 projection->add_reference();
               }
             }
@@ -406,46 +409,50 @@ namespace Legion {
                 // If this is a complete write then we're going to switch to it
                 return true;
               }
-              // Otherwise we're only going to do a refinement for this 
-              // projection if it is the "first" time we've seen it. In 
+              // Otherwise we're only going to do a refinement for this
+              // projection if it is the "first" time we've seen it. In
               // practice it's unreasonable to keep a memory of all prior
-              // disjoint and complete partitions, so we track a set of 
+              // disjoint and complete partitions, so we track a set of
               // the most recent MAX_INCOMPLETE_WRITES
-              ProjectionRegion *projection = 
-                summary->get_tree()->as_region_projection();
-              std::unordered_map<ProjectionRegion*,
-                std::pair<double,uint64_t> >::iterator finder =
-                  candidate_projections.find(projection);
+              ProjectionRegion* projection =
+                  summary->get_tree()->as_region_projection();
+              std::unordered_map<
+                  ProjectionRegion*, std::pair<double, uint64_t> >::iterator
+                  finder = candidate_projections.find(projection);
               if (finder == candidate_projections.end())
               {
-                // Didn't find it so decrement all the prior entries TTLs 
-                for (std::unordered_map<ProjectionRegion*,
-                      std::pair<double,uint64_t> >::iterator it =
-                      candidate_projections.begin(); it != 
-                      candidate_projections.end(); /*nothing*/)
+                // Didn't find it so decrement all the prior entries TTLs
+                for (std::unordered_map<
+                         ProjectionRegion*,
+                         std::pair<double, uint64_t> >::iterator it =
+                         candidate_projections.begin();
+                     it != candidate_projections.end();
+                     /*nothing*/)
                 {
                   if (--it->second.second == 0)
                   {
-                    std::unordered_map<ProjectionRegion*,
-                      std::pair<double,uint64_t> >::iterator delete_it = it++;
+                    std::unordered_map<
+                        ProjectionRegion*,
+                        std::pair<double, uint64_t> >::iterator delete_it =
+                        it++;
                     candidate_projections.erase(delete_it);
-                  }
-                  else
+                  } else
                     it++;
                 }
                 projection->add_reference();
-                candidate_projections.emplace(std::make_pair(projection,
-                  std::pair<double,uint64_t>(0.0, MAX_INCOMPLETE_WRITES)));
+                candidate_projections.emplace(std::make_pair(
+                    projection,
+                    std::pair<double, uint64_t>(0.0, MAX_INCOMPLETE_WRITES)));
                 allow_refinement = true;
-              }
-              else
+              } else
               {
                 // We already had it, so decrement all TTLs of everything that
                 // came before it and then add it back with a new TTL
-                for (std::unordered_map<ProjectionRegion*,
-                      std::pair<double,uint64_t> >::iterator it =
-                      candidate_projections.begin(); it != 
-                      candidate_projections.end(); it++)
+                for (std::unordered_map<
+                         ProjectionRegion*,
+                         std::pair<double, uint64_t> >::iterator it =
+                         candidate_projections.begin();
+                     it != candidate_projections.end(); it++)
                   if (finder->second.second < it->second.second)
                     it->second.second--;
                 finder->second.second = MAX_INCOMPLETE_WRITES;
@@ -457,13 +464,13 @@ namespace Legion {
           // Don't allow anything to happen here
           break;
         default:
-          std::abort(); // should never hit this
+          std::abort();  // should never hit this
       }
       return false;
     }
 
     //--------------------------------------------------------------------------
-    bool RegionRefinementTracker::update_arrival(const RegionUsage &usage)
+    bool RegionRefinementTracker::update_arrival(const RegionUsage& usage)
     //--------------------------------------------------------------------------
     {
       // We don't change the state because of an arrival right now
@@ -471,8 +478,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    void RegionRefinementTracker::invalidate_refinement(ContextID ctx,
-                                             const FieldMask &invalidation_mask)
+    void RegionRefinementTracker::invalidate_refinement(
+        ContextID ctx, const FieldMask& invalidation_mask)
     //--------------------------------------------------------------------------
     {
       if (refined_child != nullptr)
@@ -480,8 +487,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool RegionRefinementTracker::is_dominant_candidate(double score, 
-                                                        bool is_current)
+    bool RegionRefinementTracker::is_dominant_candidate(
+        double score, bool is_current)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -489,32 +496,36 @@ namespace Legion {
 #endif
       bool is_dominant = true;
       // Has to have the most returns
-      for (std::unordered_map<PartitionNode*,
-                              std::pair<double,uint64_t> >::iterator it =
-            candidate_partitions.begin(); it !=
-            candidate_partitions.end(); it++)
+      for (std::unordered_map<
+               PartitionNode*, std::pair<double, uint64_t> >::iterator it =
+               candidate_partitions.begin();
+           it != candidate_partitions.end(); it++)
       {
         // Skip ourselves
         if (it->second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it->second.first = std::pow(CHANGE_REFINEMENT_RETURN_WEIGHT,
-            (total_traversals - it->second.second)) * it->second.first;
+        it->second.first = std::pow(
+                               CHANGE_REFINEMENT_RETURN_WEIGHT,
+                               (total_traversals - it->second.second)) *
+                           it->second.first;
         it->second.second = total_traversals;
         if (score < it->second.first)
           is_dominant = false;
       }
-      for (std::unordered_map<ProjectionRegion*,
-                              std::pair<double,uint64_t> >::iterator it =
-            candidate_projections.begin(); it !=
-            candidate_projections.end(); it++)
+      for (std::unordered_map<
+               ProjectionRegion*, std::pair<double, uint64_t> >::iterator it =
+               candidate_projections.begin();
+           it != candidate_projections.end(); it++)
       {
         // Skip ourselves
         if (it->second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it->second.first = std::pow(CHANGE_REFINEMENT_RETURN_WEIGHT,
-            (total_traversals - it->second.second)) * it->second.first;
+        it->second.first = std::pow(
+                               CHANGE_REFINEMENT_RETURN_WEIGHT,
+                               (total_traversals - it->second.second)) *
+                           it->second.first;
         it->second.second = total_traversals;
         if (score < it->second.first)
           is_dominant = false;
@@ -531,30 +542,28 @@ namespace Legion {
         // current refinement's score
         if (refined_child != nullptr)
         {
-          std::unordered_map<PartitionNode*,
-            std::pair<double,uint64_t> >::const_iterator finder =
-              candidate_partitions.find(refined_child);
+          std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
+              const_iterator finder = candidate_partitions.find(refined_child);
           // Current refinement is never observed
           if (finder == candidate_partitions.end())
             return true;
           double total_candidates =
-            candidate_partitions.size() + candidate_projections.size();
+              candidate_partitions.size() + candidate_projections.size();
           double hysteresis = std::sqrt(total_candidates);
           return ((finder->second.first * hysteresis) < score);
-        }
-        else
+        } else
         {
 #ifdef DEBUG_LEGION
           assert(refined_projection != nullptr);
 #endif
-          std::unordered_map<ProjectionRegion*,
-            std::pair<double,uint64_t> >::const_iterator
-              finder = candidate_projections.find(refined_projection);
+          std::unordered_map<ProjectionRegion*, std::pair<double, uint64_t> >::
+              const_iterator finder =
+                  candidate_projections.find(refined_projection);
           // Current refinement is never observed
           if (finder == candidate_projections.end())
             return true;
           double total_candidates =
-            candidate_partitions.size() + candidate_projections.size();
+              candidate_partitions.size() + candidate_projections.size();
           double hysteresis = std::sqrt(total_candidates);
           return ((finder->second.first * hysteresis) < score);
         }
@@ -569,41 +578,42 @@ namespace Legion {
       // Remove any candidates that have gone too long without being observed
       if (!candidate_partitions.empty())
       {
-        for (std::unordered_map<PartitionNode*,
-                            std::pair<double,uint64_t> >::iterator it =
-              candidate_partitions.begin(); it !=
-              candidate_partitions.end(); /*nothing*/)
+        for (std::unordered_map<
+                 PartitionNode*, std::pair<double, uint64_t> >::iterator it =
+                 candidate_partitions.begin();
+             it != candidate_partitions.end();
+             /*nothing*/)
         {
           uint64_t last_observation = total_traversals - it->second.second;
           if (CHANGE_REFINEMENT_TIMEOUT < last_observation)
           {
             if (it->first->remove_base_resource_ref(REFINEMENT_REF))
               delete it->first;
-            std::unordered_map<PartitionNode*,
-              std::pair<double,uint64_t> >::iterator to_delete = it++;
+            std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
+                iterator to_delete = it++;
             candidate_partitions.erase(to_delete);
-          }
-          else
+          } else
             it++;
         }
       }
       if (!candidate_projections.empty())
       {
-        for (std::unordered_map<ProjectionRegion*,
-                            std::pair<double,uint64_t> >::iterator it =
-              candidate_projections.begin(); it !=
-              candidate_projections.end(); /*nothing*/)
+        for (std::unordered_map<
+                 ProjectionRegion*, std::pair<double, uint64_t> >::iterator it =
+                 candidate_projections.begin();
+             it != candidate_projections.end();
+             /*nothing*/)
         {
           uint64_t last_observation = total_traversals - it->second.second;
           if (CHANGE_REFINEMENT_TIMEOUT < last_observation)
           {
             if (it->first->remove_reference())
               delete it->first;
-            std::unordered_map<ProjectionRegion*,
-              std::pair<double,uint64_t> >::iterator to_delete = it++;
+            std::unordered_map<
+                ProjectionRegion*, std::pair<double, uint64_t> >::iterator
+                to_delete = it++;
             candidate_projections.erase(to_delete);
-          }
-          else
+          } else
             it++;
         }
       }
@@ -611,10 +621,10 @@ namespace Legion {
 
     /////////////////////////////////////////////////////////////
     // PartitionRefinementTracker
-    ///////////////////////////////////////////////////////////// 
+    /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PartitionRefinementTracker::PartitionRefinementTracker(PartitionNode *node)
+    PartitionRefinementTracker::PartitionRefinementTracker(PartitionNode* node)
       : partition(node), refined_projection(nullptr),
         refinement_state(UNREFINED_STATE), children_score(-1.0),
         children_last(0), total_traversals(0), return_timeout(0)
@@ -627,17 +637,18 @@ namespace Legion {
     PartitionRefinementTracker::~PartitionRefinementTracker(void)
     //--------------------------------------------------------------------------
     {
-      if ((refined_projection != nullptr) && 
+      if ((refined_projection != nullptr) &&
           refined_projection->remove_reference())
         delete refined_projection;
-      for (std::vector<RegionNode*>::const_iterator it =
-            children.begin(); it != children.end(); it++)
+      for (std::vector<RegionNode*>::const_iterator it = children.begin();
+           it != children.end(); it++)
         if ((*it)->remove_base_resource_ref(REFINEMENT_REF))
           delete (*it);
-      for (std::unordered_map<ProjectionPartition*,
-                std::pair<double,uint64_t> >::const_iterator it =
-            candidate_projections.begin(); it != 
-            candidate_projections.end(); it++)
+      for (std::unordered_map<
+               ProjectionPartition*,
+               std::pair<double, uint64_t> >::const_iterator it =
+               candidate_projections.begin();
+           it != candidate_projections.end(); it++)
         if (it->first->remove_reference())
           delete it->first;
       if (partition->remove_base_resource_ref(REFINEMENT_REF))
@@ -648,25 +659,26 @@ namespace Legion {
     RefinementTracker* PartitionRefinementTracker::clone(void) const
     //--------------------------------------------------------------------------
     {
-      PartitionRefinementTracker *tracker = 
-        new PartitionRefinementTracker(partition);
+      PartitionRefinementTracker* tracker =
+          new PartitionRefinementTracker(partition);
       if (refined_projection != nullptr)
       {
         tracker->refined_projection = refined_projection;
         refined_projection->add_reference();
       }
-      tracker->refinement_state = refinement_state; 
+      tracker->refinement_state = refinement_state;
       if (!children.empty())
       {
         tracker->children = children;
-        for (std::vector<RegionNode*>::const_iterator it =
-            children.begin(); it != children.end(); it++)
+        for (std::vector<RegionNode*>::const_iterator it = children.begin();
+             it != children.end(); it++)
           (*it)->add_base_resource_ref(REFINEMENT_REF);
       }
-      for (std::unordered_map<ProjectionPartition*,
-                std::pair<double,uint64_t> >::const_iterator it =
-            candidate_projections.begin(); it != 
-            candidate_projections.end(); it++)
+      for (std::unordered_map<
+               ProjectionPartition*,
+               std::pair<double, uint64_t> >::const_iterator it =
+               candidate_projections.begin();
+           it != candidate_projections.end(); it++)
       {
         it->first->add_reference();
         tracker->candidate_projections.insert(*it);
@@ -682,19 +694,19 @@ namespace Legion {
     void PartitionRefinementTracker::initialize_no_refine(void)
     //--------------------------------------------------------------------------
     {
-      std::abort(); // this should never be called
+      std::abort();  // this should never be called
     }
 
     //--------------------------------------------------------------------------
-    bool PartitionRefinementTracker::update_child(RegionTreeNode *node,
-                               const RegionUsage &usage, bool &allow_refinement)
+    bool PartitionRefinementTracker::update_child(
+        RegionTreeNode* node, const RegionUsage& usage, bool& allow_refinement)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
       assert(node->is_region());
       assert(!allow_refinement);
 #endif
-      RegionNode *child = node->as_region_node();
+      RegionNode* child = node->as_region_node();
       switch (refinement_state)
       {
         case UNREFINED_STATE:
@@ -706,14 +718,15 @@ namespace Legion {
             allow_refinement = true;
             child->add_base_resource_ref(REFINEMENT_REF);
             children.push_back(child);
-            if (((uint64_t)partition->row_source->total_children) <= 
+            if (((uint64_t)partition->row_source->total_children) <=
                 CHANGE_REFINEMENT_PARTITION_FRACTION)
               refinement_state = IS_WRITE(usage) ?
-                COMPLETE_WRITE_REFINED_STATE : COMPLETE_NONWRITE_REFINED_STATE;
+                                     COMPLETE_WRITE_REFINED_STATE :
+                                     COMPLETE_NONWRITE_REFINED_STATE;
             else
               refinement_state = IS_WRITE(usage) ?
-                INCOMPLETE_WRITE_REFINED_STATE :
-                INCOMPLETE_NONWRITE_REFINED_STATE;
+                                     INCOMPLETE_WRITE_REFINED_STATE :
+                                     INCOMPLETE_NONWRITE_REFINED_STATE;
             break;
           }
         case COMPLETE_NONWRITE_REFINED_STATE:
@@ -754,7 +767,7 @@ namespace Legion {
               child->add_base_resource_ref(REFINEMENT_REF);
               children.push_back(child);
               std::sort(children.begin(), children.end());
-              if (((uint64_t)partition->row_source->total_children) <= 
+              if (((uint64_t)partition->row_source->total_children) <=
                   (children.size() * CHANGE_REFINEMENT_PARTITION_FRACTION))
               {
                 refinement_state = COMPLETE_NONWRITE_REFINED_STATE;
@@ -782,7 +795,7 @@ namespace Legion {
                 children.push_back(child);
                 std::sort(children.begin(), children.end());
                 // See if we dominate the projection at this point
-                if ((refined_projection != nullptr) && 
+                if ((refined_projection != nullptr) &&
                     (((uint64_t)partition->row_source->total_children) <=
                      (children.size() * CHANGE_REFINEMENT_PARTITION_FRACTION)))
                 {
@@ -828,9 +841,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     bool PartitionRefinementTracker::update_projection(
-                                                    ProjectionSummary *summary, 
-                                                    const RegionUsage &usage, 
-                                                    bool &allow_refinement)
+        ProjectionSummary* summary, const RegionUsage& usage,
+        bool& allow_refinement)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -849,11 +861,12 @@ namespace Legion {
             refined_projection->add_reference();
             if (summary->is_complete())
               refinement_state = IS_WRITE(usage) ?
-                COMPLETE_WRITE_REFINED_STATE : COMPLETE_NONWRITE_REFINED_STATE;
+                                     COMPLETE_WRITE_REFINED_STATE :
+                                     COMPLETE_NONWRITE_REFINED_STATE;
             else
               refinement_state = IS_WRITE(usage) ?
-                INCOMPLETE_WRITE_REFINED_STATE :
-                INCOMPLETE_NONWRITE_REFINED_STATE;
+                                     INCOMPLETE_WRITE_REFINED_STATE :
+                                     INCOMPLETE_NONWRITE_REFINED_STATE;
             break;
           }
         case COMPLETE_NONWRITE_REFINED_STATE:
@@ -881,7 +894,7 @@ namespace Legion {
             // Check to see if we're a complete projection
             if (summary->is_complete())
             {
-              // We're a new complete non-write projection so 
+              // We're a new complete non-write projection so
               // swtich to that
               return true;
             }
@@ -896,59 +909,64 @@ namespace Legion {
               // and/or the group of direct children
               // Step the clock for a new traversal
               total_traversals++;
-              ProjectionPartition *projection =
-                summary->get_tree()->as_partition_projection();
-              std::unordered_map<ProjectionPartition*,
-                std::pair<double,uint64_t> >::iterator finder =
-                  candidate_projections.find(projection);
+              ProjectionPartition* projection =
+                  summary->get_tree()->as_partition_projection();
+              std::unordered_map<
+                  ProjectionPartition*, std::pair<double, uint64_t> >::iterator
+                  finder = candidate_projections.find(projection);
               if (finder != candidate_projections.end())
               {
                 // Update the score using exponentially weighted moving average
-                finder->second.first = std::pow(CHANGE_REFINEMENT_RETURN_WEIGHT,
-                    (total_traversals - finder->second.second)) *
-                  finder->second.first + 1.0;
-                // Since CHANGE_REFINEMENT_RETURN_COUNT is a power of 2 the compiler
-                // should be able to optimize integer division to a basic bit shift
-                const uint64_t previous_epoch = 
-                  finder->second.second / CHANGE_REFINEMENT_RETURN_COUNT;
-                const uint64_t current_epoch = 
-                  total_traversals / CHANGE_REFINEMENT_RETURN_COUNT;
+                finder->second.first =
+                    std::pow(
+                        CHANGE_REFINEMENT_RETURN_WEIGHT,
+                        (total_traversals - finder->second.second)) *
+                        finder->second.first +
+                    1.0;
+                // Since CHANGE_REFINEMENT_RETURN_COUNT is a power of 2 the
+                // compiler should be able to optimize integer division to a
+                // basic bit shift
+                const uint64_t previous_epoch =
+                    finder->second.second / CHANGE_REFINEMENT_RETURN_COUNT;
+                const uint64_t current_epoch =
+                    total_traversals / CHANGE_REFINEMENT_RETURN_COUNT;
                 finder->second.second = total_traversals;
                 // Reset the timeout since we saw a return
                 return_timeout = 0;
-                // If the last time we saw this projection was in a previous epoch 
-                // then we can check to see if this is now the dominant child
+                // If the last time we saw this projection was in a previous
+                // epoch then we can check to see if this is now the dominant
+                // child
                 if ((previous_epoch != current_epoch) &&
-                    is_dominant_candidate(finder->second.first, 
-                                          (projection == refined_projection)))
+                    is_dominant_candidate(
+                        finder->second.first,
+                        (projection == refined_projection)))
                 {
                   // If we're current refinement we don't switch but just end
-                  // invalidating all the other candidates so they can start again
+                  // invalidating all the other candidates so they can start
+                  // again
                   if (projection == refined_projection)
                     invalidate_unused_candidates();
                   else
                     return true;
                 }
-              }
-              else if (projection == refined_projection)
+              } else if (projection == refined_projection)
               {
                 // This counts as a return too since we're refined this way
-                candidate_projections[projection] = 
-                  std::pair<double,uint64_t>(1.0, total_traversals);
+                candidate_projections[projection] =
+                    std::pair<double, uint64_t>(1.0, total_traversals);
                 projection->add_reference();
                 // Reset the timeout since we saw a return
                 return_timeout = 0;
                 // No need to switch, we're already using the refinement
-              }
-              else
+              } else
               {
                 if (++return_timeout == CHANGE_REFINEMENT_TIMEOUT)
                 {
                   invalidate_unused_candidates();
                   return_timeout = 0;
                 }
-                candidate_projections[projection] = 
-                  std::pair<double,uint64_t>(0.0, total_traversals);
+                candidate_projections[projection] =
+                    std::pair<double, uint64_t>(0.0, total_traversals);
                 projection->add_reference();
               }
             }
@@ -961,50 +979,54 @@ namespace Legion {
               // Check to see if we're a complete projection
               if (summary->is_complete())
               {
-                // We're a new complete writing projection so 
+                // We're a new complete writing projection so
                 // swtich to that
-                return true; 
+                return true;
               }
-              // Otherwise we're only going to do a refinement for this 
-              // projection if it is the "first" time we've seen it. In 
+              // Otherwise we're only going to do a refinement for this
+              // projection if it is the "first" time we've seen it. In
               // practice it's unreasonable to keep a memory of all prior
-              // disjoint and complete partitions, so we track a set of 
+              // disjoint and complete partitions, so we track a set of
               // the most recent MAX_INCOMPLETE_WRITES
-              ProjectionPartition *projection = 
-                summary->get_tree()->as_partition_projection();
-              std::unordered_map<ProjectionPartition*,
-                std::pair<double,uint64_t> >::iterator finder =
-                  candidate_projections.find(projection);
+              ProjectionPartition* projection =
+                  summary->get_tree()->as_partition_projection();
+              std::unordered_map<
+                  ProjectionPartition*, std::pair<double, uint64_t> >::iterator
+                  finder = candidate_projections.find(projection);
               if (finder == candidate_projections.end())
               {
-                // Didn't find it so decrement all the prior entries TTLs 
-                for (std::unordered_map<ProjectionPartition*,
-                      std::pair<double,uint64_t> >::iterator it =
-                      candidate_projections.begin(); it != 
-                      candidate_projections.end(); /*nothing*/)
+                // Didn't find it so decrement all the prior entries TTLs
+                for (std::unordered_map<
+                         ProjectionPartition*,
+                         std::pair<double, uint64_t> >::iterator it =
+                         candidate_projections.begin();
+                     it != candidate_projections.end();
+                     /*nothing*/)
                 {
                   if (--it->second.second == 0)
                   {
-                    std::unordered_map<ProjectionPartition*,
-                      std::pair<double,uint64_t> >::iterator delete_it = it++;
+                    std::unordered_map<
+                        ProjectionPartition*,
+                        std::pair<double, uint64_t> >::iterator delete_it =
+                        it++;
                     candidate_projections.erase(delete_it);
-                  }
-                  else
+                  } else
                     it++;
                 }
                 projection->add_reference();
-                candidate_projections.emplace(std::make_pair(projection,
-                  std::pair<double,uint64_t>(0.0, MAX_INCOMPLETE_WRITES)));
+                candidate_projections.emplace(std::make_pair(
+                    projection,
+                    std::pair<double, uint64_t>(0.0, MAX_INCOMPLETE_WRITES)));
                 allow_refinement = true;
-              }
-              else
+              } else
               {
                 // We already had it, so decrement all TTLs of everything that
                 // came before it and then add it back with a new TTL
-                for (std::unordered_map<ProjectionPartition*,
-                      std::pair<double,uint64_t> >::iterator it =
-                      candidate_projections.begin(); it != 
-                      candidate_projections.end(); it++)
+                for (std::unordered_map<
+                         ProjectionPartition*,
+                         std::pair<double, uint64_t> >::iterator it =
+                         candidate_projections.begin();
+                     it != candidate_projections.end(); it++)
                   if (finder->second.second < it->second.second)
                     it->second.second--;
                 finder->second.second = MAX_INCOMPLETE_WRITES;
@@ -1019,25 +1041,25 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool PartitionRefinementTracker::update_arrival(const RegionUsage &usage)
+    bool PartitionRefinementTracker::update_arrival(const RegionUsage& usage)
     //--------------------------------------------------------------------------
     {
-      std::abort(); // should never arrive on a partition without a projection 
+      std::abort();  // should never arrive on a partition without a projection
     }
 
     //--------------------------------------------------------------------------
-    void PartitionRefinementTracker::invalidate_refinement(ContextID ctx,
-                                             const FieldMask &invalidation_mask)
+    void PartitionRefinementTracker::invalidate_refinement(
+        ContextID ctx, const FieldMask& invalidation_mask)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<RegionNode*>::const_iterator it =
-            children.begin(); it != children.end(); it++)
+      for (std::vector<RegionNode*>::const_iterator it = children.begin();
+           it != children.end(); it++)
         (*it)->invalidate_logical_refinement(ctx, invalidation_mask);
     }
 
     //--------------------------------------------------------------------------
-    bool PartitionRefinementTracker::is_dominant_candidate(double score,
-                                                          bool is_current)
+    bool PartitionRefinementTracker::is_dominant_candidate(
+        double score, bool is_current)
     //--------------------------------------------------------------------------
     {
       bool is_dominant = true;
@@ -1045,23 +1067,27 @@ namespace Legion {
           (children.size() * CHANGE_REFINEMENT_PARTITION_FRACTION))
       {
         // Recompute the children score and compare it
-        children_score = std::pow(CHANGE_REFINEMENT_RETURN_WEIGHT,
-            (total_traversals - children_last)) * children_score;
+        children_score = std::pow(
+                             CHANGE_REFINEMENT_RETURN_WEIGHT,
+                             (total_traversals - children_last)) *
+                         children_score;
         children_last = total_traversals;
         if (score < children_score)
           is_dominant = false;
       }
-      for (std::unordered_map<ProjectionPartition*,
-                              std::pair<double,uint64_t> >::iterator it =
-            candidate_projections.begin(); it !=
-            candidate_projections.end(); it++) 
+      for (std::unordered_map<
+               ProjectionPartition*, std::pair<double, uint64_t> >::iterator
+               it = candidate_projections.begin();
+           it != candidate_projections.end(); it++)
       {
         // Skip ourselves
         if (it->second.second == total_traversals)
           continue;
         // Recompute the score before comparing
-        it->second.first = std::pow(CHANGE_REFINEMENT_RETURN_WEIGHT,
-            (total_traversals - it->second.second)) * it->second.first;
+        it->second.first = std::pow(
+                               CHANGE_REFINEMENT_RETURN_WEIGHT,
+                               (total_traversals - it->second.second)) *
+                           it->second.first;
         it->second.second = total_traversals;
         if (score < it->second.first)
           is_dominant = false;
@@ -1076,18 +1102,18 @@ namespace Legion {
           // obvious that we should switch and not just ping-pong so we need to
           // have a score that is at least sqrt(total_candidates) more than the
           // current refinement's score
-          std::unordered_map<ProjectionPartition*,
-              std::pair<double,uint64_t> >::const_iterator 
-                finder = candidate_projections.find(refined_projection);
+          std::unordered_map<
+              ProjectionPartition*,
+              std::pair<double, uint64_t> >::const_iterator finder =
+              candidate_projections.find(refined_projection);
           // Current refinement is never observed
           if (finder == candidate_projections.end())
             return true;
           double total_candidates =
-            (children_score >= 0.0) ? 1 : 0 + candidate_projections.size();
+              (children_score >= 0.0) ? 1 : 0 + candidate_projections.size();
           double hysteresis = std::sqrt(total_candidates);
           return ((finder->second.first * hysteresis) < score);
-        }
-        else
+        } else
         {
           // The children are refined so compute the total candidates
           if (children_score < 0.0)
@@ -1112,25 +1138,26 @@ namespace Legion {
       }
       if (!candidate_projections.empty())
       {
-        for (std::unordered_map<ProjectionPartition*,
-                            std::pair<double,uint64_t> >::iterator it =
-              candidate_projections.begin(); it !=
-              candidate_projections.end(); /*nothing*/)
+        for (std::unordered_map<
+                 ProjectionPartition*, std::pair<double, uint64_t> >::iterator
+                 it = candidate_projections.begin();
+             it != candidate_projections.end();
+             /*nothing*/)
         {
           uint64_t last_observation = total_traversals - it->second.second;
           if (CHANGE_REFINEMENT_TIMEOUT < last_observation)
           {
             if (it->first->remove_reference())
               delete it->first;
-            std::unordered_map<ProjectionPartition*,
-              std::pair<double,uint64_t> >::iterator to_delete = it++;
+            std::unordered_map<
+                ProjectionPartition*, std::pair<double, uint64_t> >::iterator
+                to_delete = it++;
             candidate_projections.erase(to_delete);
-          }
-          else
+          } else
             it++;
         }
       }
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

@@ -20,27 +20,25 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Frame Operation 
+    // Frame Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    FrameOp::FrameOp(void)
-      : FenceOp()
+    FrameOp::FrameOp(void) : FenceOp()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     FrameOp::~FrameOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void FrameOp::initialize(InnerContext *ctx, Provenance *provenance)
+    void FrameOp::initialize(InnerContext* ctx, Provenance* provenance)
     //--------------------------------------------------------------------------
     {
-      FenceOp::initialize(ctx,EXECUTION_FENCE,false/*need future*/,provenance);
+      FenceOp::initialize(
+          ctx, EXECUTION_FENCE, false /*need future*/, provenance);
     }
 
     //--------------------------------------------------------------------------
@@ -54,7 +52,7 @@ namespace Legion {
     void FrameOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      FenceOp::deactivate(false/*free*/);
+      FenceOp::deactivate(false /*free*/);
       if (freeop)
         runtime->free_operation(this);
     }
@@ -93,5 +91,5 @@ namespace Legion {
       FenceOp::trigger_commit();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

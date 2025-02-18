@@ -25,26 +25,23 @@ namespace Legion {
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Creation Operation 
+    // Creation Operation
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    CreationOp::CreationOp(void)
-      : Operation()
+    CreationOp::CreationOp(void) : Operation()
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     CreationOp::~CreationOp(void)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
-    void CreationOp::initialize_index_space(InnerContext *ctx, 
-        IndexSpaceNode *n, const Future &f, Provenance *provenance,
-        bool own, const CollectiveMapping *map)
+    void CreationOp::initialize_index_space(
+        InnerContext* ctx, IndexSpaceNode* n, const Future& f,
+        Provenance* provenance, bool own, const CollectiveMapping* map)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -58,14 +55,14 @@ namespace Legion {
       mapping = map;
       owner = own;
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_creation_operation(parent_ctx->get_unique_id(),
-                                          unique_op_id);
+        LegionSpy::log_creation_operation(
+            parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
-    void CreationOp::initialize_field(InnerContext *ctx, FieldSpaceNode *node,
-          FieldID fid, const Future &field_size,
-          Provenance *provenance, bool own)
+    void CreationOp::initialize_field(
+        InnerContext* ctx, FieldSpaceNode* node, FieldID fid,
+        const Future& field_size, Provenance* provenance, bool own)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -80,15 +77,16 @@ namespace Legion {
       futures.push_back(field_size);
       owner = own;
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_creation_operation(parent_ctx->get_unique_id(),
-                                          unique_op_id);
+        LegionSpy::log_creation_operation(
+            parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
-    void CreationOp::initialize_fields(InnerContext *ctx, FieldSpaceNode *node,
-                                       const std::vector<FieldID> &fids,
-                                       const std::vector<Future> &field_sizes,
-                                       Provenance *provenance, bool own)
+    void CreationOp::initialize_fields(
+        InnerContext* ctx, FieldSpaceNode* node,
+        const std::vector<FieldID>& fids,
+        const std::vector<Future>& field_sizes, Provenance* provenance,
+        bool own)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -99,18 +97,19 @@ namespace Legion {
 #endif
       initialize_operation(ctx, provenance);
       kind = FIELD_ALLOCATION;
-      field_space_node = node;     
+      field_space_node = node;
       fields = fids;
       futures = field_sizes;
       owner = own;
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_creation_operation(parent_ctx->get_unique_id(),
-                                          unique_op_id);
+        LegionSpy::log_creation_operation(
+            parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
-    void CreationOp::initialize_map(InnerContext *ctx, Provenance *provenance,
-                              const std::map<DomainPoint,Future> &future_points)
+    void CreationOp::initialize_map(
+        InnerContext* ctx, Provenance* provenance,
+        const std::map<DomainPoint, Future>& future_points)
     //--------------------------------------------------------------------------
     {
 #ifdef DEBUG_LEGION
@@ -120,12 +119,13 @@ namespace Legion {
       kind = FUTURE_MAP_CREATION;
       futures.resize(future_points.size());
       unsigned index = 0;
-      for (std::map<DomainPoint,Future>::const_iterator it = 
-            future_points.begin(); it != future_points.end(); it++, index++)
+      for (std::map<DomainPoint, Future>::const_iterator it =
+               future_points.begin();
+           it != future_points.end(); it++, index++)
         futures[index] = it->second;
       if (runtime->legion_spy_enabled)
-        LegionSpy::log_creation_operation(parent_ctx->get_unique_id(),
-                                          unique_op_id);
+        LegionSpy::log_creation_operation(
+            parent_ctx->get_unique_id(), unique_op_id);
     }
 
     //--------------------------------------------------------------------------
@@ -143,7 +143,7 @@ namespace Legion {
     void CreationOp::deactivate(bool freeop)
     //--------------------------------------------------------------------------
     {
-      Operation::deactivate(false/*free*/);
+      Operation::deactivate(false /*free*/);
       futures.clear();
       fields.clear();
       if (freeop)
@@ -168,8 +168,8 @@ namespace Legion {
     void CreationOp::trigger_dependence_analysis(void)
     //--------------------------------------------------------------------------
     {
-      for (std::vector<Future>::const_iterator it = 
-            futures.begin(); it != futures.end(); it++)
+      for (std::vector<Future>::const_iterator it = futures.begin();
+           it != futures.end(); it++)
       {
 #ifdef DEBUG_LEGION
         assert(it->impl != nullptr);
@@ -180,7 +180,7 @@ namespace Legion {
       }
       // Record this with the context as an implicit dependence for all
       // later operations which may rely on this operation for the creation
-      // Note that future map creations are exempt from this since the 
+      // Note that future map creations are exempt from this since the
       // resource that they are producing (a future map) will have downstream
       // operations explicitly recording mapping dependences on it
       if (kind != FUTURE_MAP_CREATION)
@@ -202,7 +202,7 @@ namespace Legion {
             {
               // Have to request internal buffers before completing mapping
               // in case we have to make an instance as part of it
-              FutureImpl *impl = futures[0].impl;
+              FutureImpl* impl = futures[0].impl;
               impl->request_runtime_instance(this);
               complete_mapping();
               const RtEvent ready = impl->find_runtime_instance_ready();
@@ -210,8 +210,7 @@ namespace Legion {
                 parent_ctx->add_to_trigger_execution_queue(this, ready);
               else
                 trigger_execution();
-            }
-            else
+            } else
               trigger_execution();
             break;
           }
@@ -224,7 +223,7 @@ namespace Legion {
             {
               for (unsigned idx = 0; idx < futures.size(); idx++)
               {
-                FutureImpl *impl = futures[idx].impl;
+                FutureImpl* impl = futures[idx].impl;
                 impl->request_runtime_instance(this);
                 const RtEvent subscribed = impl->find_runtime_instance_ready();
                 if (subscribed.exists())
@@ -242,8 +241,7 @@ namespace Legion {
                 parent_ctx->add_to_trigger_execution_queue(this, ready);
               else
                 trigger_execution();
-            }
-            else
+            } else
               trigger_execution();
             break;
           }
@@ -267,46 +265,51 @@ namespace Legion {
       {
         case INDEX_SPACE_CREATION:
           {
-            // Pull the pointer for the domain out of the future and assign 
+            // Pull the pointer for the domain out of the future and assign
             // it to the index space node
-            FutureImpl *impl = futures[0].impl;
+            FutureImpl* impl = futures[0].impl;
             size_t future_size = 0;
-            const Domain *domain = static_cast<const Domain*>(
+            const Domain* domain = static_cast<const Domain*>(
                 impl->find_runtime_buffer(parent_ctx, future_size));
             if (future_size != sizeof(Domain))
               Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                << "Future for index space creation by " << *this 
-                << " does not have the same size as sizeof(Domain) (e.g. "
-                << sizeof(Domain) << " bytes). The type of futures for "
-                << "index space domains must be a Domain."; 
-            if (owner && index_space_node->set_domain(*domain,
-                  ApEvent::NO_AP_EVENT, true/*take ownership*/))
+                  << "Future for index space creation by " << *this
+                  << " does not have the same size as sizeof(Domain) (e.g. "
+                  << sizeof(Domain) << " bytes). The type of futures for "
+                  << "index space domains must be a Domain.";
+            if (owner &&
+                index_space_node->set_domain(
+                    *domain, ApEvent::NO_AP_EVENT, true /*take ownership*/))
               delete index_space_node;
-            break;      
+            break;
           }
         case FIELD_ALLOCATION:
           {
             for (unsigned idx = 0; idx < futures.size(); idx++)
             {
-              FutureImpl *impl = futures[idx].impl;
+              FutureImpl* impl = futures[idx].impl;
               size_t future_size = 0;
-              const size_t *field_size = static_cast<const size_t*>(
-                      impl->find_runtime_buffer(parent_ctx, future_size));
+              const size_t* field_size = static_cast<const size_t*>(
+                  impl->find_runtime_buffer(parent_ctx, future_size));
               if (future_size != sizeof(size_t))
                 Exception(DYNAMIC_TYPE_EXCEPTION, this)
-                  << "Size of future passed into dynamic field allocation for "
-                  << "field " << fields[idx] << " is " << future_size
-                  << " bytes which not the same as sizeof(size_t) ("
-                  << sizeof(size_t) << " bytes). Futures passed into field "
-                  << "allocation calls must contain data of the type size_t.";
+                    << "Size of future passed into dynamic field allocation "
+                       "for "
+                    << "field " << fields[idx] << " is " << future_size
+                    << " bytes which not the same as sizeof(size_t) ("
+                    << sizeof(size_t) << " bytes). Futures passed into field "
+                    << "allocation calls must contain data of the type size_t.";
               if (owner)
               {
-                field_space_node->update_field_size(fields[idx], *field_size,
-                            complete_preconditions, runtime->address_space);
+                field_space_node->update_field_size(
+                    fields[idx], *field_size, complete_preconditions,
+                    runtime->address_space);
                 if (runtime->legion_spy_enabled)
-                  LegionSpy::log_field_creation(field_space_node->handle.get_id(),
-                      fields[idx], *field_size, (get_provenance() == nullptr) ?
-                      std::string_view() : get_provenance()->human);
+                  LegionSpy::log_field_creation(
+                      field_space_node->handle.get_id(), fields[idx],
+                      *field_size,
+                      (get_provenance() == nullptr) ? std::string_view() :
+                                                      get_provenance()->human);
               }
             }
             break;
@@ -320,5 +323,5 @@ namespace Legion {
         complete_execution();
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

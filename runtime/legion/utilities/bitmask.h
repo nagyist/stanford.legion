@@ -48,7 +48,7 @@
 #undef bool
 #undef vector
 #endif
-#else // !__MACH__
+#else  // !__MACH__
 #ifdef __SSE2__
 #include <emmintrin.h>
 #endif
@@ -63,23 +63,48 @@
 #include "arm_neon.h"
 #endif
 #ifndef BITMASK_MAX_ALIGNMENT
-#define BITMASK_MAX_ALIGNMENT   (2*sizeof(void *))
+#define BITMASK_MAX_ALIGNMENT (2 * sizeof(void*))
 #endif
 // This statically computes an integer log base 2 for a number
 // which is guaranteed to be a power of 2. Adapted from
 // http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
 #ifndef STATIC_LOG2
-#define STATIC_LOG2(x)  (LOG2_LOOKUP(uint32_t(x * 0x077CB531U) >> 27))
+#define STATIC_LOG2(x) (LOG2_LOOKUP(uint32_t(x * 0x077CB531U) >> 27))
 #endif
 #ifndef LOG2_LOOKUP
-#define LOG2_LOOKUP(x) ((x==0) ? 0 : (x==1) ? 1 : (x==2) ? 28 : (x==3) ? 2 : \
-                   (x==4) ? 29 : (x==5) ? 14 : (x==6) ? 24 : (x==7) ? 3 : \
-                   (x==8) ? 30 : (x==9) ? 22 : (x==10) ? 20 : (x==11) ? 15 : \
-                   (x==12) ? 25 : (x==13) ? 17 : (x==14) ? 4 : (x==15) ? 8 : \
-                   (x==16) ? 31 : (x==17) ? 27 : (x==18) ? 13 : (x==19) ? 23 : \
-                   (x==20) ? 21 : (x==21) ? 19 : (x==22) ? 16 : (x==23) ? 7 : \
-                   (x==24) ? 26 : (x==25) ? 12 : (x==26) ? 18 : (x==27) ? 6 : \
-                   (x==28) ? 11 : (x==29) ? 5 : (x==30) ? 10 : 9)
+#define LOG2_LOOKUP(x) \
+  ((x == 0)  ? 0 :     \
+   (x == 1)  ? 1 :     \
+   (x == 2)  ? 28 :    \
+   (x == 3)  ? 2 :     \
+   (x == 4)  ? 29 :    \
+   (x == 5)  ? 14 :    \
+   (x == 6)  ? 24 :    \
+   (x == 7)  ? 3 :     \
+   (x == 8)  ? 30 :    \
+   (x == 9)  ? 22 :    \
+   (x == 10) ? 20 :    \
+   (x == 11) ? 15 :    \
+   (x == 12) ? 25 :    \
+   (x == 13) ? 17 :    \
+   (x == 14) ? 4 :     \
+   (x == 15) ? 8 :     \
+   (x == 16) ? 31 :    \
+   (x == 17) ? 27 :    \
+   (x == 18) ? 13 :    \
+   (x == 19) ? 23 :    \
+   (x == 20) ? 21 :    \
+   (x == 21) ? 19 :    \
+   (x == 22) ? 16 :    \
+   (x == 23) ? 7 :     \
+   (x == 24) ? 26 :    \
+   (x == 25) ? 12 :    \
+   (x == 26) ? 18 :    \
+   (x == 27) ? 6 :     \
+   (x == 28) ? 11 :    \
+   (x == 29) ? 5 :     \
+   (x == 30) ? 10 :    \
+               9)
 #endif
 
 namespace Legion {
@@ -91,204 +116,240 @@ namespace Legion {
       template<bool READ_ONLY, typename T = uint64_t>
       class SSEView {
       public:
-        inline SSEView(T *base, unsigned index) 
-          : ptr(base + ((sizeof(__m128d)/sizeof(T))*index)) { }
+        inline SSEView(T* base, unsigned index)
+          : ptr(base + ((sizeof(__m128d) / sizeof(T)) * index))
+        { }
       public:
-        inline operator __m128i(void) const {
+        inline operator __m128i(void) const
+        {
           __m128i result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator __m128d(void) const {
+        inline operator __m128d(void) const
+        {
           __m128d result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         };
       public:
-        inline void operator=(const __m128i &value) {
+        inline void operator=(const __m128i& value)
+        {
           memcpy(ptr, &value, sizeof(value));
         }
-        inline void operator=(const __m128d &value) {
+        inline void operator=(const __m128d& value)
+        {
           memcpy(ptr, &value, sizeof(value));
         }
         template<bool WHOCARES>
-        inline void operator=(const SSEView<WHOCARES> &rhs) {
+        inline void operator=(const SSEView<WHOCARES>& rhs)
+        {
           memcpy(ptr, rhs.ptr, sizeof(__m128d));
         }
       public:
-        T *const ptr;
+        T* const ptr;
       };
       template<typename T>
-      class SSEView<true,T> {
+      class SSEView<true, T> {
       public:
-        inline SSEView(const T *base, unsigned index) 
-          : ptr(base + ((sizeof(__m128d)/sizeof(T))*index)) { }
+        inline SSEView(const T* base, unsigned index)
+          : ptr(base + ((sizeof(__m128d) / sizeof(T)) * index))
+        { }
       public:
-        inline operator __m128i(void) const {
+        inline operator __m128i(void) const
+        {
           __m128i result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator __m128d(void) const {
+        inline operator __m128d(void) const
+        {
           __m128d result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         };
       public:
-        const T *const ptr;
+        const T* const ptr;
       };
 #endif
 #ifdef __AVX__
       template<bool READ_ONLY, typename T = uint64_t>
       class AVXView {
       public:
-        inline AVXView(T *base, unsigned index) 
-          : ptr(base + ((sizeof(__m256d)/sizeof(T))*index)) { }
+        inline AVXView(T* base, unsigned index)
+          : ptr(base + ((sizeof(__m256d) / sizeof(T)) * index))
+        { }
       public:
-        inline operator __m256i(void) const {
+        inline operator __m256i(void) const
+        {
           __m256i result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator __m256d(void) const {
+        inline operator __m256d(void) const
+        {
           __m256d result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         };
       public:
-        inline void operator=(const __m256i &value) {
+        inline void operator=(const __m256i& value)
+        {
           memcpy(ptr, &value, sizeof(value));
         }
-        inline void operator=(const __m256d &value) {
+        inline void operator=(const __m256d& value)
+        {
           memcpy(ptr, &value, sizeof(value));
         }
         template<bool WHOCARES>
-        inline void operator=(const AVXView<WHOCARES> &rhs) {
+        inline void operator=(const AVXView<WHOCARES>& rhs)
+        {
           memcpy(ptr, rhs.ptr, sizeof(__m256d));
         }
       public:
-        T *const ptr;
+        T* const ptr;
       };
       template<typename T>
-      class AVXView<true,T> {
+      class AVXView<true, T> {
       public:
-        inline AVXView(const T *base, unsigned index) 
-          : ptr(base + ((sizeof(__m256d)/sizeof(T))*index)) { }
+        inline AVXView(const T* base, unsigned index)
+          : ptr(base + ((sizeof(__m256d) / sizeof(T)) * index))
+        { }
       public:
-        inline operator __m256i(void) const {
+        inline operator __m256i(void) const
+        {
           __m256i result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator __m256d(void) const {
+        inline operator __m256d(void) const
+        {
           __m256d result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         };
       public:
-        const T *const ptr;
+        const T* const ptr;
       };
 #endif
 #ifdef __ALTIVEC__
       template<bool READ_ONLY, typename T = uint64_t>
       class PPCView {
       public:
-        inline PPCView(T *base, unsigned index) 
-          : ptr(base + ((sizeof(__vector double)/sizeof(T))*index)) { }
+        inline PPCView(T* base, unsigned index)
+          : ptr(base + ((sizeof(__vector double) / sizeof(T)) * index))
+        { }
       public:
-        inline operator __vector unsigned long long(void) const {
+        inline operator __vector unsigned long long(void) const
+        {
           __vector unsigned long long result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator __vector double(void) const {
+        inline operator __vector double(void) const
+        {
           __vector double result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         };
       public:
-        inline void operator=(const __vector unsigned long long &value) {
+        inline void operator=(const __vector unsigned long long& value)
+        {
           memcpy(ptr, &value, sizeof(value));
         }
-        inline void operator=(const __vector double &value) {
+        inline void operator=(const __vector double& value)
+        {
           memcpy(ptr, &value, sizeof(value));
         }
         template<bool WHOCARES>
-        inline void operator=(const PPCView<WHOCARES> &rhs) {
+        inline void operator=(const PPCView<WHOCARES>& rhs)
+        {
           memcpy(ptr, rhs.ptr, sizeof(__vector double));
         }
       public:
-        T *const ptr;
+        T* const ptr;
       };
       template<typename T>
-      class PPCView<true,T> {
+      class PPCView<true, T> {
       public:
-        inline PPCView(const T *base, unsigned index) 
-          : ptr(base + ((sizeof(__vector double)/sizeof(T))*index)) { }
+        inline PPCView(const T* base, unsigned index)
+          : ptr(base + ((sizeof(__vector double) / sizeof(T)) * index))
+        { }
       public:
-        inline operator __vector unsigned long long(void) const {
+        inline operator __vector unsigned long long(void) const
+        {
           __vector unsigned long long result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator __vector double(void) const {
+        inline operator __vector double(void) const
+        {
           __vector double result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         };
       public:
-        const T *const ptr;
+        const T* const ptr;
       };
 #endif
 #ifdef __ARM_NEON
       template<bool READ_ONLY, typename T = uint64_t>
       class NeonView {
       public:
-        inline NeonView(T *base, unsigned index) 
-          : ptr(base + ((sizeof(float32x4_t)/sizeof(T))*index)) { }
+        inline NeonView(T* base, unsigned index)
+          : ptr(base + ((sizeof(float32x4_t) / sizeof(T)) * index))
+        { }
       public:
-        inline operator uint32x4_t(void) const {
+        inline operator uint32x4_t(void) const
+        {
           uint32x4_t result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator float32x4_t(void) const {
+        inline operator float32x4_t(void) const
+        {
           float32x4_t result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         };
       public:
-        inline void operator=(const uint32x4_t &value) {
+        inline void operator=(const uint32x4_t& value)
+        {
           memcpy(ptr, &value, sizeof(value));
         }
-        inline void operator=(const float32x4_t &value) {
+        inline void operator=(const float32x4_t& value)
+        {
           memcpy(ptr, &value, sizeof(value));
         }
         template<bool WHOCARES>
-        inline void operator=(const NeonView<WHOCARES> &rhs) {
+        inline void operator=(const NeonView<WHOCARES>& rhs)
+        {
           memcpy(ptr, rhs.ptr, sizeof(float32x4_t));
         }
       public:
-        T *const ptr;
+        T* const ptr;
       };
       template<typename T>
-      class NeonView<true,T> {
+      class NeonView<true, T> {
       public:
-        inline NeonView(const T *base, unsigned index) 
-          : ptr(base + ((sizeof(float32x4_t)/sizeof(T))*index)) { }
+        inline NeonView(const T* base, unsigned index)
+          : ptr(base + ((sizeof(float32x4_t) / sizeof(T)) * index))
+        { }
       public:
-        inline operator uint32x4_t(void) const {
+        inline operator uint32x4_t(void) const
+        {
           uint32x4_t result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         }
-        inline operator float32x4_t(void) const {
+        inline operator float32x4_t(void) const
+        {
           float32x4_t result;
           memcpy(&result, ptr, sizeof(result));
           return result;
         };
       public:
-        const T *const ptr;
+        const T* const ptr;
       };
 #endif
 
@@ -300,54 +361,71 @@ namespace Legion {
       struct BitVector {
       public:
 #ifdef __SSE2__
-        inline SSEView<false,ELEMENT_TYPE> sse_view(unsigned index)
-          { return SSEView<false,ELEMENT_TYPE>(bit_vector, index); }
-        inline SSEView<true,ELEMENT_TYPE> sse_view(unsigned index) const
-          { return SSEView<true,ELEMENT_TYPE>(bit_vector, index); }
+        inline SSEView<false, ELEMENT_TYPE> sse_view(unsigned index)
+        {
+          return SSEView<false, ELEMENT_TYPE>(bit_vector, index);
+        }
+        inline SSEView<true, ELEMENT_TYPE> sse_view(unsigned index) const
+        {
+          return SSEView<true, ELEMENT_TYPE>(bit_vector, index);
+        }
 #endif
 #ifdef __AVX__
-        inline AVXView<false,ELEMENT_TYPE> avx_view(unsigned index)
-          { return AVXView<false,ELEMENT_TYPE>(bit_vector, index); }
-        inline AVXView<true,ELEMENT_TYPE> avx_view(unsigned index) const
-          { return AVXView<true,ELEMENT_TYPE>(bit_vector, index); }
+        inline AVXView<false, ELEMENT_TYPE> avx_view(unsigned index)
+        {
+          return AVXView<false, ELEMENT_TYPE>(bit_vector, index);
+        }
+        inline AVXView<true, ELEMENT_TYPE> avx_view(unsigned index) const
+        {
+          return AVXView<true, ELEMENT_TYPE>(bit_vector, index);
+        }
 #endif
 #ifdef __ALTIVEC__
-        inline PPCView<false,ELEMENT_TYPE> ppc_view(unsigned index)
-          { return PPCView<false,ELEMENT_TYPE>(bit_vector, index); }
-        inline PPCView<true,ELEMENT_TYPE> ppc_view(unsigned index) const
-          { return PPCView<true,ELEMENT_TYPE>(bit_vector, index); }
+        inline PPCView<false, ELEMENT_TYPE> ppc_view(unsigned index)
+        {
+          return PPCView<false, ELEMENT_TYPE>(bit_vector, index);
+        }
+        inline PPCView<true, ELEMENT_TYPE> ppc_view(unsigned index) const
+        {
+          return PPCView<true, ELEMENT_TYPE>(bit_vector, index);
+        }
 #endif
 #ifdef __ARM_NEON
-        inline NeonView<false,ELEMENT_TYPE> neon_view(unsigned index)
-          { return NeonView<false,ELEMENT_TYPE>(bit_vector, index); }
-        inline NeonView<true,ELEMENT_TYPE> neon_view(unsigned index) const
-          { return NeonView<true,ELEMENT_TYPE>(bit_vector, index); }
+        inline NeonView<false, ELEMENT_TYPE> neon_view(unsigned index)
+        {
+          return NeonView<false, ELEMENT_TYPE>(bit_vector, index);
+        }
+        inline NeonView<true, ELEMENT_TYPE> neon_view(unsigned index) const
+        {
+          return NeonView<true, ELEMENT_TYPE>(bit_vector, index);
+        }
 #endif
       public:
         // Number of bits in the bit vector based element
         static constexpr unsigned ELEMENT_SIZE = 8 * sizeof(ELEMENT_TYPE);
         static_assert((MAX % ELEMENT_SIZE) == 0);
-        ELEMENT_TYPE bit_vector[MAX/ELEMENT_SIZE];
+        ELEMENT_TYPE bit_vector[MAX / ELEMENT_SIZE];
         // Shift to get the upper bits for indexing assuming a 64-bit base type
         static constexpr unsigned SHIFT = STATIC_LOG2(ELEMENT_SIZE);
         // Mask to get the lower bits for indexing assuming a 64-bit base type
         static constexpr unsigned MASK = ELEMENT_SIZE - 1;
       };
-    };
+    };  // namespace BitMaskHelp
 
     /////////////////////////////////////////////////////////////
-    // Bit Mask 
+    // Bit Mask
     /////////////////////////////////////////////////////////////
-    template<typename T, unsigned int MAX,
-             unsigned int SHIFT, unsigned int MASK>
-    class BitMask : public Heapify<BitMask<T,MAX,SHIFT,MASK>,TODO_LIFETIME> {
+    template<
+        typename T, unsigned int MAX, unsigned int SHIFT, unsigned int MASK>
+    class BitMask
+      : public Heapify<BitMask<T, MAX, SHIFT, MASK>, TODO_LIFETIME> {
     public:
-      static constexpr unsigned ELEMENT_SIZE = 8*sizeof(T);
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
+      static constexpr unsigned ELEMENT_SIZE = 8 * sizeof(T);
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit BitMask(T init = 0);
-      BitMask(const BitMask &rhs);
+      BitMask(const BitMask& rhs);
       ~BitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -367,28 +445,28 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const BitMask &rhs) const;
-      inline bool operator<(const BitMask &rhs) const;
-      inline bool operator!=(const BitMask &rhs) const;
+      inline bool operator==(const BitMask& rhs) const;
+      inline bool operator<(const BitMask& rhs) const;
+      inline bool operator!=(const BitMask& rhs) const;
     public:
-      inline const T& operator[](const unsigned &idx) const;
-      inline T& operator[](const unsigned &idx);
-      inline BitMask& operator=(const BitMask &rhs);
+      inline const T& operator[](const unsigned& idx) const;
+      inline T& operator[](const unsigned& idx);
+      inline BitMask& operator=(const BitMask& rhs);
     public:
-      inline BitMask operator~(void) const; 
-      inline BitMask operator|(const BitMask &rhs) const;
-      inline BitMask operator&(const BitMask &rhs) const;
-      inline BitMask operator^(const BitMask &rhs) const;
+      inline BitMask operator~(void) const;
+      inline BitMask operator|(const BitMask& rhs) const;
+      inline BitMask operator&(const BitMask& rhs) const;
+      inline BitMask operator^(const BitMask& rhs) const;
     public:
-      inline BitMask& operator|=(const BitMask &rhs);
-      inline BitMask& operator&=(const BitMask &rhs);
-      inline BitMask& operator^=(const BitMask &rhs);
+      inline BitMask& operator|=(const BitMask& rhs);
+      inline BitMask& operator&=(const BitMask& rhs);
+      inline BitMask& operator^=(const BitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const BitMask &rhs) const;
+      inline bool operator*(const BitMask& rhs) const;
       // Set difference
-      inline BitMask operator-(const BitMask &rhs) const;
-      inline BitMask& operator-=(const BitMask &rhs);
+      inline BitMask operator-(const BitMask& rhs) const;
+      inline BitMask& operator-=(const BitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -400,34 +478,34 @@ namespace Legion {
     public:
       inline T get_hash_key(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
       static inline unsigned pop_count(
-            const BitMask<unsigned,MAX,SHIFT,MASK> &mask);
+          const BitMask<unsigned, MAX, SHIFT, MASK>& mask);
       static inline unsigned pop_count(
-            const BitMask<unsigned long,MAX,SHIFT,MASK> &mask);
+          const BitMask<unsigned long, MAX, SHIFT, MASK>& mask);
       static inline unsigned pop_count(
-            const BitMask<unsigned long long,MAX,SHIFT,MASK> &mask);
+          const BitMask<unsigned long long, MAX, SHIFT, MASK>& mask);
     protected:
-      T bit_vector[BIT_ELMTS]; 
+      T bit_vector[BIT_ELMTS];
     };
 
     /////////////////////////////////////////////////////////////
-    // Two-Level Bit Mask 
+    // Two-Level Bit Mask
     /////////////////////////////////////////////////////////////
     /*
-     * This class is a two-level bit mask which makes the 
+     * This class is a two-level bit mask which makes the
      * operations * ! & all faster at the cost of making the
      * other operations slower.  This done by using a summary
      * mask which keeps track of whether any bits are set in
@@ -435,14 +513,15 @@ namespace Legion {
      * summary is a single instance of the summary type ST.
      */
     template<typename T, unsigned int MAX, unsigned SHIFT, unsigned MASK>
-    class TLBitMask : public Heapify<TLBitMask<T,MAX,SHIFT,MASK>,TODO_LIFETIME> {
+    class TLBitMask
+      : public Heapify<TLBitMask<T, MAX, SHIFT, MASK>, TODO_LIFETIME> {
     public:
-      static constexpr unsigned ELEMENT_SIZE = 8*sizeof(T);
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
+      static constexpr unsigned ELEMENT_SIZE = 8 * sizeof(T);
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit TLBitMask(T init = 0);
-      TLBitMask(const TLBitMask &rhs);
+      TLBitMask(const TLBitMask& rhs);
       ~TLBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -462,28 +541,28 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const TLBitMask &rhs) const;
-      inline bool operator<(const TLBitMask &rhs) const;
-      inline bool operator!=(const TLBitMask &rhs) const;
+      inline bool operator==(const TLBitMask& rhs) const;
+      inline bool operator<(const TLBitMask& rhs) const;
+      inline bool operator!=(const TLBitMask& rhs) const;
     public:
-      inline const T& operator[](const unsigned &idx) const;
-      inline T& operator[](const unsigned &idx);
-      inline TLBitMask& operator=(const TLBitMask &rhs);
+      inline const T& operator[](const unsigned& idx) const;
+      inline T& operator[](const unsigned& idx);
+      inline TLBitMask& operator=(const TLBitMask& rhs);
     public:
       inline TLBitMask operator~(void) const;
-      inline TLBitMask operator|(const TLBitMask &rhs) const;
-      inline TLBitMask operator&(const TLBitMask &rhs) const;
-      inline TLBitMask operator^(const TLBitMask &rhs) const;
+      inline TLBitMask operator|(const TLBitMask& rhs) const;
+      inline TLBitMask operator&(const TLBitMask& rhs) const;
+      inline TLBitMask operator^(const TLBitMask& rhs) const;
     public:
-      inline TLBitMask& operator|=(const TLBitMask &rhs);
-      inline TLBitMask& operator&=(const TLBitMask &rhs);
-      inline TLBitMask& operator^=(const TLBitMask &rhs);
+      inline TLBitMask& operator|=(const TLBitMask& rhs);
+      inline TLBitMask& operator&=(const TLBitMask& rhs);
+      inline TLBitMask& operator^=(const TLBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const TLBitMask &rhs) const;
+      inline bool operator*(const TLBitMask& rhs) const;
       // Set difference
-      inline TLBitMask operator-(const TLBitMask &rhs) const;
-      inline TLBitMask& operator-=(const TLBitMask &rhs);
+      inline TLBitMask operator-(const TLBitMask& rhs) const;
+      inline TLBitMask& operator-=(const TLBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -495,45 +574,46 @@ namespace Legion {
     public:
       inline T get_hash_key(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
       static inline unsigned pop_count(
-            const TLBitMask<unsigned,MAX,SHIFT,MASK> &mask);
+          const TLBitMask<unsigned, MAX, SHIFT, MASK>& mask);
       static inline unsigned pop_count(
-            const TLBitMask<unsigned long,MAX,SHIFT,MASK> &mask);
+          const TLBitMask<unsigned long, MAX, SHIFT, MASK>& mask);
       static inline unsigned pop_count(
-            const TLBitMask<unsigned long long,MAX,SHIFT,MASK> &mask);
+          const TLBitMask<unsigned long long, MAX, SHIFT, MASK>& mask);
     protected:
       T bit_vector[BIT_ELMTS];
-      T sum_mask; 
+      T sum_mask;
     };
 
 #ifdef __SSE2__
     /////////////////////////////////////////////////////////////
-    // SSE Bit Mask  
+    // SSE Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) SSEBitMask : public Heapify<SSEBitMask<MAX>,TODO_LIFETIME> {
+    class alignas(16) SSEBitMask
+      : public Heapify<SSEBitMask<MAX>, TODO_LIFETIME> {
     public:
       static constexpr unsigned ELEMENT_SIZE =
-        BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
-      static constexpr unsigned SSE_ELMTS = MAX/128;
+          BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
+      static constexpr unsigned SSE_ELMTS = MAX / 128;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit SSEBitMask(uint64_t init = 0);
-      SSEBitMask(const SSEBitMask &rhs);
+      SSEBitMask(const SSEBitMask& rhs);
       ~SSEBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -553,32 +633,30 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const SSEBitMask &rhs) const;
-      inline bool operator<(const SSEBitMask &rhs) const;
-      inline bool operator!=(const SSEBitMask &rhs) const;
+      inline bool operator==(const SSEBitMask& rhs) const;
+      inline bool operator<(const SSEBitMask& rhs) const;
+      inline bool operator!=(const SSEBitMask& rhs) const;
     public:
-      inline BitMaskHelp::SSEView<true>
-        operator()(const unsigned &idx) const;
-      inline BitMaskHelp::SSEView<false>
-        operator()(const unsigned &idx);
-      inline const uint64_t& operator[](const unsigned &idx) const;
-      inline uint64_t& operator[](const unsigned &idx);
-      inline SSEBitMask& operator=(const SSEBitMask &rhs);
+      inline BitMaskHelp::SSEView<true> operator()(const unsigned& idx) const;
+      inline BitMaskHelp::SSEView<false> operator()(const unsigned& idx);
+      inline const uint64_t& operator[](const unsigned& idx) const;
+      inline uint64_t& operator[](const unsigned& idx);
+      inline SSEBitMask& operator=(const SSEBitMask& rhs);
     public:
       inline SSEBitMask operator~(void) const;
-      inline SSEBitMask operator|(const SSEBitMask &rhs) const;
-      inline SSEBitMask operator&(const SSEBitMask &rhs) const;
-      inline SSEBitMask operator^(const SSEBitMask &rhs) const;
+      inline SSEBitMask operator|(const SSEBitMask& rhs) const;
+      inline SSEBitMask operator&(const SSEBitMask& rhs) const;
+      inline SSEBitMask operator^(const SSEBitMask& rhs) const;
     public:
-      inline SSEBitMask& operator|=(const SSEBitMask &rhs);
-      inline SSEBitMask& operator&=(const SSEBitMask &rhs);
-      inline SSEBitMask& operator^=(const SSEBitMask &rhs);
+      inline SSEBitMask& operator|=(const SSEBitMask& rhs);
+      inline SSEBitMask& operator&=(const SSEBitMask& rhs);
+      inline SSEBitMask& operator^=(const SSEBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const SSEBitMask &rhs) const;
+      inline bool operator*(const SSEBitMask& rhs) const;
       // Set difference
-      inline SSEBitMask operator-(const SSEBitMask &rhs) const;
-      inline SSEBitMask& operator-=(const SSEBitMask &rhs);
+      inline SSEBitMask operator-(const SSEBitMask& rhs) const;
+      inline SSEBitMask& operator-=(const SSEBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -591,38 +669,39 @@ namespace Legion {
       inline uint64_t get_hash_key(void) const;
       inline const uint64_t* base(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
-      static inline unsigned pop_count(const SSEBitMask<MAX> &mask);
+      static inline unsigned pop_count(const SSEBitMask<MAX>& mask);
     protected:
-      BitMaskHelp::BitVector<MAX> bits; 
+      BitMaskHelp::BitVector<MAX> bits;
     };
 
     /////////////////////////////////////////////////////////////
-    // SSE Two-Level Bit Mask  
+    // SSE Two-Level Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) SSETLBitMask : public Heapify<SSETLBitMask<MAX>,TODO_LIFETIME> {
+    class alignas(16) SSETLBitMask
+      : public Heapify<SSETLBitMask<MAX>, TODO_LIFETIME> {
     public:
       static constexpr unsigned ELEMENT_SIZE =
-        BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
-      static constexpr unsigned SSE_ELMTS = MAX/128;
+          BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
+      static constexpr unsigned SSE_ELMTS = MAX / 128;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit SSETLBitMask(uint64_t init = 0);
-      SSETLBitMask(const SSETLBitMask &rhs);
+      SSETLBitMask(const SSETLBitMask& rhs);
       ~SSETLBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -642,32 +721,30 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const SSETLBitMask &rhs) const;
-      inline bool operator<(const SSETLBitMask &rhs) const;
-      inline bool operator!=(const SSETLBitMask &rhs) const;
+      inline bool operator==(const SSETLBitMask& rhs) const;
+      inline bool operator<(const SSETLBitMask& rhs) const;
+      inline bool operator!=(const SSETLBitMask& rhs) const;
     public:
-      inline BitMaskHelp::SSEView<true>
-        operator()(const unsigned &idx) const;
-      inline BitMaskHelp::SSEView<false>
-        operator()(const unsigned &idx);
-      inline const uint64_t& operator[](const unsigned &idx) const;
-      inline uint64_t& operator[](const unsigned &idx);
-      inline SSETLBitMask& operator=(const SSETLBitMask &rhs);
+      inline BitMaskHelp::SSEView<true> operator()(const unsigned& idx) const;
+      inline BitMaskHelp::SSEView<false> operator()(const unsigned& idx);
+      inline const uint64_t& operator[](const unsigned& idx) const;
+      inline uint64_t& operator[](const unsigned& idx);
+      inline SSETLBitMask& operator=(const SSETLBitMask& rhs);
     public:
       inline SSETLBitMask operator~(void) const;
-      inline SSETLBitMask operator|(const SSETLBitMask &rhs) const;
-      inline SSETLBitMask operator&(const SSETLBitMask &rhs) const;
-      inline SSETLBitMask operator^(const SSETLBitMask &rhs) const;
+      inline SSETLBitMask operator|(const SSETLBitMask& rhs) const;
+      inline SSETLBitMask operator&(const SSETLBitMask& rhs) const;
+      inline SSETLBitMask operator^(const SSETLBitMask& rhs) const;
     public:
-      inline SSETLBitMask& operator|=(const SSETLBitMask &rhs);
-      inline SSETLBitMask& operator&=(const SSETLBitMask &rhs);
-      inline SSETLBitMask& operator^=(const SSETLBitMask &rhs);
+      inline SSETLBitMask& operator|=(const SSETLBitMask& rhs);
+      inline SSETLBitMask& operator&=(const SSETLBitMask& rhs);
+      inline SSETLBitMask& operator^=(const SSETLBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const SSETLBitMask &rhs) const;
+      inline bool operator*(const SSETLBitMask& rhs) const;
       // Set difference
-      inline SSETLBitMask operator-(const SSETLBitMask &rhs) const;
-      inline SSETLBitMask& operator-=(const SSETLBitMask &rhs);
+      inline SSETLBitMask operator-(const SSETLBitMask& rhs) const;
+      inline SSETLBitMask& operator-=(const SSETLBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -680,42 +757,43 @@ namespace Legion {
       inline uint64_t get_hash_key(void) const;
       inline const uint64_t* base(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
-      static inline unsigned pop_count(const SSETLBitMask<MAX> &mask);
+      static inline unsigned pop_count(const SSETLBitMask<MAX>& mask);
       static inline uint64_t extract_mask(__m128i value);
     protected:
       BitMaskHelp::BitVector<MAX> bits;
-      uint64_t sum_mask; 
+      uint64_t sum_mask;
     };
-#endif // __SSE2__
+#endif  // __SSE2__
 
 #ifdef __AVX__
     /////////////////////////////////////////////////////////////
-    // AVX Bit Mask  
+    // AVX Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(32) AVXBitMask : public Heapify<AVXBitMask<MAX>,TODO_LIFETIME> {
+    class alignas(32) AVXBitMask
+      : public Heapify<AVXBitMask<MAX>, TODO_LIFETIME> {
     public:
       static constexpr unsigned ELEMENT_SIZE =
-        BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
-      static constexpr unsigned AVX_ELMTS = MAX/256;
+          BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
+      static constexpr unsigned AVX_ELMTS = MAX / 256;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit AVXBitMask(uint64_t init = 0);
-      AVXBitMask(const AVXBitMask &rhs);
+      AVXBitMask(const AVXBitMask& rhs);
       ~AVXBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -735,32 +813,30 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const AVXBitMask &rhs) const;
-      inline bool operator<(const AVXBitMask &rhs) const;
-      inline bool operator!=(const AVXBitMask &rhs) const;
+      inline bool operator==(const AVXBitMask& rhs) const;
+      inline bool operator<(const AVXBitMask& rhs) const;
+      inline bool operator!=(const AVXBitMask& rhs) const;
     public:
-      inline BitMaskHelp::AVXView<true> 
-        operator()(const unsigned &idx) const;
-      inline BitMaskHelp::AVXView<false>
-        operator()(const unsigned &idx);
-      inline const uint64_t& operator[](const unsigned &idx) const;
-      inline uint64_t& operator[](const unsigned &idx);
-      inline AVXBitMask& operator=(const AVXBitMask &rhs);
+      inline BitMaskHelp::AVXView<true> operator()(const unsigned& idx) const;
+      inline BitMaskHelp::AVXView<false> operator()(const unsigned& idx);
+      inline const uint64_t& operator[](const unsigned& idx) const;
+      inline uint64_t& operator[](const unsigned& idx);
+      inline AVXBitMask& operator=(const AVXBitMask& rhs);
     public:
       inline AVXBitMask operator~(void) const;
-      inline AVXBitMask operator|(const AVXBitMask &rhs) const;
-      inline AVXBitMask operator&(const AVXBitMask &rhs) const;
-      inline AVXBitMask operator^(const AVXBitMask &rhs) const;
+      inline AVXBitMask operator|(const AVXBitMask& rhs) const;
+      inline AVXBitMask operator&(const AVXBitMask& rhs) const;
+      inline AVXBitMask operator^(const AVXBitMask& rhs) const;
     public:
-      inline AVXBitMask& operator|=(const AVXBitMask &rhs);
-      inline AVXBitMask& operator&=(const AVXBitMask &rhs);
-      inline AVXBitMask& operator^=(const AVXBitMask &rhs);
+      inline AVXBitMask& operator|=(const AVXBitMask& rhs);
+      inline AVXBitMask& operator&=(const AVXBitMask& rhs);
+      inline AVXBitMask& operator^=(const AVXBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const AVXBitMask &rhs) const;
+      inline bool operator*(const AVXBitMask& rhs) const;
       // Set difference
-      inline AVXBitMask operator-(const AVXBitMask &rhs) const;
-      inline AVXBitMask& operator-=(const AVXBitMask &rhs);
+      inline AVXBitMask operator-(const AVXBitMask& rhs) const;
+      inline AVXBitMask& operator-=(const AVXBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -773,38 +849,39 @@ namespace Legion {
       inline uint64_t get_hash_key(void) const;
       inline const uint64_t* base(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
-      static inline unsigned pop_count(const AVXBitMask<MAX> &mask);
+      static inline unsigned pop_count(const AVXBitMask<MAX>& mask);
     protected:
-      BitMaskHelp::BitVector<MAX> bits; 
+      BitMaskHelp::BitVector<MAX> bits;
     };
-    
+
     /////////////////////////////////////////////////////////////
-    // AVX Two-Level Bit Mask  
+    // AVX Two-Level Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(32) AVXTLBitMask : public Heapify<AVXTLBitMask<MAX>,TODO_LIFETIME> {
+    class alignas(32) AVXTLBitMask
+      : public Heapify<AVXTLBitMask<MAX>, TODO_LIFETIME> {
     public:
       static constexpr unsigned ELEMENT_SIZE =
-        BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
-      static constexpr unsigned AVX_ELMTS = MAX/256;
+          BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
+      static constexpr unsigned AVX_ELMTS = MAX / 256;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit AVXTLBitMask(uint64_t init = 0);
-      AVXTLBitMask(const AVXTLBitMask &rhs);
+      AVXTLBitMask(const AVXTLBitMask& rhs);
       ~AVXTLBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -824,32 +901,30 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const AVXTLBitMask &rhs) const;
-      inline bool operator<(const AVXTLBitMask &rhs) const;
-      inline bool operator!=(const AVXTLBitMask &rhs) const;
+      inline bool operator==(const AVXTLBitMask& rhs) const;
+      inline bool operator<(const AVXTLBitMask& rhs) const;
+      inline bool operator!=(const AVXTLBitMask& rhs) const;
     public:
-      inline BitMaskHelp::AVXView<true> 
-        operator()(const unsigned &idx) const;
-      inline BitMaskHelp::AVXView<false>
-        operator()(const unsigned &idx);
-      inline const uint64_t& operator[](const unsigned &idx) const;
-      inline uint64_t& operator[](const unsigned &idx);
-      inline AVXTLBitMask& operator=(const AVXTLBitMask &rhs);
+      inline BitMaskHelp::AVXView<true> operator()(const unsigned& idx) const;
+      inline BitMaskHelp::AVXView<false> operator()(const unsigned& idx);
+      inline const uint64_t& operator[](const unsigned& idx) const;
+      inline uint64_t& operator[](const unsigned& idx);
+      inline AVXTLBitMask& operator=(const AVXTLBitMask& rhs);
     public:
       inline AVXTLBitMask operator~(void) const;
-      inline AVXTLBitMask operator|(const AVXTLBitMask &rhs) const;
-      inline AVXTLBitMask operator&(const AVXTLBitMask &rhs) const;
-      inline AVXTLBitMask operator^(const AVXTLBitMask &rhs) const;
+      inline AVXTLBitMask operator|(const AVXTLBitMask& rhs) const;
+      inline AVXTLBitMask operator&(const AVXTLBitMask& rhs) const;
+      inline AVXTLBitMask operator^(const AVXTLBitMask& rhs) const;
     public:
-      inline AVXTLBitMask& operator|=(const AVXTLBitMask &rhs);
-      inline AVXTLBitMask& operator&=(const AVXTLBitMask &rhs);
-      inline AVXTLBitMask& operator^=(const AVXTLBitMask &rhs);
+      inline AVXTLBitMask& operator|=(const AVXTLBitMask& rhs);
+      inline AVXTLBitMask& operator&=(const AVXTLBitMask& rhs);
+      inline AVXTLBitMask& operator^=(const AVXTLBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const AVXTLBitMask &rhs) const;
+      inline bool operator*(const AVXTLBitMask& rhs) const;
       // Set difference
-      inline AVXTLBitMask operator-(const AVXTLBitMask &rhs) const;
-      inline AVXTLBitMask& operator-=(const AVXTLBitMask &rhs);
+      inline AVXTLBitMask operator-(const AVXTLBitMask& rhs) const;
+      inline AVXTLBitMask& operator-=(const AVXTLBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -862,43 +937,44 @@ namespace Legion {
       inline uint64_t get_hash_key(void) const;
       inline const uint64_t* base(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
-      static inline unsigned pop_count(const AVXTLBitMask<MAX> &mask);
+      static inline unsigned pop_count(const AVXTLBitMask<MAX>& mask);
       static inline uint64_t extract_mask(__m256i value);
       static inline uint64_t extract_mask(__m256d value);
     protected:
       BitMaskHelp::BitVector<MAX> bits;
-      uint64_t sum_mask; 
+      uint64_t sum_mask;
     };
-#endif // __AVX__
+#endif  // __AVX__
 
 #ifdef __ALTIVEC__
     /////////////////////////////////////////////////////////////
-    // PPC Bit Mask  
+    // PPC Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) PPCBitMask : public Heapify<PPCBitMask<MAX>,TODO_LIFETIME> {
+    class alignas(16) PPCBitMask
+      : public Heapify<PPCBitMask<MAX>, TODO_LIFETIME> {
     public:
       static constexpr unsigned ELEMENT_SIZE =
-        BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
-      static constexpr unsigned PPC_ELMTS = MAX/128;
+          BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
+      static constexpr unsigned PPC_ELMTS = MAX / 128;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit PPCBitMask(uint64_t init = 0);
-      PPCBitMask(const PPCBitMask &rhs);
+      PPCBitMask(const PPCBitMask& rhs);
       ~PPCBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -918,32 +994,30 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const PPCBitMask &rhs) const;
-      inline bool operator<(const PPCBitMask &rhs) const;
-      inline bool operator!=(const PPCBitMask &rhs) const;
+      inline bool operator==(const PPCBitMask& rhs) const;
+      inline bool operator<(const PPCBitMask& rhs) const;
+      inline bool operator!=(const PPCBitMask& rhs) const;
     public:
-      inline BitMaskHelp::PPCView<true> 
-        operator()(const unsigned &idx) const;
-      inline BitMaskHelp::PPCView<false>
-        operator()(const unsigned &idx);
-      inline const uint64_t& operator[](const unsigned &idx) const;
-      inline uint64_t& operator[](const unsigned &idx);
-      inline PPCBitMask& operator=(const PPCBitMask &rhs);
+      inline BitMaskHelp::PPCView<true> operator()(const unsigned& idx) const;
+      inline BitMaskHelp::PPCView<false> operator()(const unsigned& idx);
+      inline const uint64_t& operator[](const unsigned& idx) const;
+      inline uint64_t& operator[](const unsigned& idx);
+      inline PPCBitMask& operator=(const PPCBitMask& rhs);
     public:
       inline PPCBitMask operator~(void) const;
-      inline PPCBitMask operator|(const PPCBitMask &rhs) const;
-      inline PPCBitMask operator&(const PPCBitMask &rhs) const;
-      inline PPCBitMask operator^(const PPCBitMask &rhs) const;
+      inline PPCBitMask operator|(const PPCBitMask& rhs) const;
+      inline PPCBitMask operator&(const PPCBitMask& rhs) const;
+      inline PPCBitMask operator^(const PPCBitMask& rhs) const;
     public:
-      inline PPCBitMask& operator|=(const PPCBitMask &rhs);
-      inline PPCBitMask& operator&=(const PPCBitMask &rhs);
-      inline PPCBitMask& operator^=(const PPCBitMask &rhs);
+      inline PPCBitMask& operator|=(const PPCBitMask& rhs);
+      inline PPCBitMask& operator&=(const PPCBitMask& rhs);
+      inline PPCBitMask& operator^=(const PPCBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const PPCBitMask &rhs) const;
+      inline bool operator*(const PPCBitMask& rhs) const;
       // Set difference
-      inline PPCBitMask operator-(const PPCBitMask &rhs) const;
-      inline PPCBitMask& operator-=(const PPCBitMask &rhs);
+      inline PPCBitMask operator-(const PPCBitMask& rhs) const;
+      inline PPCBitMask& operator-=(const PPCBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -956,38 +1030,39 @@ namespace Legion {
       inline uint64_t get_hash_key(void) const;
       inline const uint64_t* base(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
-      static inline unsigned pop_count(const PPCBitMask<MAX> &mask);
+      static inline unsigned pop_count(const PPCBitMask<MAX>& mask);
     protected:
-      BitMaskHelp::BitVector<MAX> bits; 
+      BitMaskHelp::BitVector<MAX> bits;
     };
-    
+
     /////////////////////////////////////////////////////////////
-    // PPC Two-Level Bit Mask  
+    // PPC Two-Level Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) PPCTLBitMask : public Heapify<PPCTLBitMask<MAX>,TODO_LIFETIME> {
+    class alignas(16) PPCTLBitMask
+      : public Heapify<PPCTLBitMask<MAX>, TODO_LIFETIME> {
     public:
       static constexpr unsigned ELEMENT_SIZE =
-        BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
-      static constexpr unsigned PPC_ELMTS = MAX/128;
+          BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
+      static constexpr unsigned PPC_ELMTS = MAX / 128;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit PPCTLBitMask(uint64_t init = 0);
-      PPCTLBitMask(const PPCTLBitMask &rhs);
+      PPCTLBitMask(const PPCTLBitMask& rhs);
       ~PPCTLBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -1007,32 +1082,30 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const PPCTLBitMask &rhs) const;
-      inline bool operator<(const PPCTLBitMask &rhs) const;
-      inline bool operator!=(const PPCTLBitMask &rhs) const;
+      inline bool operator==(const PPCTLBitMask& rhs) const;
+      inline bool operator<(const PPCTLBitMask& rhs) const;
+      inline bool operator!=(const PPCTLBitMask& rhs) const;
     public:
-      inline BitMaskHelp::PPCView<true> 
-        operator()(const unsigned &idx) const;
-      inline BitMaskHelp::PPCView<false>
-        operator()(const unsigned &idx);
-      inline const uint64_t& operator[](const unsigned &idx) const;
-      inline uint64_t& operator[](const unsigned &idx);
-      inline PPCTLBitMask& operator=(const PPCTLBitMask &rhs);
+      inline BitMaskHelp::PPCView<true> operator()(const unsigned& idx) const;
+      inline BitMaskHelp::PPCView<false> operator()(const unsigned& idx);
+      inline const uint64_t& operator[](const unsigned& idx) const;
+      inline uint64_t& operator[](const unsigned& idx);
+      inline PPCTLBitMask& operator=(const PPCTLBitMask& rhs);
     public:
       inline PPCTLBitMask operator~(void) const;
-      inline PPCTLBitMask operator|(const PPCTLBitMask &rhs) const;
-      inline PPCTLBitMask operator&(const PPCTLBitMask &rhs) const;
-      inline PPCTLBitMask operator^(const PPCTLBitMask &rhs) const;
+      inline PPCTLBitMask operator|(const PPCTLBitMask& rhs) const;
+      inline PPCTLBitMask operator&(const PPCTLBitMask& rhs) const;
+      inline PPCTLBitMask operator^(const PPCTLBitMask& rhs) const;
     public:
-      inline PPCTLBitMask& operator|=(const PPCTLBitMask &rhs);
-      inline PPCTLBitMask& operator&=(const PPCTLBitMask &rhs);
-      inline PPCTLBitMask& operator^=(const PPCTLBitMask &rhs);
+      inline PPCTLBitMask& operator|=(const PPCTLBitMask& rhs);
+      inline PPCTLBitMask& operator&=(const PPCTLBitMask& rhs);
+      inline PPCTLBitMask& operator^=(const PPCTLBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const PPCTLBitMask &rhs) const;
+      inline bool operator*(const PPCTLBitMask& rhs) const;
       // Set difference
-      inline PPCTLBitMask operator-(const PPCTLBitMask &rhs) const;
-      inline PPCTLBitMask& operator-=(const PPCTLBitMask &rhs);
+      inline PPCTLBitMask operator-(const PPCTLBitMask& rhs) const;
+      inline PPCTLBitMask& operator-=(const PPCTLBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -1045,42 +1118,43 @@ namespace Legion {
       inline uint64_t get_hash_key(void) const;
       inline const uint64_t* base(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
-      static inline unsigned pop_count(const PPCTLBitMask<MAX> &mask);
+      static inline unsigned pop_count(const PPCTLBitMask<MAX>& mask);
       static inline uint64_t extract_mask(__vector unsigned long long value);
     protected:
       BitMaskHelp::BitVector<MAX> bits;
-      uint64_t sum_mask; 
+      uint64_t sum_mask;
     };
-#endif // __ALTIVEC__
-       
+#endif  // __ALTIVEC__
+
 #ifdef __ARM_NEON
     /////////////////////////////////////////////////////////////
-    // Neon Bit Mask  
+    // Neon Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) NeonBitMask : public Heapify<NeonBitMask<MAX>,TODO_LIFETIME> {
+    class alignas(16) NeonBitMask
+      : public Heapify<NeonBitMask<MAX>, TODO_LIFETIME> {
     public:
       static constexpr unsigned ELEMENT_SIZE =
-        BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
-      static constexpr unsigned NEON_ELMTS = MAX/128;
+          BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
+      static constexpr unsigned NEON_ELMTS = MAX / 128;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit NeonBitMask(uint64_t init = 0);
-      NeonBitMask(const NeonBitMask &rhs);
+      NeonBitMask(const NeonBitMask& rhs);
       ~NeonBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -1100,32 +1174,30 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const NeonBitMask &rhs) const;
-      inline bool operator<(const NeonBitMask &rhs) const;
-      inline bool operator!=(const NeonBitMask &rhs) const;
+      inline bool operator==(const NeonBitMask& rhs) const;
+      inline bool operator<(const NeonBitMask& rhs) const;
+      inline bool operator!=(const NeonBitMask& rhs) const;
     public:
-      inline BitMaskHelp::NeonView<true> 
-        operator()(const unsigned &idx) const;
-      inline BitMaskHelp::NeonView<false>
-        operator()(const unsigned &idx);
-      inline const uint64_t& operator[](const unsigned &idx) const;
-      inline uint64_t& operator[](const unsigned &idx);
-      inline NeonBitMask& operator=(const NeonBitMask &rhs);
+      inline BitMaskHelp::NeonView<true> operator()(const unsigned& idx) const;
+      inline BitMaskHelp::NeonView<false> operator()(const unsigned& idx);
+      inline const uint64_t& operator[](const unsigned& idx) const;
+      inline uint64_t& operator[](const unsigned& idx);
+      inline NeonBitMask& operator=(const NeonBitMask& rhs);
     public:
       inline NeonBitMask operator~(void) const;
-      inline NeonBitMask operator|(const NeonBitMask &rhs) const;
-      inline NeonBitMask operator&(const NeonBitMask &rhs) const;
-      inline NeonBitMask operator^(const NeonBitMask &rhs) const;
+      inline NeonBitMask operator|(const NeonBitMask& rhs) const;
+      inline NeonBitMask operator&(const NeonBitMask& rhs) const;
+      inline NeonBitMask operator^(const NeonBitMask& rhs) const;
     public:
-      inline NeonBitMask& operator|=(const NeonBitMask &rhs);
-      inline NeonBitMask& operator&=(const NeonBitMask &rhs);
-      inline NeonBitMask& operator^=(const NeonBitMask &rhs);
+      inline NeonBitMask& operator|=(const NeonBitMask& rhs);
+      inline NeonBitMask& operator&=(const NeonBitMask& rhs);
+      inline NeonBitMask& operator^=(const NeonBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const NeonBitMask &rhs) const;
+      inline bool operator*(const NeonBitMask& rhs) const;
       // Set difference
-      inline NeonBitMask operator-(const NeonBitMask &rhs) const;
-      inline NeonBitMask& operator-=(const NeonBitMask &rhs);
+      inline NeonBitMask operator-(const NeonBitMask& rhs) const;
+      inline NeonBitMask& operator-=(const NeonBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -1138,38 +1210,39 @@ namespace Legion {
       inline uint64_t get_hash_key(void) const;
       inline const uint64_t* base(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
-      static inline unsigned pop_count(const NeonBitMask<MAX> &mask);
+      static inline unsigned pop_count(const NeonBitMask<MAX>& mask);
     protected:
-      BitMaskHelp::BitVector<MAX> bits; 
+      BitMaskHelp::BitVector<MAX> bits;
     };
-    
+
     /////////////////////////////////////////////////////////////
-    // Neon Two-Level Bit Mask  
+    // Neon Two-Level Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) NeonTLBitMask : public Heapify<NeonTLBitMask<MAX>,TODO_LIFETIME> {
+    class alignas(16) NeonTLBitMask
+      : public Heapify<NeonTLBitMask<MAX>, TODO_LIFETIME> {
     public:
       static constexpr unsigned ELEMENT_SIZE =
-        BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
-      static constexpr unsigned BIT_ELMTS = MAX/ELEMENT_SIZE;
-      static constexpr unsigned NEON_ELMTS = MAX/128;
+          BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
+      static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
+      static constexpr unsigned NEON_ELMTS = MAX / 128;
       static constexpr unsigned MAXSIZE = MAX;
     public:
       explicit NeonTLBitMask(uint64_t init = 0);
-      NeonTLBitMask(const NeonTLBitMask &rhs);
+      NeonTLBitMask(const NeonTLBitMask& rhs);
       ~NeonTLBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -1189,32 +1262,30 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const NeonTLBitMask &rhs) const;
-      inline bool operator<(const NeonTLBitMask &rhs) const;
-      inline bool operator!=(const NeonTLBitMask &rhs) const;
+      inline bool operator==(const NeonTLBitMask& rhs) const;
+      inline bool operator<(const NeonTLBitMask& rhs) const;
+      inline bool operator!=(const NeonTLBitMask& rhs) const;
     public:
-      inline BitMaskHelp::NeonView<true> 
-        operator()(const unsigned &idx) const;
-      inline BitMaskHelp::NeonView<false>
-        operator()(const unsigned &idx);
-      inline const uint64_t& operator[](const unsigned &idx) const;
-      inline uint64_t& operator[](const unsigned &idx);
-      inline NeonTLBitMask& operator=(const NeonTLBitMask &rhs);
+      inline BitMaskHelp::NeonView<true> operator()(const unsigned& idx) const;
+      inline BitMaskHelp::NeonView<false> operator()(const unsigned& idx);
+      inline const uint64_t& operator[](const unsigned& idx) const;
+      inline uint64_t& operator[](const unsigned& idx);
+      inline NeonTLBitMask& operator=(const NeonTLBitMask& rhs);
     public:
       inline NeonTLBitMask operator~(void) const;
-      inline NeonTLBitMask operator|(const NeonTLBitMask &rhs) const;
-      inline NeonTLBitMask operator&(const NeonTLBitMask &rhs) const;
-      inline NeonTLBitMask operator^(const NeonTLBitMask &rhs) const;
+      inline NeonTLBitMask operator|(const NeonTLBitMask& rhs) const;
+      inline NeonTLBitMask operator&(const NeonTLBitMask& rhs) const;
+      inline NeonTLBitMask operator^(const NeonTLBitMask& rhs) const;
     public:
-      inline NeonTLBitMask& operator|=(const NeonTLBitMask &rhs);
-      inline NeonTLBitMask& operator&=(const NeonTLBitMask &rhs);
-      inline NeonTLBitMask& operator^=(const NeonTLBitMask &rhs);
+      inline NeonTLBitMask& operator|=(const NeonTLBitMask& rhs);
+      inline NeonTLBitMask& operator&=(const NeonTLBitMask& rhs);
+      inline NeonTLBitMask& operator^=(const NeonTLBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const NeonTLBitMask &rhs) const;
+      inline bool operator*(const NeonTLBitMask& rhs) const;
       // Set difference
-      inline NeonTLBitMask operator-(const NeonTLBitMask &rhs) const;
-      inline NeonTLBitMask& operator-=(const NeonTLBitMask &rhs);
+      inline NeonTLBitMask operator-(const NeonTLBitMask& rhs) const;
+      inline NeonTLBitMask& operator-=(const NeonTLBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -1227,36 +1298,36 @@ namespace Legion {
       inline uint64_t get_hash_key(void) const;
       inline const uint64_t* base(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DT>
-      inline void deserialize(DT &derez);
+      inline void deserialize(DT& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
-      static inline unsigned pop_count(const NeonTLBitMask<MAX> &mask);
+      static inline unsigned pop_count(const NeonTLBitMask<MAX>& mask);
       static inline uint64_t extract_mask(uint32x4_t value);
     protected:
       BitMaskHelp::BitVector<MAX> bits;
-      uint64_t sum_mask; 
+      uint64_t sum_mask;
     };
-#endif // __ARM_NEON
+#endif  // __ARM_NEON
 
-    template<typename DT, unsigned BLOAT=1, bool BIDIR=true>
+    template<typename DT, unsigned BLOAT = 1, bool BIDIR = true>
     class CompoundBitMask {
     public:
       static constexpr unsigned ELEMENT_SIZE = DT::ELEMENT_SIZE;
-      static constexpr unsigned BIT_ELMTS = DT::BIT_ELMTS; 
+      static constexpr unsigned BIT_ELMTS = DT::BIT_ELMTS;
       static constexpr unsigned MAXSIZE = DT::MAXSIZE;
     public:
       explicit CompoundBitMask(uint64_t init = 0);
-      CompoundBitMask(const CompoundBitMask &rhs);
+      CompoundBitMask(const CompoundBitMask& rhs);
       ~CompoundBitMask(void);
     public:
       inline void set_bit(unsigned bit);
@@ -1276,26 +1347,26 @@ namespace Legion {
       inline void insert(unsigned bit) { set_bit(bit); }
       inline void remove(unsigned bit) { unset_bit(bit); }
     public:
-      inline bool operator==(const CompoundBitMask &rhs) const;
-      inline bool operator<(const CompoundBitMask &rhs) const;
-      inline bool operator!=(const CompoundBitMask &rhs) const;
+      inline bool operator==(const CompoundBitMask& rhs) const;
+      inline bool operator<(const CompoundBitMask& rhs) const;
+      inline bool operator!=(const CompoundBitMask& rhs) const;
     public:
-      inline CompoundBitMask& operator=(const CompoundBitMask &rhs);
+      inline CompoundBitMask& operator=(const CompoundBitMask& rhs);
     public:
       inline CompoundBitMask operator~(void) const;
-      inline CompoundBitMask operator|(const CompoundBitMask &rhs) const;
-      inline CompoundBitMask operator&(const CompoundBitMask &rhs) const;
-      inline CompoundBitMask operator^(const CompoundBitMask &rhs) const;
+      inline CompoundBitMask operator|(const CompoundBitMask& rhs) const;
+      inline CompoundBitMask operator&(const CompoundBitMask& rhs) const;
+      inline CompoundBitMask operator^(const CompoundBitMask& rhs) const;
     public:
-      inline CompoundBitMask& operator|=(const CompoundBitMask &rhs);
-      inline CompoundBitMask& operator&=(const CompoundBitMask &rhs);
-      inline CompoundBitMask& operator^=(const CompoundBitMask &rhs);
+      inline CompoundBitMask& operator|=(const CompoundBitMask& rhs);
+      inline CompoundBitMask& operator&=(const CompoundBitMask& rhs);
+      inline CompoundBitMask& operator^=(const CompoundBitMask& rhs);
     public:
       // Use * for disjointness testing
-      inline bool operator*(const CompoundBitMask &rhs) const;
+      inline bool operator*(const CompoundBitMask& rhs) const;
       // Set difference
-      inline CompoundBitMask operator-(const CompoundBitMask &rhs) const;
-      inline CompoundBitMask& operator-=(const CompoundBitMask &rhs);
+      inline CompoundBitMask operator-(const CompoundBitMask& rhs) const;
+      inline CompoundBitMask& operator-=(const CompoundBitMask& rhs);
       // Test to see if everything is zeros
       inline bool operator!(void) const;
     public:
@@ -1307,48 +1378,49 @@ namespace Legion {
     public:
       inline uint64_t get_hash_key(void) const;
       template<typename ST>
-      inline void serialize(ST &rez) const;
+      inline void serialize(ST& rez) const;
       template<typename DZ>
-      inline void deserialize(DZ &derez);
+      inline void deserialize(DZ& derez);
       // The functor class must have an 'apply' method that
       // takes one unsigned argument. This method will map
       // the functor over all the entries in the mask.
       template<typename FUNCTOR>
-      inline void map(FUNCTOR &functor) const;
+      inline void map(FUNCTOR& functor) const;
     public:
       // Allocates memory that becomes owned by the caller
       inline char* to_string(void) const;
     public:
       inline unsigned pop_count(void) const;
-      static inline unsigned pop_count(const 
-                        CompoundBitMask<DT,BLOAT,BIDIR> &mask);
+      static inline unsigned pop_count(
+          const CompoundBitMask<DT, BLOAT, BIDIR>& mask);
     protected:
       inline bool is_sparse(void) const;
       inline void sparsify(void);
     protected:
-      using IT = typename std::conditional<DT::MAXSIZE <= (1 << 8),uint8_t,
-                  typename std::conditional<DT::MAXSIZE <= (1 << 16),uint16_t,
-                    uint32_t>::type>::type;
+      using IT = typename std::conditional<
+          DT::MAXSIZE <= (1 << 8), uint8_t,
+          typename std::conditional<
+              DT::MAXSIZE <= (1 << 16), uint16_t, uint32_t>::type>::type;
       static constexpr size_t MAX_SPARSE =
-        (BLOAT * sizeof(DT*) + sizeof(IT) - 1) / sizeof(IT);
-      using SA = std::array<IT,MAX_SPARSE>;
+          (BLOAT * sizeof(DT*) + sizeof(IT) - 1) / sizeof(IT);
+      using SA = std::array<IT, MAX_SPARSE>;
       union {
         // The sparse array is unique and sorted
         SA sparse;
-        DT *dense;
+        DT* dense;
       } mask;
-      unsigned sparse_size; 
+      unsigned sparse_size;
     };
 
-    // A little bit of logic here to figure out the 
+    // A little bit of logic here to figure out the
     // kind of bit mask to use for FieldMask
 
 // The folowing macros are used in the FieldMask instantiation of BitMask
 // If you change one you probably have to change the others too
-#define LEGION_FIELD_MASK_FIELD_TYPE          uint64_t 
-#define LEGION_FIELD_MASK_FIELD_SHIFT         6
-#define LEGION_FIELD_MASK_FIELD_MASK          0x3F
-#define LEGION_FIELD_MASK_FIELD_ALL_ONES      0xFFFFFFFFFFFFFFFF
+#define LEGION_FIELD_MASK_FIELD_TYPE uint64_t
+#define LEGION_FIELD_MASK_FIELD_SHIFT 6
+#define LEGION_FIELD_MASK_FIELD_MASK 0x3F
+#define LEGION_FIELD_MASK_FIELD_ALL_ONES 0xFFFFFFFFFFFFFFFF
 
 #if defined(__AVX__)
 #if (LEGION_MAX_FIELDS > 256)
@@ -1358,9 +1430,10 @@ namespace Legion {
 #elif (LEGION_MAX_FIELDS > 64)
     typedef SSEBitMask<LEGION_MAX_FIELDS> FieldMask;
 #else
-    typedef BitMask<LEGION_FIELD_MASK_FIELD_TYPE,LEGION_MAX_FIELDS,
-                    LEGION_FIELD_MASK_FIELD_SHIFT,
-                    LEGION_FIELD_MASK_FIELD_MASK> FieldMask;
+    typedef BitMask<
+        LEGION_FIELD_MASK_FIELD_TYPE, LEGION_MAX_FIELDS,
+        LEGION_FIELD_MASK_FIELD_SHIFT, LEGION_FIELD_MASK_FIELD_MASK>
+        FieldMask;
 #endif
 #elif defined(__SSE2__)
 #if (LEGION_MAX_FIELDS > 128)
@@ -1368,9 +1441,10 @@ namespace Legion {
 #elif (LEGION_MAX_FIELDS > 64)
     typedef SSEBitMask<LEGION_MAX_FIELDS> FieldMask;
 #else
-    typedef BitMask<LEGION_FIELD_MASK_FIELD_TYPE,LEGION_MAX_FIELDS,
-                    LEGION_FIELD_MASK_FIELD_SHIFT,
-                    LEGION_FIELD_MASK_FIELD_MASK> FieldMask;
+    typedef BitMask<
+        LEGION_FIELD_MASK_FIELD_TYPE, LEGION_MAX_FIELDS,
+        LEGION_FIELD_MASK_FIELD_SHIFT, LEGION_FIELD_MASK_FIELD_MASK>
+        FieldMask;
 #endif
 #elif defined(__ALTIVEC__)
 #if (LEGION_MAX_FIELDS > 128)
@@ -1378,9 +1452,10 @@ namespace Legion {
 #elif (LEGION_MAX_FIELDS > 64)
     typedef PPCBitMask<LEGION_MAX_FIELDS> FieldMask;
 #else
-    typedef BitMask<LEGION_FIELD_MASK_FIELD_TYPE,LEGION_MAX_FIELDS,
-                    LEGION_FIELD_MASK_FIELD_SHIFT,
-                    LEGION_FIELD_MASK_FIELD_MASK> FieldMask;
+    typedef BitMask<
+        LEGION_FIELD_MASK_FIELD_TYPE, LEGION_MAX_FIELDS,
+        LEGION_FIELD_MASK_FIELD_SHIFT, LEGION_FIELD_MASK_FIELD_MASK>
+        FieldMask;
 #endif
 #elif defined(__ARM_NEON)
 #if (LEGION_MAX_FIELDS > 128)
@@ -1388,19 +1463,22 @@ namespace Legion {
 #elif (LEGION_MAX_FIELDS > 64)
     typedef NeonBitMask<LEGION_MAX_FIELDS> FieldMask;
 #else
-    typedef BitMask<LEGION_FIELD_MASK_FIELD_TYPE,LEGION_MAX_FIELDS,
-                    LEGION_FIELD_MASK_FIELD_SHIFT,
-                    LEGION_FIELD_MASK_FIELD_MASK> FieldMask;
+    typedef BitMask<
+        LEGION_FIELD_MASK_FIELD_TYPE, LEGION_MAX_FIELDS,
+        LEGION_FIELD_MASK_FIELD_SHIFT, LEGION_FIELD_MASK_FIELD_MASK>
+        FieldMask;
 #endif
 #else
 #if (LEGION_MAX_FIELDS > 64)
-    typedef TLBitMask<LEGION_FIELD_MASK_FIELD_TYPE,LEGION_MAX_FIELDS,
-                      LEGION_FIELD_MASK_FIELD_SHIFT,
-                      LEGION_FIELD_MASK_FIELD_MASK> FieldMask;
+    typedef TLBitMask<
+        LEGION_FIELD_MASK_FIELD_TYPE, LEGION_MAX_FIELDS,
+        LEGION_FIELD_MASK_FIELD_SHIFT, LEGION_FIELD_MASK_FIELD_MASK>
+        FieldMask;
 #else
-    typedef BitMask<LEGION_FIELD_MASK_FIELD_TYPE,LEGION_MAX_FIELDS,
-                    LEGION_FIELD_MASK_FIELD_SHIFT,
-                    LEGION_FIELD_MASK_FIELD_MASK> FieldMask;
+    typedef BitMask<
+        LEGION_FIELD_MASK_FIELD_TYPE, LEGION_MAX_FIELDS,
+        LEGION_FIELD_MASK_FIELD_SHIFT, LEGION_FIELD_MASK_FIELD_MASK>
+        FieldMask;
 #endif
 #endif
 #undef LEGION_FIELD_MASK_FIELD_SHIFT
@@ -1410,10 +1488,10 @@ namespace Legion {
 
 // The following macros are used in the NodeMask instantiation of BitMask
 // If you change one you probably have to change the others too
-#define LEGION_NODE_MASK_NODE_TYPE           uint64_t
-#define LEGION_NODE_MASK_NODE_SHIFT          6
-#define LEGION_NODE_MASK_NODE_MASK           0x3F
-#define LEGION_NODE_MASK_NODE_ALL_ONES       0xFFFFFFFFFFFFFFFF
+#define LEGION_NODE_MASK_NODE_TYPE uint64_t
+#define LEGION_NODE_MASK_NODE_SHIFT 6
+#define LEGION_NODE_MASK_NODE_MASK 0x3F
+#define LEGION_NODE_MASK_NODE_ALL_ONES 0xFFFFFFFFFFFFFFFF
 
 #if defined(__AVX__)
 #if (LEGION_MAX_NUM_NODES > 256)
@@ -1423,9 +1501,10 @@ namespace Legion {
 #elif (LEGION_MAX_NUM_NODES > 64)
     typedef SSEBitMask<LEGION_MAX_NUM_NODES> NodeMask;
 #else
-    typedef BitMask<LEGION_NODE_MASK_NODE_TYPE,LEGION_MAX_NUM_NODES,
-                    LEGION_NODE_MASK_NODE_SHIFT,
-                    LEGION_NODE_MASK_NODE_MASK> NodeMask;
+    typedef BitMask<
+        LEGION_NODE_MASK_NODE_TYPE, LEGION_MAX_NUM_NODES,
+        LEGION_NODE_MASK_NODE_SHIFT, LEGION_NODE_MASK_NODE_MASK>
+        NodeMask;
 #endif
 #elif defined(__SSE2__)
 #if (LEGION_MAX_NUM_NODES > 128)
@@ -1433,9 +1512,10 @@ namespace Legion {
 #elif (LEGION_MAX_NUM_NODES > 64)
     typedef SSEBitMask<LEGION_MAX_NUM_NODES> NodeMask;
 #else
-    typedef BitMask<LEGION_NODE_MASK_NODE_TYPE,LEGION_MAX_NUM_NODES,
-                    LEGION_NODE_MASK_NODE_SHIFT,
-                    LEGION_NODE_MASK_NODE_MASK> NodeMask;
+    typedef BitMask<
+        LEGION_NODE_MASK_NODE_TYPE, LEGION_MAX_NUM_NODES,
+        LEGION_NODE_MASK_NODE_SHIFT, LEGION_NODE_MASK_NODE_MASK>
+        NodeMask;
 #endif
 #elif defined(__ALTIVEC__)
 #if (LEGION_MAX_NUM_NODES > 128)
@@ -1443,9 +1523,10 @@ namespace Legion {
 #elif (LEGION_MAX_NUM_NODES > 64)
     typedef PPCBitMask<LEGION_MAX_NUM_NODES> NodeMask;
 #else
-    typedef BitMask<LEGION_NODE_MASK_NODE_TYPE,LEGION_MAX_NUM_NODES,
-                    LEGION_NODE_MASK_NODE_SHIFT,
-                    LEGION_NODE_MASK_NODE_MASK> NodeMask;
+    typedef BitMask<
+        LEGION_NODE_MASK_NODE_TYPE, LEGION_MAX_NUM_NODES,
+        LEGION_NODE_MASK_NODE_SHIFT, LEGION_NODE_MASK_NODE_MASK>
+        NodeMask;
 #endif
 #elif defined(__ARM_NEON)
 #if (LEGION_MAX_NUM_NODES > 128)
@@ -1453,32 +1534,35 @@ namespace Legion {
 #elif (LEGION_MAX_NUM_NODES > 64)
     typedef NeonBitMask<LEGION_MAX_NUM_NODES> NodeMask;
 #else
-    typedef BitMask<LEGION_NODE_MASK_NODE_TYPE,LEGION_MAX_NUM_NODES,
-                    LEGION_NODE_MASK_NODE_SHIFT,
-                    LEGION_NODE_MASK_NODE_MASK> NodeMask;
+    typedef BitMask<
+        LEGION_NODE_MASK_NODE_TYPE, LEGION_MAX_NUM_NODES,
+        LEGION_NODE_MASK_NODE_SHIFT, LEGION_NODE_MASK_NODE_MASK>
+        NodeMask;
 #endif
 #else
 #if (LEGION_MAX_NUM_NODES > 64)
-    typedef TLBitMask<LEGION_NODE_MASK_NODE_TYPE,LEGION_MAX_NUM_NODES,
-                      LEGION_NODE_MASK_NODE_SHIFT,
-                      LEGION_NODE_MASK_NODE_MASK> NodeMask;
+    typedef TLBitMask<
+        LEGION_NODE_MASK_NODE_TYPE, LEGION_MAX_NUM_NODES,
+        LEGION_NODE_MASK_NODE_SHIFT, LEGION_NODE_MASK_NODE_MASK>
+        NodeMask;
 #else
-    typedef BitMask<LEGION_NODE_MASK_NODE_TYPE,LEGION_MAX_NUM_NODES,
-                    LEGION_NODE_MASK_NODE_SHIFT,
-                    LEGION_NODE_MASK_NODE_MASK> NodeMask;
+    typedef BitMask<
+        LEGION_NODE_MASK_NODE_TYPE, LEGION_MAX_NUM_NODES,
+        LEGION_NODE_MASK_NODE_SHIFT, LEGION_NODE_MASK_NODE_MASK>
+        NodeMask;
 #endif
 #endif
-    typedef CompoundBitMask<NodeMask,1/*bloat*/,true/*bidir*/> NodeSet;
+    typedef CompoundBitMask<NodeMask, 1 /*bloat*/, true /*bidir*/> NodeSet;
 
 #undef LEGION_NODE_MASK_NODE_SHIFT
 #undef LEGION_NODE_MASK_NODE_MASK
 
 // The following macros are used in the ProcessorMask instantiation of BitMask
 // If you change one you probably have to change the others too
-#define LEGION_PROC_MASK_PROC_TYPE           uint64_t
-#define LEGION_PROC_MASK_PROC_SHIFT          6
-#define LEGION_PROC_MASK_PROC_MASK           0x3F
-#define LEGION_PROC_MASK_PROC_ALL_ONES       0xFFFFFFFFFFFFFFFF
+#define LEGION_PROC_MASK_PROC_TYPE uint64_t
+#define LEGION_PROC_MASK_PROC_SHIFT 6
+#define LEGION_PROC_MASK_PROC_MASK 0x3F
+#define LEGION_PROC_MASK_PROC_ALL_ONES 0xFFFFFFFFFFFFFFFF
 
 #if defined(__AVX__)
 #if (LEGION_MAX_NUM_PROCS > 256)
@@ -1488,9 +1572,10 @@ namespace Legion {
 #elif (LEGION_MAX_NUM_PROCS > 64)
     typedef SSEBitMask<LEGION_MAX_NUM_PROCS> ProcessorMask;
 #else
-    typedef BitMask<LEGION_PROC_MASK_PROC_TYPE,LEGION_MAX_NUM_PROCS,
-                    LEGION_PROC_MASK_PROC_SHIFT,
-                    LEGION_PROC_MASK_PROC_MASK> ProcessorMask;
+    typedef BitMask<
+        LEGION_PROC_MASK_PROC_TYPE, LEGION_MAX_NUM_PROCS,
+        LEGION_PROC_MASK_PROC_SHIFT, LEGION_PROC_MASK_PROC_MASK>
+        ProcessorMask;
 #endif
 #elif defined(__SSE2__)
 #if (LEGION_MAX_NUM_PROCS > 128)
@@ -1498,9 +1583,10 @@ namespace Legion {
 #elif (LEGION_MAX_NUM_PROCS > 64)
     typedef SSEBitMask<LEGION_MAX_NUM_PROCS> ProcessorMask;
 #else
-    typedef BitMask<LEGION_PROC_MASK_PROC_TYPE,LEGION_MAX_NUM_PROCS,
-                    LEGION_PROC_MASK_PROC_SHIFT,
-                    LEGION_PROC_MASK_PROC_MASK> ProcessorMask;
+    typedef BitMask<
+        LEGION_PROC_MASK_PROC_TYPE, LEGION_MAX_NUM_PROCS,
+        LEGION_PROC_MASK_PROC_SHIFT, LEGION_PROC_MASK_PROC_MASK>
+        ProcessorMask;
 #endif
 #elif defined(__ALTIVEC__)
 #if (LEGION_MAX_NUM_PROCS > 128)
@@ -1508,9 +1594,10 @@ namespace Legion {
 #elif (LEGION_MAX_NUM_PROCS > 64)
     typedef PPCBitMask<LEGION_MAX_NUM_PROCS> ProcessorMask;
 #else
-    typedef BitMask<LEGION_PROC_MASK_PROC_TYPE,LEGION_MAX_NUM_PROCS,
-                    LEGION_PROC_MASK_PROC_SHIFT,
-                    LEGION_PROC_MASK_PROC_MASK> ProcessorMask;
+    typedef BitMask<
+        LEGION_PROC_MASK_PROC_TYPE, LEGION_MAX_NUM_PROCS,
+        LEGION_PROC_MASK_PROC_SHIFT, LEGION_PROC_MASK_PROC_MASK>
+        ProcessorMask;
 #endif
 #elif defined(__ARM_NEON)
 #if (LEGION_MAX_NUM_PROCS > 128)
@@ -1518,28 +1605,31 @@ namespace Legion {
 #elif (LEGION_MAX_NUM_PROCS > 64)
     typedef NeonBitMask<LEGION_MAX_NUM_PROCS> ProcessorMask;
 #else
-    typedef BitMask<LEGION_PROC_MASK_PROC_TYPE,LEGION_MAX_NUM_PROCS,
-                    LEGION_PROC_MASK_PROC_SHIFT,
-                    LEGION_PROC_MASK_PROC_MASK> ProcessorMask;
+    typedef BitMask<
+        LEGION_PROC_MASK_PROC_TYPE, LEGION_MAX_NUM_PROCS,
+        LEGION_PROC_MASK_PROC_SHIFT, LEGION_PROC_MASK_PROC_MASK>
+        ProcessorMask;
 #endif
 #else
 #if (LEGION_MAX_NUM_PROCS > 64)
-    typedef TLBitMask<LEGION_PROC_MASK_PROC_TYPE,LEGION_MAX_NUM_PROCS,
-                      LEGION_PROC_MASK_PROC_SHIFT,
-                      LEGION_PROC_MASK_PROC_MASK> ProcessorMask;
+    typedef TLBitMask<
+        LEGION_PROC_MASK_PROC_TYPE, LEGION_MAX_NUM_PROCS,
+        LEGION_PROC_MASK_PROC_SHIFT, LEGION_PROC_MASK_PROC_MASK>
+        ProcessorMask;
 #else
-    typedef BitMask<LEGION_PROC_MASK_PROC_TYPE,LEGION_MAX_NUM_PROCS,
-                    LEGION_PROC_MASK_PROC_SHIFT,
-                    LEGION_PROC_MASK_PROC_MASK> ProcessorMask;
+    typedef BitMask<
+        LEGION_PROC_MASK_PROC_TYPE, LEGION_MAX_NUM_PROCS,
+        LEGION_PROC_MASK_PROC_SHIFT, LEGION_PROC_MASK_PROC_MASK>
+        ProcessorMask;
 #endif
 #endif
 
 #undef PROC_SHIFT
 #undef PROC_MASK
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
 #include "legion/utilities/bitmask.inl"
 
-#endif // __LEGION_BITMASK_H__
+#endif  // __LEGION_BITMASK_H__

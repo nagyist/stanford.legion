@@ -25,25 +25,28 @@ namespace Legion {
      * \class TimingOp
      * Operation for performing timing measurements
      */
-    class TimingOp : public FenceOp { 
+    class TimingOp : public FenceOp {
     public:
       TimingOp(void);
-      TimingOp(const TimingOp &rhs) = delete;
+      TimingOp(const TimingOp& rhs) = delete;
       virtual ~TimingOp(void);
     public:
-      TimingOp& operator=(const TimingOp &rhs) = delete;
+      TimingOp& operator=(const TimingOp& rhs) = delete;
     public:
-      Future initialize(InnerContext *ctx, const TimingLauncher &launcher,
-                        Provenance *provenance);
+      Future initialize(
+          InnerContext* ctx, const TimingLauncher& launcher,
+          Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
     public:
-      virtual void trigger_complete(ApEvent complete); 
+      virtual void trigger_complete(ApEvent complete);
       virtual void trigger_commit(void);
       virtual void perform_measurement(void);
     protected:
@@ -53,40 +56,45 @@ namespace Legion {
 
     /**
      * \class ReplTimingOp
-     * A timing operation that is aware that it is 
+     * A timing operation that is aware that it is
      * being executed in a control replication context
      */
     class ReplTimingOp : public ReplFenceOp {
     public:
       ReplTimingOp(void);
-      ReplTimingOp(const ReplTimingOp &rhs) = delete;
+      ReplTimingOp(const ReplTimingOp& rhs) = delete;
       virtual ~ReplTimingOp(void);
     public:
-      ReplTimingOp& operator=(const ReplTimingOp &rhs) = delete;
+      ReplTimingOp& operator=(const ReplTimingOp& rhs) = delete;
     public:
-      Future initialize(InnerContext *ctx, const TimingLauncher &launcher,
-                        Provenance *provenance);
+      Future initialize(
+          InnerContext* ctx, const TimingLauncher& launcher,
+          Provenance* provenance);
     public:
       virtual void activate(void);
       virtual void deactivate(bool free = true);
       virtual const char* get_logging_name(void) const;
       virtual OpKind get_operation_kind(void) const;
-      virtual bool invalidates_physical_trace_template(bool &exec_fence) const
-        { return false; }
+      virtual bool invalidates_physical_trace_template(bool& exec_fence) const
+      {
+        return false;
+      }
     public:
-      virtual void trigger_complete(ApEvent complete); 
+      virtual void trigger_complete(ApEvent complete);
       virtual void trigger_commit(void);
       virtual void perform_measurement(void);
     public:
-      inline void set_timing_collective(ValueBroadcast<long long> *collective) 
-        { timing_collective = collective; }
+      inline void set_timing_collective(ValueBroadcast<long long>* collective)
+      {
+        timing_collective = collective;
+      }
     protected:
       TimingMeasurement measurement;
       RtEvent measured;
-      ValueBroadcast<long long> *timing_collective;
+      ValueBroadcast<long long>* timing_collective;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_TIMING_OPERATION_H__
+#endif  // __LEGION_TIMING_OPERATION_H__

@@ -19,96 +19,91 @@
 
 namespace Legion {
 
-    /////////////////////////////////////////////////////////////
-    // Predicate 
-    /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+  // Predicate
+  /////////////////////////////////////////////////////////////
 
-    const Predicate Predicate::TRUE_PRED = Predicate(true);
-    const Predicate Predicate::FALSE_PRED = Predicate(false);
+  const Predicate Predicate::TRUE_PRED = Predicate(true);
+  const Predicate Predicate::FALSE_PRED = Predicate(false);
 
-    //--------------------------------------------------------------------------
-    Predicate::Predicate(void)
-      : impl(nullptr), const_value(true)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  Predicate::Predicate(void) : impl(nullptr), const_value(true)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    Predicate::Predicate(const Predicate &p)
-    //--------------------------------------------------------------------------
-    {
-      const_value = p.const_value;
-      impl = p.impl;
-      if (impl != nullptr)
-        impl->add_reference();
-    }
+  //--------------------------------------------------------------------------
+  Predicate::Predicate(const Predicate& p)
+  //--------------------------------------------------------------------------
+  {
+    const_value = p.const_value;
+    impl = p.impl;
+    if (impl != nullptr)
+      impl->add_reference();
+  }
 
-    //--------------------------------------------------------------------------
-    Predicate::Predicate(Predicate &&p) noexcept
-    //--------------------------------------------------------------------------
-    {
-      const_value = p.const_value;
-      impl = p.impl;
-      p.impl = nullptr;
-    }
+  //--------------------------------------------------------------------------
+  Predicate::Predicate(Predicate&& p) noexcept
+  //--------------------------------------------------------------------------
+  {
+    const_value = p.const_value;
+    impl = p.impl;
+    p.impl = nullptr;
+  }
 
-    //--------------------------------------------------------------------------
-    Predicate::Predicate(bool value)
-      : impl(nullptr), const_value(value)
-    //--------------------------------------------------------------------------
-    {
-    }
+  //--------------------------------------------------------------------------
+  Predicate::Predicate(bool value) : impl(nullptr), const_value(value)
+  //--------------------------------------------------------------------------
+  { }
 
-    //--------------------------------------------------------------------------
-    Predicate::Predicate(Internal::PredicateImpl *i)
-      : impl(i)
-    //--------------------------------------------------------------------------
-    {
-      if (impl != nullptr)
-        impl->add_reference();
-    }
+  //--------------------------------------------------------------------------
+  Predicate::Predicate(Internal::PredicateImpl* i) : impl(i)
+  //--------------------------------------------------------------------------
+  {
+    if (impl != nullptr)
+      impl->add_reference();
+  }
 
-    //--------------------------------------------------------------------------
-    Predicate::~Predicate(void)
-    //--------------------------------------------------------------------------
-    {
-      if ((impl != nullptr) && impl->remove_reference())
-        delete impl;
-    }
+  //--------------------------------------------------------------------------
+  Predicate::~Predicate(void)
+  //--------------------------------------------------------------------------
+  {
+    if ((impl != nullptr) && impl->remove_reference())
+      delete impl;
+  }
 
-    //--------------------------------------------------------------------------
-    Predicate& Predicate::operator=(const Predicate &rhs)
-    //--------------------------------------------------------------------------
-    {
-      if ((impl != nullptr) && impl->remove_reference())
-        delete impl;
-      const_value = rhs.const_value;
-      impl = rhs.impl;
-      if (impl != nullptr)
-        impl->add_reference();
-      return *this;
-    }
+  //--------------------------------------------------------------------------
+  Predicate& Predicate::operator=(const Predicate& rhs)
+  //--------------------------------------------------------------------------
+  {
+    if ((impl != nullptr) && impl->remove_reference())
+      delete impl;
+    const_value = rhs.const_value;
+    impl = rhs.impl;
+    if (impl != nullptr)
+      impl->add_reference();
+    return *this;
+  }
 
-    //--------------------------------------------------------------------------
-    Predicate& Predicate::operator=(Predicate &&rhs) noexcept
-    //--------------------------------------------------------------------------
-    {
-      if ((impl != nullptr) && impl->remove_reference())
-        delete impl;
-      const_value = rhs.const_value;
-      impl = rhs.impl;
-      rhs.impl = nullptr;
-      return *this;
-    }
+  //--------------------------------------------------------------------------
+  Predicate& Predicate::operator=(Predicate&& rhs) noexcept
+  //--------------------------------------------------------------------------
+  {
+    if ((impl != nullptr) && impl->remove_reference())
+      delete impl;
+    const_value = rhs.const_value;
+    impl = rhs.impl;
+    rhs.impl = nullptr;
+    return *this;
+  }
 
   namespace Internal {
 
     /////////////////////////////////////////////////////////////
-    // Predicate Impl 
+    // Predicate Impl
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PredicateImpl::PredicateImpl(Operation *op)
+    PredicateImpl::PredicateImpl(Operation* op)
       : context(op->get_context()), creator(op),
         creator_gen(op->get_generation()), creator_uid(op->get_unique_op_id()),
         value(-1)
@@ -123,14 +118,14 @@ namespace Legion {
     {
 #ifdef DEBUG_LEGION
       assert(0 <= value);
-#endif 
+#endif
       if (context->remove_base_resource_ref(APPLICATION_REF))
         delete context;
     }
 
     //--------------------------------------------------------------------------
-    bool PredicateImpl::get_predicate(uint64_t context_index,
-                                      PredEvent &true_g, PredEvent &false_g)
+    bool PredicateImpl::get_predicate(
+        uint64_t context_index, PredEvent& true_g, PredEvent& false_g)
     //--------------------------------------------------------------------------
     {
       AutoLock p_lock(predicate_lock);
@@ -140,7 +135,7 @@ namespace Legion {
       if (!true_guard.exists())
       {
         true_guard = Runtime::create_pred_event();
-        false_guard = Runtime::create_pred_event(); 
+        false_guard = Runtime::create_pred_event();
       }
       true_g = true_guard;
       false_g = false_guard;
@@ -148,7 +143,7 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool PredicateImpl::get_predicate(RtEvent &ready)
+    bool PredicateImpl::get_predicate(RtEvent& ready)
     //--------------------------------------------------------------------------
     {
       AutoLock p_lock(predicate_lock);
@@ -180,8 +175,7 @@ namespace Legion {
         {
           Runtime::trigger_event(true_guard);
           Runtime::poison_event(false_guard);
-        }
-        else
+        } else
         {
           Runtime::poison_event(true_guard);
           Runtime::trigger_event(false_guard);
@@ -194,9 +188,9 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    PredicateCollective::PredicateCollective(ReplPredicateImpl *pred,
-                                         ReplicateContext *ctx, CollectiveID id)
-      : AllReduceCollective<MaxReduction<uint64_t>,false>(ctx, id),
+    PredicateCollective::PredicateCollective(
+        ReplPredicateImpl* pred, ReplicateContext* ctx, CollectiveID id)
+      : AllReduceCollective<MaxReduction<uint64_t>, false>(ctx, id),
         predicate(pred)
     //--------------------------------------------------------------------------
     {
@@ -207,26 +201,24 @@ namespace Legion {
     RtEvent PredicateCollective::post_complete_exchange(void)
     //--------------------------------------------------------------------------
     {
-      const RtEvent result = 
-        AllReduceCollective<
-          MaxReduction<uint64_t>,false>::post_complete_exchange();
+      const RtEvent result = AllReduceCollective<
+          MaxReduction<uint64_t>, false>::post_complete_exchange();
       if (predicate->remove_reference())
         delete predicate;
       return result;
     }
 
     /////////////////////////////////////////////////////////////
-    // Repl Predicate Impl 
+    // Repl Predicate Impl
     /////////////////////////////////////////////////////////////
 
     //--------------------------------------------------------------------------
-    ReplPredicateImpl::ReplPredicateImpl(Operation *op, uint64_t coordinate,
-                                         CollectiveID id)
+    ReplPredicateImpl::ReplPredicateImpl(
+        Operation* op, uint64_t coordinate, CollectiveID id)
       : PredicateImpl(op), predicate_coordinate(coordinate), collective_id(id),
         max_observed_index(0), collective(nullptr)
     //--------------------------------------------------------------------------
-    {
-    }
+    { }
 
     //--------------------------------------------------------------------------
     ReplPredicateImpl::~ReplPredicateImpl(void)
@@ -237,8 +229,8 @@ namespace Legion {
     }
 
     //--------------------------------------------------------------------------
-    bool ReplPredicateImpl::get_predicate(uint64_t context_index,
-                                          PredEvent &true_g, PredEvent &false_g)
+    bool ReplPredicateImpl::get_predicate(
+        uint64_t context_index, PredEvent& true_g, PredEvent& false_g)
     //--------------------------------------------------------------------------
     {
       bool trigger_guards = false;
@@ -251,8 +243,8 @@ namespace Legion {
         // For the false case, check to see if we already got the
         // maximum observed false case
         if (collective != nullptr)
-          max_observed_index = collective->get_result(); 
-        // Can safely return false here since it's later than the 
+          max_observed_index = collective->get_result();
+        // Can safely return false here since it's later than the
         // maximum observed index across all the shards so all shards
         // will return the same false decision
         if (max_observed_index < context_index)
@@ -266,7 +258,7 @@ namespace Legion {
       if (!true_guard.exists())
       {
         true_guard = Runtime::create_pred_event();
-        false_guard = Runtime::create_pred_event(); 
+        false_guard = Runtime::create_pred_event();
         if (trigger_guards)
         {
           // We're doing the fall-through case where we know its false
@@ -294,22 +286,21 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(value < 0);
 #endif
-      if (!result) // False
+      if (!result)  // False
       {
         value = 0;
         if (collective_id > 0)
         {
 #ifdef DEBUG_LEGION
-          ReplicateContext *repl_ctx = dynamic_cast<ReplicateContext*>(context);
+          ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(context);
           assert(repl_ctx != nullptr);
 #else
-          ReplicateContext *repl_ctx = static_cast<ReplicateContext*>(context);
+          ReplicateContext* repl_ctx = static_cast<ReplicateContext*>(context);
 #endif
           collective = new PredicateCollective(this, repl_ctx, collective_id);
           collective->async_all_reduce(max_observed_index);
         }
-      }
-      else // True
+      } else  // True
         value = 1;
       if (ready_event.exists())
         Runtime::trigger_event(ready_event);
@@ -319,8 +310,7 @@ namespace Legion {
         {
           Runtime::trigger_event(true_guard);
           Runtime::poison_event(false_guard);
-        }
-        else
+        } else
         {
           Runtime::poison_event(true_guard);
           Runtime::trigger_event(false_guard);
@@ -328,5 +318,5 @@ namespace Legion {
       }
     }
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion

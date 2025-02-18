@@ -115,122 +115,122 @@ namespace Legion {
       // this marks the beginning of task IDs tracked by the shutdown algorithm
       LG_BEGIN_SHUTDOWN_TASK_IDS,
       LG_RETRY_SHUTDOWN_TASK_ID = LG_BEGIN_SHUTDOWN_TASK_IDS,
-      // Message ID goes at the end so we can append additional 
+      // Message ID goes at the end so we can append additional
       // message IDs here for the profiler and separate meta-tasks
       LG_MESSAGE_ID,
-      LG_LAST_TASK_ID, // This one should always be last
-    };  
+      LG_LAST_TASK_ID,  // This one should always be last
+    };
 
-    // Make this a macro so we can keep it close to 
+    // Make this a macro so we can keep it close to
     // declaration of the task IDs themselves
-#define LG_TASK_DESCRIPTIONS(name)                               \
-      const char *name[LG_LAST_TASK_ID] = {                      \
-        "Scheduler",                                              \
-        "Trigger Ready",                                          \
-        "Trigger Execution",                                      \
-        "Trigger Commit",                                         \
-        "Deferred Execution",                                     \
-        "Deferred Completion",                                    \
-        "Deferred Commit",                                        \
-        "Prepipeline Stage",                                      \
-        "Logical Dependence Analysis",                            \
-        "Deferred Mapped",                                        \
-        "Trigger Operation Mapping",                              \
-        "Trigger Task Mapping",                                   \
-        "Defer Mapper Scheduler",                                 \
-        "Contribute Collective",                                  \
-        "Future Callback",                                        \
-        "Future Callback Release",                                \
-        "Future Broadcast",                                       \
-        "Top Finish",                                             \
-        "Mapper Task",                                            \
-        "Disjointness Test",                                      \
-        "Defer Timing Measurement",                               \
-        "Task Impl Semantic Request",                             \
-        "Index Space Semantic Request",                           \
-        "Index Partition Semantic Request",                       \
-        "Field Space Semantic Request",                           \
-        "Field Semantic Request",                                 \
-        "Defer Field Infos Request",                              \
-        "Region Semantic Request",                                \
-        "Partition Semantic Request",                             \
-        "Defer Index Space Child Request",                        \
-        "Defer Index Partition Child Request",                    \
-        "Defer Index Partition Find Shard Rects",                 \
-        "Deferred Enqueue Task",                                  \
-        "Deferred Mapper Message",                                \
-        "Deferred Mapper Instance Collective",                    \
-        "Remote View Creation",                                   \
-        "Defer Task Perform Mapping",                             \
-        "Finalize Output Regions Eq KD Tree",                     \
-        "Handle Mapping Mispredication",                          \
-        "Defer Trigger Children Commit",                          \
-        "Order Concurrent Launch",                                \
-        "Defer Materialized View Registration",                   \
-        "Defer Reduction View Registration",                      \
-        "Defer Phi View Registration",                            \
-        "Defer Composite Copy",                                   \
-        "Tighten Index Space",                                    \
-        "Replay Physical Trace",                                  \
-        "Template Transitive Reduction",                          \
-        "Delete Physical Template",                               \
-        "Defer Equivalence Set Make Owner",                       \
-        "Defer Equivalence Set Apply State",                      \
-        "Copy Fill Aggregation",                                  \
-        "Copy Fill Deletion",                                     \
-        "Finalize Equivalence Sets",                              \
-        "Finalize Output Equivalence Set",                        \
-        "Deferred Copy Across",                                   \
-        "Defer Remote Op Deletion",                               \
-        "Defer Remote Instance Request",                          \
-        "Defer Remote Reduction Request",                         \
-        "Defer Remote Update Equivalence Set",                    \
-        "Defer Remote Acquire",                                   \
-        "Defer Remote Release",                                   \
-        "Defer Remote Copy Across",                               \
-        "Defer Remote Overwrite Equivalence Set",                 \
-        "Defer Remote Filter Equivalence Set",                    \
-        "Defer Physical Analysis Traversal Stage",                \
-        "Defer Physical Analysis Analyze Equivalence Set Stage",  \
-        "Defer Physical Analysis Remote Stage",                   \
-        "Defer Physical Analysis Update Stage",                   \
-        "Defer Physical Analysis Registration Stage",             \
-        "Defer Physical Analysis Output Stage",                   \
-        "Defer Physical Manager Registration",                    \
-        "Defer Physical Manager Deletion",                        \
-        "Defer Verify Partition",                                 \
-        "Defer Release Acquired Instances",                       \
-        "Defer Copy-Across Execution for Preimages",              \
-        "Defer Collective Instance Message",                      \
-        "Malloc Instance",                                        \
-        "Free Instance",                                          \
-        "Defer Trace Update",                                     \
-        "Defer Delete Future Instance",                           \
-        "Free External Allocation",                               \
-        "Defer Consensus Match",                                  \
-        "Defer Collective Async",                                 \
-        "Defer Issue Fill",                                       \
-        "Defer Must Epoch Return Resources",                      \
-        "Defer Deletion Commit",                                  \
-        "Yield",                                                  \
-        "Auto Trace Find Repeats",                                \
-        "Retry Shutdown",                                         \
-        "Remote Message",                                         \
-      };
+#define LG_TASK_DESCRIPTIONS(name)                             \
+  const char* name[LG_LAST_TASK_ID] = {                        \
+      "Scheduler",                                             \
+      "Trigger Ready",                                         \
+      "Trigger Execution",                                     \
+      "Trigger Commit",                                        \
+      "Deferred Execution",                                    \
+      "Deferred Completion",                                   \
+      "Deferred Commit",                                       \
+      "Prepipeline Stage",                                     \
+      "Logical Dependence Analysis",                           \
+      "Deferred Mapped",                                       \
+      "Trigger Operation Mapping",                             \
+      "Trigger Task Mapping",                                  \
+      "Defer Mapper Scheduler",                                \
+      "Contribute Collective",                                 \
+      "Future Callback",                                       \
+      "Future Callback Release",                               \
+      "Future Broadcast",                                      \
+      "Top Finish",                                            \
+      "Mapper Task",                                           \
+      "Disjointness Test",                                     \
+      "Defer Timing Measurement",                              \
+      "Task Impl Semantic Request",                            \
+      "Index Space Semantic Request",                          \
+      "Index Partition Semantic Request",                      \
+      "Field Space Semantic Request",                          \
+      "Field Semantic Request",                                \
+      "Defer Field Infos Request",                             \
+      "Region Semantic Request",                               \
+      "Partition Semantic Request",                            \
+      "Defer Index Space Child Request",                       \
+      "Defer Index Partition Child Request",                   \
+      "Defer Index Partition Find Shard Rects",                \
+      "Deferred Enqueue Task",                                 \
+      "Deferred Mapper Message",                               \
+      "Deferred Mapper Instance Collective",                   \
+      "Remote View Creation",                                  \
+      "Defer Task Perform Mapping",                            \
+      "Finalize Output Regions Eq KD Tree",                    \
+      "Handle Mapping Mispredication",                         \
+      "Defer Trigger Children Commit",                         \
+      "Order Concurrent Launch",                               \
+      "Defer Materialized View Registration",                  \
+      "Defer Reduction View Registration",                     \
+      "Defer Phi View Registration",                           \
+      "Defer Composite Copy",                                  \
+      "Tighten Index Space",                                   \
+      "Replay Physical Trace",                                 \
+      "Template Transitive Reduction",                         \
+      "Delete Physical Template",                              \
+      "Defer Equivalence Set Make Owner",                      \
+      "Defer Equivalence Set Apply State",                     \
+      "Copy Fill Aggregation",                                 \
+      "Copy Fill Deletion",                                    \
+      "Finalize Equivalence Sets",                             \
+      "Finalize Output Equivalence Set",                       \
+      "Deferred Copy Across",                                  \
+      "Defer Remote Op Deletion",                              \
+      "Defer Remote Instance Request",                         \
+      "Defer Remote Reduction Request",                        \
+      "Defer Remote Update Equivalence Set",                   \
+      "Defer Remote Acquire",                                  \
+      "Defer Remote Release",                                  \
+      "Defer Remote Copy Across",                              \
+      "Defer Remote Overwrite Equivalence Set",                \
+      "Defer Remote Filter Equivalence Set",                   \
+      "Defer Physical Analysis Traversal Stage",               \
+      "Defer Physical Analysis Analyze Equivalence Set Stage", \
+      "Defer Physical Analysis Remote Stage",                  \
+      "Defer Physical Analysis Update Stage",                  \
+      "Defer Physical Analysis Registration Stage",            \
+      "Defer Physical Analysis Output Stage",                  \
+      "Defer Physical Manager Registration",                   \
+      "Defer Physical Manager Deletion",                       \
+      "Defer Verify Partition",                                \
+      "Defer Release Acquired Instances",                      \
+      "Defer Copy-Across Execution for Preimages",             \
+      "Defer Collective Instance Message",                     \
+      "Malloc Instance",                                       \
+      "Free Instance",                                         \
+      "Defer Trace Update",                                    \
+      "Defer Delete Future Instance",                          \
+      "Free External Allocation",                              \
+      "Defer Consensus Match",                                 \
+      "Defer Collective Async",                                \
+      "Defer Issue Fill",                                      \
+      "Defer Must Epoch Return Resources",                     \
+      "Defer Deletion Commit",                                 \
+      "Yield",                                                 \
+      "Auto Trace Find Repeats",                               \
+      "Retry Shutdown",                                        \
+      "Remote Message",                                        \
+  };
 
     // Methodology for assigning priorities to meta-tasks:
     // Minimum and low priority are for things like profiling
     // that we don't want to interfere with normal execution.
-    // Resource priority is reserved for tasks that have been 
+    // Resource priority is reserved for tasks that have been
     // granted resources like reservations. Running priority
-    // is the highest and guarantees that we drain out any 
+    // is the highest and guarantees that we drain out any
     // previously running tasks over starting new ones. The rest
     // of the priorities are classified as either 'throughput'
     // or 'latency' sensitive. Under each of these two major
     // categories there are four sub-priorities:
     //  - work: general work to be done
-    //  - deferred: work that was already scheduled but 
-    //              for which a continuation had to be 
+    //  - deferred: work that was already scheduled but
+    //              for which a continuation had to be
     //              made so we don't want to wait behind
     //              work that hasn't started yet
     //  - messsage: a message from a remote node that we
@@ -271,7 +271,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION_CALLERS
           lg_call_id(implicit_task_kind),
 #endif
-          lg_task_id(T::TASK_ID) { }
+          lg_task_id(T::TASK_ID)
+      { }
     public:
       // In this order for alignment reasons
       const ::legion_unique_id_t provenance;
@@ -281,7 +282,7 @@ namespace Legion {
       const LgTaskID lg_task_id;
     };
 
-  } // namespace Internal
-} // namespace Legion
+  }  // namespace Internal
+}  // namespace Legion
 
-#endif // __LEGION_METATASK_H__
+#endif  // __LEGION_METATASK_H__
