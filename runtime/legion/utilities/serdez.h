@@ -26,7 +26,7 @@ namespace Legion {
   /////////////////////////////////////////////////////////////
   class Serializer {
   public:
-    inline Serializer(size_t base_bytes = 4096)
+    Serializer(size_t base_bytes = 4096)
       : total_bytes(base_bytes), buffer((uint8_t*)malloc(base_bytes)), index(0)
 #ifdef DEBUG_LEGION
         ,
@@ -35,7 +35,7 @@ namespace Legion {
     { }
     Serializer(const Serializer& rhs) = delete;
   public:
-    inline ~Serializer(void);
+    ~Serializer(void) { free(buffer); }
   public:
     Serializer& operator=(const Serializer& rhs) = delete;
   public:
@@ -81,10 +81,10 @@ namespace Legion {
     inline void begin_context(void);
     inline void end_context(void);
   public:
-    inline size_t get_index(void) const;
-    inline const void* get_buffer(void) const;
-    inline size_t get_buffer_size(void) const;
-    inline size_t get_used_bytes(void) const;
+    inline size_t get_index(void) const { return index; }
+    inline const void* get_buffer(void) const { return buffer; }
+    inline size_t get_buffer_size(void) const { return total_bytes; }
+    inline size_t get_used_bytes(void) const { return index; }
     inline void* reserve_bytes(size_t size);
     inline void reset(void);
   private:
@@ -179,7 +179,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
     size_t context_bytes;
   public:
-    inline size_t get_context_bytes(void) const;
+    inline size_t get_context_bytes(void) const { return context_bytes; }
 #endif
   };
 
