@@ -672,6 +672,18 @@ before_script:
         exit 1
       fi
 
+.legion_clang_format: &legion_clang_format
+  script:
+    - |
+      find runtime/legion \( -name "*.cc" -o -name "*.inl" -o -name "*.h" \) -print0 | while IFS= read -r -d '' file; do
+        if ! clang-format -style=file:runtime/legion/.clang-format "$file" | diff -u "$file" -; then
+          echo "Legion file $file does not comply with clang-format rules"
+          exit 1
+        fi
+      done
+      echo "All Legion files comply with clang-format rules"
+      exit 0
+
 # For performance tests, run these commands:
 .perf_tests: &perf_tests
   script:
@@ -1402,5 +1414,9 @@ clang_format_realm:
     # Never any other time
     - when: never
   <<: [*linux, *image_2204, *realm_clang_format]
+  variables:
+    <<: [*gcc12, *cxx17_normal, *short]
+clang_format_legion:
+  <<: [*linux, *image_2204, *legion_clang_format]
   variables:
     <<: [*gcc12, *cxx17_normal, *short]
