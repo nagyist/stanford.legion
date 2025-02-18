@@ -339,6 +339,22 @@ namespace Legion {
       }
     }
 
+#ifdef DEBUG_LEGION
+    //--------------------------------------------------------------------------
+    bool IndexSpaceOperation::is_valid(void)
+    //--------------------------------------------------------------------------
+    {
+      return DistributedCollectable::is_global();
+    }
+#endif
+
+    //--------------------------------------------------------------------------
+    DistributedID IndexSpaceOperation::get_distributed_id(void) const
+    //--------------------------------------------------------------------------
+    {
+      return did;
+    }
+
     //--------------------------------------------------------------------------
     void IndexSpaceOperation::add_canonical_reference(DistributedID source)
     //--------------------------------------------------------------------------

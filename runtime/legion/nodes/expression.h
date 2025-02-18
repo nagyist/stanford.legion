@@ -392,12 +392,9 @@ namespace Legion {
       virtual void skip_unpack_expression(Deserializer& derez) const = 0;
     public:
 #ifdef DEBUG_LEGION
-      virtual bool is_valid(void)
-      {
-        return DistributedCollectable::is_global();
-      }
+      virtual bool is_valid(void);
 #endif
-      virtual DistributedID get_distributed_id(void) const { return did; }
+      virtual DistributedID get_distributed_id(void) const;
       virtual void add_canonical_reference(DistributedID source);
       virtual bool remove_canonical_reference(DistributedID source);
       virtual bool try_add_live_reference(void);
