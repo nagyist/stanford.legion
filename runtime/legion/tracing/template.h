@@ -266,14 +266,6 @@ namespace Legion {
       virtual void rewrite_frontiers(
                       std::map<unsigned,unsigned> &substitutions);
     public:
-#if 0
-      // Variant for normal traces
-      bool check_preconditions(TraceReplayOp *op,
-                               std::set<RtEvent> &applied_events);
-      // Variant for control replication traces
-      bool check_preconditions(ReplTraceReplayOp *op,
-                               std::set<RtEvent> &applied_events);
-#endif
       RtEvent test_preconditions(FenceOp *op,
                                  std::set<RtEvent> &applied_events);
       bool check_preconditions(void);

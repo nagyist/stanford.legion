@@ -133,9 +133,6 @@ namespace Legion {
       virtual const RegionRequirement &get_requirement(unsigned idx = 0) const
       { return requirement; }
     protected:
-#if 0
-      void compute_parent_index(void);
-#endif
       void log_requirement(void);
     protected:
       RegionRequirement                             requirement;

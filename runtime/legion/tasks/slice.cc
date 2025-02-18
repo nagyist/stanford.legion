@@ -1088,18 +1088,7 @@ namespace Legion {
       }
       // Send this point back to the index owner task
       if (!is_remote())
-      {
-#if 0
-#ifdef DEBUG_LEGION
-        assert(regions.size() == point->regions.size());
-        std::vector<LogicalRegion> point_regions(regions.size());
-        for (unsigned idx = 0; idx < regions.size(); idx++)
-          point_regions[idx] = point->regions[idx].region;
-        index_owner->check_point_requirements(point->index_point,point_regions);
-#endif
-#endif
         index_owner->return_point_mapped(point->index_point, child_mapped);
-      }
       // Only need to send something back if we're not origin mapped
       else if (!is_origin_mapped())
       {
@@ -1109,13 +1098,6 @@ namespace Legion {
           RezCheck z(rez);
           rez.serialize(point->index_point);
           rez.serialize(child_mapped);
-#if 0
-#ifdef DEBUG_LEGION
-          assert(regions.size() == point->regions.size());
-          for (unsigned idx = 0; idx < regions.size(); idx++)
-            rez.serialize(point->regions[idx].region);
-#endif
-#endif
         }
         runtime->send_slice_remote_mapped(orig_proc, rez);
       }

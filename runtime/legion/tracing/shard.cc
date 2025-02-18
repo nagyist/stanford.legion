@@ -1089,42 +1089,6 @@ namespace Legion {
       return id.event_creator_node();
     }
 
-#if 0
-    //--------------------------------------------------------------------------
-    PhysicalTemplate::DetailedBoolean ShardedPhysicalTemplate::check_idempotent(
-        Operation *op, InnerContext *context)
-    //--------------------------------------------------------------------------
-    {
-#ifdef DEBUG_LEGION
-      assert(op != nullptr);
-      ReplTraceOp *repl_op = dynamic_cast<ReplTraceOp*>(op);
-      assert(repl_op != nullptr);
-#else
-      ReplTraceOp *repl_op = static_cast<ReplTraceOp*>(op);
-#endif
-      // We need everyone else to be done capturing their traces
-      // before we can do our own idempotence check
-      repl_op->sync_for_idempotent_check();
-      // Do the base call first to determine if our local shard is replayable
-      const DetailedBoolean result =
-          PhysicalTemplate::check_idempotent(op, context);
-      if (result)
-      {
-        // Now we can do the exchange
-        if (repl_op->exchange_idempotent(repl_ctx, true/*replayable*/))
-          return result;
-        else
-          return DetailedBoolean(false, "Remote shard not replyable");
-      }
-      else
-      {
-        // Still need to do the exchange
-        repl_op->exchange_idempotent(repl_ctx, false/*replayable*/);
-        return result;
-      }
-    }
-#endif
-
     //--------------------------------------------------------------------------
     void ShardedPhysicalTemplate::pack_recorder(Serializer &rez)
     //--------------------------------------------------------------------------

@@ -10573,41 +10573,6 @@ namespace Legion {
         delete removed;
     }
 
-#if 0
-    //--------------------------------------------------------------------------
-    void InnerContext::sync_for_task_local_allocation(Memory memory,size_t size)
-    //--------------------------------------------------------------------------
-    {
-      if (size == 0)
-        return;
-      // If we have a memory pool with enough size then there is nothing for
-      // us to wait for before trying to do our allocation since we'll know
-      // that it will succeed
-      std::map<Memory,MemoryPool*>::const_iterator finder = 
-        memory_pools.find(memory);
-      if ((finder != memory_pools.end()) &&
-          (size <= finder->second->query_available_memory(false/*leaf*/)))
-        return;
-      // Go through and find the mapping events for all the outstanding
-      // operations which are not complete yet
-      std::vector<RtEvent> mapped_events;
-      {
-        AutoLock child_lock(child_op_lock,1,false/*exclusive*/);
-        for (std::deque<ReorderBufferEntry>::const_iterator it =
-              reorder_buffer.begin(); it != reorder_buffer.end(); it++)
-        {
-          if (it->complete)
-            continue;
-          RtEvent mapped = it->operation->get_mapped_event();
-          if (mapped.exists())
-            mapped_events.push_back(mapped);
-        }
-      }
-      if (!mapped_events.empty())
-        Runtime::merge_events(mapped_events).wait();
-    }
-#endif
-
     //--------------------------------------------------------------------------
     FutureInstance* InnerContext::create_task_local_future(Memory memory,
         size_t size, bool silence_warnings, const char *warning_string)

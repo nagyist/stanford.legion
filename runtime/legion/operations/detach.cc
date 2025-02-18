@@ -656,28 +656,6 @@ namespace Legion {
       return parent_req_index;
     }
 
-#if 0
-    //--------------------------------------------------------------------------
-    void IndexDetachOp::compute_parent_index(void)
-    //--------------------------------------------------------------------------
-    {
-      int parent_index = parent_ctx->find_parent_region_req(requirement);
-      if (parent_index < 0)
-        REPORT_LEGION_ERROR(ERROR_PARENT_TASK_ATTACH,
-                               "Parent task %s (ID %lld) of index attach "
-                               "operation (ID %lld) does not have a region "
-                               "requirement for region (%llu,%llu,%llu) as a parent",
-                               parent_ctx->get_task_name(), 
-                               parent_ctx->get_unique_id(),
-                               unique_op_id, 
-                               requirement.parent.index_space.get_id(),
-                               requirement.parent.field_space.get_id(), 
-                               requirement.parent.get_tree_id())
-      else
-        parent_req_index = unsigned(parent_index);
-    }
-#endif
-
     //--------------------------------------------------------------------------
     void IndexDetachOp::log_requirement(void)
     //--------------------------------------------------------------------------
