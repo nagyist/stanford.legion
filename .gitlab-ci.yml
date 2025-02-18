@@ -681,8 +681,7 @@ before_script:
           exit 1
         fi
       done
-      echo "All Legion files comply with clang-format rules"
-      exit 0
+    - echo "All Legion files comply with clang-format rules"
 
 # For performance tests, run these commands:
 .perf_tests: &perf_tests
