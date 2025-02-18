@@ -88,7 +88,7 @@ namespace Legion {
         tree_context(runtime->allocate_region_tree_context()),
         full_inner_context(finner), concurrent_context(concurrent), 
         finished_execution(false), has_inline_accessor(false),
-        next_created_index(reqs.size()), context_configuration(config),
+        next_created_index(0), context_configuration(config),
         parent_req_indexes(parent_indexes), virtual_mapped(virt_mapped), 
         total_children_count(0), next_blocking_index(0),
         outstanding_prepipeline_tasks(0),
@@ -127,6 +127,10 @@ namespace Legion {
         // Then add our coordinates for our task
         context_coordinates.emplace_back(ContextCoordinate(
               owner_task->get_context_index(), owner_task->index_point));
+        // Fill in the next created index based on the requirements
+        // Only safe to do this if we've got an owner task and therefore
+        // we know the regions vector is initialized
+        next_created_index = reqs.size();
       }
 #ifdef LEGION_GC
       log_garbage.info("GC Inner Context %lld %d", 
