@@ -1416,6 +1416,12 @@ clang_format_realm:
   variables:
     <<: [*gcc12, *cxx17_normal, *short]
 clang_format_legion:
+  rules:
+    # Always during a merge request update
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    # Never any other time
+    - when: never
   <<: [*linux, *image_2204, *legion_clang_format]
   variables:
     <<: [*gcc12, *cxx17_normal, *short]
