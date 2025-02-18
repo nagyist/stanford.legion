@@ -20,16 +20,16 @@
 #include <random>
 #include <string.h>
 
+#include "legion.h"
+
+using namespace Legion;
+
 using namespace std;
 typedef std::default_random_engine RNG;
 
 #if __cplusplus < 201103L
 #error This test requires C++11 or better.
 #endif
-
-#include "legion.h"
-
-using namespace Legion;
 
 // Define all the 'functors' that will be used to test the implementation
 template <typename Redop> struct RedopTest;
