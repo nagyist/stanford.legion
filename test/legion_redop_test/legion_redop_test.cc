@@ -24,7 +24,6 @@
 
 using namespace Legion;
 
-using namespace std;
 typedef std::default_random_engine RNG;
 
 #if __cplusplus < 201103L
@@ -99,11 +98,11 @@ get_rand(T &v, RNG &rng) {
   v = dist(rng);
 }
 
-template <typename T> static void get_rand(complex<T> &v, RNG &rng) {
+template <typename T> static void get_rand(std::complex<T> &v, RNG &rng) {
   T r, i;
   get_rand<T>(r, rng);
   get_rand<T>(i, rng);
-  v = complex<T>(r, i);
+  v = std::complex<T>(r, i);
 }
 
 template <typename T>
