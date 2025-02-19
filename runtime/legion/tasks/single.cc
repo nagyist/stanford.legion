@@ -1697,10 +1697,9 @@ namespace Legion {
           Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output from invocation of 'replicate_task' "
               << "on mapper " << *mapper
-              << ". Mapper provided %zd leaf variants "
-              << "for " << output.leaf_variants.size()
-              << " target processors for " << *this
-              << ". The same number of leaf variants must be provided "
+              << ". Mapper provided %zd leaf variants for "
+              << output.leaf_variants.size() << " target processors for "
+              << *this << ". The same number of leaf variants must be provided "
               << "as target processors.";
         for (unsigned idx = 0; idx < output.leaf_variants.size(); idx++)
         {
@@ -1710,8 +1709,8 @@ namespace Legion {
             Exception(MAPPER_EXCEPTION, this)
                 << "Invalid mapper output from invocation of 'replicate_task' "
                 << "on mapper " << *mapper
-                << ". Mapper selected an invalid leaf task "
-                << "variant " << output.leaf_variants[idx] << " for " << *this
+                << ". Mapper selected an invalid leaf task variant "
+                << output.leaf_variants[idx] << " for " << *this
                 << " that was chosen to be replicated.";
           if (var_impl == nullptr)
             var_impl = impl;
@@ -2473,8 +2472,8 @@ namespace Legion {
             } else
               Exception(MAPPER_EXCEPTION, this)
                   << "Mapper " << *mapper
-                  << " dynamically requested an unbounded pool "
-                  << "in " << manager->get_name() << " memory for " << *this
+                  << " dynamically requested an unbounded pool in "
+                  << manager->get_name() << " memory for " << *this
                   << ", but the selected variant " << variant->vid
                   << " specified a static bound of " << it->second.size
                   << " bytes. Dynamically requested memory allocations must be "

@@ -2186,11 +2186,11 @@ namespace Legion {
                 << "(without a corresponding deletion) in the parent task.";
           } else
             Exception(PROGRAMMING_MODEL_EXCEPTION, op)
-                << "Unable to find "
-                << "privileges for field " << *it << " of region requirement "
-                << index << " of " << op->get_logging_name()
-                << " (UID: " << op->get_unique_op_id() << ") in parent task "
-                << get_task_name() << " (UID: " << get_unique_id() << "). "
+                << "Unable to find privileges for field " << *it
+                << " of region requirement " << index << " of "
+                << op->get_logging_name() << " (UID: " << op->get_unique_op_id()
+                << ") in parent task " << get_task_name()
+                << " (UID: " << get_unique_id() << "). "
                 << "All fields must derive their region requirements from "
                 << "one of the region requirements of the parent task or "
                 << "from the creation of a region or allocation of a field "
