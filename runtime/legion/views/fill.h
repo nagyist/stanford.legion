@@ -80,9 +80,7 @@ namespace Legion {
     public:
       FillView& operator=(const FillView& rhs) = delete;
     public:
-      virtual void notify_local(void)
-      { /*nothing to do*/
-      }
+      virtual void notify_local(void) { /*nothing to do*/ }
       virtual void pack_valid_ref(void);
       virtual void unpack_valid_ref(void);
     public:
