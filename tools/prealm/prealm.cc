@@ -15,6 +15,7 @@
 
 #include "prealm.h"
 #include <zlib.h>
+#include <limits>
 // pr_fopen expects filename to be a std::string
 #define pr_fopen(filename, mode) gzopen(filename.c_str(), mode)
 #define pr_fwrite(f, data, num_bytes) gzwrite(f, data, num_bytes)
