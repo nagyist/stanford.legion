@@ -5635,12 +5635,12 @@ namespace Legion {
       // If we have a trace then we're definitely not inserting operations
       if (current_trace != nullptr)
         return;
-        // For control replication, we need to have an algorithm to determine
-        // when the shards try to sync up to insert operations that doesn't
-        // rely on knowing if or when any one shard has unordered ops
-        // We employ a sampling based algorithm here with exponential backoff
-        // to detect when we are doing unordered ops since it's likely a
-        // binary state where either we are or we aren't doing unordered ops
+      // For control replication, we need to have an algorithm to determine
+      // when the shards try to sync up to insert operations that doesn't
+      // rely on knowing if or when any one shard has unordered ops
+      // We employ a sampling based algorithm here with exponential backoff
+      // to detect when we are doing unordered ops since it's likely a
+      // binary state where either we are or we aren't doing unordered ops
 #ifdef DEBUG_LEGION
       assert(unordered_ops_counter < unordered_ops_epoch);
 #endif

@@ -1618,7 +1618,7 @@ namespace Legion {
                 finder->second.count, count, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -1642,7 +1642,7 @@ namespace Legion {
                 finder->second.count, count, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -1913,7 +1913,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -1937,7 +1937,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -2187,7 +2187,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -2212,7 +2212,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -2455,7 +2455,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -2480,7 +2480,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -2722,7 +2722,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -2747,7 +2747,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -3209,7 +3209,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -3233,7 +3233,7 @@ namespace Legion {
                 finder->second.count, cnt, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -3308,8 +3308,8 @@ namespace Legion {
         return implicit_context->register_variant(
             registrar, user_data, user_data_size, realm_code_desc,
             return_type_size, has_return_size, vid, check_task_id);
-        // TODO: figure out a way to make this check safe with dynamic
-        // generation
+      // TODO: figure out a way to make this check safe with dynamic
+      // generation
 #if 0
       if (check_task_id && 
           (registrar.task_id >= LEGION_MAX_APPLICATION_TASK_ID))
@@ -3445,7 +3445,7 @@ namespace Legion {
                 finder->second.count, count, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -3470,7 +3470,7 @@ namespace Legion {
                 finder->second.count, count, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -3575,7 +3575,7 @@ namespace Legion {
                 finder->second.count, count, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -3600,7 +3600,7 @@ namespace Legion {
                 finder->second.count, count, name)
           if (finder->second.result_set)
             return finder->second.result;
-            // This should never happen unless we are on a node other than 0
+          // This should never happen unless we are on a node other than 0
 #ifdef DEBUG_LEGION
           assert(address_space > 0);
 #endif
@@ -16359,7 +16359,7 @@ namespace Legion {
         if (redop_id == 0)
           REPORT_LEGION_ERROR(
               ERROR_RESERVED_REDOP_ID, "ERROR: ReductionOpID zero is reserved.")
-          // TODO: figure out a way to make this safe with dynamic registration
+        // TODO: figure out a way to make this safe with dynamic registration
 #if 0
         if (redop_id >= LEGION_MAX_APPLICATION_REDOP_ID)
           REPORT_LEGION_ERROR(ERROR_RESERVED_REDOP_ID,
@@ -16460,7 +16460,7 @@ namespace Legion {
           REPORT_LEGION_ERROR(
               ERROR_RESERVED_SERDEZ_ID,
               "ERROR: Custom Serdez ID zero is reserved.\n")
-          // TODO: figure out a way to make this safe with dynamic registration
+        // TODO: figure out a way to make this safe with dynamic registration
 #if 0
         if (serdez_id >= LEGION_MAX_APPLICATION_SERDEZ_ID)
           REPORT_LEGION_ERROR(ERROR_RESERVED_SERDEZ_ID,

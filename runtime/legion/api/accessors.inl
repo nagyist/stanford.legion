@@ -1439,7 +1439,7 @@ namespace Legion {
       {
         if (rect.empty())
           return true;
-          // Check the domain first
+        // Check the domain first
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         // Can only test bounds on the GPU and not sparsity maps yet
         if (!domain.dense())

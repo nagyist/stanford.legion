@@ -323,13 +323,9 @@ namespace Legion {
       inline void record_no_consensus(void) { has_no_consensus.store(true); }
     public:
       virtual bool is_recording(void) const { return trace->is_recording(); }
-      virtual void add_recorder_reference(void)
-      { /*do nothing*/
-      }
+      virtual void add_recorder_reference(void) { /*do nothing*/ }
       virtual bool remove_recorder_reference(void)
-      { /*do nothing, never delete*/
-        return false;
-      }
+      { /*do nothing, never delete*/ return false; }
       virtual void pack_recorder(Serializer& rez);
     public:
       void record_premap_output(

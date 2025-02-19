@@ -506,6 +506,6 @@ namespace Legion {
     using LegionMap = std::map<
         T1, T2, COMPARATOR, LegionAllocator<std::pair<const T1, T2>, L> >;
   };  // namespace Internal
-};    // namespace Legion
+};  // namespace Legion
 
 #endif  // __LEGION_ALLOCATION__

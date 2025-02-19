@@ -38,8 +38,8 @@ namespace Legion {
 
     class LegionProfSerializer {
     public:
-      LegionProfSerializer(){};
-      virtual ~LegionProfSerializer(){};
+      LegionProfSerializer() { };
+      virtual ~LegionProfSerializer() { };
 
       virtual bool is_thread_safe(void) const = 0;
       // You must override the following functions in your implementation

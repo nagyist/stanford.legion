@@ -44,7 +44,7 @@ namespace Legion {
     class Instruction {
     public:
       Instruction(PhysicalTemplate& tpl, const TraceLocalID& owner);
-      virtual ~Instruction(void){};
+      virtual ~Instruction(void) { };
       virtual void execute(
           std::vector<ApEvent>& events,
           std::map<unsigned, ApUserEvent>& user_events,

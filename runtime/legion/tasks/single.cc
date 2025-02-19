@@ -605,9 +605,8 @@ namespace Legion {
           Exception(WARNING_EXCEPTION, this)
               << "Ignoring processor request of " << output.target_procs.front()
               << " for " << *this << " by mapper " << *mapper
-              << " because task "
-              << "has already been mapped to processor " << this->target_proc
-              << " as part of a must epoch launch.";
+              << " because task has already been mapped to processor "
+              << this->target_proc << " as part of a must epoch launch.";
         }
         // Only one valid choice in this case, ignore everything else
         target_processors.push_back(this->target_proc);
@@ -630,9 +629,9 @@ namespace Legion {
                 << "Invalid mapper output from invocation of 'map_task' on "
                    "mapper "
                 << *mapper << "when mapping " << *this
-                << ". Mapper attempted to map "
-                << "future " << idx << " to memory " << future_memories[idx]
-                << " in address space " << future_memories[idx].address_space()
+                << ". Mapper attempted to map future " << idx << " to memory "
+                << future_memories[idx] << " in address space "
+                << future_memories[idx].address_space()
                 << " which is not the same as address space " << target_space
                 << " of the target processor " << this->target_proc
                 << ". Mapped futures must be in the same "
@@ -1687,8 +1686,8 @@ namespace Legion {
           Exception(WARNING_EXCEPTION, this)
               << "Invalid mapper output from invocation of 'replicate_task' "
               << "on mapper " << *mapper
-              << ". Mapper failed to pick an valid task "
-              << "variant " << output.chosen_variant << " for " << *this
+              << ". Mapper failed to pick an valid task variant "
+              << output.chosen_variant << " for " << *this
               << "that was chosen to be replicated. Task variants selected for "
               << "replication must be marked as replicable variants.";
       } else
@@ -1720,9 +1719,9 @@ namespace Legion {
           if (!impl->is_leaf())
             Exception(MAPPER_EXCEPTION, this)
                 << "Invalid mapper output from invocation of 'replicate_task' "
-                << "on mapper " << *mapper
-                << ". Mapper failed to pick an valid task "
-                << "variant " << output.leaf_variants[idx] << " for " << *this
+                   "on mapper "
+                << *mapper << ". Mapper failed to pick an valid task variant "
+                << output.leaf_variants[idx] << " for " << *this
                 << " that was chosen to be replicated. All variants provided "
                    "in the "
                 << "leaf_variants must be leaf task variants.";
@@ -1730,9 +1729,9 @@ namespace Legion {
           if (!impl->is_replicable())
             Exception(MAPPER_EXCEPTION, this)
                 << "Invalid mapper output from invocation of 'replicate_task' "
-                << "on mapper " << *mapper
-                << ". Mapper failed to pick an valid task "
-                << "variant " << output.leaf_variants[idx] << " for " << *this
+                   "on mapper "
+                << *mapper << ". Mapper failed to pick an valid task variant "
+                << output.leaf_variants[idx] << " for " << *this
                 << " that was chosen to be replicated. Task variants selected "
                    "for "
                 << "replication must be marked as replicable variants.";
@@ -1921,9 +1920,8 @@ namespace Legion {
                 << " specified shard points with different "
                 << "dimensionalities of " << dim << " and "
                 << output.shard_points[idx].get_dim()
-                << " for 'replicate_task' "
-                << "call for " << *this << ". All shard points must have "
-                << "the same dimenstionality.";
+                << " for 'replicate_task' call for " << *this
+                << ". All shard points must have the same dimenstionality.";
           std::pair<std::map<DomainPoint, ShardID>::iterator, bool> result =
               shard_mapping.insert(std::pair<DomainPoint, ShardID>(
                   output.shard_points[idx], idx));
@@ -1945,9 +1943,8 @@ namespace Legion {
         if ((domain_dim > 0) && (domain_dim != dim))
           Exception(MAPPER_EXCEPTION, this)
               << "Mapper " << *mapper
-              << " specified a 'shard_domain' output with "
-              << "dimensionality " << domain_dim << " different than the "
-              << dim
+              << " specified a 'shard_domain' output with dimensionality "
+              << domain_dim << " different than the " << dim
               << " dimension points in 'shard_points' in 'replicate_task' call "
                  "for "
               << *this << ". The dimensionality of 'shard_domain' must "
@@ -2480,10 +2477,9 @@ namespace Legion {
                   << "in " << manager->get_name() << " memory for " << *this
                   << ", but the selected variant " << variant->vid
                   << " specified a static bound of " << it->second.size
-                  << " bytes. "
-                  << "Dynamically requested memory allocations must be further "
-                  << "refinements of the upper bounds provided by the chosen "
-                  << "task variant.";
+                  << " bytes. Dynamically requested memory allocations must be "
+                     "further refinements of the upper bounds provided by the "
+                     "chosen task variant.";
           } else if (!finder->second.is_bounded())
           {
             // Else if the static variant had no bounds we know that the
@@ -3016,12 +3012,12 @@ namespace Legion {
         parent_ctx->increment_inlined();
       else
         parent_ctx->increment_pending();
-        // Note there is a potential scary race condition to be aware of here:
-        // once we launch this task it's possible for this task to run and
-        // clean up before we finish the execution of this function thereby
-        // invalidating this SingleTask object's fields.  This means
-        // that we need to save any variables we need for after the task
-        // launch here on the stack before they can be invalidated.
+      // Note there is a potential scary race condition to be aware of here:
+      // once we launch this task it's possible for this task to run and
+      // clean up before we finish the execution of this function thereby
+      // invalidating this SingleTask object's fields.  This means
+      // that we need to save any variables we need for after the task
+      // launch here on the stack before they can be invalidated.
 #ifdef DEBUG_LEGION
       assert(!target_processors.empty());
 #endif

@@ -81,9 +81,9 @@ namespace Legion {
       } else
       {
         static_assert(sizeof(OP) == sizeof(WRAP), "wrapper sizes should match");
-        OP *ptr = legion_malloc < OP,
-           CAN_DELETE ? SHORT_BOUNDED_LIFETIME :
-                        RUNTIME_LIFETIME > (sizeof(WRAP), alignof(WRAP));
+        OP* ptr = legion_malloc<
+            OP, CAN_DELETE ? SHORT_BOUNDED_LIFETIME : RUNTIME_LIFETIME>(
+            sizeof(WRAP), alignof(WRAP));
         op = new (ptr) WRAP();
       }
     }

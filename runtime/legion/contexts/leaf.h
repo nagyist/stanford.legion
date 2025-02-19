@@ -36,9 +36,7 @@ namespace Legion {
     public:
       LeafContext& operator=(const LeafContext& rhs) = delete;
     public:  // Garbage collection methods
-      virtual void notify_local(void)
-      { /* nothing to do */
-      }
+      virtual void notify_local(void) { /* nothing to do */ }
     public:
       // Interface for task contexts
       virtual ContextID get_logical_tree_context(void) const;

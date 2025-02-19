@@ -313,7 +313,7 @@ namespace Legion {
       //------------------------------------------------------------------------
       { }
     }  // namespace ProfilingMeasurements
-  }    // namespace Mapping
+  }  // namespace Mapping
 }  // namespace Legion
 
 namespace std {

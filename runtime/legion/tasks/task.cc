@@ -2197,7 +2197,7 @@ namespace Legion {
         runtime->profiler->add_task_request(
             requests, owner->task_id, vid, task->get_unique_op_id(), target,
             precondition);
-        // Increment the number of outstanding tasks
+      // Increment the number of outstanding tasks
 #ifdef DEBUG_LEGION
       runtime->increment_total_outstanding_tasks(task->task_id, false /*meta*/);
 #else

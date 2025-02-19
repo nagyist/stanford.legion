@@ -1741,7 +1741,7 @@ namespace Legion {
       }
 #endif
     }  // namespace LegionSpy
-  }    // namespace Internal
+  }  // namespace Internal
 }  // namespace Legion
 
 #endif  // __LEGION_SPY_H__

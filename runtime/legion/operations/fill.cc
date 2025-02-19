@@ -1399,7 +1399,7 @@ namespace Legion {
         fill_view = parent_ctx->find_fill_view(future);
       else
         fill_view = parent_ctx->find_fill_view(value, value_size);
-        // Create the rendezvous collective
+      // Create the rendezvous collective
 #ifdef DEBUG_LEGION
       ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);
@@ -1664,7 +1664,7 @@ namespace Legion {
         fill_view = parent_ctx->find_fill_view(future);
       else
         fill_view = parent_ctx->find_fill_view(value, value_size);
-        // Create the rendezvous collective
+      // Create the rendezvous collective
 #ifdef DEBUG_LEGION
       ReplicateContext* repl_ctx = dynamic_cast<ReplicateContext*>(parent_ctx);
       assert(repl_ctx != nullptr);

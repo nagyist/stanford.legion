@@ -193,7 +193,7 @@ namespace Legion {
 #endif  // LEGION_NAME_BASED_CHILDREN_SHARDS
       };
     public:
-      virtual ~ProjectionNode(void){};
+      virtual ~ProjectionNode(void) { };
       virtual ProjectionRegion* as_region_projection(void) { return nullptr; }
       virtual ProjectionPartition* as_partition_projection(void)
       {

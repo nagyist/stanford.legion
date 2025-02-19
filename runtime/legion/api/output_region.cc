@@ -464,10 +464,10 @@ namespace Legion {
         ss << "Output region " << index << " of task "
            << context->owner_task->get_task_name()
            << " (UID: " << context->owner_task->get_unique_op_id()
-           << ") has already been "
-           << "initialized to extents " << extents << ", but the new output "
-           << "has extents " << new_extents << ". You must return data having "
-           << "the same extents to all the fields in the same output region.";
+           << ") has already been initialized to extents " << extents
+           << ", but the new output has extents " << new_extents
+           << ". You must return data having the same extents to all the "
+              "fields in the same output region.";
         REPORT_LEGION_ERROR(ERROR_INVALID_OUTPUT_SIZE, "%s", ss.str().c_str());
       }
       if (instance.exists() &&

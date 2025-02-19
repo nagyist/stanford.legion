@@ -878,9 +878,8 @@ namespace Legion {
             Exception(MAPPER_EXCEPTION, this)
                 << "Invalid mapper output from 'map_partition' invocation on "
                    "mapper "
-                << *mapper << ". Mapper selected physical "
-                << "instance for " << *this
-                << " which has already been collected. "
+                << *mapper << ". Mapper selected physical instance for "
+                << *this << " which has already been collected. "
                 << "If the mapper had properly acquired this instance as part "
                    "of the "
                 << "mapper call it would have detected this. Please update the "

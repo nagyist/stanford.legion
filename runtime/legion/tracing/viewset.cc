@@ -83,9 +83,9 @@ namespace Legion {
           }
           Memory memory = manager->memory_manager->memory;
           ss << "Instance " << std::hex << *it << std::dec << " (" << std::hex
-             << manager->get_instance().id << std::dec << ")"
-             << " in " << mem_names[memory.kind()] << " Memory " << std::hex
-             << memory.id << std::dec;
+             << manager->get_instance().id << std::dec << ")  in "
+             << mem_names[memory.kind()] << " Memory " << std::hex << memory.id
+             << std::dec;
         }
       } else
       {
@@ -1471,8 +1471,7 @@ namespace Legion {
           if (view->is_fill_view())
           {
             log_tracing.info()
-                << "  "
-                << "Fill View: " << std::hex << view->did << std::dec
+                << "  Fill View: " << std::hex << view->did << std::dec
                 << ", Index expr: " << it->first->expr_id
                 << ", Fields: " << mask;
           } else if (view->is_collective_view())

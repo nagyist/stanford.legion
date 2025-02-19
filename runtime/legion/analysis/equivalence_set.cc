@@ -2270,7 +2270,7 @@ namespace Legion {
           const FieldMask guard_mask = user_mask & it->second;
           if (!guard_mask)
             continue;
-            // No matter what record our dependences on the prior guards
+          // No matter what record our dependences on the prior guards
 #ifdef NON_AGGRESSIVE_AGGREGATORS
           const RtEvent guard_event = it->first->effects_applied;
           analysis.guard_events.insert(guard_event);
@@ -5197,7 +5197,7 @@ namespace Legion {
           const FieldMask guard_mask = guard_fill_mask & it->second;
           if (!guard_mask)
             continue;
-            // No matter what record our dependences on the prior guards
+          // No matter what record our dependences on the prior guards
 #ifdef NON_AGGRESSIVE_AGGREGATORS
           analysis.guard_events.insert(it->first->effects_applied);
 #else
@@ -6951,7 +6951,7 @@ namespace Legion {
         {
           if (src_mask * it->second)
             continue;
-            // No matter what record our dependences on the prior guards
+          // No matter what record our dependences on the prior guards
 #ifdef NON_AGGRESSIVE_AGGREGATORS
           analysis.guard_events.insert(it->first->effects_applied);
 #else

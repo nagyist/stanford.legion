@@ -57,55 +57,42 @@ namespace Legion {
 
       std::string delim = ", ";
 
-      ss << "MapperName {"
-         << "id:" << MAPPER_NAME_ID << delim
+      ss << "MapperName {" << "id:" << MAPPER_NAME_ID << delim
          << "mapper_id:MapperID:" << sizeof(MapperID) << delim
-         << "mapper_proc:ProcID:" << sizeof(ProcID) << delim << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+         << "mapper_proc:ProcID:" << sizeof(ProcID) << delim
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "MapperCallDesc {"
-         << "id:" << MAPPER_CALL_DESC_ID << delim
-         << "kind:unsigned:" << sizeof(unsigned) << delim << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+      ss << "MapperCallDesc {" << "id:" << MAPPER_CALL_DESC_ID << delim
+         << "kind:unsigned:" << sizeof(unsigned) << delim
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "RuntimeCallDesc {"
-         << "id:" << RUNTIME_CALL_DESC_ID << delim
-         << "kind:unsigned:" << sizeof(unsigned) << delim << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+      ss << "RuntimeCallDesc {" << "id:" << RUNTIME_CALL_DESC_ID << delim
+         << "kind:unsigned:" << sizeof(unsigned) << delim
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "MetaDesc {"
-         << "id:" << META_DESC_ID << delim
+      ss << "MetaDesc {" << "id:" << META_DESC_ID << delim
          << "kind:unsigned:" << sizeof(unsigned) << delim
          << "message:bool:" << sizeof(bool) << delim
-         << "ordered_vc:bool:" << sizeof(bool) << delim << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+         << "ordered_vc:bool:" << sizeof(bool) << delim
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "OpDesc {"
-         << "id:" << OP_DESC_ID << delim << "kind:unsigned:" << sizeof(unsigned)
-         << delim << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+      ss << "OpDesc {" << "id:" << OP_DESC_ID << delim
+         << "kind:unsigned:" << sizeof(unsigned) << delim
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "ProcDesc {"
-         << "id:" << PROC_DESC_ID << delim
+      ss << "ProcDesc {" << "id:" << PROC_DESC_ID << delim
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
          << "kind:ProcKind:" << sizeof(ProcKind) << delim
          << "uuid_size:uuid_size:" << sizeof(unsigned) << delim
          << "cuda_device_uuid:uuid:" << sizeof(char) << "}" << std::endl;
 
-      ss << "MaxDimDesc {"
-         << "id:" << MAX_DIM_DESC_ID << delim
+      ss << "MaxDimDesc {" << "id:" << MAX_DIM_DESC_ID << delim
          << "max_dim:maxdim:" << sizeof(unsigned) << "}" << std::endl;
 
-      ss << "RuntimeConfig {"
-         << "id:" << RUNTIME_CONFIG_ID << delim << "debug:bool:" << sizeof(bool)
-         << delim << "spy:bool:" << sizeof(bool) << delim
-         << "gc:bool:" << sizeof(bool) << delim
-         << "inorder:bool:" << sizeof(bool) << delim
+      ss << "RuntimeConfig {" << "id:" << RUNTIME_CONFIG_ID << delim
+         << "debug:bool:" << sizeof(bool) << delim
+         << "spy:bool:" << sizeof(bool) << delim << "gc:bool:" << sizeof(bool)
+         << delim << "inorder:bool:" << sizeof(bool) << delim
          << "safe_mapper:bool:" << sizeof(bool) << delim
          << "safe_runtime:bool:" << sizeof(bool) << delim
          << "safe_ctrlrepl:bool:" << sizeof(bool) << delim
@@ -113,185 +100,147 @@ namespace Legion {
          << "bounds_checks:bool:" << sizeof(bool) << delim
          << "resilient:bool:" << sizeof(bool) << "}" << std::endl;
 
-      ss << "MachineDesc {"
-         << "id:" << MACHINE_DESC_ID << delim
+      ss << "MachineDesc {" << "id:" << MACHINE_DESC_ID << delim
          << "node_id:unsigned:" << sizeof(unsigned) << delim
          << "num_nodes:unsigned:" << sizeof(unsigned) << delim
          << "version:unsigned:" << sizeof(unsigned) << delim
-         << "hostname:string:"
-         << "-1" << delim
+         << "hostname:string:" << "-1" << delim
          << "host_id:unsigned long long:" << sizeof(unsigned long long) << delim
          << "process_id:unsigned:" << sizeof(unsigned) << "}" << std::endl;
 
-      ss << "CalibrationErr {"
-         << "id:" << CALIBRATION_ERR_ID << delim
+      ss << "CalibrationErr {" << "id:" << CALIBRATION_ERR_ID << delim
          << "calibration_err:long long:" << sizeof(long long) << "}"
          << std::endl;
 
-      ss << "ZeroTime {"
-         << "id:" << ZERO_TIME_ID << delim
+      ss << "ZeroTime {" << "id:" << ZERO_TIME_ID << delim
          << "zero_time:long long:" << sizeof(long long) << "}" << std::endl;
 
-      ss << "Provenance {"
-         << "id:" << PROVENANCE_ID << delim
+      ss << "Provenance {" << "id:" << PROVENANCE_ID << delim
          << "provenance:unsigned long long:" << sizeof(unsigned long long)
-         << delim << "prov:string:"
-         << "-1"
-         << "}" << std::endl;
+         << delim << "prov:string:" << "-1" << "}" << std::endl;
 
-      ss << "MemDesc {"
-         << "id:" << MEM_DESC_ID << delim << "mem_id:MemID:" << sizeof(MemID)
-         << delim << "kind:MemKind:" << sizeof(MemKind) << delim
+      ss << "MemDesc {" << "id:" << MEM_DESC_ID << delim
+         << "mem_id:MemID:" << sizeof(MemID) << delim
+         << "kind:MemKind:" << sizeof(MemKind) << delim
          << "capacity:unsigned long long:" << sizeof(unsigned long long) << "}"
          << std::endl;
 
-      ss << "ProcMDesc {"
-         << "id:" << PROC_MEM_DESC_ID << delim
+      ss << "ProcMDesc {" << "id:" << PROC_MEM_DESC_ID << delim
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
          << "mem_id:MemID:" << sizeof(MemID) << delim
          << "bandwidth:unsigned:" << sizeof(unsigned) << delim
          << "latency:unsigned:" << sizeof(unsigned) << "}" << std::endl;
 
-      ss << "IndexSpacePointDesc {"
-         << "id:" << INDEX_SPACE_POINT_ID << delim
+      ss << "IndexSpacePointDesc {" << "id:" << INDEX_SPACE_POINT_ID << delim
          << "unique_id:unsigned long long:" << sizeof(unsigned long long)
          << delim << "dim:unsigned:" << sizeof(unsigned) << delim
          << "rem:point:" << sizeof(unsigned long long) << "}" << std::endl;
 
-      ss << "IndexSpaceRectDesc {"
-         << "id:" << INDEX_SPACE_RECT_ID << delim
+      ss << "IndexSpaceRectDesc {" << "id:" << INDEX_SPACE_RECT_ID << delim
          << "unique_id:unsigned long long:" << sizeof(unsigned long long)
          << delim << "dim:unsigned:" << sizeof(unsigned) << delim
          << "rem:array:" << sizeof(unsigned long long) << "}" << std::endl;
 
-      ss << "IndexSpaceEmptyDesc {"
-         << "id:" << INDEX_SPACE_EMPTY_ID << delim
+      ss << "IndexSpaceEmptyDesc {" << "id:" << INDEX_SPACE_EMPTY_ID << delim
          << "unique_id:unsigned long long:" << sizeof(unsigned long long) << "}"
          << std::endl;
 
-      ss << "FieldDesc {"
-         << "id:" << FIELD_ID << delim
+      ss << "FieldDesc {" << "id:" << FIELD_ID << delim
          << "unique_id:UniqueID:" << sizeof(UniqueID) << delim
          << "field_id:unsigned:" << sizeof(unsigned) << delim
          << "size:unsigned long long:" << sizeof(unsigned long long) << delim
-         << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "FieldSpaceDesc {"
-         << "id:" << FIELD_SPACE_ID << delim
-         << "unique_id:UniqueID:" << sizeof(UniqueID) << delim << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+      ss << "FieldSpaceDesc {" << "id:" << FIELD_SPACE_ID << delim
+         << "unique_id:UniqueID:" << sizeof(UniqueID) << delim
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "PartDesc {"
-         << "id:" << INDEX_PART_ID << delim
-         << "unique_id:UniqueID:" << sizeof(UniqueID) << delim << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+      ss << "PartDesc {" << "id:" << INDEX_PART_ID << delim
+         << "unique_id:UniqueID:" << sizeof(UniqueID) << delim
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "IndexSpaceDesc {"
-         << "id:" << INDEX_SPACE_ID << delim
-         << "unique_id:UniqueID:" << sizeof(UniqueID) << delim << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+      ss << "IndexSpaceDesc {" << "id:" << INDEX_SPACE_ID << delim
+         << "unique_id:UniqueID:" << sizeof(UniqueID) << delim
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "IndexSubSpaceDesc {"
-         << "id:" << INDEX_SUBSPACE_ID << delim
+      ss << "IndexSubSpaceDesc {" << "id:" << INDEX_SUBSPACE_ID << delim
          << "parent_id:UniqueID:" << sizeof(UniqueID) << delim
          << "unique_id:UniqueID:" << sizeof(UniqueID) << "}" << std::endl;
 
-      ss << "IndexPartitionDesc {"
-         << "id:" << INDEX_PARTITION_ID << delim
+      ss << "IndexPartitionDesc {" << "id:" << INDEX_PARTITION_ID << delim
          << "parent_id:UniqueID:" << sizeof(UniqueID) << delim
          << "unique_id:UniqueID:" << sizeof(UniqueID) << delim
          << "disjoint:bool:" << sizeof(bool) << delim
          << "point0:unsigned long long:" << sizeof(unsigned long long) << "}"
          << std::endl;
 
-      ss << "IndexSpaceSizeDesc {"
-         << "id:" << INDEX_SPACE_SIZE_ID << delim
+      ss << "IndexSpaceSizeDesc {" << "id:" << INDEX_SPACE_SIZE_ID << delim
          << "unique_id:UniqueID:" << sizeof(UniqueID) << delim
          << "dense_size:unsigned long long:" << sizeof(unsigned long long)
          << delim
          << "sparse_size:unsigned long long:" << sizeof(unsigned long long)
          << delim << "is_sparse:bool:" << sizeof(bool) << "}" << std::endl;
 
-      ss << "LogicalRegionDesc {"
-         << "id:" << LOGICAL_REGION_ID << delim
+      ss << "LogicalRegionDesc {" << "id:" << LOGICAL_REGION_ID << delim
          << "ispace_id:unsigned long long:" << sizeof(unsigned long long)
          << delim
          << "fspace_id:unsigned long long:" << sizeof(unsigned long long)
          << delim << "tree_id:unsigned:" << sizeof(unsigned) << delim
-         << "name:string:"
-         << "-1"
-         << "}" << std::endl;
+         << "name:string:" << "-1" << "}" << std::endl;
 
-      ss << "PhysicalInstRegionDesc {"
-         << "id:" << PHYSICAL_INST_REGION_ID << delim
-         << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
+      ss << "PhysicalInstRegionDesc {" << "id:" << PHYSICAL_INST_REGION_ID
+         << delim << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
          << "ispace_id:unsigned long long:" << sizeof(unsigned long long)
          << delim
          << "fspace_id:unsigned long long:" << sizeof(unsigned long long)
          << delim << "tree_id:unsigned:" << sizeof(unsigned) << "}"
          << std::endl;
 
-      ss << "PhysicalInstLayoutDesc {"
-         << "id:" << PHYSICAL_INST_LAYOUT_ID << delim
-         << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
+      ss << "PhysicalInstLayoutDesc {" << "id:" << PHYSICAL_INST_LAYOUT_ID
+         << delim << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
          << "field_id:unsigned:" << sizeof(unsigned) << delim
          << "fspace_id:unsigned long long:" << sizeof(unsigned long long)
          << delim << "has_align:bool:" << sizeof(bool) << delim
          << "eqk:unsigned:" << sizeof(unsigned) << delim
          << "align_desc:unsigned:" << sizeof(unsigned) << "}" << std::endl;
 
-      ss << "PhysicalInstDimOrderDesc {"
-         << "id:" << PHYSICAL_INST_LAYOUT_DIM_ID << delim
-         << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
+      ss << "PhysicalInstDimOrderDesc {" << "id:" << PHYSICAL_INST_LAYOUT_DIM_ID
+         << delim << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
          << "dim:unsigned:" << sizeof(unsigned) << delim
          << "dim_kind:unsigned:" << sizeof(unsigned) << "}" << std::endl;
 
-      ss << "PhysicalInstanceUsage {"
-         << "id:" << PHYSICAL_INST_USAGE_ID << delim
-         << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
+      ss << "PhysicalInstanceUsage {" << "id:" << PHYSICAL_INST_USAGE_ID
+         << delim << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "index_id:unsigned:" << sizeof(unsigned) << delim
          << "field_id:unsigned:" << sizeof(unsigned) << "}" << std::endl;
 
-      ss << "TaskKind {"
-         << "id:" << TASK_KIND_ID << delim
-         << "task_id:TaskID:" << sizeof(TaskID) << delim << "name:string:"
-         << "-1" << delim << "overwrite:bool:" << sizeof(bool) << "}"
-         << std::endl;
-
-      ss << "TaskVariant {"
-         << "id:" << TASK_VARIANT_ID << delim
+      ss << "TaskKind {" << "id:" << TASK_KIND_ID << delim
          << "task_id:TaskID:" << sizeof(TaskID) << delim
-         << "variant_id:VariantID:" << sizeof(VariantID) << delim
-         << "name:string:"
-         << "-1"
+         << "name:string:" << "-1" << delim << "overwrite:bool:" << sizeof(bool)
          << "}" << std::endl;
 
-      ss << "OperationInstance {"
-         << "id:" << OPERATION_INSTANCE_ID << delim
+      ss << "TaskVariant {" << "id:" << TASK_VARIANT_ID << delim
+         << "task_id:TaskID:" << sizeof(TaskID) << delim
+         << "variant_id:VariantID:" << sizeof(VariantID) << delim
+         << "name:string:" << "-1" << "}" << std::endl;
+
+      ss << "OperationInstance {" << "id:" << OPERATION_INSTANCE_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "parent_id:UniqueID:" << sizeof(UniqueID) << delim
          << "kind:unsigned:" << sizeof(unsigned) << delim
          << "provenance:unsigned long long:" << sizeof(unsigned long long)
          << "}" << std::endl;
 
-      ss << "MultiTask {"
-         << "id:" << MULTI_TASK_ID << delim
+      ss << "MultiTask {" << "id:" << MULTI_TASK_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "task_id:TaskID:" << sizeof(TaskID) << "}" << std::endl;
 
-      ss << "SliceOwner {"
-         << "id:" << SLICE_OWNER_ID << delim
+      ss << "SliceOwner {" << "id:" << SLICE_OWNER_ID << delim
          << "parent_id:UniqueID:" << sizeof(UniqueID) << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << "}" << std::endl;
 
-      ss << "TaskWaitInfo {"
-         << "id:" << TASK_WAIT_INFO_ID << delim
+      ss << "TaskWaitInfo {" << "id:" << TASK_WAIT_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "task_id:TaskID:" << sizeof(TaskID) << delim
          << "variant_id:VariantID:" << sizeof(VariantID) << delim
@@ -301,8 +250,7 @@ namespace Legion {
          << "wait_event:unsigned long long:" << sizeof(LgEvent) << "}"
          << std::endl;
 
-      ss << "MetaWaitInfo {"
-         << "id:" << META_WAIT_INFO_ID << delim
+      ss << "MetaWaitInfo {" << "id:" << META_WAIT_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "lg_id:unsigned:" << sizeof(unsigned) << delim
          << "wait_start:timestamp_t:" << sizeof(timestamp_t) << delim
@@ -311,8 +259,7 @@ namespace Legion {
          << "wait_event:unsigned long long:" << sizeof(LgEvent) << "}"
          << std::endl;
 
-      ss << "TaskInfo {"
-         << "id:" << TASK_INFO_ID << delim
+      ss << "TaskInfo {" << "id:" << TASK_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "task_id:TaskID:" << sizeof(TaskID) << delim
          << "variant_id:VariantID:" << sizeof(VariantID) << delim
@@ -325,8 +272,7 @@ namespace Legion {
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "ImplicitTaskInfo {"
-         << "id:" << IMPLICIT_TASK_INFO_ID << delim
+      ss << "ImplicitTaskInfo {" << "id:" << IMPLICIT_TASK_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "task_id:TaskID:" << sizeof(TaskID) << delim
          << "variant_id:VariantID:" << sizeof(VariantID) << delim
@@ -339,8 +285,7 @@ namespace Legion {
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "GPUTaskInfo {"
-         << "id:" << GPU_TASK_INFO_ID << delim
+      ss << "GPUTaskInfo {" << "id:" << GPU_TASK_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "task_id:TaskID:" << sizeof(TaskID) << delim
          << "variant_id:VariantID:" << sizeof(VariantID) << delim
@@ -355,8 +300,7 @@ namespace Legion {
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "MetaInfo {"
-         << "id:" << META_INFO_ID << delim
+      ss << "MetaInfo {" << "id:" << META_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "lg_id:unsigned:" << sizeof(unsigned) << delim
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
@@ -368,8 +312,7 @@ namespace Legion {
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "MessageInfo {"
-         << "id:" << MESSAGE_INFO_ID << delim
+      ss << "MessageInfo {" << "id:" << MESSAGE_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "lg_id:unsigned:" << sizeof(unsigned) << delim
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
@@ -382,8 +325,7 @@ namespace Legion {
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "CopyInfo {"
-         << "id:" << COPY_INFO_ID << delim
+      ss << "CopyInfo {" << "id:" << COPY_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "size:unsigned long long:" << sizeof(unsigned long long) << delim
          << "create:timestamp_t:" << sizeof(timestamp_t) << delim
@@ -396,9 +338,9 @@ namespace Legion {
          << "collective:unsigned:" << sizeof(CollectiveKind) << "}"
          << std::endl;
 
-      ss << "CopyInstInfo {"
-         << "id:" << COPY_INST_INFO_ID << delim << "src:MemID:" << sizeof(MemID)
-         << delim << "dst:MemID:" << sizeof(MemID) << delim
+      ss << "CopyInstInfo {" << "id:" << COPY_INST_INFO_ID << delim
+         << "src:MemID:" << sizeof(MemID) << delim
+         << "dst:MemID:" << sizeof(MemID) << delim
          << "src_fid:unsigned:" << sizeof(FieldID) << delim
          << "dst_fid:unsigned:" << sizeof(FieldID) << delim
          << "src_inst:unsigned long long:" << sizeof(LgEvent) << delim
@@ -407,8 +349,7 @@ namespace Legion {
          << "num_hops:unsigned:" << sizeof(unsigned) << delim
          << "indirect:bool:" << sizeof(bool) << "}" << std::endl;
 
-      ss << "FillInfo {"
-         << "id:" << FILL_INFO_ID << delim
+      ss << "FillInfo {" << "id:" << FILL_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "size:unsigned long long:" << sizeof(unsigned long long) << delim
          << "create:timestamp_t:" << sizeof(timestamp_t) << delim
@@ -419,14 +360,13 @@ namespace Legion {
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "FillInstInfo {"
-         << "id:" << FILL_INST_INFO_ID << delim << "dst:MemID:" << sizeof(MemID)
-         << delim << "fid:unsigned:" << sizeof(FieldID) << delim
+      ss << "FillInstInfo {" << "id:" << FILL_INST_INFO_ID << delim
+         << "dst:MemID:" << sizeof(MemID) << delim
+         << "fid:unsigned:" << sizeof(FieldID) << delim
          << "dst_inst:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "InstTimelineInfo {"
-         << "id:" << INST_TIMELINE_INFO_ID << delim
+      ss << "InstTimelineInfo {" << "id:" << INST_TIMELINE_INFO_ID << delim
          << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
          << "inst_id:InstID:" << sizeof(InstID) << delim
          << "mem_id:MemID:" << sizeof(MemID) << delim
@@ -438,8 +378,7 @@ namespace Legion {
          << "creator:unsigned long long:" << sizeof(LgEvent) << "}"
          << std::endl;
 
-      ss << "PartitionInfo {"
-         << "id:" << PARTITION_INFO_ID << delim
+      ss << "PartitionInfo {" << "id:" << PARTITION_INFO_ID << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "part_op:DepPartOpKind:" << sizeof(DepPartOpKind) << delim
          << "create:timestamp_t:" << sizeof(timestamp_t) << delim
@@ -450,8 +389,7 @@ namespace Legion {
          << "critical:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "MapperCallInfo {"
-         << "id:" << MAPPER_CALL_INFO_ID << delim
+      ss << "MapperCallInfo {" << "id:" << MAPPER_CALL_INFO_ID << delim
          << "mapper_id:MapperID:" << sizeof(MapperID) << delim
          << "mapper_proc:ProcID:" << sizeof(ProcID) << delim
          << "kind:MappingCallKind:" << sizeof(MappingCallKind) << delim
@@ -461,39 +399,33 @@ namespace Legion {
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "RuntimeCallInfo {"
-         << "id:" << RUNTIME_CALL_INFO_ID << delim
+      ss << "RuntimeCallInfo {" << "id:" << RUNTIME_CALL_INFO_ID << delim
          << "kind:RuntimeCallKind:" << sizeof(RuntimeCallKind) << delim
          << "start:timestamp_t:" << sizeof(timestamp_t) << delim
          << "stop:timestamp_t:" << sizeof(timestamp_t) << delim
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "ApplicationCallInfo {"
-         << "id:" << APPLICATION_CALL_INFO_ID << delim
+      ss << "ApplicationCallInfo {" << "id:" << APPLICATION_CALL_INFO_ID
+         << delim
          << "provenance:unsigned long long:" << sizeof(unsigned long long)
          << delim << "start:timestamp_t:" << sizeof(timestamp_t) << delim
          << "stop:timestamp_t:" << sizeof(timestamp_t) << delim
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "BacktraceDesc {"
-         << "id:" << BACKTRACE_DESC_ID << delim
+      ss << "BacktraceDesc {" << "id:" << BACKTRACE_DESC_ID << delim
          << "backtrace_id:unsigned long long:" << sizeof(unsigned long long)
-         << delim << "backtrace:string:"
-         << "-1"
-         << "}" << std::endl;
+         << delim << "backtrace:string:" << "-1" << "}" << std::endl;
 
-      ss << "EventWaitInfo {"
-         << "id:" << EVENT_WAIT_INFO_ID << delim
+      ss << "EventWaitInfo {" << "id:" << EVENT_WAIT_INFO_ID << delim
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "wait_event:unsigned long long:" << sizeof(LgEvent) << delim
          << "backtrace_id:unsigned long long:" << sizeof(unsigned long long)
          << "}" << std::endl;
 
-      ss << "EventMergerInfo {"
-         << "id:" << EVENT_MERGER_INFO_ID << delim
+      ss << "EventMergerInfo {" << "id:" << EVENT_MERGER_INFO_ID << delim
          << "result:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "performed:timestamp_t:" << sizeof(timestamp_t) << delim
@@ -502,45 +434,39 @@ namespace Legion {
          << "pre2:unsigned long long:" << sizeof(LgEvent) << delim
          << "pre3:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "EventTriggerInfo {"
-         << "id:" << EVENT_TRIGGER_INFO_ID << delim
+      ss << "EventTriggerInfo {" << "id:" << EVENT_TRIGGER_INFO_ID << delim
          << "result:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "precondition:unsigned long long:" << sizeof(LgEvent) << delim
          << "performed:timestamp_t:" << sizeof(timestamp_t) << "}" << std::endl;
 
-      ss << "EventPoisonInfo {"
-         << "id:" << EVENT_POISON_INFO_ID << delim
+      ss << "EventPoisonInfo {" << "id:" << EVENT_POISON_INFO_ID << delim
          << "result:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "performed:timestamp_t:" << sizeof(timestamp_t) << "}" << std::endl;
 
-      ss << "BarrierArrivalInfo {"
-         << "id:" << BARRIER_ARRIVAL_INFO_ID << delim
+      ss << "BarrierArrivalInfo {" << "id:" << BARRIER_ARRIVAL_INFO_ID << delim
          << "result:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "precondition:unsigned long long:" << sizeof(LgEvent) << delim
          << "performed:timestamp_t:" << sizeof(timestamp_t) << "}" << std::endl;
 
-      ss << "ReservationAcquireInfo {"
-         << "id:" << RESERVATION_ACQUIRE_INFO_ID << delim
-         << "result:unsigned long long:" << sizeof(LgEvent) << delim
+      ss << "ReservationAcquireInfo {" << "id:" << RESERVATION_ACQUIRE_INFO_ID
+         << delim << "result:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "precondition:unsigned long long:" << sizeof(LgEvent) << delim
          << "performed:timestamp_t:" << sizeof(timestamp_t) << delim
          << "reservation:unsigned long long:" << sizeof(Reservation) << "}"
          << std::endl;
 
-      ss << "InstanceReadyInfo {"
-         << "id:" << INSTANCE_READY_INFO_ID << delim
+      ss << "InstanceReadyInfo {" << "id:" << INSTANCE_READY_INFO_ID << delim
          << "result:unsigned long long:" << sizeof(LgEvent) << delim
          << "precondition:unsigned long long:" << sizeof(LgEvent) << delim
          << "inst_uid:unsigned long long:" << sizeof(LgEvent) << delim
          << "performed:timestamp_t:" << sizeof(timestamp_t) << "}" << std::endl;
 
-      ss << "CompletionQueueInfo {"
-         << "id:" << COMPLETION_QUEUE_INFO_ID << delim
-         << "result:unsigned long long:" << sizeof(LgEvent) << delim
+      ss << "CompletionQueueInfo {" << "id:" << COMPLETION_QUEUE_INFO_ID
+         << delim << "result:unsigned long long:" << sizeof(LgEvent) << delim
          << "fevent:unsigned long long:" << sizeof(LgEvent) << delim
          << "performed:timestamp_t:" << sizeof(timestamp_t) << delim
          << "pre0:unsigned long long:" << sizeof(LgEvent) << delim
@@ -548,8 +474,7 @@ namespace Legion {
          << "pre2:unsigned long long:" << sizeof(LgEvent) << delim
          << "pre3:unsigned long long:" << sizeof(LgEvent) << "}" << std::endl;
 
-      ss << "ProfTaskInfo {"
-         << "id:" << PROFTASK_INFO_ID << delim
+      ss << "ProfTaskInfo {" << "id:" << PROFTASK_INFO_ID << delim
          << "proc_id:ProcID:" << sizeof(ProcID) << delim
          << "op_id:UniqueID:" << sizeof(UniqueID) << delim
          << "start:timestamp_t:" << sizeof(timestamp_t) << delim

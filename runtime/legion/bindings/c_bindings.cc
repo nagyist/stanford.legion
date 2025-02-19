@@ -2439,8 +2439,7 @@ legion_field_id_t legion_region_requirement_get_privilege_field(
   assert(idx < req->instance_fields.size());
 
   std::set<FieldID>::iterator itr = req->privilege_fields.begin();
-  for (unsigned i = 0; i < idx; ++i, ++itr)
-    ;
+  for (unsigned i = 0; i < idx; ++i, ++itr);
   return *itr;
 }
 

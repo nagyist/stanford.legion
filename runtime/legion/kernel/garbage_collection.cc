@@ -1059,8 +1059,8 @@ namespace Legion {
       // If we can't downgrade then we'll restart the downgrade proces
       if ((current_state == LOCAL_REF_STATE) || !can_downgrade())
         return;
-        // If we get here then it should be because we were just waiting for
-        // an unpack somewhere and we've finally been told where it is
+      // If we get here then it should be because we were just waiting for
+      // an unpack somewhere and we've finally been told where it is
 #ifdef DEBUG_LEGION
       assert(notready_owner == local_space);
       assert(

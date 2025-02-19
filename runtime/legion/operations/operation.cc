@@ -609,38 +609,38 @@ namespace Legion {
       // Check that the handle names are all sound
       if (!req.parent.exists())
         Exception(INTERFACE_EXCEPTION, this)
-            << "The 'parent' region of "
-            << "region requirement " << index << " of " << *this
-            << ") does not exist. The 'parent' region must always be set "
-            << "on every region requirement.";
+            << "The 'parent' region of region requirement " << index << " of "
+            << *this
+            << ") does not exist. The 'parent' region must always be set on "
+               "every region requirement.";
       if (!req.parent.valid())
         Exception(INTERFACE_EXCEPTION, this)
-            << "The 'parent' region of "
-            << "region requirement " << index << " of " << *this
+            << "The 'parent' region of region requirement " << index << " of "
+            << *this
             << " is not well-formed. This likely means it was corrupted by "
-            << "application code.";
+               "application code.";
       if ((req.handle_type != LEGION_SINGULAR_PROJECTION) &&
           (req.handle_type != LEGION_REGION_PROJECTION) &&
           (req.handle_type != LEGION_PARTITION_PROJECTION))
         Exception(INTERFACE_EXCEPTION, this)
-            << "Invalid value of "
-            << "'handle_type' " << req.handle_type << " for region requirement "
-            << index << " of " << *this << ". The 'handle_type' of the region "
+            << "Invalid value of 'handle_type' " << req.handle_type
+            << " for region requirement " << index << " of " << *this
+            << ". The 'handle_type' of the region "
             << "requirement must be one of LEGION_SINGULAR_PROJECTION, "
             << "LEGION_REGION_PROJECTION, or LEGION_PARTITION_PROJECTION.";
       if (req.handle_type == LEGION_PARTITION_PROJECTION)
       {
         if (!req.partition.exists())
           Exception(INTERFACE_EXCEPTION, this)
-              << "The 'partition' of "
-              << "region requirement " << index << " of " << *this
+              << "The 'partition' of region requirement " << index << " of "
+              << *this
               << " does not exist. The 'partition' must always be set when "
               << "'handle_type' is LEGION_SINGULAR_PROJECTION or "
               << "LEGION_REGION_PROJECTION.";
         if (!req.partition.valid())
           Exception(INTERFACE_EXCEPTION, this)
-              << "The 'partition' of "
-              << "region requirement " << index << " of " << *this
+              << "The 'partition' of region requirement " << index << " of "
+              << *this
               << " is not well-formed. This likely means it was corrupted "
               << "by application code.";
         // Check that partition  is in the same region tree
@@ -666,15 +666,15 @@ namespace Legion {
       {
         if (!req.region.exists())
           Exception(INTERFACE_EXCEPTION, this)
-              << "The 'region' of "
-              << "region requirement " << index << " of " << *this
+              << "The 'region' of region requirement " << index << " of "
+              << *this
               << " does not exist. The 'region' must always be set when "
               << "'handle_type' is LEGION_SINGULAR_PROJECTION "
               << "or LEGION_REGION_PROJECTION.";
         if (!req.region.valid())
           Exception(INTERFACE_EXCEPTION, this)
-              << "The 'region' of "
-              << "region requirement " << index << " of " << *this
+              << "The 'region' of region requirement " << index << " of "
+              << *this
               << " is not well-formed. This likely means it was corrupted "
               << "by application code.";
         // Check that the region is in the same region tree
@@ -738,8 +738,8 @@ namespace Legion {
         if ((idx > 0) && (instance_fields[idx - 1] == instance_fields[idx]))
           Exception(INTERFACE_EXCEPTION, this)
               << "Duplicate field " << instance_fields[idx]
-              << " found in the 'instance_fields' of "
-              << "region requirement " << index << " of " << *this
+              << " found in the 'instance_fields' of region requirement "
+              << index << " of " << *this
               << ". Each field in the 'privilege_fields' should be represented "
               << "exactly once in the 'instance_fields' of the region "
                  "requirement.";

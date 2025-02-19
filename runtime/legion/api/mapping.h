@@ -3057,7 +3057,7 @@ namespace Legion {
       AutoLock(MapperContext ctx, LocalLock& r, int mode = 0, bool excl = true);
       AutoLock(AutoLock&& rhs) = delete;
       AutoLock(const AutoLock& rhs) = delete;
-      ~AutoLock(void){};
+      ~AutoLock(void) { };
     public:
       AutoLock& operator=(AutoLock&& rhs) = delete;
       AutoLock& operator=(const AutoLock& rhs) = delete;

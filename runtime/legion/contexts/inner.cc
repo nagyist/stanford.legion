@@ -2148,10 +2148,10 @@ namespace Legion {
       }
       if (!found_parent)
         Exception(PROGRAMMING_MODEL_EXCEPTION, op)
-            << "Unable to find "
-            << "a 'parent' region " << req.parent << " in any of the region "
-            << "requirements of parent task " << get_task_name()
-            << " (UID: " << get_unique_id() << ") to serve as the origin "
+            << "Unable to find a 'parent' region " << req.parent
+            << " in any of the region requirements of parent task "
+            << get_task_name() << " (UID: " << get_unique_id()
+            << ") to serve as the origin "
             << "of privileges for region requirement " << index << " of "
             << op->get_logging_name() << " (UID: " << op->get_unique_op_id()
             << "). All region requirements have to derive their privileges "
@@ -2175,8 +2175,7 @@ namespace Legion {
           {
             std::string_view field_name((const char*)name, name_size);
             Exception(PROGRAMMING_MODEL_EXCEPTION, op)
-                << "Unable to find "
-                << "privileges for field " << field_name
+                << "Unable to find privileges for field " << field_name
                 << " of region requirement " << index << " of "
                 << op->get_logging_name() << " (UID: " << op->get_unique_op_id()
                 << ") in parent task " << get_task_name()

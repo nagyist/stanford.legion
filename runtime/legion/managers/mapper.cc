@@ -1150,11 +1150,11 @@ namespace Legion {
             (info->operation == nullptr) ? 0 :
                                            info->operation->get_unique_op_id(),
             info->start_time, Realm::Clock::current_time_in_nanoseconds());
-        // Set this flag asynchronously without the lock, there will
-        // be a race to see who gets the lock next and therefore can
-        // do the rest of the finish mapper call routine, we do this
-        // to avoid the priority inversion that can occur where this
-        // lock acquire gets stuck behind a bunch of pending ones
+      // Set this flag asynchronously without the lock, there will
+      // be a race to see who gets the lock next and therefore can
+      // do the rest of the finish mapper call routine, we do this
+      // to avoid the priority inversion that can occur where this
+      // lock acquire gets stuck behind a bunch of pending ones
 #ifdef DEBUG_LEGION
       assert(!pending_finish_call.load());
 #endif

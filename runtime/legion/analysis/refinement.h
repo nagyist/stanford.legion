@@ -29,7 +29,7 @@ namespace Legion {
      */
     class RefinementTracker {
     public:
-      virtual ~RefinementTracker(void){};
+      virtual ~RefinementTracker(void) { };
     public:
       virtual RegionRefinementTracker* as_region_tracker(void)
       {

@@ -251,9 +251,8 @@ namespace Legion {
       if (src_requirements.size() != dst_requirements.size())
         Exception(INTERFACE_EXCEPTION, this)
             << "Number of our source requirements (" << src_requirements.size()
-            << ") does not match the number of destination "
-            << "requirements (" << dst_requirements.size() << ") for " << *this
-            << ".";
+            << ") does not match the number of destination requirements ("
+            << dst_requirements.size() << ") for " << *this << ".";
       if (!launcher.src_indirect_requirements.empty())
       {
         const size_t gather_size = launcher.src_indirect_requirements.size();
@@ -592,11 +591,10 @@ namespace Legion {
           if (idx_serdez != 0)
             Exception(DYNAMIC_TYPE_EXCEPTION, this)
                 << "Serdez fields are not permitted to be used as indirection "
-                   "fields "
-                << "for copy operations. Field " << fid
-                << " of destination indirect "
-                << "region requirement " << idx << " in " << *this
-                << " has serdez function " << idx_serdez << ".";
+                << "fields for copy operations. Field " << fid
+                << " of destination indirect region requirement " << idx
+                << " in " << *this << " has serdez function " << idx_serdez
+                << ".";
           if (idx >= src_indirect_requirements.size())
           {
             // Scatter copy
@@ -2000,9 +1998,9 @@ namespace Legion {
         }
         // If we did successfully acquire them, still issue the warning
         Exception(MAPPER_EXCEPTION, this)
-            << "Mapper " << *mapper << " failed to acquire instances "
-            << "for " << get_req_type_name<REQ_TYPE>() << " region requirement "
-            << ridx << " of explicit region-to-region " << *this
+            << "Mapper " << *mapper << " failed to acquire instances for "
+            << get_req_type_name<REQ_TYPE>() << " region requirement " << ridx
+            << " of explicit region-to-region " << *this
             << " in 'map_copy' call. "
             << "You may experience undefined behavior as a consequence.";
       }
@@ -2068,8 +2066,7 @@ namespace Legion {
               << *mapper << ". Mapper specified an instance for "
               << get_req_type_name<REQ_TYPE>()
               << " region requirement at index " << ridx << " of " << *this
-              << " that does not meet the logical "
-              << "region requirement.";
+              << " that does not meet the logical region requirement.";
       }
       // Make sure all the destinations are real instances, this has
       // to be true for all kinds of explicit copies including reductions

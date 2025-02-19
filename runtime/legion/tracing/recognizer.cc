@@ -400,8 +400,7 @@ namespace Legion {
         else
         {
           size_t j = sarray[surrogate[i] + 1];
-          for (; i + k < n && j + k < n && str[i + k] == str[j + k]; k++)
-            ;
+          for (; i + k < n && j + k < n && str[i + k] == str[j + k]; k++);
           lcp[surrogate[i]] = k;
           k = std::max(k - 1, 0);
         }
