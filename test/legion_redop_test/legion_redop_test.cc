@@ -14,21 +14,24 @@
  */
 
 #include <assert.h>
+#ifndef LEGION_REDOP_COMPLEX
 #include <complex>
+#endif
 #include <iomanip>
 #include <iostream>
 #include <random>
 #include <string.h>
 
-#include "legion.h"
-
-using namespace Legion;
-
+using namespace std;
 typedef std::default_random_engine RNG;
 
 #if __cplusplus < 201103L
 #error This test requires C++11 or better.
 #endif
+
+#include "legion.h"
+
+using namespace Legion;
 
 // Define all the 'functors' that will be used to test the implementation
 template <typename Redop> struct RedopTest;
@@ -98,11 +101,11 @@ get_rand(T &v, RNG &rng) {
   v = dist(rng);
 }
 
-template <typename T> static void get_rand(std::complex<T> &v, RNG &rng) {
+template <typename T> static void get_rand(complex<T> &v, RNG &rng) {
   T r, i;
   get_rand<T>(r, rng);
   get_rand<T>(i, rng);
-  v = std::complex<T>(r, i);
+  v = complex<T>(r, i);
 }
 
 template <typename T>
