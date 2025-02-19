@@ -673,6 +673,7 @@ namespace Legion {
       IndexSpaceExpression* find_canonical_expression(IndexSpaceExpression* ex);
     public:
       void remove_canonical_expression(IndexSpaceExpression* expr);
+      void record_empty_expression(IndexSpaceExpression* expr);
     public:
       // Methods for removing index space expression when they are done
       void remove_union_operation(
@@ -2089,6 +2090,7 @@ namespace Legion {
       // Remote expressions
       std::map<IndexSpaceExprID, IndexSpaceExpression*> remote_expressions;
       std::map<IndexSpaceExprID, RtEvent> pending_remote_expressions;
+      std::vector<IndexSpaceExpression*> empty_expressions;
       static constexpr unsigned MAX_EXPRESSION_FANOUT = 32;
     private:
       // In order for the symbolic analysis to work, we need to know that

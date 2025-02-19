@@ -217,6 +217,8 @@ namespace Legion {
       virtual uint64_t get_canonical_hash(void) = 0;
     protected:
       template<int DIM, typename T>
+      static IndexSpaceExpression* find_or_create_empty_expression(void);
+      template<int DIM, typename T>
       IndexSpaceExpression* inline_union_internal(IndexSpaceExpression* rhs);
       template<int DIM, typename T>
       IndexSpaceExpression* inline_union_internal(

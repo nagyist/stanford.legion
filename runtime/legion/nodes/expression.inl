@@ -28,6 +28,36 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     template<int DIM, typename T>
+    /*static*/ IndexSpaceExpression*
+        IndexSpaceExpression::find_or_create_empty_expression(void)
+    //--------------------------------------------------------------------------
+    {
+      static std::atomic<InternalExpression<DIM, T>*> empty_expr(nullptr);
+      InternalExpression<DIM, T>* result = empty_expr.load();
+      if (result != nullptr)
+        return result;
+      const Rect<DIM, T> empty = Rect<DIM, T>::make_empty();
+      result = new InternalExpression<DIM, T>(&empty, 1);
+      result->add_base_expression_reference(RUNTIME_REF);
+      // See if we can swap it in
+      InternalExpression<DIM, T>* actual = nullptr;
+      if (empty_expr.compare_exchange_strong(actual, result))
+      {
+        runtime->record_empty_expression(result);
+        return result;
+      } else
+      {
+#ifdef DEBUG_LEGION
+        assert(actual != nullptr);
+#endif
+        if (result->remove_base_expression_reference(RUNTIME_REF))
+          delete result;
+        return actual;
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template<int DIM, typename T>
     IndexSpaceExpression* IndexSpaceExpression::inline_union_internal(
         IndexSpaceExpression* rhs)
     //--------------------------------------------------------------------------
@@ -141,11 +171,7 @@ namespace Legion {
       DomainT<DIM, T> left = get_tight_domain();
       DomainT<DIM, T> right = rhs->get_tight_domain();
       if (!left.bounds.overlaps(right.bounds))
-      {
-        // Empty case
-        Rect<DIM, T> empty = Rect<DIM, T>::make_empty();
-        return new IndexSpaceIntersection<DIM, T>(empty);
-      }
+        return find_or_create_empty_expression<DIM, T>();
       // A note on sparsity maps here: technically if we had just one sparsity
       // map then we could just tighten the bound on that sparsity map and
       // that would be good enough, but then we would create the illusion
@@ -226,7 +252,7 @@ namespace Legion {
             if (domain.empty())
               return *it;
             else
-              return new IndexSpaceIntersection<DIM, T>(result);
+              return find_or_create_empty_expression<DIM, T>();
           }
           if (next == domain.bounds)
             smallest = (*it);
@@ -263,10 +289,8 @@ namespace Legion {
       {
         // Can still do a test for containment here to see if we're empty
         if (right.bounds.contains(left.bounds))
-        {
-          const Rect<DIM, T> empty = Rect<DIM, T>::make_empty();
-          return new IndexSpaceDifference<DIM, T>(empty);
-        } else
+          return find_or_create_empty_expression<DIM, T>();
+        else
           return nullptr;
       }
       // We can find up to one non-dominating dimension and still easily
@@ -297,12 +321,10 @@ namespace Legion {
           return nullptr;
         non_dominating_dim = i;
       }
+      // If all the dimensions were dominated then the result is empty
       if (non_dominating_dim == -1)
-      {
-        // If all the dimensions were dominated then the result is empty
-        const Rect<DIM, T> empty = Rect<DIM, T>::make_empty();
-        return new IndexSpaceDifference<DIM, T>(empty);
-      } else
+        return find_or_create_empty_expression<DIM, T>();
+      else
         return new IndexSpaceDifference<DIM, T>(left.bounds);
     }
 

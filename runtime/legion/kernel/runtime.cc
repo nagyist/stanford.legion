@@ -10575,6 +10575,15 @@ namespace Legion {
             delete it->second;
         redop_fill_views.clear();
       }
+      if (!empty_expressions.empty())
+      {
+        for (std::vector<IndexSpaceExpression*>::const_iterator it =
+                 empty_expressions.begin();
+             it != empty_expressions.end(); it++)
+          if ((*it)->remove_base_expression_reference(RUNTIME_REF))
+            delete (*it);
+        empty_expressions.clear();
+      }
       if (virtual_manager->remove_base_gc_ref(NEVER_GC_REF))
         delete virtual_manager;
       virtual_manager = nullptr;
@@ -13931,6 +13940,14 @@ namespace Legion {
 #endif
       if (finder->second.empty())
         canonical_expressions.erase(finder);
+    }
+
+    //--------------------------------------------------------------------------
+    void Runtime::record_empty_expression(IndexSpaceExpression* expr)
+    //--------------------------------------------------------------------------
+    {
+      AutoLock l_lock(lookup_is_op_lock);
+      empty_expressions.push_back(expr);
     }
 
     //--------------------------------------------------------------------------
