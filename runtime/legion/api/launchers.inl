@@ -708,7 +708,8 @@ namespace Legion {
     {
       for (int idx = 0; idx < dims; idx++)
         dim_order[idx + (soa ? 0 : 1)] = (DimensionKind)(LEGION_DIM_X + idx);
-    } else
+    }
+    else
     {
       for (int idx = 0; idx < dims; idx++)
         dim_order[idx + (soa ? 0 : 1)] =
@@ -820,7 +821,8 @@ namespace Legion {
     {
       for (int idx = 0; idx < dims; idx++)
         dim_order[idx + (soa ? 0 : 1)] = (DimensionKind)(LEGION_DIM_X + idx);
-    } else
+    }
+    else
     {
       for (int idx = 0; idx < dims; idx++)
         dim_order[idx + (soa ? 0 : 1)] =
@@ -876,7 +878,8 @@ namespace Legion {
         assert(file_fields[idx] == fields[idx]);
 #endif
 #endif
-    } else
+    }
+    else
       file_fields = fields;
   }
 
@@ -958,7 +961,8 @@ namespace Legion {
         for (int idx = 0; idx < dims; idx++)
           assert(
               order.ordering[idx + 1] == ((DimensionKind)LEGION_DIM_X + idx));
-      } else
+      }
+      else
       {
         for (int idx = 0; idx < dims; idx++)
           assert(
@@ -1017,7 +1021,8 @@ namespace Legion {
       {
         for (int idx = 0; idx < dims; idx++)
           assert(order.ordering[idx] == ((DimensionKind)LEGION_DIM_X + idx));
-      } else
+      }
+      else
       {
         for (int idx = 0; idx < dims; idx++)
           assert(

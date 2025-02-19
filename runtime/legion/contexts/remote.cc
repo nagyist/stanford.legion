@@ -352,7 +352,8 @@ namespace Legion {
               parent_req_indexes[index]);
         else  // We mapped a physical instance so we're it
           return this;
-      } else  // We created it
+      }
+      else  // We created it
       {
         // But we're the remote note, so we don't have updated created
         // requirements or returnable privileges so we need to see if
@@ -373,7 +374,8 @@ namespace Legion {
             request = Runtime::create_rt_user_event();
             pending_physical_contexts[index] = request;
             wait_on = request;
-          } else  // Already sent it so just get the wait event
+          }
+          else  // Already sent it so just get the wait event
             wait_on = pending_finder->second;
         }
         if (request.exists())
@@ -572,7 +574,8 @@ namespace Legion {
         {
           shard_mapping->pack_mapping(rez);
           rez.serialize(source_shard);
-        } else
+        }
+        else
           ShardMapping::pack_empty(rez);
         rez.serialize<size_t>(created_nodes.size());
         for (unsigned idx = 0; idx < created_nodes.size(); idx++)
@@ -737,7 +740,8 @@ namespace Legion {
         if (parent_ctx.exchange(parent) == nullptr)
           remote_task.parent_task = result;
         return result;
-      } else
+      }
+      else
         return parent->get_task();
     }
 
@@ -1013,7 +1017,8 @@ namespace Legion {
         }
         runtime->send_remote_context_find_trace_local_sets_response(
             source, rez);
-      } else
+      }
+      else
         Runtime::trigger_event(done);
     }
 
@@ -1046,7 +1051,8 @@ namespace Legion {
           if (ready.exists())
             ready_events.push_back(ready);
         }
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < num_sets; idx++)
         {

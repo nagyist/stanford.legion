@@ -103,21 +103,24 @@ namespace Legion {
                   }
                 }
               added = false;
-            } else
+            }
+            else
             {
               // Mutable so we can just overwrite it
               finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
-          } else
+          }
+          else
           {
             finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
-        } else
+        }
+        else
           semantic_info[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (added)
@@ -158,18 +161,22 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             return true;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             if (can_fail)
             {
               // Have to make our own event
               request = Runtime::create_rt_user_event();
               wait_on = request;
-            } else  // can use the canonical event
+            }
+            else  // can use the canonical event
               wait_on = finder->second.ready_event;
-          } else if (wait_until)  // local so use the canonical event
+          }
+          else if (wait_until)  // local so use the canonical event
             wait_on = finder->second.ready_event;
-        } else
+        }
+        else
         {
           // Otherwise we make an event to wait on
           if (!can_fail && wait_until)
@@ -178,7 +185,8 @@ namespace Legion {
             request = Runtime::create_rt_user_event();
             semantic_info[tag] = SemanticInfo(request);
             wait_on = request;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             // Make an event just for us to use
             request = Runtime::create_rt_user_event();
@@ -196,7 +204,8 @@ namespace Legion {
             "invalid semantic tag %ld for "
             "region tree node",
             tag)
-      } else
+      }
+      else
       {
         if (is_remote && request.exists())
           send_semantic_request(
@@ -309,10 +318,12 @@ namespace Legion {
                       proj_info);
               state.update_refinement_projection(
                   ctx, summary, user.usage, refinement_mask);
-            } else
+            }
+            else
               state.update_refinement_projection(
                   ctx, user.shard_proj, user.usage, refinement_mask);
-          } else
+          }
+          else
             state.update_refinement_arrival(ctx, user.usage, refinement_mask);
           // We can skip performing refinements at the root node
           if (!!refinement_mask && !root_node)
@@ -320,7 +331,8 @@ namespace Legion {
                 privilege_root, user.idx, user.op->find_parent_index(user.idx),
                 this, refinement_mask, refinements);
         }
-      } else
+      }
+      else
       {
         // We haven't arrived so we need to traverse to the next child
         // Get our set of fields which are being opened for
@@ -475,7 +487,8 @@ namespace Legion {
                   }
                 }
                 it++;
-              } else
+              }
+              else
               {
                 // Not-read only so traverse the interfering children and
                 // close up anything that is not the next child
@@ -519,7 +532,8 @@ namespace Legion {
                   }
                 }
                 it++;
-              } else
+              }
+              else
               {
                 // Need to close up the open field since we're going
                 // to have to do it anyway
@@ -597,7 +611,8 @@ namespace Legion {
                 if (!it->second)
                   to_delete.push_back(it->first);
               }
-            } else
+            }
+            else
             {
               it.filter(close_mask);
               if (!it->second)
@@ -646,11 +661,13 @@ namespace Legion {
                   std::abort();  // should never delete the next child
               }
               children.tighten_valid_mask();
-            } else
+            }
+            else
               open_below |= overlap;
           }
         }
-      } else
+      }
+      else
       {
         // We don't have a next child we're doing to, so we just need to
         // close up all the open children
@@ -674,7 +691,8 @@ namespace Legion {
               if (!it->second)
                 to_delete.push_back(it->first);
             }
-          } else
+          }
+          else
           {
             it.filter(close_mask);
             if (!it->second)
@@ -888,7 +906,8 @@ namespace Legion {
                         user.op->get_context()->get_unique_id(), prev.uid,
                         prev.idx, user.uid, user.idx, dtype, true);
 #endif
-                  } else
+                  }
+                  else
                   {
                     // If we can validate a region record which of our
                     // predecessors regions we are validating, otherwise
@@ -1009,7 +1028,8 @@ namespace Legion {
           }
         }
         return (dominator_mask & observed_mask);
-      } else
+      }
+      else
         return dominator_mask;
     }
 
@@ -1164,7 +1184,8 @@ namespace Legion {
         else
           row_source->parent->add_nested_valid_ref(did);
         column_source->add_nested_gc_ref(did);
-      } else
+      }
+      else
         parent->add_child(this);
       column_source->add_nested_resource_ref(did);
       row_source->add_nested_resource_ref(did);
@@ -1250,7 +1271,8 @@ namespace Legion {
           {
             to_prune.push_back(*it);
             it = partition_trackers.erase(it);
-          } else
+          }
+          else
             it++;
         }
         partition_trackers.push_back(tracker);
@@ -1383,7 +1405,8 @@ namespace Legion {
             if (!result && break_early)
               break;
           }
-        } else
+        }
+        else
         {
           std::map<LegionColor, PartitionNode*> children;
           // Need to hold the lock when reading from
@@ -1492,7 +1515,8 @@ namespace Legion {
             }
             runtime->send_logical_region_semantic_info(target, rez2);
           }
-        } else
+        }
+        else
         {
           rez.serialize(handle);
           rez.serialize(did);
@@ -1685,9 +1709,11 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          } else if (!can_fail && wait_until)
+          }
+          else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        } else if (!can_fail && wait_until)
+        }
+        else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -1706,7 +1732,8 @@ namespace Legion {
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      } else
+      }
+      else
         send_semantic_info(source, tag, result, size, is_mutable, ready);
     }
 
@@ -1807,7 +1834,8 @@ namespace Legion {
           rez.serialize(done_event);
         }
         runtime->send_top_level_region_return(source, rez);
-      } else
+      }
+      else
         Runtime::trigger_event(done_event);
     }
 
@@ -2087,7 +2115,8 @@ namespace Legion {
             if (!result && break_early)
               break;
           }
-        } else
+        }
+        else
         {
           std::map<LegionColor, RegionNode*> children;
           // Need to hold the lock when reading from
@@ -2254,9 +2283,11 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          } else if (!can_fail && wait_until)
+          }
+          else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        } else if (!can_fail && wait_until)
+        }
+        else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -2275,7 +2306,8 @@ namespace Legion {
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      } else
+      }
+      else
         send_semantic_info(source, tag, result, size, is_mutable, ready);
     }
 

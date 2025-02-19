@@ -534,7 +534,8 @@ namespace Legion {
                   preconditions[idx].push_back(precondition);
               }
             }
-          } else
+          }
+          else
           {
             for (unsigned idx = 0; idx < points.size(); idx++)
             {
@@ -561,7 +562,8 @@ namespace Legion {
           points[idx]->enqueue_ready_operation(
               Runtime::merge_events(preconditions[idx]));
         }
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < points.size(); idx++)
         {
@@ -704,7 +706,8 @@ namespace Legion {
         {
           Runtime::trigger_event(to_trigger, (*it)->get_mapped_event());
           return to_trigger;
-        } else
+        }
+        else
           return (*it)->get_mapped_event();
       }
       // Should never get here, if we do that means we couldn't find the point
@@ -905,7 +908,8 @@ namespace Legion {
           create_collective_rendezvous(
               requirement.parent.get_tree_id(), 0 /*requirement index*/,
               1 /*analysis index*/);
-      } else  // Only need the versioning rendezvous in this case
+      }
+      else  // Only need the versioning rendezvous in this case
         ReplCollectiveVersioning<
             CollectiveViewCreator<DetachOp> >::create_collective_rendezvous(0);
     }
@@ -1013,7 +1017,8 @@ namespace Legion {
           shard_manager->exchange_shard_local_op_data(
               context_index, exchange_index++, manager);
           manager->detach_external_instance();
-        } else
+        }
+        else
         {
           PhysicalManager* first_manager =
               shard_manager->find_shard_local_op_data<PhysicalManager*>(
@@ -1022,7 +1027,8 @@ namespace Legion {
           if (manager != first_manager)
             manager->detach_external_instance();
         }
-      } else if (manager->is_owner())
+      }
+      else if (manager->is_owner())
         manager->detach_external_instance();
     }
 
@@ -1100,7 +1106,8 @@ namespace Legion {
         assert(part_detachments.find(key) == part_detachments.end());
 #endif
         part_detachments[key] = this;
-      } else
+      }
+      else
       {
         const std::pair<LogicalRegion, FieldID> key(
             requirement.region, *(requirement.privilege_fields.begin()));
@@ -1169,9 +1176,11 @@ namespace Legion {
           if (collective_done.exists() && !collective_done.has_triggered())
             done_events.insert(collective_done);
           complete_execution(Runtime::merge_events(done_events));
-        } else
+        }
+        else
           complete_execution(collective_done);
-      } else
+      }
+      else
         IndexDetachOp::trigger_ready();
     }
 

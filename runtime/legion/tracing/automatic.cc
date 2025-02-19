@@ -40,7 +40,8 @@ namespace Legion {
       {
         this->opidx++;
         return true;
-      } else
+      }
+      else
       {
         // Increment the current trace blocking index so we know
         // when we need to flush operations under blocking calls

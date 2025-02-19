@@ -947,7 +947,8 @@ namespace Legion {
             false /*must epoch*/, outputs);
         inline_child_task(task);
         return result;
-      } else
+      }
+      else
       {
         REPORT_LEGION_ERROR(
             ERROR_ILLEGAL_EXECUTE_TASK_CALL,
@@ -983,7 +984,8 @@ namespace Legion {
             outputs);
         inline_child_task(task);
         return result;
-      } else
+      }
+      else
       {
         REPORT_LEGION_ERROR(
             ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
@@ -1021,7 +1023,8 @@ namespace Legion {
             false /*track*/, outputs);
         inline_child_task(task);
         return result;
-      } else
+      }
+      else
       {
         REPORT_LEGION_ERROR(
             ERROR_ILLEGAL_EXECUTE_INDEX_SPACE,
@@ -1501,7 +1504,8 @@ namespace Legion {
             std::abort();
         }
         return Predicate::TRUE_PRED;
-      } else
+      }
+      else
       {
         // Check for short circuit cases
         for (std::vector<Predicate>::const_iterator it =
@@ -1533,7 +1537,8 @@ namespace Legion {
         const bool value = true;
         result.impl->set_local(&value, sizeof(value));
         return result;
-      } else if (p == Predicate::FALSE_PRED)
+      }
+      else if (p == Predicate::FALSE_PRED)
       {
         Future result(new FutureImpl(
             this, true /*register*/, runtime->get_available_distributed_id(),
@@ -1541,8 +1546,9 @@ namespace Legion {
         const bool value = false;
         result.impl->set_local(&value, sizeof(value));
         return result;
-      } else  // should never get here, all predicates should be eagerly
-              // evaluated
+      }
+      else  // should never get here, all predicates should be eagerly
+            // evaluated
         std::abort();
       return Future();
     }
@@ -1676,9 +1682,11 @@ namespace Legion {
                   get_task_name(), get_unique_id(), size, manager->get_name(),
                   (warning_string == nullptr) ? "" : warning_string)
             return instance;
-          } else
+          }
+          else
             delete instance;  // Not immediately available so we can't use it
-        } else if (safe_for_unbounded_pools.exists())
+        }
+        else if (safe_for_unbounded_pools.exists())
           REPORT_LEGION_ERROR(
               ERROR_DEFERRED_ALLOCATION_FAILURE,
               "Failed to allocate %zd bytes for a future needed by leaf task %s"
@@ -1704,7 +1712,8 @@ namespace Legion {
               "reserved for satisfying dynamic allocations during the "
               "execution of the task.",
               size, get_task_name(), get_unique_id(), manager->get_name())
-      } else if (finder->second->is_released())
+      }
+      else if (finder->second->is_released())
       {
         MemoryManager* manager = runtime->find_memory_manager(memory);
         REPORT_LEGION_ERROR(
@@ -1750,7 +1759,8 @@ namespace Legion {
                 "required between instances to satisfy your alignment needs.",
                 size, get_task_name(), get_unique_id(), manager->get_name(),
                 remaining, pool_limit, size)
-        } else if (memory_limit < size)
+        }
+        else if (memory_limit < size)
           REPORT_LEGION_ERROR(
               ERROR_DEFERRED_ALLOCATION_FAILURE,
               "Failed to allocate %zd bytes for future needed by leaf task %s "
@@ -1846,9 +1856,11 @@ namespace Legion {
                 manager->get_name())
             task_local_instances[instance] = unique_event;
             return instance;
-          } else
+          }
+          else
             instance.destroy(use_event);  // Can't use so destroy immediately
-        } else if (safe_for_unbounded_pools.exists())
+        }
+        else if (safe_for_unbounded_pools.exists())
           REPORT_LEGION_ERROR(
               ERROR_DEFERRED_ALLOCATION_FAILURE,
               "Failed to allocate DeferredBuffer/Value/Reduction of %zd bytes "
@@ -1874,7 +1886,8 @@ namespace Legion {
               "needs to be allocated for satisfying dynamic allocations during "
               "the execution of the task.",
               footprint, get_task_name(), get_unique_id(), manager->get_name())
-      } else if (finder->second->is_released())
+      }
+      else if (finder->second->is_released())
       {
         MemoryManager* manager = runtime->find_memory_manager(memory);
         REPORT_LEGION_ERROR(
@@ -1940,7 +1953,8 @@ namespace Legion {
                 footprint, get_task_name(), get_unique_id(),
                 manager->get_name(), remaining, pool_limit, footprint,
                 layout->alignment_reqd)
-        } else if (memory_limit < footprint)
+        }
+        else if (memory_limit < footprint)
           REPORT_LEGION_ERROR(
               ERROR_DEFERRED_ALLOCATION_FAILURE,
               "Failed to allocate DeferredBuffer/Value/Reduction of %zd bytes "
@@ -1999,7 +2013,8 @@ namespace Legion {
         MemoryManager* manager =
             runtime->find_memory_manager(instance.get_location());
         manager->free_task_local_instance(instance, precondition);
-      } else
+      }
+      else
         pool_finder->second->free_instance(instance, precondition);
     }
 

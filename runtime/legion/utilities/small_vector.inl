@@ -97,9 +97,11 @@ namespace Legion {
             if ((*it) == value)
               return true;
           return false;
-        } else
+        }
+        else
           return std::binary_search(vector.begin(), vector.end(), value);
-      } else
+      }
+      else
         return (ptr == reinterpret_cast<uintptr_t>(value));
     }
 
@@ -114,13 +116,15 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(!(ptr & 0x1));
 #endif
-      } else if (ptr & 0x1)
+      }
+      else if (ptr & 0x1)
       {
         std::vector<T*>& vector = get_vector();
         vector.push_back(value);
         if (SORTED)
           std::sort(vector.begin(), vector.end());
-      } else
+      }
+      else
       {
         std::vector<T*>* new_vector = new std::vector<T*>(2);
         new_vector->at(0) = reinterpret_cast<T*>(ptr);
@@ -158,9 +162,11 @@ namespace Legion {
               delete &vector;
             }
             return true;
-          } else
+          }
+          else
             return false;
-        } else
+        }
+        else
         {
           for (typename std::vector<T*>::iterator it = vector.begin();
                it != vector.end(); it++)
@@ -180,13 +186,15 @@ namespace Legion {
           }
           return false;
         }
-      } else
+      }
+      else
       {
         if (ptr == reinterpret_cast<uintptr_t>(value))
         {
           ptr = 0;
           return true;
-        } else
+        }
+        else
           return false;
       }
     }

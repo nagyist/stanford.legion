@@ -335,7 +335,8 @@ namespace Legion {
           runtime->send_task(this);
         else
           enqueue_ready_task(false /*use target*/);
-      } else
+      }
+      else
         enqueue_ready_task(true /*use target*/);
     }
 
@@ -405,7 +406,8 @@ namespace Legion {
                 predicate_false_result.get_size(), false /*own*/);
           else
             result.impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
-        } else
+        }
+        else
         {
           // Safe to block here indefinitely waiting for unbounded pools
           result.impl->set_result(
@@ -428,9 +430,11 @@ namespace Legion {
         {
           runtime->send_task(this);
           return false;
-        } else
+        }
+        else
           return true;
-      } else
+      }
+      else
       {
         if (target_proc.exists() && (target_proc != current_proc))
         {
@@ -511,7 +515,8 @@ namespace Legion {
           runtime->send_individual_remote_mapped(orig, rez);
         }
         return result;
-      } else
+      }
+      else
         return SingleTask::replicate_task();
     }
 
@@ -535,7 +540,8 @@ namespace Legion {
         }
         runtime->send_individual_remote_future_size(orig_proc, rez);
         applied_events.insert(done_event);
-      } else
+      }
+      else
         result.impl->set_future_result_size(
             return_type_size, runtime->address_space);
     }
@@ -562,7 +568,8 @@ namespace Legion {
         }
         runtime->send_individual_remote_output_registration(orig_proc, rez);
         applied_events.insert(applied);
-      } else
+      }
+      else
       {
         // Launch the meta-task to perform the registration
         // Make sure we don't complete the task until this is done
@@ -666,11 +673,13 @@ namespace Legion {
         pack_remote_complete(rez, effects);
         runtime->send_individual_remote_complete(orig_proc, rez);
         complete_operation(effects);
-      } else if (must_epoch != nullptr)
+      }
+      else if (must_epoch != nullptr)
       {
         must_epoch->notify_subop_complete(this, effects);
         complete_operation(effects);
-      } else
+      }
+      else
         complete_operation(effects);
     }
 
@@ -728,7 +737,8 @@ namespace Legion {
       {
         must_epoch->notify_subop_commit(this, commit_precondition);
         commit_operation(true /*deactivate*/, commit_precondition);
-      } else
+      }
+      else
         commit_operation(true /*deactivate*/, commit_precondition);
     }
 
@@ -750,9 +760,11 @@ namespace Legion {
           functor->callback_release_future();
           if (own_functor)
             delete functor;
-        } else
+        }
+        else
           result.impl->set_result(effects, functor, own_functor, future_proc);
-      } else
+      }
+      else
       {
         if ((instance != nullptr) && (instance->size > 0) &&
             (shard_manager == nullptr))
@@ -761,7 +773,8 @@ namespace Legion {
         {
           if ((instance != nullptr) && !instance->defer_deletion(effects))
             delete instance;
-        } else
+        }
+        else
         {
           if ((instance != nullptr) && (instance->size > 0) &&
               (shard_manager == nullptr))
@@ -797,7 +810,8 @@ namespace Legion {
                 predicate_false_result.get_size(), false /*own*/);
           else
             result.impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
-        } else
+        }
+        else
           result.impl->set_result(
               execution_context, predicate_false_future.impl);
       }
@@ -874,7 +888,8 @@ namespace Legion {
           rez.serialize(poisoned);
         }
         runtime->send_individual_concurrent_allreduce_request(orig_proc, rez);
-      } else
+      }
+      else
         must_epoch->concurrent_allreduce(
             this, runtime->address_space, lamport_clock, poisoned);
     }
@@ -1025,10 +1040,12 @@ namespace Legion {
             rez.serialize(get_mapped_event());
           }
           runtime->send_individual_remote_mapped(orig_proc, rez);
-        } else
+        }
+        else
           // We're not going to get a callback from the context if we're a leaf
           complete_mapping();
-      } else
+      }
+      else
         version_infos.resize(logical_regions.size());
       set_provenance(Provenance::deserialize(derez));
       // Set our parent task for the user
@@ -1077,7 +1094,8 @@ namespace Legion {
       {
         rez.serialize<bool>(true);
         execution_context->pack_return_resources(rez, context_index);
-      } else
+      }
+      else
         rez.serialize<bool>(false);
     }
 
@@ -1134,7 +1152,8 @@ namespace Legion {
           pack_task(rez, target_space);
         }
         runtime->send_remote_task_replay(target_space, rez);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(is_leaf());
@@ -1343,7 +1362,8 @@ namespace Legion {
         Domain shard_domain;
         runtime->find_domain(sharding_space, shard_domain);
         owner_shard = sharding_function->find_owner(index_point, shard_domain);
-      } else
+      }
+      else
         owner_shard = sharding_function->find_owner(index_point, index_domain);
       // If we're recording then record the owner shard
       if (is_recording())
@@ -1368,7 +1388,8 @@ namespace Legion {
           record_output_registered(
               RtEvent::NO_RT_EVENT, map_applied_conditions);
         shard_off(RtEvent::NO_RT_EVENT);
-      } else  // We own it, so it goes on the ready queue
+      }
+      else  // We own it, so it goes on the ready queue
       {
         // Don't signal the tree yet, we need to wait to see how big
         // the result future size is first
@@ -1399,7 +1420,8 @@ namespace Legion {
         LegionSpy::log_replay_operation(unique_op_id);
 #endif
         shard_off(RtEvent::NO_RT_EVENT);
-      } else
+      }
+      else
         IndividualTask::trigger_replay();
     }
 
@@ -1478,7 +1500,8 @@ namespace Legion {
         DomainPoint point(0);
         Domain launch_domain(point, point);
         handle = ctx->find_index_launch_space(launch_domain, get_provenance());
-      } else
+      }
+      else
         handle = ctx->find_index_launch_space(index_domain, get_provenance());
       launch_space = runtime->get_node(handle);
       if (!output_regions.empty())

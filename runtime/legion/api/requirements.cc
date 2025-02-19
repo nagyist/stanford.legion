@@ -445,7 +445,8 @@ namespace Legion {
                           return false;
                         else
                           return (projection < rhs.projection);
-                      } else
+                      }
+                      else
                       {
                         if (region < rhs.region)
                           return true;
@@ -498,7 +499,8 @@ namespace Legion {
       {
         projection_args = malloc(projection_args_size);
         memcpy(projection_args, args, projection_args_size);
-      } else
+      }
+      else
         projection_args = const_cast<void*>(args);
     }
   }

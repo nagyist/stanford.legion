@@ -368,7 +368,8 @@ namespace Legion {
             result.sparsity = is2.sparsity;
           else
             result.sparsity.id = 0;
-        } else
+        }
+        else
           result.sparsity.id = 0;
         functor->result = Domain(result);
       }
@@ -402,7 +403,8 @@ namespace Legion {
           functor->iterator.p = rect_itr.p;
           memcpy(functor->iterator.rect_iterator, &rect_itr, sizeof(rect_itr));
           memcpy(functor->iterator.is_iterator, &is_itr, sizeof(is_itr));
-        } else
+        }
+        else
           functor->iterator.rect_valid = false;
       }
     public:

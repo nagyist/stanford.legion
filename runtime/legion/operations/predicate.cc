@@ -57,11 +57,13 @@ namespace Legion {
       {
         predication_state = PREDICATED_TRUE_STATE;
         predicate = nullptr;
-      } else if (p == Predicate::FALSE_PRED)
+      }
+      else if (p == Predicate::FALSE_PRED)
       {
         predication_state = PREDICATED_FALSE_STATE;
         predicate = nullptr;
-      } else
+      }
+      else
       {
         predication_state = PENDING_PREDICATE_STATE;
         predicate = p.impl;
@@ -97,7 +99,8 @@ namespace Legion {
           // If false was poisoned then the predicate resolved true
           false_guard.wait_faultaware(value, true /*from application*/);
         return value;
-      } else
+      }
+      else
         return (predication_state == PREDICATED_TRUE_STATE);
     }
 

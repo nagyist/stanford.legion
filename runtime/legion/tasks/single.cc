@@ -322,7 +322,8 @@ namespace Legion {
             // we were already mapped so we can
             // just launch the task
             launch_task();
-          } else
+          }
+          else
           {
             // Remote but still need to map
             if (is_replicable() && replicate_task())
@@ -332,7 +333,8 @@ namespace Legion {
           }
         }
         // otherwise it was sent away
-      } else
+      }
+      else
       {
         // See if we have a must epoch in which case
         // we can simply record ourselves and we are done
@@ -349,7 +351,8 @@ namespace Legion {
           {
             if (perform_mapping() && distribute_task())
               launch_task();
-          } else
+          }
+          else
           {
             if (distribute_task())
             {
@@ -360,7 +363,8 @@ namespace Legion {
                 launch_task();
             }
           }
-        } else
+        }
+        else
           must_epoch->register_single_task(this, must_epoch_index);
       }
     }
@@ -437,7 +441,8 @@ namespace Legion {
           assert(output_ready.exists());
 #endif
           output_events.push_back(output_ready);
-        } else
+        }
+        else
           Operation::perform_versioning_analysis(
               idx, req, version_info, ready_events, nullptr /*output region*/,
               IS_COLLECTIVE(req) || std::binary_search(
@@ -574,7 +579,8 @@ namespace Legion {
               << ". Adding the 'target_proc' " << this->target_proc
               << " as the default.";
           output.target_procs.push_back(this->target_proc);
-        } else if (output.target_procs.size() > 1)
+        }
+        else if (output.target_procs.size() > 1)
         {
           if (concurrent_task)
             Exception(MAPPER_EXCEPTION, this)
@@ -590,7 +596,8 @@ namespace Legion {
         // Save the target processors from the output
         target_processors = output.target_procs;
         target_proc = target_processors.front();
-      } else
+      }
+      else
       {
         if (output.target_procs.size() > 1)
         {
@@ -845,7 +852,8 @@ namespace Legion {
           for (Machine::MemoryQuery::iterator it = visible_query.begin();
                it != visible_query.end(); it++)
             visible_memories.insert(*it);
-        } else
+        }
+        else
           runtime->find_visible_memories(target_proc, visible_memories);
       }
       bool free_acquired = false;
@@ -861,7 +869,8 @@ namespace Legion {
             this->must_epoch->get_acquired_instances_ref();
         if (epoch_acquired != nullptr)
           acquired->insert(epoch_acquired->begin(), epoch_acquired->end());
-      } else
+      }
+      else
         acquired = get_acquired_instances_ref();
       for (unsigned idx = 0; idx < regions.size(); idx++)
       {
@@ -1032,7 +1041,8 @@ namespace Legion {
                        "reduction "
                     << "operator " << regions[idx].redop << ".";
             }
-          } else
+          }
+          else
           {
             for (unsigned idx2 = 0; idx2 < result.size(); idx2++)
               if (result[idx2].get_manager()->is_reduction_manager())
@@ -1110,7 +1120,8 @@ namespace Legion {
                   << " to not track valid instances for region requirement "
                   << *it << " of " << *this << " because region requirement "
                   << "does not have read-only privileges.";
-          } else
+          }
+          else
             untracked_valid_regions.push_back(*it);
         }
       }
@@ -1142,7 +1153,8 @@ namespace Legion {
             << "An ordering constraint must be specified for each output "
             << "region, but the mapper did not specify any ordering constraint "
             << "for output region " << index << " of " << *this << ".";
-      } else if (static_cast<int>(ordering.size()) != req.region.get_dim() + 1)
+      }
+      else if (static_cast<int>(ordering.size()) != req.region.get_dim() + 1)
       {
         Exception(MAPPER_EXCEPTION, this)
             << "The mapper chose an ordering constraint with "
@@ -1422,7 +1434,8 @@ namespace Legion {
             output_regions, parent_req_indexes, virtual_mapped, task_priority,
             ApEvent::NO_AP_EVENT, 0 /*did*/, false /*inline*/,
             true /*implicit*/);
-      } else
+      }
+      else
         inner_ctx = new InnerContext(
             configuration, this, get_depth(), false /*is inner*/, regions,
             output_regions, parent_req_indexes, virtual_mapped, task_priority,
@@ -1657,7 +1670,8 @@ namespace Legion {
       {
         replicate = false;
         return false;
-      } else if (output.target_processors.size() == 1)
+      }
+      else if (output.target_processors.size() == 1)
       {
         Exception(WARNING_EXCEPTION, this)
             << "Mapper " << *mapper << " requested to replicate " << *this
@@ -1690,7 +1704,8 @@ namespace Legion {
               << output.chosen_variant << " for " << *this
               << "that was chosen to be replicated. Task variants selected for "
               << "replication must be marked as replicable variants.";
-      } else
+      }
+      else
       {
         output.chosen_variant = 0;
         if (output.leaf_variants.size() != output.target_processors.size())
@@ -1784,7 +1799,8 @@ namespace Legion {
                     << "replicating " << *this << " as the variant does "
                     << "not support that kind of processor.";
           }
-        } else
+        }
+        else
         {
           for (unsigned idx = 0; idx < output.target_processors.size(); idx++)
           {
@@ -1948,7 +1964,8 @@ namespace Legion {
                  "for "
               << *this << ". The dimensionality of 'shard_domain' must "
               << "match the dimensionality of the 'shard_points'.";
-      } else
+      }
+      else
       {
         // Mapper didn't specify it so we can fill it in
         output.shard_domain = Domain(
@@ -2042,7 +2059,8 @@ namespace Legion {
           // Now do the mapping call
           if (!invoke_mapper(must_epoch_op))
             return false;
-        } else
+        }
+        else
         {
           // If the mapper doesn't need valid instances, we do the mapper
           // call first and then see if we need to do any versioning analysis
@@ -2095,7 +2113,8 @@ namespace Legion {
                     source_instances[0], PhysicalTraceInfo(trace_info, 0),
                     map_applied_conditions, check_collective, record_valid);
           }
-        } else
+        }
+        else
         {
           unsigned read_only_count = 0;
           std::vector<unsigned> performed_regions;
@@ -2469,7 +2488,8 @@ namespace Legion {
                     << " bytes. Dynamically requested "
                     << "memory allocations must be further refinements of the "
                     << "alignments provided by the chosen task variant.";
-            } else
+            }
+            else
               Exception(MAPPER_EXCEPTION, this)
                   << "Mapper " << *mapper
                   << " dynamically requested an unbounded pool in "
@@ -2479,7 +2499,8 @@ namespace Legion {
                   << " bytes. Dynamically requested memory allocations must be "
                      "further refinements of the upper bounds provided by the "
                      "chosen task variant.";
-          } else if (!finder->second.is_bounded())
+          }
+          else if (!finder->second.is_bounded())
           {
             // Else if the static variant had no bounds we know that the
             // dynamic one is at least as tight as the static one
@@ -2494,7 +2515,8 @@ namespace Legion {
                   << "circumstances when the amount of dynamic memory required "
                   << "by a task is truly unbounded.";
           }
-        } else
+        }
+        else
         {
           // We don't allow strict unbounded memory pools to be used
           // along with concurrent index space tasks or tasks that are
@@ -2601,7 +2623,8 @@ namespace Legion {
           // actually need to block waiting
           if (!wait_for.empty())
             wait_for_unbounded_allocations = Runtime::merge_events(wait_for);
-        } else
+        }
+        else
           // we don't have any unbounded pools so we still participate
           // but we don't need to block waiting for the result
           order_collectively_mapped_unbounded_pools(
@@ -2637,7 +2660,8 @@ namespace Legion {
             leaf_memory_pools.insert(acquired_pools.extract(finder));
             continue;
           }
-        } else
+        }
+        else
         {
           // We don't allow strict unbounded memory pools to be used
           // along with concurrent index space tasks or tasks that are
@@ -2882,7 +2906,8 @@ namespace Legion {
                   future_memories[idx], this);
             else  // skip requesting any futures mapped to NO_MEMORY
               continue;
-          } else
+          }
+          else
             ready = impl->find_application_instance_ready(
                 runtime->runtime_system_memory, this);
           if (ready.exists())
@@ -2924,7 +2949,8 @@ namespace Legion {
                 clone_requirements[idx], false /*mapped*/, map_id, tag,
                 unmap_events[idx], true /*virtual mapped*/,
                 physical_instances[idx]);
-          } else if (do_inner_task_optimization)
+          }
+          else if (do_inner_task_optimization)
           {
             // If this is an inner task then we don't map
             // the region with a physical region, but instead
@@ -2948,7 +2974,8 @@ namespace Legion {
             // actually ready to be used
             Runtime::trigger_event_untraced(
                 unmap_events[idx], region_preconditions[idx]);
-          } else
+          }
+          else
           {
             // If this is not virtual mapped, here is where we
             // switch coherence modes from whatever they are in
@@ -3143,7 +3170,8 @@ namespace Legion {
         if (chain_task_termination.exists())
           Runtime::trigger_event_untraced(
               chain_task_termination, Runtime::ignorefaults(task_launch_event));
-      } else if (chain_task_termination.exists())
+      }
+      else if (chain_task_termination.exists())
         Runtime::trigger_event_untraced(
             chain_task_termination, task_launch_event);
       // Finally if this is a predicated task and we have a speculative
@@ -3260,11 +3288,13 @@ namespace Legion {
             rez.serialize(
                 (const void*)execution_context->overhead_profiler,
                 sizeof(Mapping::ProfilingMeasurements::RuntimeOverhead));
-          } else
+          }
+          else
             rez.serialize<bool>(false);
         }
         runtime->send_remote_task_profiling_response(orig_proc, rez);
-      } else
+      }
+      else
       {
         // Check to see if we are done mapping, if not then we need to defer
         // this until we are done mapping so we know how many reports to expect
@@ -3402,7 +3432,8 @@ namespace Legion {
               output_regions, parent_req_indexes, virtual_mapped, task_priority,
               execution_fence_event, 0 /*did*/, inline_task, false /*implicit*/,
               concurrent_task || parent_ctx->is_concurrent_context());
-        } else
+        }
+        else
           inner_ctx = new InnerContext(
               configuration, this, get_depth(), v->is_inner(), regions,
               output_regions, parent_req_indexes, virtual_mapped, task_priority,
@@ -3410,7 +3441,8 @@ namespace Legion {
               concurrent_task || parent_ctx->is_concurrent_context());
         inner_ctx->add_base_gc_ref(SINGLE_TASK_REF);
         return inner_ctx;
-      } else
+      }
+      else
       {
         LeafContext* leaf_ctx =
             new LeafContext(this, std::move(leaf_memory_pools), inline_task);

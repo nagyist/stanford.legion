@@ -63,7 +63,8 @@ namespace Legion {
           rez.serialize(profiling_reports.load());
           rez.serialize(profiling_response);
           runtime->send_remote_op_profiling_count_update(source, rez);
-        } else
+        }
+        else
           Runtime::trigger_event(profiling_response);
       }
       Provenance* provenance = get_provenance();
@@ -252,7 +253,8 @@ namespace Legion {
         }
         runtime->send_remote_op_completion_effect(source, rez);
         applied.wait();
-      } else
+      }
+      else
         remote_ptr->record_completion_effect(effect);
     }
 
@@ -273,7 +275,8 @@ namespace Legion {
         }
         runtime->send_remote_op_completion_effect(source, rez);
         applied_events.insert(applied);
-      } else
+      }
+      else
         remote_ptr->record_completion_effect(effect, applied_events);
     }
 

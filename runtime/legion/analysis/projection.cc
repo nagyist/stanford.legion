@@ -62,13 +62,15 @@ namespace Legion {
           projection = runtime->find_projection_function(0 /*identity*/);
           projection_type = LEGION_REGION_PROJECTION;
           projection_space = launch_space;
-        } else
+        }
+        else
         {
           projection = nullptr;
           projection_type = req->handle_type;
           projection_space = nullptr;
         }
-      } else
+      }
+      else
       {
         projection = runtime->find_projection_function(req->projection);
         projection_type = req->handle_type;
@@ -310,7 +312,8 @@ namespace Legion {
               buffer[size++] = shard;
               std::sort(buffer, buffer + size, std::less<ShardID>());
               set.buffer = buffer;
-            } else
+            }
+            else
             {
               size = bit_max;
               max = total_shards + 1;
@@ -326,27 +329,31 @@ namespace Legion {
               buffer[index] |= (1U << (shard & ((1U << power) - 1)));
               set.buffer = buffer;
             }
-          } else
+          }
+          else
           {
             set.values[size++] = shard;
             std::sort(&set.values[0], &set.values[size], std::less<ShardID>());
           }
         }
-      } else if (total_shards < max)
+      }
+      else if (total_shards < max)
       {
         // We're already in a bitmask mode
         constexpr size_t power = STATIC_LOG2(sizeof(ShardID));
         unsigned index = shard >> power;
         set.buffer[index] |= (1U << (shard & ((1U << power) - 1)));
-      } else if (!std::binary_search(
-                     &set.buffer[0], &set.buffer[size], shard,
-                     std::less<ShardID>()))
+      }
+      else if (!std::binary_search(
+                   &set.buffer[0], &set.buffer[size], shard,
+                   std::less<ShardID>()))
       {
         if (size < max)
         {
           set.buffer[size++] = shard;
           std::sort(set.buffer, set.buffer + size, std::less<ShardID>());
-        } else
+        }
+        else
         {
           unsigned new_max = max * 2;
           unsigned bit_max = (((total_shards + 7) / 8) + sizeof(ShardID) - 1) /
@@ -362,7 +369,8 @@ namespace Legion {
             std::sort(buffer, buffer + size, std::less<ShardID>());
             free(set.buffer);
             set.buffer = buffer;
-          } else
+          }
+          else
           {
             max = total_shards + 1;
             ShardID* buffer = (ShardID*)malloc(bit_max * sizeof(ShardID));
@@ -395,7 +403,8 @@ namespace Legion {
         if (size == 1)
           return set.values[0];
         return find_nearest(local, total_shards, &set.values[0], size);
-      } else if (total_shards < max)
+      }
+      else if (total_shards < max)
       {
         constexpr size_t power = STATIC_LOG2(sizeof(ShardID));
         const unsigned bit_max =
@@ -418,7 +427,8 @@ namespace Legion {
               {
                 lower = (index << power) + offset;
                 break;
-              } else
+              }
+              else
                 offset--;
             }
             if (offset < 0)
@@ -427,7 +437,8 @@ namespace Legion {
               // Handle wrap around case
               if (--index < 0)
                 index = bit_max - 1;
-            } else
+            }
+            else
               break;
           }
         }
@@ -443,7 +454,8 @@ namespace Legion {
               {
                 upper = (index << power) + offset;
                 break;
-              } else
+              }
+              else
                 offset++;
             }
             if (offset == (1U << power))
@@ -452,7 +464,8 @@ namespace Legion {
               // Handle wrap around case
               if (++index == bit_max)
                 index = 0;
-            } else
+            }
+            else
               break;
           }
         }
@@ -462,7 +475,8 @@ namespace Legion {
           return lower;
         else
           return upper;
-      } else
+      }
+      else
         return find_nearest(local, total_shards, set.buffer, size);
     }
 
@@ -482,7 +496,8 @@ namespace Legion {
         {
           upper = step + 1;
           count -= step + 1;
-        } else
+        }
+        else
           count = step;
       }
 #ifdef DEBUG_LEGION
@@ -497,13 +512,15 @@ namespace Legion {
 #endif
         lower = buffer_size - 1;
         upper = 0;
-      } else if (upper == 0)
+      }
+      else if (upper == 0)
       {
 #ifdef DEBUG_LEGION
         assert(local < buffer[0]);
 #endif
         lower = buffer_size - 1;
-      } else
+      }
+      else
       {
         lower = buffer[upper - 1];
 #ifdef DEBUG_LEGION
@@ -544,11 +561,13 @@ namespace Legion {
         rez.serialize(size);
         for (unsigned idx = 0; idx < size; idx++)
           rez.serialize(set.values[idx]);
-      } else if (total_shards < max)
+      }
+      else if (total_shards < max)
       {
         for (unsigned idx = 0; idx < size; idx++)
           rez.serialize(set.buffer[idx]);
-      } else
+      }
+      else
       {
         rez.serialize(size);
         for (unsigned idx = 0; idx < size; idx++)
@@ -573,7 +592,8 @@ namespace Legion {
           derez.deserialize(shard);
           insert(shard, total_shards);
         }
-      } else if (total_shards < dmax)
+      }
+      else if (total_shards < dmax)
       {
         if (total_shards < max)
         {
@@ -583,7 +603,8 @@ namespace Legion {
             derez.deserialize(bits);
             set.buffer[idx] |= bits;
           }
-        } else
+        }
+        else
         {
           unsigned bit_max = (((total_shards + 7) / 8) + sizeof(ShardID) - 1) /
                              sizeof(ShardID);
@@ -601,7 +622,8 @@ namespace Legion {
               unsigned index = set.values[idx] >> power;
               buffer[index] |= (1U << (set.values[idx] & ((1U << power) - 1)));
             }
-          } else
+          }
+          else
           {
             for (unsigned idx = 0; idx < size; idx++)
             {
@@ -614,7 +636,8 @@ namespace Legion {
           size = bit_max;
           set.buffer = buffer;
         }
-      } else
+      }
+      else
       {
         unsigned dsize;
         derez.deserialize(dsize);
@@ -677,7 +700,8 @@ namespace Legion {
           if (!it->second->is_leaves_only())
             return false;
         return true;
-      } else
+      }
+      else
         return local_children.empty();
     }
 
@@ -860,7 +884,8 @@ namespace Legion {
             return false;
         }
         return true;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         // Would violate name-based analysis
@@ -1113,8 +1138,9 @@ namespace Legion {
               return true;
             // Otherwise this does not dominate us
             dominates = false;
-          } else if (it->second->has_interference(
-                         finder->second, local_shard, dominates))
+          }
+          else if (it->second->has_interference(
+                       finder->second, local_shard, dominates))
             return true;
         }
         // Check in the opposite direction too
@@ -1132,7 +1158,8 @@ namespace Legion {
           // Else we've already done interferences with ourself locally
         }
         return false;
-      } else
+      }
+      else
       {
         // Aliased partition
         // If either has any shard children we're immediately interfering
@@ -1503,7 +1530,8 @@ namespace Legion {
             summary.users.resize(num_users);
             for (unsigned idx2 = 0; idx2 < num_users; idx2++)
               derez.deserialize(summary.users[idx2]);
-          } else
+          }
+          else
           {
             for (unsigned idx2 = 0; idx2 < num_users; idx2++)
             {

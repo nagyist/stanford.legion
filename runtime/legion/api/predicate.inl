@@ -30,7 +30,8 @@ namespace Legion {
         return (const_value == p.const_value);
       else
         return false;
-    } else
+    }
+    else
       return (impl == p.impl);
   }
 
@@ -44,7 +45,8 @@ namespace Legion {
         return (const_value < p.const_value);
       else
         return true;
-    } else
+    }
+    else
       return (impl < p.impl);
   }
 

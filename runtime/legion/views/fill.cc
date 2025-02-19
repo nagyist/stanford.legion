@@ -166,7 +166,8 @@ namespace Legion {
 #endif
             value, value_size, false /*register now*/);
         derez.advance_pointer(value_size);
-      } else
+      }
+      else
         view = new (location) FillView(
             did,
 #ifdef LEGION_SPY

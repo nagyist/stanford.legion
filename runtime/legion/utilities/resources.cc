@@ -846,7 +846,8 @@ namespace Legion {
             else
               finder->second += it->second;
           }
-        } else
+        }
+        else
           created_regions.swap(created_regs);
       }
       if (!deleted_regs.empty())
@@ -872,7 +873,8 @@ namespace Legion {
 #else
           created_fields.insert(created_fids.begin(), created_fids.end());
 #endif
-        } else
+        }
+        else
           created_fields.swap(created_fids);
       }
       if (!deleted_fids.empty())
@@ -911,7 +913,8 @@ namespace Legion {
             else
               finder->second += it->second;
           }
-        } else
+        }
+        else
           created_field_spaces.swap(created_fs);
       }
       if (!latent_fs.empty())
@@ -930,7 +933,8 @@ namespace Legion {
               std::map<FieldSpace, std::set<LogicalRegion> >::iterator
                   to_delete = it++;
               latent_fs.erase(to_delete);
-            } else
+            }
+            else
               it++;
           }
         }
@@ -961,7 +965,8 @@ namespace Legion {
             else
               latent_field_spaces.insert(*it);
           }
-        } else
+        }
+        else
           latent_field_spaces.swap(latent_fs);
       }
       if (!deleted_fs.empty())
@@ -987,7 +992,8 @@ namespace Legion {
             else
               finder->second += it->second;
           }
-        } else
+        }
+        else
           created_index_spaces.swap(created_is);
       }
       if (!deleted_is.empty())
@@ -1013,7 +1019,8 @@ namespace Legion {
             else
               finder->second += it->second;
           }
-        } else
+        }
+        else
           created_index_partitions.swap(created_partitions);
       }
       if (!deleted_partitions.empty())

@@ -234,7 +234,8 @@ namespace Legion {
       return Future::from_value(
           domain, sizeof(d), true /*owned*/, resource,
           SparsityReferenceHelper::deletion_function, provenance, shard_local);
-    } else
+    }
+    else
       return from_untyped_pointer(
           &d, sizeof(d), false /*take ownership*/, provenance, shard_local);
   }
@@ -371,7 +372,8 @@ namespace Legion {
           Runtime::trigger_event_untraced(
               it->second.remote_postcondition, it->second.ready_event);
           delete it->second.instance;
-        } else
+        }
+        else
         {
           // Merge together all the events for destroying this future instance
           ApEvent precondition = it->second.ready_event;
@@ -515,7 +517,8 @@ namespace Legion {
               "Unable to find a %s memory associated with processor " IDFMT
               " in which to create a future buffer.",
               mem_names[memkind], proc.id)
-        } else
+        }
+        else
           memory = runtime->runtime_system_memory;
       }
       return get_buffer(
@@ -557,14 +560,16 @@ namespace Legion {
                   *extent_in_bytes,
                   (producer_op == nullptr) ? 0 :
                                              producer_op->get_unique_op_id())
-          } else if (future_size != *extent_in_bytes)
+          }
+          else if (future_size != *extent_in_bytes)
             REPORT_LEGION_ERROR(
                 ERROR_FUTURE_SIZE_MISMATCH,
                 "Future size mismatch! Expected type of %zd bytes but "
                 "requested type is %zd bytes. (UID %lld)",
                 future_size, *extent_in_bytes,
                 (producer_op == nullptr) ? 0 : producer_op->get_unique_op_id())
-        } else
+        }
+        else
           (*extent_in_bytes) = future_size;
       }
       if (instance == nullptr)
@@ -621,7 +626,8 @@ namespace Legion {
               "Unable to find a %s memory associated with processor " IDFMT
               " in which to create a future buffer.",
               mem_names[memkind], proc.id)
-        } else
+        }
+        else
           memory = runtime->runtime_system_memory;
       }
       // Wait to make sure that the future is complete first
@@ -723,9 +729,10 @@ namespace Legion {
         wait_on.wait();
         if (result)
           return true;
-      } else if (find_or_create_application_instance(
-                     target, known_upper_bound_size, task_uid, coordinates,
-                     safe_for_unbounded_pools))
+      }
+      else if (find_or_create_application_instance(
+                   target, known_upper_bound_size, task_uid, coordinates,
+                   safe_for_unbounded_pools))
         return true;
       if (!can_fail && ((safe_for_unbounded_pools == nullptr) ||
                         !safe_for_unbounded_pools->exists()))
@@ -834,7 +841,8 @@ namespace Legion {
           if (!finder->second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
             delete finder->second.instance;
           finder->second.instance = instance;
-        } else if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
+        }
+        else if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
           delete instance;
         return true;
       }
@@ -867,7 +875,8 @@ namespace Legion {
                it != pending_instances.end(); it++)
             if (FutureInstance::check_meta_visible(it->first))
               return;
-        } else if (local_visible_memory.exists())
+        }
+        else if (local_visible_memory.exists())
           return;
         need_subscribe = !subscription_event.exists();
         // Don't have a local instance yet so we need to make one
@@ -902,7 +911,8 @@ namespace Legion {
                  it != pending_instances.end(); it++)
               if (FutureInstance::check_meta_visible(it->first))
                 return;
-          } else if (local_visible_memory.exists())
+          }
+          else if (local_visible_memory.exists())
             return;
           known_upper_bound_size = future_size;
         }
@@ -945,7 +955,8 @@ namespace Legion {
             delete instance;
           return;
         }
-      } else if (local_visible_memory.exists())
+      }
+      else if (local_visible_memory.exists())
       {
         // Somebody else already made the instance
         if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
@@ -964,7 +975,8 @@ namespace Legion {
           if (!it->second.instance->defer_deletion(ApEvent::NO_AP_EVENT))
             delete it->second.instance;
           it->second.instance = instance;
-        } else if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
+        }
+        else if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
           delete instance;
         return;
       }
@@ -1025,7 +1037,8 @@ namespace Legion {
           finder->second.safe_ready_event =
               Runtime::protect_event(finder->second.ready_event);
         return finder->second.safe_ready_event;
-      } else
+      }
+      else
       {
         for (std::map<Memory, PendingInstance>::iterator it =
                  pending_instances.begin();
@@ -1079,7 +1092,8 @@ namespace Legion {
             finder->second.safe_ready_event =
                 Runtime::protect_event(finder->second.ready_event);
           ready_event = finder->second.safe_ready_event;
-        } else
+        }
+        else
         {
           for (std::map<Memory, PendingInstance>::iterator it =
                    pending_instances.begin();
@@ -1502,7 +1516,8 @@ namespace Legion {
         ApUserEvent to_trigger;
         to_trigger.id = future_complete.id;
         Runtime::trigger_event_untraced(to_trigger, complete);
-      } else
+      }
+      else
         future_complete = complete;
       result_set_space = local_space;
       if (!pending_instances.empty())
@@ -1606,7 +1621,8 @@ namespace Legion {
         instance = new FutureInstance(
             malloc(known_upper_bound_size), known_upper_bound_size,
             true /*external*/, true /*own allocation*/);
-      } else
+      }
+      else
         instance = implicit_context->create_task_local_future(
             target, known_upper_bound_size, silence_warnings, warning_string);
       if (instance == nullptr)
@@ -1623,7 +1639,8 @@ namespace Legion {
         if (!instance->defer_deletion(ApEvent::NO_AP_EVENT))
           delete instance;
         return result;
-      } else
+      }
+      else
         inst_ready = record_instance(
             instance, (implicit_context == nullptr) ?
                           0 :
@@ -1684,7 +1701,8 @@ namespace Legion {
             tracker.remote_postcondition, ready_event);
         delete tracker.instance;
         instances.erase(source);
-      } else if (ready_event.exists())
+      }
+      else if (ready_event.exists())
         tracker.read_events.push_back(ready_event);
       instances.emplace(std::make_pair(
           instance->memory, FutureInstanceTracker(instance, ready_event)));
@@ -1776,7 +1794,8 @@ namespace Legion {
         instance = new FutureInstance(
             result, result_size, owned, local.clone(),
             FutureInstance::free_host_memory, callback_proc);
-      } else
+      }
+      else
         instance = new FutureInstance(
             result, result_size, owned, resource->clone(), freefunc,
             callback_proc);
@@ -1936,7 +1955,8 @@ namespace Legion {
                 instance->memory,
                 FutureInstanceTracker(instance, ApEvent::NO_AP_EVENT)));
             local_visible_memory = instance->memory;
-          } else
+          }
+          else
           {
             // The instance is remote from us, we need to copy to one of the
             // pending instances so we can fill in the rest of the results
@@ -1952,7 +1972,8 @@ namespace Legion {
                   instance->memory,
                   FutureInstanceTracker(
                       instance, precondition, postcondition)));
-            } else
+            }
+            else
             {
               std::map<Memory, PendingInstance>::iterator pending =
                   pending_instances.begin();
@@ -1984,7 +2005,8 @@ namespace Legion {
         ApEvent precondition;
         derez.deserialize(precondition);
         Runtime::trigger_event_untraced(to_trigger, precondition);
-      } else
+      }
+      else
         derez.deserialize(future_complete);
       derez.deserialize(metasize);
       if (metasize > 0)
@@ -2078,11 +2100,13 @@ namespace Legion {
                   rez);
             else
               runtime->send_future_subscription(owner_space, rez);
-          } else
+          }
+          else
             record_subscription(local_space, false /*need lock*/);
         }
         return subscription_event;
-      } else
+      }
+      else
       {
         if (callback_functor != nullptr)
           return invoke_callback();
@@ -2135,7 +2159,8 @@ namespace Legion {
       {
         rez.serialize<bool>(true);  // collective
         return;
-      } else
+      }
+      else
         rez.serialize<bool>(false);  // collective
       rez.serialize(context->did);
       coordinate.serialize(rez);
@@ -2218,7 +2243,8 @@ namespace Legion {
               context->get_unique_id(), producer_uid,
               consumer_op->get_unique_op_id());
 #endif
-        } else
+        }
+        else
         {
           // Check that the consumer is contained within the task
           // sub-tree of the producer task
@@ -2323,7 +2349,8 @@ namespace Legion {
             assert(local_visible_memory.exists());
 #endif
           }
-        } else
+        }
+        else
           inst_ready = instances[local_visible_memory].ready_event;
         if (inst_ready.exists() && !inst_ready.has_triggered_faultignorant())
         {
@@ -2389,7 +2416,8 @@ namespace Legion {
 #endif
           subscribe(false /*needs lock*/);
         }
-      } else
+      }
+      else
       {
         // Handle the race where the subscription from the node that
         // ultimately set the future result arrives after the future
@@ -2403,8 +2431,8 @@ namespace Legion {
           // it is in flight and that the subscriber is there
           // for it to be messaged when the callback is done
           subscribers.insert(subscriber);
-        } else if (
-            !instances.empty() && (future_size <= LEGION_MAX_RETURN_SIZE))
+        }
+        else if (!instances.empty() && (future_size <= LEGION_MAX_RETURN_SIZE))
         {
           // Check to see if we have any instances to send directly
           bool has_local_target = false;
@@ -2435,7 +2463,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert(local_visible_memory.exists());
 #endif
-            } else
+            }
+            else
               local_visible_ready = instances[local_visible_memory].ready_event;
           }
           if (local_visible_ready.exists() &&
@@ -2453,7 +2482,8 @@ namespace Legion {
                   Runtime::protect_event(local_visible_ready));
             }
             subscribers.insert(subscriber);
-          } else
+          }
+          else
           {
             // We can send the result right now
             Serializer rez;
@@ -2461,7 +2491,8 @@ namespace Legion {
             pack_global_ref();
             runtime->send_future_result(subscriber, rez);
           }
-        } else
+        }
+        else
         {
           // Send the result back to the subscriber since right away
           Serializer rez;
@@ -2497,7 +2528,8 @@ namespace Legion {
           {
             has_exact_target = true;
             target_memories.push_back(it->first);
-          } else if (
+          }
+          else if (
               (collective_mapping != nullptr) &&
               collective_mapping->contains(inst_space) &&
               (subscribers.find(inst_space) == subscribers.end()))
@@ -2559,10 +2591,12 @@ namespace Legion {
               // Now we can delete the instance remove it from the entry
               delete finder->second.instance;
               instances.erase(finder);
-            } else
+            }
+            else
               finder->second.read_events.clear();
           }
-        } else
+        }
+        else
           rez.serialize<size_t>(0);
         if (!has_exact_target)
         {
@@ -2707,7 +2741,8 @@ namespace Legion {
           rez.serialize(done_event);
         }
         runtime->send_future_create_instance_response(source, rez);
-      } else
+      }
+      else
         Runtime::trigger_event(done_event);
     }
 
@@ -2743,7 +2778,8 @@ namespace Legion {
         ContributeCollectiveArgs args(this, dc, count);
         // Spawn the task dependent on the future being ready
         runtime->issue_runtime_meta_task(args, LG_LATENCY_WORK_PRIORITY, ready);
-      } else  // If we've already triggered, then we can do the arrival now
+      }
+      else  // If we've already triggered, then we can do the arrival now
       {
         size_t result_size = 0;
         const void* result = get_buffer(
@@ -2863,7 +2899,8 @@ namespace Legion {
               rez.serialize(instance);
             }
             runtime->send_free_external_allocation(target_space, rez);
-          } else
+          }
+          else
           {
             // We're already local, see if we need to launch a task
             if (freeproc.exists())
@@ -2880,7 +2917,8 @@ namespace Legion {
               // No longer safe to free the resource since that is going
               // to be done by the free external args task
               free_resource = false;
-            } else
+            }
+            else
             {
               // We can do the free now
               free(const_cast<void*>(data.load()));
@@ -2888,7 +2926,8 @@ namespace Legion {
                 instance.destroy();
             }
           }
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(instance.exists());
@@ -2898,7 +2937,8 @@ namespace Legion {
           MemoryManager* manager = runtime->find_memory_manager(memory);
           manager->free_future_instance(instance, size, RtEvent::NO_RT_EVENT);
         }
-      } else if (own_instance)
+      }
+      else if (own_instance)
       {
 #ifdef DEBUG_LEGION
         assert(instance.exists());
@@ -2958,7 +2998,8 @@ namespace Legion {
             dst_inst.destroy();
         }
         return result;
-      } else
+      }
+      else
       {
         memcpy(
             const_cast<void*>(get_data()), redop->identity, redop->sizeof_rhs);
@@ -3035,7 +3076,8 @@ namespace Legion {
           {
             protect = Runtime::protect_event(result);
             src_inst.destroy(protect);
-          } else
+          }
+          else
             src_inst.destroy();
         }
         if (own_dst)
@@ -3045,11 +3087,13 @@ namespace Legion {
             if (!protect.exists())
               protect = Runtime::protect_event(result);
             dst_inst.destroy(protect);
-          } else
+          }
+          else
             dst_inst.destroy();
         }
         return result;
-      } else
+      }
+      else
       {
         // We can do this as a straight memcpy, no need to offload to realm
         memcpy(const_cast<void*>(get_data()), source->get_data(), copy_size);
@@ -3118,7 +3162,8 @@ namespace Legion {
           {
             protect = Runtime::protect_event(result);
             src_inst.destroy(protect);
-          } else
+          }
+          else
             src_inst.destroy();
         }
         if (own_dst)
@@ -3128,11 +3173,13 @@ namespace Legion {
             if (!protect.exists())
               protect = Runtime::protect_event(result);
             dst_inst.destroy(protect);
-          } else
+          }
+          else
             dst_inst.destroy();
         }
         return result;
-      } else
+      }
+      else
       {
         // We can do this as a straight fold, no need to offload to realm
         if (exclusive)
@@ -3143,7 +3190,8 @@ namespace Legion {
           (redop->cpu_fold_excl_fn)(
               const_cast<void*>(get_data()), 0 /*stride*/, source->get_data(),
               0 /*stride*/, 1 /*count*/, redop->userdata);
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(redop->cpu_fold_nonexcl_fn);
@@ -3254,7 +3302,8 @@ namespace Legion {
         if (inst_ready.exists() && !inst_ready.has_triggered())
           inst_ready.wait();
         return result;
-      } else if (!instance.exists())
+      }
+      else if (!instance.exists())
       {
 #ifdef DEBUG_LEGION
         assert(!own_instance);
@@ -3319,7 +3368,8 @@ namespace Legion {
               Runtime::protect_event(precondition));
           return true;
         }
-      } else if (own_instance)
+      }
+      else if (own_instance)
       {
 #ifdef DEBUG_LEGION
         assert(instance.exists());
@@ -3365,7 +3415,8 @@ namespace Legion {
         rez.serialize(data.load(), size);
         // We packed this by value so return true
         return true;
-      } else
+      }
+      else
       {
         rez.serialize<bool>(false);  // by value
         rez.serialize(data.load());
@@ -3391,14 +3442,16 @@ namespace Legion {
           own_allocation = false;
           // we no longer own this instance either
           own_instance = false;
-        } else
+        }
+        else
           rez.serialize<bool>(false);  // do not own allocation on destination
         if (external_allocation)
         {
           rez.serialize<bool>(true);  // external allocation
           rez.serialize(freefunc);
           rez.serialize(freeproc);
-        } else
+        }
+        else
           rez.serialize<bool>(false);  // external allocation
         // Not packed by value
         return false;
@@ -3451,7 +3504,8 @@ namespace Legion {
         return new FutureInstance(
             data, size, own_allocation, nullptr /*resource*/, freefunc, proc,
             unique_event, instance, use_event);
-      } else
+      }
+      else
         return new FutureInstance(
             data, size, false /*external*/, own_allocation, unique_event,
             instance, Processor::NO_PROC, use_event);

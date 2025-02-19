@@ -439,7 +439,8 @@ namespace Legion {
           rez.serialize(it->first);
           rez.serialize(it->second);
         }
-      } else
+      }
+      else
       {
         if (memo_state == MEMO_RECORD)
         {
@@ -487,7 +488,8 @@ namespace Legion {
           derez.deserialize(lock);
           derez.deserialize(atomic_locks[lock]);
         }
-      } else
+      }
+      else
       {
         if (memo_state == MEMO_RECORD)
         {
@@ -541,9 +543,11 @@ namespace Legion {
                   TriggerTaskArgs trigger_args(task);
                   runtime->issue_runtime_meta_task(
                       trigger_args, LG_THROUGHPUT_WORK_PRIORITY, ready);
-                } else
+                }
+                else
                   task->trigger_mapping();
-              } else
+              }
+              else
                 task->enqueue_ready_task(false /*target*/, ready);
             }
             break;
@@ -563,7 +567,8 @@ namespace Legion {
                 TriggerTaskArgs trigger_args(task);
                 runtime->issue_runtime_meta_task(
                     trigger_args, LG_THROUGHPUT_WORK_PRIORITY, ready);
-              } else
+              }
+              else
                 task->trigger_mapping();
             }
             break;
@@ -825,7 +830,8 @@ namespace Legion {
               << "Mapper " << *mapper << " requested to inline must epoch "
               << *this << ". Inlining of must epoch tasks are not supported.";
         return true;
-      } else
+      }
+      else
         return false;
     }
 
@@ -910,7 +916,8 @@ namespace Legion {
       {
         if (!finder->second && exclusive)
           finder->second = true;
-      } else
+      }
+      else
         atomic_locks[lock] = exclusive;
     }
 
@@ -1024,7 +1031,8 @@ namespace Legion {
         {
           arg_manager.save_buffer(rhs->arg_manager.get_buffer(), this->arglen);
           this->args = arg_manager.get_buffer();
-        } else
+        }
+        else
         {
           this->args = rhs->args;
         }
@@ -1232,13 +1240,16 @@ namespace Legion {
         if (!field_vec.empty())
         {
           constraint_mask = field_node->get_field_mask(field_set);
-        } else if (!constraints->alignment_constraints.empty())
+        }
+        else if (!constraints->alignment_constraints.empty())
         {
           constraint_mask = field_node->get_field_mask(align_fields);
-        } else if (!constraints->offset_constraints.empty())
+        }
+        else if (!constraints->offset_constraints.empty())
         {
           constraint_mask = field_node->get_field_mask(offset_fields);
-        } else
+        }
+        else
         {
           // task layout constraint without explicit fields can
           // apply to remaining fields in the region requirement
@@ -1354,7 +1365,8 @@ namespace Legion {
                     std::pair<PhysicalManager*, unsigned>(nullptr, *iit);
                 colocation_mask.set_bit(index);
               }
-            } else
+            }
+            else
             {
               for (std::set<FieldID>::const_iterator it =
                        con_it->fields.begin();
@@ -1401,7 +1413,8 @@ namespace Legion {
                 index = overlap.find_next_set(index + 1);
               }
             }
-          } else
+          }
+          else
           {
             // check to make sure that all these region requirements have
             // the same region tree ID.
@@ -1463,7 +1476,8 @@ namespace Legion {
                         << " while prior requirement " << finder->second.second
                         << " mapped to instance "
                         << finder->second.first->get_instance() << ".";
-                } else
+                }
+                else
                 {
                   if (!con_it->fields.empty())
                   {
@@ -1471,7 +1485,8 @@ namespace Legion {
                         con_it->fields.end())
                       colocation_instances[index] =
                           std::make_pair(manager, *iit);
-                  } else
+                  }
+                  else
                     colocation_instances[index] = std::make_pair(manager, *iit);
                 }
                 index = inst_mask.find_next_set(index + 1);
@@ -1580,7 +1595,8 @@ namespace Legion {
         // Register this task with the profiler if necessary
         if (runtime->profiler != nullptr)
           runtime->profiler->register_task_kind(task_id, name, false);
-      } else  // Just set the initial name
+      }
+      else  // Just set the initial name
       {
         snprintf(initial_name, 64, "unnamed_task_%d", task_id);
         // Register this task with the profiler if necessary
@@ -1637,7 +1653,8 @@ namespace Legion {
               "options.  All variants of the same task must "
               "all be either idempotent or non-idempotent.",
               get_name(false /*need lock*/), task_id)
-      } else
+      }
+      else
         all_idempotent = impl->is_idempotent();
       // Check to see if this variant has already been registered
       if (variants.find(impl->vid) != variants.end())
@@ -1686,7 +1703,8 @@ namespace Legion {
         {
           valid_variants[idx] = it->first;
         }
-      } else
+      }
+      else
       {
         AutoLock t_lock(task_lock, 1, false /*exclusive*/);
         for (std::map<VariantID, VariantImpl*>::const_iterator it =
@@ -1717,7 +1735,8 @@ namespace Legion {
           memcpy(&result, &ptr, sizeof(result));
           return result;
         }
-      } else
+      }
+      else
       {
         // If we're already holding the lock then we can just do
         // the local look-up regardless of if we're the owner or not
@@ -1780,21 +1799,24 @@ namespace Legion {
                   }
                 }
               added = false;
-            } else
+            }
+            else
             {
               // It is mutable so just overwrite it
               finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
-          } else
+          }
+          else
           {
             finder->second.buffer.save_buffer(buffer, size);
             to_trigger = finder->second.ready_event;
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
-        } else
+        }
+        else
           semantic_infos[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (to_trigger.exists())
@@ -1820,7 +1842,8 @@ namespace Legion {
               send_semantic_info(
                   owner_space, tag, buffer, size, is_mutable, wait_on);
               wait_on.wait();
-            } else
+            }
+            else
               send_semantic_info(owner_space, tag, buffer, size, is_mutable);
           }
         }
@@ -1849,18 +1872,22 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             return true;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             if (can_fail)
             {
               // Have to make our own event
               request = Runtime::create_rt_user_event();
               wait_on = request;
-            } else  // can use the canonical event
+            }
+            else  // can use the canonical event
               wait_on = finder->second.ready_event;
-          } else if (wait_until)  // local so use the canonical event
+          }
+          else if (wait_until)  // local so use the canonical event
             wait_on = finder->second.ready_event;
-        } else
+        }
+        else
         {
           // Otherwise we make an event to wait on
           if (!can_fail && wait_until)
@@ -1869,7 +1896,8 @@ namespace Legion {
             request = Runtime::create_rt_user_event();
             semantic_infos[tag] = SemanticInfo(request);
             wait_on = request;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             // Make an event just for us to use
             request = Runtime::create_rt_user_event();
@@ -1886,7 +1914,8 @@ namespace Legion {
         REPORT_LEGION_ERROR(
             ERROR_INVALID_SEMANTIC_TAG,
             "Invalid semantic tag %ld for task implementation", tag)
-      } else
+      }
+      else
       {
         // Send a request if necessary
         if (is_remote && request.exists())
@@ -1973,9 +2002,11 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          } else if (!can_fail && wait_until)
+          }
+          else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        } else if (!can_fail && wait_until)
+        }
+        else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -1995,7 +2026,8 @@ namespace Legion {
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      } else
+      }
+      else
         send_semantic_info(target, tag, result, size, is_mutable, ready);
     }
 
@@ -2080,14 +2112,16 @@ namespace Legion {
       {
         user_data = malloc(user_data_size);
         memcpy(user_data, udata, user_data_size);
-      } else
+      }
+      else
         user_data = nullptr;
       // If we have a variant name, then record it
       if (registrar.task_variant_name == nullptr)
       {
         variant_name = (char*)malloc(64 * sizeof(char));
         snprintf(variant_name, 64, "unnamed_variant_%d", vid);
-      } else
+      }
+      else
         variant_name = strdup(registrar.task_variant_name);
       // If a global registration was requested, but the code descriptor
       // provided does not have portable implementations, try to make one
@@ -2110,7 +2144,8 @@ namespace Legion {
         ready_event = ApEvent(Processor::register_task_by_kind(
             Processor::LOC_PROC, false /*global*/, descriptor_id,
             realm_descriptor, profiling_requests, user_data, user_data_size));
-      } else if (proc_constraint.valid_kinds.size() > 1)
+      }
+      else if (proc_constraint.valid_kinds.size() > 1)
       {
         std::set<ApEvent> ready_events;
         for (std::vector<Processor::Kind>::const_iterator it =
@@ -2120,7 +2155,8 @@ namespace Legion {
               *it, false /*global*/, descriptor_id, realm_descriptor,
               profiling_requests, user_data, user_data_size)));
         ready_event = Runtime::merge_events(nullptr, ready_events);
-      } else
+      }
+      else
         ready_event = ApEvent(Processor::register_task_by_kind(
             proc_constraint.valid_kinds[0], false /*global*/, descriptor_id,
             realm_descriptor, profiling_requests, user_data, user_data_size));
@@ -2303,7 +2339,8 @@ namespace Legion {
           local_done.insert(next_done);
         }
         Runtime::trigger_event(done, Runtime::merge_events(local_done));
-      } else
+      }
+      else
         Runtime::trigger_event(done);
     }
 
@@ -2344,7 +2381,8 @@ namespace Legion {
 #endif
             padded_fields.insert(*fit);
           }
-        } else  // Add all the fields for this region requirement
+        }
+        else  // Add all the fields for this region requirement
           padded_fields.insert(
               req.privilege_fields.begin(), req.privilege_fields.end());
         FieldSpaceNode* fs = runtime->get_node(req.region.get_field_space());
@@ -2398,7 +2436,8 @@ namespace Legion {
                    req.privilege_fields.begin();
                fit != req.privilege_fields.end(); fit++)
             region.impl->add_padded_field(*fit);
-        } else
+        }
+        else
         {
           // Only add the fields specified by the constraint
           for (std::vector<FieldID>::const_iterator fit =

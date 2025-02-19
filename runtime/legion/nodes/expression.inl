@@ -45,7 +45,8 @@ namespace Legion {
       {
         runtime->record_empty_expression(result);
         return result;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(actual != nullptr);
@@ -132,7 +133,8 @@ namespace Legion {
           {
             dominated = true;
             break;
-          } else if (domain.bounds.contains(*it))
+          }
+          else if (domain.bounds.contains(*it))
           {
             // subtract out the old volume since it no longer will count
             total_volume -= it->volume();
@@ -193,9 +195,11 @@ namespace Legion {
               return rhs;
             else
               return nullptr;
-          } else
+          }
+          else
             return nullptr;
-        } else
+        }
+        else
         {
           // See if tightening with right bounds changes bounding box
           if (left.bounds == intersection)
@@ -203,7 +207,8 @@ namespace Legion {
           else
             return nullptr;
         }
-      } else if (!right.dense())
+      }
+      else if (!right.dense())
       {
         // See if tightening with the left bounds changes bounding box
         if (right.bounds == intersection)
@@ -311,13 +316,15 @@ namespace Legion {
           if (non_dominating_dim > -1)
             return nullptr;
           left.bounds.lo[i] = right.bounds.hi[i] + 1;
-        } else if (left.bounds.hi[i] <= right.bounds.hi[i])
+        }
+        else if (left.bounds.hi[i] <= right.bounds.hi[i])
         {
           // Just dominated on the high side
           if (non_dominating_dim > -1)
             return nullptr;
           left.bounds.hi[i] = right.bounds.lo[i] - 1;
-        } else  // Not dominated on either side
+        }
+        else  // Not dominated on either side
           return nullptr;
         non_dominating_dim = i;
       }
@@ -664,14 +671,17 @@ namespace Legion {
                   // Still in bounds so we can keep traversing
                   done = false;
                   break;
-                } else  // No longer in bounds, so ripple carry add
+                }
+                else  // No longer in bounds, so ripple carry add
                   offset[it->dim] = space.bounds.lo[it->dim];
               }
             }
-          } else
+          }
+          else
             piece_bounds.push_back(space.bounds);
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(piece_list != nullptr);
@@ -691,7 +701,8 @@ namespace Legion {
             piece_bounds.resize(covering.size());
             for (unsigned idx = 0; idx < covering.size(); idx++)
               piece_bounds[idx] = covering[idx];
-          } else
+          }
+          else
           {
             // Just fill in with the compact rectangles for now
             // This will likely fail the max pieces test later
@@ -700,7 +711,8 @@ namespace Legion {
               if (!itr.rect.empty())
                 piece_bounds.push_back(itr.rect);
           }
-        } else
+        }
+        else
         {
           for (Realm::IndexSpaceIterator<DIM, T> itr(space); itr.valid;
                itr.step())
@@ -722,7 +734,8 @@ namespace Legion {
           fl.size_in_bytes = field_sizes[idx];
         }
         return layout;
-      } else if (piece_bounds.size() > 1)
+      }
+      else if (piece_bounds.size() > 1)
       {
         // Realm doesn't currently support padding on multiple pieces because
         // then we might have valid points in multiple pieces and its
@@ -751,7 +764,8 @@ namespace Legion {
         Rect<DIM, T>* pieces = static_cast<Rect<DIM, T>*>(*piece_list);
         for (unsigned idx = 0; idx < piece_bounds.size(); idx++)
           pieces[idx] = piece_bounds[idx];
-      } else if (constraints.padding_constraint.delta.get_dim() > 0)
+      }
+      else if (constraints.padding_constraint.delta.get_dim() > 0)
       {
         // If the user requested any scratch padding on the instance apply it
         const Domain& delta = constraints.padding_constraint.delta;
@@ -981,7 +995,8 @@ namespace Legion {
                 piece->strides[*dit] = stride;
                 piece->offset -= bounds.lo[*dit] * stride;
                 stride *= (bounds.hi[*dit] - bounds.lo[*dit] + 1);
-              } else
+              }
+              else
               {
                 // Update the location for the next piece to start
                 if (!safe_reuse)
@@ -996,7 +1011,8 @@ namespace Legion {
               layout->bytes_used = piece_start + stride;
             pl.pieces.push_back(piece);
           }
-        } else
+        }
+        else
           li = finder->second;
 #ifdef DEBUG_LEGION
         assert(layout->fields.count(it->second) == 0);
@@ -1025,7 +1041,8 @@ namespace Legion {
         else
           // Make a new expression for the bounding box
           return new InternalExpression<DIM, T>(&space.bounds, 1 /*size*/);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(num_rects > 0);
@@ -1077,7 +1094,8 @@ namespace Legion {
         if (tight_bounds)
           return local.bounds == other.bounds;
         return true;
-      } else
+      }
+      else
       {
         // Padding is not supported for sparse layouts
         if ((padding_delta != nullptr) && (padding_delta->get_dim() > 0))
@@ -1180,7 +1198,8 @@ namespace Legion {
       {
         expressions.insert(this);
         return this;
-      } else if (expressions.contains(this))
+      }
+      else if (expressions.contains(this))
         return this;
       DomainT<DIM, T> local_space = get_tight_domain();
       size_t local_rect_count = 0;
@@ -1203,7 +1222,8 @@ namespace Legion {
             if (local_tree != nullptr)
               delete local_tree;
             return expr;
-          } else
+          }
+          else
             continue;
         }
         if (!local_space.sparsity.exists() || !other_space.sparsity.exists())
@@ -1218,7 +1238,8 @@ namespace Legion {
               local_space.sparsity.exists() || other_space.sparsity.exists());
 #endif
           continue;
-        } else
+        }
+        else
         {
           // Both have sparsity maps
           // We know something important though here: we know that both
@@ -1262,7 +1283,8 @@ namespace Legion {
             }
             if (!congruent)
               continue;
-          } else
+          }
+          else
           {
             // Iterate our rectangles and see if they are all covered
             bool congruent = true;
@@ -1487,14 +1509,16 @@ namespace Legion {
                index_space_users.front().has_triggered_faultignorant())
           index_space_users.pop_front();
         index_space_users.push_back(user);
-      } else if (!realm_index_space.dense())
+      }
+      else if (!realm_index_space.dense())
       {
         AutoLock i_lock(inter_lock);
         if (is_index_space_tight.load())
         {
           if (tight_index_space.dense())
             return;
-        } else if (realm_index_space.dense())
+        }
+        else if (realm_index_space.dense())
           return;
         // Try popping entries off the front of the list
         while (!index_space_users.empty() &&
@@ -1578,14 +1602,16 @@ namespace Legion {
         rez.serialize<bool>(true /*local*/);
         rez.serialize(this);
         this->add_base_expression_reference(LIVE_EXPR_REF);
-      } else if (target == this->owner_space)
+      }
+      else if (target == this->owner_space)
       {
         rez.serialize<bool>(true /*local*/);
         rez.serialize(origin_expr);
         // Add a reference here that we'll remove after we've added a reference
         // on the target space expression
         this->pack_global_ref();
-      } else
+      }
+      else
       {
         rez.serialize<bool>(false /*local*/);
         rez.serialize<bool>(false /*index space*/);
@@ -1975,10 +2001,12 @@ namespace Legion {
             this->tight_index_space_ready = runtime->issue_runtime_meta_task(
                 args, LG_LATENCY_WORK_PRIORITY,
                 Runtime::protect_event(this->realm_index_space_ready));
-        } else
+        }
+        else
           this->tight_index_space_ready = runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, valid_event);
-      } else  // We can do the tighten call now
+      }
+      else  // We can do the tighten call now
         this->tighten_index_space();
       if (runtime->legion_spy_enabled)
       {
@@ -2102,10 +2130,12 @@ namespace Legion {
             this->tight_index_space_ready = runtime->issue_runtime_meta_task(
                 args, LG_LATENCY_WORK_PRIORITY,
                 Runtime::protect_event(this->realm_index_space_ready));
-        } else
+        }
+        else
           this->tight_index_space_ready = runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, valid_event);
-      } else  // We can do the tighten call now
+      }
+      else  // We can do the tighten call now
         this->tighten_index_space();
       if (runtime->legion_spy_enabled)
       {
@@ -2192,7 +2222,8 @@ namespace Legion {
         this->tight_index_space = Realm::IndexSpace<DIM, T>::make_empty();
         this->realm_index_space_ready = ApEvent::NO_AP_EVENT;
         this->tight_index_space_ready = RtEvent::NO_RT_EVENT;
-      } else
+      }
+      else
       {
         // Add the parent and the references
         lhs->add_derived_operation(this);
@@ -2238,10 +2269,12 @@ namespace Legion {
               this->tight_index_space_ready = runtime->issue_runtime_meta_task(
                   args, LG_LATENCY_WORK_PRIORITY,
                   Runtime::protect_event(this->realm_index_space_ready));
-          } else
+          }
+          else
             this->tight_index_space_ready = runtime->issue_runtime_meta_task(
                 args, LG_LATENCY_WORK_PRIORITY, valid_event);
-        } else  // We can do the tighten call now
+        }
+        else  // We can do the tighten call now
           this->tighten_index_space();
       }
       if (runtime->legion_spy_enabled)
@@ -2336,9 +2369,11 @@ namespace Legion {
           IndexSpaceExpression::TightenIndexSpaceArgs args(this, this);
           this->tight_index_space_ready = runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, valid_event);
-        } else  // We can do the tighten call now
+        }
+        else  // We can do the tighten call now
           this->tighten_index_space();
-      } else
+      }
+      else
       {
         this->realm_index_space.bounds = rects[0];
         this->realm_index_space.sparsity.id = 0;

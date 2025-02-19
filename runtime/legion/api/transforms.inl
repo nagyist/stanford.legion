@@ -88,7 +88,8 @@ namespace Legion {
           {
             if (transform[i][j] != 1)
               return false;
-          } else
+          }
+          else
           {
             if (transform[i][j] != 0)
               return false;
@@ -97,7 +98,8 @@ namespace Legion {
         if (offset[i] != 0)
           return false;
       return true;
-    } else
+    }
+    else
       return false;
   }
 
@@ -186,7 +188,8 @@ namespace Legion {
           {
             if (transform[i][j] != 1)
               return false;
-          } else
+          }
+          else
           {
             if (transform[i][j] != 0)
               return false;
@@ -200,7 +203,8 @@ namespace Legion {
         if (divisor[i] != 1)
           return false;
       return true;
-    } else
+    }
+    else
       return false;
   }
 
@@ -361,7 +365,8 @@ namespace Legion {
         {
           if (matrix[i * n + j] != 1)
             return false;
-        } else
+        }
+        else
         {
           if (matrix[i * n + j] != 0)
             return false;

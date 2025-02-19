@@ -57,7 +57,8 @@ namespace Legion {
           if (remote_field_infos.empty())
             allocation_state = FIELD_ALLOC_READ_ONLY;
         }
-      } else if (allocation_state == FIELD_ALLOC_COLLECTIVE)
+      }
+      else if (allocation_state == FIELD_ALLOC_COLLECTIVE)
         unallocated_indexes = FieldMask(LEGION_FIELD_MASK_FIELD_ALL_ONES);
       if (provenance != nullptr)
         provenance->add_reference();
@@ -318,21 +319,24 @@ namespace Legion {
                   }
                 }
               added = false;
-            } else
+            }
+            else
             {
               // Mutable so we can overwrite
               finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
-          } else
+          }
+          else
           {
             finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
-        } else
+        }
+        else
           semantic_info[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (added)
@@ -397,21 +401,24 @@ namespace Legion {
                   }
                 }
               added = false;
-            } else
+            }
+            else
             {
               // Mutable so we can overwrite
               finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
-          } else
+          }
+          else
           {
             finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
-        } else
+        }
+        else
         {
           semantic_field_info[std::pair<FieldID, SemanticTag>(fid, tag)] =
               SemanticInfo(buffer, size, is_mutable);
@@ -451,18 +458,22 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             return true;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             if (can_fail)
             {
               // Have to make our own event
               request = Runtime::create_rt_user_event();
               wait_on = request;
-            } else  // can use the canonical event
+            }
+            else  // can use the canonical event
               wait_on = finder->second.ready_event;
-          } else if (wait_until)  // local so use the canonical event
+          }
+          else if (wait_until)  // local so use the canonical event
             wait_on = finder->second.ready_event;
-        } else
+        }
+        else
         {
           // Otherwise we make an event to wait on
           if (!can_fail && wait_until)
@@ -471,7 +482,8 @@ namespace Legion {
             request = Runtime::create_rt_user_event();
             semantic_info[tag] = SemanticInfo(request);
             wait_on = request;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             // Make an event just for us to use
             request = Runtime::create_rt_user_event();
@@ -490,7 +502,8 @@ namespace Legion {
             "invalid semantic tag %ld for "
             "field space %llu",
             tag, handle.get_id())
-      } else
+      }
+      else
       {
         // Send a request if necessary
         if (is_remote && request.exists())
@@ -550,18 +563,22 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             return true;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             if (can_fail)
             {
               // Have to make our own event
               request = Runtime::create_rt_user_event();
               wait_on = request;
-            } else  // can use the canonical event
+            }
+            else  // can use the canonical event
               wait_on = finder->second.ready_event;
-          } else if (wait_until)  // local so use the canonical event
+          }
+          else if (wait_until)  // local so use the canonical event
             wait_on = finder->second.ready_event;
-        } else
+        }
+        else
         {
           // Otherwise we make an event to wait on
           if (!can_fail && wait_until)
@@ -570,7 +587,8 @@ namespace Legion {
             request = Runtime::create_rt_user_event();
             semantic_info[tag] = SemanticInfo(request);
             wait_on = request;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             // Make an event just for us to use
             request = Runtime::create_rt_user_event();
@@ -588,7 +606,8 @@ namespace Legion {
             "invalid semantic tag %ld for field %d "
             "of field space %llu",
             tag, fid, handle.get_id())
-      } else
+      }
+      else
       {
         // Send a request if necessary
         if (is_remote && request.exists())
@@ -691,9 +710,11 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          } else if (!can_fail && wait_until)
+          }
+          else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        } else if (!can_fail && wait_until)
+        }
+        else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -712,7 +733,8 @@ namespace Legion {
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      } else
+      }
+      else
         send_semantic_info(source, tag, result, size, is_mutable, ready);
     }
 
@@ -742,9 +764,11 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          } else if (!can_fail && wait_until)
+          }
+          else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        } else if (!can_fail && wait_until)
+        }
+        else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -763,7 +787,8 @@ namespace Legion {
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      } else
+      }
+      else
         send_semantic_field_info(
             source, fid, tag, result, size, is_mutable, ready);
     }
@@ -1036,7 +1061,8 @@ namespace Legion {
                       {
                         std::map<FieldID, FieldInfo>::iterator to_delete = it++;
                         field_infos.erase(to_delete);
-                      } else
+                      }
+                      else
                         it++;  // skip deleting local fields
                     }
                   }
@@ -1063,14 +1089,16 @@ namespace Legion {
                 runtime->send_field_space_allocator_response(source, rez);
                 remote_field_infos.insert(source);
                 allocation_state = FIELD_ALLOC_INVALID;
-              } else
+              }
+              else
               {
                 // We are now the exclusive allocation owner
                 if (outstanding_invalidations > 0)
                 {
                   pending_field_allocation = invalidations_done;
                   allocation_state = FIELD_ALLOC_PENDING;
-                } else  // we're ready now
+                }
+                else  // we're ready now
                   allocation_state = FIELD_ALLOC_EXCLUSIVE;
                 outstanding_allocators = 1;
                 if (ready_event.exists())
@@ -1096,7 +1124,8 @@ namespace Legion {
           default:
             std::abort();
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!ready_event.exists());
@@ -1111,7 +1140,8 @@ namespace Legion {
             n_lock.release();
             wait_on.wait();
             n_lock.reacquire();
-          } else
+          }
+          else
             break;
         }
         // See if we already have allocation privileges
@@ -1126,7 +1156,8 @@ namespace Legion {
           }
           runtime->send_field_space_allocator_request(owner_space, rez);
           pending_field_allocation = ready_event;
-        } else  // Have privileges, increment our allocator count
+        }
+        else  // Have privileges, increment our allocator count
           outstanding_allocators++;
       }
       return ready_event;
@@ -1168,7 +1199,8 @@ namespace Legion {
         assert(!is_owner());
 #endif
         return RtEvent::NO_RT_EVENT;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(outstanding_allocators > 0);
@@ -1684,7 +1716,8 @@ namespace Legion {
             update_events.insert(done_event);
           }
         }
-      } else
+      }
+      else
       {
         // If the source is not the owner and we're not in a collective
         // mode then we have to send the message to the owner
@@ -1919,7 +1952,8 @@ namespace Legion {
           field_infos[fid] = FieldInfo(
               sizes[idx], new_indexes[idx], serdez_id, prov, true /*local*/);
         }
-      } else
+      }
+      else
       {
         // We're the owner so do the field allocation
         AutoLock n_lock(node_lock);
@@ -1959,7 +1993,8 @@ namespace Legion {
         {
           if (local_space != owner_space)
             return;
-        } else
+        }
+        else
         {
           const AddressSpaceID nearest = mapping->find_nearest(owner_space);
           if (nearest == local_space)
@@ -1979,7 +2014,8 @@ namespace Legion {
           }
           return;
         }
-      } else
+      }
+      else
       {
         if (!is_owner())
         {
@@ -2604,7 +2640,8 @@ namespace Legion {
               mask.set_bit(finder->second.idx);
             }
           }
-        } else
+        }
+        else
           invalid = true;
       }
       if (invalid)
@@ -2679,7 +2716,8 @@ namespace Legion {
         }
         FieldSpaceNode* node = runtime->get_node(handle);
         ready = node->allocate_fields(sizes, fids, serdez_id, provenance);
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < num_fields; idx++)
           derez.deserialize(fids[idx]);
@@ -2807,7 +2845,8 @@ namespace Legion {
           rez.serialize(done_event);
         }
         runtime->send_local_field_alloc_response(source, rez);
-      } else  // if we failed we can just trigger the event
+      }
+      else  // if we failed we can just trigger the event
         Runtime::trigger_event(done_event);
     }
 
@@ -3213,7 +3252,8 @@ namespace Legion {
               it->second.serialize(rez);
             }
             remote_field_infos.insert(target);
-          } else
+          }
+          else
             rez.serialize<size_t>(0);
           rez.serialize<size_t>(semantic_info.size());
           for (LegionMap<SemanticTag, SemanticInfo>::iterator it =
@@ -3547,11 +3587,13 @@ namespace Legion {
                 char temp[32];
                 snprintf(temp, 32, "%d", it->first);
                 result += temp;
-              } else
+              }
+              else
                 local_indexes.insert(it->second.idx);
             }
           }
-        } else
+        }
+        else
           invalid = true;
       }
       if (invalid)
@@ -3574,7 +3616,8 @@ namespace Legion {
               char temp[32];
               snprintf(temp, 32, "%d", it->first);
               result += temp;
-            } else
+            }
+            else
               local_indexes.insert(it->second.idx);
           }
         }
@@ -3629,7 +3672,8 @@ namespace Legion {
           result = it->first;
           available_indexes.erase(it);
           return result;
-        } else if (backup == available_indexes.end())
+        }
+        else if (backup == available_indexes.end())
         {
           // If we haven't recorded a back-up then this is the
           // first once we've found so record it
@@ -3733,7 +3777,8 @@ namespace Legion {
               if ((*it)->remove_reference())
                 delete (*it);
               it = descs.erase(it);
-            } else
+            }
+            else
             {
               it++;
               perform_delete = false;
@@ -3776,7 +3821,8 @@ namespace Legion {
               runtime->issue_runtime_meta_task(
                   args, LG_LATENCY_DEFERRED_PRIORITY, wait_on);
               return to_trigger;
-            } else
+            }
+            else
               wait_on.wait();
           }
           AutoLock n_lock(node_lock);
@@ -3800,7 +3846,8 @@ namespace Legion {
               rez.serialize(to_trigger);
             }
             runtime->send_field_space_infos_request(target, rez);
-          } else if (allocation_state == FIELD_ALLOC_READ_ONLY)
+          }
+          else if (allocation_state == FIELD_ALLOC_READ_ONLY)
           {
             // We can send back a response, make them a reader if they
             // are not one already
@@ -3827,22 +3874,26 @@ namespace Legion {
                 {
                   rez.serialize(handle);
                   remote_field_infos.insert(source);
-                } else
+                }
+                else
                   rez.serialize(FieldSpace::NO_SPACE);
                 rez.serialize(to_trigger);
               }
               runtime->send_field_space_infos_response(source, rez);
-            } else
+            }
+            else
             {
               *copy = field_infos;
               if (to_trigger.exists())
                 Runtime::trigger_event(to_trigger);
             }
-          } else if (allocation_state == FIELD_ALLOC_PENDING)
+          }
+          else if (allocation_state == FIELD_ALLOC_PENDING)
           {
             wait_on = pending_field_allocation;
             continue;
-          } else
+          }
+          else
           {
             // If we have allocation privileges we can send the response
             // but we can't make them a read-only copy
@@ -3867,7 +3918,8 @@ namespace Legion {
                 rez.serialize(to_trigger);
               }
               runtime->send_field_space_infos_response(source, rez);
-            } else
+            }
+            else
             {
               *copy = field_infos;
               if (to_trigger.exists())
@@ -3877,7 +3929,8 @@ namespace Legion {
           // Always break out if we make it here
           break;
         }
-      } else
+      }
+      else
       {
         // Not the owner
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
@@ -3907,13 +3960,15 @@ namespace Legion {
               rez.serialize(to_trigger);
             }
             runtime->send_field_space_infos_response(source, rez);
-          } else
+          }
+          else
           {
             *copy = field_infos;
             if (to_trigger.exists())
               Runtime::trigger_event(to_trigger);
           }
-        } else
+        }
+        else
         {
           // Did not lose the race, send the request back to the owner
           if (!to_trigger.exists())
@@ -4029,7 +4084,8 @@ namespace Legion {
           {
             std::map<FieldID, FieldInfo>::iterator to_delete = it++;
             field_infos.erase(to_delete);
-          } else
+          }
+          else
             it++;
         }
         rez.serialize(unallocated_indexes);
@@ -4045,7 +4101,8 @@ namespace Legion {
         rez.serialize(outstanding_allocators);
         outstanding_allocators = 0;
         rez.serialize(done_event);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(
@@ -4064,7 +4121,8 @@ namespace Legion {
           {
             std::map<FieldID, FieldInfo>::iterator to_delete = it++;
             field_infos.erase(to_delete);
-          } else
+          }
+          else
             it++;
         }
         rez.serialize(done_event);
@@ -4122,7 +4180,8 @@ namespace Legion {
               available_indexes.push_back(next);
           }
           derez.advance_pointer(sizeof(outstanding_allocators));
-        } else
+        }
+        else
         {
           size_t num_infos;
           derez.deserialize(num_infos);
@@ -4209,7 +4268,8 @@ namespace Legion {
         }
         if (allocation_state == FIELD_ALLOC_INVALID)
           allocation_state = FIELD_ALLOC_READ_ONLY;
-      } else
+      }
+      else
         destroy_allocator(source);
     }
 
@@ -4250,7 +4310,8 @@ namespace Legion {
               break;
             }
             // Else different field size means we can't reuse it
-          } else
+          }
+          else
           {
             // Not in use, so we can assign the size and make
             // ourselves the first user

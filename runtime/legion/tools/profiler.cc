@@ -696,7 +696,8 @@ namespace Legion {
             barrier = barrier.get_previous_phase();
           }
         }
-      } else
+      }
+      else
         // The barrier hasn't triggered yet so launch a profiling task to
         // record it has triggered
         owner->profile_barrier_trigger(barrier, uid);
@@ -835,7 +836,8 @@ namespace Legion {
         const size_t diff =
             sizeof(GPUTaskInfo) + num_intervals * sizeof(WaitInfo);
         owner->update_footprint(diff, this);
-      } else
+      }
+      else
       {
         task_infos.emplace_back(TaskInfo());
         TaskInfo& info = task_infos.back();
@@ -1091,7 +1093,8 @@ namespace Legion {
             indirect.src_fid = it->src_indirection_field;
             indirect.src_inst_uid =
                 closure->find_instance_name(it->src_indirection_inst);
-          } else
+          }
+          else
           {
             indirect.src = 0;
             indirect.src_fid = 0;
@@ -1103,7 +1106,8 @@ namespace Legion {
             indirect.dst_fid = it->dst_indirection_field;
             indirect.dst_inst_uid =
                 closure->find_instance_name(it->dst_indirection_inst);
-          } else
+          }
+          else
           {
             indirect.dst = 0;
             indirect.dst_fid = 0;
@@ -1138,7 +1142,8 @@ namespace Legion {
               }
             }
           }
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           // Ask the Realm developers about why these assertions are true
@@ -1408,7 +1413,8 @@ namespace Legion {
         // on a Realm processor so we need to get the proxy processor
         // for the context instead
         current.id = owner->get_implicit_processor();
-      } else
+      }
+      else
         process_proc_desc(current);
       // Check to see if it exceeds the call threshold
       if ((stop - start) < owner->minimum_call_threshold)
@@ -1442,7 +1448,8 @@ namespace Legion {
         // on a Realm processor so we need to get the proxy processor
         // for the context instead
         current.id = owner->get_implicit_processor();
-      } else
+      }
+      else
         process_proc_desc(current);
       // Check to see if it exceeds the call threshold
       if ((stop - start) < owner->minimum_call_threshold)
@@ -2267,7 +2274,8 @@ namespace Legion {
                 "ERROR: The logfile name must contain '%%' "
                 "which will be replaced with the node id\n")
           serializer = new LegionProfBinarySerializer(filename.c_str());
-        } else
+        }
+        else
         {
           // replace % with node number
           std::stringstream ss;
@@ -2275,7 +2283,8 @@ namespace Legion {
              << filename.substr(pct + 1);
           serializer = new LegionProfBinarySerializer(ss.str());
         }
-      } else if (!strcmp(serializer_type, "ascii"))
+      }
+      else if (!strcmp(serializer_type, "ascii"))
       {
         if (prof_logfile != nullptr)
           REPORT_LEGION_WARNING(
@@ -2285,7 +2294,8 @@ namespace Legion {
               "       legion_prof output will be written to '-logfile "
               "<logfile_name>' instead")
         serializer = new LegionProfASCIISerializer();
-      } else
+      }
+      else
         REPORT_LEGION_ERROR(
             ERROR_INVALID_PROFILER_SERIALIZER,
             "Invalid serializer (%s), must be 'binary' "
@@ -2406,7 +2416,8 @@ namespace Legion {
         // Need a lock to protect the serializer
         AutoLock p_lock(profiler_lock);
         serializer->serialize(task_kind);
-      } else
+      }
+      else
         serializer->serialize(task_kind);
     }
 
@@ -2422,7 +2433,8 @@ namespace Legion {
         // Need a lock to protect the serializer
         AutoLock p_lock(profiler_lock);
         serializer->serialize(task_variant);
-      } else
+      }
+      else
         serializer->serialize(task_variant);
     }
 
@@ -3024,7 +3036,8 @@ namespace Legion {
           recorded_barriers.erase(finder);
         else
           finder->second = generation;
-      } else
+      }
+      else
       {
         previous.id = Realm::ID::make_barrier(
                           key.first, key.second, 0 /*base generation*/)
@@ -3172,7 +3185,8 @@ namespace Legion {
           implicit_profiler->record_proftask(
               proc, info->op_id, start, stop, fevent, implicit_fevent,
               true /*completion*/);
-        } else
+        }
+        else
         {
           Realm::ProfilingMeasurements::OperationFinishEvent finish;
           if (response.get_measurement(finish))
@@ -3227,7 +3241,8 @@ namespace Legion {
         // Need a lock to protect the serializer
         AutoLock p_lock(profiler_lock);
         serializer->serialize(mapper_name);
-      } else
+      }
+      else
         serializer->serialize(mapper_name);
     }
 
@@ -3274,7 +3289,8 @@ namespace Legion {
         // Need a lock to protect the serializer
         AutoLock p_lock(profiler_lock);
         serializer->serialize(prov);
-      } else
+      }
+      else
         serializer->serialize(prov);
     }
 
@@ -3408,7 +3424,8 @@ namespace Legion {
           // Need a lock to protect the serializer
           AutoLock p_lock(profiler_lock);
           diff = inst->dump_inter(serializer, over_scale);
-        } else
+        }
+        else
           diff = inst->dump_inter(serializer, over_scale);
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
@@ -3469,7 +3486,8 @@ namespace Legion {
               "mapper call\n",
               runtime->address_space, task->get_task_name(),
               task->get_unique_op_id(), mapper_call_name);
-      } else
+      }
+      else
         fprintf(
             stderr,
             "First use of the default mapper in address space %d\n"
@@ -3517,7 +3535,8 @@ namespace Legion {
         {
           delete instance;
           return finder->second;
-        } else
+        }
+        else
           processor_instances[current] = instance;
       }
       instances.push_back(instance);

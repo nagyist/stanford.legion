@@ -94,7 +94,8 @@ namespace Legion {
                (current_state == GLOBAL_REF_STATE) ||
                (current_state == PENDING_LOCAL_REF_STATE) ||
                (current_state == PENDING_GLOBAL_REF_STATE);
-      } else
+      }
+      else
         return (current_state == VALID_REF_STATE) ||
                (current_state == GLOBAL_REF_STATE) ||
                (current_state == PENDING_LOCAL_REF_STATE) ||
@@ -269,7 +270,8 @@ namespace Legion {
           finder->second += cnt;
 #endif
         return true;
-      } else
+      }
+      else
         return false;
     }
 
@@ -299,10 +301,12 @@ namespace Legion {
 #else
             gc_references.fetch_add(count);
 #endif
-          } else  // Otherwise pack a reference to send back
+          }
+          else  // Otherwise pack a reference to send back
             sent_global_references++;
           return true;
-        } else
+        }
+        else
           current = downgrade_owner;
       }
       return false;
@@ -346,13 +350,15 @@ namespace Legion {
               rez.serialize(ready);
             }
             runtime->send_did_acquire_global_response(source, rez);
-          } else
+          }
+          else
           {
             // Might have been sent back to ourself eventually
             result->store(true);
             Runtime::trigger_event(ready);
           }
-        } else if (current_owner != dc->local_space)
+        }
+        else if (current_owner != dc->local_space)
         {
           // Not the owner anymore, so forward and keep chasing
           Serializer rez;
@@ -366,12 +372,14 @@ namespace Legion {
             rez.serialize(ready);
           }
           runtime->send_did_acquire_global_request(current_owner, rez);
-        } else
+        }
+        else
           // Failed so trigger the event
           Runtime::trigger_event(ready);
         if (dc->remove_base_resource_ref(RUNTIME_REF))
           delete dc;
-      } else
+      }
+      else
         // Failed so trigger the event
         Runtime::trigger_event(ready);
     }
@@ -608,7 +616,8 @@ namespace Legion {
         rez.serialize(current_state);
         runtime->send_did_downgrade_update(remote_inst, rez);
         downgrade_owner = remote_inst;
-      } else if (remaining_responses > 0)
+      }
+      else if (remaining_responses > 0)
       {
         // Another hairy case: if we receive a notification of a new remote
         // instance and we're in the middle of a downgrade check, we can't
@@ -710,7 +719,8 @@ namespace Legion {
           // We're the downgrade owner so check to see if we can resume
           // doing collections or we can wait for the next removal
           check_for_downgrade_restart(local_space);
-        } else if (current_state == PENDING_LOCAL_REF_STATE)
+        }
+        else if (current_state == PENDING_LOCAL_REF_STATE)
         {
           // Send a notification to the downgrade owner to check if it
           // needs to resume collections now that this reference has
@@ -758,7 +768,8 @@ namespace Legion {
               // Send messages to see if we can perform the deletion
               check_for_downgrade(downgrade_owner);
               return false;
-            } else
+            }
+            else
             {
               // No messages to send so we can downgrade the state now
               return perform_downgrade(gc);
@@ -837,7 +848,8 @@ namespace Legion {
           downgrade_functor.owner = downgrade_owner;
           remote_instances.map(downgrade_functor);
         }
-      } else if (downgrade_owner == local_space)
+      }
+      else if (downgrade_owner == local_space)
       {
         // If we're the owner then we have to send it to the owner_space
         // to get all the remote instances
@@ -974,7 +986,8 @@ namespace Legion {
             remaining_responses +=
                 (remote_instances.size() - downgrade_functor.skipped);
           }
-        } else if (owner == local_space)
+        }
+        else if (owner == local_space)
         {
 #ifdef DEBUG_LEGION
           // Should be in a non-pending state if we're the owner
@@ -1030,7 +1043,8 @@ namespace Legion {
           }
 #endif
         }
-      } else if (local_space != owner)
+      }
+      else if (local_space != owner)
       {
         const AddressSpaceID target = get_downgrade_target(owner);
         Serializer rez;
@@ -1075,7 +1089,8 @@ namespace Legion {
         rez.serialize(did);
         rez.serialize(current_state);
         runtime->send_did_downgrade_update(new_owner, rez);
-      } else
+      }
+      else
         check_for_downgrade(new_owner);
     }
 
@@ -1208,7 +1223,8 @@ namespace Legion {
           {
             // Then perform our local downgrade
             return perform_downgrade(gc);
-          } else
+          }
+          else
           {
             // Not ready to downgrade
             if (notready_owner != downgrade_owner)
@@ -1237,7 +1253,8 @@ namespace Legion {
             // check_for_downgrade(downgrade_owner);
             //}
           }
-        } else
+        }
+        else
         {
           const AddressSpaceID target = get_downgrade_target(downgrade_owner);
           // We had to release the lock to send the requests to our upstream
@@ -1254,7 +1271,8 @@ namespace Legion {
             rez.serialize(total_received_references);
             // Record that we're in the pending downgrade state
             record_pending_downgrade();
-          } else
+          }
+          else
           {
             RezCheck z(rez);
             rez.serialize(did);
@@ -1418,7 +1436,8 @@ namespace Legion {
         AutoLock gc(gc_lock);
         return (current_state == VALID_REF_STATE) ||
                (current_state == PENDING_GLOBAL_REF_STATE);
-      } else
+      }
+      else
         return (current_state == VALID_REF_STATE) ||
                (current_state == PENDING_GLOBAL_REF_STATE);
     }
@@ -1639,7 +1658,8 @@ namespace Legion {
           finder->second += cnt;
 #endif
         return true;
-      } else
+      }
+      else
         return false;
     }
 
@@ -1669,10 +1689,12 @@ namespace Legion {
 #else
             valid_references.fetch_add(count);
 #endif
-          } else  // Otherwise pack a reference to send back
+          }
+          else  // Otherwise pack a reference to send back
             sent_valid_references++;
           return true;
-        } else
+        }
+        else
           current = downgrade_owner;
       }
       return false;
@@ -1717,13 +1739,15 @@ namespace Legion {
               rez.serialize(ready);
             }
             runtime->send_did_acquire_valid_response(source, rez);
-          } else
+          }
+          else
           {
             // Might have been sent back to ourself eventually
             result->store(true);
             Runtime::trigger_event(ready);
           }
-        } else if (current_owner != dc->local_space)
+        }
+        else if (current_owner != dc->local_space)
         {
           // Not the owner anymore, so forward and keep chasing
           Serializer rez;
@@ -1737,12 +1761,14 @@ namespace Legion {
             rez.serialize(ready);
           }
           runtime->send_did_acquire_valid_request(current_owner, rez);
-        } else
+        }
+        else
           // Failed so trigger the event
           Runtime::trigger_event(ready);
         if (dc->remove_base_resource_ref(RUNTIME_REF))
           delete dc;
-      } else
+      }
+      else
         // Failed so trigger the event
         Runtime::trigger_event(ready);
     }
@@ -1799,7 +1825,8 @@ namespace Legion {
           // We're the downgrade owner so check to see if we can resume
           // doing collections or we can wait for the next removal
           check_for_downgrade_restart(local_space);
-        } else if (current_state == PENDING_GLOBAL_REF_STATE)
+        }
+        else if (current_state == PENDING_GLOBAL_REF_STATE)
         {
           // Send a notification to the downgrade owner to check if it
           // needs to resume collections now that this reference has
@@ -1872,7 +1899,8 @@ namespace Legion {
           return can_delete(gc);
         else
           return false;
-      } else
+      }
+      else
         return DistributedCollectable::perform_downgrade(gc);
     }
 
@@ -1896,7 +1924,8 @@ namespace Legion {
         current_state = VALID_REF_STATE;
         if (valid_references == 0)
           check_for_downgrade(downgrade_owner);
-      } else
+      }
+      else
         DistributedCollectable::process_downgrade_update(gc, to_check);
     }
 
@@ -1909,7 +1938,8 @@ namespace Legion {
       {
         total_sent_references += sent_valid_references;
         total_received_references += received_valid_references;
-      } else
+      }
+      else
         DistributedCollectable::accumulate_local_references();
     }
 
@@ -1924,7 +1954,8 @@ namespace Legion {
         assert(downgrade_owner != local_space);
 #endif
         current_state = PENDING_GLOBAL_REF_STATE;
-      } else
+      }
+      else
         DistributedCollectable::record_pending_downgrade();
     }
 

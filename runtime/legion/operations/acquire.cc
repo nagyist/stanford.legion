@@ -856,7 +856,8 @@ namespace Legion {
         // Normal analysis path
         runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/, pre);
         return collective_map_barrier;
-      } else  // Tracing path
+      }
+      else  // Tracing path
         return pre;
     }
 

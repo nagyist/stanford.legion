@@ -323,7 +323,8 @@ namespace Legion {
               parent_req_index, condition_expr);
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_DEFERRED_PRIORITY, ready);
-        } else
+        }
+        else
           finalize_equivalence_sets(
               compute_event, context, outermost, parent_req_index,
               condition_expr, op->get_unique_op_id());
@@ -465,7 +466,8 @@ namespace Legion {
         events.push_back(ApEvent());
         insert_instruction(
             new MergeEvent(*this, complete, preconditions, tlid));
-      } else
+      }
+      else
         complete = *(preconditions.begin());
       events.push_back(ApEvent());
       CompleteReplay* fence = new CompleteReplay(*this, tlid, complete);
@@ -642,14 +644,16 @@ namespace Legion {
         // Can dump now if we're not deferring the transitive reduction
         else if (runtime->dump_physical_traces)
           dump_template();
-      } else
+      }
+      else
       {
         if (runtime->dump_physical_traces)
         {
           // Optimize will sync the idempotency computation
           optimize(op, !runtime->no_transitive_reduction);
           dump_template();
-        } else
+        }
+        else
           op->end_idempotent_exchange(idempotency);
       }
       return replayable;
@@ -718,7 +722,8 @@ namespace Legion {
           if (failure.expr != nullptr)
             failure.expr->add_base_expression_reference(TRACE_REF);
         }
-      } else if (
+      }
+      else if (
           (postviews != nullptr) && (antiviews != nullptr) &&
           !postviews->independent_of(*antiviews, &fail))
       {
@@ -927,7 +932,8 @@ namespace Legion {
       {
         gen.resize(events.size(), 0 /*fence instruction*/);
         for (unsigned idx = 0; idx < instructions.size(); ++idx) gen[idx] = idx;
-      } else
+      }
+      else
         elide_fences(gen, frontier_events);
       // Sync the frontier computation so we know that all our frontier data
       // structures such as 'local_frontiers' and 'remote_frontiers' are ready
@@ -1073,7 +1079,8 @@ namespace Legion {
               unsigned index = find_frontier_event(*it, frontier_events);
               uit->frontiers.push_back(index);
               frontier_map[*it] = index;
-            } else
+            }
+            else
               uit->frontiers.push_back(finder->second);
           }
         }
@@ -1138,7 +1145,8 @@ namespace Legion {
                 InstructionKind generator_kind =
                     instructions[across->copy_precondition]->get_kind();
                 num_merges += (generator_kind != MERGE_EVENT) ? 1 : 0;
-              } else
+              }
+              else
               {
                 InstructionKind generator_kind =
                     instructions[across->collective_precondition]->get_kind();
@@ -1314,7 +1322,8 @@ namespace Legion {
       {
         MergeEvent* merge = generator_inst->as_merge_event();
         merge->rhs.insert(users.begin(), users.end());
-      } else
+      }
+      else
       {
         unsigned merging_event_idx = merge_starts++;
         gen[merging_event_idx] = new_instructions.size();
@@ -1353,7 +1362,8 @@ namespace Legion {
                   MergeEvent* to_splice = generator->as_merge_event();
                   new_rhs.insert(to_splice->rhs.begin(), to_splice->rhs.end());
                   changed = true;
-                } else
+                }
+                else
                   new_rhs.insert(*it);
               }
               if (changed)
@@ -1455,7 +1465,8 @@ namespace Legion {
           if (e != -1U)
             new_gen[e] = new_instructions.size();
           new_instructions.push_back(inst);
-        } else
+        }
+        else
           to_delete.push_back(instructions[idx]);
       instructions.swap(new_instructions);
       gen.swap(new_gen);
@@ -1547,7 +1558,8 @@ namespace Legion {
           assert(finder->second.target_procs.size() > 0);
 #endif
           slice_index = finder->second.target_procs[0].id % replay_parallelism;
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(
@@ -1590,7 +1602,8 @@ namespace Legion {
 #endif
           slice_index = finder->second;
           user_event_slices.erase(finder);
-        } else
+        }
+        else
         {
           slice_index = next_slice_id;
           next_slice_id = (next_slice_id + 1) % replay_parallelism;
@@ -1641,7 +1654,8 @@ namespace Legion {
                 {
                   new_rhs.insert(finder->second.first);
                   finder->second.second += 1;
-                } else
+                }
+                else
                 {
                   unsigned new_crossing_event = events.size();
                   events.resize(events.size() + 1);
@@ -1654,14 +1668,16 @@ namespace Legion {
                   slices[generator_slice].push_back(crossing);
                   crossing_instructions.push_back(crossing);
                 }
-              } else
+              }
+              else
                 new_rhs.insert(rh);
             }
           }
 
           if (crossing_found)
             merge->rhs.swap(new_rhs);
-        } else
+        }
+        else
         {
           switch (inst->get_kind())
           {
@@ -1784,7 +1800,8 @@ namespace Legion {
         {
           event_to_check = finder->second.first;
           finder->second.second += 1;
-        } else
+        }
+        else
         {
           unsigned new_crossing_event = events.size();
           events.resize(events.size() + 1);
@@ -1867,7 +1884,8 @@ namespace Legion {
               TransitiveReductionArgs args(this, state);
               runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY);
               return;
-            } else
+            }
+            else
               previous_time = current_time;
           }
           Instruction* inst = instructions[idx];
@@ -2027,7 +2045,8 @@ namespace Legion {
               TransitiveReductionArgs args(this, state);
               runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY);
               return;
-            } else
+            }
+            else
               previous_time = current_time;
           }
           unsigned node = topo_order[idx];
@@ -2083,7 +2102,8 @@ namespace Legion {
               TransitiveReductionArgs args(this, state);
               runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY);
               return;
-            } else
+            }
+            else
               previous_time = current_time;
           }
           while (pos >= 0 && chain_indices[pos] != -1U) --pos;
@@ -2144,7 +2164,8 @@ namespace Legion {
               TransitiveReductionArgs args(this, state);
               runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY);
               return;
-            } else
+            }
+            else
               previous_time = current_time;
           }
           std::vector<int> chain_frontiers(num_chains, -1);
@@ -2188,7 +2209,8 @@ namespace Legion {
         const RtUserEvent to_trigger = state->done;
         finished_transitive_reduction.store(state);
         Runtime::trigger_event(to_trigger);
-      } else
+      }
+      else
         finalize_transitive_reduction(
             state->inv_topo_order, state->incoming_reduced);
     }
@@ -2279,7 +2301,8 @@ namespace Legion {
           }
           std::map<unsigned, unsigned>::iterator to_delete = it++;
           crossing_events.erase(to_delete);
-        } else
+        }
+        else
           it++;
       }
     }
@@ -2330,9 +2353,11 @@ namespace Legion {
               to_prune.insert(inst);
             else
               delete inst;
-          } else
+          }
+          else
             new_instructions.push_back(inst);
-        } else
+        }
+        else
           new_instructions.push_back(inst);
       }
 
@@ -2509,7 +2534,8 @@ namespace Legion {
               to_prune.erase(finder);
               if (to_prune.empty())
                 break;
-            } else
+            }
+            else
               it++;
           }
           if (to_prune.empty())
@@ -2538,7 +2564,8 @@ namespace Legion {
           to_add.emplace_back(std::make_pair(finder->second, it->second));
           std::map<unsigned, unsigned>::iterator to_delete = it++;
           frontiers.erase(to_delete);
-        } else
+        }
+        else
           it++;
       }
       for (std::vector<std::pair<unsigned, unsigned> >::const_iterator it =
@@ -2556,7 +2583,8 @@ namespace Legion {
           assert(substitutions.find(it->second) == substitutions.end());
 #endif
           substitutions[it->second] = finder->second;
-        } else
+        }
+        else
           frontiers.insert(*it);
       }
     }
@@ -2701,7 +2729,8 @@ namespace Legion {
           if (e != -1U)
             new_gen[e] = new_instructions.size();
           new_instructions.push_back(instructions[idx]);
-        } else
+        }
+        else
           to_delete.push_back(instructions[idx]);
       }
 
@@ -2758,7 +2787,8 @@ namespace Legion {
             failure.expr->remove_base_expression_reference(TRACE_REF))
           delete failure.expr;
         failure.expr = nullptr;
-      } else if (idempotency == NOT_IDEMPOTENT_ANTIDEPENDENT)
+      }
+      else if (idempotency == NOT_IDEMPOTENT_ANTIDEPENDENT)
       {
         log_tracing.info() << "Anti-dependent condition: "
                            << failure.to_string(trace->logical_trace->context);
@@ -3131,7 +3161,8 @@ namespace Legion {
         Realm::UserEvent rename(Realm::UserEvent::create_user_event());
         rename.trigger();
         lhs = ApEvent(rename);
-      } else
+      }
+      else
       {
         // Check for reuse
         for (unsigned idx = 0; idx < rhs.size(); idx++)
@@ -3659,7 +3690,8 @@ namespace Legion {
         replay_precondition = refresh_managed_barriers();
         // Reset it back to one after updating our barriers
         total_replays = 1;
-      } else
+      }
+      else
         replay_precondition = RtEvent::NO_RT_EVENT;
       remaining_replays.store(slices.size());
       total_logical.store(0);
@@ -3673,7 +3705,8 @@ namespace Legion {
         for (std::map<unsigned, unsigned>::iterator it = frontiers.begin();
              it != frontiers.end(); ++it)
           events[it->second] = events[it->first];
-      } else
+      }
+      else
       {
         events[fence_completion_id] = completion;
         for (std::map<unsigned, unsigned>::iterator it = frontiers.begin();
@@ -3826,7 +3859,8 @@ namespace Legion {
         applied_events.insert(runtime->issue_runtime_meta_task(
             args, LG_LOW_PRIORITY, precondition));
         return true;
-      } else
+      }
+      else
       {
         check_finalize_transitive_reduction();
         return false;

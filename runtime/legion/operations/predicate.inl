@@ -89,7 +89,8 @@ namespace Legion {
         if (runtime->legion_spy_enabled)
           LegionSpy::log_predicated_false_op(this->unique_op_id);
         this->predicate_false();
-      } else
+      }
+      else
         Memoizable<OP>::trigger_ready();
     }
 

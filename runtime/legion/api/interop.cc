@@ -437,7 +437,8 @@ namespace Legion {
             if (all_stages_done)
               complete_exchange();
           }
-        } else
+        }
+        else
         {
           // We are not a participating node
           // so we just have to send notification to one node
@@ -506,7 +507,8 @@ namespace Legion {
         assert(target < runtime->total_address_spaces);
 #endif
         runtime->send_mpi_rank_exchange(target, rez);
-      } else
+      }
+      else
       {
         // Sent to a node that is participating
         AddressSpaceID target =
@@ -571,7 +573,8 @@ namespace Legion {
 #endif
             runtime->send_mpi_rank_exchange(target, rez);
           }
-        } else
+        }
+        else
         {
           for (int r = 1; r < collective_radix; r++)
           {
@@ -592,7 +595,8 @@ namespace Legion {
       {
         done_triggered = true;
         return true;
-      } else
+      }
+      else
         return false;
     }
 
@@ -614,7 +618,8 @@ namespace Legion {
           all_stages_done = true;
         else  // we can now send our stage 0
           all_stages_done = initiate_exchange();
-      } else
+      }
+      else
         all_stages_done = send_ready_stages();
       if (all_stages_done)
         complete_exchange();

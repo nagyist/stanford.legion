@@ -1075,7 +1075,8 @@ namespace Legion {
             ready.wait();
             ready = local_lock.wrlock();
           }
-        } else
+        }
+        else
         {
           RtEvent ready = local_lock.rdlock();
           while (ready.exists())
@@ -1108,7 +1109,8 @@ namespace Legion {
 #endif
           local_lock.unlock();
           local_lock_list = previous;
-        } else
+        }
+        else
           assert(local_lock_list == previous);
       }
     public:
@@ -1143,7 +1145,8 @@ namespace Legion {
             ready.wait();
             ready = local_lock.wrlock();
           }
-        } else
+        }
+        else
         {
           RtEvent ready = local_lock.rdlock();
           while (ready.exists())
@@ -1290,7 +1293,8 @@ namespace Legion {
         done.trigger();
         // Restore our local lock list
         local_lock_list = local_lock_list_copy;
-      } else  // Just do the normal wait
+      }
+      else  // Just do the normal wait
       {
         if (local_ctx != nullptr)
           begin_context_wait(local_ctx, false /*from application*/);
@@ -1406,7 +1410,8 @@ namespace Legion {
         done.trigger();
         // Restore our local lock list
         local_lock_list = local_lock_list_copy;
-      } else  // Just do the normal wait
+      }
+      else  // Just do the normal wait
       {
         if (local_ctx != nullptr)
           begin_context_wait(local_ctx, from_app);

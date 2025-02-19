@@ -279,7 +279,8 @@ namespace Legion {
           ready = op->get_context()->compute_equivalence_sets(
               parent_req_index, targets, target_spaces, runtime->address_space,
               region_node->row_source, remaining_mask);
-        } else
+        }
+        else
           ready = op->perform_collective_versioning_analysis(
               index, region_node->handle, this, remaining_mask,
               parent_req_index);
@@ -291,11 +292,13 @@ namespace Legion {
               outermost, parent_req_index, region_node->row_source);
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_DEFERRED_PRIORITY, ready);
-        } else
+        }
+        else
           finalize_equivalence_sets(
               compute_event, op->get_context(), outermost, parent_req_index,
               region_node->row_source, op->get_unique_op_id());
-      } else if (collective_rendezvous)
+      }
+      else if (collective_rendezvous)
       {
 #ifdef DEBUG_LEGION
         assert(!remaining_mask);

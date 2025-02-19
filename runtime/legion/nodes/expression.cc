@@ -149,7 +149,8 @@ namespace Legion {
         IndexSpaceExpression* overlap =
             runtime->intersect_index_spaces(this, other);
         return !overlap->is_empty();
-      } else
+      }
+      else
       {
         // First time through, we're not pending so keep going
         return other->test_intersection_nonblocking(
@@ -252,7 +253,8 @@ namespace Legion {
         // Now we can unpack the global expression reference
         node->unpack_global_ref();
         return node;
-      } else
+      }
+      else
       {
         IndexSpaceExprID remote_expr_id;
         derez.deserialize(remote_expr_id);
@@ -361,7 +363,8 @@ namespace Legion {
       {
         ImplicitReferenceTracker::record_live_expression(this);
         return true;
-      } else
+      }
+      else
         return false;
     }
 
@@ -451,7 +454,8 @@ namespace Legion {
         }
         last = this;
         return false;
-      } else if (expressions.size() == (depth + 2))
+      }
+      else if (expressions.size() == (depth + 2))
       {
         // The next node should have the operation, but we might be
         // storing it until it actually gets made
@@ -491,14 +495,16 @@ namespace Legion {
           {
             last = this;
             return false;
-          } else
+          }
+          else
             next = node_finder->second;
         }
 #ifdef DEBUG_LEGION
         assert(next != nullptr);
 #endif
         return next->find_operation(expressions, result, last);
-      } else
+      }
+      else
       {
         // Intermediate case
         // See if we have the next node, or if we have to make it
@@ -529,10 +535,12 @@ namespace Legion {
               next = new ExpressionTrieNode(
                   depth + 1, target_expr, op_finder->second);
               operations.erase(op_finder);
-            } else
+            }
+            else
               next = new ExpressionTrieNode(depth + 1, target_expr);
             nodes[target_expr] = next;
-          } else  // lost the race
+          }
+          else  // lost the race
             next = finder->second;
         }
 #ifdef DEBUG_LEGION
@@ -569,7 +577,8 @@ namespace Legion {
         if (!local_operation->try_add_live_reference())
           std::abort();  // should never hit this
         return local_operation;
-      } else if (expressions.size() == (depth + 2))
+      }
+      else if (expressions.size() == (depth + 2))
       {
         // The next node should have the operation, but we might be
         // storing it until it actually gets made
@@ -609,14 +618,16 @@ namespace Legion {
             if (!result->try_add_live_reference())
               std::abort();  // should never hit this
             return result;
-          } else
+          }
+          else
             next = node_finder->second;
         }
 #ifdef DEBUG_LEGION
         assert(next != nullptr);
 #endif
         return next->find_or_create_operation(expressions, creator);
-      } else
+      }
+      else
       {
         // Intermediate case
         // See if we have the next node, or if we have to make it
@@ -647,10 +658,12 @@ namespace Legion {
               next = new ExpressionTrieNode(
                   depth + 1, target_expr, op_finder->second);
               operations.erase(op_finder);
-            } else
+            }
+            else
               next = new ExpressionTrieNode(depth + 1, target_expr);
             nodes[target_expr] = next;
-          } else  // lost the race
+          }
+          else  // lost the race
             next = finder->second;
         }
 #ifdef DEBUG_LEGION
@@ -675,7 +688,8 @@ namespace Legion {
       {
         // Simple case, clear our local operation
         local_operation = nullptr;
-      } else if (expressions.size() == (depth + 2))
+      }
+      else if (expressions.size() == (depth + 2))
       {
         // See if we should continue traversing or if we have the operation
         const IndexSpaceExprID target_expr = expressions.back()->expr_id;
@@ -693,9 +707,11 @@ namespace Legion {
             delete node_finder->second;
             nodes.erase(node_finder);
           }
-        } else
+        }
+        else
           operations.erase(op_finder);
-      } else
+      }
+      else
       {
         const IndexSpaceExprID target_expr = expressions[depth + 1]->expr_id;
         std::map<IndexSpaceExprID, ExpressionTrieNode*>::iterator finder =

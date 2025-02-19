@@ -250,7 +250,8 @@ namespace Legion {
             inner->elems[0].store(n);
             n = parent;
           }
-        } else
+        }
+        else
           n = new_tree_node(level_needed, 0, elems_addressable - 1);
         root.store(n);
       }

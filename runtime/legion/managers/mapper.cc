@@ -157,7 +157,8 @@ namespace Legion {
           already_acquired[manager] = 1;
           if ((to_erase != nullptr) && filter_acquired_instances)
             to_erase->push_back(idx);
-        } else
+        }
+        else
         {
           all_acquired = false;
           if ((to_erase != nullptr) && !filter_acquired_instances)
@@ -748,7 +749,8 @@ namespace Legion {
             message->size, message->broadcast);
         memcpy(args.message, message->message, args.size);
         runtime->issue_runtime_meta_task(args, LG_LATENCY_DEFERRED_PRIORITY);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         implicit_mapper_call = nullptr;
@@ -782,7 +784,8 @@ namespace Legion {
         DeferInstanceCollectionArgs args(this, manager);
         manager->add_base_resource_ref(MAPPER_REF);
         runtime->issue_runtime_meta_task(args, LG_LATENCY_DEFERRED_PRIORITY);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         implicit_mapper_call = nullptr;
@@ -1052,7 +1055,8 @@ namespace Legion {
             pending_calls.push_front(info);
           else
             pending_calls.push_back(info);
-        } else
+        }
+        else
           executing_call = info;
       }
       // Wake up a pending mapper call to run if necessary
@@ -1125,7 +1129,8 @@ namespace Legion {
               ready_calls.push_front(info);
             else
               ready_calls.push_back(info);
-          } else
+          }
+          else
             executing_call = info;
         }
       }
@@ -1270,7 +1275,8 @@ namespace Legion {
         executing_call = pending_calls.front();
         pending_calls.pop_front();
         return executing_call->resume;
-      } else
+      }
+      else
       {
         executing_call = nullptr;
         return RtUserEvent::NO_RT_USER_EVENT;
@@ -1379,7 +1385,8 @@ namespace Legion {
                 info->resume = Runtime::create_rt_user_event();
                 wait_on = info->resume;
                 exclusive_waiters.push_back(info);
-              } else  // add it to the set of current holders
+              }
+              else  // add it to the set of current holders
                 current_holders.insert(info);
               break;
             }
@@ -1562,7 +1569,8 @@ namespace Legion {
               to_trigger.push_back(exclusive_waiters.front()->resume);
               exclusive_waiters.pop_front();
               lock_state = EXCLUSIVE_STATE;
-            } else
+            }
+            else
               lock_state = UNLOCKED_STATE;
             break;
           }
@@ -1575,7 +1583,8 @@ namespace Legion {
                 to_trigger[idx] = read_only_waiters[idx]->resume;
               read_only_waiters.clear();
               lock_state = READ_ONLY_STATE;
-            } else
+            }
+            else
               lock_state = UNLOCKED_STATE;
             break;
           }

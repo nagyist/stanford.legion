@@ -426,7 +426,8 @@ namespace Legion {
         os << dp.point_data[d];
       }
       os << ')';
-    } else
+    }
+    else
       os << '[' << dp.point_data[0] << ']';
     return os;
   }
@@ -752,7 +753,8 @@ namespace Legion {
 #endif
 #endif
       result.sparsity.id = is_id;
-    } else
+    }
+    else
       result.sparsity.id = 0;
     for (int i = 0; i < DIM; i++) result.bounds.lo[i] = rect_data[i];
     for (int i = 0; i < DIM; i++) result.bounds.hi[i] = rect_data[DIM + i];
@@ -794,7 +796,8 @@ namespace Legion {
       ContainsFunctor functor(*this, point, result);
       Internal::NT_TemplateHelper::demux<ContainsFunctor>(is_type, &functor);
       return result;
-    } else
+    }
+    else
     {
       switch (dim)
       {
@@ -879,7 +882,8 @@ namespace Legion {
           std::abort();
       }
       return 0;
-    } else
+    }
+    else
     {
       size_t result = 0;
       VolumeFunctor functor(*this, result);
@@ -924,7 +928,8 @@ namespace Legion {
       Internal::NT_TemplateHelper::demux<IntersectionFunctor>(
           (is_id > 0) ? is_type : other.is_type, &functor);
       return result;
-    } else
+    }
+    else
     {
       switch (dim)
       {
@@ -997,7 +1002,8 @@ namespace Legion {
         is_valid = true;                                        \
         p = rect_itr.p;                                         \
         memcpy(rect_iterator, &rect_itr, sizeof(rect_itr));     \
-      } else                                                    \
+      }                                                         \
+      else                                                      \
       {                                                         \
         is_valid = false;                                       \
       }                                                         \
@@ -1008,7 +1014,8 @@ namespace Legion {
         default:
           assert(0);
       };
-    } else
+    }
+    else
     {
       IteratorInitFunctor functor(d, *this);
       Internal::NT_TemplateHelper::demux<IteratorInitFunctor>(

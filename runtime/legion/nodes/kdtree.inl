@@ -72,7 +72,8 @@ namespace Legion {
               forward_lines[start_key] = 1;
             else
               forward_lines[start_key] = subset_bounds.volume();
-          } else
+          }
+          else
           {
             if (BY_RECTS)
               finder->second++;
@@ -88,7 +89,8 @@ namespace Legion {
               backward_lines[start_key] = 1;
             else
               backward_lines[start_key] = subset_bounds.volume();
-          } else
+          }
+          else
           {
             if (BY_RECTS)
               finder->second++;
@@ -104,7 +106,8 @@ namespace Legion {
               forward_lines[stop_key] = 1;
             else
               forward_lines[stop_key] = subset_bounds.volume();
-          } else
+          }
+          else
           {
             if (BY_RECTS)
               finder->second += 1;
@@ -120,7 +123,8 @@ namespace Legion {
               backward_lines[stop_key] = 1;
             else
               backward_lines[stop_key] = subset_bounds.volume();
-          } else
+          }
+          else
           {
             if (BY_RECTS)
               finder->second++;
@@ -170,7 +174,8 @@ namespace Legion {
           total = 0;
           for (unsigned idx = 0; idx < rects.size(); idx++)
             total += rects[idx].volume();
-        } else
+        }
+        else
           total = rects.size();
         uint64_t split_max = total;
         for (typename std::map<T, uint64_t>::const_iterator it =
@@ -217,7 +222,8 @@ namespace Legion {
         {
           cost_left = float(left_set.size()) / float(rects.size());
           cost_right = float(right_set.size()) / float(rects.size());
-        } else
+        }
+        else
         {
           uint64_t volume = 0;
           for (typename std::vector<Rect<DIM, T> >::const_iterator it =
@@ -434,7 +440,8 @@ namespace Legion {
         }
         left = new KDNode<DIM, T, RT>(best_left_bounds, best_left_set);
         right = new KDNode<DIM, T, RT>(best_right_bounds, best_right_set);
-      } else
+      }
+      else
       {
         REPORT_LEGION_WARNING(
             LEGION_WARNING_KDTREE_REFINEMENT_FAILED,
@@ -538,7 +545,8 @@ namespace Legion {
         }
         left = new KDNode<DIM, T, void>(best_left_bounds, best_left_set);
         right = new KDNode<DIM, T, void>(best_right_bounds, best_right_set);
-      } else
+      }
+      else
       {
         REPORT_LEGION_WARNING(
             LEGION_WARNING_KDTREE_REFINEMENT_FAILED,
@@ -777,7 +785,8 @@ namespace Legion {
                 current_sets = new FieldMaskSet<EquivalenceSet>();
               if (current_sets->insert(set, unrefined))
                 set->add_base_gc_ref(DISJOINT_COMPLETE_REF);
-            } else
+            }
+            else
             {
               if (previous_sets == nullptr)
                 previous_sets = new FieldMaskSet<EquivalenceSet>();
@@ -787,7 +796,8 @@ namespace Legion {
             remaining = mask - unrefined;
             if (!remaining)
               return;
-          } else
+          }
+          else
           {
             // Refine for all the fields which aren't refined yet
             refine_node(rect, unrefined);
@@ -795,7 +805,8 @@ namespace Legion {
               all_previous_below |= unrefined;
             remaining = mask;
           }
-        } else
+        }
+        else
           remaining = mask;
         // If we get here, we're traversing refinements
         if (current && !!all_previous_below)
@@ -924,7 +935,8 @@ namespace Legion {
                     break;
                 }
                 it++;
-              } else
+              }
+              else
               {
                 // Perform the previous invalidations now that the
                 // event has triggered
@@ -990,7 +1002,8 @@ namespace Legion {
                   to_traverse.insert(it->first, overlap);
                   if (!it->first->bounds.contains(rect))
                     right_mask |= overlap;
-                } else
+                }
+                else
                   right_mask |= overlap;
                 remaining -= overlap;
                 if (!remaining)
@@ -1063,7 +1076,8 @@ namespace Legion {
                     // These fields will no longer be all_prevous_below now
                     find_to_get_previous(all_prev_below, to_get_previous);
                 }
-              } else
+              }
+              else
               {
                 refine_node(rect, remaining);
 #ifdef DEBUG_LEGION
@@ -1138,7 +1152,8 @@ namespace Legion {
             {
               delete child_previous_below;
               child_previous_below = nullptr;
-            } else
+            }
+            else
               child_previous_below->tighten_valid_mask();
           }
         }
@@ -1517,7 +1532,8 @@ namespace Legion {
                   (*pending_postconditions)[it->first].push_back(recorded);
                 }
               }
-            } else
+            }
+            else
             {
               // Local case so we can notify these directly
               for (FieldMaskSet<EqSetTracker>::const_iterator it =
@@ -1565,13 +1581,16 @@ namespace Legion {
                   delete pending_postconditions;
                   pending_postconditions = nullptr;
                 }
-              } else
+              }
+              else
                 Runtime::trigger_event(it->first, ready);
-            } else
+            }
+            else
               Runtime::trigger_event(it->first, ready);
             LegionMap<RtUserEvent, FieldMask>::iterator to_delete = it++;
             pending_set_creations->erase(to_delete);
-          } else
+          }
+          else
           {
             if (ready.exists() && !ready.has_triggered())
             {
@@ -1597,7 +1616,8 @@ namespace Legion {
           if (current_set_preconditions == nullptr)
             current_set_preconditions = new LegionMap<RtEvent, FieldMask>();
           current_set_preconditions->insert(std::make_pair(ready, mask));
-        } else  // we can invalidate the previous sets now
+        }
+        else  // we can invalidate the previous sets now
           // we can only do this if the ready event has triggered which
           // indicates that all the clone operations from the previous
           // sets are done and it's safe to remove the references
@@ -1653,7 +1673,8 @@ namespace Legion {
                 record_subscription(tracker, tracker_space, local_fields);
             submask -= local_fields;
           }
-        } else
+        }
+        else
         {
           FieldMask to_refine = mask;
           if (lefts != nullptr)
@@ -1767,7 +1788,8 @@ namespace Legion {
         {
           delete previous_sets;
           previous_sets = nullptr;
-        } else
+        }
+        else
           previous_sets->tighten_valid_mask();
       }
       if (!(mask * all_previous_below))
@@ -1800,7 +1822,8 @@ namespace Legion {
         {
           delete lefts;
           lefts = nullptr;
-        } else
+        }
+        else
           lefts->tighten_valid_mask();
         to_delete.clear();
         for (typename FieldMaskSet<EqKDNode<DIM, T> >::iterator it =
@@ -1826,7 +1849,8 @@ namespace Legion {
         {
           delete rights;
           rights = nullptr;
-        } else
+        }
+        else
           rights->tighten_valid_mask();
       }
     }
@@ -1852,7 +1876,8 @@ namespace Legion {
         const unsigned total_fields = new_fields.pop_count();
         this->add_reference(total_fields);
         return total_fields;
-      } else
+      }
+      else
       {
         trackers.insert(tracker, mask);
         // Add a reference for every field
@@ -1899,7 +1924,8 @@ namespace Legion {
       {
         delete sets;
         sets = nullptr;
-      } else
+      }
+      else
         sets->tighten_valid_mask();
     }
 
@@ -1916,7 +1942,8 @@ namespace Legion {
           current_sets = new FieldMaskSet<EquivalenceSet>();
         if (current_sets->insert(set, mask))
           set->add_base_gc_ref(DISJOINT_COMPLETE_REF);
-      } else
+      }
+      else
       {
         if (previous_sets == nullptr)
           previous_sets = new FieldMaskSet<EquivalenceSet>();
@@ -1952,7 +1979,8 @@ namespace Legion {
             FieldMask mask = it->second - current_sets->get_valid_mask();
             if (!!mask)
               eq_sets.insert(it->first, mask);
-          } else
+          }
+          else
             eq_sets.insert(it->first, it->second);
         }
       }
@@ -2106,7 +2134,8 @@ namespace Legion {
               to_traverse.push_back(it->first);
               if (overlap != rect)
                 remaining |= it->second;
-            } else
+            }
+            else
               remaining |= it->second;
           }
         }
@@ -2194,7 +2223,8 @@ namespace Legion {
               invalidate_previous_sets(it->second, to_invalidate_previous);
               LegionMap<RtEvent, FieldMask>::iterator to_delete = it++;
               current_set_preconditions->erase(to_delete);
-            } else
+            }
+            else
               it++;
           }
           if (current_set_preconditions->empty())
@@ -2232,7 +2262,8 @@ namespace Legion {
           {
             delete previous_sets;
             previous_sets = nullptr;
-          } else
+          }
+          else
             previous_sets->tighten_valid_mask();
         }
         // Check to see which fields we have current equivalence sets
@@ -2279,14 +2310,16 @@ namespace Legion {
                          to_delete.begin();
                      it != to_delete.end(); it++)
                   sit->second.erase(*it);
-              } else  // Invalidating the subscriptions for all fields
+              }
+              else  // Invalidating the subscriptions for all fields
                 invalidations.swap(sit->second);
               if (sit->second.empty())
               {
                 LegionMap<AddressSpaceID, FieldMaskSet<EqSetTracker> >::iterator
                     to_delete = sit++;
                 subscriptions->erase(to_delete);
-              } else
+              }
+              else
               {
                 sit->second.tighten_valid_mask();
                 sit++;
@@ -2373,9 +2406,11 @@ namespace Legion {
             {
               delete current_sets;
               current_sets = nullptr;
-            } else
+            }
+            else
               current_sets->tighten_valid_mask();
-          } else
+          }
+          else
           {
             // It's unsound for us to partially invalidate this node
             // if the rect is only a subset of the bounds because if
@@ -2390,7 +2425,8 @@ namespace Legion {
               FieldMask refine = current_mask - lefts->get_valid_mask();
               if (!!refine)
                 refine_node(rect, refine, true /*refine current*/);
-            } else
+            }
+            else
               refine_node(rect, current_mask, true /*refine current*/);
           }
         }
@@ -2421,7 +2457,8 @@ namespace Legion {
                 to_traverse.insert(it->first, overlap);
                 if (intersection != rect)
                   right_mask |= overlap;
-              } else
+              }
+              else
                 right_mask |= overlap;
               remaining -= overlap;
               if (!remaining)
@@ -2560,13 +2597,16 @@ namespace Legion {
             {
               delete child_previous_below;
               child_previous_below = nullptr;
-            } else
+            }
+            else
               child_previous_below->tighten_valid_mask();
             return;
-          } else
+          }
+          else
             child_previous_below->tighten_valid_mask();
         }
-      } else
+      }
+      else
         child_previous_below = new FieldMaskSet<EqKDNode<DIM, T> >();
       child_previous_below->insert(child, mask);
     }
@@ -2615,9 +2655,11 @@ namespace Legion {
             delete subscriptions;
             subscriptions = nullptr;
           }
-        } else
+        }
+        else
           subscription_finder->second.tighten_valid_mask();
-      } else
+      }
+      else
         subscription_finder->second.tighten_valid_mask();
       return overlap.pop_count();
     }
@@ -2767,7 +2809,8 @@ namespace Legion {
             new EqKDSparse<DIM, T>(best_right_bounds, best_right_set);
         right->add_reference();
         children.push_back(right);
-      } else
+      }
+      else
       {
         REPORT_LEGION_WARNING(
             LEGION_WARNING_KDTREE_REFINEMENT_FAILED,
@@ -3041,7 +3084,8 @@ namespace Legion {
             local->initialize_set(set, rect, mask, local_shard, current);
           }
           return;
-        } else  // Create the refinement
+        }
+        else  // Create the refinement
         {
           refine_node();
           next = right.load();
@@ -3099,11 +3143,13 @@ namespace Legion {
                 rect, mask, trackers, tracker_spaces, new_tracker_references,
                 eq_sets, pending_sets, subscriptions, to_create, creation_rects,
                 creation_srcs, remote_shard_rects, local_shard);
-          } else
+          }
+          else
             remote_shard_rects[lower][rect] |= mask;
           // We're done
           return;
-        } else  // Create the refinement
+        }
+        else  // Create the refinement
         {
           refine_node();
           next = right.load();
@@ -3154,7 +3200,8 @@ namespace Legion {
       {
         next->add_reference();
         return next;
-      } else
+      }
+      else
       {
         delete next;
         return expected;
@@ -3253,12 +3300,14 @@ namespace Legion {
             return local->record_output_equivalence_set(
                 set, rect, mask, tracker, tracker_space, subscriptions,
                 remote_shard_rects, local_shard);
-          } else
+          }
+          else
           {
             remote_shard_rects[lower][rect] |= mask;
             return 0;
           }
-        } else  // Create the refinement
+        }
+        else  // Create the refinement
         {
           refine_node();
           next = right.load();
@@ -3373,7 +3422,8 @@ namespace Legion {
       {
         next = left.load();
         dst_upper_shard = dst_mid;
-      } else if (dst_lower_shard != dst_upper_shard)
+      }
+      else if (dst_lower_shard != dst_upper_shard)
         dst_lower_shard = dst_mid + 1;
       next->find_shard_equivalence_sets(
           eq_sets, source_shard, dst_lower_shard, dst_upper_shard, region);
@@ -3443,10 +3493,12 @@ namespace Legion {
             if (local != nullptr)
               local->invalidate_shard_tree_remote(
                   rect, mask, invalidated, remote_shard_rects, local_shard);
-          } else
+          }
+          else
             remote_shard_rects[lower][rect] |= mask;
           return;
-        } else  // Create the refinement
+        }
+        else  // Create the refinement
         {
           refine_node();
           next = right.load();
@@ -3550,11 +3602,13 @@ namespace Legion {
               local = refine_local();
             local->find_shard_trace_local_sets(
                 rect, mask, req_index, local_sets, remote_shards, local_shard);
-          } else
+          }
+          else
             remote_shards[lower] |= mask;
           // We're done
           return;
-        } else  // Create the refinement
+        }
+        else  // Create the refinement
         {
           refine_node();
           next = right.load();
@@ -3646,7 +3700,8 @@ namespace Legion {
       {
         next->add_reference();
         return next;
-      } else
+      }
+      else
       {
         delete next;
         return expected;
@@ -3696,7 +3751,8 @@ namespace Legion {
             left_set.push_back(*it);
             left_volume += it->volume();
             left_bounds = left_bounds.union_bbox(*it);
-          } else
+          }
+          else
           {
             right_set.push_back(*it);
             right_volume += it->volume();

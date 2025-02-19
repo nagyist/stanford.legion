@@ -175,7 +175,8 @@ namespace Legion {
         {
           Runtime::trigger_event(true_guard);
           Runtime::poison_event(false_guard);
-        } else
+        }
+        else
         {
           Runtime::poison_event(true_guard);
           Runtime::trigger_event(false_guard);
@@ -300,7 +301,8 @@ namespace Legion {
           collective = new PredicateCollective(this, repl_ctx, collective_id);
           collective->async_all_reduce(max_observed_index);
         }
-      } else  // True
+      }
+      else  // True
         value = 1;
       if (ready_event.exists())
         Runtime::trigger_event(ready_event);
@@ -310,7 +312,8 @@ namespace Legion {
         {
           Runtime::trigger_event(true_guard);
           Runtime::poison_event(false_guard);
-        } else
+        }
+        else
         {
           Runtime::poison_event(true_guard);
           Runtime::trigger_event(false_guard);

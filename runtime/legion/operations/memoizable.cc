@@ -73,7 +73,8 @@ namespace Legion {
           // this recording needs to be invalidated
           if (!can_memoize_operation())
             tpl->record_no_consensus();
-        } else
+        }
+        else
         {
           memo_state = MEMO_REPLAY;
           tpl->register_operation(this);
@@ -106,7 +107,8 @@ namespace Legion {
 #endif
         mapper->invoke_memoize_operation(mappable, input, output);
         return output.memoize;
-      } else
+      }
+      else
         return true;
     }
 

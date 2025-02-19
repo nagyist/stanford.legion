@@ -424,7 +424,8 @@ namespace Legion {
         // need to do the lamport all-reduce to make sure we don't deadlock.
         // TODO: implelement this
         std::abort();
-      } else
+      }
+      else
       {
         // If we're a non-leaf variant that means we're control replicated
         // and therefore non of the tasks will have pool memories
@@ -514,7 +515,8 @@ namespace Legion {
               output_regions, parent_req_indexes, virtual_mapped, task_priority,
               execution_fence_event, shard_manager, inline_task,
               parent_ctx->is_concurrent_context());
-        } else
+        }
+        else
           repl_ctx = new ReplicateContext(
               configuration, this, get_depth(), v->is_inner(), regions,
               output_regions, parent_req_indexes, virtual_mapped, task_priority,
@@ -528,7 +530,8 @@ namespace Legion {
         RtEvent ready = shard_manager->complete_startup_initialization();
         if (ready.exists())
           launch_events.insert(ApEvent(ready));
-      } else
+      }
+      else
       {
         execution_context =
             new LeafContext(this, std::move(leaf_memory_pools), inline_task);
@@ -554,7 +557,8 @@ namespace Legion {
             output_regions, parent_req_indexes, virtual_mapped, task_priority,
             execution_fence_event, shard_manager, false /*inline task*/,
             true /*implicit*/);
-      } else
+      }
+      else
         repl_ctx = new ReplicateContext(
             configuration, this, get_depth(), false /*is inner*/, regions,
             output_regions, parent_req_indexes, virtual_mapped, task_priority,

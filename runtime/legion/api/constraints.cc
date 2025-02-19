@@ -932,7 +932,8 @@ namespace Legion {
             return false;
         }
         return true;
-      } else
+      }
+      else
       {
         // Other is contiguous but not inorder
         // If we're not contiguous we can't entail it
@@ -954,7 +955,8 @@ namespace Legion {
         }
         return true;
       }
-    } else
+    }
+    else
     {
       if (other.inorder)
       {
@@ -971,7 +973,8 @@ namespace Legion {
             return false;
         }
         return true;
-      } else
+      }
+      else
       {
         // Other is neither inorder or contiguous
         // We already know we have all the fields so we are done
@@ -1014,7 +1017,8 @@ namespace Legion {
              other_idx++, our_index++)
           if (field_set[our_index] != other.field_set[other_idx])
             return true;
-      } else
+      }
+      else
       {
         // We must have their fields inorder but not contiguous
         unsigned other_index = 0;
@@ -1029,7 +1033,8 @@ namespace Legion {
         }
         return (other_index < other.field_set.size());
       }
-    } else
+    }
+    else
     {
       // See if they need us to be contiguous
       if (other.contiguous)
@@ -1048,7 +1053,8 @@ namespace Legion {
         for (/*nothing*/; our_index < other_fields.size(); our_index++)
           if (other_fields.find(field_set[our_index]) == other_fields.end())
             return true;
-      } else
+      }
+      else
       {
         // We just have to have their fields in any order
         std::set<FieldID> our_fields(field_set.begin(), field_set.end());
@@ -1167,7 +1173,8 @@ namespace Legion {
         previous = (*it);
       }
       return true;
-    } else
+    }
+    else
     {
       // We've got all the dimensions in the right order so we are good
       return true;
@@ -1216,10 +1223,12 @@ namespace Legion {
           }
           // Record the previous and keep going
           previous_idx = next_idx;
-        } else if (previous_idx >= 0)
+        }
+        else if (previous_idx >= 0)
           return true;  // fields are not contiguous
       }
-    } else
+    }
+    else
     {
       int previous_idx = -1;
       for (std::vector<DimensionKind>::const_iterator it = ordering.begin();
@@ -1303,7 +1312,8 @@ namespace Legion {
       // Normal spatial dimension
       if (dim >= total_dims)
         return true;
-    } else
+    }
+    else
     {
       // Split spatial dimension
       const unsigned actual_dim = (dim - (LEGION_DIM_F + 1)) / 2;
@@ -1686,7 +1696,8 @@ namespace Legion {
           {
             if (delta.lo()[idx] != 0)
               return false;
-          } else if (delta.lo()[idx] < other.delta.lo()[idx])
+          }
+          else if (delta.lo()[idx] < other.delta.lo()[idx])
             return false;
         }
         if (other.delta.hi()[idx] >= 0)
@@ -1695,7 +1706,8 @@ namespace Legion {
           {
             if (delta.hi()[idx] != 0)
               return false;
-          } else if (delta.hi()[idx] < other.delta.hi()[idx])
+          }
+          else if (delta.hi()[idx] < other.delta.hi()[idx])
             return false;
         }
       }
@@ -1719,7 +1731,8 @@ namespace Legion {
           {
             if (delta.lo()[idx] != other.delta.lo()[idx])
               return true;
-          } else if (delta.lo()[idx] < other.delta.lo()[idx])
+          }
+          else if (delta.lo()[idx] < other.delta.lo()[idx])
             return true;
         }
         if ((delta.hi()[idx] >= 0) && (other.delta.hi()[idx] >= 0))
@@ -1728,7 +1741,8 @@ namespace Legion {
           {
             if (delta.hi()[idx] != other.delta.hi()[idx])
               return true;
-          } else if (delta.hi()[idx] < other.delta.hi()[idx])
+          }
+          else if (delta.hi()[idx] < other.delta.hi()[idx])
             return true;
         }
       }

@@ -99,7 +99,8 @@ namespace Legion {
                   completed_commit_pointers.begin(),
                   completed_commit_pointers.end(), frozen),
               frozen);
-        } else if (current_index != idx)
+        }
+        else if (current_index != idx)
           active_commit_pointers[current_index++] = pointer;
         else
           current_index++;
@@ -168,7 +169,8 @@ namespace Legion {
           // At this point, we don't have any completed or active pointers,
           // so flush any remaining operations.
           flush_buffer();
-        } else
+        }
+        else
         {
           // In this case, we have both completed and active pointers.
           // What we actually do will change depending on what the overlaps
@@ -246,7 +248,8 @@ namespace Legion {
               assert(operation_start_idx <= it->get_opidx());
             }
 #endif
-          } else if (earliest_completed == earliest_active)
+          }
+          else if (earliest_completed == earliest_active)
           {
             // We should never be in the case where an active and completed
             // pointer are starting at the same opidx.

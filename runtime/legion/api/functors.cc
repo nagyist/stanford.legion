@@ -99,7 +99,8 @@ namespace Legion {
               << "functor! You must override the default "
               << "implementations of the non-deprecated 'project' methods!";
       }
-    } else
+    }
+    else
     {
       Internal::Exception(Internal::WARNING_EXCEPTION)
           << "There are new methods for projection functors that must be "
@@ -170,7 +171,8 @@ namespace Legion {
               << "functor! You must override the default "
               << "implementations of the non-deprecated 'project' methods!";
       }
-    } else
+    }
+    else
     {
       Internal::Exception(Internal::WARNING_EXCEPTION)
           << "There are new methods for projection functors that must be "
@@ -573,7 +575,8 @@ namespace Legion {
                       req.partition, point, launch_domain, args, arglen);
           check_projection_partition_result(req.partition, task, idx, result);
           return result;
-        } else
+        }
+        else
         {
           LogicalRegion result =
               !is_functional ?
@@ -585,7 +588,8 @@ namespace Legion {
           check_projection_region_result(req.region, task, idx, result);
           return result;
         }
-      } else
+      }
+      else
       {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
         {
@@ -598,7 +602,8 @@ namespace Legion {
                       req.partition, point, launch_domain, args, arglen);
           check_projection_partition_result(req.partition, task, idx, result);
           return result;
-        } else
+        }
+        else
         {
           LogicalRegion result =
               !is_functional ?
@@ -677,10 +682,12 @@ namespace Legion {
                 check_inversion((*it), index, region_deps, launch_domain);
               }
               check_containment((*it), index, region_deps);
-            } else if (pointwise_dependences != nullptr)
+            }
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
-        } else
+        }
+        else
         {
           for (std::vector<PointTask*>::const_iterator it = point_tasks.begin();
                it != point_tasks.end(); it++)
@@ -709,11 +716,13 @@ namespace Legion {
                 check_inversion((*it), index, region_deps, launch_domain);
               }
               check_containment((*it), index, region_deps);
-            } else if (pointwise_dependences != nullptr)
+            }
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
-      } else
+      }
+      else
       {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
         {
@@ -746,10 +755,12 @@ namespace Legion {
                 check_inversion((*it), index, region_deps, launch_domain);
               }
               check_containment((*it), index, region_deps);
-            } else if (pointwise_dependences != nullptr)
+            }
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
-        } else
+        }
+        else
         {
           for (std::vector<PointTask*>::const_iterator it = point_tasks.begin();
                it != point_tasks.end(); it++)
@@ -781,7 +792,8 @@ namespace Legion {
                 check_inversion((*it), index, region_deps, launch_domain);
               }
               check_containment((*it), index, region_deps);
-            } else if (pointwise_dependences != nullptr)
+            }
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -834,7 +846,8 @@ namespace Legion {
                   point_tasks[idx]->record_pointwise_dependence(
                       pit->context_index, *it, shard);
                 }
-              } else
+              }
+              else
               {
                 for (std::vector<DomainPoint>::const_iterator it =
                          finder->second.begin();
@@ -907,10 +920,12 @@ namespace Legion {
                 check_inversion(*it, index, region_deps, launch_domain);
               }
               check_containment(*it, index, region_deps);
-            } else if (pointwise_dependences != nullptr)
+            }
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
-        } else
+        }
+        else
         {
           for (std::vector<ProjectionPoint*>::const_iterator it =
                    points.begin();
@@ -940,11 +955,13 @@ namespace Legion {
                 check_inversion(*it, index, region_deps, launch_domain);
               }
               check_containment(*it, index, region_deps);
-            } else if (pointwise_dependences != nullptr)
+            }
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
-      } else
+      }
+      else
       {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
         {
@@ -977,10 +994,12 @@ namespace Legion {
                 check_inversion(*it, index, region_deps, launch_domain);
               }
               check_containment(*it, index, region_deps);
-            } else if (pointwise_dependences != nullptr)
+            }
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
-        } else
+        }
+        else
         {
           for (std::vector<ProjectionPoint*>::const_iterator it =
                    points.begin();
@@ -1010,7 +1029,8 @@ namespace Legion {
                 check_inversion(*it, index, region_deps, launch_domain);
               }
               check_containment(*it, index, region_deps);
-            } else if (pointwise_dependences != nullptr)
+            }
+            else if (pointwise_dependences != nullptr)
               pointwise_regions.emplace_back(result);
           }
         }
@@ -1063,7 +1083,8 @@ namespace Legion {
                   points[idx]->record_pointwise_dependence(
                       pit->context_index, *it, shard);
                 }
-              } else
+              }
+              else
               {
                 for (std::vector<DomainPoint>::const_iterator it =
                          finder->second.begin();
@@ -1102,7 +1123,8 @@ namespace Legion {
                 op_kind, uid, region_index, region_deps, launch_domain,
                 true /*allow empty*/);
           }
-        } else
+        }
+        else
         {
           for (std::vector<LogicalRegion>::const_iterator it = points.begin();
                it != points.end(); it++)
@@ -1116,7 +1138,8 @@ namespace Legion {
                 true /*allow empty*/);
           }
         }
-      } else
+      }
+      else
       {
         if (req.handle_type == LEGION_PARTITION_PROJECTION)
         {
@@ -1131,7 +1154,8 @@ namespace Legion {
                 op_kind, uid, region_index, region_deps, launch_domain,
                 true /*allow empty*/);
           }
-        } else
+        }
+        else
         {
           for (std::vector<LogicalRegion>::const_iterator it = points.begin();
                it != points.end(); it++)
@@ -1458,9 +1482,11 @@ namespace Legion {
           {
             AutoLock p_lock(projection_reservation);
             return functor->is_complete(region->handle, launch_domain);
-          } else
+          }
+          else
             return functor->is_complete(region->handle, launch_domain);
-        } else
+        }
+        else
         {
           Mappable* mappable = op->get_mappable();
           if (is_exclusive)
@@ -1468,11 +1494,13 @@ namespace Legion {
             AutoLock p_lock(projection_reservation);
             return functor->is_complete(
                 mappable, index, region->handle, launch_domain);
-          } else
+          }
+          else
             return functor->is_complete(
                 mappable, index, region->handle, launch_domain);
         }
-      } else
+      }
+      else
       {
         PartitionNode* partition = node->as_partition_node();
         if (is_functional)
@@ -1481,9 +1509,11 @@ namespace Legion {
           {
             AutoLock p_lock(projection_reservation);
             return functor->is_complete(partition->handle, launch_domain);
-          } else
+          }
+          else
             return functor->is_complete(partition->handle, launch_domain);
-        } else
+        }
+        else
         {
           Mappable* mappable = op->get_mappable();
           if (is_exclusive)
@@ -1491,7 +1521,8 @@ namespace Legion {
             AutoLock p_lock(projection_reservation);
             return functor->is_complete(
                 mappable, index, partition->handle, launch_domain);
-          } else
+          }
+          else
             return functor->is_complete(
                 mappable, index, partition->handle, launch_domain);
         }
@@ -1542,7 +1573,8 @@ namespace Legion {
                     functor->project(region->handle, itr.p, launch_domain) :
                     functor->project(
                         region->handle, itr.p, launch_domain, args, arglen);
-          } else
+          }
+          else
             result =
                 !is_functional ?
                     functor->project(mappable, index, region->handle, itr.p) :
@@ -1555,7 +1587,8 @@ namespace Legion {
             continue;
           add_to_projection_tree(result, root, node_map, local_shard);
         }
-      } else
+      }
+      else
       {
         PartitionNode* partition = root->as_partition_node();
         for (Domain::DomainPointIterator itr(local_domain); itr; itr++)
@@ -1572,7 +1605,8 @@ namespace Legion {
                     functor->project(partition->handle, itr.p, launch_domain) :
                     functor->project(
                         partition->handle, itr.p, launch_domain, args, arglen);
-          } else
+          }
+          else
             result =
                 !is_functional ?
                     functor->project(
@@ -1606,7 +1640,8 @@ namespace Legion {
       {
         current = new ProjectionRegion(child);
         node_map[child] = current;
-      } else
+      }
+      else
         current = static_cast<ProjectionRegion*>(finder->second);
       current->add_user(owner_shard);
       while (child != root)
@@ -1618,7 +1653,8 @@ namespace Legion {
         {
           parent = new ProjectionPartition(child->parent);
           node_map[child->parent] = parent;
-        } else
+        }
+        else
           parent = static_cast<ProjectionPartition*>(finder->second);
         parent->add_child(current);
         if (child->parent == root)
@@ -1630,7 +1666,8 @@ namespace Legion {
         {
           next = new ProjectionRegion(child->parent->parent);
           node_map[child->parent->parent] = next;
-        } else
+        }
+        else
           next = static_cast<ProjectionRegion*>(finder->second);
         next->add_child(parent);
         // Now we can walk up the tree
@@ -1664,7 +1701,8 @@ namespace Legion {
       {
         Realm::AffineLinearizedIndexSpace<DIM, coord_t> linearizer(is);
         return linearizer.linearize(point);
-      } else
+      }
+      else
       {
         size_t offset = 0;
         for (Realm::IndexSpaceIterator<DIM, coord_t> it(is); it.valid;
@@ -1675,7 +1713,8 @@ namespace Legion {
             Realm::AffineLinearizedIndexSpace<DIM, coord_t> linearizer(
                 Realm::IndexSpace<DIM, coord_t>(it.rect));
             return offset + linearizer.linearize(point);
-          } else
+          }
+          else
             offset += it.rect.volume();
         }
         return offset;
@@ -1758,7 +1797,8 @@ namespace Legion {
                 "launch must be between 0 and %zd (exclusive).",
                 shard, sharding_id, manager->total_shards)
           return result[0];
-        } else
+        }
+        else
         {
           std::vector<DomainPoint>::const_iterator finder = std::lower_bound(
               manager->sorted_points.begin(), manager->sorted_points.end(),
@@ -1777,7 +1817,8 @@ namespace Legion {
 #endif
           return manager->shard_lookup[offset];
         }
-      } else
+      }
+      else
       {
         const ShardID shard =
             functor->shard(point, sharding_space, manager->total_shards);
@@ -1839,7 +1880,8 @@ namespace Legion {
             // Record the specific participating shards
             participants = finder->second;
             return false;
-          } else
+          }
+          else
             return true;
         }
       }

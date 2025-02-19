@@ -80,7 +80,8 @@ namespace Legion {
       {
         if (!recording)
           return false;
-      } else
+      }
+      else
       {
         if (has_physical_trace() && (op->get_memoizable() == nullptr))
           REPORT_LEGION_ERROR(
@@ -225,7 +226,8 @@ namespace Legion {
                     op->get_logging_name(), tid, context->get_task_name(),
                     context->get_unique_id())
             }
-          } else
+          }
+          else
             verification_infos.emplace_back(
                 VerificationInfo(kind, task_id, num_regions, hash));
         }
@@ -300,7 +302,8 @@ namespace Legion {
           translate_dependence_records(op, op_index, to_translate);
         }
         return index;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!op->is_internal_op());
@@ -433,7 +436,8 @@ namespace Legion {
               (it->prev_idx == -1) ? 0 : it->prev_idx, op->get_unique_op_id(),
               (it->next_idx == -1) ? 0 : it->next_idx, LEGION_TRUE_DEPENDENCE);
 #endif
-        } else
+        }
+        else
         {
           op->register_region_dependence(
               it->next_idx, target.first, target.second, it->prev_idx,
@@ -617,7 +621,8 @@ namespace Legion {
                   close.dependences.emplace_back(std::move(record));
               }
             }
-          } else
+          }
+          else
           {
             DependenceRecord record(
                 target_finder->second.first, target_idx, source_idx, dtype,
@@ -634,7 +639,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(found);
 #endif
-      } else if (source->is_internal_op())
+      }
+      else if (source->is_internal_op())
       {
         // Record the dependence on the correct region requirement
         // of the internal operations
@@ -676,7 +682,8 @@ namespace Legion {
                 internal_dependences.emplace_back(std::move(record));
             }
           }
-        } else
+        }
+        else
         {
           DependenceRecord record(
               target_finder->second.first, target_idx, source_idx, dtype,
@@ -688,7 +695,8 @@ namespace Legion {
               return true;
           internal_dependences.emplace_back(std::move(record));
         }
-      } else if (
+      }
+      else if (
           target->is_internal_op() &&
           (target->get_operation_kind() != MERGE_CLOSE_OP_KIND))
       {
@@ -727,7 +735,8 @@ namespace Legion {
               info.dependences.emplace_back(std::move(record));
           }
         }
-      } else
+      }
+      else
       {
         DependenceRecord record(
             target_finder->second.first, target_idx, source_idx, dtype,
@@ -830,7 +839,8 @@ namespace Legion {
           // Remove any mapping references that we hold
           target.first->remove_mapping_reference(target.second);
         }
-      } else  // Finished the recording so we are done
+      }
+      else  // Finished the recording so we are done
       {
         recording = false;
         op_map.clear();
@@ -970,7 +980,8 @@ namespace Legion {
               0 /*close index*/, LEGION_TRUE_DEPENDENCE, mask);
           // Dispatch this close op
           close_op->end_dependence_analysis();
-        } else
+        }
+        else
         {
           // Can just record a normal dependence
           op->register_region_dependence(

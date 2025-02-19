@@ -65,7 +65,8 @@ namespace Legion {
         RtEvent use_event;
         derez.deserialize(use_event);
         return new ConcretePool(instance, size, alignment, use_event, manager);
-      } else
+      }
+      else
       {
         size_t max_free_bytes;
         derez.deserialize(max_free_bytes);
@@ -267,7 +268,8 @@ namespace Legion {
         // Store it in the allocated data structure
         allocated[instance] = range_index;
         return instance;
-      } else
+      }
+      else
         return PhysicalInstance::NO_INST;
     }
 
@@ -358,7 +360,8 @@ namespace Legion {
           assert(success);
         }
 #endif
-      } else  // Non-zero-sized instance so can escape like normal
+      }
+      else  // Non-zero-sized instance so can escape like normal
         result = escape_range(
             finder->second, num_results, results, unique_events, layouts,
             creator_uid);
@@ -406,7 +409,8 @@ namespace Legion {
         backing_finder->first.destroy(
             Runtime::merge_events(backing_finder->second, precondition));
         backing_instances.erase(backing_finder);
-      } else if (finder->second != SENTINEL)
+      }
+      else if (finder->second != SENTINEL)
       {
         if (precondition.exists() && !precondition.has_triggered())
           pending_frees.emplace(std::make_pair(finder->second, precondition));
@@ -524,7 +528,8 @@ namespace Legion {
             deallocate(it->first);
             std::map<unsigned, RtEvent>::iterator delete_it = it++;
             pending_frees.erase(delete_it);
-          } else
+          }
+          else
           {
             // See if this has enough space for the allocation
             const Range& range = ranges[it->first];
@@ -551,7 +556,8 @@ namespace Legion {
             deallocate(finder->first);
             finder->second.wait();
             pending_frees.erase(finder);
-          } else if (!pending_frees.empty())
+          }
+          else if (!pending_frees.empty())
           {
             // Wait for all the tiny holes to be ready and then try again
             try_again = true;
@@ -600,7 +606,8 @@ namespace Legion {
           // case 1 - no merging (exact match)
           // just add ourselves to the free list
           add_to_free_list(index, r);
-        } else
+        }
+        else
         {
           // case 2 - merge before
           // merge ourselves into the range before
@@ -611,7 +618,8 @@ namespace Legion {
             ranges[r.next].prev = pf_idx;
           free_range(index);
         }
-      } else
+      }
+      else
       {
         if (!merge_prev)
         {
@@ -623,7 +631,8 @@ namespace Legion {
           if (r.prev != SENTINEL)
             ranges[r.prev].next = nf_idx;
           free_range(index);
-        } else
+        }
+        else
         {
           // case 4 - merge both
           // merge both ourselves and range after into range before
@@ -656,7 +665,8 @@ namespace Legion {
       {
         new_idx = first_unused_range;
         first_unused_range = ranges[new_idx].next;
-      } else
+      }
+      else
       {
         new_idx = ranges.size();
         ranges.resize(new_idx + 1);
@@ -805,7 +815,8 @@ namespace Legion {
                 Realm::UserEvent::create_user_event();
             unique.trigger();
             extra_unique_events.push_back(LgEvent(unique));
-          } else
+          }
+          else
             extra_unique_events.push_back(LgEvent::NO_LG_EVENT);
         }
         for (unsigned idx = 0; idx < num_results; idx++)
@@ -832,7 +843,8 @@ namespace Legion {
                 Realm::UserEvent::create_user_event();
             unique.trigger();
             extra_unique_events.push_back(LgEvent(unique));
-          } else
+          }
+          else
             extra_unique_events.push_back(LgEvent::NO_LG_EVENT);
         }
         std::vector<Realm::ProfilingRequestSet> requests(extra_layouts.size());
@@ -873,7 +885,8 @@ namespace Legion {
           // Copy over the names of the newly created instances
           for (unsigned idx = 0; idx < num_results; idx++)
             results[idx] = extra_instances[idx + 1];
-        } else
+        }
+        else
         {
           // Copy over the names of the newly created instances
           for (unsigned idx = 0; idx < num_results; idx++)
@@ -892,7 +905,8 @@ namespace Legion {
           }
           delete extra_layouts.back();
         }
-      } else
+      }
+      else
       {
         // We're literally redistricting exactly the instance we want
         // with no space left over at the beginning or the end
@@ -1094,9 +1108,11 @@ namespace Legion {
           // Remove an item in the middle of the list
           ranges[range.prev_free].next_free = range.next_free;
           ranges[range.next_free].prev_free = range.prev_free;
-        } else  // last item in the list can just be removed
+        }
+        else  // last item in the list can just be removed
           ranges[range.prev_free].next_free = SENTINEL;
-      } else
+      }
+      else
       {
         // We're the first item in the list
         const size_t size = range.last - range.first;
@@ -1148,7 +1164,8 @@ namespace Legion {
           if (size_based_free_lists[old_bin] == index)
             size_based_free_lists[old_bin] = next_index;
         }
-      } else
+      }
+      else
       {
         remove_from_free_list(index, range);
         if (before)
@@ -1176,7 +1193,8 @@ namespace Legion {
             backing_instances.begin();
         rez.serialize(finder->first);
         rez.serialize(finder->second);
-      } else
+      }
+      else
       {
         rez.serialize(PhysicalInstance::NO_INST);
         rez.serialize(RtEvent::NO_RT_EVENT);
@@ -1294,7 +1312,8 @@ namespace Legion {
                 nullptr /*data*/, size, false /*external*/,
                 true /*own allocation*/, unique_event, instance,
                 Processor::NO_PROC, use_event);
-          } else
+          }
+          else
             manager->update_remaining_capacity(previous_size);
           previous = find_local_freed_hole(size, previous_size);
         }
@@ -1374,7 +1393,8 @@ namespace Legion {
             if (bytes_used < previous_size)
               manager->update_remaining_capacity(previous_size - bytes_used);
             return instance;
-          } else
+          }
+          else
             manager->update_remaining_capacity(previous_size);
           previous = find_local_freed_hole(layout->bytes_used, previous_size);
         }
@@ -1499,7 +1519,8 @@ namespace Legion {
             freed_instances.erase(it);
           }
         }
-      } else  // Release it right away
+      }
+      else  // Release it right away
         manager->free_task_local_instance(instance, precondition);
     }
 
@@ -1577,7 +1598,8 @@ namespace Legion {
         finder.only_kind(Processor::TOC_PROC);
         assert(finder.count() > 0);
         local_gpu = finder.first();
-      } else if (memory.kind() == Memory::Z_COPY_MEM)
+      }
+      else if (memory.kind() == Memory::Z_COPY_MEM)
       {
         Machine::ProcessorQuery finder(runtime->machine);
         finder.has_affinity_to(memory);
@@ -1659,7 +1681,8 @@ namespace Legion {
             {
               it->first->add_base_gc_ref(MEMORY_MANAGER_REF);
               to_delete.push_back(it->first);
-            } else if (already_collected)
+            }
+            else if (already_collected)
               remove_collectable(it->second, it->first);
           }
         }
@@ -1792,7 +1815,8 @@ namespace Legion {
       {
         if (manager->remove_base_resource_ref(MEMORY_MANAGER_REF))
           delete manager;
-      } else
+      }
+      else
       {
         if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
           delete manager;
@@ -1851,7 +1875,8 @@ namespace Legion {
             return true;
         }
         return success.load();
-      } else
+      }
+      else
       {
         // Create the builder and initialize it before getting
         // the allocation privilege to avoid deadlock scenario
@@ -1936,7 +1961,8 @@ namespace Legion {
             return true;
         }
         return success.load();
-      } else
+      }
+      else
       {
         // Create the builder and initialize it before getting
         // the allocation privilege to avoid deadlock scenario
@@ -2027,9 +2053,11 @@ namespace Legion {
             return false;
           else
             return true;
-        } else
+        }
+        else
           return false;
-      } else
+      }
+      else
       {
         // Create the builder and initialize it before getting
         // the allocation privilege to avoid deadlock scenario
@@ -2065,7 +2093,8 @@ namespace Legion {
             // We made this instance so mark that it was created
             created = true;
           }
-        } else if (footprint != nullptr)
+        }
+        else if (footprint != nullptr)
           *footprint = result.get_instance_size();
         // Release our allocation privilege after doing the record
         release_allocation_privilege();
@@ -2131,9 +2160,11 @@ namespace Legion {
             return false;
           else
             return true;
-        } else
+        }
+        else
           return false;
-      } else
+      }
+      else
       {
         // Create the builder and initialize it before getting
         // the allocation privilege to avoid deadlock scenario
@@ -2171,7 +2202,8 @@ namespace Legion {
             // We made this instance so mark that it was created
             created = true;
           }
-        } else if (footprint != nullptr)
+        }
+        else if (footprint != nullptr)
           *footprint = result.get_instance_size();
         // Release our allocation privilege after doing the record
         release_allocation_privilege();
@@ -2229,7 +2261,8 @@ namespace Legion {
             return true;
         }
         return success.load();
-      } else
+      }
+      else
       {
         // Try to do the collection
         // We don't need to get the allocation privileges here because
@@ -2270,7 +2303,8 @@ namespace Legion {
 #endif
             }
             return true;
-          } else
+          }
+          else
           {
             // The previous instance was deleted but we didn't reallocate
             // so we freed up all the space for it
@@ -2339,7 +2373,8 @@ namespace Legion {
             return true;
         }
         return success.load();
-      } else
+      }
+      else
       {
         // Try to do the collection
         // We don't need to get the allocation privileges here because
@@ -2381,7 +2416,8 @@ namespace Legion {
 #endif
             }
             return true;
-          } else
+          }
+          else
           {
             // The previous instance was deleted but we didn't reallocate
             // so we freed up all the space for it
@@ -2441,9 +2477,11 @@ namespace Legion {
             return false;
           else
             return true;
-        } else
+        }
+        else
           return false;
-      } else
+      }
+      else
       {
         // Try to find an instance
         return find_satisfying_instance(
@@ -2491,9 +2529,11 @@ namespace Legion {
             return false;
           else
             return true;
-        } else
+        }
+        else
           return false;
-      } else
+      }
+      else
       {
         // Try to find an instance
         return find_satisfying_instance(
@@ -2546,7 +2586,8 @@ namespace Legion {
           }
           delete managers;
         }
-      } else
+      }
+      else
         find_satisfying_instances(
             constraints, regions, results, acquire, tight_region_bounds,
             remote);
@@ -2595,7 +2636,8 @@ namespace Legion {
           }
           delete managers;
         }
-      } else
+      }
+      else
         find_satisfying_instances(
             *constraints, regions, results, acquire, tight_region_bounds,
             remote);
@@ -2646,7 +2688,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert((previous + it->first->instance_footprint) <= capacity);
 #endif
-            } else if (already_collected)
+            }
+            else if (already_collected)
               remove_collectable(it->second, it->first);
           }
         }
@@ -2771,7 +2814,8 @@ namespace Legion {
                   rez.serialize(safe_for_unbounded_pools);
               }
               runtime->send_instance_response(source, rez);
-            } else  // we can just trigger the done event since we failed
+            }
+            else  // we can just trigger the done event since we failed
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -2849,7 +2893,8 @@ namespace Legion {
                   rez.serialize(safe_for_unbounded_pools);
               }
               runtime->send_instance_response(source, rez);
-            } else  // if we failed, we can just trigger the response
+            }
+            else  // if we failed, we can just trigger the response
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -2927,7 +2972,8 @@ namespace Legion {
                   rez.serialize(safe_for_unbounded_pools);
               }
               runtime->send_instance_response(source, rez);
-            } else  // if we failed, we can just trigger the response
+            }
+            else  // if we failed, we can just trigger the response
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -3007,7 +3053,8 @@ namespace Legion {
                   rez.serialize(safe_for_unbounded_pools);
               }
               runtime->send_instance_response(source, rez);
-            } else  // we failed so just trigger the response
+            }
+            else  // we failed so just trigger the response
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -3059,7 +3106,8 @@ namespace Legion {
                 rez.serialize<RtEvent*>(nullptr);
               }
               runtime->send_instance_response(source, rez);
-            } else  // we can just trigger the done event since we failed
+            }
+            else  // we can just trigger the done event since we failed
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -3113,7 +3161,8 @@ namespace Legion {
                 rez.serialize<RtEvent*>(nullptr);
               }
               runtime->send_instance_response(source, rez);
-            } else  // we can just trigger the done event since we failed
+            }
+            else  // we can just trigger the done event since we failed
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -3149,7 +3198,8 @@ namespace Legion {
                 rez.serialize<RtEvent*>(nullptr);
               }
               runtime->send_instance_response(source, rez);
-            } else  // we failed so we can just trigger the response
+            }
+            else  // we failed so we can just trigger the response
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -3187,7 +3237,8 @@ namespace Legion {
                 rez.serialize<RtEvent*>(nullptr);
               }
               runtime->send_instance_response(source, rez);
-            } else  // we failed so just trigger
+            }
+            else  // we failed so just trigger
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -3227,7 +3278,8 @@ namespace Legion {
                 rez.serialize<RtEvent*>(nullptr);
               }
               runtime->send_instance_response(source, rez);
-            } else  // we failed so we can just trigger the response
+            }
+            else  // we failed so we can just trigger the response
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -3269,7 +3321,8 @@ namespace Legion {
                 rez.serialize<RtEvent*>(nullptr);
               }
               runtime->send_instance_response(source, rez);
-            } else  // we failed so just trigger
+            }
+            else  // we failed so just trigger
               Runtime::trigger_event(to_trigger);
             break;
           }
@@ -3319,7 +3372,8 @@ namespace Legion {
           std::atomic<bool>* remote_success;
           derez.deserialize(remote_success);
           remote_success->store(true);
-        } else if (
+        }
+        else if (
             (kind == FIND_OR_CREATE_CONSTRAINTS) ||
             (kind == FIND_OR_CREATE_LAYOUT))
         {
@@ -3329,7 +3383,8 @@ namespace Legion {
           derez.deserialize(created);
           created_ptr->store(created);
         }
-      } else
+      }
+      else
       {
         if ((kind == FIND_MANY_CONSTRAINTS) || (kind == FIND_MANY_LAYOUT))
         {
@@ -3414,7 +3469,8 @@ namespace Legion {
           it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
           candidates.push_back(it->first);
         }
-      } else
+      }
+      else
       {
         // Just get all the instances since we don't care about regions
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
@@ -3472,7 +3528,8 @@ namespace Legion {
               break;
             }
           }
-        } else
+        }
+        else
         {
           // No region constraints, just check the base constraints
           for (std::deque<PhysicalManager*>::const_iterator it =
@@ -3531,7 +3588,8 @@ namespace Legion {
           it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
           candidates.push_back(it->first);
         }
-      } else
+      }
+      else
       {
         // Just get all the instances since we don't care about regions
         AutoLock m_lock(manager_lock, 1, false /*exclusive*/);
@@ -3586,7 +3644,8 @@ namespace Legion {
               results.push_back(MappingInstance(*it));
             }
           }
-        } else
+        }
+        else
         {
           // No regions to care about here, just check constraints
           for (std::deque<PhysicalManager*>::const_iterator it =
@@ -3792,7 +3851,8 @@ namespace Legion {
                 std::make_pair(wait_on, &coordinates));
             pending_allocation_attempts.emplace_front(current);
             return wait_on;
-          } else
+          }
+          else
           {
             // We're the first allocation bypassing, so just add
             // ourselves to the front of the list
@@ -3800,7 +3860,8 @@ namespace Legion {
                 std::make_pair(RtUserEvent::NO_RT_USER_EVENT, &coordinates));
             return RtEvent::NO_RT_EVENT;
           }
-        } else if (
+        }
+        else if (
             (unbounded_pool_scope == LEGION_INDEX_TASK_UNBOUNDED_POOL) &&
             unbounded_coordinates.same_index_space(coordinates))
         {
@@ -3818,7 +3879,8 @@ namespace Legion {
                 std::make_pair(wait_on, &coordinates));
             pending_allocation_attempts.emplace_front(current);
             return wait_on;
-          } else
+          }
+          else
           {
             // We're the first allocation bypassing, so just add
             // ourselves to the front of the list
@@ -3826,7 +3888,8 @@ namespace Legion {
                 std::make_pair(RtUserEvent::NO_RT_USER_EVENT, &coordinates));
             return RtEvent::NO_RT_EVENT;
           }
-        } else
+        }
+        else
         {
           // Check to see if this is safe for unbounded pools
           if (safe_for_unbounded_pools != nullptr)
@@ -3851,7 +3914,8 @@ namespace Legion {
               std::make_pair(wait_on, &coordinates));
           return wait_on;
         }
-      } else
+      }
+      else
       {
         // We have no current pending allocations, see if we have an
         // unbounded pool that we need to bypass
@@ -3873,7 +3937,8 @@ namespace Legion {
           pending_allocation_attempts.emplace_back(
               std::make_pair(wait_on, &coordinates));
           return wait_on;
-        } else if (
+        }
+        else if (
             (unbounded_pool_scope == LEGION_INDEX_TASK_UNBOUNDED_POOL) &&
             !unbounded_coordinates.same_index_space(coordinates))
         {
@@ -3892,7 +3957,8 @@ namespace Legion {
           pending_allocation_attempts.emplace_back(
               std::make_pair(wait_on, &coordinates));
           return wait_on;
-        } else
+        }
+        else
         {
           // No unbounded pool or a permissive one so we can do our
           // allocation immediately, put in our guard allocation
@@ -3951,7 +4017,8 @@ namespace Legion {
             default:
               std::abort();
           }
-        } else if (
+        }
+        else if (
             unbounded_transition_event.exists() &&
             (outstanding_task_local_allocations == 0))
         {
@@ -3982,7 +4049,8 @@ namespace Legion {
       {
         current_priority = collectable_instances.begin()->first;
         sort_next_priority_holes(false /*advance*/);
-      } else
+      }
+      else
         current_priority = LEGION_GC_NEVER_PRIORITY;
     }
 
@@ -4058,7 +4126,8 @@ namespace Legion {
                 small_holes.push_back(*it);
               else
                 large_holes[(*it)->instance_footprint].push_back(*it);
-            } else if (already_collected)
+            }
+            else if (already_collected)
             {
               // We can prune this out of the collected set immediately
               // since it has already been deleted so there is no need
@@ -4071,9 +4140,11 @@ namespace Legion {
           }
           if (next->second.empty())
             collectable_instances.erase(next);
-        } else
+        }
+        else
           current_priority = LEGION_GC_NEVER_PRIORITY;
-      } else
+      }
+      else
         current_priority = LEGION_GC_NEVER_PRIORITY;
     }
 
@@ -4119,7 +4190,8 @@ namespace Legion {
             if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
               delete manager;
             return collected;
-          } else if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+          }
+          else if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
             delete manager;
         }
         // If that didn't work try to use any large holes starting from
@@ -4139,7 +4211,8 @@ namespace Legion {
               if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
                 delete manager;
               return collected;
-            } else if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
+            }
+            else if (manager->remove_base_gc_ref(MEMORY_MANAGER_REF))
               delete manager;
           }
           large_holes.erase(sit);
@@ -4376,7 +4449,8 @@ namespace Legion {
           if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
             delete (*it);
         }
-      } else
+      }
+      else
       {
         // Send the managers to the owner node to nodify them of the deletion
         Serializer rez;
@@ -4490,7 +4564,8 @@ namespace Legion {
           return nullptr;
         return new ConcretePool(
             instance, bounds.size, bounds.alignment, use_event, this);
-      } else
+      }
+      else
       {
         // Spin wait until we have can mark that there is an unbound pool
         // associated with these particular coordinates
@@ -4521,7 +4596,8 @@ namespace Legion {
                       return nullptr;
                     }
                     wait_on = unbounded_transition_event;
-                  } else
+                  }
+                  else
                     outstanding_unbounded_allocations++;
                   break;
                 }
@@ -4542,7 +4618,8 @@ namespace Legion {
                       return nullptr;
                     }
                     wait_on = unbounded_transition_event;
-                  } else
+                  }
+                  else
                     outstanding_unbounded_allocations++;
                   break;
                 }
@@ -4562,14 +4639,16 @@ namespace Legion {
                       return nullptr;
                     }
                     wait_on = unbounded_transition_event;
-                  } else
+                  }
+                  else
                     outstanding_unbounded_allocations++;
                   break;
                 }
               default:
                 std::abort();
             }
-          } else if (
+          }
+          else if (
               !pending_allocation_attempts.empty() ||
               (outstanding_task_local_allocations > 0))
           {
@@ -4578,7 +4657,8 @@ namespace Legion {
             if (!unbounded_transition_event.exists())
               unbounded_transition_event = Runtime::create_rt_user_event();
             wait_on = unbounded_transition_event;
-          } else
+          }
+          else
           {
             // If there are no outstanding allocations then we can start
             // a new unbounded allocation
@@ -4620,7 +4700,8 @@ namespace Legion {
 #endif
             Runtime::trigger_event(front.first);
           }
-        } else if (unbounded_pool_scope == LEGION_INDEX_TASK_UNBOUNDED_POOL)
+        }
+        else if (unbounded_pool_scope == LEGION_INDEX_TASK_UNBOUNDED_POOL)
         {
           // If the coordinates are from the same index space then it
           // is running already so only trigger if they are not
@@ -4690,7 +4771,8 @@ namespace Legion {
         }
         runtime->send_create_memory_pool_response(source, rez);
         delete pool;
-      } else
+      }
+      else
         Runtime::trigger_event(ready);
     }
 
@@ -4801,7 +4883,8 @@ namespace Legion {
               next_tasks.push_back(it->first);
               next_coords.clear();
               min_next = it->second.lamport_clock;
-            } else if (min_next == it->second.lamport_clock)
+            }
+            else if (min_next == it->second.lamport_clock)
             {
               // Very bad case, same min of max all-reduce of clocks
               // Resolve this conflict based on task tree coordinates
@@ -4829,9 +4912,11 @@ namespace Legion {
                     next_tasks.clear();
                     next_tasks.push_back(it->first);
                     next_coords.swap(it_coords);
-                  } else if (c1.index_point == c2.index_point)
+                  }
+                  else if (c1.index_point == c2.index_point)
                     continue;
-                } else if (c2.context_index < c1.context_index)
+                }
+                else if (c2.context_index < c1.context_index)
                 {
                   next_tasks.clear();
                   next_tasks.push_back(it->first);
@@ -4853,12 +4938,14 @@ namespace Legion {
                 }
               }
             }
-          } else
+          }
+          else
           {
             next_tasks.push_back(it->first);
             min_next = it->second.lamport_clock;
           }
-        } else if (it->second.lamport_clock < min_pending)
+        }
+        else if (it->second.lamport_clock < min_pending)
           min_pending = it->second.lamport_clock;
       }
       // If all the pending tasks with lamport clocks are
@@ -5000,7 +5087,8 @@ namespace Legion {
           assert(layout->bytes_used <= previous);
 #endif
           break;
-        } else if (instance.exists())
+        }
+        else if (instance.exists())
         {
           instance.destroy();
           instance = PhysicalInstance::NO_INST;
@@ -5185,7 +5273,8 @@ namespace Legion {
         }
         runtime->send_free_future_instance(owner_space, rez);
         return;
-      } else
+      }
+      else
       {
         // perform the deferred deletion on this instance
 #ifdef DEBUG_LEGION
@@ -5304,7 +5393,8 @@ namespace Legion {
         }
         manager->pack_valid_ref();
         runtime->send_external_detach(manager->owner_space, rez);
-      } else
+      }
+      else
       {
         // Tell the manager that it can perform its deletion
         manager->perform_deletion(runtime->address_space);
@@ -5468,7 +5558,8 @@ namespace Legion {
               if (wait_on.exists() && !wait_on.has_triggered())
                 wait_on.wait();
               return result;
-            } else
+            }
+            else
             {
               // Use the driver API here to avoid the CUDA hijack
               if (memory.kind() == Memory::GPU_FB_MEM)
@@ -5485,7 +5576,8 @@ namespace Legion {
                 result = RtEvent(PhysicalInstance::create_external_instance(
                     instance, resource.suggested_memory(), layout, resource,
                     requests));
-              } else
+              }
+              else
               {
                 void* ptr = nullptr;
                 if ((footprint > 0) &&
@@ -5523,7 +5615,8 @@ namespace Legion {
               if (wait_on.exists() && !wait_on.has_triggered())
                 wait_on.wait();
               return result;
-            } else
+            }
+            else
             {
               // Use the driver API here to avoid the CUDA hijack
               if (memory.kind() == Memory::GPU_FB_MEM)
@@ -5540,7 +5633,8 @@ namespace Legion {
                 result = RtEvent(PhysicalInstance::create_external_instance(
                     instance, resource.suggested_memory(), layout, resource,
                     requests));
-              } else
+              }
+              else
               {
                 void* ptr = nullptr;
                 if ((footprint > 0) &&
@@ -5649,7 +5743,8 @@ namespace Legion {
 #else
             runtime->issue_runtime_meta_task(args, LG_LOW_PRIORITY, defer);
 #endif
-          } else
+          }
+          else
             finder->second = instance;
           return;
         }

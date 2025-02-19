@@ -729,7 +729,8 @@ namespace Legion {
             IndexSpaceNode* privilege_node =
                 runtime->get_node(req.region.get_index_space());
             return manager->create_piece_iterator(privilege_node);
-          } else
+          }
+          else
             return manager->create_piece_iterator(nullptr);
         }
       }
@@ -770,7 +771,8 @@ namespace Legion {
                     "Warning string: %s",
                     fid, context->get_task_name(),
                     (warning_string == nullptr) ? "" : warning_string)
-            } else if (req.privilege != LEGION_READ_WRITE)
+            }
+            else if (req.privilege != LEGION_READ_WRITE)
               REPORT_LEGION_ERROR(
                   ERROR_ACCESSOR_PRIVILEGE_CHECK,
                   "Error creating read-write field accessor without "
@@ -948,7 +950,8 @@ namespace Legion {
                 default:
                   std::abort();
               }
-            } else
+            }
+            else
               bounds->get_index_space_domain(realm_is, type_tag);
           }
           return manager->get_instance();
@@ -1051,7 +1054,8 @@ namespace Legion {
             assert(bounds.get_dim() == delta.get_dim());
 #endif
             outer = Domain(bounds.lo() - delta.lo(), bounds.hi() + delta.hi());
-          } else
+          }
+          else
             outer = bounds;
           return manager->get_instance();
         }

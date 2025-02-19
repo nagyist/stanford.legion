@@ -318,7 +318,8 @@ namespace Legion {
         runtime->phase_barrier_arrive(
             execution_fence_barrier, 1 /*count*/, complete);
         FenceOp::trigger_complete(execution_fence_barrier);
-      } else
+      }
+      else
         FenceOp::trigger_complete(complete);
     }
 

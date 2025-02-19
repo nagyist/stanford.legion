@@ -541,7 +541,8 @@ namespace Legion {
                   << "have incompatible types because they have different "
                   << (diff_dims ? "numbers of dimensions." :
                                   "coordinate_types.");
-          } else
+          }
+          else
           {
             // Gather copy
             IndexSpace src_indirect_space =
@@ -563,7 +564,8 @@ namespace Legion {
                   << (diff_dims ? "numbers of dimensions." :
                                   "coordinate types.");
           }
-        } else
+        }
+        else
         {
           // Check that the size of the source indirect field is same
           // as the size of the source coordinate type
@@ -616,7 +618,8 @@ namespace Legion {
                   << "because they have different "
                   << (diff_dims ? "numbers of dimensions." :
                                   "coordinate types.");
-          } else
+          }
+          else
           {
             // Indirect copy
             IndexSpace src_indirect_space =
@@ -940,7 +943,8 @@ namespace Legion {
       {
         const RtEvent ready = Runtime::merge_events(preconditions);
         enqueue_ready_operation(ready);
-      } else
+      }
+      else
         enqueue_ready_operation();
     }
 
@@ -1154,7 +1158,8 @@ namespace Legion {
                              (ApEvent)local_postcondition,
               src_targets, src_sources, src_info, map_applied_conditions,
               false /*check collective*/, record_valid);
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(src_targets.size() == 1);
@@ -1362,7 +1367,8 @@ namespace Legion {
           runtime->issue_runtime_meta_task(
               args, LG_THROUGHPUT_DEFERRED_PRIORITY, perform_precondition);
           map_applied_conditions.insert(deferred_applied);
-        } else
+        }
+        else
           perform_copy_across(
               idx, init_precondition, src_ready, dst_ready, gather_ready,
               scatter_ready, local_precondition, local_postcondition,
@@ -1418,7 +1424,8 @@ namespace Legion {
               dst_targets, across_sources, index, trace_info.dst_index,
               init_precondition, src_ready, dst_ready, predication_guard,
               atomic_locks[index], trace_info, applied_conditions);
-        } else
+        }
+        else
         {
           // Gather copy
 #ifdef DEBUG_LEGION
@@ -1437,7 +1444,8 @@ namespace Legion {
               possible_src_indirect_out_of_range, compute_preimages,
               shadow_indirections);
         }
-      } else
+      }
+      else
       {
         if (gather_targets == nullptr)
         {
@@ -1458,7 +1466,8 @@ namespace Legion {
               possible_dst_indirect_out_of_range,
               possible_dst_indirect_aliasing, compute_preimages,
               shadow_indirections);
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(gather_is_range[index] == scatter_is_range[index]);
@@ -1706,21 +1715,24 @@ namespace Legion {
       {
         input.region_req_index = mod_index;
         input.is_src = true;
-      } else
+      }
+      else
       {
         mod_index -= src_requirements.size();
         if (mod_index < dst_requirements.size())
         {
           input.region_req_index = mod_index;
           input.is_dst = true;
-        } else
+        }
+        else
         {
           mod_index -= dst_requirements.size();
           if (mod_index < src_indirect_requirements.size())
           {
             input.region_req_index = mod_index;
             input.is_src_indirect = true;
-          } else
+          }
+          else
           {
             mod_index -= src_indirect_requirements.size();
 #ifdef DEBUG_LEGION
@@ -1763,7 +1775,8 @@ namespace Legion {
       {
         if (!finder->second && exclusive)
           finder->second = true;
-      } else
+      }
+      else
         local_locks[lock] = exclusive;
     }
 
@@ -3366,7 +3379,8 @@ namespace Legion {
           {
             Runtime::trigger_event(to_trigger, finder->second);
             return to_trigger;
-          } else
+          }
+          else
             return finder->second;
         }
         if (!to_trigger.exists())
@@ -3384,7 +3398,8 @@ namespace Legion {
         {
           Runtime::trigger_event(to_trigger, (*it)->get_mapped_event());
           return to_trigger;
-        } else
+        }
+        else
           return (*it)->get_mapped_event();
       }
       // Should never get here, if we do that means we couldn't find the point
@@ -3497,7 +3512,8 @@ namespace Legion {
         if (src_indirect_records[index].size() == points.size())
           return finalize_exchange(index, true /*sources*/);
         return exchange.src_ready;
-      } else
+      }
+      else
       {
         if (!exchange.collective_pre.exists())
         {
@@ -3554,7 +3570,8 @@ namespace Legion {
           *exchange.src_records[idx] = records;
         Runtime::trigger_event(exchange.src_ready);
         return exchange.src_ready;
-      } else
+      }
+      else
       {
         const std::vector<IndirectRecord>& records =
             dst_indirect_records[index];
@@ -3635,9 +3652,11 @@ namespace Legion {
                   runtime->get_node(req.partition.get_index_partition());
               if (partition->is_disjoint())
                 continue;
-            } else  // Identity functor is invertible
+            }
+            else  // Identity functor is invertible
               continue;
-          } else
+          }
+          else
           {
             ProjectionFunction* func =
                 runtime->find_projection_function(req.projection);
@@ -3952,7 +3971,8 @@ namespace Legion {
 #endif
         src_requirements[idx].region = result;
         src_requirements[idx].handle_type = LEGION_SINGULAR_PROJECTION;
-      } else if (idx < (src_requirements.size() + dst_requirements.size()))
+      }
+      else if (idx < (src_requirements.size() + dst_requirements.size()))
       {
         idx -= src_requirements.size();
 #ifdef DEBUG_LEGION
@@ -3960,7 +3980,8 @@ namespace Legion {
 #endif
         dst_requirements[idx].region = result;
         dst_requirements[idx].handle_type = LEGION_SINGULAR_PROJECTION;
-      } else if (
+      }
+      else if (
           idx < (src_requirements.size() + dst_requirements.size() +
                  src_indirect_requirements.size()))
       {
@@ -3972,7 +3993,8 @@ namespace Legion {
 #endif
         src_indirect_requirements[idx].region = result;
         src_indirect_requirements[idx].handle_type = LEGION_SINGULAR_PROJECTION;
-      } else
+      }
+      else
       {
         idx -=
             (src_requirements.size() + dst_requirements.size() +
@@ -4140,7 +4162,8 @@ namespace Legion {
         DomainPoint point(0);
         Domain launch_domain(point, point);
         handle = ctx->find_index_launch_space(launch_domain, get_provenance());
-      } else
+      }
+      else
         handle = ctx->find_index_launch_space(index_domain, get_provenance());
       launch_space = runtime->get_node(handle);
       // Initialize our index domain of a single point
@@ -4254,7 +4277,8 @@ namespace Legion {
         Domain shard_domain;
         runtime->find_domain(sharding_space, shard_domain);
         owner_shard = sharding_function->find_owner(index_point, shard_domain);
-      } else
+      }
+      else
         owner_shard = sharding_function->find_owner(index_point, index_domain);
       // If we're recording then record the owner shard
       if (is_recording())
@@ -4278,7 +4302,8 @@ namespace Legion {
         // mapped and executed this copy already
         complete_mapping();
         complete_execution();
-      } else  // We own it, so do the base call
+      }
+      else  // We own it, so do the base call
         CopyOp::trigger_ready();
     }
 
@@ -4305,7 +4330,8 @@ namespace Legion {
 #endif
         complete_mapping();
         complete_execution();
-      } else  // We own it, so do the base call
+      }
+      else  // We own it, so do the base call
         CopyOp::trigger_replay();
     }
 
@@ -4458,8 +4484,9 @@ namespace Legion {
         // clean up the operation
         commit_preconditions.insert(interfering_exchange->get_done_event());
         interfering_exchange->exchange_domain_points(point_domains);
-      } else  // Second time through call the base class since we have the
-              // results
+      }
+      else  // Second time through call the base class since we have the
+            // results
         IndexCopyOp::finish_check_point_requirements(point_domains);
     }
 
@@ -4558,7 +4585,8 @@ namespace Legion {
           complete_execution(Runtime::merge_events(done_events));
         else
           complete_execution();
-      } else  // If we have any valid points do the base call
+      }
+      else  // If we have any valid points do the base call
       {
         shard_points = runtime->get_node(local_space);
         add_launch_space_reference(shard_points);
@@ -4622,7 +4650,8 @@ namespace Legion {
         // We have no local points, so we can just trigger
         complete_mapping();
         complete_execution();
-      } else
+      }
+      else
       {
         shard_points = runtime->get_node(local_space);
         add_launch_space_reference(shard_points);
@@ -4714,7 +4743,8 @@ namespace Legion {
         if (src_indirect_records[index].size() == points.size())
           return finalize_exchange(index, true /*sources*/);
         return exchange.src_ready;
-      } else
+      }
+      else
       {
         collective_pre = pre_indirection_barriers[index];
         collective_post = post_indirection_barriers[index];
@@ -4787,9 +4817,11 @@ namespace Legion {
         {
           Runtime::trigger_event(exchange.src_ready, ready);
           return exchange.src_ready;
-        } else
+        }
+        else
           return ready;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(index < dst_collectives.size());
@@ -4800,7 +4832,8 @@ namespace Legion {
         {
           Runtime::trigger_event(exchange.dst_ready, ready);
           return exchange.dst_ready;
-        } else
+        }
+        else
           return ready;
       }
     }
@@ -4999,21 +5032,24 @@ namespace Legion {
       {
         input.region_req_index = mod_index;
         input.is_src = true;
-      } else
+      }
+      else
       {
         mod_index -= src_requirements.size();
         if (mod_index < dst_requirements.size())
         {
           input.region_req_index = mod_index;
           input.is_dst = true;
-        } else
+        }
+        else
         {
           mod_index -= dst_requirements.size();
           if (mod_index < src_indirect_requirements.size())
           {
             input.region_req_index = mod_index;
             input.is_src_indirect = true;
-          } else
+          }
+          else
           {
             mod_index -= src_indirect_requirements.size();
 #ifdef DEBUG_LEGION

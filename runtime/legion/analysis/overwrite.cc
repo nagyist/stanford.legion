@@ -139,12 +139,14 @@ namespace Legion {
           for (unsigned idx = 0; idx < indiv.size(); idx++)
             target_views[idx].insert(
                 indiv[idx], targets[idx].get_valid_fields());
-        } else
+        }
+        else
           return op->convert_collective_views(
               index, analysis_index, region, targets, context,
               collective_mapping, collective_first_local, target_views,
               collective_arrivals);
-      } else
+      }
+      else
         context->convert_analysis_views(targets, target_views);
       return RtEvent::NO_RT_EVENT;
     }
@@ -257,7 +259,8 @@ namespace Legion {
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
-          } else
+          }
+          else
             rez.serialize<size_t>(0);
           rez.serialize(applied);
         }
@@ -328,9 +331,11 @@ namespace Legion {
             inst_ready_events.push_back(init_precondition);
           instances_ready =
               Runtime::merge_events(&trace_info, inst_ready_events);
-        } else
+        }
+        else
           instances_ready = inst_ready_events.back();
-      } else
+      }
+      else
         instances_ready = init_precondition;
       if (!registered_events.empty())
         return Runtime::merge_events(registered_events);

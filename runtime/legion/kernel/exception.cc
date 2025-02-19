@@ -145,7 +145,8 @@ namespace Legion {
                   << ")";
           context = context->owner_task->get_context();
         }
-      } else if (implicit_context != nullptr)
+      }
+      else if (implicit_context != nullptr)
       {
         Provenance* prov = implicit_context->owner_task->get_provenance();
         if (prov != nullptr)

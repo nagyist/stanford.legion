@@ -143,7 +143,8 @@ namespace Legion {
           }
           runtime->send_equivalence_set_remote_instances(original_source, rez);
           return response_event;
-        } else
+        }
+        else
           target_analysis->process_local_instances(
               *recorded_instances, restricted);
       }
@@ -356,7 +357,8 @@ namespace Legion {
           }
           runtime->send_equivalence_set_remote_instances(original_source, rez);
           return response_event;
-        } else
+        }
+        else
           target_analysis->process_local_instances(
               *recorded_instances, restricted);
       }
@@ -581,7 +583,8 @@ namespace Legion {
           }
           runtime->send_equivalence_set_remote_instances(original_source, rez);
           return response_event;
-        } else
+        }
+        else
           target_analysis->process_local_instances(
               *recorded_instances, restricted);
       }

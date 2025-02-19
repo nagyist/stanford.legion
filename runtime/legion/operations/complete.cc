@@ -297,7 +297,8 @@ namespace Legion {
           exchange.record_set(it->first->did, it->second);
           std::map<EquivalenceSet*, unsigned>::iterator delete_it = it++;
           condition_sets.erase(delete_it);
-        } else
+        }
+        else
           it++;
       }
       // Do the exchange
@@ -465,7 +466,8 @@ namespace Legion {
           complete_mapping();
         record_completion_effects(execution_preconditions);
         complete_execution();
-      } else
+      }
+      else
         ReplTraceOp::trigger_mapping();
     }
 

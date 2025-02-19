@@ -671,7 +671,8 @@ namespace Legion {
           o_lock.release();
           collective_lamport_clock_ready.wait();
         }
-      } else if (collective_lamport_clock_ready.exists())
+      }
+      else if (collective_lamport_clock_ready.exists())
         Runtime::trigger_event(collective_lamport_clock_ready);
       return collective_lamport_clock;
     }
@@ -778,7 +779,8 @@ namespace Legion {
           }
           runtime->send_individual_concurrent_allreduce_response(
               it->second, rez);
-        } else
+        }
+        else
           it->first->finish_concurrent_allreduce(
               concurrent_lamport_clock, concurrent_poisoned);
       }
@@ -801,7 +803,8 @@ namespace Legion {
             rez.serialize(concurrent_poisoned);
           }
           runtime->send_slice_concurrent_allreduce_response(it->second, rez);
-        } else
+        }
+        else
           it->first->finish_concurrent_allreduce(
               color, concurrent_lamport_clock, concurrent_poisoned, vid,
               RtBarrier::NO_RT_BARRIER);
@@ -839,7 +842,8 @@ namespace Legion {
           const Rect<DIM, coord_t> rect =                                     \
               launcher.index_tasks[idx].launch_domain;                        \
           subspaces[idx] = rect;                                              \
-        } else                                                                \
+        }                                                                     \
+        else                                                                  \
         {                                                                     \
           Domain domain;                                                      \
           runtime->find_domain(                                               \
@@ -870,7 +874,8 @@ namespace Legion {
           }
           return parent_ctx->find_index_launch_space(
               launch_domain, provenance, true /*take ownership*/);
-        } else  // Easy case of a single index task
+        }
+        else  // Easy case of a single index task
         {
           launch_domain = launcher.index_tasks[0].launch_domain;
           if (!launch_domain.exists())
@@ -878,7 +883,8 @@ namespace Legion {
                 launcher.index_tasks[0].launch_space, launch_domain);
           return parent_ctx->find_index_launch_space(launch_domain, provenance);
         }
-      } else
+      }
+      else
       {
         // These are just point tasks
         if (single_tasks > 1)
@@ -906,7 +912,8 @@ namespace Legion {
           }
           return parent_ctx->find_index_launch_space(
               launch_domain, provenance, true /*take ownership*/);
-        } else  // Easy case of a single point task
+        }
+        else  // Easy case of a single point task
         {
           DomainPoint point = launcher.single_tasks[0].point;
           launch_domain = Domain(point, point);
@@ -1070,7 +1077,8 @@ namespace Legion {
         // Update the dependence type
         dtype = check_dependence_type<true, true /*reductions interfere*/>(
             RegionUsage(src_req), RegionUsage(dst_req));
-      } else
+      }
+      else
         src_index = find_operation_index(src_op, src_gen);
 #ifdef DEBUG_LEGION
       assert(src_index >= 0);
@@ -1101,7 +1109,8 @@ namespace Legion {
                                                     "ATOMIC DEPENDENCE")
             << ". Non-simultaneous dependences between two tasks in a "
             << "must epoch_launch are not permitted.";
-      } else if (dtype == LEGION_SIMULTANEOUS_DEPENDENCE)
+      }
+      else if (dtype == LEGION_SIMULTANEOUS_DEPENDENCE)
       {
         // See if the dependence record already exists
         const std::pair<unsigned, unsigned> src_key(src_index, src_idx);
@@ -1125,7 +1134,8 @@ namespace Legion {
           else  // both already there so just assert they are the same
             assert(src_record_finder->second == dst_record_finder->second);
 #endif
-        } else
+        }
+        else
         {
           // No source record
           // See if we have a destination record entry
@@ -1142,7 +1152,8 @@ namespace Legion {
             dependence_map[src_key] = record_index;
             dependence_map[dst_key] = record_index;
             dependences.push_back(new_record);
-          } else
+          }
+          else
           {
             // Have a destination but no source, so update the source
             dependence_map[src_key] = dst_record_finder->second;
@@ -1296,7 +1307,8 @@ namespace Legion {
         RtUserEvent result = Runtime::create_rt_user_event();
         slice_version_events[slice_id] = result;
         return result;
-      } else
+      }
+      else
       {
         first = false;
         return finder->second;
@@ -1622,7 +1634,8 @@ namespace Legion {
             derez.deserialize(info.instances[idx2]);
           derez.deserialize(info.origin_shard);
           derez.deserialize(info.weight);
-        } else
+        }
+        else
         {
           // Unpack into a temporary
           ConstraintInfo info;
@@ -2147,7 +2160,8 @@ namespace Legion {
             input.tasks, all_tasks, output.task_processors,
             original_constraint_indexes, output.constraint_mappings,
             output.weights, *get_acquired_instances_ref());
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(mapping_broadcast == nullptr);
@@ -2161,7 +2175,8 @@ namespace Legion {
           mapper->invoke_map_must_epoch(this, input, output);
           mapping_broadcast->broadcast(
               output.task_processors, output.constraint_mappings);
-        } else
+        }
+        else
           mapping_broadcast->receive_results(
               output.task_processors, original_constraint_indexes,
               output.constraint_mappings, *get_acquired_instances_ref());
@@ -2275,7 +2290,8 @@ namespace Legion {
         collective_exchange->async_all_reduce(collective_lamport_clock);
         AutoLock o_lock(op_lock);
         commit_preconditions.insert(collective_exchange->get_done_event());
-      } else
+      }
+      else
       {
         remaining_mapped_events.store(shard_single_tasks.size());
         remaining_collective_unbound_points = shard_single_tasks.size();
@@ -2438,7 +2454,8 @@ namespace Legion {
             o_lock.release();
             collective_exchange->get_done_event().wait();
             return collective_exchange->get_result();
-          } else
+          }
+          else
             return collective_lamport_clock;
         }
         // Otherwise we're going to fall through and do the allreduce
@@ -2454,7 +2471,8 @@ namespace Legion {
       {
         collective_exchange->get_done_event().wait();
         return collective_exchange->get_result();
-      } else
+      }
+      else
         return collective_lamport_clock;
     }
 
@@ -2591,7 +2609,8 @@ namespace Legion {
         Domain shard_domain;
         runtime->find_domain(sharding_space, shard_domain);
         return shard_domain;
-      } else
+      }
+      else
         return launch_domain;
     }
 

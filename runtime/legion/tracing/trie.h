@@ -98,7 +98,8 @@ namespace Legion {
           if (it != node->children.end())
           {
             node = it->second;
-          } else
+          }
+          else
           {
             TrieNode<T, V>* new_node = new TrieNode<T, V>(token, node);
             node->children[token] = new_node;
@@ -125,7 +126,8 @@ namespace Legion {
           if (it != node->children.end())
           {
             node = it->second;
-          } else
+          }
+          else
           {
             TrieNode<T, V>* new_node = new TrieNode<T, V>(token, node);
             node->children[token] = new_node;
@@ -156,7 +158,8 @@ namespace Legion {
           {
             node = it->second;
             matched_toks++;
-          } else
+          }
+          else
           {
             break;
           }
@@ -188,7 +191,8 @@ namespace Legion {
           {
             node = it->second;
             matched_toks++;
-          } else
+          }
+          else
           {
             break;
           }
@@ -219,7 +223,8 @@ namespace Legion {
           if (it != node->children.end())
           {
             node = it->second;
-          } else
+          }
+          else
           {
             return false;
           }
@@ -240,7 +245,8 @@ namespace Legion {
           if (it != node->children.end())
           {
             node = it->second;
-          } else
+          }
+          else
           {
             return false;
           }
@@ -260,7 +266,8 @@ namespace Legion {
           if (it != node->children.end())
           {
             node = it->second;
-          } else
+          }
+          else
           {
             return false;
           }

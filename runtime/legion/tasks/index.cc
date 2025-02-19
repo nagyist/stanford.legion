@@ -170,7 +170,8 @@ namespace Legion {
               }
               target.insert(*it);
             }
-          } else
+          }
+          else
             target.swap(output_extents[idx]);
         }
         // Now Check to see if we've received all the extents
@@ -479,7 +480,8 @@ namespace Legion {
         future_map = create_future_map(
             ctx, launch_space->handle, launcher.sharding_space);
         future_return_size = launcher.future_return_size;
-      } else
+      }
+      else
         elide_future_return = true;
       // Make sure you do this after making the output regions
       compute_parent_indexes(false /*force*/);
@@ -622,7 +624,8 @@ namespace Legion {
         reduction_future_size = reduction_op->sizeof_rhs;
         reduction_future.impl->set_future_result_size(
             reduction_op->sizeof_rhs, runtime->address_space);
-      } else if (launcher.future_return_size)
+      }
+      else if (launcher.future_return_size)
       {
         reduction_future_size = launcher.future_return_size;
         reduction_future.impl->set_future_result_size(
@@ -691,7 +694,8 @@ namespace Legion {
                   "as being a collective write.",
                   parent_ctx->get_task_name(), parent_ctx->get_unique_id(),
                   get_task_name(), get_unique_op_id(), idx)
-          } else if (runtime->runtime_warnings)
+          }
+          else if (runtime->runtime_warnings)
             REPORT_LEGION_WARNING(
                 LEGION_WARNING_NON_SCALABLE_IDENTITY_PROJECTION,
                 "Parent task %s (UID %lld) issued index space task %s "
@@ -842,7 +846,8 @@ namespace Legion {
                   launch_space.get_dim());
 
             type_tag = req.type_tag;
-          } else
+          }
+          else
           {
             // When local indexing is used for the output region,
             // we create an (N+1)-D index space when the color domain is N-D.
@@ -1013,7 +1018,8 @@ namespace Legion {
         complete_mapping();
         complete_execution();
         trigger_children_committed();
-      } else
+      }
+      else
       {
         // If we had a trace then we might need to recompute our parent
         // region indexes now since we might have skipped it earlier
@@ -1033,7 +1039,8 @@ namespace Legion {
             for (Color color = 0; color <= max_color; color++)
               concurrent_groups[color].precondition.interpreted =
                   Runtime::create_rt_user_event();
-          } else
+          }
+          else
           {
             // If we're recording we need to iterate all the points to
             // count how many points are associated with each color so
@@ -1300,7 +1307,8 @@ namespace Legion {
               rez.serialize(finder->second.poisoned);
             }
             runtime->send_slice_concurrent_allreduce_response(it->second, rez);
-          } else
+          }
+          else
             it->first->finish_concurrent_allreduce(
                 color, finder->second.lamport_clock, finder->second.poisoned,
                 finder->second.variant, finder->second.task_barrier);
@@ -1329,7 +1337,8 @@ namespace Legion {
           o_lock.release();
           collective_lamport_clock_ready.wait();
         }
-      } else if (collective_lamport_clock_ready.exists())
+      }
+      else if (collective_lamport_clock_ready.exists())
         Runtime::trigger_event(collective_lamport_clock_ready);
       return collective_lamport_clock;
     }
@@ -1363,7 +1372,8 @@ namespace Legion {
                     this, predicate_false_future.impl,
                     nullptr /*safe_for_unbounded_pools*/);
               }
-            } else
+            }
+            else
             {
               for (Domain::DomainPointIterator itr(local_domain); itr; itr++)
               {
@@ -1378,7 +1388,8 @@ namespace Legion {
               }
             }
           }
-        } else
+        }
+        else
         {
           // Handling a reduction case
           if (redop_initial_value.impl != nullptr)
@@ -1387,7 +1398,8 @@ namespace Legion {
             reduction_future.impl->set_result(
                 this, redop_initial_value.impl,
                 nullptr /*safe_for_unbounded_pools*/);
-          } else
+          }
+          else
             reduction_future.impl->set_local(
                 &reduction_op->identity, reduction_op->sizeof_rhs);
         }
@@ -1468,10 +1480,12 @@ namespace Legion {
             {
               unique_mems.insert(*it);
               it++;
-            } else
+            }
+            else
               it = target_mems.erase(it);
           }
-        } else if (!(target_mems.begin()->exists()))
+        }
+        else if (!(target_mems.begin()->exists()))
           REPORT_LEGION_ERROR(
               ERROR_INVALID_MAPPER_OUTPUT,
               "Invalid mapper output. Mapper %s requested index task "
@@ -1479,7 +1493,8 @@ namespace Legion {
               "(UID %lld) which is illegal. All requests for mapping "
               "output futures must be mapped to actual memories.",
               mapper->get_mapper_name(), get_task_name(), unique_op_id)
-      } else
+      }
+      else
         target_mems.push_back(runtime->runtime_system_memory);
       // If we've got a serdez redop function then we don't know how big
       // the output is going to be until later, otherwise we know the
@@ -1534,7 +1549,8 @@ namespace Legion {
           reduction_instance_precondition =
               reduction_instance.load()->initialize(
                   reduction_op, this, execution_fence_event);
-      } else
+      }
+      else
       {
         if ((redop_initial_value.impl != nullptr) &&
             (parent_ctx->get_task()->get_shard_id() == 0))
@@ -1562,7 +1578,8 @@ namespace Legion {
 #endif
         // We're never actually run
         return false;
-      } else
+      }
+      else
       {
         if (!is_sliced() && target_proc.exists() &&
             !runtime->is_local(target_proc))
@@ -1572,7 +1589,8 @@ namespace Legion {
               internal_space, target_proc, true /*needs slice*/, stealable);
           runtime->send_task(clone);
           return false;  // We have now been sent away
-        } else
+        }
+        else
         {
           set_current_proc(target_proc);
           return true;  // Still local so we can be sliced
@@ -1675,7 +1693,8 @@ namespace Legion {
       {
         must_epoch->notify_subop_complete(this, effects);
         complete_operation(effects);
-      } else
+      }
+      else
         complete_operation(effects);
     }
 
@@ -1696,7 +1715,8 @@ namespace Legion {
           info.fill_response = false;  // make valgrind happy
           mapper->invoke_task_report_profiling(this, info);
           Runtime::trigger_event(profiling_reported);
-        } else
+        }
+        else
           commit_preconditions.insert(profiling_reported);
       }
       if (must_epoch != nullptr)
@@ -1706,7 +1726,8 @@ namespace Legion {
           commit_precondition = Runtime::merge_events(commit_preconditions);
         must_epoch->notify_subop_commit(this, commit_precondition);
         commit_operation(true /*deactivate*/, commit_precondition);
-      } else
+      }
+      else
       {
         // Mark that this operation is now committed
         if (!commit_preconditions.empty())
@@ -1786,7 +1807,8 @@ namespace Legion {
         assert(temporary_futures.find(point) == temporary_futures.end());
 #endif
         temporary_futures[point] = std::make_pair(inst, effects);
-      } else
+      }
+      else
       {
         if (!fold_reduction_future(inst, effects))
         {
@@ -1796,7 +1818,8 @@ namespace Legion {
           assert(temporary_futures.find(point) == temporary_futures.end());
 #endif
           temporary_futures[point] = std::make_pair(inst, effects);
-        } else
+        }
+        else
           delete inst;
       }
     }
@@ -1953,9 +1976,11 @@ namespace Legion {
         {
           Runtime::trigger_event(to_trigger, finder->second);
           return to_trigger;
-        } else
+        }
+        else
           return finder->second;
-      } else
+      }
+      else
       {
         // Create a pending pointwise dependence for this point
         std::map<DomainPoint, RtUserEvent>::const_iterator pending_finder =
@@ -1966,7 +1991,8 @@ namespace Legion {
           {
             Runtime::trigger_event(to_trigger, pending_finder->second);
             return to_trigger;
-          } else
+          }
+          else
             return pending_finder->second;
         }
         if (!to_trigger.exists())
@@ -2034,7 +2060,8 @@ namespace Legion {
         {
           RtEvent map_condition = Runtime::merge_events(map_applied_conditions);
           complete_mapping(map_condition);
-        } else
+        }
+        else
           complete_mapping();
       }
       if (trigger_children_commit)
@@ -2096,10 +2123,12 @@ namespace Legion {
                 std::map<DomainPoint, std::pair<FutureInstance*, ApEvent>>::
                     iterator to_delete = it++;
                 temporary_futures.erase(to_delete);
-              } else
+              }
+              else
                 it++;
             }
-          } else if (serdez_redop_fns == nullptr)
+          }
+          else if (serdez_redop_fns == nullptr)
           {
             // Merge any reduction fold events back into the
             // reduction_instance_precondition to know when the
@@ -2156,7 +2185,8 @@ namespace Legion {
             runtime_visible_index = reduction_instances.size();
             reduction_instances.push_back(FutureInstance::create_local(
                 serdez_redop_state, serdez_redop_state_size, false /*own*/));
-          } else
+          }
+          else
           {
             if (coordinates.empty())
               compute_task_tree_coordinates(coordinates);
@@ -2187,7 +2217,8 @@ namespace Legion {
           const RtEvent map_condition =
               Runtime::merge_events(map_applied_conditions);
           complete_mapping(map_condition);
-        } else
+        }
+        else
           complete_mapping();
       }
 #ifdef DEBUG_LEGION
@@ -2220,7 +2251,8 @@ namespace Legion {
                   reduction_instances_ready[idx]);
         }
         record_completion_effects(reduction_instances_ready);
-      } else
+      }
+      else
         record_completion_effect(reduction_instance_precondition);
     }
 
@@ -2289,7 +2321,8 @@ namespace Legion {
               derez.deserialize(effects);
             reduce_future(point, instance, effects);
           }
-        } else
+        }
+        else
         {
           if (serdez_redop_fns != nullptr)
           {
@@ -2305,7 +2338,8 @@ namespace Legion {
               // Advance the pointer on the deserializer
               derez.advance_pointer(reduc_size);
             }
-          } else
+          }
+          else
           {
             DomainPoint point;
             derez.deserialize(point);
@@ -2357,7 +2391,8 @@ namespace Legion {
               Runtime::merge_events(commit_precondition, resources_returned));
         else
           return_slice_commit(points, resources_returned);
-      } else
+      }
+      else
         return_slice_commit(points, commit_precondition);
     }
 
@@ -2396,7 +2431,8 @@ namespace Legion {
                     .emplace(std::make_pair(region, RegionVersioning()))
                     .first;
             region_finder->second.ready_event = ready_event;
-          } else
+          }
+          else
             Runtime::trigger_event(
                 ready_event, region_finder->second.ready_event);
           size_t num_trackers;
@@ -2456,7 +2492,8 @@ namespace Legion {
         std::vector<Memory> reduction_futures;
         tpl->get_premap_output(this, reduction_futures);
         create_future_instances(reduction_futures);
-      } else if (!elide_future_return)
+      }
+      else if (!elide_future_return)
       {
         Domain internal_domain;
         runtime->find_domain(internal_space, internal_domain);
@@ -2547,9 +2584,11 @@ namespace Legion {
                   runtime->get_node(req.partition.get_index_partition());
               if (partition->is_disjoint())
                 continue;
-            } else  // Identity functor is invertible
+            }
+            else  // Identity functor is invertible
               continue;
-          } else
+          }
+          else
           {
             ProjectionFunction* func =
                 runtime->find_projection_function(req.projection);
@@ -2842,7 +2881,8 @@ namespace Legion {
             if (finder->second != point)
               owner->report_concurrent_mapping_failure(
                   proc, point, finder->second);
-          } else
+          }
+          else
             group.processors.emplace(std::make_pair(proc, point));
         }
         size_t points;
@@ -2853,7 +2893,8 @@ namespace Legion {
           assert(stage == -1);
 #endif
           group.color_points = points;
-        } else
+        }
+        else
           group.color_points += points;
       }
       size_t num_barriers;
@@ -3030,7 +3071,8 @@ namespace Legion {
           }
           runtime->send_individual_concurrent_allreduce_response(
               it->second, rez);
-        } else
+        }
+        else
           it->first->finish_concurrent_allreduce(lamport_clock, poisoned);
       }
       for (std::vector<std::pair<SliceTask*, AddressSpaceID>>::const_iterator
@@ -3050,7 +3092,8 @@ namespace Legion {
             rez.serialize(poisoned);
           }
           runtime->send_slice_concurrent_allreduce_response(it->second, rez);
-        } else
+        }
+        else
           it->first->finish_concurrent_allreduce(
               color, lamport_clock, poisoned, variant, task_barrier);
       }
@@ -3213,7 +3256,8 @@ namespace Legion {
           collective.broadcast(
               const_cast<void*>(rez.get_buffer()), rez.get_used_bytes(),
               false /*copy*/);
-        } else
+        }
+        else
         {
           BufferBroadcast collective(
               collective_check_id, 0 /*owner*/, repl_ctx);
@@ -3303,8 +3347,9 @@ namespace Legion {
         // clean up the operation
         commit_preconditions.insert(interfering_exchange->get_done_event());
         interfering_exchange->exchange_domain_points(point_domains);
-      } else  // Second time through call the base class since we have the
-              // results
+      }
+      else  // Second time through call the base class since we have the
+            // results
         IndexTask::finish_check_point_requirements(point_domains);
     }
 
@@ -3399,7 +3444,8 @@ namespace Legion {
           finish_index_task_reduction();
         complete_execution();
         trigger_children_committed();
-      } else  // We have valid points, so it goes on the ready queue
+      }
+      else  // We have valid points, so it goes on the ready queue
       {
         // If we had a trace then we might need to recompute our parent
         // region indexes now since we might have skipped it earlier
@@ -3426,7 +3472,8 @@ namespace Legion {
             ConcurrentGroup& group = concurrent_groups[0];
             group.precondition.interpreted = Runtime::create_rt_user_event();
             group.color_points = launch_space->get_volume();
-          } else
+          }
+          else
           {
             // Not the built-in functor so we actually need to some work
             ConcurrentColoringFunctor* functor =
@@ -3453,7 +3500,8 @@ namespace Legion {
               !runtime->stealing_disabled);
           slices.push_back(new_slice);
           trigger_slices();
-        } else
+        }
+        else
           enqueue_ready_operation();
       }
     }
@@ -3509,7 +3557,8 @@ namespace Legion {
         }
         complete_execution();
         trigger_children_committed();
-      } else
+      }
+      else
         IndexTask::trigger_replay();
     }
 
@@ -3577,7 +3626,8 @@ namespace Legion {
               concurrent_exchange_ids[color] =
                   repl_ctx->get_next_collective_index(
                       COLLECTIVE_LOC_79, true /*logical*/);
-          } else
+          }
+          else
           {
             // If we have a trace we can try to look these up
             bool found = false;
@@ -3612,7 +3662,8 @@ namespace Legion {
                   COLLECTIVE_LOC_79, true /*logical*/);
             }
           }
-        } else
+        }
+        else
           concurrent_exchange_ids[0] = repl_ctx->get_next_collective_index(
               COLLECTIVE_LOC_79, true /*logical*/);
       }
@@ -3688,12 +3739,14 @@ namespace Legion {
               memcpy(
                   serdez_redop_state, it->second.first,
                   serdez_redop_state_size);
-            } else
+            }
+            else
               (*(serdez_redop_fns->fold_fn))(
                   reduction_op, serdez_redop_state, serdez_redop_state_size,
                   it->second.first);
           }
-        } else
+        }
+        else
         {
           for (std::map<ShardID, std::pair<void*, size_t>>::const_iterator it =
                    remote_buffers.begin();
@@ -3707,7 +3760,8 @@ namespace Legion {
                 it->second.first);
           }
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(
@@ -3729,7 +3783,8 @@ namespace Legion {
             collective_done = broadcast_collective->async_broadcast(
                 reduction_instance, ApEvent::NO_AP_EVENT,
                 reduction_collective->get_done_event());
-        } else
+        }
+        else
           collective_done = all_reduce_collective->async_reduce(
               reduction_instance, reduction_instance_precondition);
         // No need to do anything with the output local precondition
@@ -3784,7 +3839,8 @@ namespace Legion {
             internal_space = sharding_function->find_shard_space(
                 repl_ctx->owner_shard->shard_id, launch_space,
                 launch_space->handle, get_provenance());
-        } else
+        }
+        else
         {
           if (serdez_redop_collective != nullptr)
             serdez_redop_collective->elide_collective();
@@ -3828,10 +3884,12 @@ namespace Legion {
             reduction_collective = new FutureReductionCollective(
                 ctx, COLLECTIVE_LOC_64, 0 /*origin shard*/, this,
                 broadcast_collective, reduction_op, redop);
-          } else
+          }
+          else
             all_reduce_collective = new FutureAllReduceCollective(
                 this, COLLECTIVE_LOC_53, ctx, redop, reduction_op);
-        } else
+        }
+        else
           serdez_redop_collective = new BufferExchange(ctx, COLLECTIVE_LOC_53);
       }
       if (!output_regions.empty())
@@ -3938,7 +3996,8 @@ namespace Legion {
             concurrent_mapping_rendezvous->set_trace_barrier(
                 0, barrier, group.color_points);
           }
-        } else
+        }
+        else
         {
           // Not the built-in functor so we actually need to some work
           ConcurrentColoringFunctor* functor =
@@ -4171,7 +4230,8 @@ namespace Legion {
             o_lock.release();
             collective_exchange->get_done_event().wait();
             return collective_exchange->get_result();
-          } else
+          }
+          else
             return collective_lamport_clock;
         }
         // Otherwise we're going to fall through and do the allreduce
@@ -4187,7 +4247,8 @@ namespace Legion {
       {
         collective_exchange->get_done_event().wait();
         return collective_exchange->get_result();
-      } else
+      }
+      else
         return collective_lamport_clock;
     }
 
@@ -4222,9 +4283,11 @@ namespace Legion {
           {
             Runtime::trigger_event(to_trigger, finder->second);
             return to_trigger;
-          } else
+          }
+          else
             return finder->second;
-        } else
+        }
+        else
         {
           std::map<DomainPoint, RtUserEvent>::const_iterator pending_finder =
               pending_pointwise_dependences.find(point);
@@ -4235,17 +4298,20 @@ namespace Legion {
             pending_pointwise_dependences.emplace(
                 std::make_pair(point, to_trigger));
             return to_trigger;
-          } else
+          }
+          else
           {
             if (to_trigger.exists())
             {
               Runtime::trigger_event(to_trigger, pending_finder->second);
               return to_trigger;
-            } else
+            }
+            else
               return pending_finder->second;
           }
         }
-      } else  // Send it off to the remote shard to find it
+      }
+      else  // Send it off to the remote shard to find it
         return repl_ctx->find_pointwise_dependence(
             context_index, point, point_shard, to_trigger);
     }

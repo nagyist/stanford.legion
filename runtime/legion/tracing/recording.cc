@@ -171,7 +171,8 @@ namespace Legion {
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied_events.insert(applied);
-      } else
+      }
+      else
         remote_tpl->record_replay_mapping(
             lhs, op_kind, tlid, register_memo, applied_events);
     }
@@ -197,7 +198,8 @@ namespace Legion {
         runtime->send_remote_trace_update(origin_space, rez);
         // Wait for the result to be set
         ready.wait();
-      } else
+      }
+      else
         remote_tpl->request_term_event(term_event);
     }
 
@@ -222,7 +224,8 @@ namespace Legion {
         // Need this to be done before returning because we need to ensure
         // that this event is recorded before anyone tries to trigger it
         done.wait();
-      } else
+      }
+      else
         remote_tpl->record_create_ap_user_event(lhs, tlid);
     }
 
@@ -247,7 +250,8 @@ namespace Legion {
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied_events.insert(applied);
-      } else
+      }
+      else
         remote_tpl->record_trigger_event(lhs, rhs, tlid, applied_events);
     }
 
@@ -261,7 +265,8 @@ namespace Legion {
         std::set<ApEvent> rhs_events;
         rhs_events.insert(rhs);
         record_merge_events(lhs, rhs_events, tlid);
-      } else
+      }
+      else
         remote_tpl->record_merge_events(lhs, rhs, tlid);
     }
 
@@ -276,7 +281,8 @@ namespace Legion {
         rhs_events.insert(e1);
         rhs_events.insert(e2);
         record_merge_events(lhs, rhs_events, tlid);
-      } else
+      }
+      else
         remote_tpl->record_merge_events(lhs, e1, e2, tlid);
     }
 
@@ -293,7 +299,8 @@ namespace Legion {
         rhs_events.insert(e2);
         rhs_events.insert(e3);
         record_merge_events(lhs, rhs_events, tlid);
-      } else
+      }
+      else
         remote_tpl->record_merge_events(lhs, e1, e2, e3, tlid);
     }
 
@@ -322,7 +329,8 @@ namespace Legion {
         runtime->send_remote_trace_update(origin_space, rez);
         // Wait to see if lhs changes
         done.wait();
-      } else
+      }
+      else
         remote_tpl->record_merge_events(lhs, rhs, tlid);
     }
 
@@ -351,7 +359,8 @@ namespace Legion {
         runtime->send_remote_trace_update(origin_space, rez);
         // Wait to see if lhs changes
         done.wait();
-      } else
+      }
+      else
         remote_tpl->record_merge_events(lhs, rhs, tlid);
     }
 
@@ -378,7 +387,8 @@ namespace Legion {
         runtime->send_remote_trace_update(origin_space, rez);
         // Wait to see if lhs changes
         done.wait();
-      } else
+      }
+      else
         remote_tpl->record_merge_events(lhs, e1, e2, tlid);
     }
 
@@ -414,7 +424,8 @@ namespace Legion {
         runtime->send_remote_trace_update(origin_space, rez);
         done.wait();
         return owner;
-      } else
+      }
+      else
         return remote_tpl->record_barrier_creation(bar, total_arrivals);
     }
 
@@ -443,7 +454,8 @@ namespace Legion {
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied.insert(done);
-      } else
+      }
+      else
         remote_tpl->record_barrier_arrival(
             bar, pre, arrivals, applied, owner_shard);
     }
@@ -502,7 +514,8 @@ namespace Legion {
         runtime->send_remote_trace_update(origin_space, rez);
         // Wait to see if lhs changes
         done.wait();
-      } else
+      }
+      else
         remote_tpl->record_issue_copy(
             tlid, lhs, expr, src_fields, dst_fields, reservations,
 #ifdef LEGION_SPY
@@ -546,7 +559,8 @@ namespace Legion {
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied.insert(done);
-      } else
+      }
+      else
         remote_tpl->record_copy_insts(
             lhs, tlid, src_idx, dst_idx, expr, src_inst, dst_inst, src_mask,
             dst_mask, src_mode, dst_mode, redop, applied);
@@ -632,7 +646,8 @@ namespace Legion {
         runtime->send_remote_trace_update(origin_space, rez);
         // Wait to see if lhs changes
         done.wait();
-      } else
+      }
+      else
         remote_tpl->record_issue_fill(
             tlid, lhs, expr, fields, fill_value, fill_size,
 #ifdef LEGION_SPY
@@ -666,7 +681,8 @@ namespace Legion {
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied_events.insert(done);
-      } else
+      }
+      else
         remote_tpl->record_fill_inst(
             lhs, expr, inst, inst_mask, applied_events,
             reduction_initialization);
@@ -699,7 +715,8 @@ namespace Legion {
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied_events.insert(applied);
-      } else
+      }
+      else
         remote_tpl->record_op_inst(
             tlid, parent_req_index, inst, node, usage, user_mask,
             update_validity, applied_events);
@@ -726,7 +743,8 @@ namespace Legion {
         runtime->send_remote_trace_update(origin_space, rez);
         // wait to see if lhs changes
         done.wait();
-      } else
+      }
+      else
         remote_tpl->record_set_op_sync_event(lhs, tlid);
     }
 
@@ -775,7 +793,8 @@ namespace Legion {
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied_events.insert(applied);
-      } else
+      }
+      else
         remote_tpl->record_mapper_output(
             tlid, output, physical_instances, is_leaf, has_return_size,
             applied_events);
@@ -801,7 +820,8 @@ namespace Legion {
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied_events.insert(applied);
-      } else
+      }
+      else
         remote_tpl->record_complete_replay(tlid, pre, applied_events);
     }
 
@@ -833,7 +853,8 @@ namespace Legion {
         }
         runtime->send_remote_trace_update(origin_space, rez);
         applied_events.insert(done);
-      } else
+      }
+      else
         remote_tpl->record_reservations(tlid, reservations, applied_events);
     }
 
@@ -990,14 +1011,16 @@ namespace Legion {
               derez.deserialize(e1);
               derez.deserialize(e2);
               tpl->record_merge_events(lhs, e1, e2, tlid);
-            } else if (num_rhs == 3)
+            }
+            else if (num_rhs == 3)
             {
               ApEvent e1, e2, e3;
               derez.deserialize(e1);
               derez.deserialize(e2);
               derez.deserialize(e3);
               tpl->record_merge_events(lhs, e1, e2, e3, tlid);
-            } else
+            }
+            else
             {
               std::vector<ApEvent> rhs_events(num_rhs);
               for (unsigned idx = 0; idx < num_rhs; idx++)
@@ -1017,7 +1040,8 @@ namespace Legion {
                 rez.serialize(done);
               }
               runtime->send_remote_trace_response(source, rez);
-            } else  // didn't change so just trigger
+            }
+            else  // didn't change so just trigger
               Runtime::trigger_event(done);
             break;
           }
@@ -1046,7 +1070,8 @@ namespace Legion {
                 rez.serialize(done);
               }
               runtime->send_remote_trace_response(source, rez);
-            } else  // didn't change so just trigger
+            }
+            else  // didn't change so just trigger
               Runtime::trigger_event(done);
             break;
           }
@@ -1115,7 +1140,8 @@ namespace Legion {
                 rez.serialize(done);
               }
               runtime->send_remote_trace_response(source, rez);
-            } else  // lhs was unchanged
+            }
+            else  // lhs was unchanged
               Runtime::trigger_event(done);
             break;
           }
@@ -1216,7 +1242,8 @@ namespace Legion {
                 rez.serialize(done);
               }
               runtime->send_remote_trace_response(source, rez);
-            } else  // lhs was unchanged
+            }
+            else  // lhs was unchanged
               Runtime::trigger_event(done);
             break;
           }
@@ -1296,7 +1323,8 @@ namespace Legion {
                 rez.serialize(done);
               }
               runtime->send_remote_trace_response(source, rez);
-            } else  // lhs didn't change
+            }
+            else  // lhs didn't change
               Runtime::trigger_event(done);
             break;
           }
@@ -1711,7 +1739,8 @@ namespace Legion {
             RemoteTraceRecorder::unpack_remote_recorder(derez, tlid);
         return PhysicalTraceInfo(
             tlid, index, dst_index, update_validity, recorder);
-      } else
+      }
+      else
         return PhysicalTraceInfo(nullptr, -1U);
     }
 

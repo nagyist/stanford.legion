@@ -212,7 +212,8 @@ namespace Legion {
                   else
                     return true;
                 }
-              } else if (child == refined_child)
+              }
+              else if (child == refined_child)
               {
                 // This counts as a return too since we're refined this way
                 candidate_partitions[child] =
@@ -221,7 +222,8 @@ namespace Legion {
                 // Reset the timeout since we saw a return
                 return_timeout = 0;
                 // No need to switch, we're already the refinement
-              } else
+              }
+              else
               {
                 if (++return_timeout == CHANGE_REFINEMENT_TIMEOUT)
                 {
@@ -245,7 +247,8 @@ namespace Legion {
                 // We can delete this tracker and make a new one to
                 // get any kind of field coalescing happening
                 return true;
-              } else
+              }
+              else
               {
                 // Always allow refinements down writing incomplete children
                 allow_refinement = true;
@@ -377,7 +380,8 @@ namespace Legion {
                   else
                     return true;
                 }
-              } else if (projection == refined_projection)
+              }
+              else if (projection == refined_projection)
               {
                 // This counts as a return too since we're refined this way
                 candidate_projections[projection] =
@@ -386,7 +390,8 @@ namespace Legion {
                 // Reset the timeout since we saw a return
                 return_timeout = 0;
                 // No need to switch, we're already using the refinement
-              } else
+              }
+              else
               {
                 if (++return_timeout == CHANGE_REFINEMENT_TIMEOUT)
                 {
@@ -436,7 +441,8 @@ namespace Legion {
                         std::pair<double, uint64_t> >::iterator delete_it =
                         it++;
                     candidate_projections.erase(delete_it);
-                  } else
+                  }
+                  else
                     it++;
                 }
                 projection->add_reference();
@@ -444,7 +450,8 @@ namespace Legion {
                     projection,
                     std::pair<double, uint64_t>(0.0, MAX_INCOMPLETE_WRITES)));
                 allow_refinement = true;
-              } else
+              }
+              else
               {
                 // We already had it, so decrement all TTLs of everything that
                 // came before it and then add it back with a new TTL
@@ -551,7 +558,8 @@ namespace Legion {
               candidate_partitions.size() + candidate_projections.size();
           double hysteresis = std::sqrt(total_candidates);
           return ((finder->second.first * hysteresis) < score);
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(refined_projection != nullptr);
@@ -592,7 +600,8 @@ namespace Legion {
             std::unordered_map<PartitionNode*, std::pair<double, uint64_t> >::
                 iterator to_delete = it++;
             candidate_partitions.erase(to_delete);
-          } else
+          }
+          else
             it++;
         }
       }
@@ -613,7 +622,8 @@ namespace Legion {
                 ProjectionRegion*, std::pair<double, uint64_t> >::iterator
                 to_delete = it++;
             candidate_projections.erase(to_delete);
-          } else
+          }
+          else
             it++;
         }
       }
@@ -949,7 +959,8 @@ namespace Legion {
                   else
                     return true;
                 }
-              } else if (projection == refined_projection)
+              }
+              else if (projection == refined_projection)
               {
                 // This counts as a return too since we're refined this way
                 candidate_projections[projection] =
@@ -958,7 +969,8 @@ namespace Legion {
                 // Reset the timeout since we saw a return
                 return_timeout = 0;
                 // No need to switch, we're already using the refinement
-              } else
+              }
+              else
               {
                 if (++return_timeout == CHANGE_REFINEMENT_TIMEOUT)
                 {
@@ -1010,7 +1022,8 @@ namespace Legion {
                         std::pair<double, uint64_t> >::iterator delete_it =
                         it++;
                     candidate_projections.erase(delete_it);
-                  } else
+                  }
+                  else
                     it++;
                 }
                 projection->add_reference();
@@ -1018,7 +1031,8 @@ namespace Legion {
                     projection,
                     std::pair<double, uint64_t>(0.0, MAX_INCOMPLETE_WRITES)));
                 allow_refinement = true;
-              } else
+              }
+              else
               {
                 // We already had it, so decrement all TTLs of everything that
                 // came before it and then add it back with a new TTL
@@ -1113,7 +1127,8 @@ namespace Legion {
               (children_score >= 0.0) ? 1 : 0 + candidate_projections.size();
           double hysteresis = std::sqrt(total_candidates);
           return ((finder->second.first * hysteresis) < score);
-        } else
+        }
+        else
         {
           // The children are refined so compute the total candidates
           if (children_score < 0.0)
@@ -1153,7 +1168,8 @@ namespace Legion {
                 ProjectionPartition*, std::pair<double, uint64_t> >::iterator
                 to_delete = it++;
             candidate_projections.erase(to_delete);
-          } else
+          }
+          else
             it++;
         }
       }

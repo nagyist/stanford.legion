@@ -47,7 +47,8 @@ namespace Legion {
       {
         if (lhs != rhs)
           lhs = BAD;
-      } else
+      }
+      else
         lhs = rhs;
     }
 
@@ -77,7 +78,8 @@ namespace Legion {
       {
         if (rhs1 != rhs2)
           rhs1 = BAD;
-      } else
+      }
+      else
         rhs1 = rhs2;
     }
 
@@ -146,7 +148,8 @@ namespace Legion {
       {
         if (region != rhs.region)
           return false;
-      } else
+      }
+      else
       {
         if (partition != rhs.partition)
           return false;
@@ -467,7 +470,8 @@ namespace Legion {
           {
             to_trigger = done_event.to_trigger;
             done_event.postcondition = to_trigger;
-          } else
+          }
+          else
             done_event.postcondition = postcondition;
         }
         if (to_trigger.exists())
@@ -485,7 +489,8 @@ namespace Legion {
         if (!done_event.to_trigger.exists())
           done_event.to_trigger = Runtime::create_rt_user_event();
         return done_event.to_trigger;
-      } else
+      }
+      else
         return done_event.postcondition;
     }
 
@@ -540,7 +545,8 @@ namespace Legion {
           {
             to_trigger = done_event.to_trigger;
             done_event.postcondition = to_trigger;
-          } else
+          }
+          else
             done_event.postcondition = postcondition;
         }
         if (to_trigger.exists())
@@ -562,7 +568,8 @@ namespace Legion {
         RtUserEvent to_trigger = done_event.to_trigger;
         Runtime::trigger_event(to_trigger);
         done_event.postcondition = RtEvent::NO_RT_EVENT;
-      } else
+      }
+      else
         done_event.postcondition = RtEvent::NO_RT_EVENT;
     }
 
@@ -768,7 +775,8 @@ namespace Legion {
           if (all_stages_done)
             complete_exchange();
         }
-      } else
+      }
+      else
       {
         // We are not a participating shard
         // so we just have to send notification to one shard
@@ -813,7 +821,8 @@ namespace Legion {
           all_stages_done = true;
         else  // we can now initiate the collective
           all_stages_done = initiate_collective();
-      } else
+      }
+      else
         all_stages_done = send_ready_stages();
       if (all_stages_done)
         complete_exchange();
@@ -899,7 +908,8 @@ namespace Legion {
         Serializer rez;
         construct_message(target, -1 /*stage*/, rez);
         manager->send_collective_message(message, target, rez);
-      } else
+      }
+      else
       {
         // Send to a node that is participating
         ShardID target =
@@ -958,7 +968,8 @@ namespace Legion {
               // Remove our guard before exiting early
               pending_send_ready_stages--;
               return false;
-            } else if (INORDER && (reorder_stages != nullptr))
+            }
+            else if (INORDER && (reorder_stages != nullptr))
             {
               // Check to see if we have any unhandled messages for
               // the previous stage that we need to handle before sending
@@ -996,7 +1007,8 @@ namespace Legion {
             construct_message(target, stage, rez);
             manager->send_collective_message(message, target, rez);
           }
-        } else
+        }
+        else
         {
           for (int r = 1; r < shard_collective_radix; r++)
           {
@@ -1035,7 +1047,8 @@ namespace Legion {
         done_triggered = true;
 #endif
         return true;
-      } else
+      }
+      else
         return false;
     }
 
@@ -1064,9 +1077,11 @@ namespace Legion {
                 new std::map<int, std::vector<std::pair<void*, size_t> > >();
           (*reorder_stages)[stage].push_back(
               std::pair<void*, size_t>(buffer, buffer_size));
-        } else
+        }
+        else
           unpack_collective_stage(derez, stage);
-      } else  // Just do the unpack here immediately
+      }
+      else  // Just do the unpack here immediately
         unpack_collective_stage(derez, stage);
       if (stage >= 0)
       {
@@ -1168,7 +1183,8 @@ namespace Legion {
         typename REDOP::RHS next;
         derez.deserialize(next);
         REDOP::template fold<true /*exclusive*/>(value, next);
-      } else  // Just overwrite in this case since we're not participating
+      }
+      else  // Just overwrite in this case since we're not participating
         derez.deserialize(value);
     }
 
@@ -1250,7 +1266,8 @@ namespace Legion {
         buffer = malloc(size);
         memcpy(buffer, b, size);
         own = true;
-      } else
+      }
+      else
       {
         buffer = b;
         size = s;
@@ -1355,7 +1372,8 @@ namespace Legion {
           void* buffer = malloc(size);
           derez.deserialize(buffer, size);
           results[shard] = std::make_pair(buffer, size);
-        } else
+        }
+        else
           results[shard] = std::make_pair<void*, size_t>(nullptr, 0);
       }
     }
@@ -1434,7 +1452,8 @@ namespace Legion {
               Runtime::merge_events(nullptr, shadow_reads);
           if (!shadow_instance->defer_deletion(precondition))
             delete shadow_instance;
-        } else if (!shadow_instance->defer_deletion(shadow_ready))
+        }
+        else if (!shadow_instance->defer_deletion(shadow_ready))
           delete shadow_instance;
       }
     }
@@ -1469,7 +1488,8 @@ namespace Legion {
                 instance_ready = new_instance_ready;
                 // No need for packing the shadow on the way out
                 pack_shadow = false;
-              } else
+              }
+              else
               {
                 // Have to copy this to the shadow instance because we can't
                 // do this in-place without support from Realm
@@ -1481,7 +1501,8 @@ namespace Legion {
                     shadow_ready = Runtime::merge_events(nullptr, shadow_reads);
                     shadow_reads.clear();
                   }
-                } else
+                }
+                else
                   create_shadow_instance();
                 // Copy to the shadow instance, note this incorporates
                 // any of the read postconditions from the previous stage
@@ -1493,7 +1514,8 @@ namespace Legion {
                 instance_ready = shadow_ready;
                 pack_shadow = true;
               }
-            } else
+            }
+            else
             {
               instance_ready = new_instance_ready;
               pack_shadow = false;
@@ -1516,7 +1538,8 @@ namespace Legion {
 #endif
             // No need for packing the shadow on the way out
             pack_shadow = false;
-          } else if (instance_ready.exists() || !instance->can_pack_by_value())
+          }
+          else if (instance_ready.exists() || !instance->can_pack_by_value())
           {
 #ifdef DEBUG_LEGION
             assert(current_stage == -1);
@@ -1530,7 +1553,8 @@ namespace Legion {
                 shadow_ready = Runtime::merge_events(nullptr, shadow_reads);
                 shadow_reads.clear();
               }
-            } else
+            }
+            else
               create_shadow_instance();
             shadow_ready = shadow_instance->copy_from(
                 instance, op,
@@ -1552,7 +1576,8 @@ namespace Legion {
           rez.serialize(reduction_done);
           shadow_reads.push_back(reduction_done);
         }
-      } else
+      }
+      else
       {
         if (!instance->pack_instance(
                 rez, instance_ready, false /*pack ownership*/))
@@ -1614,7 +1639,8 @@ namespace Legion {
             Runtime::trigger_event_untraced(
                 pending.postcondition, instance_ready);
           delete pending.instance;
-        } else
+        }
+        else
           instance_ready = perform_reductions(last->second);
         pending_reductions.erase(last);
       }
@@ -1788,7 +1814,8 @@ namespace Legion {
         ApUserEvent post;
         derez.deserialize(post);
         Runtime::trigger_event_untraced(post, write_event);
-      } else
+      }
+      else
         write_event = instance->copy_from(source, op, ApEvent::NO_AP_EVENT);
       delete source;
     }
@@ -1834,7 +1861,8 @@ namespace Legion {
         write_event = precondition;
         perform_collective_async();
         return post_broadcast();
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!precondition.exists());
@@ -1908,7 +1936,8 @@ namespace Legion {
       {
         perform_reductions();
         return broadcast->async_broadcast(instance, ready);
-      } else
+      }
+      else
         return RtEvent::NO_RT_EVENT;
     }
 
@@ -2014,7 +2043,8 @@ namespace Legion {
       {
         shards.insert(shards.end(), participants.begin(), participants.end());
         return false;
-      } else
+      }
+      else
         return true;
     }
 
@@ -2418,7 +2448,8 @@ namespace Legion {
       {
         // Modulus arithmetic here
         return ((index + total_spaces) - origin_index);
-      } else
+      }
+      else
         return (index - origin_index);
     }
 

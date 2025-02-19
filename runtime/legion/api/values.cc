@@ -78,7 +78,8 @@ namespace Legion {
         // Has affinity so we shold jsut be able to memcpy this
         void* ptr = instance.pointer_untyped(0 /*offset*/, field_size);
         std::memcpy(ptr, initial_value, field_size);
-      } else
+      }
+      else
       {
         Realm::ProfilingRequestSet no_requests;
         std::vector<Realm::CopySrcDstField> dsts(1);

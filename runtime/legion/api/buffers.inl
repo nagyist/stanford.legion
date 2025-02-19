@@ -287,7 +287,8 @@ namespace Legion {
       for (int i = 0; i < N; i++)
         ordering[i] =
             static_cast<DimensionKind>(static_cast<int>(LEGION_DIM_X) + i);
-    } else
+    }
+    else
     {
       for (int i = 0; i < N; i++)
         ordering[i] = static_cast<DimensionKind>(
@@ -472,7 +473,8 @@ namespace Legion {
       if (fortran_order_dims)                                           \
       {                                                                 \
         for (int i = 0; i < DIM; i++) dim_order[i] = i;                 \
-      } else                                                            \
+      }                                                                 \
+      else                                                              \
       {                                                                 \
         for (int i = 0; i < DIM; i++) dim_order[i] = DIM - (i + 1);     \
       }                                                                 \
@@ -543,7 +545,8 @@ namespace Legion {
       if (fortran_order_dims)                                        \
       {                                                              \
         for (int i = 0; i < DIM; i++) dim_order[i] = i;              \
-      } else                                                         \
+      }                                                              \
+      else                                                           \
       {                                                              \
         for (int i = 0; i < DIM; i++) dim_order[i] = DIM - (i + 1);  \
       }                                                              \
@@ -613,7 +616,8 @@ namespace Legion {
       if (fortran_order_dims)                                           \
       {                                                                 \
         for (int i = 0; i < DIM; i++) dim_order[i] = i;                 \
-      } else                                                            \
+      }                                                                 \
+      else                                                              \
       {                                                                 \
         for (int i = 0; i < DIM; i++) dim_order[i] = DIM - (i + 1);     \
       }                                                                 \
@@ -682,7 +686,8 @@ namespace Legion {
       if (fortran_order_dims)                                        \
       {                                                              \
         for (int i = 0; i < DIM; i++) dim_order[i] = i;              \
-      } else                                                         \
+      }                                                              \
+      else                                                           \
       {                                                              \
         for (int i = 0; i < DIM; i++) dim_order[i] = DIM - (i + 1);  \
       }                                                              \

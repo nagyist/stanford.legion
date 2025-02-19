@@ -143,7 +143,8 @@ namespace Legion {
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
-          } else
+          }
+          else
             rez.serialize<size_t>(0);
         }
         runtime->send_equivalence_set_remote_releases(target, rez);
@@ -186,7 +187,8 @@ namespace Legion {
           }
           runtime->send_equivalence_set_remote_instances(original_source, rez);
           applied_events.insert(response_event);
-        } else
+        }
+        else
           target_analysis->process_local_instances(
               *recorded_instances, restricted);
       }
@@ -205,7 +207,8 @@ namespace Legion {
             if (!release_aggregator->guard_postcondition.has_triggered())
               guard_events.insert(release_aggregator->guard_postcondition);
             applied_events.insert(release_aggregator->effects_applied);
-          } else
+          }
+          else
             guard_events.insert(release_aggregator->effects_applied);
         }
 #endif

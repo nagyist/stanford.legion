@@ -261,7 +261,8 @@ namespace Legion {
             runtime->send_task(slice);
           else
             slice->trigger_mapping();
-        } else
+        }
+        else
         {
           slice->set_current_proc(slice->target_proc);
           slice->trigger_mapping();
@@ -370,10 +371,12 @@ namespace Legion {
               launch_task();
             else
               perform_mapping();
-          } else
+          }
+          else
             slice_index_space();
         }
-      } else
+      }
+      else
       {
         // Not remote
         if (must_epoch == nullptr)
@@ -386,9 +389,11 @@ namespace Legion {
               perform_mapping();
             else
               register_must_epoch();
-          } else
+          }
+          else
             slice_index_space();
-        } else
+        }
+        else
         {
           if (distribute_task())
           {
@@ -452,7 +457,8 @@ namespace Legion {
             rez.serialize(finder->first);
             rez.serialize(finder->second);
           }
-        } else
+        }
+        else
         {
           for (std::map<DomainPoint, DistributedID>::const_iterator it =
                    handles.begin();
@@ -463,14 +469,16 @@ namespace Legion {
           }
         }
         rez.serialize(future_map_coordinate);
-      } else
+      }
+      else
         rez.serialize<size_t>(0);
       if (!output_region_options.empty())
       {
         rez.serialize<size_t>(output_region_options.size());
         for (unsigned idx = 0; idx < output_region_options.size(); idx++)
           rez.serialize(output_region_options[idx]);
-      } else
+      }
+      else
         rez.serialize<size_t>(0);
       if (concurrent_task)
       {
@@ -530,7 +538,8 @@ namespace Legion {
           // deterministic reduction operation
           serdez_redop_fns = Runtime::get_serdez_redop_fns(redop);
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(future_handles == nullptr);
@@ -656,7 +665,8 @@ namespace Legion {
         if (bounce_instance != nullptr)
           delete bounce_instance;
         return true;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(reduction_instance != nullptr);
@@ -666,7 +676,8 @@ namespace Legion {
           if (reduction_instance_precondition.exists())
             effects = Runtime::merge_events(
                 nullptr, effects, reduction_instance_precondition);
-        } else
+        }
+        else
           effects = reduction_instance_precondition;
         if (!deterministic_redop)
         {
@@ -678,9 +689,11 @@ namespace Legion {
           {
             reduction_fold_effects.push_back(done);
             return false;
-          } else
+          }
+          else
             return true;
-        } else
+        }
+        else
         {
           // No need for the lock since we know the caller is ensuring order
           reduction_instance_precondition =

@@ -166,7 +166,8 @@ namespace Legion {
 #endif
           must_epoch->rendezvous_concurrent_mapped(
               concurrent_precondition.interpreted);
-        } else
+        }
+        else
           slice_owner->rendezvous_concurrent_mapped(
               index_point, target_proc, concurrent_color,
               concurrent_precondition.interpreted);
@@ -390,7 +391,8 @@ namespace Legion {
             rez.serialize(get_mapped_event());
           }
           runtime->send_individual_remote_mapped(orig_proc, rez);
-        } else
+        }
+        else
           complete_mapping();
         slice_owner->record_point_mapped(this, get_mapped_event());
       }
@@ -446,7 +448,8 @@ namespace Legion {
 #endif
         return must_epoch->collective_lamport_allreduce(
             lamport_clock, need_result);
-      } else
+      }
+      else
         return slice_owner->collective_lamport_allreduce(
             lamport_clock, need_result);
     }
@@ -517,7 +520,8 @@ namespace Legion {
             "any of them are going to be a concurrent variant.",
             mapper->get_mapper_name(), selected_variant, get_task_name(),
             get_unique_id())
-      } else if (vid != selected_variant)
+      }
+      else if (vid != selected_variant)
         REPORT_LEGION_ERROR(
             ERROR_INVALID_MAPPER_OUTPUT,
             "Mapper %s selected a concurrent variant %d for point task %s "
@@ -620,7 +624,8 @@ namespace Legion {
               local_args = malloc(local_arglen);
               memcpy(local_args, buffer, local_arglen);
             }
-          } else
+          }
+          else
           {
             // Request the local buffer
             f.impl->request_runtime_instance(this);
@@ -704,7 +709,8 @@ namespace Legion {
           slice_owner->pack_task(rez, target_space);
         }
         runtime->send_remote_task_replay(target_space, rez);
-      } else
+      }
+      else
       {
         // This is the local case
         region_preconditions.resize(regions.size(), instance_ready_event);
@@ -915,7 +921,8 @@ namespace Legion {
       {
         remaining[const_cast<PointTask*>(this)] = count;
         return true;
-      } else
+      }
+      else
         return false;
     }
 

@@ -36,7 +36,8 @@ namespace Legion {
         OP::trigger_replay();
         if (this->tpl->can_start_replay())
           this->tpl->start_replay();
-      } else
+      }
+      else
         OP::trigger_ready();
     }
 
@@ -73,7 +74,8 @@ namespace Legion {
         if (this->is_recording())
           trace_info.record_op_sync_event(result);
         return result;
-      } else  // nothing to record since we just depend on the fence
+      }
+      else  // nothing to record since we just depend on the fence
         return this->get_execution_fence_event();
     }
 

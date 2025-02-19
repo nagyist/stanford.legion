@@ -351,9 +351,11 @@ namespace Legion {
         {
           refresh_ready.insert(mapping_fence_barrier);
           enqueue_ready_operation(Runtime::merge_events(refresh_ready));
-        } else
+        }
+        else
           enqueue_ready_operation(mapping_fence_barrier);
-      } else
+      }
+      else
         enqueue_ready_operation();
     }
 
@@ -388,7 +390,8 @@ namespace Legion {
           complete_mapping();
         record_completion_effects(execution_preconditions);
         complete_execution();
-      } else
+      }
+      else
         ReplTraceOp::trigger_mapping();
     }
 

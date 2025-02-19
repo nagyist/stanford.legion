@@ -97,13 +97,15 @@ namespace Legion {
         assert(HAS_WRITE(u2));
 #endif
         return LEGION_ANTI_DEPENDENCE;
-      } else
+      }
+      else
       {
         if (IS_WRITE_DISCARD(u2))
         {
           // WAW with a write-only
           return LEGION_ANTI_DEPENDENCE;
-        } else
+        }
+        else
         {
           // This defaults to whatever the actual dependence is
           return actual;
@@ -124,7 +126,8 @@ namespace Legion {
           return LEGION_TRUE_DEPENDENCE;
         else
           return LEGION_NO_DEPENDENCE;
-      } else if (!REDUCTIONS_INTERFERE && IS_REDUCE(u1) && IS_REDUCE(u2))
+      }
+      else if (!REDUCTIONS_INTERFERE && IS_REDUCE(u1) && IS_REDUCE(u2))
       {
         // If they are the same kind of reduction, no dependence,
         // otherwise true dependence
@@ -143,9 +146,11 @@ namespace Legion {
               return LEGION_TRUE_DEPENDENCE;
           }
           return LEGION_NO_DEPENDENCE;
-        } else
+        }
+        else
           return LEGION_TRUE_DEPENDENCE;
-      } else
+      }
+      else
       {
         // Everything in here has at least one write
 #ifdef DEBUG_LEGION
@@ -180,7 +185,8 @@ namespace Legion {
         else if (IS_SIMULT(u1) || IS_SIMULT(u2))
         {
           return LEGION_SIMULTANEOUS_DEPENDENCE;
-        } else if (IS_RELAXED(u1) && IS_RELAXED(u2))
+        }
+        else if (IS_RELAXED(u1) && IS_RELAXED(u2))
         {
           // TODO: Make this truly relaxed, right now it is the
           // same as simultaneous

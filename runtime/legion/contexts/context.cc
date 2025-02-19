@@ -166,7 +166,8 @@ namespace Legion {
           instance = new FutureInstance(
               value, size, true /*own allocation*/, resource.clone(),
               FutureInstance::free_host_memory, executing_processor);
-        } else
+        }
+        else
           instance = copy_to_future_inst(value, size);
       }
       result.impl->set_result(ApEvent::NO_AP_EVENT, instance);
@@ -451,7 +452,8 @@ namespace Legion {
           if (!runtime->has_index_path(
                   req.parent.index_space, req.region.index_space))
             return ERROR_BAD_REGION_PATH;
-        } else
+        }
+        else
         {
           if (!runtime->has_partition_path(
                   req.parent.index_space, req.partition.index_partition))
@@ -478,7 +480,8 @@ namespace Legion {
             }
             std::set<FieldID>::iterator to_delete = fit++;
             privilege_fields.erase(to_delete);
-          } else
+          }
+          else
             fit++;
         }
       }
@@ -509,7 +512,8 @@ namespace Legion {
         // the index spaces
         if (!runtime->has_index_path(our_space, req.region.get_index_space()))
           return false;
-      } else
+      }
+      else
       {
         // Check if the trees are different
         if (our_tid != req.partition.get_tree_id())
@@ -563,7 +567,8 @@ namespace Legion {
       {
         realm_done_event = ApEvent(Processor::get_current_finish_event());
         implicit_fevent = realm_done_event;
-      } else if (runtime->profiler != nullptr)
+      }
+      else if (runtime->profiler != nullptr)
         implicit_fevent = owner_task->get_completion_event();
       if ((runtime->profiler != nullptr) && (implicit_profiler == nullptr))
         implicit_profiler =
@@ -651,7 +656,8 @@ namespace Legion {
         instance = new FutureInstance(
             res, res_size, false /*external*/, true /*own alloc*/, unique_event,
             deferred_result_instance, executing_processor, ready);
-      } else if (resource != nullptr)
+      }
+      else if (resource != nullptr)
       {
         if (!owned)
         {
@@ -667,7 +673,8 @@ namespace Legion {
             // Need to wait for the copy to be done before returning
             if (effects.exists())
               effects.wait_faultignorant();
-          } else
+          }
+          else
           {
             // We can do a simple memory copy here but we need to wait
             // for the results to be ready first before returning
@@ -675,11 +682,13 @@ namespace Legion {
               effects.wait_faultignorant();
             memcpy(buffer, res, res_size);
           }
-        } else
+        }
+        else
           instance = new FutureInstance(
               res, res_size, true /*own allocation*/, resource->clone(),
               freefunc, executing_processor);
-      } else if (res_size > 0)
+      }
+      else if (res_size > 0)
       {
 #ifdef DEBUG_LEGION
         assert(res != nullptr);
@@ -691,7 +700,8 @@ namespace Legion {
           instance = new FutureInstance(
               res, res_size, true /*own allocation*/, resource.clone(),
               FutureInstance::free_host_memory, executing_processor);
-        } else
+        }
+        else
         {
           // Wait for any effects for immediate values this is
           // not a Realm task (e.g. an implicit task) because
@@ -758,7 +768,8 @@ namespace Legion {
         runtime->decrement_total_outstanding_tasks();
 #endif
         delete local_task_profiler;
-      } else
+      }
+      else
       {
         post_end_task();
 #ifdef DEBUG_LEGION
@@ -793,7 +804,8 @@ namespace Legion {
             create_task_local_future(runtime->runtime_system_memory, size);
         memcpy(const_cast<void*>(instance->get_data()), value, size);
         return instance;
-      } else
+      }
+      else
       {
         void* buffer = malloc(size);
         memcpy(buffer, value, size);
@@ -873,7 +885,8 @@ namespace Legion {
 #endif
         ready = RtEvent(instance.redistrict(
             results, &layout, num_results, &requests.front()));
-      } else
+      }
+      else
       {
         // Compute the difference in sizes so we can update the memory
         // manager with any space that has been freed up
@@ -1057,7 +1070,8 @@ namespace Legion {
           (*finder->second.second)(finder->second.first);
         finder->second = std::pair<void*, void (*)(void*)>(
             const_cast<void*>(value), destructor);
-      } else
+      }
+      else
         task_local_variables[id] = std::pair<void*, void (*)(void*)>(
             const_cast<void*>(value), destructor);
     }
@@ -1077,7 +1091,8 @@ namespace Legion {
         const RtEvent wait_for = runtime->issue_application_processor_task(
             args, LG_MIN_PRIORITY, proc);
         wait_for.wait();
-      } else  // external implicit top-level task
+      }
+      else  // external implicit top-level task
         std::this_thread::yield();
     }
 
@@ -1177,7 +1192,8 @@ namespace Legion {
           Future f = result->get_future(itr.p, true /*internal*/);
           f.impl->set_result(this, launcher.predicate_false_future.impl);
         }
-      } else if (launcher.predicate_false_result.get_size() == 0)
+      }
+      else if (launcher.predicate_false_result.get_size() == 0)
       {
         // Just initialize all the futures
         for (Domain::DomainPointIterator itr(launch_domain); itr; itr++)
@@ -1185,7 +1201,8 @@ namespace Legion {
           Future f = result->get_future(itr.p, true /*internal*/);
           f.impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
         }
-      } else
+      }
+      else
       {
         const void* ptr = launcher.predicate_false_result.get_ptr();
         size_t ptr_size = launcher.predicate_false_result.get_size();

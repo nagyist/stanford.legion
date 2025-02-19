@@ -154,7 +154,8 @@ namespace Legion {
             args, LG_LATENCY_DEFERRED_PRIORITY, effects_applied);
         applied.insert(released);
         return false;
-      } else
+      }
+      else
         release_guarded_sets(applied);
       return true;
     }
@@ -200,7 +201,8 @@ namespace Legion {
           for (std::set<EquivalenceSet*>::const_iterator it = to_remove.begin();
                it != to_remove.end(); it++)
             (*it)->remove_read_only_guard(this);
-        } else
+        }
+        else
         {
           for (std::set<EquivalenceSet*>::const_iterator it = to_remove.begin();
                it != to_remove.end(); it++)
@@ -400,7 +402,8 @@ namespace Legion {
         def_view->flatten(
             *this, dst_view, src_mask, expr, predicate_guard, trace_info,
             tracing_eq, helper);
-      } else
+      }
+      else
       {
         InstanceView* inst_view = src_view->as_instance_view();
         PhysicalManager* src_man = nullptr;
@@ -419,7 +422,8 @@ namespace Legion {
             if (finder != result.points.end())
               src_man = finder->second;
           }
-        } else
+        }
+        else
           src_man = inst_view->as_individual_view()->get_manager();
         record_instance_update(
             dst_view, inst_view, src_man, src_mask, expr, tracing_eq, redop,
@@ -474,7 +478,8 @@ namespace Legion {
              it != finder->second.end(); it++)
           if (it->matches(src_views))
             return *it;
-      } else
+      }
+      else
         finder =
             mapper_queries
                 .insert(std::make_pair(key, std::vector<SelectSourcesResult>()))
@@ -497,7 +502,8 @@ namespace Legion {
           unique_indexes[*it] = true;
           count++;
           it++;
-        } else  // remove duplicates and out of bound entries
+        }
+        else  // remove duplicates and out of bound entries
           it = ranking.erase(it);
       }
       if (count < unique_indexes.size())
@@ -534,7 +540,8 @@ namespace Legion {
         record_update(
             dst_view, dst_man, src_view, record_mask, expr, trace_info,
             tracing_eq, redop, helper);
-      } else
+      }
+      else
       {
         // We have multiple views, so let's sort them
         LegionList<FieldSet<LogicalView*> > view_sets;
@@ -553,7 +560,8 @@ namespace Legion {
             record_update(
                 dst_view, dst_man, src_view, record_mask, expr, trace_info,
                 tracing_eq, redop, helper);
-          } else
+          }
+          else
           {
             // Sort the views, prefer deferred  then instances
             DeferredView* deferred = nullptr;
@@ -567,7 +575,8 @@ namespace Legion {
                 deferred = (*it)->as_deferred_view();
                 // Break out since we found what we're looking for
                 break;
-              } else
+              }
+              else
                 instances.push_back((*it)->as_instance_view());
             }
             if (deferred != nullptr)
@@ -583,7 +592,8 @@ namespace Legion {
                 record_update(
                     dst_view, dst_man, src_view, vit->set_mask, expr,
                     trace_info, tracing_eq, redop, helper);
-              } else
+              }
+              else
               {
                 // Hard, multiple potential sources,
                 // ask the mapper which one to use
@@ -602,7 +612,8 @@ namespace Legion {
                       point_finder = result.points.find(first);
                   if (point_finder != result.points.end())
                     src_man = point_finder->second;
-                } else
+                }
+                else
                   src_man = src_view->as_individual_view()->get_manager();
                 record_instance_update(
                     dst_view, src_view, src_man, vit->set_mask, expr,
@@ -692,7 +703,8 @@ namespace Legion {
               IndexSpaceExpression* diff_expr =
                   runtime->subtract_index_spaces(it->first.first, overlap);
               remainders.insert(diff_expr, it->second);
-            } else  // completely covers remainder expression
+            }
+            else  // completely covers remainder expression
             {
               deferred->flatten(
                   *this, dst_view, it->second, it->first.first, predicate_guard,
@@ -704,7 +716,8 @@ namespace Legion {
           }
           if (need_tighten)
             remainders.tighten_valid_mask();
-        } else
+        }
+        else
           instances.push_back(vit->first->as_instance_view());
       }
       // If we get here, next try to sort the instances into whatever order
@@ -721,7 +734,8 @@ namespace Legion {
               select_sources(dst_view, dst_man, instances);
           ranking = result.ranking;
           points = result.points;
-        } else
+        }
+        else
           ranking.push_back(0);
         for (unsigned idx = 0; idx < ranking.size(); idx++)
         {
@@ -734,7 +748,8 @@ namespace Legion {
                 points.find(ranking[idx]);
             if (point_finder != points.end())
               src_man = point_finder->second;
-          } else
+          }
+          else
             src_man = src_view->as_individual_view()->get_manager();
           LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
               const_iterator finder = src_views.find(src_view);
@@ -780,7 +795,8 @@ namespace Legion {
               IndexSpaceExpression* diff_expr =
                   runtime->subtract_index_spaces(it->first.first, overlap);
               remainders.insert(diff_expr, it->second);
-            } else  // completely covers remainder expression
+            }
+            else  // completely covers remainder expression
             {
               record_instance_update(
                   dst_view, src_view, src_man, it->second, it->first.first,
@@ -870,7 +886,8 @@ namespace Legion {
             if (finder != result.points.end())
               src_man = finder->second;
           }
-        } else
+        }
+        else
           src_man = it->first->as_individual_view()->get_manager();
         CopyUpdate* update = new CopyUpdate(
             it->first, src_man, src_mask, it->second, redop, across_helper);
@@ -1042,7 +1059,8 @@ namespace Legion {
       {
         effects.insert(guard_postcondition);
         Runtime::trigger_event(effects_applied, Runtime::merge_events(effects));
-      } else
+      }
+      else
         Runtime::trigger_event(effects_applied, guard_postcondition);
 #else
       // We can also trigger our effects event once the effects are applied
@@ -1201,7 +1219,8 @@ namespace Legion {
           const FieldMask src_mask =
               fills[0]->across_helper->convert_dst_to_src(fill_mask);
           assert(!(src_mask - update->src_mask));
-        } else
+        }
+        else
         {
           assert(!(fill_mask - update->src_mask));
         }
@@ -1221,7 +1240,8 @@ namespace Legion {
           if (dst_events != nullptr)
             dst_events->push_back(result);
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
@@ -1330,7 +1350,8 @@ namespace Legion {
             {
               fused_gather_copies[source].push_back(*it);
               it = cit->second.erase(it);
-            } else
+            }
+            else
               it++;
           }
           if (cit->second.empty())
@@ -1338,7 +1359,8 @@ namespace Legion {
             std::map<InstanceView*, std::vector<CopyUpdate*> >::iterator
                 to_delete = cit++;
             copies.erase(to_delete);
-          } else
+          }
+          else
             cit++;
         }
         if (fused_gather_copies.size() > 1)
@@ -1360,7 +1382,8 @@ namespace Legion {
                    it != cit->second.end(); it++)
                 union_exprs.insert((*it)->expr);
               view_exprs[cit->first] = runtime->union_index_spaces(union_exprs);
-            } else
+            }
+            else
               view_exprs[cit->first] = (*(cit->second.begin()))->expr;
           }
           const ApEvent result = target_collective->collective_fuse_gather(
@@ -1374,7 +1397,8 @@ namespace Legion {
             if (dst_events != nullptr)
               dst_events->push_back(result);
           }
-        } else if (!fused_gather_copies.empty())
+        }
+        else if (!fused_gather_copies.empty())
         {
           // Only one view so we can put them back onto the original set
           // of copies since we're just going to perform a normal fusion
@@ -1409,7 +1433,8 @@ namespace Legion {
             const FieldMask src_mask =
                 cit->second[0]->across_helper->convert_dst_to_src(copy_mask);
             assert(!(src_mask - update->src_mask));
-          } else
+          }
+          else
           {
             // Should cover all the fields
             assert(!(copy_mask - update->src_mask));
@@ -1431,7 +1456,8 @@ namespace Legion {
             if (dst_events != nullptr)
               dst_events->push_back(result);
           }
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG

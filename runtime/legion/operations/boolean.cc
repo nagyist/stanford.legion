@@ -124,7 +124,8 @@ namespace Legion {
         // Register this operation as dependent on task that
         // generated the future
         future.impl->register_dependence(this);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(predicate.impl != nullptr);
@@ -148,7 +149,8 @@ namespace Legion {
           parent_ctx->add_to_trigger_execution_queue(this, ready);
         else
           trigger_execution();
-      } else
+      }
+      else
       {
         complete_mapping();
         RtEvent ready;
@@ -174,7 +176,8 @@ namespace Legion {
         FutureInstance* result =
             FutureInstance::create_local(&value, sizeof(value), false /*own*/);
         future.impl->set_result(ApEvent::NO_AP_EVENT, result);
-      } else
+      }
+      else
         predicate.impl->set_predicate(
             future.impl->get_boolean_value(parent_ctx));
       complete_execution();
@@ -263,7 +266,8 @@ namespace Legion {
       {
         to_set.impl->set_predicate(!value);
         complete_execution();
-      } else
+      }
+      else
         parent_ctx->add_to_trigger_execution_queue(this, ready);
     }
 
@@ -378,7 +382,8 @@ namespace Legion {
           parent_ctx->add_to_trigger_execution_queue(this, ready);
         else
           trigger_execution();
-      } else
+      }
+      else
         trigger_execution();
     }
 
@@ -502,7 +507,8 @@ namespace Legion {
           parent_ctx->add_to_trigger_execution_queue(this, ready);
         else
           trigger_execution();
-      } else
+      }
+      else
         trigger_execution();
     }
 

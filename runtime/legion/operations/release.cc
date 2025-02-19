@@ -759,7 +759,8 @@ namespace Legion {
           analysis->target_instances[inst_index] = manager;
           analysis->target_views[inst_index].insert(inst_view, it->second);
         }
-      } else
+      }
+      else
       {
         if (remote_ready.exists())
         {
@@ -912,7 +913,8 @@ namespace Legion {
         // Normal analysis path
         runtime->phase_barrier_arrive(collective_map_barrier, 1 /*count*/, pre);
         return collective_map_barrier;
-      } else  // Tracing path
+      }
+      else  // Tracing path
         return pre;
     }
 

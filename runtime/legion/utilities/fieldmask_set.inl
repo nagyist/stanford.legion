@@ -34,7 +34,8 @@ namespace Legion {
         if (!!universe_mask)
           output_sets.push_back(FieldSet<T>(universe_mask));
         return;
-      } else if (inputs.size() == 1)
+      }
+      else if (inputs.size() == 1)
       {
         typename LegionMap<T, FieldMask>::const_iterator first = inputs.begin();
         output_sets.push_back(FieldSet<T>(first->second));
@@ -139,7 +140,8 @@ namespace Legion {
         if (!!universe_mask)
           output_sets.push_back(CT(universe_mask));
         return;
-      } else if (inputs.size() == 1)
+      }
+      else if (inputs.size() == 1)
       {
         typename LegionMap<T, FieldMask>::const_iterator first = inputs.begin();
         output_sets.push_back(CT(first->second));
@@ -286,7 +288,8 @@ namespace Legion {
           entries.multi_entries = new LegionMap<T*, FieldMask, L, Comparator>(
               rhs.entries.multi_entries->begin(),
               rhs.entries.multi_entries->end());
-      } else
+      }
+      else
       {
         if (single)
           entries.single_entry = rhs.entries.single_entry;
@@ -313,14 +316,16 @@ namespace Legion {
           entries.multi_entries = new LegionMap<T*, FieldMask, L, Comparator>(
               rhs.entries.multi_entries->begin(),
               rhs.entries.multi_entries->end());
-        } else
+        }
+        else
         {
           // Free our map
           delete entries.multi_entries;
           entries.single_entry = rhs.entries.single_entry;
         }
         single = rhs.single;
-      } else
+      }
+      else
       {
         // Same data structures so we can just copy things over
         if (single)
@@ -350,20 +355,23 @@ namespace Legion {
         if (single)
         {
           entries.multi_entries = rhs.entries.multi_entries;
-        } else
+        }
+        else
         {
           // Free our map
           delete entries.multi_entries;
           entries.single_entry = rhs.entries.single_entry;
         }
         single = rhs.single;
-      } else
+      }
+      else
       {
         // Same data structures so we can just copy things over
         if (single)
         {
           entries.single_entry = rhs.entries.single_entry;
-        } else
+        }
+        else
         {
           delete entries.multi_entries;
           entries.multi_entries = rhs.entries.multi_entries;
@@ -437,7 +445,8 @@ namespace Legion {
         assert(entry == entries.single_entry);
 #endif
         return valid_fields;
-      } else
+      }
+      else
       {
         typename LegionMap<T*, FieldMask, L, Comparator>::const_iterator
             finder = entries.multi_entries->find(entry);
@@ -460,11 +469,13 @@ namespace Legion {
         {
           entries.single_entry = entry;
           valid_fields |= mask;
-        } else if (entries.single_entry == entry)
+        }
+        else if (entries.single_entry == entry)
         {
           valid_fields |= mask;
           result = false;
-        } else
+        }
+        else
         {
           // Go to multi
           LegionMap<T*, FieldMask, L, Comparator>* multi =
@@ -475,7 +486,8 @@ namespace Legion {
           single = false;
           valid_fields |= mask;
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(entries.multi_entries != nullptr);
@@ -509,7 +521,8 @@ namespace Legion {
           if (!valid_fields)
             entries.single_entry = nullptr;
         }
-      } else
+      }
+      else
       {
         if (tighten)
           valid_fields -= filter;
@@ -519,7 +532,8 @@ namespace Legion {
           delete entries.multi_entries;
           entries.multi_entries = nullptr;
           single = true;
-        } else
+        }
+        else
         {
           // Manually remove entries
           typename std::vector<T*> to_delete;
@@ -544,7 +558,8 @@ namespace Legion {
                 delete entries.multi_entries;
                 entries.multi_entries = nullptr;
                 single = true;
-              } else if (
+              }
+              else if (
                   (entries.multi_entries->size() == 1) &&
                   (entries.multi_entries->begin()->second == valid_fields))
               {
@@ -555,7 +570,8 @@ namespace Legion {
                 entries.single_entry = temp;
                 single = true;
               }
-            } else
+            }
+            else
             {
               delete entries.multi_entries;
               entries.multi_entries = nullptr;
@@ -578,7 +594,8 @@ namespace Legion {
 #endif
         entries.single_entry = nullptr;
         valid_fields.clear();
-      } else
+      }
+      else
       {
         typename LegionMap<T*, FieldMask, L, Comparator>::iterator finder =
             entries.multi_entries->find(to_erase);
@@ -629,7 +646,8 @@ namespace Legion {
           return 0;
         else
           return 1;
-      } else
+      }
+      else
         return entries.multi_entries->size();
     }
 
@@ -669,7 +687,8 @@ namespace Legion {
         static_assert(sizeof(result) == sizeof(ptr));
         memcpy(&result, &ptr, sizeof(result));
         return iterator(this, result);
-      } else
+      }
+      else
         return iterator(this, entries.multi_entries->begin());
     }
 
@@ -688,7 +707,8 @@ namespace Legion {
         static_assert(sizeof(result) == sizeof(ptr));
         memcpy(&result, &ptr, sizeof(result));
         return iterator(this, result);
-      } else
+      }
+      else
       {
         typename LegionMap<T*, FieldMask, L, Comparator>::iterator finder =
             entries.multi_entries->find(e);
@@ -713,7 +733,8 @@ namespace Legion {
 #endif
         entries.single_entry = nullptr;
         valid_fields.clear();
-      } else
+      }
+      else
       {
         it.erase(*(entries.multi_entries));
         if (entries.multi_entries->size() == 1)
@@ -759,7 +780,8 @@ namespace Legion {
         static_assert(sizeof(ptr) == sizeof(result));
         memcpy(&result, &ptr, sizeof(result));
         return const_iterator(this, result);
-      } else
+      }
+      else
         return const_iterator(this, entries.multi_entries->begin());
     }
 
@@ -778,7 +800,8 @@ namespace Legion {
         static_assert(sizeof(ptr) == sizeof(result));
         memcpy(&result, &ptr, sizeof(result));
         return const_iterator(this, result);
-      } else
+      }
+      else
       {
         typename LegionMap<T*, FieldMask, L, Comparator>::const_iterator
             finder = entries.multi_entries->find(e);
@@ -812,7 +835,8 @@ namespace Legion {
         if (!!universe_mask)
           output_sets.push_back(FieldSet<T*>(universe_mask));
         return;
-      } else if (single)
+      }
+      else if (single)
       {
         output_sets.push_back(FieldSet<T*>(valid_fields));
         FieldSet<T*>& last = output_sets.back();
@@ -824,7 +848,8 @@ namespace Legion {
             output_sets.push_back(FieldSet<T*>(universe_mask));
         }
         return;
-      } else if (valid_fields.pop_count() == 1)
+      }
+      else if (valid_fields.pop_count() == 1)
       {
         output_sets.push_back(FieldSet<T*>(valid_fields));
         FieldSet<T*>& last = output_sets.back();
@@ -1021,7 +1046,8 @@ namespace Legion {
             fidx = it->second.find_next_set(fidx + 1);
           }
         }
-      } else
+      }
+      else
       {
         // Build the hash table for the right
         std::map<unsigned, T2*> hash_table;

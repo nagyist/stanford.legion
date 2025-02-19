@@ -118,7 +118,8 @@ namespace Legion {
           PhysicalTrace* physical = trace->get_physical_trace();
           physical->refresh_condition_sets(this, ready_events);
         }
-      } else if (trace->has_physical_trace())
+      }
+      else if (trace->has_physical_trace())
       {
         PhysicalTrace* physical = trace->get_physical_trace();
         if (physical->is_recording())
@@ -160,7 +161,8 @@ namespace Legion {
           // Tell the parent whether we are replaying
           parent_ctx->record_physical_trace_replay(mapped_event, replaying);
         }
-      } else if (trace->has_physical_trace())
+      }
+      else if (trace->has_physical_trace())
       {
         // This is recurrent, so try to do the recurrent replay
         PhysicalTrace* physical = trace->get_physical_trace();
@@ -304,14 +306,16 @@ namespace Legion {
           else
             fence_before = true;
         }
-      } else if (trace->has_physical_trace())
+      }
+      else if (trace->has_physical_trace())
       {
         PhysicalTrace* physical = trace->get_physical_trace();
         if (physical->is_recording())
         {
           physical->refresh_condition_sets(this, ready_events);
           fence_before = true;
-        } else if (!physical->get_current_template()->is_idempotent())
+        }
+        else if (!physical->get_current_template()->is_idempotent())
         {
           physical->refresh_condition_sets(this, ready_events);
           physical->complete_physical_trace(
@@ -334,9 +338,11 @@ namespace Legion {
         {
           ready_events.insert(mapping_fence_barrier);
           enqueue_ready_operation(Runtime::merge_events(ready_events));
-        } else
+        }
+        else
           enqueue_ready_operation(mapping_fence_barrier);
-      } else if (!ready_events.empty())
+      }
+      else if (!ready_events.empty())
         enqueue_ready_operation(Runtime::merge_events(ready_events));
       else
         enqueue_ready_operation();
@@ -375,7 +381,8 @@ namespace Legion {
           parent_ctx->record_physical_trace_replay(mapped_event, replaying);
           fence_before = true;
         }
-      } else if (trace->has_physical_trace())
+      }
+      else if (trace->has_physical_trace())
       {
         // This is recurrent, so try to do the recurrent replay
         PhysicalTrace* physical = trace->get_physical_trace();
@@ -415,7 +422,8 @@ namespace Legion {
           complete_mapping();
         record_completion_effects(execution_preconditions);
         complete_execution();
-      } else
+      }
+      else
         ReplTraceOp::trigger_mapping();
     }
 

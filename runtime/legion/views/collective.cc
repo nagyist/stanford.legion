@@ -159,7 +159,8 @@ namespace Legion {
           make_valid(false /*need lock*/);
         else  // We can promote ourselves up to fully valid again
           valid_state = FULL_VALID_STATE;
-      } else
+      }
+      else
       {
         if (valid_state == NOT_VALID_STATE)
           make_valid(false /*need lock*/);
@@ -187,7 +188,8 @@ namespace Legion {
       {
         AutoLock v_lock(view_lock);
         make_valid(false /*need lock*/);
-      } else
+      }
+      else
       {
         // If we're already fully valid then there is nothing more to do
         if (valid_state == FULL_VALID_STATE)
@@ -243,7 +245,8 @@ namespace Legion {
       {
         AutoLock v_lock(view_lock);
         return make_invalid(false /*need lock*/);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(
@@ -305,7 +308,8 @@ namespace Legion {
       {
         AutoLock v_lock(view_lock);
         return perform_invalidate_request(generation, false /*need lock*/);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert((invalidation_generation < generation) || is_owner());
@@ -408,7 +412,8 @@ namespace Legion {
         return perform_invalidate_response(
             generation, total_sent, total_received, failed,
             false /*need lock*/);
-      } else
+      }
+      else
       {
         // If this response is stale then we don't need to do anything
         if (generation < invalidation_generation)
@@ -417,7 +422,8 @@ namespace Legion {
         {
           total_valid_sent += total_sent;
           total_valid_received += total_received;
-        } else
+        }
+        else
           invalidation_failed = true;
 #ifdef DEBUG_LEGION
         assert(remaining_invalidation_responses > 0);
@@ -450,7 +456,8 @@ namespace Legion {
             else
               runtime->send_collective_view_invalidate_response(
                   owner_space, rez);
-          } else if (!invalidation_failed)
+          }
+          else if (!invalidation_failed)
             return make_invalid(false /*need lock*/);
         }
       }
@@ -522,7 +529,8 @@ namespace Legion {
         // Start by bumping the collection generation
         return perform_invalidate_request(
             ++invalidation_generation, false /*need lock*/);
-      } else
+      }
+      else
       {
         // Not the owner so send a message down the chain to remove the
         // valid reference that we added when we became valid
@@ -566,7 +574,8 @@ namespace Legion {
         IndividualView* individual = other->as_individual_view();
         return std::binary_search(
             instances.begin(), instances.end(), individual->get_manager()->did);
-      } else
+      }
+      else
       {
         CollectiveView* collective = other->as_collective_view();
         if (instances.size() < collective->instances.size())
@@ -579,7 +588,8 @@ namespace Legion {
                     *it))
               return true;
           return false;
-        } else
+        }
+        else
         {
           for (std::vector<DistributedID>::const_iterator it =
                    collective->instances.begin();
@@ -635,7 +645,8 @@ namespace Legion {
             rez.serialize(context_did);
           }
           runtime->send_collective_view_deletion(context_space, rez);
-        } else
+        }
+        else
         {
           InnerContext* context = static_cast<InnerContext*>(
               runtime->weak_find_distributed_collectable(context_did));
@@ -646,7 +657,8 @@ namespace Legion {
               delete context;
           }
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(collective_mapping != nullptr);
@@ -751,7 +763,8 @@ namespace Legion {
             rez.serialize(bar);
             if (bar.exists())
               rez.serialize(sid);
-          } else
+          }
+          else
           {
             ApUserEvent to_trigger;
             if (need_valid_return)
@@ -766,7 +779,8 @@ namespace Legion {
         runtime->send_collective_distribute_fill(origin, rez);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
-      } else
+      }
+      else
       {
         ApUserEvent to_trigger;
         if (need_valid_return)
@@ -916,7 +930,8 @@ namespace Legion {
               rez.serialize(all_bar);
               if (all_bar.exists())
                 rez.serialize(owner_shard);
-            } else
+            }
+            else
             {
               rez.serialize(copy_done);
               if (source_view->get_redop() == 0)
@@ -932,7 +947,8 @@ namespace Legion {
             runtime->send_collective_distribute_reducecast(origin, rez);
           recorded_events.insert(recorded);
           applied_events.insert(applied);
-        } else
+        }
+        else
         {
           if (reduction_op_id > 0)
             perform_collective_reducecast(
@@ -951,7 +967,8 @@ namespace Legion {
                 all_done, all_bar, owner_shard, origin, copy_restricted,
                 COLLECTIVE_BROADCAST);
         }
-      } else
+      }
+      else
       {
         CollectiveView* collective = src_view->as_collective_view();
         const AddressSpaceID origin = select_origin_space();
@@ -1036,7 +1053,8 @@ namespace Legion {
               rez.serialize(all_bar);
               if (all_bar.exists())
                 rez.serialize(owner_shard);
-            } else
+            }
+            else
               rez.serialize(all_done);
             rez.serialize(origin);
             rez.serialize(allreduce_tag);
@@ -1044,7 +1062,8 @@ namespace Legion {
           runtime->send_collective_distribute_pointwise(origin, rez);
           recorded_events.insert(recorded);
           applied_events.insert(applied);
-        } else
+        }
+        else
           perform_collective_pointwise(
               collective, precondition, predicate_guard, copy_expression, op,
               index, collective_match_space, op->get_context_index(), copy_mask,
@@ -1106,7 +1125,8 @@ namespace Legion {
         recorded_events.insert(recorded);
         applied_events.insert(applied);
         return all_done;
-      } else
+      }
+      else
       {
         // We're on a node with a local instance, perform copies to
         // one of the local instances and then either broadcast or reduce
@@ -1350,7 +1370,8 @@ namespace Legion {
           registered.push_back(registered_event);
           applied_events.insert(applied_event);
           return ready_event;
-        } else
+        }
+        else
           return register_collective_user(
               usage, user_mask, user_expr, op_id, op_ctx_index, index,
               match_space, term_event, target, local_collective_arrivals,
@@ -1407,7 +1428,8 @@ namespace Legion {
           ready_event.wait();
         AutoLock v_lock(view_lock, 1, false /*exclusive*/);
         return (remote_instances.find(manager) != remote_instances.end());
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < local_views.size(); idx++)
           if (local_views[idx]->get_manager() == manager)
@@ -1501,7 +1523,8 @@ namespace Legion {
              it != remote_instances.end(); it++)
           if (it->first->memory_manager->memory == memory)
             instances.push_back(it->first);
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < local_views.size(); idx++)
         {
@@ -1648,7 +1671,8 @@ namespace Legion {
           if (ready.exists() && !ready.has_triggered())
             ready.wait();
         }
-      } else
+      }
+      else
       {
         if (!is_owner())
         {
@@ -1694,7 +1718,8 @@ namespace Legion {
                     }
                     instances.push_back(it->first);
                   }
-                } else
+                }
+                else
                 {
 #ifdef DEBUG_LEGION
                   assert(0 < affinity.latency);
@@ -1713,12 +1738,15 @@ namespace Legion {
                     instances.push_back(it->first);
                   }
                 }
-              } else
+              }
+              else
                 searches[local] = bandwidth ? 0 : size_max;
-            } else if (finder->second == best)
+            }
+            else if (finder->second == best)
               instances.push_back(it->first);
           }
-        } else
+        }
+        else
           find_nearest_local_instances(memory, best, instances, bandwidth);
       }
     }
@@ -1761,7 +1789,8 @@ namespace Legion {
           pack_global_ref();
           runtime->send_collective_nearest_instances_request(space, rez);
           return done;
-        } else
+        }
+        else
         {
           if (collective_mapping->contains(local_space))
           {
@@ -1816,7 +1845,8 @@ namespace Legion {
                 runtime->send_collective_nearest_instances_response(
                     source, rez);
                 done_events.push_back(done);
-              } else
+              }
+              else
               {
                 std::vector<DistributedID> results(local_results.size());
                 for (unsigned idx = 0; idx < local_results.size(); idx++)
@@ -1827,7 +1857,8 @@ namespace Legion {
             }
             if (!done_events.empty())
               return Runtime::merge_events(done_events);
-          } else
+          }
+          else
           {
 #ifdef DEBUG_LEGION
             assert(source == local_space);
@@ -1852,7 +1883,8 @@ namespace Legion {
             return done;
           }
         }
-      } else
+      }
+      else
       {
         // Assume that all memories in the same space are always inherently
         // closer to the target memory than any others
@@ -1881,7 +1913,8 @@ namespace Legion {
             runtime->send_collective_nearest_instances_response(source, rez);
             return done;
           }
-        } else
+        }
+        else
         {
           // This is the local case, so there's no atomicity required
           for (std::vector<PhysicalManager*>::const_iterator it =
@@ -1941,7 +1974,8 @@ namespace Legion {
                   }
                   results.push_back(manager);
                 }
-              } else
+              }
+              else
               {
 #ifdef DEBUG_LEGION
                 assert(0 < affinity.latency);
@@ -1960,9 +1994,11 @@ namespace Legion {
                   results.push_back(manager);
                 }
               }
-            } else
+            }
+            else
               searches[local] = bandwidth ? 0 : size_max;
-          } else if (finder->second == best)
+          }
+          else if (finder->second == best)
             results.push_back(manager);
         }
         if (results.empty())
@@ -1972,7 +2008,8 @@ namespace Legion {
           for (unsigned idx = 0; idx < local_views.size(); idx++)
             results.push_back(local_views[idx]->get_manager());
         }
-      } else
+      }
+      else
         best = bandwidth ? size_max - 1 : 1;
     }
 
@@ -2058,7 +2095,8 @@ namespace Legion {
             instances->clear();
           for (unsigned idx = 0; idx < results.size(); idx++)
             instances->push_back(results[idx]);
-        } else
+        }
+        else
         {
           if (best < current)
             instances->clear();
@@ -2196,13 +2234,15 @@ namespace Legion {
             const RtEvent wait_on = Runtime::merge_events(wait_events);
             if (wait_on.exists() && !wait_on.has_triggered())
               wait_on.wait();
-          } else if (view_ready.exists() && !view_ready.has_triggered())
+          }
+          else if (view_ready.exists() && !view_ready.has_triggered())
             view_ready.wait();
           view->record_remote_instances(views);
           for (std::vector<IndividualView*>::const_iterator it = views.begin();
                it != views.end(); it++)
             (*it)->unpack_global_ref();
-        } else
+        }
+        else
         {
           // These fields are from an individual manager so just
           // load a copy of it here
@@ -2250,7 +2290,8 @@ namespace Legion {
         runtime->send_collective_remote_registration(analysis_space, rez);
         applied_events.insert(applied);
         return;
-      } else
+      }
+      else
       {
         const unsigned local_index = find_local_index(target);
         local_views[local_index]->register_collective_analysis(this, analysis);
@@ -2392,7 +2433,8 @@ namespace Legion {
           if (valid_references.fetch_add(1) == 0)
 #endif
             notify_valid();
-        } else if (!finder->second.local_initialized)
+        }
+        else if (!finder->second.local_initialized)
         {
           // First local arrival, but rendezvous was made by a remote
           // arrival so we need to make the ready event
@@ -2479,7 +2521,8 @@ namespace Legion {
               }
               runtime->send_collective_register_user_request(parent, rez);
               return result;
-            } else
+            }
+            else
             {
               // We're going to fall through so grab the state
               // that we need to do the finalization now
@@ -2494,9 +2537,11 @@ namespace Legion {
               // We can erase this from the data structure now
               rendezvous_users.erase(finder);
             }
-          } else  // Still waiting for remote arrivals
+          }
+          else  // Still waiting for remote arrivals
             return result;
-        } else  // Not the last local arrival so we can just return the result
+        }
+        else  // Not the last local arrival so we can just return the result
           return result;
       }
 #ifdef DEBUG_LEGION
@@ -2891,7 +2936,8 @@ namespace Legion {
             rez.serialize(trace_barrier);
             if (trace_barrier.exists())
               rez.serialize(trace_shard);
-          } else
+          }
+          else
           {
             ApUserEvent child_ready;
             if (ready_event.exists())
@@ -2927,7 +2973,8 @@ namespace Legion {
           if (precondition.exists())
             dst_precondition = Runtime::merge_events(
                 &inst_info, precondition, dst_precondition);
-        } else
+        }
+        else
           dst_precondition = precondition;
         PhysicalManager* local_manager = local_view->get_manager();
         std::vector<CopySrcDstField> dst_fields;
@@ -2955,7 +3002,8 @@ namespace Legion {
         Runtime::trigger_event(
             ready_event, Runtime::merge_events(&local_info, ready_events),
             trace_info, applied_events);
-      } else if (ready_event.exists())
+      }
+      else if (ready_event.exists())
         Runtime::trigger_event(
             ready_event, ApEvent::NO_AP_EVENT, trace_info, applied_events);
     }
@@ -3016,7 +3064,8 @@ namespace Legion {
           trace_info.record_barrier_arrival(
               bar, ready, 1 /*count*/, applied_events, sid);
         }
-      } else
+      }
+      else
         derez.deserialize(ready);
       AddressSpaceID origin;
       derez.deserialize(origin);
@@ -3087,7 +3136,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(instance_index != UINT_MAX);
 #endif
-      } else if (instances.size() > 1)
+      }
+      else if (instances.size() > 1)
       {
         int best_bandwidth = -1;
         const Machine& machine = runtime->machine;
@@ -3401,7 +3451,8 @@ namespace Legion {
             rez.serialize(all_bar);
             if (all_bar.exists())
               rez.serialize(owner_shard);
-          } else
+          }
+          else
           {
             const ApUserEvent broadcast =
                 Runtime::create_ap_user_event(&local_info);
@@ -3450,7 +3501,8 @@ namespace Legion {
         runtime->phase_barrier_arrive(all_bar, 1 /*count*/, arrival);
         local_info.record_barrier_arrival(
             all_bar, arrival, 1 /*count*/, applied_events, owner_shard);
-      } else if (all_done.exists())
+      }
+      else if (all_done.exists())
       {
         Runtime::trigger_event(
             all_done, Runtime::merge_events(&local_info, done_events),
@@ -3585,7 +3637,8 @@ namespace Legion {
             else
               it = destination_events.erase(it);
         }
-      } else
+      }
+      else
       {
         // If all the local instances are in the same memory then we
         // might as well just issue copies from the source to all the
@@ -3674,7 +3727,8 @@ namespace Legion {
         {
           if (idx == root_index)
             finder->second = root_index;
-        } else
+        }
+        else
         {
           if (idx == root_index)
             first_in_memory[memory] = root_index;
@@ -3740,7 +3794,8 @@ namespace Legion {
           for (unsigned child = 0; child < total_memories; child++)
             if (previous[child] == current)
               dfs_stack.emplace_back(std::pair<unsigned, bool>(child, true));
-        } else
+        }
+        else
         {
           // Post-traversal
           // Compute our max sub-tree
@@ -3922,7 +3977,8 @@ namespace Legion {
           // Did not have any edges!
           // They will all have the same bandwidth in this case
           same_bandwidth = 1;
-        } else if (same_bandwidth != UINT_MAX)
+        }
+        else if (same_bandwidth != UINT_MAX)
         {
           // No longer true that they all have the same bandwidth
           same_bandwidth = UINT_MAX;
@@ -4147,7 +4203,8 @@ namespace Legion {
         derez.deserialize(all_bar);
         if (all_bar.exists())
           derez.deserialize(owner_shard);
-      } else
+      }
+      else
       {
         derez.deserialize(ready);
         derez.deserialize(all_done);
@@ -4254,7 +4311,8 @@ namespace Legion {
           {
             rez.serialize(all_bar);
             rez.serialize(owner_shard);
-          } else
+          }
+          else
           {
             const ApUserEvent reduced =
                 Runtime::create_ap_user_event(&trace_info);
@@ -4359,7 +4417,8 @@ namespace Legion {
         runtime->phase_barrier_arrive(all_bar, 1 /*count*/, local_done);
         local_info.record_barrier_arrival(
             all_bar, local_done, 1 /*count*/, applied_events, owner_shard);
-      } else
+      }
+      else
       {
         if (!local_done_events.empty())
           reduce_events.insert(
@@ -4426,7 +4485,8 @@ namespace Legion {
         derez.deserialize(all_bar);
         if (all_bar.exists())
           derez.deserialize(owner_shard);
-      } else
+      }
+      else
         derez.deserialize(ready);
       AddressSpaceID origin;
       derez.deserialize(origin);
@@ -4578,7 +4638,8 @@ namespace Legion {
             rez.serialize(bar);
             rez.serialize(sid);
             reduced = bar;
-          } else
+          }
+          else
           {
             const ApUserEvent to_trigger =
                 Runtime::create_ap_user_event(&trace_info);
@@ -4591,7 +4652,8 @@ namespace Legion {
         runtime->send_collective_distribute_reduction(origin, rez);
         recorded_events.insert(recorded);
         applied_events.insert(applied);
-      } else
+      }
+      else
       {
         const ApUserEvent to_trigger =
             Runtime::create_ap_user_event(&trace_info);
@@ -4677,7 +4739,8 @@ namespace Legion {
               rez.serialize(all_bar);
               if (all_bar.exists())
                 rez.serialize(owner_shard);
-            } else
+            }
+            else
             {
               const ApUserEvent done =
                   Runtime::create_ap_user_event(&trace_info);
@@ -4730,7 +4793,8 @@ namespace Legion {
           trace_info.record_barrier_arrival(
               all_bar, arrival, 1 /*count*/, applied_events, owner_shard);
           Runtime::trigger_event(all_done, all_bar, trace_info, applied_events);
-        } else
+        }
+        else
         {
           Runtime::trigger_event(
               all_done, Runtime::merge_events(&trace_info, all_done_events),
@@ -4886,7 +4950,8 @@ namespace Legion {
             rez.serialize(all_bar);
             if (all_bar.exists())
               rez.serialize(owner_shard);
-          } else
+          }
+          else
           {
             ApUserEvent done;
             if (all_done.exists())
@@ -4983,7 +5048,8 @@ namespace Legion {
                 points.find(0);
             if (finder != points.end())
               local_src_inst_did = finder->second->did;
-          } else  // mapper already had a chance to pick the source point
+          }
+          else  // mapper already had a chance to pick the source point
             local_src_inst_did = src_inst_did;
         }
         // TODO: how to let the mapper pick in copy-out cases
@@ -5028,7 +5094,8 @@ namespace Legion {
           recorded_events.insert(recorded);
           applied_events.insert(applied);
           local_done = done;
-        } else
+        }
+        else
           local_done = source->perform_collective_point(
               dst_fields, reservations, precondition, predicate_guard,
               copy_expression, op, index, copy_mask, copy_mask, location,
@@ -5051,7 +5118,8 @@ namespace Legion {
         runtime->phase_barrier_arrive(all_bar, 1 /*count*/, arrival);
         local_info.record_barrier_arrival(
             all_bar, arrival, 1 /*count*/, applied_events, owner_shard);
-      } else if (all_done.exists())
+      }
+      else if (all_done.exists())
       {
         Runtime::trigger_event(
             all_done, Runtime::merge_events(&local_info, done_events),
@@ -5111,7 +5179,8 @@ namespace Legion {
         derez.deserialize(all_bar);
         if (all_bar.exists())
           derez.deserialize(owner_shard);
-      } else
+      }
+      else
         derez.deserialize(all_done);
       AddressSpaceID origin;
       derez.deserialize(origin);

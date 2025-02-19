@@ -576,7 +576,8 @@ namespace Legion {
       return ctx->create_restricted_partition(
           parent, color_space, transform, transform_size, extent, extent_size,
           part_kind, color, call);
-    } else
+    }
+    else
     {
       AutoCall<Internal::RUNTIME_CREATE_PARTITION_BY_RESTRICTION_CALL> call(
           prov, ctx, func);
@@ -2492,7 +2493,8 @@ namespace Legion {
       PhysicalRegion region = ctx->attach_resource(launcher, call);
       ctx->remap_region(region, call);
       return region;
-    } else
+    }
+    else
       return ctx->attach_resource(launcher, call);
   }
 
@@ -4069,7 +4071,8 @@ namespace Legion {
           ctx, copy, sizeof(domain), true /*owned*/, resource,
           SparsityReferenceHelper::deletion_function, metadataptr,
           metadatasize);
-    } else
+    }
+    else
       Runtime::legion_task_postamble(
           ctx, &domain, sizeof(domain), false /*owned*/,
           Realm::RegionInstance::NO_INST, metadataptr, metadatasize);

@@ -78,7 +78,8 @@ namespace Legion {
       {
         op = available.back();
         available.pop_back();
-      } else
+      }
+      else
       {
         static_assert(sizeof(OP) == sizeof(WRAP), "wrapper sizes should match");
         OP* ptr = legion_malloc<
@@ -123,7 +124,8 @@ namespace Legion {
       {
         op = available.back();
         available.pop_back();
-      } else
+      }
+      else
       {
         static_assert(sizeof(OP) == sizeof(WRAP), "wrapper sizes should match");
         OP* ptr = legion_malloc<OP, SHORT_BOUNDED_LIFETIME>(
@@ -174,7 +176,8 @@ namespace Legion {
       {
         op = available.back();
         available.pop_back();
-      } else
+      }
+      else
       {
         OP* ptr = legion_malloc<OP, RUNTIME_LIFETIME>(sizeof(OP), alignof(OP));
         op = new (ptr) OP();

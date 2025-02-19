@@ -62,7 +62,8 @@ namespace Legion {
         return RtEvent(target.spawn(
             LG_TASK_ID, &args, sizeof(T), requests, precondition, priority));
 #endif
-      } else
+      }
+      else
 #ifdef LEGION_SEPARATE_META_TASKS
         return RtEvent(target.spawn(
             LG_TASK_ID + T::TASK_ID, &args, sizeof(T), precondition, priority));
@@ -108,7 +109,8 @@ namespace Legion {
             LG_APP_PROC_TASK_ID, &args, sizeof(T), requests, precondition,
             priority));
 #endif
-      } else
+      }
+      else
 #ifdef LEGION_SEPARATE_META_TASKS
         return RtEvent(target.spawn(
             LG_APP_PROC_TASK_ID + T::TASK_ID, &args, sizeof(T), precondition,
@@ -205,7 +207,8 @@ namespace Legion {
           ApEvent result;
           info->record_merge_events(result, events);
           return result;
-        } else
+        }
+        else
           return ApEvent::NO_AP_EVENT;
       }
       if (events.size() == 1)
@@ -216,7 +219,8 @@ namespace Legion {
           ApEvent result = *(events.begin());
           info->record_merge_events(result, events);
           return result;
-        } else
+        }
+        else
           return *(events.begin());
       }
 #endif
@@ -270,7 +274,8 @@ namespace Legion {
           ApEvent result;
           info->record_merge_events(result, events);
           return result;
-        } else
+        }
+        else
           return ApEvent::NO_AP_EVENT;
       }
       if (events.size() == 1)
@@ -281,7 +286,8 @@ namespace Legion {
           ApEvent result = events.front();
           info->record_merge_events(result, events);
           return result;
-        } else
+        }
+        else
           return events.front();
       }
 #endif
@@ -298,7 +304,8 @@ namespace Legion {
         Realm::UserEvent rename(Realm::UserEvent::create_user_event());
         rename.trigger();
         result = ApEvent(rename);
-      } else
+      }
+      else
       {
         // Check to make sure it isn't a rename
         for (unsigned idx = 0; idx < events.size(); idx++)
@@ -427,7 +434,8 @@ namespace Legion {
 #ifdef LEGION_SPY
         LegionSpy::log_ap_user_event(result);
 #endif
-      } else
+      }
+      else
         info->record_create_ap_user_event(result);
       return result;
     }
@@ -647,7 +655,8 @@ namespace Legion {
             (result.id != to_protect.id))
           implicit_profiler->record_event_trigger(result, to_protect);
         return result;
-      } else
+      }
+      else
         return RtEvent::NO_RT_EVENT;
     }
 
@@ -688,7 +697,8 @@ namespace Legion {
             implicit_profiler->record_barrier_arrival(
                 bar.phase_barrier, precondition);
           copy.arrive(count, precondition, reduce_value, reduce_value_size);
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(reduce_value == nullptr);
@@ -703,10 +713,12 @@ namespace Legion {
           {
             const ArrivalInfo info(precondition);
             copy.arrive(count, precondition, &info, sizeof(info));
-          } else  // Have the profiler profile and do the arrival
+          }
+          else  // Have the profiler profile and do the arrival
             profiler->profile_barrier_arrival(copy, count, precondition, pre);
         }
-      } else
+      }
+      else
         copy.arrive(count, precondition, reduce_value, reduce_value_size);
 #ifdef LEGION_SPY
       if (precondition.exists())
@@ -778,7 +790,8 @@ namespace Legion {
           if (implicit_profiler != nullptr)
             implicit_profiler->record_barrier_arrival(bar, precondition);
           copy.arrive(count, precondition);
-        } else
+        }
+        else
         {
           // We're computing the critical path through the graph so
           // need to record when when this arrival triggers so we can
@@ -790,10 +803,12 @@ namespace Legion {
           {
             const ArrivalInfo info(precondition);
             copy.arrive(count, precondition, &info, sizeof(info));
-          } else  // Have the profiler profile and do the arrival
+          }
+          else  // Have the profiler profile and do the arrival
             profiler->profile_barrier_arrival(bar, count, precondition, pre);
         }
-      } else
+      }
+      else
         copy.arrive(count, precondition);
 #ifdef LEGION_SPY
       if (precondition.exists())
@@ -876,7 +891,8 @@ namespace Legion {
           if (implicit_profiler != nullptr)
             implicit_profiler->record_barrier_arrival(bar, precondition);
           copy.arrive(count, precondition);
-        } else
+        }
+        else
         {
           // We're computing the critical path through the graph so
           // need to record when when this arrival triggers so we can
@@ -885,11 +901,13 @@ namespace Legion {
           {
             const ArrivalInfo info(precondition);
             copy.arrive(count, precondition, &info, sizeof(info));
-          } else  // Have the profiler profile and do the arrival
+          }
+          else  // Have the profiler profile and do the arrival
             profiler->profile_barrier_arrival(
                 bar, count, precondition, precondition);
         }
-      } else
+      }
+      else
         copy.arrive(count, precondition);
     }
 #endif

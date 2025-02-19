@@ -386,7 +386,8 @@ namespace Legion {
       {
         constraints_name = (char*)malloc(64 * sizeof(char));
         snprintf(constraints_name, 64, "layout constraints %ld", layout_id);
-      } else
+      }
+      else
         constraints_name = strdup(registrar.layout_name);
 #ifdef LEGION_GC
       log_garbage.info(
@@ -509,10 +510,12 @@ namespace Legion {
             if (failed_constraint != nullptr)
               *failed_constraint = finder->second;
             return false;
-          } else
+          }
+          else
             return true;
         }
-      } else
+      }
+      else
       {
         AutoLock lay(layout_lock, 1, false /*exclusive*/);
         std::map<
@@ -526,7 +529,8 @@ namespace Legion {
             if (failed_constraint != nullptr)
               *failed_constraint = finder->second;
             return false;
-          } else
+          }
+          else
             return true;
         }
       }
@@ -580,7 +584,8 @@ namespace Legion {
             if (conflict_constraint != nullptr)
               *conflict_constraint = finder->second;
             return true;
-          } else
+          }
+          else
             return false;
         }
       }

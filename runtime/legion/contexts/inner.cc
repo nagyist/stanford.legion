@@ -374,10 +374,12 @@ namespace Legion {
           {
             created_regions.insert(*it);
             add_created_region(it->first, false /*task local*/);
-          } else
+          }
+          else
             finder->second += it->second;
         }
-      } else
+      }
+      else
       {
         created_regions.swap(regions);
         for (std::map<LogicalRegion, unsigned>::const_iterator it =
@@ -415,7 +417,8 @@ namespace Legion {
                   get_task_name(), get_unique_id())
             // Deletion keeps going up
             deleted_regions.push_back(*rit);
-          } else
+          }
+          else
           {
             // One of ours to delete
 #ifdef DEBUG_LEGION
@@ -452,7 +455,8 @@ namespace Legion {
                         std::set<std::pair<FieldSpace, FieldID> >::iterator
                             to_delete = it++;
                         created_fields.erase(to_delete);
-                      } else
+                      }
+                      else
                         it++;
                     }
                     latent_field_spaces.erase(finder);
@@ -504,7 +508,8 @@ namespace Legion {
 #else
         created_fields.insert(fields.begin(), fields.end());
 #endif
-      } else
+      }
+      else
         created_fields.swap(fields);
     }
 
@@ -538,7 +543,8 @@ namespace Legion {
                   fit->fid, fit->space.get_id(), get_task_name(),
                   get_unique_id())
             deleted_fields.push_back(*fit);
-          } else
+          }
+          else
           {
             // One of ours to delete
             std::pair<FieldSpace, Provenance*> now_key(
@@ -604,7 +610,8 @@ namespace Legion {
           else
             finder->second += it->second;
         }
-      } else
+      }
+      else
         created_field_spaces.swap(spaces);
     }
 
@@ -628,7 +635,8 @@ namespace Legion {
             std::map<FieldSpace, std::set<LogicalRegion> >::iterator to_delete =
                 it++;
             spaces.erase(to_delete);
-          } else
+          }
+          else
             it++;
         }
         if (spaces.empty())
@@ -661,7 +669,8 @@ namespace Legion {
           else
             latent_field_spaces.insert(*it);
         }
-      } else
+      }
+      else
         latent_field_spaces.swap(spaces);
     }
 
@@ -717,13 +726,16 @@ namespace Legion {
                     std::set<std::pair<FieldSpace, FieldID> >::iterator
                         to_delete = it++;
                     created_fields.erase(to_delete);
-                  } else
+                  }
+                  else
                     it++;
                 }
-              } else
+              }
+              else
                 latent_field_spaces[fit->space] = remaining_regions;
             }
-          } else
+          }
+          else
             // If we didn't make this field space, record the deletion
             // and keep going. It will be handled by the context that
             // made the field space
@@ -770,7 +782,8 @@ namespace Legion {
           else
             finder->second += it->second;
         }
-      } else
+      }
+      else
         created_index_spaces.swap(spaces);
     }
 
@@ -821,14 +834,17 @@ namespace Legion {
                       std::map<IndexPartition, unsigned>::iterator to_delete =
                           it++;
                       created_index_partitions.erase(to_delete);
-                    } else
+                    }
+                    else
                       it++;
-                  } else
+                  }
+                  else
                     it++;
                 }
               }
             }
-          } else
+          }
+          else
             // If we didn't make the index space in this context, just
             // record it and keep going, it will get handled later
             deleted_index_spaces.push_back(*sit);
@@ -877,7 +893,8 @@ namespace Legion {
           else
             finder->second += it->second;
         }
-      } else
+      }
+      else
         created_index_partitions.swap(parts);
     }
 
@@ -929,14 +946,17 @@ namespace Legion {
                       std::map<IndexPartition, unsigned>::iterator to_delete =
                           it++;
                       created_index_partitions.erase(to_delete);
-                    } else
+                    }
+                    else
                       it++;
-                  } else
+                  }
+                  else
                     it++;
                 }
               }
             }
-          } else
+          }
+          else
             // If we didn't make the partition, record it and keep going
             deleted_index_partitions.push_back(*pit);
         }
@@ -1166,7 +1186,8 @@ namespace Legion {
                 rez.serialize(it->second);
               }
             }
-          } else
+          }
+          else
           {
             rez.serialize<size_t>(0);
             rez.serialize<size_t>(0);
@@ -1297,7 +1318,8 @@ namespace Legion {
             derez.deserialize(rects[rect]);
           }
         }
-      } else
+      }
+      else
       {
         for (unsigned idx1 = 0; idx1 < num_sources; idx1++)
         {
@@ -1409,7 +1431,8 @@ namespace Legion {
                 rez.serialize(it->second);
               }
             }
-          } else
+          }
+          else
           {
             rez.serialize<size_t>(0);
             rez.serialize<size_t>(0);
@@ -1537,7 +1560,8 @@ namespace Legion {
         }
         runtime->send_output_equivalence_set_response(target_space, rez);
         return reported;
-      } else
+      }
+      else
       {
         if (references > 0)
           target->add_subscription_reference(references);
@@ -1630,7 +1654,8 @@ namespace Legion {
         lock = rhs.lock;
         rhs.tree = nullptr;
         rhs.lock = nullptr;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(lock != nullptr);
@@ -1658,7 +1683,8 @@ namespace Legion {
         assert(regions[req_index].handle_type == LEGION_SINGULAR_PROJECTION);
 #endif
         return regions[req_index].region.get_index_space();
-      } else
+      }
+      else
       {
         std::map<unsigned, RegionRequirement>::const_iterator finder =
             created_requirements.find(req_index);
@@ -1694,7 +1720,8 @@ namespace Legion {
           {
             tree_lock = finder->second.lock;
             return finder->second.tree;
-          } else if (return_null_if_doesnt_exist)
+          }
+          else if (return_null_if_doesnt_exist)
             return nullptr;
         }
       }
@@ -1712,7 +1739,8 @@ namespace Legion {
           if (!finder->second.exists())
             finder->second = Runtime::create_rt_user_event();
           wait_on = finder->second;
-        } else
+        }
+        else
         {
           std::map<unsigned, EqKDRoot>::const_iterator finder =
               equivalence_set_trees.find(req_index);
@@ -1751,7 +1779,8 @@ namespace Legion {
           Runtime::trigger_event(finder->second);
         pending_equivalence_set_trees.erase(finder);
         return tree;
-      } else
+      }
+      else
       {
         wait_on.wait();
         AutoLock priv_lock(privilege_lock, 1, false /*exclusive*/);
@@ -2184,7 +2213,8 @@ namespace Legion {
                 << "one of the region requirements of the parent task or "
                 << "from the creation of a region or allocation of a field "
                 << "(without a corresponding deletion) in the parent task.";
-          } else
+          }
+          else
             Exception(PROGRAMMING_MODEL_EXCEPTION, op)
                 << "Unable to find privileges for field " << *it
                 << " of region requirement " << index << " of "
@@ -2320,7 +2350,8 @@ namespace Legion {
               parent_req_indexes[index]);
         else  // We mapped a physical instance so we're it
           return this;
-      } else  // We created it
+      }
+      else  // We created it
       {
         // Check to see if this has returnable privileges or not
         // If they are not returnable, then we can just be the
@@ -2767,7 +2798,8 @@ namespace Legion {
           deleted_index_spaces.emplace_back(
               DeletedIndexSpace(handle, recurse, provenance));
           return;
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(finder->second > 0);
@@ -2795,9 +2827,11 @@ namespace Legion {
               {
                 std::map<IndexPartition, unsigned>::iterator to_delete = it++;
                 created_index_partitions.erase(to_delete);
-              } else
+              }
+              else
                 it++;
-            } else
+            }
+            else
               it++;
           }
         }
@@ -2881,13 +2915,16 @@ namespace Legion {
                 {
                   std::map<IndexPartition, unsigned>::iterator to_delete = it++;
                   created_index_partitions.erase(to_delete);
-                } else
+                }
+                else
                   it++;
-              } else
+              }
+              else
                 it++;
             }
           }
-        } else
+        }
+        else
         {
           // If we didn't make the partition, record it and keep going
           deleted_index_partitions.push_back(
@@ -3036,7 +3073,8 @@ namespace Legion {
             else
               kind = LEGION_ALIASED_INCOMPLETE_KIND;
           }
-        } else
+        }
+        else
         {
           if (kind == LEGION_COMPUTE_KIND)
             kind = LEGION_ALIASED_KIND;
@@ -3116,7 +3154,8 @@ namespace Legion {
             else
               kind = LEGION_DISJOINT_INCOMPLETE_KIND;
           }
-        } else
+        }
+        else
         {
           if (kind == LEGION_COMPUTE_KIND)
             kind = LEGION_DISJOINT_KIND;
@@ -4053,7 +4092,8 @@ namespace Legion {
               (kind == LEGION_DISJOINT_COMPLETE_KIND) ?
                                                "DISJOINT_COMPLETE_KIND" :
                                                "DISJOINT_INCOMPLETE_KIND")
-      } else if (
+      }
+      else if (
           (kind == LEGION_ALIASED_KIND) ||
           (kind == LEGION_ALIASED_COMPLETE_KIND) ||
           (kind == LEGION_ALIASED_INCOMPLETE_KIND))
@@ -4085,7 +4125,8 @@ namespace Legion {
                   "DISJOINT_COMPLETE_KIND" :
               (kind == LEGION_ALIASED_COMPLETE_KIND) ? "ALIASED_COMPLETE_KIND" :
                                                        "COMPUTE_COMPLETE_KIND")
-      } else if (
+      }
+      else if (
           (kind == LEGION_DISJOINT_INCOMPLETE_KIND) ||
           (kind == LEGION_ALIASED_INCOMPLETE_KIND) ||
           (kind == LEGION_COMPUTE_INCOMPLETE_KIND))
@@ -4291,12 +4332,15 @@ namespace Legion {
                 std::set<std::pair<FieldSpace, FieldID> >::iterator to_delete =
                     it++;
                 created_fields.erase(to_delete);
-              } else
+              }
+              else
                 it++;
             }
-          } else
+          }
+          else
             latent_field_spaces[handle] = latent_regions;
-        } else
+        }
+        else
         {
           // If we didn't make this field space, record the deletion
           // and keep going. It will be handled by the context that
@@ -4745,7 +4789,8 @@ namespace Legion {
             // then have a later context handle it
             deleted_fields.emplace_back(DeletedField(space, fid, provenance));
             return;
-          } else
+          }
+          else
             local_finder->second = true;
         }
         // Don't remove anything from created fields yet, we still might
@@ -4795,9 +4840,11 @@ namespace Legion {
             {
               local_finder->second = true;
               free_now.insert(*it);
-            } else
+            }
+            else
               deleted_fields.emplace_back(DeletedField(space, *it, provenance));
-          } else
+          }
+          else
           {
             // Don't remove anything from created fields yet,
             // we still might need need it as part of the logical
@@ -4939,9 +4986,11 @@ namespace Legion {
               // Record the deletion for later and propagate it up
               deleted_regions.emplace_back(DeletedRegion(handle, provenance));
               return;
-            } else
+            }
+            else
               local_finder->second = true;
-          } else
+          }
+          else
           {
             if (finder->second == 0)
             {
@@ -5144,7 +5193,8 @@ namespace Legion {
               "(ID %lld)",
               get_task_name(), get_unique_id())
         local_regions[handle] = false /*not deleted*/;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(created_regions.find(handle) == created_regions.end());
@@ -5171,7 +5221,8 @@ namespace Legion {
         assert(created_fields.find(key) == created_fields.end());
 #endif
         created_fields.insert(key);
-      } else
+      }
+      else
         local_fields[key] = false /*deleted*/;
     }
 
@@ -5191,7 +5242,8 @@ namespace Legion {
 #endif
           local_fields[key] = false /*deleted*/;
         }
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < fields.size(); idx++)
         {
@@ -5380,7 +5432,8 @@ namespace Legion {
                     std::set<std::pair<FieldSpace, FieldID> >::iterator
                         to_delete = it++;
                     created_fields.erase(to_delete);
-                  } else
+                  }
+                  else
                     it++;
                 }
                 latent_field_spaces.erase(finder);
@@ -5413,7 +5466,8 @@ namespace Legion {
             allocator->add_reference();
             leak_allocators[it->first] = allocator;
             allocator->ready_event.wait();
-          } else
+          }
+          else
             finder->second->ready_event.wait();
           runtime->free_field(it->first, it->second, preconditions);
         }
@@ -5507,7 +5561,8 @@ namespace Legion {
 #endif
             local_fields.erase(local_finder);
             local_to_free.push_back(*it);
-          } else
+          }
+          else
           {
             created_fields.erase(finder);
             global_to_free.push_back(*it);
@@ -5617,7 +5672,8 @@ namespace Legion {
             assert(local_finder->second);
 #endif
             local_regions.erase(local_finder);
-          } else
+          }
+          else
           {
 #ifdef DEBUG_LEGION
             assert(finder->second == 0);
@@ -5652,14 +5708,16 @@ namespace Legion {
                   std::set<std::pair<FieldSpace, FieldID> >::iterator
                       to_delete = it++;
                   created_fields.erase(to_delete);
-                } else
+                }
+                else
                   it++;
               }
               latent_field_spaces.erase(finder);
             }
           }
         }
-      } else
+      }
+      else
       {
         AutoLock priv_lock(privilege_lock);
         for (std::map<unsigned, RegionRequirement>::iterator it =
@@ -5703,7 +5761,8 @@ namespace Legion {
             assert(local_finder->second);
 #endif
             local_regions.erase(local_finder);
-          } else
+          }
+          else
           {
 #ifdef DEBUG_LEGION
             assert(finder->second == 0);
@@ -5738,7 +5797,8 @@ namespace Legion {
                   std::set<std::pair<FieldSpace, FieldID> >::iterator
                       to_delete = it++;
                   created_fields.erase(to_delete);
-                } else
+                }
+                else
                   it++;
               }
               latent_field_spaces.erase(finder);
@@ -5785,7 +5845,8 @@ namespace Legion {
           // Remove the references we acquired after they've been added
           // by the physical region
           physical_instances.remove_valid_references(CONTEXT_REF);
-        } else
+        }
+        else
 #endif
           impl->set_references(physical_instances, true /*safe*/);
       }
@@ -6706,7 +6767,8 @@ namespace Legion {
             if (all_same && (idx > 0) &&
                 (next_nodes[idx - 1] != next_nodes[idx]))
               all_same = false;
-          } else
+          }
+          else
           {
             next_nodes[idx] = previous_nodes[idx];
             all_same = false;
@@ -6785,7 +6847,8 @@ namespace Legion {
           if (equal)
             return (*it)->pid;
         }
-      } else  // instantiate the entry in the map
+      }
+      else  // instantiate the entry in the map
         finder = attach_functions
                      .insert(std::make_pair(
                          upper_bound, std::vector<AttachProjectionFunctor*>()))
@@ -6881,13 +6944,15 @@ namespace Legion {
           // so we can compute where our offset is based on that
           const Rect<2> bounds = launch;
           return p[0] * (bounds.hi[1] - bounds.lo[1] + 1) + p[1];
-        } else
+        }
+        else
         {
           // We computed prefix sums for the non-dense case so whatever
           // the second dimension is is the one that says which space we are
           return p[1];
         }
-      } else
+      }
+      else
       {
         const Point<1> p = point;
         return p[0];
@@ -7174,7 +7239,8 @@ namespace Legion {
             pred_op->initialize(this, actual_predicates, provenance);
         add_to_dependence_queue(pred_op);
         return result;
-      } else
+      }
+      else
       {
         // Check for short circuit cases
         std::vector<Predicate> actual_predicates;
@@ -7214,7 +7280,8 @@ namespace Legion {
         const bool value = true;
         result.impl->set_local(&value, sizeof(value));
         return result;
-      } else if (p == Predicate::FALSE_PRED)
+      }
+      else if (p == Predicate::FALSE_PRED)
       {
         Future result(new FutureImpl(
             this, true /*register*/, runtime->get_available_distributed_id(),
@@ -7222,7 +7289,8 @@ namespace Legion {
         const bool value = false;
         result.impl->set_local(&value, sizeof(value));
         return result;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(p.impl != nullptr);
@@ -7308,7 +7376,8 @@ namespace Legion {
       {
         outstanding_prepipeline_tasks--;
         return true;
-      } else
+      }
+      else
       {
         PrepipelineArgs args(prepipeline_queue.front().first, this);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
@@ -7348,7 +7417,8 @@ namespace Legion {
               InnerContext::add_to_dependence_queue(
                   complete, nullptr /*deps*/, false /*unordered*/,
                   false /*outermost*/);
-            } else
+            }
+            else
               previous_trace->record_intermediate_fence();
           }
         }
@@ -7618,7 +7688,8 @@ namespace Legion {
           ready_events.erase(finder);
           if (ready_events.empty())
             break;
-        } else
+        }
+        else
           it++;
       }
 #ifdef DEBUG_LEGION
@@ -7679,7 +7750,8 @@ namespace Legion {
               triggered.push_back(*pit);
               std::set<ApEvent>::const_iterator delete_it = pit++;
               previous_completion_events.erase(delete_it);
-            } else
+            }
+            else
               pit++;
           }
           if (!triggered.empty())
@@ -7695,7 +7767,8 @@ namespace Legion {
         TriggerReadyArgs args(next, this);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
         return false;
-      } else
+      }
+      else
         return true;
     }
 
@@ -7729,7 +7802,8 @@ namespace Legion {
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
-      } else
+      }
+      else
         return true;
     }
 
@@ -7764,7 +7838,8 @@ namespace Legion {
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
-      } else
+      }
+      else
         return true;
     }
 
@@ -7800,7 +7875,8 @@ namespace Legion {
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
-      } else
+      }
+      else
         return true;
     }
 
@@ -7835,7 +7911,8 @@ namespace Legion {
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
-      } else
+      }
+      else
         return true;
     }
 
@@ -7931,7 +8008,8 @@ namespace Legion {
             ready_events.erase(finder);
             if (ready_events.empty())
               break;
-          } else
+          }
+          else
             it++;
         }
 #ifdef DEBUG_LEGION
@@ -7962,7 +8040,8 @@ namespace Legion {
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
-      } else
+      }
+      else
         return true;
     }
 
@@ -8007,7 +8086,8 @@ namespace Legion {
         TriggerCommitArgs args(next.operation, this);
         runtime->issue_runtime_meta_task(args, LG_THROUGHPUT_WORK_PRIORITY);
         return false;
-      } else
+      }
+      else
       {
         outstanding_commit_task = false;
         return true;
@@ -8052,7 +8132,8 @@ namespace Legion {
         runtime->issue_runtime_meta_task(
             args, LG_THROUGHPUT_WORK_PRIORITY, precondition);
         return false;
-      } else
+      }
+      else
         return true;
     }
 
@@ -8132,7 +8213,8 @@ namespace Legion {
           // Reacquire the lock before doing the next operation
           d_lock.reacquire();
         }
-      } else
+      }
+      else
       {
         // Common path for normal execution where we don't need to
         // execute each of these things in program order
@@ -8789,7 +8871,8 @@ namespace Legion {
                   get_unique_id(), current_fence_uid, 0, op->get_unique_op_id(),
                   idx, TRUE_DEPENDENCE);
             }
-          } else
+          }
+          else
             LegionSpy::log_mapping_dependence(
                 get_unique_id(), current_fence_uid, 0, op->get_unique_op_id(),
                 0, TRUE_DEPENDENCE);
@@ -9021,7 +9104,8 @@ namespace Legion {
         if (!deprecated)
           traces[tid] = trace;
         trace->add_reference();
-      } else
+      }
+      else
         trace = finder->second;
 #ifdef DEBUG_LEGION
       assert(trace != nullptr);
@@ -9032,7 +9116,8 @@ namespace Legion {
         TraceBeginOp* begin = runtime->get_operation<TraceBeginOp>();
         begin->initialize_begin(this, trace, provenance);
         trace_op = begin;
-      } else
+      }
+      else
       {
         TraceRecurrentOp* recurrent =
             runtime->get_operation<TraceRecurrentOp>();
@@ -9695,7 +9780,8 @@ namespace Legion {
             new_view->add_initial_user(
                 unmap_events[idx1], usage, view_mask, region_node->row_source,
                 context_uid, idx1);
-          } else
+          }
+          else
           {
             corresponding[idx2] = finder->second;
             // Record the initial user for the instance
@@ -9845,7 +9931,8 @@ namespace Legion {
           finder->second.tree->add_reference();
           return_regions[node] = finder->second.tree;
           equivalence_set_trees.erase(finder);
-        } else
+        }
+        else
         {
           // Not returning so just remove it which will delete the tree
 #ifdef DEBUG_LEGION
@@ -9922,7 +10009,8 @@ namespace Legion {
             it->first->set_expr->initialize_equivalence_set_kd_tree(
                 finder->second.tree, it->first, it->second, local_shard,
                 true /*current*/);
-        } else
+        }
+        else
         {
           finder =
               equivalence_set_trees.emplace(index, EqKDRoot(created_trees[idx]))
@@ -10096,7 +10184,8 @@ namespace Legion {
                 (*mapping == *(finder->second->collective_mapping)));
 #endif
             source_views[idx] = finder->second;
-          } else
+          }
+          else
             still_needed.push_back(idx);
         }
       }
@@ -10140,7 +10229,8 @@ namespace Legion {
                 (*mapping == *(finder->second->collective_mapping)));
 #endif
             source_views[idx] = finder->second;
-          } else
+          }
+          else
             still_needed.push_back(idx);
         }
       }
@@ -10386,7 +10476,8 @@ namespace Legion {
           return Runtime::merge_events(done_events);
         else
           return RtEvent::NO_RT_EVENT;
-      } else
+      }
+      else
       {
         // Send this to the owner node to start the broadcast tree
         const RtUserEvent done = Runtime::create_rt_user_event();
@@ -10499,7 +10590,8 @@ namespace Legion {
         rez.serialize(context_did);
         rez.serialize(collective_did);
         runtime->send_collective_view_release(owner, rez);
-      } else
+      }
+      else
       {
         // Better be able to find it since we know that we're still holding
         // a resource reference to it
@@ -10971,7 +11063,8 @@ namespace Legion {
         effects = realm_done_event;
         if (owner_task->is_concurrent())
           runtime->end_concurrent_task(executing_processor);
-      } else  // implicit task
+      }
+      else  // implicit task
         realm_done_event = effects;
       // Check to see if we have any unordered operations that we need to inject
       // This has to be done before we do any deletions to make sure that all
@@ -11058,7 +11151,8 @@ namespace Legion {
               "not marked as a 'leaf' variant but it didn't execute any "
               "operations. Did you forget the 'leaf' annotation?",
               impl->get_name(), get_task_name(), get_unique_id());
-        } else if (!owner_task->is_inner())
+        }
+        else if (!owner_task->is_inner())
         {
           // If this task had sub operations and wasn't marked as inner
           // and made no accessors warn about missing 'inner' annotation
@@ -11167,7 +11261,8 @@ namespace Legion {
                   it->operation->get_completion_event());
             else if (it->complete_event.exists())
               completion_events.push_back(it->complete_event);
-        } else
+        }
+        else
           need_commit = true;
       }
       if (!completion_events.empty())
@@ -11175,7 +11270,8 @@ namespace Legion {
         completion_events.push_back(realm_done_event);
         owner_task->record_inner_termination(
             Runtime::merge_events(nullptr, completion_events));
-      } else
+      }
+      else
         owner_task->record_inner_termination(realm_done_event);
       if (!preconditions.empty())
         owner_task->handle_post_mapped(Runtime::merge_events(preconditions));
@@ -11501,7 +11597,8 @@ namespace Legion {
                   "physical regions around execute_index_space call in "
                   "task %s (UID %lld).",
                   get_task_name(), get_unique_id());
-            } else
+            }
+            else
             {
               REPORT_LEGION_WARNING(
                   LEGION_WARNING_RUNTIME_UNMAPPING_REMAPPING,
@@ -11672,7 +11769,8 @@ namespace Legion {
               parent.get_id(), pid.get_id(), -1 /*unknown*/, complete,
               partition_color, runtime->address_space,
               (provenance == nullptr) ? std::string_view() : provenance->human);
-      } else
+      }
+      else
       {
         const bool disjoint = (part_kind == LEGION_DISJOINT_KIND) ||
                               (part_kind == LEGION_DISJOINT_COMPLETE_KIND) ||
@@ -11775,7 +11873,8 @@ namespace Legion {
             if ((*next) == lower_bound)
               lower_bound++;
             existing_colors.erase(next);
-          } else
+          }
+          else
             break;
         }
         // Find the next available color
@@ -11821,7 +11920,8 @@ namespace Legion {
           if (safe.exists())
             safe_events.insert(safe);
         }
-      } else if (((LegionColor)shard_mapping->size()) <= base->total_children)
+      }
+      else if (((LegionColor)shard_mapping->size()) <= base->total_children)
       {
         // There are more subregions than shards so we can shard the
         // children over all the shards to make the partitions
@@ -11840,7 +11940,8 @@ namespace Legion {
           if (safe.exists())
             safe_events.insert(safe);
         }
-      } else
+      }
+      else
       {
         // There are fewer subregions than shards, so we can actually
         // have multiple shards collaborating to create each partition
@@ -11899,7 +12000,8 @@ namespace Legion {
                 handle1.get_type_tag());
             exchange.exchange_ids(child_color, pid);
             user_handles[child_node->handle] = pid;
-          } else
+          }
+          else
             exchange.perform_collective_async();
           IndexPartition child_pid = IndexPartition::NO_PART;
           exchange.sync_child_ids(child_color, child_pid);
@@ -11910,7 +12012,8 @@ namespace Legion {
                   child_spaces, runtime->legion_collective_radix));
           if (safe.exists())
             safe_events.insert(safe);
-        } else
+        }
+        else
         {
           // Still need to participate in the collective exchange
           exchange.perform_collective_sync();
@@ -12024,7 +12127,8 @@ namespace Legion {
           {
             to_delete.push_back(*it);
             it = timeout_users.erase(it);
-          } else
+          }
+          else
             it++;
         }
       }

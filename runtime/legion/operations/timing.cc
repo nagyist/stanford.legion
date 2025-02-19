@@ -89,7 +89,8 @@ namespace Legion {
         measured = runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY,
             Runtime::protect_event(complete));
-      } else
+      }
+      else
         perform_measurement();
       complete_operation(complete);
     }
@@ -217,7 +218,8 @@ namespace Legion {
         const RtEvent ready = timing_collective->perform_collective_wait();
         measured = runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, ready);
-      } else
+      }
+      else
         measured = runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY,
             Runtime::protect_event(execution_fence_barrier));
@@ -240,7 +242,8 @@ namespace Legion {
         long long value =
             timing_collective->get_value(false /*already waited*/);
         result.impl->set_local(&value, sizeof(value));
-      } else
+      }
+      else
       {
         // Perform the measurement and then arrive on the barrier
         // with the result to broadcast it to the other shards

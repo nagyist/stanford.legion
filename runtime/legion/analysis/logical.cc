@@ -181,7 +181,8 @@ namespace Legion {
           if (!open_children.insert(it->first, it->second))
             it->first->remove_base_gc_ref(FIELD_STATE_REF);
         rhs.open_children.clear();
-      } else
+      }
+      else
         open_children.relax_valid_mask(rhs.open_children.get_valid_mask());
 #ifdef DEBUG_LEGION
       assert(redop == rhs.redop);
@@ -198,7 +199,8 @@ namespace Legion {
         {
           open_state = OPEN_READ_WRITE;
           redop = 0;
-        } else
+        }
+        else
           open_state = OPEN_REDUCE;
       }
     }
@@ -225,7 +227,8 @@ namespace Legion {
           if ((*it)->remove_base_gc_ref(FIELD_STATE_REF))
             delete (*it);
         }
-      } else
+      }
+      else
       {
         open_children.clear();
         for (std::vector<RegionTreeNode*>::const_iterator it =
@@ -315,7 +318,8 @@ namespace Legion {
           {
             assert(!(finder->second & it->second));
             finder.merge(it->second);
-          } else
+          }
+          else
             previous_children.insert(it->first, it->second);
         }
         // Actually valid should be greater than or equal
@@ -703,7 +707,8 @@ namespace Legion {
           pointwise_dependences[two][one] = std::make_pair(true, true);
           dominates = true;
           return true;
-        } else
+        }
+        else
         {
           const bool one_dominates = one->domain->dominates(two->domain);
           dominates = two->domain->dominates(one->domain);
@@ -783,7 +788,8 @@ namespace Legion {
           {
             it->first->invalidate_refinement(ctx, overlap);
             to_delete.push_back(it->first);
-          } else
+          }
+          else
           {
             if (!allow_refinement)
               refinement_mask -= overlap;
@@ -852,7 +858,8 @@ namespace Legion {
           {
             it->first->invalidate_refinement(ctx, overlap);
             to_delete.push_back(it->first);
-          } else
+          }
+          else
           {
             if (!allow_refinement)
               refinement_mask -= overlap;
@@ -918,7 +925,8 @@ namespace Legion {
           {
             it->first->invalidate_refinement(ctx, overlap);
             to_delete.push_back(it->first);
-          } else
+          }
+          else
           {
             refinement_mask -= overlap;
             if (!refinement_mask)
@@ -1198,7 +1206,8 @@ namespace Legion {
           mask -= overlap;
           if (!mask)
             return;
-        } else
+        }
+        else
         {
           // Remove the child from the state
           finder.filter(overlap);
@@ -1279,7 +1288,8 @@ namespace Legion {
           {
             RegionNode* region = it->first->as_region_node();
             ordered_region_closes[region->handle] = it->first;
-          } else
+          }
+          else
           {
             PartitionNode* partition = it->first->as_partition_node();
             ordered_partition_closes[partition->handle] = it->first;

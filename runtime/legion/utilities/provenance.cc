@@ -126,11 +126,13 @@ namespace Legion {
               return false;  // Bad escape
           }
           human_size++;
-        } else if (*it == '"')
+        }
+        else if (*it == '"')
         {
           human_closed = true;
           break;
-        } else
+        }
+        else
           human_size++;
       }
 
@@ -186,7 +188,8 @@ namespace Legion {
             (const char*)derez.get_current_pointer(), length);
         derez.advance_pointer(length + 1 /*null terminator*/);
         return result;
-      } else
+      }
+      else
         return nullptr;
     }
 

@@ -68,7 +68,8 @@ namespace Legion {
           buffer = static_cast<void*>(
               legion_malloc<BufferManager<T, L>, L>(size, alignof(uint8_t)));
           std::memcpy(buffer, src, size);
-        } else
+        }
+        else
         {
           buffer = nullptr;
         }

@@ -70,7 +70,8 @@ namespace Legion {
               pieces.push_back(overlap);
           }
         }
-      } else
+      }
+      else
       {
         pieces.resize(num_pieces);
         for (unsigned idx = 0; idx < num_pieces; idx++)
@@ -91,7 +92,8 @@ namespace Legion {
       {
         next_piece = pieces[next];
         return int(next);
-      } else
+      }
+      else
         return -1;
     }
 
@@ -122,7 +124,8 @@ namespace Legion {
 #endif
         return new PieceIteratorImplT<DIM, T>(
             &realm_space.bounds, sizeof(realm_space.bounds), privilege_node);
-      } else
+      }
+      else
         return new PieceIteratorImplT<DIM, T>(
             piece_list, piece_list_size, privilege_node);
     }
@@ -379,7 +382,8 @@ namespace Legion {
                 {
                   rez.serialize(parent->handle);
                   rez.serialize(color);
-                } else
+                }
+                else
                 {
                   rez.serialize(IndexPartition::NO_PART);
                   rez.serialize(handle);
@@ -395,7 +399,8 @@ namespace Legion {
               if (parent_space != source)
                 runtime->send_index_space_set(parent_space, rez);
             }
-          } else if (!is_owner() && (source == local_space))
+          }
+          else if (!is_owner() && (source == local_space))
           {
             Serializer rez;
             {
@@ -404,7 +409,8 @@ namespace Legion {
               {
                 rez.serialize(parent->handle);
                 rez.serialize(color);
-              } else
+              }
+              else
               {
                 rez.serialize(IndexPartition::NO_PART);
                 rez.serialize(handle);
@@ -429,7 +435,8 @@ namespace Legion {
             {
               rez.serialize(parent->handle);
               rez.serialize(color);
-            } else
+            }
+            else
             {
               rez.serialize(IndexPartition::NO_PART);
               rez.serialize(handle);
@@ -565,7 +572,8 @@ namespace Legion {
             runtime->issue_runtime_meta_task(
                 args, LG_LATENCY_WORK_PRIORITY, valid_event);
           return;
-        } else
+        }
+        else
         {
           const RtEvent safe = Runtime::protect_event(index_space_valid);
           if (safe.exists() && !safe.has_triggered())
@@ -704,7 +712,8 @@ namespace Legion {
 #endif
         return new PieceIteratorImplT<DIM, T>(
             &realm_space.bounds, sizeof(realm_space.bounds), privilege_node);
-      } else
+      }
+      else
         return new PieceIteratorImplT<DIM, T>(
             piece_list, piece_list_size, privilege_node);
     }
@@ -737,7 +746,8 @@ namespace Legion {
         // Handle the case where Realm lied to us about being empty
         if (!logged)
           LegionSpy::log_empty_index_space(handle.get_id());
-      } else
+      }
+      else
         LegionSpy::log_empty_index_space(handle.get_id());
     }
 
@@ -771,7 +781,8 @@ namespace Legion {
             implicit_profiler->record_index_space_rect(
                 handle.get_id(), Rect<DIM, T>(itr.rect));
         }
-      } else
+      }
+      else
         implicit_profiler->register_empty_index_space(handle.get_id());
     }
 
@@ -823,7 +834,8 @@ namespace Legion {
               requests, op, DEP_PART_UNION_REDUCTION, precondition);
         result = ApEvent(Realm::IndexSpace<DIM, T>::compute_union(
             spaces, result_space, requests, precondition));
-      } else
+      }
+      else
       {
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
@@ -890,7 +902,8 @@ namespace Legion {
               requests, op, DEP_PART_UNION_REDUCTION, precondition);
         result = ApEvent(Realm::IndexSpace<DIM, T>::compute_union(
             spaces, result_space, requests, precondition));
-      } else
+      }
+      else
       {
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
@@ -988,7 +1001,8 @@ namespace Legion {
         // No need to wait since we're waiting for it to be tight
         // which implies that it will be ready
         *target = get_tight_index_space();
-      } else
+      }
+      else
       {
         DomainT<DIM, T> target = get_tight_index_space();
         const Domain domain(target);
@@ -1036,7 +1050,8 @@ namespace Legion {
               static_cast<Realm::Point<DIM, typename TYPELIST::HEAD>*>(
                   realm_point);
           *target = point;
-        } else
+        }
+        else
           RealmPointConverter<DIM, typename TYPELIST::TAIL>::convert_to(
               point, realm_point, type_tag, context);
       }
@@ -1054,7 +1069,8 @@ namespace Legion {
               static_cast<const Realm::Point<DIM, typename TYPELIST::HEAD>*>(
                   realm_point);
           point = *source;
-        } else
+        }
+        else
           RealmPointConverter<DIM, typename TYPELIST::TAIL>::convert_from(
               realm_point, type_tag, point, context);
       }
@@ -1093,7 +1109,8 @@ namespace Legion {
         const Realm::Point<DIM, T>* point =
             static_cast<const Realm::Point<DIM, T>*>(realm_point);
         return test_space.contains(*point);
-      } else
+      }
+      else
       {
         DomainPoint point;
         RealmPointConverter<DIM, Realm::DIMTYPES>::convert_from(
@@ -1211,7 +1228,8 @@ namespace Legion {
         RealmPointConverter<DIM, Realm::DIMTYPES>::convert_from(
             realm_color, type_tag, dp, "linearize_color");
         point = dp;
-      } else
+      }
+      else
         point = *(static_cast<const Point<DIM, T>*>(realm_color));
       return linear->linearize(point);
     }
@@ -1352,7 +1370,8 @@ namespace Legion {
           Realm::SparsityMap<DIM, T> copy = realm_index_space.sparsity;
           const ApEvent added(copy.add_reference());
           rez.serialize(added);
-        } else
+        }
+        else
           rez.serialize(ApEvent::NO_AP_EVENT);
       }
     }
@@ -1435,7 +1454,8 @@ namespace Legion {
             delete child;
         }
         return result;
-      } else
+      }
+      else
       {
         const size_t count = partition->total_children;
         std::set<ApEvent> done_events;
@@ -1657,7 +1677,8 @@ namespace Legion {
         // need to event do the intersection tests at all
         subspaces.swap(rhs_spaces);
         result = Runtime::merge_events(nullptr, preconditions);
-      } else
+      }
+      else
       {
         DomainT<DIM, T> lhs_space;
         ApEvent left_ready = get_loose_index_space(lhs_space, to_trigger);
@@ -1848,7 +1869,8 @@ namespace Legion {
             else
               ready = parent_ready;
           }
-        } else
+        }
+        else
           ready = parent_ready;
         // Then set the new index space
         if (child->set_realm_index_space(child_is, ready))
@@ -1992,7 +2014,8 @@ namespace Legion {
             if (child_ready.exists())
               result_events.insert(child_ready);
           }
-        } else
+        }
+        else
           child_space = Realm::IndexSpace<DIM, T>::make_empty();
         IndexSpaceNodeT<DIM, T>* child =
             static_cast<IndexSpaceNodeT<DIM, T>*>(partition->get_child(*itr));
@@ -2060,7 +2083,8 @@ namespace Legion {
               weights.resize(count);
             }
             weights[color_index] = *(static_cast<const int*>(data));
-          } else if (future_size == sizeof(size_t))
+          }
+          else if (future_size == sizeof(size_t))
           {
             if (long_weights.empty())
             {
@@ -2073,7 +2097,8 @@ namespace Legion {
               long_weights.resize(count);
             }
             long_weights[color_index] = *(static_cast<const size_t*>(data));
-          } else
+          }
+          else
             REPORT_LEGION_ERROR(
                 ERROR_INVALID_PARTITION_BY_WEIGHT_VALUE,
                 "An invalid future size was found in a partition by weight "
@@ -2184,7 +2209,8 @@ namespace Legion {
           color_space->delinearize_color(*itr, color);
           colors.push_back(color);
         }
-      } else
+      }
+      else
       {
         colors.resize(partition->total_children);
         results->resize(partition->total_children);
@@ -2611,7 +2637,8 @@ namespace Legion {
           if (ready.exists())
             preconditions.push_back(ready);
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(remote_targets != nullptr);
@@ -2811,7 +2838,8 @@ namespace Legion {
           if (ready.exists())
             preconditions.push_back(ready);
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(remote_targets != nullptr);
@@ -3263,9 +3291,11 @@ namespace Legion {
                itr.valid; itr.step())
             rects.push_back(itr.rect);
           return new EqKDSparse<DIM, T>(realm_index_space.bounds, rects);
-        } else
+        }
+        else
           return new EqKDNode<DIM, T>(realm_index_space.bounds);
-      } else
+      }
+      else
       {
         // Control replicated path
         if (!realm_index_space.dense())
@@ -3277,7 +3307,8 @@ namespace Legion {
           return new EqKDSparseSharded<DIM, T>(
               realm_index_space.bounds, 0 /*lower shard*/,
               total_shards - 1 /*upper shard*/, rects);
-        } else
+        }
+        else
           return new EqKDSharded<DIM, T>(
               realm_index_space.bounds, 0 /*lower shard*/,
               total_shards - 1 /*upper shard*/);
@@ -3304,7 +3335,8 @@ namespace Legion {
 #endif
         typed_tree->initialize_set(
             set, realm_index_space.bounds, mask, local_shard, current);
-      } else
+      }
+      else
       {
         for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space);
              itr.valid; itr.step())
@@ -3533,7 +3565,8 @@ namespace Legion {
               index_points.push_back(itr.p);
           }
         }
-      } else
+      }
+      else
       {
         std::vector<DomainPoint> domain_points;
         if (func->use_points)
@@ -3592,7 +3625,8 @@ namespace Legion {
           if (range_shards.size() == max_size)
             break;
         }
-      } else
+      }
+      else
       {
         for (ShardID shard = 0; shard < shard_points.size(); shard++)
         {
@@ -3640,7 +3674,8 @@ namespace Legion {
           }
         }
         return false;
-      } else
+      }
+      else
       {
         std::vector<DomainPoint> domain_points;
         if (func->use_points)
@@ -3792,7 +3827,8 @@ namespace Legion {
           {
             for (unsigned idx = 0; idx < interesting_count; idx++)
               next.hi[interesting_dims[idx]] -= 1;
-          } else
+          }
+          else
             next.hi -= Point<DIM, T>::ONES();
           next = itr->intersection(next);
 #ifdef DEBUG_LEGION
@@ -3836,9 +3872,11 @@ namespace Legion {
           {
             int dim = tile->interesting_dims[0];
             new_offset += ((tile->bounds.hi[dim] - tile->bounds.lo[dim]) + 1);
-          } else  // single element
+          }
+          else  // single element
             new_offset++;
-        } else
+        }
+        else
           new_offset += (1 << (tile->morton_order * tile->interesting_count));
         // Check for overflow which would be very bad
         if (new_offset <= offset)
@@ -3891,7 +3929,8 @@ namespace Legion {
         assert(tile != nullptr);
 #endif
         return color_offsets[tile->index] + tile->linearize(point);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!morton_tiles.empty());
@@ -3922,7 +3961,8 @@ namespace Legion {
 #endif
         color -= color_offsets[index];
         morton_tiles[index]->delinearize(color, point);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!morton_tiles.empty());
@@ -3953,7 +3993,8 @@ namespace Legion {
 #endif
         color -= color_offsets[index];
         return morton_tiles[index]->contains_color(color);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!morton_tiles.empty());
@@ -3991,7 +4032,8 @@ namespace Legion {
         for (unsigned idx = 0; idx < index; idx++)
           offset += morton_tiles[idx]->bounds.volume();
         return offset;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!morton_tiles.empty());
@@ -4032,7 +4074,8 @@ namespace Legion {
         if (interesting_count == 0)
           return 0;
         return point[interesting_dims[0]] - bounds.lo[interesting_dims[0]];
-      } else if (interesting_count < DIM)
+      }
+      else if (interesting_count < DIM)
       {
         // Slow path, not all dimensions are interesting
         // Pull them down to the localized dimensions
@@ -4059,7 +4102,8 @@ namespace Legion {
         for (unsigned i = 0; i < interesting_count; i++)
           result |= (codes[i] << i);
         return result;
-      } else
+      }
+      else
       {
         // Fast path, all dimensions are interesting
         unsigned coords[DIM];
@@ -4098,7 +4142,8 @@ namespace Legion {
 #endif
         if (interesting_count == 1)
           point[interesting_dims[0]] = color;
-      } else if (interesting_count < DIM)
+      }
+      else if (interesting_count < DIM)
       {
         // Slow path, not all dimensions are interesting
         unsigned coords[DIM] = {0};
@@ -4112,7 +4157,8 @@ namespace Legion {
         }
         for (unsigned i = 0; i < interesting_count; i++)
           point[interesting_dims[i]] = coords[i];
-      } else
+      }
+      else
       {
         unsigned coords[DIM] = {0};
         unsigned selector = 0, shift = 0;
@@ -4184,7 +4230,8 @@ namespace Legion {
           color_offsets.push_back(offset);
           offset += it->second;
         }
-      } else
+      }
+      else
       {
         tiles.push_back(domain.bounds.lo[0]);
         extents.push_back(domain.bounds.volume());
@@ -4242,7 +4289,8 @@ namespace Legion {
         finder = std::prev(finder);
         unsigned index = std::distance(color_offsets.begin(), finder);
         point[0] = tiles[index] + (color - *finder);
-      } else
+      }
+      else
         point[0] = tiles.front() + color;
     }
 
@@ -4340,7 +4388,8 @@ namespace Legion {
             kd_root = root;
           else  // Someone else beat us to it
             delete root;
-        } else
+        }
+        else
         {
           // There is a shard-mapping so we're going to build two kd-trees
           // One for storing any local or dense rectangles from remote nodes
@@ -4380,7 +4429,8 @@ namespace Legion {
                   if (child_mapping != nullptr)
                     delete child_mapping;
                   previous_color = it->second;
-                } else  // colors are the same so we know address space
+                }
+                else  // colors are the same so we know address space
                   sparse_shard_spaces.emplace_back(std::make_pair(
                       it->first, sparse_shard_spaces.back().second));
               }
@@ -4404,7 +4454,8 @@ namespace Legion {
             kd_root = root;
             Runtime::trigger_event(kd_remote_ready);
             kd_remote_ready = RtUserEvent::NO_RT_USER_EVENT;
-          } else if (wait_on.exists() && !wait_on.has_triggered())
+          }
+          else if (wait_on.exists() && !wait_on.has_triggered())
             wait_on.wait();
         }
       }
@@ -4427,12 +4478,14 @@ namespace Legion {
           if (remote_ready.exists() && !remote_ready.has_triggered())
             remote_ready.wait();
           tracker.get_remote_interfering(color_set);
-        } else
+        }
+        else
         {
           for (RectInDomainIterator<DIM, T> itr(space); itr(); itr++)
             kd_root->find_interfering(*itr, color_set);
         }
-      } else
+      }
+      else
       {
         for (RectInDomainIterator<DIM, T> itr(space); itr(); itr++)
           kd_root->find_interfering(*itr, color_set);
@@ -4539,9 +4592,11 @@ namespace Legion {
                      covering.begin();
                  cit != covering.end(); cit++)
               sparse_shard_rects->push_back(std::make_pair(*cit, (*it)->color));
-          } else  // Can just add this as the covering failed
+          }
+          else  // Can just add this as the covering failed
             sparse_shard_rects->push_back(next);
-        } else if (!child_space.bounds.empty())
+        }
+        else if (!child_space.bounds.empty())
           dense_shard_rects->push_back(next);
       }
       return perform_shard_rects_notification();

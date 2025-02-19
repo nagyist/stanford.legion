@@ -174,7 +174,8 @@ namespace Legion {
             prev_done = runtime->issue_runtime_meta_task(
                 args, LG_LATENCY_DEFERRED_PRIORITY, defer);
             return args.done_event;
-          } else
+          }
+          else
             defer.wait();
         }
       }
@@ -351,7 +352,8 @@ namespace Legion {
         last_copy = ApEvent(copy_domain.copy(
             src_fields, dst_fields, indirections, requests, copy_pre,
             priority));
-      } else
+      }
+      else
         last_copy = issue_individual_copies(op, copy_pre, requests);
       // Release any reservations
       for (std::map<Reservation, bool>::const_iterator it =
@@ -394,7 +396,8 @@ namespace Legion {
               last_copy, src_fields[idx].field_id, src_unique_events[idx],
               dst_fields[idx].field_id, dst_unique_events[idx],
               dst_fields[idx].redop_id);
-      } else
+      }
+      else
       {
         LegionSpy::log_indirect_events(
             op->get_unique_op_id(), expr->expr_id,
@@ -578,7 +581,8 @@ namespace Legion {
           dim_order[d] = next->second;
           strides.erase(next);
         }
-      } else
+      }
+      else
         dim_order[0] = 0;
       const std::vector<Realm::FieldID> fields(1, fid);
       const std::vector<size_t> sizes(1, field_size);
@@ -646,7 +650,8 @@ namespace Legion {
           profiling_shadow_instances[result] = unique_event;
         }
         return result;
-      } else
+      }
+      else
         return PhysicalInstance::NO_INST;
     }
 
@@ -678,7 +683,8 @@ namespace Legion {
             indirection_ready, PredEvent::NO_PRED_EVENT,
             src_indirect_instance_event, unique_event, COLLECTIVE_NONE,
             false /*record effect*/, priority, false /*replay*/);
-      } else
+      }
+      else
       {
         src_field.set_field(
             dst_indirect_instance, dst_indirect_field, field_size);
@@ -730,7 +736,8 @@ namespace Legion {
           indirect_spaces_precondition =
               Runtime::merge_events(nullptr, preconditions);
           need_src_indirect_precondition = false;
-        } else
+        }
+        else
         {
           indirect_spaces_precondition =
               Runtime::merge_events(nullptr, preconditions);
@@ -765,7 +772,8 @@ namespace Legion {
               requests, op, DEP_PART_BY_PREIMAGE_RANGE, precondition);
         result = ApEvent(copy_domain.create_subspaces_by_preimage(
             descriptors, targets, preimages, requests, precondition));
-      } else
+      }
+      else
       {
         // Point preimage
         typedef Realm::FieldDataDescriptor<
@@ -842,13 +850,15 @@ namespace Legion {
             // Reclaim any sparsity maps eagerly
             preimage.destroy();
             preimage = DomainT<D1, T1>::make_empty();
-          } else
+          }
+          else
           {
             preimage = tightened;
             nonempty_indexes.push_back(idx);
           }
         }
-      } else
+      }
+      else
       {
         nonempty_indexes.resize(indirect_records.size());
         for (unsigned idx = 0; idx < nonempty_indexes.size(); idx++)
@@ -1011,11 +1021,13 @@ namespace Legion {
                       shadow_instances.emplace(std::make_pair(
                           memory, ShadowInstance{shadow, ready, unique_event}));
                       shadow_preconditions.push_back(ready);
-                    } else
+                    }
+                    else
                       // Otherwise default to using the original indirection
                       unstructured->inst = source ? src_indirect_instance :
                                                     dst_indirect_instance;
-                  } else
+                  }
+                  else
                   {
                     unstructured->inst = finder->second.instance;
                     // Issue a copy to bring the old shadow instance up
@@ -1043,7 +1055,8 @@ namespace Legion {
                     old_shadows.erase(finder);
                     shadow_preconditions.push_back(ready);
                   }
-                } else
+                }
+                else
                 {
                   unstructured->inst = finder->second.instance;
                   shadow_preconditions.push_back(finder->second.ready);
@@ -1071,7 +1084,8 @@ namespace Legion {
         }
         // Now we can swap in the new preimages
         preimages.swap(new_preimages);
-      } else
+      }
+      else
 #else
       const unsigned offset = indirections.size();
 #endif

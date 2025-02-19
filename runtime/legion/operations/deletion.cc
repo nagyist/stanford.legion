@@ -682,7 +682,8 @@ namespace Legion {
         else
           runtime->phase_barrier_arrive(mapping_barrier, 1 /*count*/);
         complete_mapping(mapping_barrier);
-      } else if (!map_applied_conditions.empty())
+      }
+      else if (!map_applied_conditions.empty())
         complete_mapping(Runtime::merge_events(map_applied_conditions));
       else
         complete_mapping();

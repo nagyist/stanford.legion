@@ -182,7 +182,8 @@ namespace Legion {
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
-          } else
+          }
+          else
             rez.serialize<size_t>(0);
           rez.serialize(precondition);
           rez.serialize(term_event);
@@ -239,7 +240,8 @@ namespace Legion {
               if (!it->second->guard_postcondition.has_triggered())
                 guard_events.insert(it->second->guard_postcondition);
               applied_events.insert(it->second->effects_applied);
-            } else
+            }
+            else
               guard_events.insert(it->second->effects_applied);
           }
 #endif

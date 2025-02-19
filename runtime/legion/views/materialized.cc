@@ -96,7 +96,8 @@ namespace Legion {
         DeferMaterializedViewArgs args(did, manager, logical_owner);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_RESPONSE_PRIORITY, man_ready);
-      } else
+      }
+      else
         create_remote_view(did, manager, logical_owner);
     }
 

@@ -102,7 +102,8 @@ namespace Legion {
         if (finder->second.second)
           delete finder->second.first;
         finder->second = std::pair<MapperManager*, bool>(m, own);
-      } else
+      }
+      else
       {
         mappers[mid] = std::pair<MapperManager*, bool>(m, own);
         AutoLock q_lock(queue_lock);
@@ -135,7 +136,8 @@ namespace Legion {
         if (finder->second.second)
           delete finder->second.first;
         finder->second = std::pair<MapperManager*, bool>(m, own);
-      } else
+      }
+      else
       {
         mappers[0] = std::pair<MapperManager*, bool>(m, own);
         AutoLock q_lock(queue_lock);
@@ -201,7 +203,8 @@ namespace Legion {
         // cannot starve other tasks.
         runtime->issue_runtime_meta_task(
             sched_args, LG_THROUGHPUT_WORK_PRIORITY);
-      } else
+      }
+      else
         outstanding_task_scheduler = false;
     }
 
@@ -426,7 +429,8 @@ namespace Legion {
                 if (!input.stealable_tasks.empty())
                   map_state.queue_guard = true;
               }
-            } else
+            }
+            else
             {
               // Make an event if necessary
               if (!map_state.queue_waiter.exists())
@@ -474,7 +478,8 @@ namespace Legion {
               (*it)->mark_stolen();
               local_stolen.push_back(*it);
               it = rqueue.erase(it);
-            } else
+            }
+            else
               it++;
           }
           if (rqueue.empty())
@@ -504,7 +509,8 @@ namespace Legion {
           else
             stolen.insert(
                 stolen.end(), local_stolen.begin(), local_stolen.end());
-        } else
+        }
+        else
           mapper->process_failed_steal(thief);
       }
       if (!stolen.empty())
@@ -665,7 +671,8 @@ namespace Legion {
       {
         Runtime::poison_event(finder->second.ready);
         concurrent_tasks.erase(finder);
-      } else
+      }
+      else
       {
         finder->second.lamport_clock = lamport_clock;
         finder->second.max = true;
@@ -716,7 +723,8 @@ namespace Legion {
               next = it->first;
               next_coords.clear();
               min_next = it->second.lamport_clock;
-            } else if (min_next == it->second.lamport_clock)
+            }
+            else if (min_next == it->second.lamport_clock)
             {
               // Very bad case, same min of max all-reduce of clocks
               // Resolve this conflict based on task tree coordinates
@@ -737,9 +745,11 @@ namespace Legion {
                   {
                     next = it->first;
                     next_coords.swap(it_coords);
-                  } else if (c1.index_point == c2.index_point)
+                  }
+                  else if (c1.index_point == c2.index_point)
                     continue;
-                } else if (c2.context_index < c1.context_index)
+                }
+                else if (c2.context_index < c1.context_index)
                 {
                   next = it->first;
                   next_coords.swap(it_coords);
@@ -759,12 +769,14 @@ namespace Legion {
                 }
               }
             }
-          } else
+          }
+          else
           {
             next = it->first;
             min_next = it->second.lamport_clock;
           }
-        } else if (it->second.lamport_clock < min_pending)
+        }
+        else if (it->second.lamport_clock < min_pending)
           min_pending = it->second.lamport_clock;
       }
       // If all the pending tasks with lamport clocks are
@@ -853,7 +865,8 @@ namespace Legion {
                 if (!input.ready_tasks.empty())
                   map_state.queue_guard = true;
               }
-            } else
+            }
+            else
             {
               // Make an event if necessary
               if (!map_state.queue_waiter.exists())
@@ -915,7 +928,8 @@ namespace Legion {
             }
             // Otherwise we fall through to put our tasks back on the queue
             // which will lead to select_tasks_to_map being called again
-          } else  // Very bad, error message
+          }
+          else  // Very bad, error message
             REPORT_LEGION_ERROR(
                 ERROR_INVALID_MAPPER_OUTPUT,
                 "Mapper %s failed to specify an output MapperEvent "
@@ -925,7 +939,8 @@ namespace Legion {
                 "livelock conditions. Please return a "
                 "'deferral_event' in the 'output' struct.",
                 mapper->get_mapper_name())
-        } else if (!output.relocate_tasks.empty())
+        }
+        else if (!output.relocate_tasks.empty())
         {
           for (std::map<const Task*, Processor>::const_iterator it =
                    output.relocate_tasks.begin();
@@ -975,7 +990,8 @@ namespace Legion {
                 decrement_progress_tasks();
               to_trigger.push_back(*it);
               it = rqueue.erase(it);
-            } else
+            }
+            else
               it++;
           }
           if (rqueue.empty())
@@ -984,7 +1000,8 @@ namespace Legion {
               map_state.deferral_event = RtEvent::NO_RT_EVENT;
             else
               decrement_active_mappers();
-          } else if (!stealing_disabled)
+          }
+          else if (!stealing_disabled)
           {
             for (std::list<SingleTask*>::const_iterator it = rqueue.begin();
                  it != rqueue.end(); it++)
@@ -1025,9 +1042,11 @@ namespace Legion {
               // owned by a slice task, if it is just a normal indvidual
               // task then we can just ship it remotely immediately
               to_send[finder->second].push_back(*it);
-            } else
+            }
+            else
               (*it)->enqueue_ready_task(true /*use target processor*/);
-          } else
+          }
+          else
           {
             TaskOp::TriggerTaskArgs trigger_args(*it);
             runtime->issue_runtime_meta_task(

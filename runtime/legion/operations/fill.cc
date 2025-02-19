@@ -127,7 +127,8 @@ namespace Legion {
         value_size = launcher.argument.get_size();
         value = malloc(value_size);
         memcpy(value, launcher.argument.get_ptr(), value_size);
-      } else
+      }
+      else
         Exception(INTERFACE_EXCEPTION, this)
             << "No fill value found for " << *this << ". All fill operations "
             << "must be given a non-empty argument or a future to use as a "
@@ -347,7 +348,8 @@ namespace Legion {
         if (set)
           fill_view->set_value(value, value_size);
         parent_ctx->record_fill_view_creation(fill_view);
-      } else
+      }
+      else
       {
         set_view = set;
         parent_ctx->record_fill_view_creation(future.impl->did, fill_view);
@@ -447,7 +449,8 @@ namespace Legion {
         const RtEvent future_ready_event =
             future.impl->find_runtime_instance_ready();
         complete_execution(future_ready_event);
-      } else
+      }
+      else
         complete_execution();
     }
 
@@ -621,7 +624,8 @@ namespace Legion {
         requirement = RegionRequirement(
             launcher.region, launcher.projection, LEGION_WRITE_DISCARD,
             LEGION_EXCLUSIVE, launcher.parent);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(launcher.partition.exists());
@@ -642,7 +646,8 @@ namespace Legion {
         value_size = launcher.argument.get_size();
         value = malloc(value_size);
         memcpy(value, launcher.argument.get_ptr(), value_size);
-      } else
+      }
+      else
         Exception(INTERFACE_EXCEPTION, this)
             << "No fill value found for " << *this << ". All fill operations "
             << "must be given a non-empty argument or a future to use as a "
@@ -799,7 +804,8 @@ namespace Legion {
           const RtEvent future_ready_event =
               future.impl->find_runtime_instance_ready();
           complete_execution(future_ready_event);
-        } else
+        }
+        else
           complete_execution();
       }
     }
@@ -943,7 +949,8 @@ namespace Legion {
           {
             Runtime::trigger_event(to_trigger, finder->second);
             return to_trigger;
-          } else
+          }
+          else
             return finder->second;
         }
         if (!to_trigger.exists())
@@ -961,7 +968,8 @@ namespace Legion {
         {
           Runtime::trigger_event(to_trigger, (*it)->get_mapped_event());
           return to_trigger;
-        } else
+        }
+        else
           return (*it)->get_mapped_event();
       }
       // Should never get here, if we do that means we couldn't find the point
@@ -1446,7 +1454,8 @@ namespace Legion {
 #else
         return collective_map_barrier;
 #endif
-      } else  // Tracing path
+      }
+      else  // Tracing path
         return pre;
     }
 
@@ -1641,11 +1650,13 @@ namespace Legion {
             parent_ctx->add_to_trigger_execution_queue(this, future_ready);
           else
             trigger_execution();  // can do the completion now
-        } else if (view_ready.exists() && !view_ready.has_triggered())
+        }
+        else if (view_ready.exists() && !view_ready.has_triggered())
           parent_ctx->add_to_trigger_execution_queue(this, view_ready);
         else
           trigger_execution();
-      } else  // We have valid points, so it goes on the ready queue
+      }
+      else  // We have valid points, so it goes on the ready queue
       {
         shard_points = runtime->get_node(local_space);
         add_launch_space_reference(shard_points);
@@ -1698,7 +1709,8 @@ namespace Legion {
         // We have no local points, so we can just trigger
         complete_mapping();
         complete_execution();
-      } else
+      }
+      else
       {
         shard_points = runtime->get_node(local_space);
         add_launch_space_reference(shard_points);

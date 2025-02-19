@@ -752,7 +752,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -814,7 +815,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -1026,7 +1028,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -1084,7 +1087,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -1210,7 +1214,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -1283,7 +1288,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -1883,7 +1889,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -1945,7 +1952,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -2157,7 +2165,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -2215,7 +2224,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -2364,7 +2374,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -2446,7 +2457,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -3056,7 +3068,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -3133,7 +3146,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -3462,7 +3476,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -3535,7 +3550,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -3769,7 +3785,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -3851,7 +3868,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -4369,7 +4387,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -4446,7 +4465,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -4775,7 +4795,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -4848,7 +4869,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -5082,7 +5104,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -5164,7 +5187,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -5779,7 +5803,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -5857,7 +5882,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -6181,7 +6207,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -6255,7 +6282,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -6492,7 +6520,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -6575,7 +6604,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -7022,7 +7052,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -7100,7 +7131,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -7424,7 +7456,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -7498,7 +7531,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -7735,7 +7769,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -7824,7 +7859,8 @@ namespace Legion {
         newval = __uint2lohalf(result);
         other = __uint2hihalf(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -8174,7 +8210,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -8251,7 +8288,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -8568,7 +8606,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -8641,7 +8680,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -8962,7 +9002,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -9039,7 +9080,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -9356,7 +9398,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -9429,7 +9472,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -9842,7 +9886,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -9919,7 +9964,8 @@ namespace Legion {
         newval = __uint2loshort(result);
         other = __uint2hishort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {
@@ -10236,7 +10282,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&lhs) - 1);
       do {
@@ -10309,7 +10356,8 @@ namespace Legion {
         newval = __uint2loushort(result);
         other = __uint2hiushort(result);
       } while (oldval != newval);
-    } else
+    }
+    else
     {
       other = *((&rhs1) - 1);
       do {

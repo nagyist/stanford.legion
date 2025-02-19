@@ -210,7 +210,8 @@ namespace Legion {
                 parent_ctx->add_to_trigger_execution_queue(this, ready);
               else
                 trigger_execution();
-            } else
+            }
+            else
               trigger_execution();
             break;
           }
@@ -241,7 +242,8 @@ namespace Legion {
                 parent_ctx->add_to_trigger_execution_queue(this, ready);
               else
                 trigger_execution();
-            } else
+            }
+            else
               trigger_execution();
             break;
           }

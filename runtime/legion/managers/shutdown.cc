@@ -67,7 +67,8 @@ namespace Legion {
              it != targets.end(); it++)
           runtime->send_shutdown_notification(*it, rez);
         return false;
-      } else  // no messages means we can finalize right now
+      }
+      else  // no messages means we can finalize right now
       {
         finalize();
         return true;
@@ -133,7 +134,8 @@ namespace Legion {
           // Do the next phase
           runtime->initiate_runtime_shutdown(
               source, (ShutdownPhase)(phase + 1));
-        } else
+        }
+        else
         {
           log_shutdown.info("SHUTDOWN SUCCEEDED!");
           std::vector<RtEvent> shutdown_events;
@@ -150,7 +152,8 @@ namespace Legion {
           RealmRuntime realm = RealmRuntime::get_runtime();
           realm.shutdown(Runtime::merge_events(shutdown_events), return_code);
         }
-      } else if (runtime->address_space != source)
+      }
+      else if (runtime->address_space != source)
       {
 #ifdef DEBUG_LEGION
         assert(owner != nullptr);
@@ -165,7 +168,8 @@ namespace Legion {
              it != wait_for.end(); it++)
           rez.serialize(*it);
         runtime->send_shutdown_response(source, rez);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!result);
@@ -274,7 +278,8 @@ namespace Legion {
         }
         send_create_future_instance_response(source, rez);
         delete result;
-      } else
+      }
+      else
         Runtime::trigger_event(done);
     }
 

@@ -88,7 +88,8 @@ namespace Legion {
       if (launcher.external_resource != nullptr)
       {
         external_resource = launcher.external_resource->clone();
-      } else
+      }
+      else
       {
         // These are all the deprecated pathways, turn off deprecated warnings
         LEGION_DISABLE_DEPRECATED_WARNINGS
@@ -431,7 +432,8 @@ namespace Legion {
         if (wait_on.exists())
           wait_on.wait();
         return result;
-      } else  // Local so we can just do this call here
+      }
+      else  // Local so we can just do this call here
         return node->column_source->create_external_manager(
             result, ready_event, footprint, layout_constraint_set, field_set,
             sizes, external_mask, mask_index_map, unique_event, node, serdez,
@@ -670,7 +672,8 @@ namespace Legion {
                   preconditions[idx].push_back(precondition);
               }
             }
-          } else
+          }
+          else
           {
             for (unsigned idx = 0; idx < points.size(); idx++)
             {
@@ -697,7 +700,8 @@ namespace Legion {
           points[idx]->enqueue_ready_operation(
               Runtime::merge_events(preconditions[idx]));
         }
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < points.size(); idx++)
         {
@@ -900,7 +904,8 @@ namespace Legion {
         {
           Runtime::trigger_event(to_trigger, (*it)->get_mapped_event());
           return to_trigger;
-        } else
+        }
+        else
           return (*it)->get_mapped_event();
       }
       // Should never get here, if we do that means we couldn't find the point
@@ -992,7 +997,8 @@ namespace Legion {
               << " logical regions but only "
               << launcher.external_resources.size() << " external resources.";
         external_resource = launcher.external_resources[index]->clone();
-      } else
+      }
+      else
       {
         // These are all the deprecated pathways, turn off deprecated warnings
         LEGION_DISABLE_DEPRECATED_WARNINGS
@@ -1261,12 +1267,14 @@ namespace Legion {
         {
           rez.serialize<bool>(true);  // is region
           rez.serialize(node->as_region_node()->handle);
-        } else
+        }
+        else
         {
           rez.serialize<bool>(false);  // is_region
           rez.serialize(node->as_partition_node()->handle);
         }
-      } else
+      }
+      else
       {
         rez.serialize<bool>(true);  // is region
         rez.serialize(LogicalRegion::NO_REGION);
@@ -1288,7 +1296,8 @@ namespace Legion {
         if (!handle.exists())
           return;
         next = runtime->get_node(handle);
-      } else
+      }
+      else
       {
         LogicalPartition handle;
         derez.deserialize(handle);
@@ -1590,13 +1599,16 @@ namespace Legion {
           const RtEvent attached = external_manager->attach_external_instance();
           runtime->phase_barrier_arrive(
               resource_barrier, 1 /*count*/, attached);
-        } else
+        }
+        else
           runtime->phase_barrier_arrive(resource_barrier, 1 /*count*/);
-      } else if (external_manager->is_owner())
+      }
+      else if (external_manager->is_owner())
       {
         const RtEvent attached = external_manager->attach_external_instance();
         runtime->phase_barrier_arrive(resource_barrier, 1 /*count*/, attached);
-      } else
+      }
+      else
         runtime->phase_barrier_arrive(resource_barrier, 1 /*count*/);
       // Make sure the attaches are done across all shards before continuing
       if (!resource_barrier.has_triggered())
@@ -1739,10 +1751,12 @@ namespace Legion {
             shard_manager->exchange_shard_local_op_data(
                 context_index, exchange_index++, manager);
             return manager;
-          } else
+          }
+          else
             return shard_manager->find_shard_local_op_data<PhysicalManager*>(
                 context_index, exchange_index++);
-        } else
+        }
+        else
         {
           // Each shard is just going to make its own physical manager
           return node->column_source->create_external_manager(
@@ -1751,7 +1765,8 @@ namespace Legion {
               unique_event, node, serdez,
               runtime->get_available_distributed_id());
         }
-      } else
+      }
+      else
       {
         // Figure out what the collective mapping is for this instance
         CollectiveMapping* mapping = &shard_manager->get_collective_mapping();
@@ -1803,9 +1818,11 @@ namespace Legion {
             assert(manager_did.load() > 0);
 #endif
             did_broadcast->broadcast(manager_did.load());
-          } else
+          }
+          else
             manager_did.store(did_broadcast->get_value(false /*not origin*/));
-        } else
+        }
+        else
           manager_did.store(
               did_broadcast->get_value(!did_broadcast->is_origin()));
         // Making an individual instance across all shards
@@ -1823,7 +1840,8 @@ namespace Legion {
           shard_manager->exchange_shard_local_op_data(
               context_index, exchange_index++, manager);
           return manager;
-        } else
+        }
+        else
         {
           PhysicalManager* manager =
               shard_manager->find_shard_local_op_data<PhysicalManager*>(
@@ -1969,9 +1987,11 @@ namespace Legion {
           if (collective_done.exists() && !collective_done.has_triggered())
             done_events.insert(collective_done);
           complete_execution(Runtime::merge_events(done_events));
-        } else
+        }
+        else
           complete_execution(collective_done);
-      } else
+      }
+      else
         IndexAttachOp::trigger_ready();
     }
 
@@ -1999,8 +2019,9 @@ namespace Legion {
         // clean up the operation
         commit_preconditions.insert(interfering_exchange->get_done_event());
         interfering_exchange->exchange_domain_points(point_domains);
-      } else  // Second time through call the base class since we have the
-              // results
+      }
+      else  // Second time through call the base class since we have the
+            // results
         IndexAttachOp::finish_check_point_requirements(point_domains);
     }
 

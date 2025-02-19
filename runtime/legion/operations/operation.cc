@@ -269,7 +269,8 @@ namespace Legion {
             to_release->emplace_back(std::make_pair(it->first, it->second));
             std::map<PhysicalManager*, unsigned>::iterator to_delete = it++;
             acquired_instances.erase(to_delete);
-          } else
+          }
+          else
             it++;
         }
         if (to_release != nullptr)
@@ -277,7 +278,8 @@ namespace Legion {
           DeferReleaseAcquiredArgs args(this, to_release);
           return runtime->issue_runtime_meta_task(
               args, LG_LATENCY_DEFERRED_PRIORITY, perform);
-        } else
+        }
+        else
           return perform;
       }
       for (std::map<PhysicalManager*, unsigned>::iterator it =
@@ -291,7 +293,8 @@ namespace Legion {
             delete it->first;
           std::map<PhysicalManager*, unsigned>::iterator to_delete = it++;
           acquired_instances.erase(to_delete);
-        } else
+        }
+        else
           it++;
       }
       return RtEvent::NO_RT_EVENT;
@@ -438,9 +441,11 @@ namespace Legion {
 #endif
             prepipelined_event = Runtime::create_rt_user_event();
             return prepipelined_event;
-          } else
+          }
+          else
             return RtEvent::NO_RT_EVENT;
-        } else
+        }
+        else
         {
           // We got here first, mark that we're doing it
           prepipelined = from_logical_analysis ? 2 : 1;
@@ -578,7 +583,8 @@ namespace Legion {
               << " requested illegal discard-output modifier "
               << "with reduction privileges. Reduction privileges are not "
               << "permitted to specify any kind of discard modifier.";
-      } else
+      }
+      else
       {
         // Make sure reduction operator is zero
         if (req.redop != 0)
@@ -662,7 +668,8 @@ namespace Legion {
               << " as an ancestor in the region tree for region requirement "
               << index << " of " << *this << "). The partition must always "
               << "have the 'parent' region as an ancestor for privileges.";
-      } else
+      }
+      else
       {
         if (!req.region.exists())
           Exception(INTERFACE_EXCEPTION, this)
@@ -711,7 +718,8 @@ namespace Legion {
                 << " for region requirement " << index << " of " << *this
                 << ". This means a projection function was not registered "
                 << "with that projection function ID.";
-        } else
+        }
+        else
           Exception(INTERFACE_EXCEPTION, this)
               << "Detected a projection region requirement for region "
               << "requirement " << index << " of " << *this << ". Projection "
@@ -761,7 +769,8 @@ namespace Legion {
                 << "Each field in the 'instance_fields' must also be contained "
                    "in "
                 << "the 'privilege_fields' of the region requirement.";
-          } else
+          }
+          else
             Exception(INTERFACE_EXCEPTION, this)
                 << "Field " << instance_fields[idx]
                 << " in 'instance_fields' of region requirement " << index
@@ -811,7 +820,8 @@ namespace Legion {
         hasher.hash(req.region.get_index_space().get_id());
         hasher.hash(req.region.get_field_space().get_id());
         hasher.hash(req.region.get_tree_id());
-      } else
+      }
+      else
       {
         hasher.hash<bool>(false);  // is_reg
         hasher.hash(req.partition.get_index_partition().get_id());
@@ -1162,7 +1172,8 @@ namespace Legion {
             ApUserEvent to_trigger = completion_event.pending;
             Runtime::trigger_event_untraced(to_trigger, effects);
             completion_event.effects = to_trigger;
-          } else
+          }
+          else
             completion_event.effects = effects;
           completion_set = true;
         }
@@ -1187,7 +1198,8 @@ namespace Legion {
             ApUserEvent to_trigger = completion_event.pending;
             Runtime::trigger_event_untraced(to_trigger, effects);
             completion_event.effects = to_trigger;
-          } else
+          }
+          else
             completion_event.effects = effects;
           completion_set = true;
         }
@@ -1217,7 +1229,8 @@ namespace Legion {
                   to_notify.push_back(it->first);
             }
           }
-        } else
+        }
+        else
           do_commit = true;
       }
       // finally notify all the operations we dependended on
@@ -1245,7 +1258,8 @@ namespace Legion {
         if (!completion_event.pending.exists())
           completion_event.pending = Runtime::create_ap_user_event(nullptr);
         return completion_event.pending;
-      } else
+      }
+      else
         return completion_event.effects;
     }
 
@@ -1421,7 +1435,8 @@ namespace Legion {
         tracing = false;
         parent_ctx->register_implicit_dependences(this);
         tracing = true;
-      } else  // See if we have any fence dependences
+      }
+      else  // See if we have any fence dependences
         parent_ctx->register_implicit_dependences(this);
     }
 
@@ -1561,7 +1576,8 @@ namespace Legion {
             if (hardened)
               notifications.insert(this);
             registered_dependence = true;
-          } else
+          }
+          else
           {
             // We already registered it
             registered_dependence = false;
@@ -1739,7 +1755,8 @@ namespace Legion {
         {
           IndividualView* view = views[idx]->as_individual_view();
           input_valid.emplace_back(MappingInstance(view->get_manager()));
-        } else
+        }
+        else
         {
           CollectiveView* view = views[idx]->as_collective_view();
           collectives.emplace_back(MappingCollective(view));
@@ -2019,7 +2036,8 @@ namespace Legion {
                   static_cast<RegionTreeNode*>(runtime->get_node(req.region));
           shard_proj = destination->compute_projection_summary(
               this, idx, req, logical_analysis, proj_info);
-        } else
+        }
+        else
         {
           if (proj_info.is_sharding())
           {
@@ -2140,7 +2158,8 @@ namespace Legion {
           PhysicalManager* manager = view->get_manager();
           if (manager->meets_regions(to_meet))
             targets.add_instance(InstanceRef(manager, it->second));
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(it->first->is_replicated_view());
@@ -2206,7 +2225,8 @@ namespace Legion {
           return Runtime::merge_events(remote_ready, updates_done);
         else
           return remote_ready;
-      } else
+      }
+      else
         return updates_done;
     }
 
@@ -2312,7 +2332,8 @@ namespace Legion {
               it++;
             if ((++unacquired_index) == unacquired.size())
               break;
-          } else
+          }
+          else
             it++;
         }
       }
@@ -2390,7 +2411,8 @@ namespace Legion {
           result.add_instance(
               InstanceRef(runtime->virtual_manager, needed_fields));
           return composite_idx;
-        } else
+        }
+        else
         {
           // This can be slow because if we get here we are just
           // going to be reporting an error so performance no
@@ -2580,7 +2602,8 @@ namespace Legion {
           free(mappable.mapper_data);
         mappable.mapper_data = malloc(mappable.mapper_data_size);
         derez.deserialize(mappable.mapper_data, mappable.mapper_data_size);
-      } else if (mappable.mapper_data != nullptr)
+      }
+      else if (mappable.mapper_data != nullptr)
       {
         // If we freed it remotely then we can free it here too
         free(mappable.mapper_data);

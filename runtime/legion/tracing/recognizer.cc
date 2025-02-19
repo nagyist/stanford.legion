@@ -120,7 +120,8 @@ namespace Legion {
                 RtEvent::NO_RT_EVENT);
         hashes.reserve(batchsize + 1);
         return true;
-      } else if ((hashes.size() % multi_scale_factor) == 0)
+      }
+      else if ((hashes.size() % multi_scale_factor) == 0)
       {
         // Otherwise, we are launching an analysis job on a portion of the
         // buffer, given by 2^(ruler function) of the current buffer size.
@@ -145,7 +146,8 @@ namespace Legion {
                 repeat_results[repeat_results.size() - 2].finish_event :
                 RtEvent::NO_RT_EVENT);
         return true;
-      } else
+      }
+      else
         return !repeat_results.empty();
     }
 
@@ -441,7 +443,8 @@ namespace Legion {
           a[k++] = std::make_tuple(le - l1, m, s1);
           a[k++] = std::make_tuple(le - l1, m, s2);
           pre_l = l1;
-        } else if (s2 > s1 && s2 < s1 + l1)
+        }
+        else if (s2 > s1 && s2 < s1 + l1)
         {
           // Overlapping, increasing index
           size_t d = s2 - s1;
@@ -451,7 +454,8 @@ namespace Legion {
           a[k++] = std::make_tuple(le - l3, m, s1);
           a[k++] = std::make_tuple(le - l3, m, s1 + l3);
           pre_l = l3;
-        } else if (s1 > s2 && s1 < s2 + l1)
+        }
+        else if (s1 > s2 && s1 < s2 + l1)
         {
           // Overlapping, decreasing index
           size_t d = s1 - s2;

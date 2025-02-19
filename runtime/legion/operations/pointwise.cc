@@ -231,7 +231,8 @@ namespace Legion {
         sharding_domain = runtime->get_node(handle);
         sharding_domain->add_base_expression_reference(
             POINTWISE_DEPENDENCE_REF);
-      } else
+      }
+      else
         sharding_domain = nullptr;
     }
 

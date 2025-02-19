@@ -44,7 +44,8 @@ namespace Legion {
              it != local_procs.end(); it++)
           if (it->kind() == Processor::LOC_PROC)
             replay_targets.push_back(*it);
-      } else
+      }
+      else
         replay_targets.push_back(runtime->utility_group);
     }
 
@@ -166,7 +167,8 @@ namespace Legion {
           if (pending_deletion.exists())
             execution_preconditions.insert(pending_deletion);
           to_delete.push_back(idx);
-        } else if (valid)
+        }
+        else if (valid)
         {
           // Valid for everyone
 #ifdef DEBUG_LEGION
@@ -195,7 +197,8 @@ namespace Legion {
                 templates.begin() + idx, templates.begin() + idx + 1,
                 templates.end());
           return true;
-        } else if (acquired)
+        }
+        else if (acquired)
           current->release_instance_references(map_applied_events);
         if (idx > 0)
         {
@@ -228,7 +231,8 @@ namespace Legion {
       if (replaying)
       {
         begin_replay(op, false /*recurrent*/, false /*has intermediate fence*/);
-      } else  // Start recording a new template
+      }
+      else  // Start recording a new template
       {
         current_template = op->create_fresh_template(this);
         recording = true;
@@ -254,7 +258,8 @@ namespace Legion {
                 op, map_applied_conditions, execution_preconditions,
                 has_blocking_call))
           templates.push_back(current_template);
-      } else
+      }
+      else
       {
         // If this isn't a recurrent replay then we need to apply the
         // postconditions to the equivalence sets, if it is recurrent
@@ -307,7 +312,8 @@ namespace Legion {
                 delete current_template;
               if (pending_deletion.exists())
                 execution_preconditions.insert(pending_deletion);
-            } else
+            }
+            else
             {
 #ifdef DEBUG_LEGION
               assert(valid);
@@ -323,7 +329,8 @@ namespace Legion {
                   op, true /*recurrent*/, true /*has intermeidate fence*/);
               return true;
             }
-          } else
+          }
+          else
             // Don't add this to the list of templates yet, we know it can't
             // be replayed right away so we don't want to check it
             non_idempotent_template = current_template;
@@ -331,7 +338,8 @@ namespace Legion {
         // If we get here then we can't replay the current template so we
         // can just do a normal begin physical trace
         current_template = nullptr;
-      } else if (current_template != nullptr)
+      }
+      else if (current_template != nullptr)
       {
 #ifdef DEBUG_LEGION
         // We should only be here if we're going to do a recurrent replay
@@ -349,7 +357,8 @@ namespace Legion {
             op->get_complete_operation(), execution_preconditions);
         begin_replay(op, true /*recurrent*/, has_intermediate_fence);
         return true;
-      } else
+      }
+      else
       {
         // This case occurs when have a recurrent trace with a non-idempotent
         // template. The TraceRecurrentOp will have completed the prior
@@ -387,12 +396,14 @@ namespace Legion {
           // before we found this new template to replay
           templates.insert(templates.end() - 1, non_idempotent_template);
           return true;
-        } else
+        }
+        else
         {
           templates.push_back(non_idempotent_template);
           return false;
         }
-      } else
+      }
+      else
         return begin_physical_trace(
             op, map_applied_conditions, execution_preconditions);
     }
@@ -456,7 +467,8 @@ namespace Legion {
         // Reset the nonreplayable count when we find a replayable template
         nonreplayable_count = 0;
         return true;
-      } else
+      }
+      else
       {
         // Record failed capture
         // We won't consider failure from mappers refusing to memoize

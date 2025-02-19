@@ -91,21 +91,24 @@ namespace Legion {
                   }
                 }
               added = false;
-            } else
+            }
+            else
             {
               // Mutable so overwrite the result
               finder->second.buffer.save_buffer(buffer, size);
               finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
               finder->second.is_mutable = is_mutable;
             }
-          } else
+          }
+          else
           {
             finder->second.buffer.save_buffer(buffer, size);
             // Trigger will happen by the caller
             finder->second.ready_event = RtUserEvent::NO_RT_USER_EVENT;
             finder->second.is_mutable = is_mutable;
           }
-        } else
+        }
+        else
           semantic_info[tag] = SemanticInfo(buffer, size, is_mutable);
       }
       if (added)
@@ -146,18 +149,22 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             return true;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             if (can_fail)
             {
               // Have to make our own event
               request = Runtime::create_rt_user_event();
               wait_on = request;
-            } else  // can use the canonical event
+            }
+            else  // can use the canonical event
               wait_on = finder->second.ready_event;
-          } else if (wait_until)  // local so use the canonical event
+          }
+          else if (wait_until)  // local so use the canonical event
             wait_on = finder->second.ready_event;
-        } else
+        }
+        else
         {
           // Otherwise we make an event to wait on
           if (!can_fail && wait_until)
@@ -166,7 +173,8 @@ namespace Legion {
             request = Runtime::create_rt_user_event();
             semantic_info[tag] = SemanticInfo(request);
             wait_on = request;
-          } else if (is_remote)
+          }
+          else if (is_remote)
           {
             // Make an event just for us to use
             request = Runtime::create_rt_user_event();
@@ -185,7 +193,8 @@ namespace Legion {
             "invalid semantic tag %ld for "
             "index tree node",
             tag)
-      } else
+      }
+      else
       {
         // Send a request if necessary
         if (is_remote && request.exists())
@@ -390,9 +399,11 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          } else if (!can_fail && wait_until)
+          }
+          else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        } else if (!can_fail && wait_until)
+        }
+        else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -411,7 +422,8 @@ namespace Legion {
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      } else
+      }
+      else
         send_semantic_info(source, tag, result, size, is_mutable, ready);
     }
 
@@ -506,7 +518,8 @@ namespace Legion {
           {
             color_map[suggestion] = nullptr;
             return suggestion;
-          } else
+          }
+          else
             return INVALID_COLOR;
         }
         if (color_map.empty())
@@ -536,7 +549,8 @@ namespace Legion {
         }
         color_map[prev->first + 1] = nullptr;
         return prev->first + 1;
-      } else
+      }
+      else
       {
         // Send a message to the owner to pick a color and wait for the result
         std::atomic<LegionColor> result(suggestion);
@@ -570,7 +584,8 @@ namespace Legion {
         assert(finder->second == nullptr);
 #endif
         color_map.erase(finder);
-      } else
+      }
+      else
       {
         pack_valid_ref();
         Serializer rez;
@@ -660,7 +675,8 @@ namespace Legion {
         // Always unpack the global ref that got sent back with this
         result->unpack_global_ref();
         return result;
-      } else
+      }
+      else
       {
         *defer = ready_event;
         return nullptr;
@@ -766,7 +782,8 @@ namespace Legion {
       {
         aliased_subsets.insert(key);
         return false;
-      } else
+      }
+      else
       {
         disjoint_subsets.insert(key);
         return true;
@@ -825,7 +842,8 @@ namespace Legion {
         assert(bound != INVALID_COLOR);
 #endif
         return bound;
-      } else
+      }
+      else
       {
         AutoLock n_lock(node_lock, 1, false /*exclusive*/);
         for (std::map<LegionColor, IndexPartNode*>::const_iterator it =
@@ -928,7 +946,8 @@ namespace Legion {
       {
         rez.serialize<bool>(true);
         pack_index_space(rez, true /*pack reference*/);
-      } else
+      }
+      else
         rez.serialize<bool>(false);
     }
 
@@ -952,11 +971,13 @@ namespace Legion {
                (*mapping == *collective_mapping)))
           {
             need_broadcast = false;
-          } else if (mapping->contains(owner_space))
+          }
+          else if (mapping->contains(owner_space))
           {
             if (local_space != owner_space)
               return false;
-          } else
+          }
+          else
           {
             // Find the one closest to the owner space
             const AddressSpaceID nearest = mapping->find_nearest(owner_space);
@@ -969,7 +990,8 @@ namespace Legion {
                 collective_mapping->contains(local_space))
               return false;
           }
-        } else
+        }
+        else
         {
           // If we're not the owner space, send the message there
           if (!is_owner())
@@ -1113,9 +1135,11 @@ namespace Legion {
             valid = true;
             target->pack_valid_ref();
             target->remove_base_valid_ref(REGION_TREE_REF);
-          } else
+          }
+          else
             target->pack_global_ref();
-        } else
+        }
+        else
         {
           // If we have a parent then we need to do the valid reference
           // check on the partition since that keeps this tree valid
@@ -1125,7 +1149,8 @@ namespace Legion {
             recurse = true;
             target->parent->pack_valid_ref();
             target->parent->remove_base_valid_ref(REGION_TREE_REF);
-          } else
+          }
+          else
           {
             // We need the state to remain the same while we are in
             // transit so see if this can still be made valid
@@ -1134,7 +1159,8 @@ namespace Legion {
               valid = true;
               target->pack_valid_ref();
               target->remove_base_valid_ref(REGION_TREE_REF);
-            } else
+            }
+            else
               target->pack_global_ref();
           }
         }
@@ -1149,7 +1175,8 @@ namespace Legion {
           rez.serialize(recurse);
         }
         runtime->send_index_space_return(source, rez);
-      } else
+      }
+      else
         Runtime::trigger_event(to_trigger);
     }
 
@@ -1174,7 +1201,8 @@ namespace Legion {
           node->parent->unpack_valid_ref();
         else
           node->unpack_valid_ref();
-      } else
+      }
+      else
         node->unpack_global_ref();
     }
 
@@ -1221,11 +1249,13 @@ namespace Legion {
           runtime->send_index_space_child_response(source, rez);
           if (child->remove_base_gc_ref(REGION_TREE_REF))
             delete child;
-        } else  // can fail and unable to get a global reference
+        }
+        else  // can fail and unable to get a global reference
           Runtime::trigger_event(to_trigger);
         if (child->remove_base_resource_ref(REGION_TREE_REF))
           delete child;
-      } else  // Failed so just trigger the result
+      }
+      else  // Failed so just trigger the result
         Runtime::trigger_event(to_trigger);
     }
 
@@ -1251,11 +1281,13 @@ namespace Legion {
           runtime->send_index_space_child_response(dargs->source, rez);
           if (child->remove_base_gc_ref(REGION_TREE_REF))
             delete child;
-        } else  // Unable to get a global reference
+        }
+        else  // Unable to get a global reference
           Runtime::trigger_event(dargs->to_trigger);
         if (child->remove_base_resource_ref(REGION_TREE_REF))
           delete child;
-      } else  // Failed so just trigger the result
+      }
+      else  // Failed so just trigger the result
         Runtime::trigger_event(dargs->to_trigger);
     }
 
@@ -1279,7 +1311,8 @@ namespace Legion {
         IndexPartNode* child = runtime->get_node(handle);
         child->unpack_global_ref();
         Runtime::trigger_event(to_trigger);
-      } else
+      }
+      else
       {
         RtEvent defer;
         runtime->get_node(handle, &defer);
@@ -1361,7 +1394,8 @@ namespace Legion {
         IndexSpaceNode* child = parent->get_child(color);
         if (child->unpack_index_space(derez, source))
           delete child;
-      } else
+      }
+      else
       {
         IndexSpace handle;
         derez.deserialize(handle);
@@ -1398,7 +1432,8 @@ namespace Legion {
           rez.serialize(done_event);
         }
         runtime->send_index_space_generate_color_response(source, rez);
-      } else  // if we matched the suggestion we know the value is right
+      }
+      else  // if we matched the suggestion we know the value is right
         Runtime::trigger_event(done_event);
     }
 
@@ -1458,7 +1493,8 @@ namespace Legion {
         rez.serialize<bool>(true /*index space*/);
         rez.serialize(handle);
         pack_global_ref();
-      } else
+      }
+      else
       {
         rez.serialize<bool>(true /*local*/);
         rez.serialize<IndexSpaceExpression*>(this);
@@ -1496,7 +1532,8 @@ namespace Legion {
       {
         ImplicitReferenceTracker::record_live_expression(this);
         return true;
-      } else
+      }
+      else
         return false;
     }
 
@@ -1746,7 +1783,8 @@ namespace Legion {
           runtime->send_index_partition_disjoint_update(
               target, rez, initialized);
         }
-      } else
+      }
+      else
         remaining_global_disjoint_complete_notifications = 0;
       // Add a reference to be removed only after both the disjointness
       // and the completeness is set
@@ -1791,7 +1829,8 @@ namespace Legion {
       {
         if (parent->parent->remove_nested_valid_ref(did))
           delete parent->parent;
-      } else
+      }
+      else
         parent->remove_nested_valid_ref(did);
       // Remove valid references on all owner children and any trackers
       // We should not need a lock at this point since nobody else should
@@ -1934,9 +1973,11 @@ namespace Legion {
             result = finder->second.buffer.get_buffer();
             size = finder->second.buffer.get_size();
             is_mutable = finder->second.is_mutable;
-          } else if (!can_fail && wait_until)
+          }
+          else if (!can_fail && wait_until)
             precondition = finder->second.ready_event;
-        } else if (!can_fail && wait_until)
+        }
+        else if (!can_fail && wait_until)
         {
           // Don't have it yet, make a condition and hope that one comes
           RtUserEvent ready_event = Runtime::create_rt_user_event();
@@ -1955,7 +1996,8 @@ namespace Legion {
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_WORK_PRIORITY, precondition);
         }
-      } else
+      }
+      else
         send_semantic_info(source, tag, result, size, is_mutable, ready);
     }
 
@@ -2024,7 +2066,8 @@ namespace Legion {
           return local_space;
         else
           return owner_space;
-      } else
+      }
+      else
       {
         // See whether the children are sharded or replicated
         if (((LegionColor)collective_mapping->size()) <= total_children)
@@ -2038,7 +2081,8 @@ namespace Legion {
           assert(offset < collective_mapping->size());
 #endif
           return (*collective_mapping)[offset];
-        } else
+        }
+        else
         {
           // Replicated so find the child collective mapping
           std::vector<AddressSpaceID> child_spaces;
@@ -2099,7 +2143,8 @@ namespace Legion {
           if (!pending_finder->second.exists())
             pending_finder->second = Runtime::create_rt_user_event();
           ready_event = pending_finder->second;
-        } else
+        }
+        else
           pending_child_map[c] = RtUserEvent::NO_RT_USER_EVENT;
       }
       if (!ready_event.exists())
@@ -2135,7 +2180,8 @@ namespace Legion {
           if (!pending_finder->second.exists())
             pending_finder->second = Runtime::create_rt_user_event();
           ready_event = pending_finder->second;
-        } else if (
+        }
+        else if (
             (child_mapping != nullptr) &&
             (local_space != child_mapping->get_origin()))
         {
@@ -2156,7 +2202,8 @@ namespace Legion {
           if (!pending_finder->second.exists())
             pending_finder->second = Runtime::create_rt_user_event();
           ready_event = pending_finder->second;
-        } else
+        }
+        else
         {
           // If we get here then we're the ones to actually make the name
           // of the index subspace and instantiate the node
@@ -2217,7 +2264,8 @@ namespace Legion {
       {
         ready_event.wait();
         return get_child(c);
-      } else
+      }
+      else
       {
         *defer = ready_event;
         return nullptr;
@@ -2335,7 +2383,8 @@ namespace Legion {
           {
             to_prune.push_back(*it);
             it = partition_trackers.erase(it);
-          } else
+          }
+          else
             it++;
         }
         partition_trackers.push_back(tracker);
@@ -2406,7 +2455,8 @@ namespace Legion {
             children_volume += child->get_volume();
           }
           return update_disjoint_complete_result(children_volume);
-        } else
+        }
+        else
         {
           // Worry about uniqueness of children in this case
           std::map<LegionColor, uint64_t> children_volumes;
@@ -2417,7 +2467,8 @@ namespace Legion {
           }
           return update_disjoint_complete_result(children_volumes);
         }
-      } else
+      }
+      else
       {
         // In this case we don't know anything so we're computing both
         // disjointness and completeness at the same time.
@@ -2461,7 +2512,8 @@ namespace Legion {
                   else
                     difference = runtime->subtract_index_spaces(
                         child, runtime->union_index_spaces(previous));
-                } else
+                }
+                else
                 {
                   IndexSpaceNode* other = get_child(*itr2);
                   if ((*itr) < (*itr2))
@@ -2469,7 +2521,8 @@ namespace Legion {
                     IndexSpaceExpression* intersection =
                         runtime->intersect_index_spaces(difference, other);
                     intersection_volume += intersection->get_volume();
-                  } else
+                  }
+                  else
                   {
                     IndexSpaceExpression* intersection =
                         runtime->intersect_index_spaces(child, other);
@@ -2478,7 +2531,8 @@ namespace Legion {
                   }
                 }
               }
-            } else
+            }
+            else
             {
 #ifdef DEBUG_LEGION
               assert(!interfering.empty());
@@ -2502,7 +2556,8 @@ namespace Legion {
                     else
                       difference = runtime->subtract_index_spaces(
                           child, runtime->union_index_spaces(previous));
-                  } else
+                  }
+                  else
                   {
                     IndexSpaceNode* other = get_child(*it);
                     if ((*itr) < (*it))
@@ -2510,7 +2565,8 @@ namespace Legion {
                       IndexSpaceExpression* intersection =
                           runtime->intersect_index_spaces(difference, other);
                       intersection_volume += intersection->get_volume();
-                    } else
+                    }
+                    else
                       previous.insert(other);
                   }
                 }
@@ -2519,7 +2575,8 @@ namespace Legion {
           }
           return update_disjoint_complete_result(
               children_volume, intersection_volume);
-        } else
+        }
+        else
         {
           std::map<LegionColor, uint64_t> children_volumes;
           std::map<std::pair<LegionColor, LegionColor>, uint64_t>
@@ -2548,7 +2605,8 @@ namespace Legion {
                   else
                     difference = runtime->subtract_index_spaces(
                         child, runtime->union_index_spaces(previous));
-                } else
+                }
+                else
                 {
                   IndexSpaceNode* other = get_child(*itr2);
                   if ((*itr) < (*itr2))
@@ -2558,7 +2616,8 @@ namespace Legion {
                     if (!intersection->is_empty())
                       intersection_volumes[std::make_pair(*itr, *itr2)] =
                           intersection->get_volume();
-                  } else
+                  }
+                  else
                   {
                     IndexSpaceExpression* intersection =
                         runtime->intersect_index_spaces(child, other);
@@ -2567,7 +2626,8 @@ namespace Legion {
                   }
                 }
               }
-            } else
+            }
+            else
             {
 #ifdef DEBUG_LEGION
               assert(!interfering.empty());
@@ -2591,7 +2651,8 @@ namespace Legion {
                     else
                       difference = runtime->subtract_index_spaces(
                           child, runtime->union_index_spaces(previous));
-                  } else
+                  }
+                  else
                   {
                     IndexSpaceNode* other = get_child(*it);
                     if ((*itr) < (*it))
@@ -2601,7 +2662,8 @@ namespace Legion {
                       if (!intersection->is_empty())
                         intersection_volumes[std::make_pair(*itr, *it)] =
                             intersection->get_volume();
-                    } else
+                    }
+                    else
                       previous.insert(other);
                   }
                 }
@@ -2664,7 +2726,8 @@ namespace Legion {
                  children_volumes.begin();
              it != children_volumes.end(); it++)
           total_children_volumes.insert(*it);
-      } else
+      }
+      else
         total_children_volumes.swap(children_volumes);
       if (intersection_volumes != nullptr)
       {
@@ -2674,7 +2737,8 @@ namespace Legion {
                    const_iterator it = intersection_volumes->begin();
                it != intersection_volumes->end(); it++)
             total_intersection_volumes.insert(*it);
-        } else
+        }
+        else
           total_intersection_volumes.swap(*intersection_volumes);
       }
       // Check to see if we've seen all our arrivals
@@ -2701,7 +2765,8 @@ namespace Legion {
             total_intersection_volume += it->second;
           total_intersection_volumes.clear();
           return finalize_disjoint_complete();
-        } else
+        }
+        else
         {
           // Send the result up the tree
           const AddressSpaceID target =
@@ -2752,13 +2817,15 @@ namespace Legion {
           assert(parent_volume <= total_children_volume);
 #endif
           disjoint.store((parent_volume == total_children_volume));
-        } else if (is_disjoint(false /*from app*/, true /*false if not ready*/))
+        }
+        else if (is_disjoint(false /*from app*/, true /*false if not ready*/))
         {
 #ifdef DEBUG_LEGION
           assert(total_children_volume <= parent_volume);
 #endif
           complete.store((parent_volume == total_children_volume));
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(
@@ -2772,7 +2839,8 @@ namespace Legion {
             assert((total_children_volume <= parent_volume));
 #endif
             complete.store((total_children_volume == parent_volume));
-          } else
+          }
+          else
           {
             disjoint.store(false);
 #ifdef DEBUG_LEGION
@@ -2880,7 +2948,8 @@ namespace Legion {
       {
         aliased_subspaces.insert(key);
         return false;
-      } else
+      }
+      else
       {
         disjoint_subspaces.insert(key);
         return true;
@@ -2943,7 +3012,8 @@ namespace Legion {
         }
         return update_disjoint_complete_result(
             children_volumes, &intersection_volumes);
-      } else if (mode > 0)
+      }
+      else if (mode > 0)
       {
         // up and already compressed
         uint64_t children_volume, intersection_volume;
@@ -2951,7 +3021,8 @@ namespace Legion {
         derez.deserialize(intersection_volume);
         return update_disjoint_complete_result(
             children_volume, intersection_volume);
-      } else
+      }
+      else
       {
         // sending back down to the children
         bool is_disjoint, is_complete;
@@ -3210,7 +3281,8 @@ namespace Legion {
               colors.push_back(*itr);
           }
         }
-      } else
+      }
+      else
         colors.push_back(below_color);
       // Save the result in the cache for the future
       AutoLock n_lock(node_lock);
@@ -3292,7 +3364,8 @@ namespace Legion {
           rez.serialize<int>(1);  // complete
         else
           rez.serialize<int>(0);  // not complete
-      } else
+      }
+      else
         rez.serialize<int>(-1);  // we don't know yet
       rez.serialize(initialized);
       if (collective_mapping != nullptr)
@@ -3434,7 +3507,8 @@ namespace Legion {
           rez.serialize(handle);
         }
         runtime->send_index_partition_return(source, rez);
-      } else
+      }
+      else
         Runtime::trigger_event(to_trigger);
     }
 
@@ -3472,7 +3546,8 @@ namespace Legion {
         DeferChildArgs args(parent, child_color, source);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, defer);
-      } else
+      }
+      else
       {
         Serializer rez;
         {
@@ -3664,9 +3739,11 @@ namespace Legion {
           assert(!need_local);
 #endif
           return true;
-        } else if (!need_local)
+        }
+        else if (!need_local)
           return false;
-      } else
+      }
+      else
       {
         // Going down
         AutoLock n_lock(node_lock);
@@ -3732,7 +3809,8 @@ namespace Legion {
                it != children.end(); it++)
             runtime->send_index_partition_shard_rects_response(*it, rez);
           return remove_base_gc_ref(RUNTIME_REF);
-        } else
+        }
+        else
         {
           // Continue propagating it back up the tree
           Serializer rez;
@@ -3936,7 +4014,8 @@ namespace Legion {
             assert(current < end);
 #endif
             end = current + 1;
-          } else
+          }
+          else
           {
             const LegionColor chunk =
                 compute_chunk(partition->max_linearized_color, total_spaces);
@@ -3948,13 +4027,15 @@ namespace Legion {
                 !color_space->contains_color(current))
               step();
           }
-        } else
+        }
+        else
         {
           // There are no local points
           end = partition->max_linearized_color;
           current = end;
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!local_only || partition->is_owner());

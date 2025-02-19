@@ -574,7 +574,8 @@ namespace Legion {
               child_node->create_by_intersection(this, part_node, source_node);
           ready_events.insert(ready);
         }
-      } else if (
+      }
+      else if (
           ((LegionColor)shard_mapping->size()) <= base_node->total_children)
       {
         for (ColorSpaceIterator itr(
@@ -587,7 +588,8 @@ namespace Legion {
               child_node->create_by_intersection(this, part_node, source_node);
           ready_events.insert(ready);
         }
-      } else
+      }
+      else
       {
         const unsigned color_index = local_shard % base_node->total_children;
         // See if we're the first local shard on this address space
@@ -725,7 +727,8 @@ namespace Legion {
             Future f = future_map.impl->get_future(point, true /*internal*/);
             sources[point] = f.impl;
           }
-        } else
+        }
+        else
           future_map.impl->get_all_futures(sources);
       }
     }

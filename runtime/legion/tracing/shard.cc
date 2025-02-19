@@ -134,9 +134,11 @@ namespace Legion {
             pending_event_requests[*it] = request_event;
             wait_for.insert(request_event);
             request_events[*it] = request_event;
-          } else
+          }
+          else
             wait_for.insert(request_finder->second);
-        } else if (finder->second != NO_INDEX)
+        }
+        else if (finder->second != NO_INDEX)
           rhs_.insert(finder->second);
       }
       // If we have anything to wait for we need to do that
@@ -226,9 +228,11 @@ namespace Legion {
             pending_event_requests[*it] = request_event;
             wait_for.insert(request_event);
             request_events[*it] = request_event;
-          } else
+          }
+          else
             wait_for.insert(request_finder->second);
-        } else if (finder->second != NO_INDEX)
+        }
+        else if (finder->second != NO_INDEX)
           rhs_.insert(finder->second);
       }
       // If we have anything to wait for we need to do that
@@ -280,7 +284,8 @@ namespace Legion {
         ApUserEvent rename = Runtime::create_ap_user_event(nullptr);
         Runtime::trigger_event_untraced(rename);
         lhs = rename;
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < rhs.size(); idx++)
         {
@@ -335,7 +340,8 @@ namespace Legion {
         request_event = Runtime::create_rt_user_event();
         wait_for = request_event;
         pending_event_requests[event] = wait_for;
-      } else
+      }
+      else
         wait_for = request_finder->second;
       // Can't be holding the lock while we wait
       tpl_lock.release();
@@ -433,9 +439,11 @@ namespace Legion {
           manager->send_trace_update(owner_shard, rez);
           applied.insert(subscribed);
           managed_arrivals[bar].push_back(arrival);
-        } else
+        }
+        else
           finder->second.push_back(arrival);
-      } else
+      }
+      else
         managed_arrivals[bar].push_back(arrival);
     }
 
@@ -574,7 +582,8 @@ namespace Legion {
         // Record our local shard too
         advance->record_subscribed_shard(local_shard);
         return advance->record_subscribed_shard(remote_shard);
-      } else
+      }
+      else
         return barrier_finder->second->record_subscribed_shard(remote_shard);
     }
 
@@ -609,7 +618,8 @@ namespace Legion {
         assert(finder != pending_event_requests.end());
 #endif
         finder->second = RtEvent::NO_RT_EVENT;
-      } else  // no barrier means it's not part of the trace
+      }
+      else  // no barrier means it's not part of the trace
       {
         event_map[event] = NO_INDEX;
         // In this case we can remove it since we're not tracing it
@@ -758,7 +768,8 @@ namespace Legion {
                            finder2->second.begin();
                        it != finder2->second.end(); it++)
                     (*it)->set_managed_barrier(bar);
-                } else
+                }
+                else
                   finder->second->remote_refresh_barrier(bar);
               }
               size_t num_concurrent;
@@ -809,7 +820,8 @@ namespace Legion {
                 update_advances_ready = RtUserEvent::NO_RT_USER_EVENT;
                 refreshed_barriers = 0;
               }
-            } else
+            }
+            else
             {
               // Buffer these for later until we know it is safe to apply them
               for (unsigned idx = 0; idx < num_barriers; idx++)
@@ -888,7 +900,8 @@ namespace Legion {
                 update_frontiers_ready = RtUserEvent::NO_RT_USER_EVENT;
                 updated_frontiers = 0;
               }
-            } else
+            }
+            else
             {
               // Buffer these barriers for later until it is safe
               for (unsigned idx = 0; idx < num_barriers; idx++)
@@ -1015,7 +1028,8 @@ namespace Legion {
         {
           deferral = Runtime::create_rt_user_event();
           pre = chain_deferral_events(deferral);
-        } else
+        }
+        else
           pre = tpl_lock.try_next();
         if (dargs == nullptr)
         {
@@ -1024,7 +1038,8 @@ namespace Legion {
               deferral);
           runtime->issue_runtime_meta_task(
               args, LG_LATENCY_MESSAGE_PRIORITY, pre);
-        } else
+        }
+        else
         {
           DeferTraceUpdateArgs args(*dargs, deferral, user_expr);
           runtime->issue_runtime_meta_task(
@@ -1186,7 +1201,8 @@ namespace Legion {
             {
               update_frontiers_ready = Runtime::create_rt_user_event();
               remote_frontiers_ready = update_frontiers_ready;
-            } else  // Reset this back to zero for the next round
+            }
+            else  // Reset this back to zero for the next round
               updated_frontiers = 0;
           }
           // Wait for the remote frontiers to be updated
@@ -1217,7 +1233,8 @@ namespace Legion {
           if (advance_barriers)
             Runtime::advance_barrier(it->first);
         }
-      } else
+      }
+      else
       {
         for (std::vector<std::pair<ApBarrier, unsigned> >::const_iterator it =
                  remote_frontiers.begin();
@@ -1339,10 +1356,12 @@ namespace Legion {
                 rez.serialize(it->second);
               }
             }
-          } else
+          }
+          else
             rez.serialize<size_t>(0);
           manager->send_trace_update(nit->first, rez);
-        } else
+        }
+        else
         {
           local_refreshed = nit->second.size();
           for (std::map<ApEvent, ApBarrier>::const_iterator it =
@@ -1385,7 +1404,8 @@ namespace Legion {
 #endif
               for (unsigned idx = 0; idx < finder2->second.size(); idx++)
                 finder2->second[idx]->set_managed_barrier(it->second);
-            } else
+            }
+            else
               finder->second->remote_refresh_barrier(it->second);
           }
           refreshed_barriers += pending_refresh_barriers.size();
@@ -1434,7 +1454,8 @@ namespace Legion {
         {
           update_advances_ready = Runtime::create_rt_user_event();
           replay_precondition = update_advances_ready;
-        } else  // Reset this back to zero for the next round
+        }
+        else  // Reset this back to zero for the next round
           refreshed_barriers = 0;
       }
       return replay_precondition;
@@ -1499,7 +1520,8 @@ namespace Legion {
         rez.serialize(user_mask);
         manager->send_trace_update(target_shard, rez);
         applied.insert(done);
-      } else
+      }
+      else
         PhysicalTemplate::record_mutated_instance(
             inst, user_expr, user_mask, applied);
     }
@@ -1751,7 +1773,8 @@ namespace Legion {
           rez.serialize(done);
           manager->send_trace_update(sit->first, rez);
           done_events.push_back(done);
-        } else if (!PhysicalTemplate::are_read_only_users(sit->second))
+        }
+        else if (!PhysicalTemplate::are_read_only_users(sit->second))
         {
           // Still need to wait for anyone else to write to result if
           // they end up finding out that they are not read-only
@@ -1790,7 +1813,8 @@ namespace Legion {
         {
           to_filter.push_back(it->second);
           it = remote_frontiers.erase(it);
-        } else
+        }
+        else
           it++;
       }
       if (!to_filter.empty())
@@ -1910,7 +1934,8 @@ namespace Legion {
           local_subscriptions.erase(subscription_finder);
           std::map<unsigned, ApBarrier>::iterator to_delete = it++;
           local_frontiers.erase(to_delete);
-        } else
+        }
+        else
           it++;
       }
       for (std::vector<std::pair<unsigned, ApBarrier> >::const_iterator it =

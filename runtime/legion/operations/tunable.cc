@@ -208,7 +208,8 @@ namespace Legion {
         // Future takes ownership of instance, so save local to instance
         // so we can reclaim it when it is safe to do so
         instance = local;
-      } else
+      }
+      else
       {
         // Set and complete the future
         result.impl->set_local(
@@ -305,7 +306,8 @@ namespace Legion {
                 "tunable value %d in parent task %s (UID %lld)",
                 mapper->get_mapper_name(), tunable_id,
                 parent_ctx->get_task_name(), parent_ctx->get_unique_id())
-        } else
+        }
+        else
           value_broadcast->broadcast(buffer, size);
       }
     }

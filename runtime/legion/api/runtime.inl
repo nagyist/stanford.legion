@@ -119,7 +119,8 @@ namespace Legion {
           result->legion_serialize(buffer);
           Realm::ExternalMemoryResource resource(buffer, buffer_size);
           end_helper(ctx, buffer, buffer_size, resource, free_func);
-        } else
+        }
+        else
           end_helper(ctx, nullptr, 0);
       }
       static inline Future from_value(const T* value)
@@ -157,7 +158,8 @@ namespace Legion {
           end_helper(
               ctx, buffer, buffer_size, resource,
               free_func_wrapper<T::legion_buffer_finalize>);
-        } else
+        }
+        else
           end_helper(ctx, nullptr, 0);
       }
       static inline Future from_value(const T* value)
@@ -956,7 +958,8 @@ namespace Legion {
       return IndexPartitionT<DIM, T>(create_partition_by_domain(
           ctx, IndexSpace(parent), fm, IndexSpace(color_space),
           perform_intersections, part_kind, color, provenance));
-    } else
+    }
+    else
     {
       // Make realm index spaces for each of the points and then we can call
       // the base domain version of this method which takes ownership of the
@@ -1965,7 +1968,8 @@ namespace Legion {
     {
       std::string_view view(static_cast<const char*>(name), size);
       os << view;
-    } else
+    }
+    else
       os << "(is=" << lr.get_index_space() << ", fs=" << lr.get_field_space()
          << ", root=" << lr.get_tree_id() << ")";
     return os;
@@ -1984,7 +1988,8 @@ namespace Legion {
     {
       std::string_view view(static_cast<const char*>(name), size);
       os << view;
-    } else
+    }
+    else
       os << "(is=" << lp.get_index_partition()
          << ", fs=" << lp.get_field_space() << ", root=" << lp.get_tree_id()
          << ")";
@@ -2005,7 +2010,8 @@ namespace Legion {
     {
       std::string_view view(static_cast<const char*>(name), size);
       os << view;
-    } else
+    }
+    else
       os << "(id=" << is.get_id() << ", tree_id=" << is.get_tree_id() << ")";
     return os;
   }
@@ -2023,7 +2029,8 @@ namespace Legion {
     {
       std::string_view view(static_cast<const char*>(name), size);
       os << view;
-    } else
+    }
+    else
       os << "(id=" << ip.get_id() << ", tree_id=" << ip.get_tree_id() << ")";
     return os;
   }
@@ -2041,7 +2048,8 @@ namespace Legion {
     {
       std::string_view view(static_cast<const char*>(name), size);
       os << view;
-    } else
+    }
+    else
       os << "(id=" << fs.get_id() << ")";
     return os;
   }

@@ -450,7 +450,8 @@ namespace Legion {
         LegionSpy::log_requirement_projection(
             unique_op_id, 0 /*idx*/, requirement.projection);
         log_launch_space(launch_space->handle);
-      } else
+      }
+      else
         LegionSpy::log_logical_requirement(
             unique_op_id, 0 /*idx*/, true /*region*/,
             requirement.region.index_space.get_id(),
@@ -515,7 +516,8 @@ namespace Legion {
 #endif
         partition_node =
             runtime->get_node(requirement.partition.get_index_partition());
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(requirement.handle_type == LEGION_SINGULAR_PROJECTION);
@@ -614,7 +616,8 @@ namespace Legion {
 #endif
         // We are mapped when all our points are mapped
         finalize_mapping();
-      } else
+      }
+      else
       {
         std::set<RtEvent> preconditions;
         // Path for a non-index space implementation
@@ -736,7 +739,8 @@ namespace Legion {
         if (to_trigger.exists())
           Runtime::trigger_event_untraced(to_trigger, intermediate_index_event);
         return intermediate_index_event;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(instances.empty());
@@ -960,7 +964,8 @@ namespace Legion {
 #endif
         commit_request = true;
         commit_now = (points.size() == points_committed);
-      } else
+      }
+      else
         commit_now = true;
       if (commit_now)
         commit_operation(true /*deactivate*/);
@@ -2030,7 +2035,8 @@ namespace Legion {
                 "select the same logical partition.",
                 mapper->get_mapper_name(), parent_ctx->get_task_name(),
                 parent_ctx->get_unique_id(), repl_ctx->owner_shard->shard_id)
-        } else
+        }
+        else
           part_check.broadcast(requirement.partition);
       }
     }
@@ -2070,7 +2076,8 @@ namespace Legion {
               repl_ctx->get_next_dependent_partition_execution_barrier();
           collective_done =
               repl_ctx->get_next_dependent_partition_execution_barrier();
-        } else
+        }
+        else
         {
           gather = new FieldDescriptorGather(
               repl_ctx,
@@ -2083,7 +2090,8 @@ namespace Legion {
                   COLLECTIVE_LOC_62, true /*logical*/),
               deppart_results);
         }
-      } else
+      }
+      else
       {
         create_collective_rendezvous(requirement.parent.get_tree_id(), 0);
 #ifdef DEBUG_LEGION
@@ -2147,7 +2155,8 @@ namespace Legion {
             // trigger execution when it is ready
             exchange->perform_collective_async();
             ready = exchange->get_done_event();
-          } else
+          }
+          else
           {
 #ifdef DEBUG_LEGION
             assert(gather != nullptr);
@@ -2176,13 +2185,15 @@ namespace Legion {
           assert(ready.exists());
 #endif
           parent_ctx->add_to_trigger_execution_queue(this, ready);
-        } else  // If we have valid points then we do the base call
+        }
+        else  // If we have valid points then we do the base call
         {
           shard_points = runtime->get_node(local_space);
           add_launch_space_reference(shard_points);
           DependentPartitionOp::trigger_ready();
         }
-      } else
+      }
+      else
       {
         // In this case we're all going to map the source instance
         // and then perform the partition creation collective
@@ -2279,7 +2290,8 @@ namespace Legion {
               parent_ctx->add_to_trigger_execution_queue(this, exchanged);
             else
               trigger_execution();
-          } else
+          }
+          else
           {
             // For all other dependent partition operations we gather all
             // the field descriptors to one node to perform the computation
@@ -2302,7 +2314,8 @@ namespace Legion {
                 parent_ctx->add_to_trigger_execution_queue(this, gathered);
               else
                 trigger_execution();
-            } else
+            }
+            else
             {
               const RtEvent scattered =
                   scatter->perform_collective_wait(false /*block*/);
@@ -2318,14 +2331,16 @@ namespace Legion {
           if (to_trigger.exists())
             Runtime::trigger_event_untraced(to_trigger, collective_done);
           return collective_done;
-        } else
+        }
+        else
         {
           const ApEvent result = scatter->get_done_event();
           if (to_trigger.exists())
             Runtime::trigger_event_untraced(to_trigger, result);
           return result;
         }
-      } else
+      }
+      else
       {
         // Only need to perform this if we're the first local shard
         if (repl_ctx->shard_manager->is_first_local_shard(
@@ -2362,7 +2377,8 @@ namespace Legion {
           done_event = thunk->perform(this, fid, collective_ready, instances);
         }
         runtime->phase_barrier_arrive(collective_done, 1 /*count*/, done_event);
-      } else
+      }
+      else
       {
         if (gather->target == repl_ctx->owner_shard->shard_id)
         {
@@ -2375,7 +2391,8 @@ namespace Legion {
               this, fid, gather->get_ready_event(), instances, &remote_targets,
               &deppart_results);
           scatter->broadcast_results(done_event);
-        } else if (first_local_shard)
+        }
+        else if (first_local_shard)
         {
           const FieldID fid = *(requirement.privilege_fields.begin());
           thunk->perform(

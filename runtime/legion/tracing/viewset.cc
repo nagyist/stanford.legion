@@ -38,7 +38,8 @@ namespace Legion {
       {
         ss << "fill view: " << std::hex << view->did << std::dec
            << ", Index expr: " << expr->expr_id << ", Field Mask: " << m;
-      } else if (view->is_collective_view())
+      }
+      else if (view->is_collective_view())
       {
         CollectiveView* collective = view->as_collective_view();
         ss << "collective view: " << std::hex << view->did << std::dec
@@ -87,7 +88,8 @@ namespace Legion {
              << mem_names[memory.kind()] << " Memory " << std::hex << memory.id
              << std::dec;
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(view->is_individual_view());
@@ -162,7 +164,8 @@ namespace Legion {
       {
         if (context->remove_base_resource_ref(TRACE_REF))
           delete context;
-      } else
+      }
+      else
       {
         if (context->remove_nested_resource_ref(owner_did))
           delete context;
@@ -232,9 +235,11 @@ namespace Legion {
                   it.filter(overlap);
                   if (!it->second)
                     to_delete.push_back(it->first);
-                } else
+                }
+                else
                   it.merge(overlap);
-              } else
+              }
+              else
                 it.merge(overlap);
             }
             set_overlap -= overlap;
@@ -256,9 +261,11 @@ namespace Legion {
             if ((*it)->remove_nested_expression_reference(owner_did))
               delete (*it);
           }
-        } else if (finder->second.insert(expr, mask))
+        }
+        else if (finder->second.insert(expr, mask))
           expr->add_nested_expression_reference(owner_did);
-      } else
+      }
+      else
       {
         if (!antialiased)
         {
@@ -273,7 +280,8 @@ namespace Legion {
                  it != antialiased_views.end(); it++)
               insert(it->first, expr, it->second, true /*antialiased*/);
             return;
-          } else if (has_collective_views && view->is_instance_view())
+          }
+          else if (has_collective_views && view->is_instance_view())
             antialias_individual_view(view->as_individual_view(), mask);
         }
         view->add_nested_gc_ref(owner_did);
@@ -326,7 +334,8 @@ namespace Legion {
               invalidate(
                   it->first, expr, it->second, expr_refs_to_remove,
                   view_refs_to_remove, true /*antialiased*/);
-          } else if (has_collective_views && view->is_instance_view())
+          }
+          else if (has_collective_views && view->is_instance_view())
           {
             antialias_individual_view(view->as_individual_view(), mask);
             invalidate(
@@ -361,7 +370,8 @@ namespace Legion {
                 (*expr_refs_to_remove)[it->first] = 1;
               else
                 finder->second += 1;
-            } else if (it->first->remove_nested_expression_reference(owner_did))
+            }
+            else if (it->first->remove_nested_expression_reference(owner_did))
               delete it->first;
           }
           if (view_refs_to_remove != nullptr)
@@ -372,10 +382,12 @@ namespace Legion {
               (*view_refs_to_remove)[view] = 1;
             else
               finder->second += 1;
-          } else if (view->remove_nested_gc_ref(owner_did))
+          }
+          else if (view->remove_nested_gc_ref(owner_did))
             delete view;
           conditions.erase(finder);
-        } else
+        }
+        else
         {
           // Filter on fields
           std::vector<IndexSpaceExpression*> to_delete;
@@ -400,7 +412,8 @@ namespace Legion {
                 (*expr_refs_to_remove)[*it] = 1;
               else
                 finder->second += 1;
-            } else if ((*it)->remove_nested_expression_reference(owner_did))
+            }
+            else if ((*it)->remove_nested_expression_reference(owner_did))
               delete (*it);
           }
           if (finder->second.empty())
@@ -413,13 +426,16 @@ namespace Legion {
                 (*view_refs_to_remove)[view] = 1;
               else
                 finder->second += 1;
-            } else if (view->remove_nested_gc_ref(owner_did))
+            }
+            else if (view->remove_nested_gc_ref(owner_did))
               delete view;
             conditions.erase(finder);
-          } else
+          }
+          else
             finder->second.tighten_valid_mask();
         }
-      } else
+      }
+      else
       {
         // We need intersection tests as part of filtering
         FieldMaskSet<IndexSpaceExpression> to_add;
@@ -475,7 +491,8 @@ namespace Legion {
               (*expr_refs_to_remove)[*it] = 1;
             else
               finder->second += 1;
-          } else if ((*it)->remove_nested_expression_reference(owner_did))
+          }
+          else if ((*it)->remove_nested_expression_reference(owner_did))
             delete (*it);
         }
         if (finder->second.empty())
@@ -488,10 +505,12 @@ namespace Legion {
               (*view_refs_to_remove)[view] = 1;
             else
               finder->second += 1;
-          } else if (view->remove_nested_gc_ref(owner_did))
+          }
+          else if (view->remove_nested_gc_ref(owner_did))
             delete view;
           conditions.erase(finder);
-        } else
+        }
+        else
           finder->second.tighten_valid_mask();
       }
     }
@@ -518,7 +537,8 @@ namespace Legion {
                 it->first, expr, it->second, expr_refs_to_remove,
                 view_refs_to_remove, true /*antialiased*/);
           return;
-        } else if (has_collective_views && except->is_instance_view())
+        }
+        else if (has_collective_views && except->is_instance_view())
           antialias_individual_view(except->as_individual_view(), mask);
       }
       std::vector<LogicalView*> to_invalidate;
@@ -634,7 +654,8 @@ namespace Legion {
             non_dominated, dominated, expr, empty_exprs);
         if (!!dominated)
           non_dominated -= dominated;
-      } else if (has_collective_views && view->is_instance_view())
+      }
+      else if (has_collective_views && view->is_instance_view())
       {
         IndividualView* individual_view = view->as_individual_view();
         for (ViewExprs::const_iterator vit = conditions.begin();
@@ -755,7 +776,8 @@ namespace Legion {
         }
         if (!!mask)
           non_dominated[view].insert(expr, mask);
-      } else
+      }
+      else
         non_dominated[view].insert(expr, mask);
 #ifdef DEBUG_LEGION
       assert(!non_dominated.empty());
@@ -802,7 +824,8 @@ namespace Legion {
                     inst_view, it->second, it->first.second);
               else
                 alias_analysis.traverse(inst_view, it->second, overlap_expr);
-            } else
+            }
+            else
               alias_analysis.traverse(inst_view, it->second, it->first.first);
           }
         }
@@ -831,7 +854,8 @@ namespace Legion {
           non_view.erase(*it);
         if (non_view.empty())
           non_dominated.erase(view);
-      } else if (has_collective_views && view->is_instance_view())
+      }
+      else if (has_collective_views && view->is_instance_view())
       {
         IndividualView* individual_view = view->as_individual_view();
         for (ViewExprs::const_iterator vit = conditions.begin();
@@ -997,7 +1021,8 @@ namespace Legion {
                          to_add.begin();
                      it != to_add.end(); it++)
                   dit->second.insert(it->first, it->second);
-              } else
+              }
+              else
                 dit->second.swap(to_add);
             }
             if (dit->second.empty())
@@ -1005,7 +1030,8 @@ namespace Legion {
               LegionMap<LogicalView*, FieldMaskSet<IndexSpaceExpression> >::
                   iterator delete_it = dit++;
               non_dominated.erase(delete_it);
-            } else
+            }
+            else
               dit++;
           }
           // If there are any remanining non-dominated fields then we
@@ -1066,7 +1092,8 @@ namespace Legion {
                       collective, vit->second, sit->second, condition))
                 return false;
             }
-          } else if (set.has_collective_views && vit->first->is_instance_view())
+          }
+          else if (set.has_collective_views && vit->first->is_instance_view())
           {
             IndividualView* view = vit->first->as_individual_view();
             for (ViewExprs::const_iterator sit = set.conditions.begin();
@@ -1191,13 +1218,15 @@ namespace Legion {
                 continue;
               dst_views.insert(it->first, overlap);
             }
-          } else if (!dst_views.empty())
+          }
+          else if (!dst_views.empty())
           {
             for (FieldMaskSet<LogicalView>::const_iterator it =
                      src_views.begin();
                  it != src_views.end(); it++)
               dst_views.insert(it->first, it->second);
-          } else
+          }
+          else
             dst_views.swap(src_views);
           continue;
         }
@@ -1234,11 +1263,13 @@ namespace Legion {
                 components.push_back(*isit);
                 disjoint_expressions[idx] =
                     runtime->subtract_index_spaces(expr, intersection);
-              } else  // Congruent so we are done
+              }
+              else  // Congruent so we are done
                 disjoint_components[idx].push_back(*isit);
               current = nullptr;
               break;
-            } else if (volume == expr->get_volume())
+            }
+            else if (volume == expr->get_volume())
             {
               // We dominate the expression so add ourselves and compute diff
               disjoint_components[idx].push_back(*isit);
@@ -1246,7 +1277,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert(!current->is_empty());
 #endif
-            } else
+            }
+            else
             {
               // Split into the three parts and keep going
               disjoint_expressions.push_back(intersection);
@@ -1319,7 +1351,8 @@ namespace Legion {
                      vit->second.begin();
                  it != vit->second.end(); it++)
               target.insert(vit->first, it->first, it->second);
-          } else
+          }
+          else
           {
             // filtering on fields
             for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
@@ -1333,7 +1366,8 @@ namespace Legion {
             }
           }
         }
-      } else
+      }
+      else
       {
         for (ViewExprs::const_iterator vit = conditions.begin();
              vit != conditions.end(); vit++)
@@ -1474,7 +1508,8 @@ namespace Legion {
                 << "  Fill View: " << std::hex << view->did << std::dec
                 << ", Index expr: " << it->first->expr_id
                 << ", Fields: " << mask;
-          } else if (view->is_collective_view())
+          }
+          else if (view->is_collective_view())
           {
             CollectiveView* collective = view->as_collective_view();
             std::stringstream ss;
@@ -1496,7 +1531,8 @@ namespace Legion {
                 << "View: " << std::hex << view->did << std::dec
                 << ", Index expr: " << it->first->expr_id
                 << ", Fields: " << mask << ", Instances:" << ss.str();
-          } else
+          }
+          else
           {
             PhysicalManager* manager =
                 view->as_individual_view()->get_manager();
@@ -1567,7 +1603,8 @@ namespace Legion {
           InnerContext::CollectiveResult* result =
               context->find_or_create_collective_view(tree_id, dids, ready);
           results[it->first] = result;
-        } else
+        }
+        else
         {
           // Just making a single view at this point
           PhysicalManager* manager =
@@ -1606,7 +1643,8 @@ namespace Legion {
                   result->collective_did, ready));
           if (result->remove_reference())
             delete result;
-        } else  // Unusual case of an downgrading to an individual view
+        }
+        else  // Unusual case of an downgrading to an individual view
           view = context->create_instance_top_view(
               individual_finder->second, runtime->address_space);
         ViewExprs::iterator finder = conditions.find(rit->first);
@@ -1618,7 +1656,8 @@ namespace Legion {
           if (finder->first->remove_nested_gc_ref(owner_did))
             delete finder->first;
           conditions.erase(finder);
-        } else
+        }
+        else
         {
           // Need to filter over specific expression in this case
           FieldMaskSet<IndexSpaceExpression>& to_add = conditions[view];
@@ -1701,7 +1740,8 @@ namespace Legion {
                       collective->instances.begin(),
                       collective->instances.end(), *it))
                 intersection.push_back(*it);
-          } else
+          }
+          else
           {
             for (std::vector<DistributedID>::const_iterator it =
                      collective->instances.begin();
@@ -1728,7 +1768,8 @@ namespace Legion {
             assert(intersection.size() < collective->instances.size());
 #endif
             vit++;
-          } else
+          }
+          else
           {
             // Otherwise, if vit->first is not covered by the intersection
             // then we need to do two things
@@ -1778,7 +1819,8 @@ namespace Legion {
                 vit->second.erase(*it);
               vit->second.tighten_valid_mask();
               vit++;
-            } else
+            }
+            else
             {
               vit->second.clear();
               if (vit->first->remove_nested_gc_ref(owner_did))
@@ -1787,7 +1829,8 @@ namespace Legion {
               conditions.erase(to_delete);
             }
           }
-        } else  // just an individual view, so we can just traverse it
+        }
+        else  // just an individual view, so we can just traverse it
         {
           IndividualView* individual = vit->first->as_individual_view();
           // Check to see if it they alias
@@ -1827,7 +1870,8 @@ namespace Legion {
               // Remove duplicate references
               if (!finder->second.insert(it->first, it->second))
                 it->first->remove_nested_expression_reference(owner_did);
-          } else
+          }
+          else
           {
             // Already have a reference to the view so pass it here
             // Also have references on the expression so the swap is enough
@@ -1864,7 +1908,8 @@ namespace Legion {
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
         return view;
-      } else
+      }
+      else
       {
         RtEvent ready;
         PhysicalManager* manager =

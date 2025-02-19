@@ -323,7 +323,8 @@ namespace Legion {
         record_valid = invoke_mapper(mapped_instances, source_instances);
         // First mapping so set the references now
         region.impl->set_references(mapped_instances);
-      } else
+      }
+      else
         region.impl->get_references(mapped_instances);
       // Then we can register our mapped instances
       ApEvent map_complete_event = physical_perform_updates_and_registration(
@@ -459,7 +460,8 @@ namespace Legion {
       {
         if (!finder->second && exclusive)
           finder->second = true;
-      } else
+      }
+      else
         atomic_locks[lock] = exclusive;
     }
 
@@ -543,7 +545,8 @@ namespace Legion {
           prepare_for_mapping(
               valid_instances, collectives, visible_memories,
               input.valid_instances, input.valid_collectives);
-        } else
+        }
+        else
           prepare_for_mapping(
               valid_instances, collectives, input.valid_instances,
               input.valid_collectives);
@@ -693,7 +696,8 @@ namespace Legion {
                 << "specialized reduction instances for region requirement "
                    "with "
                 << "reduction-only privileges for " << *this << ".";
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < chosen_instances.size(); idx++)
         {
@@ -741,7 +745,8 @@ namespace Legion {
               region.impl->add_padded_field(*it);
             }
             padding_mask = fs->get_field_mask(field_set);
-          } else
+          }
+          else
           {
             padding_mask = fs->get_field_mask(requirement.privilege_fields);
             for (std::set<FieldID>::const_iterator it =
@@ -1030,7 +1035,8 @@ namespace Legion {
         collective_map_barrier = RtBarrier::NO_RT_BARRIER;
 #endif
         return result;
-      } else
+      }
+      else
         return precondition;
     }
 
@@ -1242,7 +1248,8 @@ namespace Legion {
         for (unsigned idx = 0; idx < instances.size(); idx++)
           source_instances[idx] = instances[idx]->did;
         perform_collective_async();
-      } else
+      }
+      else
       {
         perform_collective_wait();
         if (instances.size() != source_instances.size())

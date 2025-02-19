@@ -215,7 +215,8 @@ namespace Legion {
         point_set = future_map.impl->future_map_domain;
         point_set->add_base_expression_reference(RUNTIME_REF);
         dimensionality = point_set->get_num_dims();
-      } else
+      }
+      else
       {
         point_set = nullptr;
         dimensionality = 0;
@@ -269,7 +270,8 @@ namespace Legion {
               "with %d dimensions and point with %d dimensions. ArgumentMaps "
               "must always contain points of the same dimensionality.",
               dimensionality, point_dim)
-      } else
+      }
+      else
       {
         dimensionality = point.get_dim();
 #ifdef DEBUG_LEGION
@@ -299,7 +301,8 @@ namespace Legion {
               Future::from_untyped_pointer(arg.get_ptr(), arg.get_size());
         else
           finder->second = Future();
-      } else
+      }
+      else
       {
         if (arg.get_size() > 0)
           arguments[point] =
@@ -332,7 +335,8 @@ namespace Legion {
               "with %d dimensions and point with %d dimensions. ArgumentMaps "
               "must always contain points of the same dimensionality.",
               dimensionality, point_dim)
-      } else
+      }
+      else
       {
         dimensionality = point.get_dim();
 #ifdef DEBUG_LEGION
@@ -358,8 +362,8 @@ namespace Legion {
           dependent_futures--;
         }
         finder->second = f;
-
-      } else
+      }
+      else
       {
         arguments[point] = f;
         // Had to add a new point so the point set is no longer valid
@@ -389,7 +393,8 @@ namespace Legion {
               "with %d dimensions and point with %d dimensions. ArgumentMaps "
               "must always contain points of the same dimensionality.",
               dimensionality, point_dim)
-      } else
+      }
+      else
       {
         dimensionality = point.get_dim();
 #ifdef DEBUG_LEGION
@@ -506,7 +511,8 @@ namespace Legion {
               point_domain, provenance, true /*take ownership of domain*/);
           point_set = runtime->get_node(point_space);
           point_set->add_base_expression_reference(RUNTIME_REF);
-        } else
+        }
+        else
           point_set = nullptr;
         update_point_set = false;
       }
@@ -524,7 +530,8 @@ namespace Legion {
             ctx, point_set, did, InnerContext::NO_BLOCKING_INDEX,
             std::optional<uint64_t>(), provenance, true /*reg now*/));
         future_map.impl->set_all_futures(arguments);
-      } else
+      }
+      else
         future_map = ctx->construct_future_map(
             point_set->handle, arguments, provenance, true /*internal*/);
       equivalent = true;      // mark that these are equivalent

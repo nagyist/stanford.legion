@@ -456,7 +456,8 @@ namespace Legion {
             Internal::implicit_mapper_call,
             Internal::MAPPER_CONSTRAINTS_ENTAIL_CALL);
         return impl->entails(constraint_set, failed_constraint);
-      } else
+      }
+      else
         return impl->entails(constraint_set, failed_constraint);
     }
 
@@ -571,7 +572,8 @@ namespace Legion {
             Internal::implicit_mapper_call,
             Internal::MAPPER_FIND_COLLECTIVE_INSTANCES_IN_MEMORY);
         impl->find_instances_in_memory(memory, managers);
-      } else
+      }
+      else
         impl->find_instances_in_memory(memory, managers);
       insts.reserve(insts.size() + managers.size());
       for (unsigned idx = 0; idx < managers.size(); idx++)
@@ -593,7 +595,8 @@ namespace Legion {
             Internal::implicit_mapper_call,
             Internal::MAPPER_FIND_COLLECTIVE_INSTANCES_NEAREST_MEMORY);
         impl->find_instances_nearest_memory(memory, managers, bandwidth);
-      } else
+      }
+      else
         impl->find_instances_nearest_memory(memory, managers, bandwidth);
       insts.reserve(insts.size() + managers.size());
       for (unsigned idx = 0; idx < managers.size(); idx++)
@@ -788,7 +791,8 @@ namespace Legion {
       {
         map->mapper_data = malloc(data_size);
         memcpy(map->mapper_data, mapper_data, data_size);
-      } else
+      }
+      else
         map->mapper_data = nullptr;
     }
 
@@ -1121,7 +1125,8 @@ namespace Legion {
           {
             constraints = runtime->find_layout_constraints(lay_it->second);
             layout_cache[lay_it->second] = constraints;
-          } else
+          }
+          else
             constraints = finder->second;
           const std::vector<PhysicalInstance>& instances =
               chosen_instances[lay_it->first];
@@ -1209,7 +1214,8 @@ namespace Legion {
                 it = instances.erase(it);
               else
                 it++;
-            } else
+            }
+            else
               it++;
           }
           if (instances.empty())
@@ -1273,7 +1279,8 @@ namespace Legion {
               it = instances.erase(it);
             else
               it++;
-          } else
+          }
+          else
             it++;
         }
         if (instances.empty())
@@ -1313,7 +1320,8 @@ namespace Legion {
                 "must be from the same region tree (%lld != %lld).",
                 call_name, ctx->get_mapper_call_name(), ctx->get_mapper_name(),
                 tree_id, other_id)
-        } else
+        }
+        else
           tree_id = regions[idx].get_tree_id();
       }
     }
@@ -1675,7 +1683,8 @@ namespace Legion {
                 ctx->manager->mapper_id, ctx->manager->processor, priority);
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-      } else
+      }
+      else
         REPORT_LEGION_WARNING(
             LEGION_WARNING_EXTERNAL_GARBAGE_PRIORITY,
             "Ignoring request for mapper %s to set garbage collection "
@@ -1711,7 +1720,8 @@ namespace Legion {
       {
         ctx->record_acquired_instance(manager);
         return true;
-      } else
+      }
+      else
         return false;
     }
 
@@ -1759,7 +1769,8 @@ namespace Legion {
         {
           if (filter_acquired_instances)
             instances.clear();
-        } else
+        }
+        else
         {
           if (!filter_acquired_instances)
             instances.clear();
@@ -3100,7 +3111,8 @@ namespace Legion {
           ready.wait();
           ready = local_lock.wrlock();
         }
-      } else
+      }
+      else
       {
         Internal::RtEvent ready = local_lock.rdlock();
         while (ready.exists())
@@ -3134,7 +3146,8 @@ namespace Legion {
           ready.wait();
           ready = local_lock.wrlock();
         }
-      } else
+      }
+      else
       {
         Internal::RtEvent ready = local_lock.rdlock();
         while (ready.exists())

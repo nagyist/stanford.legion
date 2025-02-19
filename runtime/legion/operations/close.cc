@@ -251,7 +251,8 @@ namespace Legion {
 #else
         trace->register_close(this, creator_req_idx, req);
 #endif
-      } else
+      }
+      else
       {
         if (trace == nullptr)
           parent_req_index = creator->find_parent_index(close_idx);
@@ -678,7 +679,8 @@ namespace Legion {
           complete_mapping();
         else
           complete_mapping(mapped_barrier);
-      } else
+      }
+      else
         complete_mapping(mapped_barrier);
       complete_execution();
     }

@@ -152,7 +152,8 @@ namespace Legion {
                 local_arrivals++;
             }
             collective_arrivals[view] = local_arrivals;
-          } else
+          }
+          else
           {
             // No collective instance matches here so we can just
             // get the normal view for the instance
@@ -185,7 +186,8 @@ namespace Legion {
         {
           target_views[idx]->swap(result_views);
           target_arrivals[idx]->swap(collective_arrivals);
-        } else
+        }
+        else
         {
           *target_views[idx] = result_views;
           *target_arrivals[idx] = collective_arrivals;
@@ -327,7 +329,8 @@ namespace Legion {
             collective.counts[did] = count + 1;
           else
             count_finder->second += count;
-        } else
+        }
+        else
           // If you ever hit this then heaven help you
           // The user has done something really out there and
           // is using the same instance with different sets of
@@ -344,7 +347,8 @@ namespace Legion {
               << "physical instance. This isn't currently supported. "
               << "Please report your use case to the Legion "
               << "developer's mailing list.";
-      } else  // No need to update counts since empty implies only one
+      }
+      else  // No need to update counts since empty implies only one
       {
         collective.groups[did] = mask;
         if (count > 1)
@@ -415,9 +419,11 @@ namespace Legion {
                   Runtime::trigger_event(local, vit->first->ready_event);
                   local_ready_events[vit->first] = local;
                   rez.serialize(local);
-                } else
+                }
+                else
                   rez.serialize(finder->second);
-              } else
+              }
+              else
                 rez.serialize(vit->first->ready_event);
               rez.serialize(vit->second);
             }
@@ -623,7 +629,8 @@ namespace Legion {
                   region_finder->second, it->first, it->second,
                   count_finder->second);
           }
-        } else
+        }
+        else
         {
           // unpack in place since we know it doesn't exist yet
           CollectiveRendezvous& new_rendezvous = rendezvous[region];
@@ -709,7 +716,8 @@ namespace Legion {
                        .emplace(std::make_pair(region, RegionVersioning()))
                        .first;
           finder->second.ready_event = ready_event;
-        } else
+        }
+        else
           Runtime::trigger_event(ready_event, finder->second.ready_event);
         size_t num_trackers;
         derez.deserialize(num_trackers);
@@ -847,7 +855,8 @@ namespace Legion {
                   finder->second.region_versioning[pit->first];
               versioning.trackers.swap(pit->second.trackers);
               versioning.ready_event = pit->second.ready_event;
-            } else
+            }
+            else
             {
               // Merge everything
               for (LegionMap<
@@ -871,7 +880,8 @@ namespace Legion {
                 pit++;
             to_perform.erase(delete_it);
           }
-        } else
+        }
+        else
           finder->second.region_versioning.swap(to_perform);
 #ifdef DEBUG_LEGION
         assert(to_perform.empty());
@@ -946,7 +956,8 @@ namespace Legion {
             precondition = context->compute_equivalence_sets(
                 parent_req_index, targets, target_spaces, creation_origin, expr,
                 fit->set_mask);
-          } else
+          }
+          else
             precondition = context->compute_equivalence_sets(
                 parent_req_index, targets, target_spaces, region_owner_space,
                 expr, fit->set_mask);
@@ -1106,7 +1117,8 @@ namespace Legion {
             region_rendezvous.results.swap(rit->second.results);
             region_rendezvous.groups.swap(rit->second.groups);
             region_rendezvous.counts.swap(rit->second.counts);
-          } else
+          }
+          else
           {
             // Need to do the merge
             for (std::vector<std::pair<AddressSpaceID, RendezvousResult*> >::
@@ -1199,7 +1211,8 @@ namespace Legion {
             // References already added by method so deduplicate references
             if (!results.insert(result, it->set_mask))
               result->remove_reference();
-          } else
+          }
+          else
           {
             // If there is just one instance then we send back a
             // collective did of zero to indicate to just use the

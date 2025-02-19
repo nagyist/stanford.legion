@@ -384,11 +384,13 @@ namespace Legion {
               registrar, user_data, user_data_size, desc, ret_size,
               has_ret_size, vid, check_task_id, false /*check context*/);
           collective.broadcast(result);
-        } else
+        }
+        else
           result = collective.get_value();
         if (++dynamic_id_allocator_shard == total_shards)
           dynamic_id_allocator_shard = 0;
-      } else
+      }
+      else
       {
         // We have to be a little careful here when assigning the variant ID for
         // the registered task. If the user specified it already, then can just
@@ -404,7 +406,8 @@ namespace Legion {
           {
             vid = impl->get_unique_variant_id();
             collective.broadcast(vid);
-          } else
+          }
+          else
             vid = collective.get_value();
           if (++dynamic_id_allocator_shard == total_shards)
             dynamic_id_allocator_shard = 0;
@@ -417,7 +420,8 @@ namespace Legion {
           result = runtime->register_variant(
               registrar, user_data, user_data_size, desc, ret_size,
               has_ret_size, vid, check_task_id, false /*check context*/);
-        } else
+        }
+        else
         {
           result = vid;
         }
@@ -478,7 +482,8 @@ namespace Legion {
       {
         result = runtime->generate_dynamic_trace_id(false /*check context*/);
         collective.broadcast(result);
-      } else
+      }
+      else
         result = collective.get_value();
       if (++dynamic_id_allocator_shard == total_shards)
         dynamic_id_allocator_shard = 0;
@@ -510,7 +515,8 @@ namespace Legion {
       {
         result = runtime->generate_dynamic_mapper_id(false /*check context*/);
         collective.broadcast(result);
-      } else
+      }
+      else
         result = collective.get_value();
       if (++dynamic_id_allocator_shard == total_shards)
         dynamic_id_allocator_shard = 0;
@@ -543,7 +549,8 @@ namespace Legion {
         result =
             runtime->generate_dynamic_projection_id(false /*check context*/);
         collective.broadcast(result);
-      } else
+      }
+      else
         result = collective.get_value();
       if (++dynamic_id_allocator_shard == total_shards)
         dynamic_id_allocator_shard = 0;
@@ -575,7 +582,8 @@ namespace Legion {
       {
         result = runtime->generate_dynamic_sharding_id(false /*check context*/);
         collective.broadcast(result);
-      } else
+      }
+      else
         result = collective.get_value();
       if (++dynamic_id_allocator_shard == total_shards)
         dynamic_id_allocator_shard = 0;
@@ -607,7 +615,8 @@ namespace Legion {
       {
         result = runtime->generate_dynamic_sharding_id(false /*check context*/);
         collective.broadcast(result);
-      } else
+      }
+      else
         result = collective.get_value();
       if (++dynamic_id_allocator_shard == total_shards)
         dynamic_id_allocator_shard = 0;
@@ -639,7 +648,8 @@ namespace Legion {
       {
         result = runtime->generate_dynamic_task_id(false /*check context*/);
         collective.broadcast(result);
-      } else
+      }
+      else
         result = collective.get_value();
       if (++dynamic_id_allocator_shard == total_shards)
         dynamic_id_allocator_shard = 0;
@@ -672,7 +682,8 @@ namespace Legion {
         result =
             runtime->generate_dynamic_reduction_id(false /*check context*/);
         collective.broadcast(result);
-      } else
+      }
+      else
         result = collective.get_value();
       if (++dynamic_id_allocator_shard == total_shards)
         dynamic_id_allocator_shard = 0;
@@ -704,7 +715,8 @@ namespace Legion {
       {
         result = runtime->generate_dynamic_serdez_id(false /*check context*/);
         collective.broadcast(result);
-      } else
+      }
+      else
         result = collective.get_value();
       if (++dynamic_id_allocator_shard == total_shards)
         dynamic_id_allocator_shard = 0;
@@ -759,7 +771,8 @@ namespace Legion {
           return true;
         post_semantic_attach();
         return false;
-      } else
+      }
+      else
       {
         // See if we're the local shard to perform the attach operation
         if (shard_manager->perform_semantic_attach())
@@ -798,7 +811,8 @@ namespace Legion {
         hasher.hash(coordinate.context_index, description);
         for (int idx = 0; idx < coordinate.index_point.get_dim(); idx++)
           hasher.hash(coordinate.index_point[idx], description);
-      } else if (safe_level > 1)
+      }
+      else if (safe_level > 1)
       {
         size_t size = 0;
         const void* result = future.impl->get_buffer(
@@ -1200,7 +1214,8 @@ namespace Legion {
               owner_shard->shard_id,
               (provenance == nullptr) ? 7 : int(provenance->human.length()),
               (provenance == nullptr) ? "unknown" : provenance->human.data());
-      } else
+      }
+      else
         REPORT_LEGION_ERROR(
             ERROR_CONTROL_REPLICATION_VIOLATION,
             "Specific control replication violation occurred from member %s",
@@ -1269,7 +1284,8 @@ namespace Legion {
           shard_manager->send_created_region_contexts(
               sit->first, rez, applied_events);
         }
-      } else
+      }
+      else
       {
         // If we have the same number of shards then we know that the
         // equivalence set k-d trees will be the same so we can just
@@ -1302,7 +1318,8 @@ namespace Legion {
           }
           shard_manager->send_created_region_contexts(
               source_shard, rez, applied_events);
-        } else
+        }
+        else
           InnerContext::receive_created_region_contexts(
               created_nodes, created_trees, applied_events, mapping,
               source_shard);
@@ -1478,7 +1495,8 @@ namespace Legion {
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
               (provenance == nullptr) ? std::string_view() : provenance->human);
-      } else
+      }
+      else
       {
         const RtEvent done = collective.first->get_done_event();
         if (!done.has_triggered())
@@ -1557,7 +1575,8 @@ namespace Legion {
               runtime->get_unique_index_space_expr_id(), double_next));
           pending_index_spaces.push_back(
               std::pair<ValueBroadcast<ISBroadcast>*, bool>(collective, true));
-        } else
+        }
+        else
         {
           register_collective(collective);
           pending_index_spaces.push_back(
@@ -1628,7 +1647,8 @@ namespace Legion {
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
               (provenance == nullptr) ? std::string_view() : provenance->human);
-      } else
+      }
+      else
       {
         const RtEvent done = collective.first->get_done_event();
         if (!done.has_triggered())
@@ -1822,7 +1842,8 @@ namespace Legion {
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
               (provenance == nullptr) ? std::string_view() : provenance->human);
-      } else
+      }
+      else
       {
         const RtEvent done = collective.first->get_done_event();
         if (!done.has_triggered())
@@ -1928,7 +1949,8 @@ namespace Legion {
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
               (provenance == nullptr) ? std::string_view() : provenance->human);
-      } else
+      }
+      else
       {
         const RtEvent done = collective.first->get_done_event();
         if (!done.has_triggered())
@@ -2024,7 +2046,8 @@ namespace Legion {
           LegionSpy::log_top_index_space(
               handle.get_id(), runtime->address_space,
               (provenance == nullptr) ? std::string_view() : provenance->human);
-      } else
+      }
+      else
       {
         const RtEvent done = collective.first->get_done_event();
         if (!done.has_triggered())
@@ -2149,7 +2172,8 @@ namespace Legion {
           deleted_index_spaces.push_back(
               DeletedIndexSpace(handle, recurse, provenance));
           return;
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(finder->second > 0);
@@ -2177,9 +2201,11 @@ namespace Legion {
               {
                 std::map<IndexPartition, unsigned>::iterator to_delete = it++;
                 created_index_partitions.erase(to_delete);
-              } else
+              }
+              else
                 it++;
-            } else
+            }
+            else
               it++;
           }
         }
@@ -2294,13 +2320,16 @@ namespace Legion {
                 {
                   std::map<IndexPartition, unsigned>::iterator to_delete = it++;
                   created_index_partitions.erase(to_delete);
-                } else
+                }
+                else
                   it++;
-              } else
+              }
+              else
                 it++;
             }
           }
-        } else
+        }
+        else
         {
           // If we didn't make the partition, record it and keep going
           deleted_index_partitions.push_back(
@@ -2347,7 +2376,8 @@ namespace Legion {
           runtime->record_pending_partition(did);
           // Do our arrival on this generation, should be the last one
           collective->broadcast(IPBroadcast(did, double_next));
-        } else
+        }
+        else
           register_collective(collective);
         index_partition_allocator_shard++;
         if (index_partition_allocator_shard == total_shards)
@@ -2398,7 +2428,8 @@ namespace Legion {
         // Signal that we're done our creation
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/, safe_event);
         runtime->revoke_pending_partition(value.did);
-      } else
+      }
+      else
       {
         const RtEvent done = collective.first->get_done_event();
         if (!done.has_triggered())
@@ -2602,7 +2633,8 @@ namespace Legion {
             else
               kind = LEGION_ALIASED_INCOMPLETE_KIND;
           }
-        } else
+        }
+        else
         {
           if (kind == LEGION_COMPUTE_KIND)
             kind = LEGION_ALIASED_KIND;
@@ -2699,7 +2731,8 @@ namespace Legion {
             else
               kind = LEGION_DISJOINT_INCOMPLETE_KIND;
           }
-        } else
+        }
+        else
         {
           if (kind == LEGION_COMPUTE_KIND)
             kind = LEGION_DISJOINT_KIND;
@@ -2943,12 +2976,14 @@ namespace Legion {
               handle1, handle2, handles, kind, provenance, partition_color,
               safe_events, owner_shard->shard_id, &shard_manager->get_mapping(),
               &color_collective);
-        } else
+        }
+        else
           create_pending_cross_product_internal(
               handle1, handle2, handles, kind, provenance, partition_color,
               safe_events, owner_shard->shard_id,
               &shard_manager->get_mapping());
-      } else
+      }
+      else
       {
         // Get the color result from the owner node
         if (partition_color == INVALID_COLOR)
@@ -3987,7 +4022,8 @@ namespace Legion {
               (kind == LEGION_DISJOINT_COMPLETE_KIND) ?
                                                "DISJOINT_COMPLETE_KIND" :
                                                "DISJOINT_INCOMPLETE_KIND")
-      } else if (
+      }
+      else if (
           (kind == LEGION_ALIASED_KIND) ||
           (kind == LEGION_ALIASED_COMPLETE_KIND) ||
           (kind == LEGION_ALIASED_INCOMPLETE_KIND))
@@ -4018,7 +4054,8 @@ namespace Legion {
                   "DISJOINT_COMPLETE_KIND" :
               (kind == LEGION_ALIASED_COMPLETE_KIND) ? "ALIASED_COMPLETE_KIND" :
                                                        "COMPUTE_COMPLETE_KIND")
-      } else if (
+      }
+      else if (
           (kind == LEGION_DISJOINT_INCOMPLETE_KIND) ||
           (kind == LEGION_ALIASED_INCOMPLETE_KIND) ||
           (kind == LEGION_COMPUTE_INCOMPLETE_KIND))
@@ -4096,7 +4133,8 @@ namespace Legion {
           LegionSpy::log_field_space(
               space.get_id(), runtime->address_space,
               (provenance == nullptr) ? std::string_view() : provenance->human);
-      } else
+      }
+      else
       {
         const RtEvent done = collective.first->get_done_event();
         if (!done.has_triggered())
@@ -4179,7 +4217,8 @@ namespace Legion {
             const FIDBroadcast value = collective.first->get_value(false);
             resulting_fields[idx] = value.field_id;
             double_buffer = value.double_buffer;
-          } else
+          }
+          else
           {
             const RtEvent done = collective.first->get_done_event();
             if (!done.has_triggered())
@@ -4199,7 +4238,8 @@ namespace Legion {
               double_buffer ? pending_fields.size() + 1 : 1, double_next);
           delete collective.first;
           pending_fields.pop_front();
-        } else if (resulting_fields[idx] >= LEGION_MAX_APPLICATION_FIELD_ID)
+        }
+        else if (resulting_fields[idx] >= LEGION_MAX_APPLICATION_FIELD_ID)
           REPORT_LEGION_ERROR(
               ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
               "Task %s (ID %lld) attempted to allocate a field with "
@@ -4229,7 +4269,8 @@ namespace Legion {
                 space.get_id(), resulting_fields[idx], sizes[idx],
                 (provenance == nullptr) ? std::string_view() :
                                           provenance->human);
-      } else
+      }
+      else
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
       register_all_field_creations(space, false /*loca*/, resulting_fields);
       // Make sure all the field allocations are done on all shards
@@ -4283,7 +4324,8 @@ namespace Legion {
             const FIDBroadcast value = collective.first->get_value(false);
             resulting_fields[idx] = value.field_id;
             double_buffer = value.double_buffer;
-          } else
+          }
+          else
           {
             const RtEvent done = collective.first->get_done_event();
             if (!done.has_triggered())
@@ -4342,7 +4384,8 @@ namespace Legion {
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         creator_op->initialize_fields(
             this, node, resulting_fields, sizes, provenance, owner);
-      } else
+      }
+      else
       {
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
         creator_op->initialize_fields(
@@ -4377,7 +4420,8 @@ namespace Legion {
           collective->broadcast(FSBroadcast(did, double_next));
           pending_field_spaces.push_back(
               std::pair<ValueBroadcast<FSBroadcast>*, bool>(collective, true));
-        } else
+        }
+        else
         {
           register_collective(collective);
           pending_field_spaces.push_back(
@@ -4476,12 +4520,15 @@ namespace Legion {
                 std::set<std::pair<FieldSpace, FieldID> >::iterator to_delete =
                     it++;
                 created_fields.erase(to_delete);
-              } else
+              }
+              else
                 it++;
             }
-          } else
+          }
+          else
             latent_field_spaces[handle] = latent_regions;
-        } else
+        }
+        else
         {
           // If we didn't make this field space, record the deletion
           // and keep going. It will be handled by the context that
@@ -4552,7 +4599,8 @@ namespace Legion {
           const FIDBroadcast value = collective.first->get_value(false);
           fid = value.field_id;
           double_buffer = value.double_buffer;
-        } else
+        }
+        else
         {
           const RtEvent done = collective.first->get_done_event();
           if (!done.has_triggered())
@@ -4572,7 +4620,8 @@ namespace Legion {
             double_buffer ? pending_fields.size() + 1 : 1, double_next);
         delete collective.first;
         pending_fields.pop_front();
-      } else if (fid >= LEGION_MAX_APPLICATION_FIELD_ID)
+      }
+      else if (fid >= LEGION_MAX_APPLICATION_FIELD_ID)
         REPORT_LEGION_ERROR(
             ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
             "Task %s (ID %lld) attempted to allocate a field with "
@@ -4621,7 +4670,8 @@ namespace Legion {
           collective->broadcast(FIDBroadcast(fid, double_next));
           pending_fields.push_back(
               std::pair<ValueBroadcast<FIDBroadcast>*, bool>(collective, true));
-        } else
+        }
+        else
         {
           register_collective(collective);
           pending_fields.push_back(
@@ -4681,7 +4731,8 @@ namespace Legion {
           const FIDBroadcast value = collective.first->get_value(false);
           fid = value.field_id;
           double_buffer = value.double_buffer;
-        } else
+        }
+        else
         {
           const RtEvent done = collective.first->get_done_event();
           if (!done.has_triggered())
@@ -4701,7 +4752,8 @@ namespace Legion {
             double_buffer ? pending_fields.size() + 1 : 1, double_next);
         delete collective.first;
         pending_fields.pop_front();
-      } else if (fid >= LEGION_MAX_APPLICATION_FIELD_ID)
+      }
+      else if (fid >= LEGION_MAX_APPLICATION_FIELD_ID)
         REPORT_LEGION_ERROR(
             ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
             "Task %s (ID %lld) attempted to allocate a field with "
@@ -4733,7 +4785,8 @@ namespace Legion {
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/, precondition);
         creator_op->initialize_field(
             this, node, fid, field_size, provenance, owner);
-      } else
+      }
+      else
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
       register_field_creation(space, fid, local);
       // Make sure the IDs are valid everywhere
@@ -4786,7 +4839,8 @@ namespace Legion {
             // then have a later context handle it
             deleted_fields.emplace_back(DeletedField(space, fid, provenance));
             return;
-          } else
+          }
+          else
             local_finder->second = true;
         }
       }
@@ -4863,7 +4917,8 @@ namespace Legion {
             const FIDBroadcast value = collective.first->get_value(false);
             resulting_fields[idx] = value.field_id;
             double_buffer = value.double_buffer;
-          } else
+          }
+          else
           {
             const RtEvent done = collective.first->get_done_event();
             if (!done.has_triggered())
@@ -4883,7 +4938,8 @@ namespace Legion {
               double_buffer ? pending_fields.size() + 1 : 1, double_next);
           delete collective.first;
           pending_fields.pop_front();
-        } else if (resulting_fields[idx] >= LEGION_MAX_APPLICATION_FIELD_ID)
+        }
+        else if (resulting_fields[idx] >= LEGION_MAX_APPLICATION_FIELD_ID)
           REPORT_LEGION_ERROR(
               ERROR_TASK_ATTEMPTED_ALLOCATE_FIELD,
               "Task %s (ID %lld) attempted to allocate a field with "
@@ -4968,7 +5024,8 @@ namespace Legion {
             const FIDBroadcast value = collective.first->get_value(false);
             resulting_fields[idx] = value.field_id;
             double_buffer = value.double_buffer;
-          } else
+          }
+          else
           {
             const RtEvent done = collective.first->get_done_event();
             if (!done.has_triggered())
@@ -5026,7 +5083,8 @@ namespace Legion {
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/, precondition);
         creator_op->initialize_fields(
             this, node, resulting_fields, sizes, provenance, owner);
-      } else
+      }
+      else
         runtime->phase_barrier_arrive(creation_bar, 1 /*count*/);
       register_all_field_creations(space, local, resulting_fields);
       // Make sure the field IDs are valid everywhere
@@ -5083,9 +5141,11 @@ namespace Legion {
             {
               local_finder->second = true;
               free_now.insert(*it);
-            } else
+            }
+            else
               deleted_fields.emplace_back(DeletedField(space, *it, provenance));
-          } else
+          }
+          else
             free_now.insert(*it);
         }
       }
@@ -5169,7 +5229,8 @@ namespace Legion {
               index_space.get_id(), field_space.get_id(), handle.get_tree_id(),
               runtime->address_space,
               (provenance == nullptr) ? std::string_view() : provenance->human);
-      } else
+      }
+      else
       {
         const RtEvent done = collective.first->get_done_event();
         if (!done.has_triggered())
@@ -5243,7 +5304,8 @@ namespace Legion {
           collective->broadcast(LRBroadcast(tid, did, double_next));
           pending_region_trees.push_back(
               std::pair<ValueBroadcast<LRBroadcast>*, bool>(collective, true));
-        } else
+        }
+        else
         {
           register_collective(collective);
           pending_region_trees.push_back(
@@ -5351,9 +5413,11 @@ namespace Legion {
               // Record the deletion for later and propagate it up
               deleted_regions.emplace_back(DeletedRegion(handle, provenance));
               return;
-            } else
+            }
+            else
               local_finder->second = true;
-          } else
+          }
+          else
           {
             if (finder->second == 0)
             {
@@ -5554,7 +5618,8 @@ namespace Legion {
             (result.first == owner_shard->shard_id));
         if (ready.exists() && !ready.has_triggered())
           ready.wait();
-      } else if (!found)
+      }
+      else if (!found)
       {
         const RtEvent ready = node->destroy_allocator(runtime->address_space);
         if (ready.exists() && !ready.has_triggered())
@@ -5619,7 +5684,8 @@ namespace Legion {
         // Reset the epoch counter back to the minimum since we found some
         // matches so we should probably be doing this more often
         unordered_ops_epoch = MIN_UNORDERED_OPS_EPOCH;
-      } else if (unordered_ops_epoch < MAX_UNORDERED_OPS_EPOCH)
+      }
+      else if (unordered_ops_epoch < MAX_UNORDERED_OPS_EPOCH)
         // If there were no ready unordered ops then we double the epoch
         unordered_ops_epoch *= 2;
 #ifdef DEBUG_LEGION
@@ -5691,7 +5757,8 @@ namespace Legion {
               "unordered operations at the end of its execution that are now "
               "leaked.",
               get_task_name(), get_unique_id(), unordered_ops.size())
-      } else
+      }
+      else
         initialize_unordered_collective();
     }
 
@@ -5709,7 +5776,8 @@ namespace Legion {
 #endif
         ready -= result;
         double_wait_interval = (result == 0);
-      } else
+      }
+      else
         double_wait_interval = false;
       minimize_repeats_collective =
           new AllReduceCollective<MinReduction<unsigned>, false>(
@@ -6001,7 +6069,8 @@ namespace Legion {
           collective->broadcast(DIDBroadcast(did, double_next));
           pending_distributed_ids.emplace_back(
               std::pair<ValueBroadcast<DIDBroadcast>*, bool>(collective, true));
-        } else
+        }
+        else
         {
           register_collective(collective);
           pending_distributed_ids.emplace_back(
@@ -6080,7 +6149,8 @@ namespace Legion {
             if (runtime->safe_control_replication > 1)
               hasher.hash(it->second.get_ptr(), it->second.get_size(), "data");
           }
-        } else if (!implicit)
+        }
+        else if (!implicit)
           hasher.hash(sid, "sid");
         if (hasher.verify(__func__))
           break;
@@ -6110,7 +6180,8 @@ namespace Legion {
             functor->perform_collective_wait();
             delete function;
           }
-        } else
+        }
+        else
         {
           function = shard_manager->find_sharding_function(sid);
           map->set_sharding_function(function, false /*own*/);
@@ -6125,7 +6196,8 @@ namespace Legion {
                 "Sharding function does not match described sharding for "
                 "future map construction in %s (UID %lld)",
                 get_task_name(), get_unique_id())
-      } else
+      }
+      else
       {
         if (data.size() != domain_node->get_volume())
           REPORT_LEGION_ERROR(
@@ -6190,7 +6262,8 @@ namespace Legion {
                 hasher, runtime->safe_control_replication, it->second,
                 "futures");
           }
-        } else if (!implicit)
+        }
+        else if (!implicit)
           hasher.hash(sid, "sid");
         if (hasher.verify(__func__))
           break;
@@ -6221,7 +6294,8 @@ namespace Legion {
             functor->perform_collective_wait();
             delete function;
           }
-        } else
+        }
+        else
         {
           function = shard_manager->find_sharding_function(sid);
           map->set_sharding_function(function, false /*own*/);
@@ -6236,7 +6310,8 @@ namespace Legion {
                 "Sharding function does not match described sharding for "
                 "future map construction in %s (UID %lld)",
                 get_task_name(), get_unique_id())
-      } else
+      }
+      else
       {
         if (futures.size() != domain_node->get_volume())
           REPORT_LEGION_ERROR(
@@ -7106,7 +7181,8 @@ namespace Legion {
       {
         indexes.resize(launcher.handles.size());
         for (unsigned idx = 0; idx < indexes.size(); idx++) indexes[idx] = idx;
-      } else  // ask the shard manager to deduplicate here
+      }
+      else  // ask the shard manager to deduplicate here
         shard_manager->deduplicate_attaches(launcher, indexes);
       // Start this inflight before we compute the upper bound
       IndexAttachLaunchSpace collective(this, COLLECTIVE_LOC_28);
@@ -7563,7 +7639,8 @@ namespace Legion {
           AutoLock t_lock(trace_lock);
           traces[tid] = trace;
         }
-      } else
+      }
+      else
         trace = finder->second;
 #ifdef DEBUG_LEGION
       assert(trace != nullptr);
@@ -7575,7 +7652,8 @@ namespace Legion {
         ReplTraceBeginOp* begin = runtime->get_operation<ReplTraceBeginOp>();
         begin->initialize_begin(this, trace, provenance);
         trace_op = begin;
-      } else
+      }
+      else
       {
         ReplTraceRecurrentOp* recurrent =
             runtime->get_operation<ReplTraceRecurrentOp>();
@@ -7723,7 +7801,8 @@ namespace Legion {
         {
           const ISBroadcast value = collective.first->get_value(false);
           runtime->revoke_pending_index_space(value.did);
-        } else
+        }
+        else
         {
           // Make sure this collective is done before we delete it
           const RtEvent done = collective.first->get_done_event();
@@ -7741,7 +7820,8 @@ namespace Legion {
         {
           const IPBroadcast value = collective.first->get_value(false);
           runtime->revoke_pending_partition(value.did);
-        } else
+        }
+        else
         {
           // Make sure this collective is done before we delete it
           const RtEvent done = collective.first->get_done_event();
@@ -7759,7 +7839,8 @@ namespace Legion {
         {
           const FSBroadcast value = collective.first->get_value(false);
           runtime->revoke_pending_field_space(value.did);
-        } else
+        }
+        else
         {
           // Make sure this collective is done before we delete it
           const RtEvent done = collective.first->get_done_event();
@@ -7791,7 +7872,8 @@ namespace Legion {
         {
           const LRBroadcast value = collective.first->get_value(false);
           runtime->revoke_pending_region_tree(value.tid);
-        } else
+        }
+        else
         {
           // Make sure this collective is done before we delete it
           const RtEvent done = collective.first->get_done_event();
@@ -7839,7 +7921,8 @@ namespace Legion {
         insert_unordered_ops(d_lock);
         // Not unordered so it must have succeeded
         return true;
-      } else
+      }
+      else
         return InnerContext::add_to_dependence_queue(
             op, dependences, unordered, outermost);
     }
@@ -7897,7 +7980,8 @@ namespace Legion {
         shard_manager->send_find_or_create_collective_view(tid_shard, rez);
         ready = to_trigger;
         return result;
-      } else
+      }
+      else
         return InnerContext::find_or_create_collective_view(
             tid, instances, ready);
     }
@@ -7942,7 +8026,8 @@ namespace Legion {
           return new ProjectionSummary(
               proj_info, result, op, index, req, state, true /*disjoint*/,
               false /*unique*/);
-        } else
+        }
+        else
         {
           // Iterate all the points in the launch space and linearize
           // their colors to add to the summary
@@ -7969,7 +8054,8 @@ namespace Legion {
               proj_info, result, op, index, req, state, disjoint,
               true /*unique*/);
         }
-      } else
+      }
+      else
         return new ProjectionSummary(
             proj_info, result, op, index, req, state, this);
     }
@@ -8009,11 +8095,13 @@ namespace Legion {
       {
         dominates = true;
         return false;
-      } else if (code == 1)
+      }
+      else if (code == 1)
       {
         dominates = false;
         return false;
-      } else
+      }
+      else
         return true;
     }
 
@@ -8089,7 +8177,8 @@ namespace Legion {
               to_trigger = Runtime::create_rt_user_event();
             pending_points.emplace(std::make_pair(point, to_trigger));
             return to_trigger;
-          } else
+          }
+          else
           {
             if (to_trigger.exists())
               Runtime::trigger_event(to_trigger, finder->second);
@@ -8118,7 +8207,8 @@ namespace Legion {
               to_trigger = Runtime::create_rt_user_event();
             pending_points.emplace(std::make_pair(point, to_trigger));
             return to_trigger;
-          } else
+          }
+          else
           {
             if (to_trigger.exists())
               Runtime::trigger_event(to_trigger, finder->second);
@@ -8141,7 +8231,8 @@ namespace Legion {
         // committed while we're getting the generation
         gen = op->get_generation();
         // Fall through and do the local call without the lock
-      } else
+      }
+      else
         return shard_manager->find_pointwise_dependence(
             context_index, point, shard, to_trigger);
       return op->find_pointwise_dependence(point, gen, to_trigger);
@@ -8213,7 +8304,8 @@ namespace Legion {
         PhaseBarrier result = InnerContext::create_phase_barrier(arrivals);
         bar_collective.broadcast(result);
         return result;
-      } else
+      }
+      else
         return bar_collective.get_value();
     }
 
@@ -8705,7 +8797,8 @@ namespace Legion {
             current =
                 node->row_source->create_equivalence_set_kd_tree(total_shards);
             equivalence_set_trees.emplace(index, EqKDRoot(current));
-          } else
+          }
+          else
             current = finder->second.tree;
         }
         const ShardID local_shard = get_shard_id();
@@ -8797,7 +8890,8 @@ namespace Legion {
         deps.pending_deps.erase(finder);
         if (deps.pending_deps.empty() && deps.ready_deps.empty())
           intra_space_deps.erase(key);
-      } else
+      }
+      else
       {
         // Not seen yet so just record our entry for this shard
 #ifdef DEBUG_LEGION
@@ -8830,7 +8924,8 @@ namespace Legion {
         deps.ready_deps.erase(finder);
         if (deps.ready_deps.empty() && deps.pending_deps.empty())
           intra_space_deps.erase(key);
-      } else
+      }
+      else
       {
         // Not seen yet so just record our entry for this shard
 #ifdef DEBUG_LEGION
@@ -9114,7 +9209,8 @@ namespace Legion {
                   get_task_name(), get_unique_id())
             // Deletion keeps going up
             deleted_regions.push_back(*rit);
-          } else
+          }
+          else
           {
             // One of ours to delete
 #ifdef DEBUG_LEGION
@@ -9179,7 +9275,8 @@ namespace Legion {
                   fit->fid, fit->space.get_id(), get_task_name(),
                   get_unique_id())
             deleted_fields.push_back(*fit);
-          } else
+          }
+          else
           {
             // One of ours to delete
             std::pair<FieldSpace, Provenance*> now_key(
@@ -9265,13 +9362,16 @@ namespace Legion {
                     std::set<std::pair<FieldSpace, FieldID> >::iterator
                         to_delete = it++;
                     created_fields.erase(to_delete);
-                  } else
+                  }
+                  else
                     it++;
                 }
-              } else
+              }
+              else
                 latent_field_spaces[fit->space] = remaining_regions;
             }
-          } else
+          }
+          else
             // If we didn't make this field space, record the deletion
             // and keep going. It will be handled by the context that
             // made the field space
@@ -9345,14 +9445,17 @@ namespace Legion {
                       std::map<IndexPartition, unsigned>::iterator to_delete =
                           it++;
                       created_index_partitions.erase(to_delete);
-                    } else
+                    }
+                    else
                       it++;
-                  } else
+                  }
+                  else
                     it++;
                 }
               }
             }
-          } else
+          }
+          else
             // If we didn't make the index space in this context, just
             // record it and keep going, it will get handled later
             deleted_index_spaces.push_back(*sit);
@@ -9429,14 +9532,17 @@ namespace Legion {
                       std::map<IndexPartition, unsigned>::iterator to_delete =
                           it++;
                       created_index_partitions.erase(to_delete);
-                    } else
+                    }
+                    else
                       it++;
-                  } else
+                  }
+                  else
                     it++;
                 }
               }
             }
-          } else
+          }
+          else
             // If we didn't make the partition, record it and keep going
             deleted_index_partitions.push_back(*pit);
         }
@@ -9499,7 +9605,8 @@ namespace Legion {
         const CollectiveID result = next_logical_collective_index;
         next_logical_collective_index += 2;
         return result;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION_COLLECTIVES
         if (!collective_guard_reentrant)
@@ -9914,7 +10021,8 @@ namespace Legion {
           shard_manager->send_refine_equivalence_sets(sit->first, rez);
           applied_events.push_back(refined_event);
         }
-      } else
+      }
+      else
         InnerContext::refine_equivalence_sets(
             req_index, node, refinement_mask, applied_events, sharded);
     }
@@ -9988,7 +10096,8 @@ namespace Legion {
           }
           Runtime::merge_events(ready_events).wait();
         }
-      } else
+      }
+      else
         InnerContext::find_trace_local_sets(
             req_index, mask, current_sets, node, mapping);
     }
@@ -10199,7 +10308,8 @@ namespace Legion {
 #endif
         collective.broadcast(bar);
         created = true;
-      } else
+      }
+      else
         bar = collective.get_value();
       // Check to see if we need to reset the next_replicate_bar_index
       if (next_replicate_bar_index == total_shards)
@@ -10233,7 +10343,8 @@ namespace Legion {
 #endif
         collective.broadcast(bar);
         created = true;
-      } else
+      }
+      else
         bar = collective.get_value();
       // Check to see if we need to reset the next_replicate_bar_index
       if (next_replicate_bar_index == total_shards)
@@ -10268,7 +10379,8 @@ namespace Legion {
 #endif
         collective.broadcast(bar);
         created = true;
-      } else
+      }
+      else
         bar = collective.get_value();
       // Check to see if we need to reset the next_replicate_bar_index
       if (next_logical_bar_index == total_shards)
@@ -10303,7 +10415,8 @@ namespace Legion {
 #endif
         collective.broadcast(bar);
         created = true;
-      } else
+      }
+      else
         bar = collective.get_value();
       // Check to see if we need to reset the next_replicate_bar_index
       if (next_logical_bar_index == total_shards)
@@ -10413,7 +10526,8 @@ namespace Legion {
         {
           if (coord_t(*it) != upper_bound)
             upper_bound = -1;
-        } else
+        }
+        else
           upper_bound = *it;
       }
       IndexSpace handle;
@@ -10424,7 +10538,8 @@ namespace Legion {
         handle = InnerContext::create_index_space(
             domain, true /*take ownership*/,
             NT_TemplateHelper::encode_tag<2, coord_t>(), provenance);
-      } else
+      }
+      else
       {
         std::vector<Rect<2> > rects(shard_sizes.size());
         // Use prefix sum here so we know where each shard begins and ends
@@ -10552,7 +10667,8 @@ namespace Legion {
           derez.deserialize(element);
           derez.deserialize(element_counts[element]);
         }
-      } else
+      }
+      else
       {
         // Common case
         for (unsigned idx = 0; idx < num_elements; idx++)
@@ -10566,7 +10682,8 @@ namespace Legion {
             size_t count;
             derez.deserialize(count);
             finder->second += count;
-          } else
+          }
+          else
             derez.deserialize(element_counts[element]);
         }
       }
@@ -10592,7 +10709,8 @@ namespace Legion {
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, precondition);
         return false;
-      } else
+      }
+      else
       {
         complete_exchange();
         return true;
@@ -10680,7 +10798,8 @@ namespace Legion {
           derez.deserialize(sid);
           if (sid < finder->second)
             finder->second = sid;
-        } else
+        }
+        else
           derez.deserialize(unique_hashes[key]);
       }
     }
@@ -10840,7 +10959,8 @@ namespace Legion {
           unsigned count;
           derez.deserialize(count);
           finder->second += count;
-        } else
+        }
+        else
           derez.deserialize(counts[key]);
       }
     }
@@ -10886,7 +11006,8 @@ namespace Legion {
           unsigned count;
           derez.deserialize(count);
           finder->second += count;
-        } else
+        }
+        else
           derez.deserialize(counts[key]);
       }
     }
@@ -11013,7 +11134,8 @@ namespace Legion {
 #endif
                   index->record_unordered_kind(
                       region_detachments, partition_detachments);
-                } else
+                }
+                else
                   op->record_unordered_kind(region_detachments);
                 break;
               }
@@ -11348,7 +11470,8 @@ namespace Legion {
         assert(*finder == shard);
 #endif
         return std::distance(participants.begin(), finder);
-      } else
+      }
+      else
         return shard;
     }
 
@@ -11362,7 +11485,8 @@ namespace Legion {
         assert(index < context->total_shards);
 #endif
         return index;
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(index < participants.size());
@@ -11385,7 +11509,8 @@ namespace Legion {
       {
         // Modulus arithmetic here
         return ((index + total_participants) - origin_index);
-      } else
+      }
+      else
         return (index - origin_index);
     }
 

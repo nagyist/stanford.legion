@@ -164,9 +164,11 @@ namespace Legion {
         {
           runtime->send_task(this);
           return false;
-        } else
+        }
+        else
           return true;
-      } else
+      }
+      else
       {
         if (target_proc.exists() && (target_proc != current_proc))
         {
@@ -234,7 +236,8 @@ namespace Legion {
           TriggerTaskArgs trigger_args(*it);
           runtime->issue_runtime_meta_task(
               trigger_args, LG_THROUGHPUT_WORK_PRIORITY, point_precondition);
-        } else
+        }
+        else
           (*it)->enqueue_ready_task(!make_points, point_precondition);
       }
       return false;
@@ -338,7 +341,8 @@ namespace Legion {
         MessageManager* manager = runtime->find_messenger(target);
         manager->send_message(TASK_MESSAGE, rez, others.empty());
         return deactivate;
-      } else
+      }
+      else
       {
         // This is the nasty case where we need to pack this slice and
         // then only send a subset of the points to the remote node
@@ -426,7 +430,8 @@ namespace Legion {
             rez.serialize(finder->second.poisoned);
           }
           runtime->send_slice_concurrent_allreduce_request(orig_proc, rez);
-        } else
+        }
+        else
           index_owner->concurrent_allreduce(
               finder->first, this, runtime->address_space,
               finder->second.group_points, finder->second.lamport_clock,
@@ -665,7 +670,8 @@ namespace Legion {
             }
             std::map<PointTask*, unsigned>::iterator to_delete = it++;
             remaining.erase(to_delete);
-          } else
+          }
+          else
             it++;
         }
 #ifdef DEBUG_LEGION
@@ -711,7 +717,8 @@ namespace Legion {
           assert(temporary_futures.find(point) == temporary_futures.end());
 #endif
           temporary_futures[point] = std::make_pair(inst, effects);
-        } else
+        }
+        else
         {
           // If we're not doing serdez functions, we'll grab the first
           // one of these instances as the target for us to reduce into
@@ -729,7 +736,8 @@ namespace Legion {
                 // Must be the last thing we store
                 reduction_instance = inst;
                 return;
-              } else
+              }
+              else
                 reduction_instance = FutureInstance::create_local(
                     &reduction_op->identity, reduction_op->sizeof_rhs,
                     false /*own*/);
@@ -743,10 +751,12 @@ namespace Legion {
             assert(temporary_futures.find(point) == temporary_futures.end());
 #endif
             temporary_futures[point] = std::make_pair(inst, effects);
-          } else
+          }
+          else
             delete inst;
         }
-      } else
+      }
+      else
         index_owner->reduce_future(point, inst, effects);
     }
 
@@ -768,9 +778,11 @@ namespace Legion {
           functor->callback_release_future();
           if (own_functor)
             delete functor;
-        } else if ((instance != nullptr) && !instance->defer_deletion(effects))
+        }
+        else if ((instance != nullptr) && !instance->defer_deletion(effects))
           delete instance;
-      } else if (redop > 0)
+      }
+      else if (redop > 0)
       {
 #ifdef DEBUG_LEGION
         assert(functor == nullptr);
@@ -787,7 +799,8 @@ namespace Legion {
             memcpy(reduction_metadata, metadata, metasize);
           }
         }
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(future_handles != nullptr);
@@ -809,7 +822,8 @@ namespace Legion {
           assert(metadata == nullptr);
 #endif
           impl->set_result(effects, functor, own_functor, future_proc);
-        } else
+        }
+        else
           impl->set_result(effects, instance, metadata, metasize);
         if (registered.exists())
         {
@@ -870,7 +884,8 @@ namespace Legion {
           result->concurrent_precondition.traced =
               finder->second.precondition.traced;
           result->concurrent_postcondition = finder->second.precondition.traced;
-        } else
+        }
+        else
         {
           std::map<Color, ConcurrentGroup>::const_iterator finder =
               concurrent_groups.find(result->concurrent_color);
@@ -977,7 +992,8 @@ namespace Legion {
               predicate_false_result.get_size(), false /*own*/);
         else
           impl->set_result(ApEvent::NO_AP_EVENT, nullptr);
-      } else
+      }
+      else
         impl->set_result(execution_context, predicate_false_future.impl);
       if (registered.exists())
       {
@@ -1000,7 +1016,8 @@ namespace Legion {
         Serializer rez;
         pack_remote_complete(rez, effects);
         runtime->send_slice_remote_complete(orig_proc, rez);
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(temporary_futures.empty());
@@ -1027,7 +1044,8 @@ namespace Legion {
         Serializer rez;
         pack_remote_commit(rez, commit_precondition);
         runtime->send_slice_remote_commit(orig_proc, rez);
-      } else
+      }
+      else
       {
         // created and deleted privilege information already passed back
         // futures already sent back
@@ -1243,7 +1261,8 @@ namespace Legion {
         assert(num_uncompleted_points.load() > 0);
 #endif
         commit_preconditions.insert(applied);
-      } else
+      }
+      else
         index_owner->record_output_extents(output_region_extents);
     }
 
@@ -1297,7 +1316,8 @@ namespace Legion {
         }
         runtime->send_slice_remote_output_registration(orig_proc, rez);
         applied_events.insert(applied);
-      } else
+      }
+      else
         index_owner->record_output_registered(registered);
     }
 
@@ -1345,7 +1365,8 @@ namespace Legion {
 #endif
         if (++concurrent_points == points.size())
           send_rendezvous_concurrent_mapped();
-      } else
+      }
+      else
         index_owner->rendezvous_concurrent_mapped(
             point, target, color, precondition);
     }
@@ -1420,7 +1441,8 @@ namespace Legion {
           return collective_lamport_clock;
         }
         // Otherwise fall through and send the message to the index owner
-      } else
+      }
+      else
         return index_owner->collective_lamport_allreduce(
             lamport_clock, 1 /*points*/, need_result);
       Serializer rez;
@@ -1440,7 +1462,8 @@ namespace Legion {
           // in case nothing ends up needing it
           AutoLock o_lock(op_lock);
           commit_preconditions.insert(collective_lamport_clock_ready);
-        } else
+        }
+        else
         {
           rez.serialize(collective_lamport_clock_ready);
           rez.serialize<bool>(true);  // need result;
@@ -1495,7 +1518,8 @@ namespace Legion {
             rez.serialize(finder->second.poisoned);
           }
           runtime->send_slice_concurrent_allreduce_request(orig_proc, rez);
-        } else
+        }
+        else
           index_owner->concurrent_allreduce(
               finder->first, this, runtime->address_space,
               finder->second.group_points, finder->second.lamport_clock,
@@ -1571,7 +1595,8 @@ namespace Legion {
           rez.serialize(done);
         }
         runtime->send_slice_collective_allreduce_response(source, rez);
-      } else
+      }
+      else
         Runtime::trigger_event(done);
     }
 
@@ -1676,7 +1701,8 @@ namespace Legion {
                     rez, it->second.second, true /*pack ownership*/))
               rez.serialize(it->second.second);
           }
-        } else
+        }
+        else
         {
           if (serdez_redop_fns != nullptr)
           {
@@ -1688,7 +1714,8 @@ namespace Legion {
             rez.serialize(serdez_redop_state_size);
             if (serdez_redop_state_size > 0)
               rez.serialize(serdez_redop_state, serdez_redop_state_size);
-          } else
+          }
+          else
           {
 #ifdef DEBUG_LEGION
             // We might not have a reduction instance if this task was
@@ -1716,7 +1743,8 @@ namespace Legion {
         {
           rez.serialize(reduction_metasize);
           rez.serialize(reduction_metadata, reduction_metasize);
-        } else
+        }
+        else
           rez.serialize<size_t>(0);
       }
     }
@@ -1876,7 +1904,8 @@ namespace Legion {
         // Save this is for ourselves
         point_mapped_events[point] = temp_event;
         return temp_event;
-      } else
+      }
+      else
         return index_owner->find_intra_space_dependence(point);
     }
 

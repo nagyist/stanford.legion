@@ -499,7 +499,8 @@ namespace Legion {
           {
             snprintf(temp, max_chars, " %lld", sources[idx]);
             strncat(result, temp, max_chars);
-          } else
+          }
+          else
             snprintf(result, max_chars, "%lld", sources[idx]);
         }
         log_spy.print(
@@ -519,7 +520,8 @@ namespace Legion {
           {
             snprintf(temp, max_chars, " %lld", sources[idx]);
             strncat(result, temp, max_chars);
-          } else
+          }
+          else
             snprintf(result, max_chars, " %lld", sources[idx]);
         }
         log_spy.print(

@@ -391,7 +391,8 @@ namespace Legion {
               ordering, manager_cons->ordering_constraint.contiguous);
 
           has_conflict = constraints->conflicts(copied);
-        } else
+        }
+        else
           has_conflict = constraints->conflicts(*manager_cons);
 
         if (has_conflict)
@@ -404,7 +405,8 @@ namespace Legion {
               "into a fresh one with the correct layout.",
               field_id, index, context->owner_task->get_task_name(),
               context->owner_task->get_unique_op_id());
-      } else if (check_constraints)
+      }
+      else if (check_constraints)
       {
         REPORT_LEGION_FATAL(
             LEGION_FATAL_UNIMPLEMENTED_FEATURE,
@@ -429,7 +431,8 @@ namespace Legion {
                     domain, ApEvent::NO_AP_EVENT, true /*take ownership*/,
                     true /*broadcast*/))
               std::abort();  // should never end up deleting this
-          } else
+          }
+          else
           {
             DomainPoint color = region->row_source->get_domain_point_color();
             if (!global_indexing)
@@ -458,7 +461,8 @@ namespace Legion {
             context->owner_task->record_output_extent(index, color, extents);
           }
         }
-      } else if (new_extents != extents)
+      }
+      else if (new_extents != extents)
       {
         std::stringstream ss;
         ss << "Output region " << index << " of task "
@@ -561,7 +565,8 @@ namespace Legion {
             if (manager->update_physical_instance(instance, ready, footprint))
               delete manager;
             delete layout;
-          } else
+          }
+          else
           {
             // We don't have an existing instance so we need to make one
             const RtEvent ready(Realm::RegionInstance::create_instance(
@@ -572,7 +577,8 @@ namespace Legion {
             if (manager->update_physical_instance(instance, ready, footprint))
               delete manager;
           }
-        } else if (pit->first.exists())
+        }
+        else if (pit->first.exists())
         {
           // Use redistricting to make N instances for each manager
           std::vector<Realm::InstanceLayoutGeneric*> layouts(
@@ -623,7 +629,8 @@ namespace Legion {
               delete managers[idx];
             delete layouts[idx];
           }
-        } else
+        }
+        else
         {
           // Make an empty instance for each manager
           for (unsigned idx = 0; idx < pit->second.size(); idx++)

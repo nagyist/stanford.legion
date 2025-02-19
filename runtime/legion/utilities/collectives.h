@@ -51,7 +51,8 @@ namespace Legion {
           participating_spaces = 1;
           collective_last_radix = 0;
           return (local_space == 0);
-        } else
+        }
+        else
           collective_radix = participants;
       }
       // Adjust the radix to the next smallest power of 2
@@ -82,7 +83,8 @@ namespace Legion {
                                << ((collective_stages - 1) *
                                        collective_log_radix +
                                    log_remainder);
-      } else
+      }
+      else
       {
         collective_last_radix = collective_radix;
         participating_spaces = 1 << (collective_stages * collective_log_radix);

@@ -103,7 +103,8 @@ namespace Legion {
               root->handle.field_space.get_id(), root->handle.get_tree_id(),
               LEGION_READ_WRITE, LEGION_EXCLUSIVE, 0 /*redop*/,
               parent.index_space.get_id());
-        } else
+        }
+        else
         {
           PartitionNode* root = refinement_node->as_partition_node();
           LegionSpy::log_logical_requirement(
@@ -173,7 +174,8 @@ namespace Legion {
         parent_ctx->refine_equivalence_sets(
             parent_req_index, region->row_source, refinement_mask,
             map_applied_conditions);
-      } else
+      }
+      else
       {
         IndexPartNode* partition =
             refinement_node->as_partition_node()->row_source;
@@ -188,7 +190,8 @@ namespace Legion {
                 parent_req_index, child, refinement_mask,
                 map_applied_conditions);
           }
-        } else
+        }
+        else
         {
           // For complete partitions we refine from the root since it will
           // have the same impact as if we did it by individual subregions
@@ -282,7 +285,8 @@ namespace Legion {
         parent_ctx->refine_equivalence_sets(
             parent_req_index, region->row_source, refinement_mask,
             map_applied_conditions);
-      } else
+      }
+      else
       {
         IndexPartNode* partition =
             refinement_node->as_partition_node()->row_source;
@@ -304,7 +308,8 @@ namespace Legion {
                   parent_req_index, child, refinement_mask,
                   map_applied_conditions, true /*sharded*/);
             }
-          } else
+          }
+          else
           {
             // Not sharded path
             for (ColorSpaceIterator itr(partition); itr; itr++)
@@ -315,7 +320,8 @@ namespace Legion {
                   map_applied_conditions);
             }
           }
-        } else
+        }
+        else
         {
           // For complete partitions we refine from the root since it will
           // have the same impact as if we did it by individual subregions

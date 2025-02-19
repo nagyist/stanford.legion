@@ -129,7 +129,8 @@ namespace Legion {
               result = &(*it);
             else
               result = nullptr;
-          } else
+          }
+          else
             result = nullptr;
           return *this;
         }
@@ -143,7 +144,8 @@ namespace Legion {
               result = &(*it);
             else
               result = nullptr;
-          } else
+          }
+          else
             result = nullptr;
           return copy;
         }
@@ -266,7 +268,8 @@ namespace Legion {
               result = &(*it);
             else
               result = nullptr;
-          } else
+          }
+          else
             result = nullptr;
           return *this;
         }
@@ -280,7 +283,8 @@ namespace Legion {
               result = &(*it);
             else
               result = nullptr;
-          } else
+          }
+          else
             result = nullptr;
           return copy;
         }

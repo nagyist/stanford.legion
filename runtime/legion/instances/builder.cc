@@ -384,7 +384,8 @@ namespace Legion {
                   "creation contained multiple instances of DIM_F")
             else
               field_idx = idx;
-          } else
+          }
+          else
           {
             // Should never be duplicated
             if (spatial_dims.find(ord.ordering[idx]) != spatial_dims.end())
@@ -436,7 +437,8 @@ namespace Legion {
                 if (spatial_dims.find(dim) == spatial_dims.end())
                   ord.ordering.push_back(dim);
               }
-            } else if (field_idx == int(ord.ordering.size() - 1))
+            }
+            else if (field_idx == int(ord.ordering.size() - 1))
             {
               // Add them to the front
               for (int idx = (num_dims - 1); idx >= 0; idx--)
@@ -445,9 +447,11 @@ namespace Legion {
                 if (spatial_dims.find(dim) == spatial_dims.end())
                   ord.ordering.insert(ord.ordering.begin(), dim);
               }
-            } else  // Should either be AOS or SOA for now
+            }
+            else  // Should either be AOS or SOA for now
               std::abort();
-          } else
+          }
+          else
           {
             // No field dimension so just add the spatial ones on the back
             for (unsigned idx = 0; idx < num_dims; idx++)
@@ -465,7 +469,8 @@ namespace Legion {
         // We've now got all our dimensions so we can set the
         // contiguous flag to true
         ord.contiguous = true;
-      } else
+      }
+      else
       {
         // We had no ordering constraints so populate it with
         // SOA constraints for now
@@ -507,7 +512,8 @@ namespace Legion {
           {
             observed[it->dim] = true;
             it++;
-          } else
+          }
+          else
             it = constraints.tiling_constraints.erase(it);
         }
       }
@@ -573,7 +579,8 @@ namespace Legion {
         for (unsigned dim = 0; dim < num_dims; dim++)
           empty[dim] = 0;  // no padding
         constraints.padding_constraint.delta = Domain(empty, empty);
-      } else
+      }
+      else
       {
         DomainPoint lo = constraints.padding_constraint.delta.lo();
         DomainPoint hi = constraints.padding_constraint.delta.hi();

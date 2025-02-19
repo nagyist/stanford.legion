@@ -198,7 +198,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -520,7 +521,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -556,7 +558,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -592,7 +595,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -627,7 +631,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -903,7 +908,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -1146,7 +1152,8 @@ namespace Legion {
           bit_vector[idx] &= rhs[idx];
           sum_mask |= bit_vector[idx];
         }
-      } else
+      }
+      else
       {
         sum_mask = 0;
         for (unsigned idx = 0; idx < BIT_ELMTS; idx++) bit_vector[idx] = 0;
@@ -1254,7 +1261,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -1293,7 +1301,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -1333,7 +1342,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -1372,7 +1382,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -1661,7 +1672,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bits.bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -1990,7 +2002,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -2026,7 +2039,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -2063,7 +2077,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -2098,7 +2113,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -2352,7 +2368,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bits.bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -2613,7 +2630,8 @@ namespace Legion {
           temp_sum = _mm_or_si128(temp_sum, bits.sse_view(idx));
         }
         sum_mask = extract_mask(temp_sum);
-      } else
+      }
+      else
       {
         sum_mask = 0;
         for (unsigned idx = 0; idx < SSE_ELMTS; idx++)
@@ -2723,7 +2741,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -2762,7 +2781,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -2803,7 +2823,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -2842,7 +2863,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -3111,7 +3133,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bits.bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -3505,7 +3528,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -3541,7 +3565,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -3578,7 +3603,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -3613,7 +3639,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -3867,7 +3894,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bits.bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -4173,7 +4201,8 @@ namespace Legion {
         }
 #endif
         sum_mask = extract_mask(temp_sum);
-      } else
+      }
+      else
       {
         sum_mask = 0;
         for (unsigned idx = 0; idx < AVX_ELMTS; idx++)
@@ -4314,7 +4343,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -4353,7 +4383,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -4394,7 +4425,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -4433,7 +4465,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -4722,7 +4755,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bits.bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -5069,7 +5103,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -5105,7 +5140,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -5142,7 +5178,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -5177,7 +5214,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -5431,7 +5469,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bits.bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -5710,7 +5749,8 @@ namespace Legion {
           temp_sum = vec_or(temp_sum, lhs);
         }
         sum_mask = extract_mask(temp_sum);
-      } else
+      }
+      else
       {
         sum_mask = 0;
         const __vector unsigned long long zero_vec = vec_splats(0ULL);
@@ -5830,7 +5870,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -5869,7 +5910,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -5910,7 +5952,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -5949,7 +5992,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -6209,7 +6253,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bits.bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -6560,7 +6605,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -6596,7 +6642,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -6633,7 +6680,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -6668,7 +6716,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -6922,7 +6971,8 @@ namespace Legion {
         index += __builtin_popcountll(
             bits.bit_vector[element] << (ELEMENT_SIZE - offset));
         return index;
-      } else  // It's not set otherwise so we couldn't find an index
+      }
+      else  // It's not set otherwise so we couldn't find an index
         return -1;
     }
 
@@ -7201,7 +7251,8 @@ namespace Legion {
           temp_sum = vorrq_u32(temp_sum, lhs);
         }
         sum_mask = extract_mask(temp_sum);
-      } else
+      }
+      else
       {
         sum_mask = 0;
         const uint32x4_t zero_vec = vdupq_n_u32(0);
@@ -7322,7 +7373,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -7362,7 +7414,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           result[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -7403,7 +7456,8 @@ namespace Legion {
         }
         // fill in everything else with zeros
         for (unsigned idx = 0; idx < range; idx++) bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (int idx = (BIT_ELMTS - 1); idx > int(range); idx--)
@@ -7442,7 +7496,8 @@ namespace Legion {
         // Fill in everything else with zeros
         for (unsigned idx = (BIT_ELMTS - range); idx < (BIT_ELMTS); idx++)
           bits.bit_vector[idx] = 0;
-      } else
+      }
+      else
       {
         // Slow case with merging words
         for (unsigned idx = 0; idx < (BIT_ELMTS - (range + 1)); idx++)
@@ -7597,7 +7652,8 @@ namespace Legion {
         mask.dense = new DT(init);
         sparse_size = MAX_SPARSE + 1;
         sparsify();
-      } else
+      }
+      else
         sparse_size = 0;
     }
 
@@ -7643,7 +7699,8 @@ namespace Legion {
           newmask->set_bit(bit);
           mask.dense = newmask;
           sparse_size++;
-        } else
+        }
+        else
         {
           // Insert it at the right place in the array
           for (int idx = sparse_size - 1; idx >= 0; idx--)
@@ -7653,14 +7710,16 @@ namespace Legion {
               mask.sparse[idx + 1] = bit;
               sparse_size++;
               return;
-            } else
+            }
+            else
               mask.sparse[idx + 1] = mask.sparse[idx];
           }
           // If we get here, we still haven't added it
           mask.sparse[0] = bit;
           sparse_size++;
         }
-      } else
+      }
+      else
         mask.dense->set_bit(bit);
     }
 
@@ -7681,12 +7740,14 @@ namespace Legion {
           {
             if (shifting)
               mask.sparse[idx - 1] = mask.sparse[idx];
-          } else
+          }
+          else
             shifting = true;
         }
         if (shifting)
           sparse_size--;
-      } else
+      }
+      else
       {
         mask.dense->unset_bit(bit);
         sparsify();
@@ -7728,7 +7789,8 @@ namespace Legion {
         assert(sparse_size > 0);
 #endif
         return mask.sparse[0];
-      } else
+      }
+      else
       {
 #ifdef DEBUG_LEGION
         assert(!!(*mask.dense));
@@ -7754,7 +7816,8 @@ namespace Legion {
           return -1;
         else
           return mask.sparse[index];
-      } else
+      }
+      else
         return mask.dense->find_next_set(start);
     }
 
@@ -7783,7 +7846,8 @@ namespace Legion {
             break;
         }
         return -1;
-      } else
+      }
+      else
         return mask.dense->find_index(bit);
     }
 
@@ -7799,7 +7863,8 @@ namespace Legion {
           return mask.sparse[index];
         else  // Don't have any entry at that index
           return -1;
-      } else
+      }
+      else
         return mask.dense->get_index(index);
     }
 
@@ -7827,13 +7892,15 @@ namespace Legion {
           if (mask.sparse[idx] != rhs.mask.sparse[idx])
             return false;
         return true;
-      } else if (rhs.is_sparse())
+      }
+      else if (rhs.is_sparse())
       {
         for (unsigned idx = 0; idx < rhs.sparse_size; idx++)
           if (!mask.dense->is_set(rhs.mask.sparse[idx]))
             return false;
         return true;
-      } else
+      }
+      else
         return (*mask.dense) == (*rhs.mask.dense);
     }
 
@@ -7859,7 +7926,8 @@ namespace Legion {
             return false;
         // Otherwise they are equal so not strictly less than
         return false;
-      } else
+      }
+      else
         return (*mask.dense) < (*rhs.mask.dense);
     }
 
@@ -7886,7 +7954,8 @@ namespace Legion {
         if (was_dense)
           delete mask.dense;
         mask.sparse = rhs.mask.sparse;
-      } else
+      }
+      else
       {
         if (was_dense)
           (*mask.dense) = (*rhs.mask.dense);
@@ -7909,7 +7978,8 @@ namespace Legion {
         result.sparse_size = MAX_SPARSE + 1;
         for (unsigned idx = 0; idx < sparse_size; idx++)
           result.unset_bit(mask.sparse[idx]);
-      } else
+      }
+      else
       {
         result.mask.dense = new DT(~(*mask.dense));
         result.sparse_size = MAX_SPARSE + 1;
@@ -7934,15 +8004,18 @@ namespace Legion {
         {
           for (unsigned idx = 0; idx < rhs.sparse_size; idx++)
             result.set_bit(rhs.mask.sparse[idx]);
-        } else
+        }
+        else
           (*result.mask.dense) |= (*rhs.mask.dense);
-      } else if (!rhs.is_sparse())
+      }
+      else if (!rhs.is_sparse())
       {
         result.mask.dense = new DT(*rhs.mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
         for (unsigned idx = 0; idx < sparse_size; idx++)
           result.set_bit(mask.sparse[idx]);
-      } else
+      }
+      else
       {
         result.sparse_size = sparse_size;
         result.mask.sparse = mask.sparse;
@@ -7965,12 +8038,14 @@ namespace Legion {
         for (unsigned idx = 0; idx < sparse_size; idx++)
           if (rhs.is_set(mask.sparse[idx]))
             result.set_bit(mask.sparse[idx]);
-      } else if (rhs.is_sparse())
+      }
+      else if (rhs.is_sparse())
       {
         for (unsigned idx = 0; idx < rhs.sparse_size; idx++)
           if (is_set(rhs.mask.sparse[idx]))
             result.set_bit(rhs.mask.sparse[idx]);
-      } else
+      }
+      else
       {
         result.mask.dense = new DT(*mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
@@ -7999,12 +8074,14 @@ namespace Legion {
               result.unset_bit(rhs.mask.sparse[idx]);
             else
               result.set_bit(rhs.mask.sparse[idx]);
-        } else
+        }
+        else
         {
           (*result.mask.dense) ^= (*rhs.mask.dense);
           result.sparsify();
         }
-      } else if (!rhs.is_sparse())
+      }
+      else if (!rhs.is_sparse())
       {
         result.mask.dense = new DT(*rhs.mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
@@ -8013,7 +8090,8 @@ namespace Legion {
             result.unset_bit(mask.sparse[idx]);
           else
             result.set_bit(mask.sparse[idx]);
-      } else
+      }
+      else
       {
         result.mask.sparse = mask.sparse;
         result.sparse_size = sparse_size;
@@ -8039,7 +8117,8 @@ namespace Legion {
         {
           for (unsigned idx = 0; idx < rhs.sparse_size; idx++)
             set_bit(rhs.mask.sparse[idx]);
-        } else
+        }
+        else
         {
           DT* newmask = new DT(*rhs.mask.dense);
           for (unsigned idx = 0; idx < sparse_size; idx++)
@@ -8047,13 +8126,15 @@ namespace Legion {
           mask.dense = newmask;
           sparse_size = MAX_SPARSE + 1;
         }
-      } else
+      }
+      else
       {
         if (rhs.is_sparse())
         {
           for (unsigned idx = 0; idx < rhs.sparse_size; idx++)
             mask.dense->set_bit(rhs.mask.sparse[idx]);
-        } else
+        }
+        else
           (*mask.dense) |= (*rhs.mask.dense);
       }
       return *this;
@@ -8080,7 +8161,8 @@ namespace Legion {
           }
         }
         sparse_size = offset;
-      } else
+      }
+      else
       {
         if (rhs.is_sparse())
         {
@@ -8090,7 +8172,8 @@ namespace Legion {
             if (oldmask->is_set(rhs.mask.sparse[idx]))
               mask.sparse[sparse_size++] = rhs.mask.sparse[idx];
           delete oldmask;
-        } else
+        }
+        else
         {
           (*mask.dense) &= (*rhs.mask.dense);
           sparsify();
@@ -8113,7 +8196,8 @@ namespace Legion {
             unset_bit(rhs.mask.sparse[idx]);
           else
             set_bit(rhs.mask.sparse[idx]);
-      } else if (is_sparse())
+      }
+      else if (is_sparse())
       {
         DT* newmask = new DT(*rhs.mask.dense);
         for (unsigned idx = 0; idx < sparse_size; idx++)
@@ -8124,7 +8208,8 @@ namespace Legion {
         mask.dense = newmask;
         sparse_size = MAX_SPARSE + 1;
         sparsify();
-      } else
+      }
+      else
       {
         (*mask.dense) ^= (*rhs.mask.dense);
         sparsify();
@@ -8144,13 +8229,15 @@ namespace Legion {
           if (rhs.is_set(mask.sparse[idx]))
             return false;
         return true;
-      } else if (rhs.is_sparse())
+      }
+      else if (rhs.is_sparse())
       {
         for (unsigned idx = 0; idx < rhs.sparse_size; idx++)
           if (mask.dense->is_set(rhs.mask.sparse[idx]))
             return false;
         return true;
-      } else
+      }
+      else
         return (*mask.dense) * (*rhs.mask.dense);
     }
 
@@ -8188,7 +8275,8 @@ namespace Legion {
         for (unsigned idx = 0; idx < sparse_size; idx++)
           if (!rhs.is_set(mask.sparse[idx]))
             result.set_bit(mask.sparse[idx]);
-      } else
+      }
+      else
       {
         result.mask.dense = new DT(*mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
@@ -8196,7 +8284,8 @@ namespace Legion {
         {
           for (unsigned idx = 0; idx < rhs.sparse_size; idx++)
             result.unset_bit(rhs.mask.sparse[idx]);
-        } else
+        }
+        else
         {
           (*result.mask.dense) -= (*rhs.mask.dense);
           result.sparsify();
@@ -8226,13 +8315,15 @@ namespace Legion {
           }
         }
         sparse_size = offset;
-      } else
+      }
+      else
       {
         if (rhs.is_sparse())
         {
           for (unsigned idx = 0; idx < rhs.sparse_size; idx++)
             mask.dense->unset_bit(rhs.mask.sparse[idx]);
-        } else
+        }
+        else
           (*mask.dense) -= (*rhs.mask.dense);
         sparsify();
       }
@@ -8251,7 +8342,8 @@ namespace Legion {
         for (unsigned idx = 0; idx < sparse_size; idx++)
           if ((mask.sparse[idx] + shift) < DT::MAXSIZE)
             result.set_bit(mask.sparse[idx] + shift);
-      } else
+      }
+      else
       {
         result.mask.dense = new DT(*mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
@@ -8273,7 +8365,8 @@ namespace Legion {
         for (unsigned idx = 0; idx < sparse_size; idx++)
           if (shift <= mask.sparse[idx])
             result.set_bit(mask.sparse[idx] - shift);
-      } else
+      }
+      else
       {
         result.mask.dense = new DT(*mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
@@ -8296,7 +8389,8 @@ namespace Legion {
           if ((mask.sparse[idx] + shift) < DT::MAXSIZE)
             mask.sparse[offset++] = mask.sparse[idx] + shift;
         sparse_size = offset;
-      } else
+      }
+      else
       {
         (*mask.dense) <<= shift;
         sparsify();
@@ -8317,7 +8411,8 @@ namespace Legion {
           if (shift <= mask.sparse[idx])
             mask.sparse[offset++] = mask.sparse[idx] - shift;
         sparse_size = offset;
-      } else
+      }
+      else
       {
         (*mask.dense) >>= shift;
         sparsify();
@@ -8336,7 +8431,8 @@ namespace Legion {
         for (unsigned idx = 0; idx < sparse_size; idx++)
           result |= (1ULL << (mask.sparse[idx] % (8 * sizeof(result))));
         return result;
-      } else
+      }
+      else
         return mask.dense->get_hash_key();
     }
 
@@ -8351,7 +8447,8 @@ namespace Legion {
       {
         for (unsigned idx = 0; idx < sparse_size; idx++)
           rez.serialize(mask.sparse[idx]);
-      } else
+      }
+      else
         mask.dense->serialize(rez);
     }
 
@@ -8369,7 +8466,8 @@ namespace Legion {
           delete mask.dense;
         for (unsigned idx = 0; idx < sparse_size; idx++)
           derez.deserialize(mask.sparse[idx]);
-      } else
+      }
+      else
       {
         if (!was_dense)
           mask.dense = new DT();
@@ -8387,7 +8485,8 @@ namespace Legion {
       {
         for (unsigned idx = 0; idx < sparse_size; idx++)
           functor.apply(mask.sparse[idx]);
-      } else
+      }
+      else
         mask.dense->map(functor);
     }
 
@@ -8408,7 +8507,8 @@ namespace Legion {
           strcat(result, temp);
         }
         return result;
-      } else
+      }
+      else
         return mask.dense->to_string();
     }
 

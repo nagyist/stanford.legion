@@ -228,7 +228,8 @@ namespace Legion {
       {
         refs.single = new CollectableRef();
         refs.single->add_reference();
-      } else
+      }
+      else
       {
         refs.multi = new InternalSet(init_size);
         refs.multi->add_reference();
@@ -251,7 +252,8 @@ namespace Legion {
         shared = true;
         rhs.shared = true;
         refs.single->add_reference();
-      } else
+      }
+      else
       {
         refs.multi = rhs.refs.multi;
         shared = true;
@@ -268,7 +270,8 @@ namespace Legion {
       {
         if ((refs.single != nullptr) && refs.single->remove_reference())
           delete (refs.single);
-      } else
+      }
+      else
       {
         if (refs.multi->remove_reference())
           delete refs.multi;
@@ -284,7 +287,8 @@ namespace Legion {
       {
         if ((refs.single != nullptr) && refs.single->remove_reference())
           delete (refs.single);
-      } else
+      }
+      else
       {
         if (refs.multi->remove_reference())
           delete refs.multi;
@@ -299,9 +303,11 @@ namespace Legion {
           shared = true;
           rhs.shared = true;
           refs.single->add_reference();
-        } else
+        }
+        else
           shared = false;
-      } else
+      }
+      else
       {
         refs.multi = rhs.refs.multi;
         shared = true;
@@ -328,7 +334,8 @@ namespace Legion {
             delete (refs.single);
           refs.single = next;
         }
-      } else
+      }
+      else
       {
         InternalSet* next = new InternalSet(*refs.multi);
         next->add_reference();
@@ -353,7 +360,8 @@ namespace Legion {
             ((refs.single != nullptr) && (rhs.refs.single == nullptr)))
           return false;
         return ((*refs.single) == (*rhs.refs.single));
-      } else
+      }
+      else
       {
         if (refs.multi->vector.size() != rhs.refs.multi->vector.size())
           return false;
@@ -450,7 +458,8 @@ namespace Legion {
             delete (refs.single);
           refs.single = nullptr;
           shared = false;
-        } else if (new_size > 1)
+        }
+        else if (new_size > 1)
         {
           // Switch to multi
           InternalSet* next = new InternalSet(new_size);
@@ -464,7 +473,8 @@ namespace Legion {
           refs.multi = next;
           single = false;
           shared = false;
-        } else if (refs.single == nullptr)
+        }
+        else if (refs.single == nullptr)
         {
           // New size is 1 but we were empty before
           CollectableRef* next = new CollectableRef();
@@ -473,7 +483,8 @@ namespace Legion {
           single = true;
           shared = false;
         }
-      } else
+      }
+      else
       {
         if (new_size == 0)
         {
@@ -482,7 +493,8 @@ namespace Legion {
           refs.single = nullptr;
           single = true;
           shared = false;
-        } else if (new_size == 1)
+        }
+        else if (new_size == 1)
         {
           CollectableRef* next = new CollectableRef(refs.multi->vector[0]);
           if (refs.multi->remove_reference())
@@ -491,7 +503,8 @@ namespace Legion {
           refs.single = next;
           single = true;
           shared = false;
-        } else
+        }
+        else
         {
           size_t current_size = refs.multi->vector.size();
           if (current_size != new_size)
@@ -510,7 +523,8 @@ namespace Legion {
               next->add_reference();
               refs.multi = next;
               shared = false;
-            } else
+            }
+            else
             {
               // Resize our existing vector
               refs.multi->vector.resize(new_size);
@@ -531,7 +545,8 @@ namespace Legion {
         if ((refs.single != nullptr) && refs.single->remove_reference())
           delete (refs.single);
         refs.single = nullptr;
-      } else
+      }
+      else
       {
         if (shared)
         {
@@ -542,13 +557,15 @@ namespace Legion {
             // Put a reference back on it since we're reusing it
             refs.multi->add_reference();
             refs.multi->vector.clear();
-          } else
+          }
+          else
           {
             // Go back to single
             refs.multi = nullptr;
             single = true;
           }
-        } else
+        }
+        else
           refs.multi->vector.clear();
       }
       shared = false;
@@ -597,12 +614,14 @@ namespace Legion {
           refs.multi = next;
           single = false;
           shared = false;
-        } else
+        }
+        else
         {
           refs.single = new CollectableRef(ref);
           refs.single->add_reference();
         }
-      } else
+      }
+      else
       {
         if (shared)
           make_copy();
@@ -634,7 +653,8 @@ namespace Legion {
         }
         rez.serialize<size_t>(1);
         refs.single->pack_reference(rez);
-      } else
+      }
+      else
       {
         rez.serialize<size_t>(refs.multi->vector.size());
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
@@ -657,13 +677,15 @@ namespace Legion {
           if ((refs.single != nullptr) && refs.single->remove_reference())
             delete (refs.single);
           refs.single = nullptr;
-        } else
+        }
+        else
         {
           if (refs.multi->remove_reference())
             delete refs.multi;
           single = true;
         }
-      } else if (num_refs == 1)
+      }
+      else if (num_refs == 1)
       {
         // If we're in multi, go back to single
         if (!single)
@@ -683,7 +705,8 @@ namespace Legion {
         refs.single->unpack_reference(derez, ready);
         if (ready.exists())
           ready_events.insert(ready);
-      } else
+      }
+      else
       {
         // If we're in single, go to multi
         // otherwise resize our multi for the appropriate number of references
@@ -694,7 +717,8 @@ namespace Legion {
           refs.multi = new InternalSet(num_refs);
           refs.multi->add_reference();
           single = false;
-        } else
+        }
+        else
           refs.multi->vector.resize(num_refs);
         // Now do the unpacking
         for (unsigned idx = 0; idx < num_refs; idx++)
@@ -717,7 +741,8 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           refs.single->add_resource_reference(source);
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           refs.multi->vector[idx].add_resource_reference(source);
@@ -732,7 +757,8 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           refs.single->remove_resource_reference(source);
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           refs.multi->vector[idx].remove_resource_reference(source);
@@ -747,7 +773,8 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           return refs.single->acquire_valid_reference(source);
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           if (!refs.multi->vector[idx].acquire_valid_reference(source))
@@ -764,7 +791,8 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           refs.single->add_valid_reference(source);
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           refs.multi->vector[idx].add_valid_reference(source);
@@ -779,7 +807,8 @@ namespace Legion {
       {
         if (refs.single != nullptr)
           refs.single->remove_valid_reference(source);
-      } else
+      }
+      else
       {
         for (unsigned idx = 0; idx < refs.multi->vector.size(); idx++)
           refs.multi->vector[idx].remove_valid_reference(source);

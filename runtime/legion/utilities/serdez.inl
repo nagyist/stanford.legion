@@ -446,7 +446,8 @@ namespace Legion {
       {
         field.fill_data.indirect = malloc(field.size);
         deserialize(field.fill_data.indirect, field.size);
-      } else
+      }
+      else
         deserialize(field.fill_data.direct, field.size);
     }
   }

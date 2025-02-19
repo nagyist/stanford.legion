@@ -795,7 +795,8 @@ legion_index_partition_t legion_index_partition_create_coloring(
         points[index++] = Point<1, coord_t>(it->value);
       const DomainT<1, coord_t> space(points);
       domains[color] = DomainT<1, coord_t>(space);
-    } else
+    }
+    else
     {
       std::vector<Rect<1, coord_t> > ranges(
           cit->second.points.size() + cit->second.ranges.size());
@@ -904,7 +905,8 @@ legion_index_partition_t legion_index_partition_create_point_coloring(
         points[index++] = Point<1, coord_t>(it->value);
       const DomainT<1, coord_t> space(points);
       domains[cit->first] = DomainT<1, coord_t>(space);
-    } else
+    }
+    else
     {
       std::vector<Rect<1, coord_t> > ranges(
           cit->second.points.size() + cit->second.ranges.size());
@@ -3179,7 +3181,8 @@ legion_future_t legion_task_launcher_execute(
     legion_future_t result_;
     result_.impl = nullptr;
     return result_;
-  } else
+  }
+  else
     return CObjectWrapper::wrap(new Future(f));
 }
 
@@ -3210,7 +3213,8 @@ legion_future_t legion_task_launcher_execute_outputs(
     legion_future_t result_;
     result_.impl = nullptr;
     return result_;
-  } else
+  }
+  else
     return CObjectWrapper::wrap(new Future(f));
 }
 
@@ -3523,7 +3527,8 @@ legion_future_map_t legion_index_launcher_execute(
     legion_future_map_t result_;
     result_.impl = nullptr;
     return result_;
-  } else
+  }
+  else
     return CObjectWrapper::wrap(new FutureMap(f));
 }
 
@@ -3541,7 +3546,8 @@ legion_future_t legion_index_launcher_execute_reduction(
     legion_future_t result_;
     result_.impl = nullptr;
     return result_;
-  } else
+  }
+  else
     return CObjectWrapper::wrap(new Future(f));
 }
 
@@ -3572,7 +3578,8 @@ legion_future_map_t legion_index_launcher_execute_outputs(
     legion_future_map_t result_;
     result_.impl = nullptr;
     return result_;
-  } else
+  }
+  else
     return CObjectWrapper::wrap(new FutureMap(f));
 }
 
@@ -3591,7 +3598,8 @@ legion_future_t legion_index_launcher_execute_deterministic_reduction(
     legion_future_t result_;
     result_.impl = nullptr;
     return result_;
-  } else
+  }
+  else
     return CObjectWrapper::wrap(new Future(f));
 }
 
@@ -3623,7 +3631,8 @@ legion_future_t legion_index_launcher_execute_reduction_and_outputs(
     legion_future_t result_;
     result_.impl = nullptr;
     return result_;
-  } else
+  }
+  else
     return CObjectWrapper::wrap(new Future(f));
 }
 
@@ -5452,7 +5461,8 @@ void legion_index_attach_launcher_attach_hdf5(
       handle->field_files[it->first].push_back(it->second);
     }
     handle->initialize_constraints(true /*column major*/, true /*soa*/, fields);
-  } else
+  }
+  else
   {
     for (std::map<FieldID, const char*>::const_iterator it = field_map->begin();
          it != field_map->end(); it++)
@@ -7033,7 +7043,8 @@ public:
     {
       assert(!region_functor_mappable);
       assert(!partition_functor_mappable);
-    } else
+    }
+    else
     {
       assert(!region_functor);
       assert(!partition_functor);
@@ -7062,7 +7073,8 @@ public:
     {
       assert(!region_functor_mappable);
       assert(!partition_functor_mappable);
-    } else
+    }
+    else
     {
       assert(!region_functor);
       assert(!partition_functor);

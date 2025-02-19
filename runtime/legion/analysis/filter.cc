@@ -151,7 +151,8 @@ namespace Legion {
           {
             mapping->pack(rez);
             rez.serialize<bool>(is_collective_first_local());
-          } else
+          }
+          else
             rez.serialize<size_t>(0);
           rez.serialize(applied);
         }

@@ -325,7 +325,8 @@ namespace Legion {
               << " bytes which exceeds the specified upper bound.";
         }
         done = finalize_serdez_targets();
-      } else
+      }
+      else
         done = all_reduce_redop(executed);
       if (done.exists())
         record_completion_effect(done);
@@ -367,10 +368,12 @@ namespace Legion {
             {
               unique_memories.insert(*it);
               it++;
-            } else
+            }
+            else
               it = output.destination_memories.erase(it);
           }
-        } else if (!output.destination_memories.front().exists())
+        }
+        else if (!output.destination_memories.front().exists())
           Exception(MAPPER_EXCEPTION, this)
               << "Invalid mapper output. Mapper " << *mapper
               << " requested future map reduction future be mapped to a "
@@ -378,7 +381,8 @@ namespace Legion {
               << " which is illegal. All requests for mapping output futures "
               << "must be mapped to actual memories.";
         target_memories.swap(output.destination_memories);
-      } else
+      }
+      else
         target_memories.push_back(runtime->runtime_system_memory);
       // Compute the future reduction size
       if (serdez_redop_fns == nullptr)
@@ -486,7 +490,8 @@ namespace Legion {
              it != preconditions.end(); it++)
           if (it->exists())
             postconditions.push_back(*it);
-      } else
+      }
+      else
       {
         for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
                  sources.begin();
@@ -544,10 +549,12 @@ namespace Legion {
           reduction_collective = new FutureReductionCollective(
               ctx, COLLECTIVE_LOC_66, 0 /*origin shard*/, this,
               broadcast_collective, redop, redop_id);
-        } else
+        }
+        else
           all_reduce_collective = new FutureAllReduceCollective(
               this, COLLECTIVE_LOC_97, ctx, redop_id, redop);
-      } else
+      }
+      else
         serdez_redop_collective = new BufferExchange(ctx, COLLECTIVE_LOC_97);
     }
 
@@ -663,12 +670,14 @@ namespace Legion {
             future_result_size = it->second.second;
             serdez_redop_buffer = malloc(future_result_size);
             memcpy(serdez_redop_buffer, it->second.first, future_result_size);
-          } else
+          }
+          else
             (*(serdez_redop_fns->fold_fn))(
                 redop, serdez_redop_buffer, future_result_size,
                 it->second.first);
         }
-      } else
+      }
+      else
       {
         for (std::map<ShardID, std::pair<void*, size_t> >::const_iterator it =
                  remote_buffers.begin();
@@ -725,7 +734,8 @@ namespace Legion {
           if (runtime->legion_spy_enabled)
             LegionSpy::log_future_use(unique_op_id, it->second->did);
         }
-      } else
+      }
+      else
       {
         std::vector<ApEvent> postconditions;
         for (std::map<DomainPoint, FutureImpl*>::const_iterator it =
@@ -753,7 +763,8 @@ namespace Legion {
           executed = broadcast_collective->async_broadcast(
               targets.front(), ApEvent::NO_AP_EVENT,
               reduction_collective->get_done_event());
-      } else
+      }
+      else
         executed = all_reduce_collective->async_reduce(
             targets.front(), local_precondition);
       // Finally do the copy out to all the other targets

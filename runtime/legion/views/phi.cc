@@ -253,7 +253,8 @@ namespace Legion {
         DeferPhiViewRegistrationArgs args(view);
         runtime->issue_runtime_meta_task(
             args, LG_LATENCY_DEFERRED_PRIORITY, wait_on);
-      } else
+      }
+      else
       {
         // Add the resource references
         view->add_initial_references(true /*unpack references*/);

@@ -173,7 +173,8 @@ namespace Legion {
           buffer += to_copy;
           sending_index += to_copy;
         }
-      } else
+      }
+      else
       {
         packaged_messages++;
         // Package up the kind and the size first
@@ -223,7 +224,8 @@ namespace Legion {
           partial = true;
           first_partial = true;
         }
-      } else if (partial)
+      }
+      else if (partial)
       {
         header = FINAL_MESSAGE;
         // If this is an unordered virtual channel, then embed our partial
@@ -276,7 +278,8 @@ namespace Legion {
           if (unordered_events.size() >= MAX_UNORDERED_EVENTS)
             filter_unordered_events();
         }
-      } else
+      }
+      else
       {
         last_message_event = RtEvent(target.spawn(
 #ifdef LEGION_SEPARATE_META_TASKS
@@ -326,7 +329,8 @@ namespace Legion {
         {
           std::set<RtEvent>::iterator to_delete = it++;
           unordered_events.erase(to_delete);
-        } else
+        }
+        else
           it++;
       }
       // If we still have too many events, collapse them down
@@ -370,9 +374,11 @@ namespace Legion {
               shutdown_manager->record_pending_message(last_message_event);
             else
               observed_recent = false;
-          } else
+          }
+          else
             observed_recent = false;
-        } else
+        }
+        else
         {
           observed_recent = false;
           for (std::set<RtEvent>::const_iterator it = unordered_events.begin();
@@ -395,7 +401,8 @@ namespace Legion {
             }
           }
         }
-      } else
+      }
+      else
       {
         if (observed_recent || (packaged_messages > 0))
         {
@@ -405,7 +412,8 @@ namespace Legion {
             send_message(
                 true /*complete*/, target, SEND_PROFILER_EVENT_TRIGGER,
                 false /*response*/, RtEvent::NO_RT_EVENT);
-        } else
+        }
+        else
         {
           if (ordered_channel)
           {
@@ -420,7 +428,8 @@ namespace Legion {
               if (!last_message_event.has_triggered())
                 shutdown_manager->record_recent_message();
             }
-          } else
+          }
+          else
           {
             for (std::set<RtEvent>::const_iterator it =
                      unordered_events.begin();
@@ -500,7 +509,8 @@ namespace Legion {
               buffer_messages(
                   num_messages, buffer, arglen, message.buffer, message.size,
                   message.index, message.messages, message.total);
-            } else
+            }
+            else
               // Ordered channels don't need the lock
               buffer_messages(
                   num_messages, buffer, arglen, receiving_buffer,
@@ -537,7 +547,8 @@ namespace Legion {
               final_messages = finder->second.messages;
               free_buffer_size = finder->second.size;
               partial_assembly->erase(finder);
-            } else
+            }
+            else
             {
               buffer_messages(
                   num_messages, buffer, arglen, receiving_buffer,

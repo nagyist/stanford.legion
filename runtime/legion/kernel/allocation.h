@@ -430,7 +430,8 @@ namespace Legion {
         if (num == 1)
         {
           legion_free<T>(ptr, SIZE);
-        } else if (num > 1)
+        }
+        else if (num > 1)
         {
           constexpr std::size_t ALIGNMENT = alignof(T);
           // Compute the padding required between the elements

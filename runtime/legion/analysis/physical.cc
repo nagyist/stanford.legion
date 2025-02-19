@@ -74,7 +74,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           deferred_applied_events.clear();
 #endif
-        } else
+        }
+        else
           Runtime::trigger_event(deferred_applied_event);
       }
 #ifdef DEBUG_LEGION
@@ -126,11 +127,13 @@ namespace Legion {
             set->analyze(
                 *this, expr, false /*covers*/, mask, deferral_events,
                 applied_events, already_deferred);
-        } else
+        }
+        else
           set->analyze(
               *this, set->set_expr, true /*covers*/, mask, deferral_events,
               applied_events, already_deferred);
-      } else
+      }
+      else
         // This has to be the first time through and isn't really
         // a deferral of an the traversal since we haven't even
         // started the traversal yet
@@ -412,7 +415,8 @@ namespace Legion {
               to_remove.push_back(it->first);
           }
         }
-      } else
+      }
+      else
       {
         FieldMaskSet<IndexSpaceExpression>::const_iterator first =
             remote_exprs.begin();
@@ -468,7 +472,8 @@ namespace Legion {
       {
         AutoLock a_lock(*this);
         remote_sets[owner].insert(set, mask);
-      } else
+      }
+      else
         // No lock needed if we're the only one
         remote_sets[owner].insert(set, mask);
     }

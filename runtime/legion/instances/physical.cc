@@ -78,7 +78,8 @@ namespace Legion {
 #endif
         Runtime::trigger_event_untraced(
             use_event, fetch_metadata(instance, u_event));
-      } else  // add a resource reference to remove once this manager is set
+      }
+      else  // add a resource reference to remove once this manager is set
         add_base_valid_ref(PENDING_UNBOUND_REF);
       // If we're in a pending collectable state, then add a reference
       if (gc_state == PENDING_COLLECTED_GC_STATE)
@@ -256,10 +257,12 @@ namespace Legion {
                       view_did);
           return new (location) ReductionView(
               view_did, logical_owner, this, true /*register now*/, mapping);
-        } else
+        }
+        else
           return new ReductionView(
               view_did, logical_owner, this, true /*register now*/, mapping);
-      } else
+      }
+      else
       {
         if (mapping != nullptr)
         {
@@ -269,7 +272,8 @@ namespace Legion {
               MaterializedView>(view_did);
           return new (location) MaterializedView(
               view_did, logical_owner, this, true /*register now*/, mapping);
-        } else
+        }
+        else
           return new MaterializedView(
               view_did, logical_owner, this, true /*register now*/, mapping);
       }
@@ -324,7 +328,8 @@ namespace Legion {
             if (!pending_finder->second.exists())
               pending_finder->second = Runtime::create_rt_user_event();
             wait_for = pending_finder->second;
-          } else
+          }
+          else
             pending_views[key] = RtUserEvent::NO_RT_USER_EVENT;
         }
       }
@@ -356,7 +361,8 @@ namespace Legion {
         result = construct_top_view(
             (mapping == nullptr) ? logical_owner : owner_space, view_did,
             own_ctx, mapping);
-      } else if ((mapping != nullptr) && mapping->contains(local_space))
+      }
+      else if ((mapping != nullptr) && mapping->contains(local_space))
       {
         // If we're collectively making this view then we're just going to
         // do that and use the owner node as the logical owner for the view
@@ -381,7 +387,8 @@ namespace Legion {
         // own logical owner view
         result = construct_top_view(
             runtime->address_space, view_did.load(), own_ctx, mapping);
-      } else
+      }
+      else
       {
         // We're not collective and not the owner so send the request
         // to the owner to make the logical view and send back the result
@@ -540,13 +547,15 @@ namespace Legion {
             {
               std::set<ApEvent>::iterator to_delete = it++;
               gc_events.erase(to_delete);
-            } else
+            }
+            else
               it++;
           }
 #endif
           added_gc_events = 0;
         }
-      } else
+      }
+      else
       {
         const RtEvent applied = Runtime::create_rt_user_event();
         Serializer rez;
@@ -857,7 +866,8 @@ namespace Legion {
         Runtime::trigger_event(done);
         // Remove the reference that we just got
         manager->remove_base_valid_ref(REMOTE_DID_REF);
-      } else
+      }
+      else
       {
         // If we get here, we failed so send the response
         Serializer rez;
@@ -1009,7 +1019,8 @@ namespace Legion {
           finder->second++;
 #endif
         return true;
-      } else
+      }
+      else
       {
         std::set<InstanceDeletionSubscriber*> to_notify;
         {
@@ -1074,7 +1085,8 @@ namespace Legion {
         // the reference that we acquired on this node
         ready.wait();
         manager->remove_base_valid_ref(REMOTE_DID_REF);
-      } else
+      }
+      else
       {
         // We failed, so the flag is already set, just trigger the event
         Runtime::trigger_event(ready);
@@ -1183,7 +1195,8 @@ namespace Legion {
           rez.serialize(done);
         }
         runtime->send_gc_response(source, rez);
-      } else  // Couldn't collect so we are done
+      }
+      else  // Couldn't collect so we are done
         Runtime::trigger_event(done);
       manager->unpack_global_ref();
     }
@@ -1240,7 +1253,8 @@ namespace Legion {
           rez.serialize(done);
         }
         runtime->send_gc_failed(owner, rez);
-      } else
+      }
+      else
       {
         std::set<RtEvent> ready_events;
         // Send the gc events back to the owner if we have any, merge
@@ -1433,7 +1447,8 @@ namespace Legion {
       {
         AutoLock i_lock(inst_lock, 1, false /*exclusive*/);
         pack_garbage_collection_state(rez, target, false /*need lock*/);
-      } else
+      }
+      else
       {
         switch (gc_state.load())
         {
@@ -1556,7 +1571,8 @@ namespace Legion {
           }
           if (!ready_events.empty())
             collection_ready = Runtime::merge_events(ready_events);
-        } else
+        }
+        else
         {
 #ifdef DEBUG_LEGION
           assert(gc_state == PENDING_COLLECTED_GC_STATE);
@@ -1613,7 +1629,8 @@ namespace Legion {
                 // keep it in this state
                 if (--pending_changes == 0)
                   gc_state = COLLECTABLE_GC_STATE;
-              } else
+              }
+              else
               {
                 // Deletion success and we're the first ones to discover it
                 // Move to the deletion state and send the deletion messages
@@ -1707,7 +1724,8 @@ namespace Legion {
             std::abort();  // should not be in any other state
         }
         return false;
-      } else
+      }
+      else
       {
         // No longer need the lock here since we're just sending a message
         i_lock->release();
@@ -1756,7 +1774,8 @@ namespace Legion {
           mapper_gc_priorities.emplace(std::make_pair(key, priority));
           // Always fall through to send the update because we were
           // effectively in an uninitialized state before
-        } else
+        }
+        else
         {
           std::map<std::pair<MapperID, Processor>, GCPriority>::iterator
               finder = mapper_gc_priorities.find(key);
@@ -1765,7 +1784,8 @@ namespace Legion {
             mapper_gc_priorities[key] = priority;
             if (min_gc_priority <= priority)
               return RtEvent::NO_RT_EVENT;
-          } else
+          }
+          else
           {
             // See if we're the minimum priority
             if (min_gc_priority < finder->second)
@@ -1775,7 +1795,8 @@ namespace Legion {
               if (min_gc_priority <= priority)
                 return RtEvent::NO_RT_EVENT;
               // Otherwise fall through and update the min priority
-            } else
+            }
+            else
             {
               // We were one of the minimum priorities before
 #ifdef DEBUG_LEGION
@@ -1861,7 +1882,8 @@ namespace Legion {
               // Tell the remote nodes they no longer need to
               // check for each deletion
               broadcast_priority_update = true;
-          } else if (min_gc_priority < priority)
+          }
+          else if (min_gc_priority < priority)
           {
             // Transitioning to a larger priority
             if (priority == LEGION_GC_EAGER_PRIORITY)
@@ -1896,7 +1918,8 @@ namespace Legion {
         memory_manager->set_garbage_collection_priority(this, priority);
         if (broadcast_priority_update)
           updated = broadcast_garbage_collection_priority_update(priority);
-      } else
+      }
+      else
       {
         const RtUserEvent done = Runtime::create_rt_user_event();
         Serializer rez;
@@ -1952,7 +1975,8 @@ namespace Legion {
         Runtime::trigger_event(
             done, manager->set_garbage_collection_priority(
                       0 /*default mapper ID*/, fake_proc, priority));
-      } else
+      }
+      else
         Runtime::trigger_event(
             done,
             manager->broadcast_garbage_collection_priority_update(priority));
@@ -2405,7 +2429,8 @@ namespace Legion {
         DeferDeletePhysicalManager args(this);
         runtime->issue_runtime_meta_task(
             args, LG_LOW_PRIORITY, deferred_deletion);
-      } else
+      }
+      else
         memory_manager->unregister_deleted_instance(this);
       return deferred_deletion;
     }
@@ -2517,9 +2542,11 @@ namespace Legion {
                it != mapper_gc_priorities.end(); it++)
             if (it->second < min_gc_priority)
               min_gc_priority = it->second;
-        } else
+        }
+        else
           min_gc_priority = priority;
-      } else if (mapper_gc_priorities.empty())
+      }
+      else if (mapper_gc_priorities.empty())
       {
         // Only need to set the to eager priority if there are no mapper
         // opinions because if there are mapper opinions either they
@@ -2690,10 +2717,12 @@ namespace Legion {
             Reservation handle = Reservation::create_reservation();
             padded_reservations->insert(std::make_pair(idx, handle));
             reservations[offset++] = handle;
-          } else
+          }
+          else
             reservations[offset++] = finder->second;
         }
-      } else
+      }
+      else
       {
         // Figure out which fields we need requests for and send them
         FieldMask needed_fields;
@@ -2704,7 +2733,8 @@ namespace Legion {
             for (int idx = mask.find_first_set(); idx >= 0;
                  idx = mask.find_next_set(idx + 1))
               needed_fields.set_bit(idx);
-          } else
+          }
+          else
           {
             for (int idx = mask.find_first_set(); idx >= 0;
                  idx = mask.find_next_set(idx + 1))

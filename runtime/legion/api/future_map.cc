@@ -309,7 +309,8 @@ namespace Legion {
         assert(finder != futures.end());
 #endif
         return Future(finder->second);
-      } else
+      }
+      else
       {
         AutoLock fm_lock(future_map_lock);
         // Check to see if we already have a future for the point
@@ -415,7 +416,8 @@ namespace Legion {
           provenance->serialize(rez);
         else
           Provenance::serialize_null(rez);
-      } else
+      }
+      else
         rez.serialize<bool>(false);  // cannot make it, need to wait
       pack_global_ref();
     }
@@ -589,7 +591,8 @@ namespace Legion {
         }
         runtime->send_future_map_find_pointwise(owner_space, rez);
         return to_trigger;
-      } else
+      }
+      else
         return context->find_pointwise_dependence(
             *context_index, point, 0 /*shard*/, to_trigger);
     }
@@ -790,7 +793,8 @@ namespace Legion {
         assert(previous->future_map_domain->contains_point(transformed));
 #endif
         return previous->get_future(transformed, internal_only, wait_on);
-      } else
+      }
+      else
       {
         const DomainPoint transformed =
             (*transform.fnptr)(point, domain, range);
@@ -826,7 +830,8 @@ namespace Legion {
 #endif
           futures[itr.p] = finder->second;
         }
-      } else
+      }
+      else
       {
         for (Domain::DomainPointIterator itr(domain); itr; itr++)
         {
@@ -871,7 +876,8 @@ namespace Legion {
         assert(previous->future_map_domain->contains_point(transformed));
 #endif
         return previous->find_local_future(transformed);
-      } else
+      }
+      else
       {
         const DomainPoint transformed =
             (*transform.fnptr)(point, domain, range);
@@ -906,7 +912,8 @@ namespace Legion {
 #endif
             futures[inverted] = it->second;
           }
-        } else
+        }
+        else
         {
           // Not invertible so do it the hard way by enumerating all
           // the points and seeing which ones we find
@@ -923,7 +930,8 @@ namespace Legion {
               futures[itr.p] = finder->second;
           }
         }
-      } else
+      }
+      else
       {
         // No easy way to invert a function pointer, so we iterate all
         // the points and just take the ones that we find
@@ -961,7 +969,8 @@ namespace Legion {
 #endif
         return previous->find_pointwise_dependence(
             transformed, context_depth, to_trigger);
-      } else
+      }
+      else
       {
         const DomainPoint transformed =
             (*transform.fnptr)(point, domain, range);
@@ -1098,7 +1107,8 @@ namespace Legion {
         assert(finder != futures.end());
 #endif
         return Future(finder->second);
-      } else  // If we're the owner shard we can just do the normal thing
+      }
+      else  // If we're the owner shard we can just do the normal thing
       {
         AutoLock fm_lock(future_map_lock);
         // Check to see if we already have a future for the point
@@ -1223,7 +1233,8 @@ namespace Legion {
           sharding_function = function;
           own_sharding_function = own_function;
           to_trigger = sharding_function_ready;
-        } else
+        }
+        else
           return false;
       }
       if (to_trigger.exists())
@@ -1241,7 +1252,8 @@ namespace Legion {
         if (!sharding_function_ready.exists())
           sharding_function_ready = Runtime::create_rt_user_event();
         return sharding_function_ready;
-      } else
+      }
+      else
         return RtEvent::NO_RT_EVENT;
     }
 

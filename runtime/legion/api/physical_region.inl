@@ -441,9 +441,11 @@ namespace Legion {
                   current.data(), current.size() + volume, min_stride);
             else  // Save this rectangle for the next iteration
               break;
-          } else  // Start a new span
+          }
+          else  // Start a new span
             current = Span<FT, LEGION_READ_WRITE>(ptr, volume, min_stride);
-        } else
+        }
+        else
         {
           // Not a uniform stride, so go to the partial piece case
           if (current.empty())
@@ -811,9 +813,11 @@ namespace Legion {
                 current.data(), current.size() + volume, min_stride);
           else  // Save this rectangle for the next iteration
             break;
-        } else  // Start a new span
+        }
+        else  // Start a new span
           current = Span<FT, PM>(ptr, volume, min_stride);
-      } else
+      }
+      else
       {
         // Not a uniform stride, so go to the partial piece case
         if (current.empty())

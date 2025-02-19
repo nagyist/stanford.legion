@@ -89,7 +89,8 @@ namespace Legion {
               static_cast<Realm::IndexSpace<DIM, typename TYPELIST::HEAD>*>(
                   realm_is);
           *target = domain;
-        } else
+        }
+        else
           RealmSpaceConverter<DIM, typename TYPELIST::TAIL>::convert_to(
               domain, realm_is, type_tag, context);
       }
