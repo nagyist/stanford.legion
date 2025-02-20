@@ -672,16 +672,9 @@ before_script:
         exit 1
       fi
 
-.legion_clang_format: &legion_clang_format
+.pre_commit_check: &pre_commit_check
   script:
-    - |
-      find runtime/legion \( -name "*.cc" -o -name "*.inl" -o -name "*.h" \) -print0 | while IFS= read -r -d '' file; do
-        if ! clang-format-19 -style=file:runtime/legion/.clang-format "$file" | diff -u "$file" -; then
-          echo "Legion file $file does not comply with clang-format rules"
-          exit 1
-        fi
-      done
-    - echo "All Legion files comply with clang-format rules"
+    - pre-commit run --all-files
 
 # For performance tests, run these commands:
 .perf_tests: &perf_tests
@@ -1415,13 +1408,13 @@ clang_format_realm:
   <<: [*linux, *image_2204, *realm_clang_format]
   variables:
     <<: [*gcc12, *cxx17_normal, *short]
-clang_format_legion:
+check_pre_commit:
   rules:
     # Always during a merge request update
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: always
     # Never any other time
     - when: never
-  <<: [*linux, *image_2404, *legion_clang_format]
+  <<: [*linux, *image_2404, *pre_commit_check]
   variables:
     <<: [*gcc12, *cxx17_normal, *short]
