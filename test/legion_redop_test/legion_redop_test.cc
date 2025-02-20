@@ -15,16 +15,16 @@
 
 #include "legion.h"
 #include <assert.h>
-#ifndef LEGION_REDOP_COMPLEX
 #include <complex>
-#endif
 #include <iomanip>
 #include <iostream>
 #include <random>
 #include <string.h>
 
 using namespace Legion;
+#ifndef LEGION_REDOP_COMPLEX
 using namespace std;
+#endif
 typedef std::default_random_engine RNG;
 
 #if __cplusplus < 201103L
