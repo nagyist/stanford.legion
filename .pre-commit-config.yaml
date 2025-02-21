@@ -6,6 +6,5 @@ repos:
       - id: clang-format
         name: clang-format
         entry: clang-format
-        language: system
         files: ^runtime/legion/.*\.(cc|inl|h)$
         args: ["-i", "-style=file:runtime/legion/.clang-format"]
