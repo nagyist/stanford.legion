@@ -585,7 +585,7 @@ namespace Legion {
         {
           PointDepPartOp* point = runtime->get_operation<PointDepPartOp>();
           point->initialize(this, itr.p);
-          points.push_back(point);
+          points.emplace_back(point);
         }
         // Perform the projections
         ProjectionFunction* function =
@@ -716,9 +716,9 @@ namespace Legion {
           desc.domain = domain;
           desc.color = color;
           if (instances_ready.exists())
-            index_preconditions.push_back(instances_ready);
+            index_preconditions.emplace_back(instances_ready);
           if (domain_ready.exists())
-            index_preconditions.push_back(domain_ready);
+            index_preconditions.emplace_back(domain_ready);
 #ifdef DEBUG_LEGION
           assert(!points.empty());
 #endif
@@ -1869,7 +1869,7 @@ namespace Legion {
       ApEvent ready;
       derez.deserialize(ready);
       if (ready.exists())
-        ready_events.push_back(ready);
+        ready_events.emplace_back(ready);
     }
 
     //--------------------------------------------------------------------------
@@ -1877,7 +1877,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       if (ready.exists())
-        ready_events.push_back(ready);
+        ready_events.emplace_back(ready);
       perform_collective_async();
     }
 
@@ -2261,9 +2261,9 @@ namespace Legion {
           desc.domain = domain;
           desc.color = color;
           if (instances_ready.exists())
-            index_preconditions.push_back(instances_ready);
+            index_preconditions.emplace_back(instances_ready);
           if (domain_ready.exists())
-            index_preconditions.push_back(domain_ready);
+            index_preconditions.emplace_back(domain_ready);
 #ifdef DEBUG_LEGION
           assert(!points.empty());
 #endif
@@ -2451,7 +2451,7 @@ namespace Legion {
           ApEvent ready =
               child->get_loose_domain(remote_targets[color], to_trigger);
           if (ready.exists())
-            preconditions.push_back(ready);
+            preconditions.emplace_back(ready);
         }
       }
     }

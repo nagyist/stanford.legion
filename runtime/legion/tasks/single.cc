@@ -378,7 +378,7 @@ namespace Legion {
       assert(parent_instances.size() == regions.size());
 #endif
       selected_variant = variant->vid;
-      target_processors.push_back(current_proc);
+      target_processors.emplace_back(current_proc);
       physical_instances = parent_instances;
       virtual_mapped.resize(regions.size());
       no_access_regions.resize(regions.size());
@@ -440,7 +440,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(output_ready.exists());
 #endif
-          output_events.push_back(output_ready);
+          output_events.emplace_back(output_ready);
         }
         else
           Operation::perform_versioning_analysis(
@@ -578,7 +578,7 @@ namespace Legion {
               << "by mapper " << *mapper << " for " << *this
               << ". Adding the 'target_proc' " << this->target_proc
               << " as the default.";
-          output.target_procs.push_back(this->target_proc);
+          output.target_procs.emplace_back(this->target_proc);
         }
         else if (output.target_procs.size() > 1)
         {
@@ -616,7 +616,7 @@ namespace Legion {
               << this->target_proc << " as part of a must epoch launch.";
         }
         // Only one valid choice in this case, ignore everything else
-        target_processors.push_back(this->target_proc);
+        target_processors.emplace_back(this->target_proc);
       }
       // If we had any future mapping outputs, we can grab them
       if (!futures.empty())
@@ -660,7 +660,7 @@ namespace Legion {
             else
               target_memory = runtime->runtime_system_memory;
           }
-          future_memories.push_back(target_memory);
+          future_memories.emplace_back(target_memory);
           // Safe to block here indefinitely waiting for unbounded pools
           futures[idx].impl->request_application_instance(
               target_memory, this, nullptr /*safe_for_unbounded_pools*/);
@@ -686,11 +686,11 @@ namespace Legion {
             // for this task. We know we'll see it before this
             // because the measurement IDs are in order
             if (!has_proc_request)
-              task_profiling_requests.push_back(
+              task_profiling_requests.emplace_back(
                   (ProfilingMeasurementID)Realm::PMID_OP_PROC_USAGE);
             // These are legion profiling requests and currently
             // are only profiling task information
-            task_profiling_requests.push_back(*it);
+            task_profiling_requests.emplace_back(*it);
             continue;
           }
           switch ((Realm::ProfilingMeasurementID)*it)
@@ -710,7 +710,7 @@ namespace Legion {
             case Realm::PMID_PCTRS_BP:
               {
                 // Just task
-                task_profiling_requests.push_back(*it);
+                task_profiling_requests.emplace_back(*it);
                 break;
               }
             default:
@@ -1122,7 +1122,7 @@ namespace Legion {
                   << "does not have read-only privileges.";
           }
           else
-            untracked_valid_regions.push_back(*it);
+            untracked_valid_regions.emplace_back(*it);
         }
       }
       return true;
@@ -1951,8 +1951,8 @@ namespace Legion {
                  shard_mapping.begin();
              it != shard_mapping.end(); it++)
         {
-          sorted_points.push_back(it->first);
-          shard_lookup.push_back(it->second);
+          sorted_points.emplace_back(it->first);
+          shard_lookup.emplace_back(it->second);
         }
         const int domain_dim = output.shard_domain.get_dim();
         if ((domain_dim > 0) && (domain_dim != dim))
@@ -1973,9 +1973,9 @@ namespace Legion {
         output.shard_points.reserve(output.target_processors.size());
         for (unsigned idx = 0; idx < output.target_processors.size(); idx++)
         {
-          output.shard_points.push_back(DomainPoint(idx));
-          sorted_points.push_back(DomainPoint(idx));
-          shard_lookup.push_back(idx);
+          output.shard_points.emplace_back(DomainPoint(idx));
+          sorted_points.emplace_back(DomainPoint(idx));
+          shard_lookup.emplace_back(idx);
         }
       }
       // Construct the collective mapping
@@ -2005,7 +2005,7 @@ namespace Legion {
         const Processor processor = output.target_processors[idx];
         if (processor.address_space() != runtime->address_space)
           continue;
-        local_shards.push_back(idx);
+        local_shards.emplace_back(idx);
       }
       Mapper::ContextConfigOutput configuration;
       if (!var_impl->is_leaf())
@@ -2129,7 +2129,7 @@ namespace Legion {
             // If we virtual mapped it, there is nothing to do
             if (virtual_mapped[idx])
               continue;
-            performed_regions.push_back(idx);
+            performed_regions.emplace_back(idx);
             const bool record_valid = !std::binary_search(
                 untracked_valid_regions.begin(), untracked_valid_regions.end(),
                 idx);
@@ -2164,10 +2164,10 @@ namespace Legion {
             {
               if (!IS_READ_ONLY(logical_regions[*it]))
                 continue;
-              read_only_regions.push_back(*it);
+              read_only_regions.emplace_back(*it);
               const RtEvent precondition = reg_pre[*it];
               if (precondition.exists())
-                read_only_preconditions.push_back(precondition);
+                read_only_preconditions.emplace_back(precondition);
             }
             if (!read_only_preconditions.empty())
             {
@@ -2203,7 +2203,7 @@ namespace Legion {
             is_remote() ? TraceInfo(this, remote_trace_recorder) :
                           TraceInfo(this);
         if (execution_fence_event.exists())
-          region_preconditions.push_back(execution_fence_event);
+          region_preconditions.emplace_back(execution_fence_event);
         ApEvent ready_event =
             Runtime::merge_events(&trace_info, region_preconditions);
         if (execution_fence_event.exists())
@@ -2592,7 +2592,7 @@ namespace Legion {
                 << manager->get_name() << " memory " << it->first
                 << " is not visible from the target processor of " << *this
                 << " for creating dynamic memory pool.";
-          unbounded_pools.push_back(manager);
+          unbounded_pools.emplace_back(manager);
           uint64_t lamport_clock =
               manager->order_collective_unbounded_pools(this);
           if (max_lamport_clock < lamport_clock)
@@ -2615,7 +2615,7 @@ namespace Legion {
             RtEvent ready = (*it)->finalize_collective_unbounded_pools_order(
                 this, max_lamport_clock);
             if (ready.exists())
-              wait_for.push_back(ready);
+              wait_for.emplace_back(ready);
           }
           unbounded_pools.clear();
           // Just record the event to wait on for now, we might be able
@@ -2796,7 +2796,7 @@ namespace Legion {
         leaf_memory_pools.emplace(std::make_pair(it->first, pool));
         // Keep track of all our unbounded pools
         if (!it->second.is_bounded())
-          unbounded_pools.push_back(manager);
+          unbounded_pools.emplace_back(manager);
       }
       // Tell our unbounded pools that we're done allocating
       for (unsigned idx = 0; idx < unbounded_pools.size(); idx++)
@@ -3029,7 +3029,7 @@ namespace Legion {
         {
           start_condition = Runtime::acquire_ap_reservation(
               it->first, it->second, start_condition);
-          to_release.push_back(it->first);
+          to_release.emplace_back(it->first);
         }
       }
       // STEP 3: Finally we get to launch the task

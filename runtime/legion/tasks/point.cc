@@ -652,10 +652,10 @@ namespace Legion {
         {
           if (!it->impl->future_map_domain->contains_point(point))
           {
-            this->futures.push_back(Future());
+            this->futures.emplace_back(Future());
             continue;
           }
-          this->futures.push_back(
+          this->futures.emplace_back(
               it->impl->get_future(point, true /*internal*/));
           if (record_future_pointwise_dependences)
           {
@@ -665,7 +665,7 @@ namespace Legion {
                                     pointwise_mapping_dependences.begin(),
                                     pointwise_mapping_dependences.end(), pre))
             {
-              pointwise_mapping_dependences.push_back(pre);
+              pointwise_mapping_dependences.emplace_back(pre);
               std::sort(
                   pointwise_mapping_dependences.begin(),
                   pointwise_mapping_dependences.end());
@@ -860,7 +860,7 @@ namespace Legion {
                     pointwise_mapping_dependences.begin(),
                     pointwise_mapping_dependences.end(), pre))
             {
-              pointwise_mapping_dependences.push_back(pre);
+              pointwise_mapping_dependences.emplace_back(pre);
               std::sort(
                   pointwise_mapping_dependences.begin(),
                   pointwise_mapping_dependences.end());
@@ -892,7 +892,7 @@ namespace Legion {
           previous_context_index, previous_point, shard);
       if (pre.exists())
       {
-        pointwise_mapping_dependences.push_back(pre);
+        pointwise_mapping_dependences.emplace_back(pre);
         std::sort(
             pointwise_mapping_dependences.begin(),
             pointwise_mapping_dependences.end());
@@ -915,7 +915,7 @@ namespace Legion {
         if (it->has_triggered())
           continue;
         count++;
-        event_deps[*it].push_back(const_cast<PointTask*>(this));
+        event_deps[*it].emplace_back(const_cast<PointTask*>(this));
       }
       if (count > 0)
       {

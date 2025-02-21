@@ -669,7 +669,7 @@ namespace Legion {
                 RtEvent precondition = parent_ctx->find_pointwise_dependence(
                     pit->context_index, *it, shard);
                 if (precondition.exists())
-                  preconditions[idx].push_back(precondition);
+                  preconditions[idx].emplace_back(precondition);
               }
             }
           }
@@ -689,7 +689,7 @@ namespace Legion {
                 RtEvent precondition = parent_ctx->find_pointwise_dependence(
                     pit->context_index, *it, 0 /*shard*/);
                 if (precondition.exists())
-                  preconditions[idx].push_back(precondition);
+                  preconditions[idx].emplace_back(precondition);
               }
             }
           }

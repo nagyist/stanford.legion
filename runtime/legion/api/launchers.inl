@@ -32,7 +32,7 @@ namespace Legion {
       const IndexSpaceRequirement& req)
   //--------------------------------------------------------------------------
   {
-    index_requirements.push_back(req);
+    index_requirements.emplace_back(req);
     return index_requirements.back();
   }
 
@@ -41,7 +41,7 @@ namespace Legion {
       const RegionRequirement& req)
   //--------------------------------------------------------------------------
   {
-    region_requirements.push_back(req);
+    region_requirements.emplace_back(req);
     return region_requirements.back();
   }
 
@@ -59,14 +59,14 @@ namespace Legion {
   inline void TaskLauncher::add_future(Future f)
   //--------------------------------------------------------------------------
   {
-    futures.push_back(f);
+    futures.emplace_back(f);
   }
 
   //--------------------------------------------------------------------------
   inline void TaskLauncher::add_grant(Grant g)
   //--------------------------------------------------------------------------
   {
-    grants.push_back(g);
+    grants.emplace_back(g);
   }
 
   //--------------------------------------------------------------------------
@@ -74,7 +74,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    wait_barriers.push_back(bar);
+    wait_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
@@ -82,21 +82,21 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    arrive_barriers.push_back(bar);
+    arrive_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
   inline void TaskLauncher::add_wait_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    wait_barriers.push_back(handshake.get_legion_wait_phase_barrier());
+    wait_barriers.emplace_back(handshake.get_legion_wait_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
   inline void TaskLauncher::add_arrival_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    arrive_barriers.push_back(handshake.get_legion_arrive_phase_barrier());
+    arrive_barriers.emplace_back(handshake.get_legion_arrive_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -125,7 +125,7 @@ namespace Legion {
       const IndexSpaceRequirement& req)
   //--------------------------------------------------------------------------
   {
-    index_requirements.push_back(req);
+    index_requirements.emplace_back(req);
     return index_requirements.back();
   }
 
@@ -134,7 +134,7 @@ namespace Legion {
       const RegionRequirement& req)
   //--------------------------------------------------------------------------
   {
-    region_requirements.push_back(req);
+    region_requirements.emplace_back(req);
     return region_requirements.back();
   }
 
@@ -152,14 +152,14 @@ namespace Legion {
   inline void IndexTaskLauncher::add_future(Future f)
   //--------------------------------------------------------------------------
   {
-    futures.push_back(f);
+    futures.emplace_back(f);
   }
 
   //--------------------------------------------------------------------------
   inline void IndexTaskLauncher::add_grant(Grant g)
   //--------------------------------------------------------------------------
   {
-    grants.push_back(g);
+    grants.emplace_back(g);
   }
 
   //--------------------------------------------------------------------------
@@ -167,7 +167,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    wait_barriers.push_back(bar);
+    wait_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
@@ -175,14 +175,14 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    arrive_barriers.push_back(bar);
+    arrive_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
   inline void IndexTaskLauncher::add_wait_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    wait_barriers.push_back(handshake.get_legion_wait_phase_barrier());
+    wait_barriers.emplace_back(handshake.get_legion_wait_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -190,7 +190,7 @@ namespace Legion {
       LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    arrive_barriers.push_back(handshake.get_legion_arrive_phase_barrier());
+    arrive_barriers.emplace_back(handshake.get_legion_arrive_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -225,7 +225,7 @@ namespace Legion {
   inline void InlineLauncher::add_grant(Grant g)
   //--------------------------------------------------------------------------
   {
-    grants.push_back(g);
+    grants.emplace_back(g);
   }
 
   //--------------------------------------------------------------------------
@@ -233,7 +233,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    wait_barriers.push_back(bar);
+    wait_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
@@ -241,21 +241,21 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    arrive_barriers.push_back(bar);
+    arrive_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
   inline void InlineLauncher::add_wait_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    wait_barriers.push_back(handshake.get_legion_wait_phase_barrier());
+    wait_barriers.emplace_back(handshake.get_legion_wait_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
   inline void InlineLauncher::add_arrival_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    arrive_barriers.push_back(handshake.get_legion_arrive_phase_barrier());
+    arrive_barriers.emplace_back(handshake.get_legion_arrive_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -267,8 +267,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
     assert(result == dst_requirements.size());
 #endif
-    src_requirements.push_back(src);
-    dst_requirements.push_back(dst);
+    src_requirements.emplace_back(src);
+    dst_requirements.emplace_back(dst);
     return result;
   }
 
@@ -298,9 +298,9 @@ namespace Legion {
       bool inst)
   //--------------------------------------------------------------------------
   {
-    src_indirect_requirements.push_back(req);
+    src_indirect_requirements.emplace_back(req);
     src_indirect_requirements.back().add_field(src_idx_field, inst);
-    src_indirect_is_range.push_back(range);
+    src_indirect_is_range.emplace_back(range);
   }
 
   //--------------------------------------------------------------------------
@@ -309,9 +309,9 @@ namespace Legion {
       bool inst)
   //--------------------------------------------------------------------------
   {
-    dst_indirect_requirements.push_back(req);
+    dst_indirect_requirements.emplace_back(req);
     dst_indirect_requirements.back().add_field(dst_idx_field, inst);
-    dst_indirect_is_range.push_back(range);
+    dst_indirect_is_range.emplace_back(range);
   }
 
   //--------------------------------------------------------------------------
@@ -319,8 +319,8 @@ namespace Legion {
       const RegionRequirement& req, bool range)
   //--------------------------------------------------------------------------
   {
-    src_indirect_requirements.push_back(req);
-    src_indirect_is_range.push_back(range);
+    src_indirect_requirements.emplace_back(req);
+    src_indirect_is_range.emplace_back(range);
     return src_indirect_requirements.back();
   }
 
@@ -329,8 +329,8 @@ namespace Legion {
       const RegionRequirement& req, bool range)
   //--------------------------------------------------------------------------
   {
-    dst_indirect_requirements.push_back(req);
-    dst_indirect_is_range.push_back(range);
+    dst_indirect_requirements.emplace_back(req);
+    dst_indirect_is_range.emplace_back(range);
     return dst_indirect_requirements.back();
   }
 
@@ -338,7 +338,7 @@ namespace Legion {
   inline void CopyLauncher::add_grant(Grant g)
   //--------------------------------------------------------------------------
   {
-    grants.push_back(g);
+    grants.emplace_back(g);
   }
 
   //--------------------------------------------------------------------------
@@ -346,7 +346,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    wait_barriers.push_back(bar);
+    wait_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
@@ -354,21 +354,21 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    arrive_barriers.push_back(bar);
+    arrive_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
   inline void CopyLauncher::add_wait_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    wait_barriers.push_back(handshake.get_legion_wait_phase_barrier());
+    wait_barriers.emplace_back(handshake.get_legion_wait_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
   inline void CopyLauncher::add_arrival_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    arrive_barriers.push_back(handshake.get_legion_arrive_phase_barrier());
+    arrive_barriers.emplace_back(handshake.get_legion_arrive_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -380,8 +380,8 @@ namespace Legion {
 #ifdef DEBUG_LEGION
     assert(result == dst_requirements.size());
 #endif
-    src_requirements.push_back(src);
-    dst_requirements.push_back(dst);
+    src_requirements.emplace_back(src);
+    dst_requirements.emplace_back(dst);
     return result;
   }
 
@@ -412,9 +412,9 @@ namespace Legion {
       FieldID src_idx_field, const RegionRequirement& r, bool range, bool inst)
   //--------------------------------------------------------------------------
   {
-    src_indirect_requirements.push_back(r);
+    src_indirect_requirements.emplace_back(r);
     src_indirect_requirements.back().add_field(src_idx_field, inst);
-    src_indirect_is_range.push_back(range);
+    src_indirect_is_range.emplace_back(range);
   }
 
   //--------------------------------------------------------------------------
@@ -422,9 +422,9 @@ namespace Legion {
       FieldID dst_idx_field, const RegionRequirement& r, bool range, bool inst)
   //--------------------------------------------------------------------------
   {
-    dst_indirect_requirements.push_back(r);
+    dst_indirect_requirements.emplace_back(r);
     dst_indirect_requirements.back().add_field(dst_idx_field, inst);
-    dst_indirect_is_range.push_back(range);
+    dst_indirect_is_range.emplace_back(range);
   }
 
   //--------------------------------------------------------------------------
@@ -432,8 +432,8 @@ namespace Legion {
       const RegionRequirement& req, bool range)
   //--------------------------------------------------------------------------
   {
-    src_indirect_requirements.push_back(req);
-    src_indirect_is_range.push_back(range);
+    src_indirect_requirements.emplace_back(req);
+    src_indirect_is_range.emplace_back(range);
     return src_indirect_requirements.back();
   }
 
@@ -442,8 +442,8 @@ namespace Legion {
       const RegionRequirement& req, bool range)
   //--------------------------------------------------------------------------
   {
-    dst_indirect_requirements.push_back(req);
-    dst_indirect_is_range.push_back(range);
+    dst_indirect_requirements.emplace_back(req);
+    dst_indirect_is_range.emplace_back(range);
     return dst_indirect_requirements.back();
   }
 
@@ -451,7 +451,7 @@ namespace Legion {
   inline void IndexCopyLauncher::add_grant(Grant g)
   //--------------------------------------------------------------------------
   {
-    grants.push_back(g);
+    grants.emplace_back(g);
   }
 
   //--------------------------------------------------------------------------
@@ -459,7 +459,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    wait_barriers.push_back(bar);
+    wait_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
@@ -467,14 +467,14 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    arrive_barriers.push_back(bar);
+    arrive_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
   inline void IndexCopyLauncher::add_wait_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    wait_barriers.push_back(handshake.get_legion_wait_phase_barrier());
+    wait_barriers.emplace_back(handshake.get_legion_wait_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -482,7 +482,7 @@ namespace Legion {
       LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    arrive_barriers.push_back(handshake.get_legion_arrive_phase_barrier());
+    arrive_barriers.emplace_back(handshake.get_legion_arrive_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -496,7 +496,7 @@ namespace Legion {
   inline void AcquireLauncher::add_grant(Grant g)
   //--------------------------------------------------------------------------
   {
-    grants.push_back(g);
+    grants.emplace_back(g);
   }
 
   //--------------------------------------------------------------------------
@@ -504,7 +504,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    wait_barriers.push_back(bar);
+    wait_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
@@ -512,21 +512,21 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    arrive_barriers.push_back(bar);
+    arrive_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
   inline void AcquireLauncher::add_wait_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    wait_barriers.push_back(handshake.get_legion_wait_phase_barrier());
+    wait_barriers.emplace_back(handshake.get_legion_wait_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
   inline void AcquireLauncher::add_arrival_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    arrive_barriers.push_back(handshake.get_legion_arrive_phase_barrier());
+    arrive_barriers.emplace_back(handshake.get_legion_arrive_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -540,7 +540,7 @@ namespace Legion {
   inline void ReleaseLauncher::add_grant(Grant g)
   //--------------------------------------------------------------------------
   {
-    grants.push_back(g);
+    grants.emplace_back(g);
   }
 
   //--------------------------------------------------------------------------
@@ -548,7 +548,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    wait_barriers.push_back(bar);
+    wait_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
@@ -556,21 +556,21 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(bar.exists());
-    arrive_barriers.push_back(bar);
+    arrive_barriers.emplace_back(bar);
   }
 
   //--------------------------------------------------------------------------
   inline void ReleaseLauncher::add_wait_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    wait_barriers.push_back(handshake.get_legion_wait_phase_barrier());
+    wait_barriers.emplace_back(handshake.get_legion_wait_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
   inline void ReleaseLauncher::add_arrival_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    arrive_barriers.push_back(handshake.get_legion_arrive_phase_barrier());
+    arrive_barriers.emplace_back(handshake.get_legion_arrive_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -598,7 +598,7 @@ namespace Legion {
   inline void FillLauncher::add_grant(Grant g)
   //--------------------------------------------------------------------------
   {
-    grants.push_back(g);
+    grants.emplace_back(g);
   }
 
   //--------------------------------------------------------------------------
@@ -606,7 +606,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(pb.exists());
-    wait_barriers.push_back(pb);
+    wait_barriers.emplace_back(pb);
   }
 
   //--------------------------------------------------------------------------
@@ -614,21 +614,21 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(pb.exists());
-    arrive_barriers.push_back(pb);
+    arrive_barriers.emplace_back(pb);
   }
 
   //--------------------------------------------------------------------------
   inline void FillLauncher::add_wait_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    wait_barriers.push_back(handshake.get_legion_wait_phase_barrier());
+    wait_barriers.emplace_back(handshake.get_legion_wait_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
   inline void FillLauncher::add_arrival_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    arrive_barriers.push_back(handshake.get_legion_arrive_phase_barrier());
+    arrive_barriers.emplace_back(handshake.get_legion_arrive_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -656,7 +656,7 @@ namespace Legion {
   inline void IndexFillLauncher::add_grant(Grant g)
   //--------------------------------------------------------------------------
   {
-    grants.push_back(g);
+    grants.emplace_back(g);
   }
 
   //--------------------------------------------------------------------------
@@ -664,7 +664,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(pb.exists());
-    wait_barriers.push_back(pb);
+    wait_barriers.emplace_back(pb);
   }
 
   //--------------------------------------------------------------------------
@@ -672,14 +672,14 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     assert(pb.exists());
-    arrive_barriers.push_back(pb);
+    arrive_barriers.emplace_back(pb);
   }
 
   //--------------------------------------------------------------------------
   inline void IndexFillLauncher::add_wait_handshake(LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    wait_barriers.push_back(handshake.get_legion_wait_phase_barrier());
+    wait_barriers.emplace_back(handshake.get_legion_wait_phase_barrier());
   }
 
   //--------------------------------------------------------------------------
@@ -687,7 +687,7 @@ namespace Legion {
       LegionHandshake handshake)
   //--------------------------------------------------------------------------
   {
-    arrive_barriers.push_back(handshake.get_legion_arrive_phase_barrier());
+    arrive_barriers.emplace_back(handshake.get_legion_arrive_phase_barrier());
   }
 
   LEGION_DISABLE_DEPRECATED_WARNINGS
@@ -762,7 +762,7 @@ namespace Legion {
     fields.reserve(field_map.size());
     for (std::map<FieldID, const char*>::const_iterator it = field_map.begin();
          it != field_map.end(); it++)
-      fields.push_back(it->first);
+      fields.emplace_back(it->first);
     initialize_constraints(true /*column major*/, true /*soa*/, fields);
     privilege_fields.insert(fields.begin(), fields.end());
   }
@@ -842,8 +842,8 @@ namespace Legion {
       LogicalRegion handle, const Realm::ExternalInstanceResource* resource)
   //--------------------------------------------------------------------------
   {
-    handles.push_back(handle);
-    external_resources.push_back(resource);
+    handles.emplace_back(handle);
+    external_resources.emplace_back(resource);
   }
 
   //--------------------------------------------------------------------------
@@ -867,8 +867,8 @@ namespace Legion {
       assert(mode == m);
 #endif
 #endif
-    handles.push_back(handle);
-    file_names.push_back(file_name);
+    handles.emplace_back(handle);
+    file_names.emplace_back(file_name);
     if (!file_fields.empty())
     {
 #ifdef DEBUG_LEGION
@@ -900,7 +900,7 @@ namespace Legion {
       for (std::map<FieldID, const char*>::const_iterator it =
                field_map.begin();
            it != field_map.end(); it++)
-        fields.push_back(it->first);
+        fields.emplace_back(it->first);
       initialize_constraints(true /*column major*/, true /*soa*/, fields);
       privilege_fields.insert(fields.begin(), fields.end());
     }
@@ -910,8 +910,8 @@ namespace Legion {
       assert(mode == m);
 #endif
 #endif
-    handles.push_back(handle);
-    file_names.push_back(file_name);
+    handles.emplace_back(handle);
+    file_names.emplace_back(file_name);
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
     const bool first = field_files.empty();
@@ -923,7 +923,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(first || (field_files.find(it->first) != field_files.end()));
 #endif
-      field_files[it->first].push_back(it->second);
+      field_files[it->first].emplace_back(it->second);
     }
   }
 
@@ -985,7 +985,7 @@ namespace Legion {
       }
     }
 #endif
-    handles.push_back(handle);
+    handles.emplace_back(handle);
     pointers.emplace_back(PointerConstraint(mem, uintptr_t(base)));
   }
 
@@ -1046,7 +1046,7 @@ namespace Legion {
       }
     }
 #endif
-    handles.push_back(handle);
+    handles.emplace_back(handle);
     pointers.emplace_back(PointerConstraint(mem, uintptr_t(base)));
   }
 
@@ -1056,7 +1056,7 @@ namespace Legion {
   inline void PredicateLauncher::add_predicate(const Predicate& pred)
   //--------------------------------------------------------------------------
   {
-    predicates.push_back(pred);
+    predicates.emplace_back(pred);
   }
 
   //--------------------------------------------------------------------------
@@ -1071,7 +1071,7 @@ namespace Legion {
       const DomainPoint& point, const TaskLauncher& launcher)
   //--------------------------------------------------------------------------
   {
-    single_tasks.push_back(launcher);
+    single_tasks.emplace_back(launcher);
     single_tasks.back().point = point;
   }
 
@@ -1080,7 +1080,7 @@ namespace Legion {
       const IndexTaskLauncher& launcher)
   //--------------------------------------------------------------------------
   {
-    index_tasks.push_back(launcher);
+    index_tasks.emplace_back(launcher);
   }
 
 }  // namespace Legion

@@ -125,7 +125,7 @@ namespace Legion {
                launcher.arrive_barriers.begin();
            it != launcher.arrive_barriers.end(); it++)
       {
-        arrive_barriers.push_back(*it);
+        arrive_barriers.emplace_back(*it);
         LegionSpy::log_event_dependence(
             it->phase_barrier, arrive_barriers.back().phase_barrier);
       }

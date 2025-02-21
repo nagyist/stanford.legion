@@ -120,7 +120,7 @@ namespace Legion {
       else if (ptr & 0x1)
       {
         std::vector<T*>& vector = get_vector();
-        vector.push_back(value);
+        vector.emplace_back(value);
         if (SORTED)
           std::sort(vector.begin(), vector.end());
       }

@@ -56,7 +56,7 @@ namespace Legion {
     {
       Murmur3Hasher::Hash hash;
       hasher.finalize(hash);
-      hashes.push_back(hash);
+      hashes.emplace_back(hash);
       if (check_for_repeats(opidx))
         update_watcher(opidx);
       return watcher.record_operation(op, hash, opidx);
@@ -77,7 +77,7 @@ namespace Legion {
       // dummy hash value into the trace identifier so that the
       // traces it finds don't span across these operations.
       // Generate a unique hash and enqueue it
-      hashes.push_back(get_unique_hash());
+      hashes.emplace_back(get_unique_hash());
       if (check_for_repeats(opidx))
         update_watcher(opidx);
       watcher.flush(opidx);
@@ -104,7 +104,7 @@ namespace Legion {
       if (hashes.size() == batchsize)
       {
         // Insert the sentinel token before launching the meta task.
-        hashes.push_back(SENTINEL);
+        hashes.emplace_back(SENTINEL);
         repeat_results.emplace_back(FindRepeatsResult());
         FindRepeatsResult& repeat = repeat_results.back();
         FindRepeatsTaskArgs args(this, &repeat);
@@ -488,7 +488,7 @@ namespace Legion {
         {
           if (r.size() >= min_repeats)
           {
-            result.push_back(NonOverlappingRepeatsResult{
+            result.emplace_back(NonOverlappingRepeatsResult{
                 .start = std::get<0>(r[0]),
                 .end = std::get<1>(r[0]),
                 .repeats = r.size()});
@@ -503,13 +503,13 @@ namespace Legion {
         if (le2 != 0 && le2 >= min_length && k >= next_k && !(flag[k]) &&
             !(flag[k + le2 - 1]))
         {
-          r.push_back(std::make_tuple(k, k + le2));
+          r.emplace_back(std::make_tuple(k, k + le2));
           next_k = k + le2;
         }
       }
       if (r.size() >= min_repeats)
       {
-        result.push_back(NonOverlappingRepeatsResult{
+        result.emplace_back(NonOverlappingRepeatsResult{
             .start = std::get<0>(r[0]),
             .end = std::get<1>(r[0]),
             .repeats = r.size()});

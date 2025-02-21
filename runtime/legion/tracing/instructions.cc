@@ -195,7 +195,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
         assert(*it < events.size());
 #endif
-        to_merge.push_back(events[*it]);
+        to_merge.emplace_back(events[*it]);
       }
       ApEvent result = Runtime::merge_events(nullptr, to_merge);
       events[lhs] = result;
@@ -751,7 +751,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(owner);
 #endif
-      subscribed_shards.push_back(remote_shard);
+      subscribed_shards.emplace_back(remote_shard);
       return barrier;
     }
 

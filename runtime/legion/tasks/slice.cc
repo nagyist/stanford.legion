@@ -318,7 +318,7 @@ namespace Legion {
             std::lower_bound(others.begin(), others.end(), *it);
         if ((finder != others.end()) && (*finder == *it))
         {
-          to_send.push_back(*it);
+          to_send.emplace_back(*it);
           others.erase(finder);
         }
       }
@@ -396,7 +396,7 @@ namespace Legion {
             if ((finder->second.group_points > 0) &&
                 (finder->second.point_tasks.size() ==
                  finder->second.group_points))
-              concurrent_colors.push_back(color);
+              concurrent_colors.emplace_back(color);
           }
         }
 #ifdef DEBUG_LEGION
@@ -582,7 +582,7 @@ namespace Legion {
         point->slice_owner = this;
         point->unpack_task(derez, current, ready_events);
         point->parent_ctx = parent_ctx;
-        points.push_back(point);
+        points.emplace_back(point);
         if (runtime->legion_spy_enabled)
           LegionSpy::log_slice_point(
               get_unique_id(), point->get_unique_id(), point->index_point);
@@ -1355,7 +1355,7 @@ namespace Legion {
       {
         AutoLock o_lock(op_lock);
         if (precondition.exists())
-          finder->second.preconditions.push_back(precondition);
+          finder->second.preconditions.emplace_back(precondition);
         std::map<Processor, DomainPoint>::const_iterator proc_finder =
             finder->second.processors.find(target);
         if (proc_finder != finder->second.processors.end())
@@ -1498,7 +1498,7 @@ namespace Legion {
           finder->second.variant = vid;
         else if (finder->second.variant != vid)
           finder->second.variant = std::min(finder->second.variant, vid);
-        finder->second.point_tasks.push_back(std::make_pair(task, manager));
+        finder->second.point_tasks.emplace_back(std::make_pair(task, manager));
         done =
             (finder->second.point_tasks.size() == finder->second.group_points);
       }
@@ -1813,7 +1813,7 @@ namespace Legion {
             internal_space, current_proc, false /*recurse*/,
             false /*stealable*/);
         point->slice_owner = new_owner;
-        new_owner->points.push_back(point);
+        new_owner->points.emplace_back(point);
         new_owner->num_unmapped_points = 1;
         new_owner->num_uncompleted_points.store(1);
         new_owner->num_uncommitted_points = 1;
@@ -1826,10 +1826,10 @@ namespace Legion {
 #endif
           finder->second.group_points = 1;
         }
-        slices.push_back(new_owner);
+        slices.emplace_back(new_owner);
       }
       // Always add ourselves as the last point
-      slices.push_back(this);
+      slices.emplace_back(this);
       num_unmapped_points = points.size();
       num_uncompleted_points.store(points.size());
       num_uncommitted_points = points.size();

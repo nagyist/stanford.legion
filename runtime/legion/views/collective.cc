@@ -1367,7 +1367,7 @@ namespace Legion {
             trace_info.pack_trace_info(rez);
           }
           runtime->send_view_register_user(target->owner_space, rez);
-          registered.push_back(registered_event);
+          registered.emplace_back(registered_event);
           applied_events.insert(applied_event);
           return ready_event;
         }
@@ -1503,7 +1503,7 @@ namespace Legion {
                      it = remote_instances.begin();
                  it != remote_instances.end(); it++)
               if (it->first->memory_manager->memory == memory)
-                instances.push_back(it->first);
+                instances.emplace_back(it->first);
             return;
           }
         }
@@ -1522,7 +1522,7 @@ namespace Legion {
                  remote_instances.begin();
              it != remote_instances.end(); it++)
           if (it->first->memory_manager->memory == memory)
-            instances.push_back(it->first);
+            instances.emplace_back(it->first);
       }
       else
       {
@@ -1530,7 +1530,7 @@ namespace Legion {
         {
           PhysicalManager* manager = local_views[idx]->get_manager();
           if (manager->memory_manager->memory == memory)
-            instances.push_back(manager);
+            instances.emplace_back(manager);
         }
       }
     }
@@ -1613,7 +1613,7 @@ namespace Legion {
           runtime->find_or_request_logical_view(did, ready));
       std::vector<RtEvent> ready_events;
       if (ready.exists())
-        ready_events.push_back(ready);
+        ready_events.emplace_back(ready);
       size_t num_instances;
       derez.deserialize(num_instances);
       std::vector<IndividualView*> instances(num_instances);
@@ -1623,7 +1623,7 @@ namespace Legion {
         instances[idx] = static_cast<IndividualView*>(
             runtime->find_or_request_logical_view(did, ready));
         if (ready.exists())
-          ready_events.push_back(ready);
+          ready_events.emplace_back(ready);
       }
       RtUserEvent done;
       derez.deserialize(done);
@@ -1660,10 +1660,10 @@ namespace Legion {
                  best_instances.begin();
              it != best_instances.end(); it++)
         {
-          instances.push_back(
+          instances.emplace_back(
               runtime->find_or_request_instance_manager(*it, ready));
           if (ready.exists())
-            ready_events.push_back(ready);
+            ready_events.emplace_back(ready);
         }
         if (!ready_events.empty())
         {
@@ -1716,7 +1716,7 @@ namespace Legion {
                       instances.clear();
                       best = affinity.bandwidth;
                     }
-                    instances.push_back(it->first);
+                    instances.emplace_back(it->first);
                   }
                 }
                 else
@@ -1735,7 +1735,7 @@ namespace Legion {
                       instances.clear();
                       best = affinity.latency;
                     }
-                    instances.push_back(it->first);
+                    instances.emplace_back(it->first);
                   }
                 }
               }
@@ -1743,7 +1743,7 @@ namespace Legion {
                 searches[local] = bandwidth ? 0 : size_max;
             }
             else if (finder->second == best)
-              instances.push_back(it->first);
+              instances.emplace_back(it->first);
           }
         }
         else
@@ -1821,7 +1821,7 @@ namespace Legion {
               }
               pack_global_ref();
               runtime->send_collective_nearest_instances_request(*it, rez);
-              done_events.push_back(done);
+              done_events.emplace_back(done);
             }
             if (!local_results.empty())
             {
@@ -1844,7 +1844,7 @@ namespace Legion {
                 }
                 runtime->send_collective_nearest_instances_response(
                     source, rez);
-                done_events.push_back(done);
+                done_events.emplace_back(done);
               }
               else
               {
@@ -1920,7 +1920,7 @@ namespace Legion {
           for (std::vector<PhysicalManager*>::const_iterator it =
                    results.begin();
                it != results.end(); it++)
-            instances->push_back((*it)->did);
+            instances->emplace_back((*it)->did);
           target->store(best);
         }
       }
@@ -1937,7 +1937,7 @@ namespace Legion {
       {
         PhysicalManager* manager = local_views[idx]->get_manager();
         if (manager->memory_manager->memory == memory)
-          results.push_back(manager);
+          results.emplace_back(manager);
       }
       constexpr size_t size_max = std::numeric_limits<size_t>::max();
       if (results.empty())
@@ -1972,7 +1972,7 @@ namespace Legion {
                     results.clear();
                     best = affinity.bandwidth;
                   }
-                  results.push_back(manager);
+                  results.emplace_back(manager);
                 }
               }
               else
@@ -1991,7 +1991,7 @@ namespace Legion {
                     results.clear();
                     best = affinity.latency;
                   }
-                  results.push_back(manager);
+                  results.emplace_back(manager);
                 }
               }
             }
@@ -1999,14 +1999,14 @@ namespace Legion {
               searches[local] = bandwidth ? 0 : size_max;
           }
           else if (finder->second == best)
-            results.push_back(manager);
+            results.emplace_back(manager);
         }
         if (results.empty())
         {
           // If none of them have affinity then they are all
           // equally bad so we can just pass in all of them
           for (unsigned idx = 0; idx < local_views.size(); idx++)
-            results.push_back(local_views[idx]->get_manager());
+            results.emplace_back(local_views[idx]->get_manager());
         }
       }
       else
@@ -2094,14 +2094,14 @@ namespace Legion {
           if (current < best)
             instances->clear();
           for (unsigned idx = 0; idx < results.size(); idx++)
-            instances->push_back(results[idx]);
+            instances->emplace_back(results[idx]);
         }
         else
         {
           if (best < current)
             instances->clear();
           for (unsigned idx = 0; idx < results.size(); idx++)
-            instances->push_back(results[idx]);
+            instances->emplace_back(results[idx]);
         }
         target->store(best);
         break;
@@ -2225,12 +2225,12 @@ namespace Legion {
             views[idx] = static_cast<IndividualView*>(
                 runtime->find_or_request_logical_view(did, ready));
             if (ready.exists())
-              wait_events.push_back(ready);
+              wait_events.emplace_back(ready);
           }
           if (!wait_events.empty())
           {
             if (view_ready.exists())
-              wait_events.push_back(view_ready);
+              wait_events.emplace_back(view_ready);
             const RtEvent wait_on = Runtime::merge_events(wait_events);
             if (wait_on.exists() && !wait_on.has_triggered())
               wait_on.wait();
@@ -2463,9 +2463,10 @@ namespace Legion {
             notify_valid();
         }
         if (term_event.exists())
-          finder->second.local_term_events[target_index].push_back(term_event);
+          finder->second.local_term_events[target_index].emplace_back(
+              term_event);
         // Record the applied events
-        registered_events.push_back(finder->second.global_registered);
+        registered_events.emplace_back(finder->second.global_registered);
         applied_events.insert(finder->second.global_applied);
         // The result will be the ready event
         ApEvent result = finder->second.ready_events[target_index];
@@ -2498,14 +2499,14 @@ namespace Legion {
               RtEvent registered = finder->second.local_registered;
               if (!finder->second.remote_registered.empty())
               {
-                finder->second.remote_registered.push_back(registered);
+                finder->second.remote_registered.emplace_back(registered);
                 registered =
                     Runtime::merge_events(finder->second.remote_registered);
               }
               RtEvent applied = finder->second.local_applied;
               if (!finder->second.remote_applied.empty())
               {
-                finder->second.remote_applied.push_back(applied);
+                finder->second.remote_applied.emplace_back(applied);
                 applied = Runtime::merge_events(finder->second.remote_applied);
               }
               const AddressSpaceID parent =
@@ -2555,14 +2556,14 @@ namespace Legion {
       RtEvent all_registered = local_registered;
       if (!remote_registered.empty())
       {
-        remote_registered.push_back(all_registered);
+        remote_registered.emplace_back(all_registered);
         all_registered = Runtime::merge_events(remote_registered);
       }
       Runtime::trigger_event(global_registered, all_registered);
       RtEvent all_applied = local_applied;
       if (!remote_applied.empty())
       {
-        remote_applied.push_back(all_applied);
+        remote_applied.emplace_back(all_applied);
         all_applied = Runtime::merge_events(remote_applied);
       }
       Runtime::trigger_event(global_applied, all_applied);
@@ -2601,8 +2602,8 @@ namespace Legion {
           rendezvous.local_applied = Runtime::create_rt_user_event();
           rendezvous.global_applied = Runtime::create_rt_user_event();
         }
-        finder->second.remote_registered.push_back(registered);
-        finder->second.remote_applied.push_back(applied);
+        finder->second.remote_registered.emplace_back(registered);
+        finder->second.remote_applied.emplace_back(applied);
 #ifdef DEBUG_LEGION
         assert(finder->second.remaining_remote_arrivals > 0);
 #endif
@@ -2617,14 +2618,14 @@ namespace Legion {
           registered = finder->second.local_registered;
           if (!finder->second.remote_registered.empty())
           {
-            finder->second.remote_registered.push_back(registered);
+            finder->second.remote_registered.emplace_back(registered);
             registered =
                 Runtime::merge_events(finder->second.remote_registered);
           }
           applied = finder->second.local_applied;
           if (!finder->second.remote_applied.empty())
           {
-            finder->second.remote_applied.push_back(applied);
+            finder->second.remote_applied.emplace_back(applied);
             applied = Runtime::merge_events(finder->second.remote_applied);
           }
           const AddressSpaceID parent =
@@ -2664,14 +2665,14 @@ namespace Legion {
       RtEvent all_registered = to_perform.local_registered;
       if (!to_perform.remote_registered.empty())
       {
-        to_perform.remote_registered.push_back(all_registered);
+        to_perform.remote_registered.emplace_back(all_registered);
         all_registered = Runtime::merge_events(to_perform.remote_registered);
       }
       Runtime::trigger_event(to_perform.global_registered, all_registered);
       RtEvent all_applied = to_perform.local_applied;
       if (!to_perform.remote_applied.empty())
       {
-        to_perform.remote_applied.push_back(all_applied);
+        to_perform.remote_applied.emplace_back(all_applied);
         all_applied = Runtime::merge_events(to_perform.remote_applied);
       }
       Runtime::trigger_event(to_perform.global_applied, all_applied);
@@ -2932,7 +2933,7 @@ namespace Legion {
             {
               trace_shard = local_info.record_barrier_creation(
                   trace_barrier, children.size());
-              ready_events.push_back(trace_barrier);
+              ready_events.emplace_back(trace_barrier);
             }
             rez.serialize(trace_barrier);
             if (trace_barrier.exists())
@@ -2944,7 +2945,7 @@ namespace Legion {
             if (ready_event.exists())
             {
               child_ready = Runtime::create_ap_user_event(&local_info);
-              ready_events.push_back(child_ready);
+              ready_events.emplace_back(child_ready);
             }
             rez.serialize(child_ready);
           }
@@ -2987,7 +2988,7 @@ namespace Legion {
         if (result.exists())
         {
           if (ready_event.exists())
-            ready_events.push_back(result);
+            ready_events.emplace_back(result);
           local_view->add_copy_user(
               false /*reading*/, 0 /*redop*/, result, fill_mask,
               fill_expression, op_id, index, recorded_events,
@@ -3445,7 +3446,7 @@ namespace Legion {
             {
               broadcast_shard = local_info.record_barrier_creation(
                   broadcast_bar, children.size());
-              read_events.push_back(broadcast_bar);
+              read_events.emplace_back(broadcast_bar);
             }
             rez.serialize(broadcast_bar);
             rez.serialize(broadcast_shard);
@@ -3458,12 +3459,12 @@ namespace Legion {
             const ApUserEvent broadcast =
                 Runtime::create_ap_user_event(&local_info);
             rez.serialize(broadcast);
-            read_events.push_back(broadcast);
+            read_events.emplace_back(broadcast);
             ApUserEvent done;
             if (all_done.exists())
             {
               done = Runtime::create_ap_user_event(&local_info);
-              done_events.push_back(done);
+              done_events.emplace_back(done);
             }
             rez.serialize(done);
           }
@@ -3491,7 +3492,7 @@ namespace Legion {
               copy_expression, op_id, index, recorded_events,
               local_info.recording, runtime->address_space);
           if (all_bar.exists() || all_done.exists())
-            done_events.push_back(all_done);
+            done_events.emplace_back(all_done);
         }
       }
       if (all_bar.exists())
@@ -3686,7 +3687,7 @@ namespace Legion {
             if (has_instance_events)
               destination_events[idx] = dst_post;
             else
-              destination_events.push_back(dst_post);
+              destination_events.emplace_back(dst_post);
             dst_view->add_copy_user(
                 false /*reading*/, 0 /*redop*/, dst_post, copy_mask,
                 copy_expression, op_id, index, recorded_events,
@@ -3963,7 +3964,7 @@ namespace Legion {
           // Mark it as reachable and add it to the stack
           reachable[idx] = true;
           total_reachable++;
-          dfs_stack.push_back(idx);
+          dfs_stack.emplace_back(idx);
         }
       }
 #ifdef DEBUG_LEGION
@@ -4078,7 +4079,7 @@ namespace Legion {
       // to next and then continue the process
       // <current node,next child to search>
       std::deque<unsigned> bfs_queue;
-      bfs_queue.push_back(root_index);
+      bfs_queue.emplace_back(root_index);
       while (!bfs_queue.empty())
       {
         const unsigned next = bfs_queue.front();
@@ -4133,11 +4134,11 @@ namespace Legion {
           // Record it in the spanning
           previous[lowest_child] = next;
           // Add the child to list to search
-          bfs_queue.push_back(lowest_child);
+          bfs_queue.emplace_back(lowest_child);
           // If we still have more children we could copy to then
           // we put ourselves back on the list for the next round
           if (total_children > 1)
-            bfs_queue.push_back(next);
+            bfs_queue.emplace_back(next);
         }
       }
     }
@@ -4318,7 +4319,7 @@ namespace Legion {
             const ApUserEvent reduced =
                 Runtime::create_ap_user_event(&trace_info);
             rez.serialize(reduced);
-            reduce_events.push_back(reduced);
+            reduce_events.emplace_back(reduced);
           }
           rez.serialize(origin);
         }
@@ -4394,7 +4395,7 @@ namespace Legion {
             copy_restricted);
         if (reduce_done.exists())
         {
-          local_done_events.push_back(reduce_done);
+          local_done_events.emplace_back(reduce_done);
           dst_view->add_copy_user(
               false /*reading*/, src_redop, reduce_done, copy_mask,
               copy_expression, op_id, index, recorded_events,
@@ -4733,7 +4734,7 @@ namespace Legion {
               {
                 broadcast_shard = trace_info.record_barrier_creation(
                     broadcast_bar, children.size());
-                broadcast_events.push_back(broadcast_bar);
+                broadcast_events.emplace_back(broadcast_bar);
               }
               rez.serialize(broadcast_bar);
               rez.serialize(broadcast_shard);
@@ -4746,12 +4747,12 @@ namespace Legion {
               const ApUserEvent done =
                   Runtime::create_ap_user_event(&trace_info);
               rez.serialize(done);
-              broadcast_events.push_back(done);
+              broadcast_events.emplace_back(done);
               ApUserEvent all;
               if (all_done.exists())
               {
                 all = Runtime::create_ap_user_event(&trace_info);
-                all_done_events.push_back(all);
+                all_done_events.emplace_back(all);
               }
               rez.serialize(all);
             }
@@ -4779,7 +4780,7 @@ namespace Legion {
                 copy_expression, op_id, index, recorded_events,
                 trace_info.recording, runtime->address_space);
             if (all_done.exists())
-              all_done_events.push_back(broadcast_done);
+              all_done_events.emplace_back(broadcast_done);
           }
         }
       }
@@ -4958,7 +4959,7 @@ namespace Legion {
             if (all_done.exists())
             {
               done = Runtime::create_ap_user_event(&local_info);
-              done_events.push_back(done);
+              done_events.emplace_back(done);
             }
             rez.serialize(done);
           }
@@ -5104,7 +5105,7 @@ namespace Legion {
               inst_info, recorded_events, applied_events, collective_kind);
         if (local_done.exists())
         {
-          done_events.push_back(local_done);
+          done_events.emplace_back(local_done);
           local_view->add_copy_user(
               false /*reading*/, source->get_redop(), local_done, copy_mask,
               copy_expression, op_id, index, recorded_events,

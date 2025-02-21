@@ -191,7 +191,7 @@ namespace Legion {
 #endif
         SliceTask* new_slice = this->clone_as_slice_task(
             slice.domain_is, slice.proc, slice.recurse, slice.stealable);
-        slices.push_back(new_slice);
+        slices.emplace_back(new_slice);
       }
 #ifdef DEBUG_LEGION
       // If the volumes don't match, then something bad happend in the mapper
@@ -246,7 +246,7 @@ namespace Legion {
           TriggerTaskArgs trigger_args(slice);
           RtEvent done = runtime->issue_runtime_meta_task(
               trigger_args, LG_THROUGHPUT_WORK_PRIORITY);
-          wait_for.push_back(done);
+          wait_for.emplace_back(done);
         }
         // If we're replaying this for for a trace then don't even
         // bother asking the mapper about when to map this
@@ -687,7 +687,7 @@ namespace Legion {
               effects);
           if (done.exists())
           {
-            reduction_fold_effects.push_back(done);
+            reduction_fold_effects.emplace_back(done);
             return false;
           }
           else

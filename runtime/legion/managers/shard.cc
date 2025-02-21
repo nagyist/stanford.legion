@@ -361,7 +361,7 @@ namespace Legion {
     {
       ShardTask* shard =
           new Memoizable<ShardTask>(source, parent, this, id, target, variant);
-      local_shards.push_back(shard);
+      local_shards.emplace_back(shard);
       return shard;
     }
 
@@ -373,7 +373,7 @@ namespace Legion {
     {
       ShardTask* shard = new Memoizable<ShardTask>(
           parent_ctx, derez, this, id, target, variant);
-      local_shards.push_back(shard);
+      local_shards.emplace_back(shard);
       return shard;
     }
 
@@ -629,7 +629,7 @@ namespace Legion {
               local_users++;
             if (std::binary_search(spaces.begin(), spaces.end(), space))
               continue;
-            spaces.push_back(space);
+            spaces.emplace_back(space);
             std::sort(spaces.begin(), spaces.end());
           }
           eq_mapping =
@@ -915,7 +915,7 @@ namespace Legion {
 #endif
           attach_deduplication->pending = Runtime::create_rt_user_event();
         }
-        attach_deduplication->launchers.push_back(&launcher);
+        attach_deduplication->launchers.emplace_back(&launcher);
         if (attach_deduplication->launchers.size() == local_shards.size())
         {
 #ifdef DEBUG_LEGION
@@ -991,7 +991,7 @@ namespace Legion {
 #endif
         // Only add it if we own it
         if (finder->second == &launcher)
-          indexes.push_back(idx);
+          indexes.emplace_back(idx);
       }
       // When we're done we need to sync on the way out too to make sure
       // everyone is done accessing our launcher before we leave
@@ -3281,8 +3281,8 @@ namespace Legion {
         if (isomorphic_points &&
             ((it->first.get_dim() != 1) || (it->first[0] != it->second.first)))
           isomorphic_points = false;
-        sorted_points.push_back(it->first);
-        shard_lookup.push_back(it->second.first);
+        sorted_points.emplace_back(it->first);
+        shard_lookup.emplace_back(it->second.first);
 #ifdef DEBUG_LEGION
         assert(it->second.first < points.size());
 #endif

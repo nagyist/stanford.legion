@@ -167,7 +167,7 @@ namespace Legion {
         const RtEvent ready =
             analysis.invalid->perform_remote(traversal_done, applied_events);
         if (ready.exists() && !ready.has_triggered())
-          ready_events.push_back(ready);
+          ready_events.emplace_back(ready);
       }
     }
 
@@ -224,7 +224,7 @@ namespace Legion {
         const RtEvent ready =
             analysis.antivalid->perform_remote(traversal_done, applied_events);
         if (ready.exists() && !ready.has_triggered())
-          ready_events.push_back(ready);
+          ready_events.emplace_back(ready);
       }
     }
 
@@ -345,10 +345,10 @@ namespace Legion {
         last_fence(nullptr), remaining_replays(0), total_logical(0)
     //--------------------------------------------------------------------------
     {
-      events.push_back(fence_event);
+      events.emplace_back(fence_event);
       event_map[fence_event] = fence_completion_id;
       finished_transitive_reduction.store(nullptr);
-      instructions.push_back(new AssignFenceCompletion(
+      instructions.emplace_back(new AssignFenceCompletion(
           *this, fence_completion_id, TraceLocalID()));
     }
 
@@ -463,13 +463,13 @@ namespace Legion {
       {
         // Record a merge event
         complete = events.size();
-        events.push_back(ApEvent());
+        events.emplace_back(ApEvent());
         insert_instruction(
             new MergeEvent(*this, complete, preconditions, tlid));
       }
       else
         complete = *(preconditions.begin());
-      events.push_back(ApEvent());
+      events.emplace_back(ApEvent());
       CompleteReplay* fence = new CompleteReplay(*this, tlid, complete);
       insert_instruction(fence);
       // update the last fence
@@ -685,7 +685,7 @@ namespace Legion {
         RtEvent ready = it->first->capture_trace_conditions(
             this, it->first->local_space, it->second, &result);
         if (ready.exists())
-          ready_events.push_back(ready);
+          ready_events.emplace_back(ready);
       }
       if (!ready_events.empty())
       {
@@ -756,7 +756,7 @@ namespace Legion {
               this, parent_req_index, tree_id, it->first,
               std::move(it->second));
           set->add_reference();
-          postsets.push_back(set);
+          postsets.emplace_back(set);
         }
         AutoLock tpl_lock(template_lock);
         postconditions.insert(
@@ -790,7 +790,7 @@ namespace Legion {
             set->mark_shared();
           set->add_reference();
           AutoLock tpl_lock(template_lock);
-          preconditions.push_back(set);
+          preconditions.emplace_back(set);
         }
       }
       if (antiviews != nullptr)
@@ -819,7 +819,7 @@ namespace Legion {
             set->mark_shared();
           set->add_reference();
           AutoLock tpl_lock(template_lock);
-          anticonditions.push_back(set);
+          anticonditions.emplace_back(set);
         }
       }
     }
@@ -968,7 +968,7 @@ namespace Legion {
       {
         PhysicalManager* manager = it->second->get_manager();
         manager->add_base_gc_ref(TRACE_REF);
-        all_instances.push_back(manager);
+        all_instances.emplace_back(manager);
         if (it->second->remove_base_gc_ref(TRACE_REF))
           delete it->second;
       }
@@ -1077,11 +1077,11 @@ namespace Legion {
             if (finder == frontier_map.end())
             {
               unsigned index = find_frontier_event(*it, frontier_events);
-              uit->frontiers.push_back(index);
+              uit->frontiers.emplace_back(index);
               frontier_map[*it] = index;
             }
             else
-              uit->frontiers.push_back(finder->second);
+              uit->frontiers.emplace_back(finder->second);
           }
         }
       }
@@ -1301,7 +1301,7 @@ namespace Legion {
             }
         }
         gen[idx] = new_instructions.size();
-        new_instructions.push_back(inst);
+        new_instructions.emplace_back(inst);
       }
       instructions.swap(new_instructions);
       new_instructions.clear();
@@ -1329,7 +1329,7 @@ namespace Legion {
         gen[merging_event_idx] = new_instructions.size();
         if (precondition != fence_completion_id)
           users.insert(precondition);
-        new_instructions.push_back(new MergeEvent(
+        new_instructions.emplace_back(new MergeEvent(
             *this, merging_event_idx, users, generator_inst->owner));
         precondition = merging_event_idx;
       }
@@ -1464,10 +1464,10 @@ namespace Legion {
 #endif
           if (e != -1U)
             new_gen[e] = new_instructions.size();
-          new_instructions.push_back(inst);
+          new_instructions.emplace_back(inst);
         }
         else
-          to_delete.push_back(instructions[idx]);
+          to_delete.emplace_back(instructions[idx]);
       instructions.swap(new_instructions);
       gen.swap(new_gen);
       for (unsigned idx = 0; idx < to_delete.size(); ++idx)
@@ -1619,7 +1619,7 @@ namespace Legion {
             user_event_slices[create->lhs] = slice_index;
           }
         }
-        slices[slice_index].push_back(inst);
+        slices[slice_index].emplace_back(inst);
         slice_indices_by_inst[idx] = slice_index;
 
         if (inst->get_kind() == MERGE_EVENT)
@@ -1665,8 +1665,8 @@ namespace Legion {
                   TriggerEvent* crossing = new TriggerEvent(
                       *this, new_crossing_event, rh,
                       instructions[gen[rh]]->owner);
-                  slices[generator_slice].push_back(crossing);
-                  crossing_instructions.push_back(crossing);
+                  slices[generator_slice].emplace_back(crossing);
+                  crossing_instructions.emplace_back(crossing);
                 }
               }
               else
@@ -1811,8 +1811,8 @@ namespace Legion {
               *this, new_crossing_event, event_to_check,
               instructions[g]->owner);
           event_to_check = new_crossing_event;
-          slices[generator_slice].push_back(crossing);
-          crossing_instructions.push_back(crossing);
+          slices[generator_slice].emplace_back(crossing);
+          crossing_instructions.emplace_back(crossing);
         }
       }
     }
@@ -1827,7 +1827,7 @@ namespace Legion {
            it != frontiers.end(); ++it)
       {
         inv_topo_order[it->second] = topo_order.size();
-        topo_order.push_back(it->second);
+        topo_order.emplace_back(it->second);
       }
     }
 
@@ -1904,15 +1904,15 @@ namespace Legion {
             case TRIGGER_EVENT:
               {
                 TriggerEvent* trigger = inst->as_trigger_event();
-                incoming[trigger->lhs].push_back(trigger->rhs);
-                outgoing[trigger->rhs].push_back(trigger->lhs);
+                incoming[trigger->lhs].emplace_back(trigger->rhs);
+                outgoing[trigger->rhs].emplace_back(trigger->lhs);
                 break;
               }
             case BARRIER_ARRIVAL:
               {
                 BarrierArrival* arrival = inst->as_barrier_arrival();
-                incoming[arrival->lhs].push_back(arrival->rhs);
-                outgoing[arrival->rhs].push_back(arrival->lhs);
+                incoming[arrival->lhs].emplace_back(arrival->rhs);
+                outgoing[arrival->rhs].emplace_back(arrival->lhs);
                 break;
               }
             case MERGE_EVENT:
@@ -1921,49 +1921,49 @@ namespace Legion {
                 for (std::set<unsigned>::iterator it = merge->rhs.begin();
                      it != merge->rhs.end(); ++it)
                 {
-                  incoming[merge->lhs].push_back(*it);
-                  outgoing[*it].push_back(merge->lhs);
+                  incoming[merge->lhs].emplace_back(*it);
+                  outgoing[*it].emplace_back(merge->lhs);
                 }
                 break;
               }
             case ISSUE_COPY:
               {
                 IssueCopy* copy = inst->as_issue_copy();
-                incoming[copy->lhs].push_back(copy->precondition_idx);
-                outgoing[copy->precondition_idx].push_back(copy->lhs);
+                incoming[copy->lhs].emplace_back(copy->precondition_idx);
+                outgoing[copy->precondition_idx].emplace_back(copy->lhs);
                 break;
               }
             case ISSUE_FILL:
               {
                 IssueFill* fill = inst->as_issue_fill();
-                incoming[fill->lhs].push_back(fill->precondition_idx);
-                outgoing[fill->precondition_idx].push_back(fill->lhs);
+                incoming[fill->lhs].emplace_back(fill->precondition_idx);
+                outgoing[fill->precondition_idx].emplace_back(fill->lhs);
                 break;
               }
             case ISSUE_ACROSS:
               {
                 IssueAcross* across = inst->as_issue_across();
-                incoming[across->lhs].push_back(across->copy_precondition);
-                outgoing[across->copy_precondition].push_back(across->lhs);
+                incoming[across->lhs].emplace_back(across->copy_precondition);
+                outgoing[across->copy_precondition].emplace_back(across->lhs);
                 if (across->collective_precondition != 0)
                 {
-                  incoming[across->lhs].push_back(
+                  incoming[across->lhs].emplace_back(
                       across->collective_precondition);
-                  outgoing[across->collective_precondition].push_back(
+                  outgoing[across->collective_precondition].emplace_back(
                       across->lhs);
                 }
                 if (across->src_indirect_precondition != 0)
                 {
-                  incoming[across->lhs].push_back(
+                  incoming[across->lhs].emplace_back(
                       across->src_indirect_precondition);
-                  outgoing[across->src_indirect_precondition].push_back(
+                  outgoing[across->src_indirect_precondition].emplace_back(
                       across->lhs);
                 }
                 if (across->dst_indirect_precondition != 0)
                 {
-                  incoming[across->lhs].push_back(
+                  incoming[across->lhs].emplace_back(
                       across->dst_indirect_precondition);
-                  outgoing[across->dst_indirect_precondition].push_back(
+                  outgoing[across->dst_indirect_precondition].emplace_back(
                       across->lhs);
                 }
                 break;
@@ -1972,20 +1972,20 @@ namespace Legion {
               {
                 SetOpSyncEvent* sync = inst->as_set_op_sync_event();
                 inv_topo_order[sync->lhs] = topo_order.size();
-                topo_order.push_back(sync->lhs);
+                topo_order.emplace_back(sync->lhs);
                 break;
               }
             case BARRIER_ADVANCE:
               {
                 BarrierAdvance* advance = inst->as_barrier_advance();
                 inv_topo_order[advance->lhs] = topo_order.size();
-                topo_order.push_back(advance->lhs);
+                topo_order.emplace_back(advance->lhs);
                 break;
               }
             case ASSIGN_FENCE_COMPLETION:
               {
                 inv_topo_order[fence_completion_id] = topo_order.size();
-                topo_order.push_back(fence_completion_id);
+                topo_order.emplace_back(fence_completion_id);
                 break;
               }
             case COMPLETE_REPLAY:
@@ -1996,9 +1996,9 @@ namespace Legion {
                     replay_insts.find(replay->owner);
                 if (replay_finder != replay_insts.end())
                 {
-                  incoming[replay_finder->second->lhs].push_back(
+                  incoming[replay_finder->second->lhs].emplace_back(
                       replay->complete);
-                  outgoing[replay->complete].push_back(
+                  outgoing[replay->complete].emplace_back(
                       replay_finder->second->lhs);
                   replay_insts.erase(replay_finder);
                 }
@@ -2060,7 +2060,7 @@ namespace Legion {
             if (--remaining_edges[next] == 0)
             {
               inv_topo_order[next] = topo_order.size();
-              topo_order.push_back(next);
+              topo_order.emplace_back(next);
             }
           }
           ++idx;
@@ -2189,7 +2189,7 @@ namespace Legion {
             unsigned chain_idx = chain_indices[rank];
             if (chain_frontiers[chain_idx] < rank)
             {
-              in_reduced.push_back(in[iidx]);
+              in_reduced.emplace_back(in[iidx]);
               chain_frontiers[chain_idx] = rank;
             }
           }
@@ -2355,10 +2355,10 @@ namespace Legion {
               delete inst;
           }
           else
-            new_instructions.push_back(inst);
+            new_instructions.emplace_back(inst);
         }
         else
-          new_instructions.push_back(inst);
+          new_instructions.emplace_back(inst);
       }
 
       if (instructions.size() == new_instructions.size())
@@ -2728,10 +2728,10 @@ namespace Legion {
 #endif
           if (e != -1U)
             new_gen[e] = new_instructions.size();
-          new_instructions.push_back(instructions[idx]);
+          new_instructions.emplace_back(instructions[idx]);
         }
         else
-          to_delete.push_back(instructions[idx]);
+          to_delete.emplace_back(instructions[idx]);
       }
 
       instructions.swap(new_instructions);
@@ -2754,9 +2754,9 @@ namespace Legion {
         {
           Instruction* inst = instructions[iidx];
           if (inst->get_kind() == COMPLETE_REPLAY)
-            complete_replays.push_back(inst);
+            complete_replays.emplace_back(inst);
           else
-            new_instructions.push_back(inst);
+            new_instructions.emplace_back(inst);
         }
         new_instructions.insert(
             new_instructions.end(), complete_replays.begin(),
@@ -3062,7 +3062,7 @@ namespace Legion {
 #else
       unsigned lhs_ = find_event(lhs, tpl_lock);
 #endif
-      events.push_back(ApEvent());
+      events.emplace_back(ApEvent());
       insert_instruction(new TriggerEvent(*this, lhs_, rhs_, tlid));
     }
 
@@ -3239,11 +3239,11 @@ namespace Legion {
       const unsigned rhs =
           pre.exists() ? find_event(pre, tpl_lock) : fence_completion_id;
       const unsigned lhs = events.size();
-      events.push_back(ApEvent());
+      events.emplace_back(ApEvent());
       BarrierArrival* arrival =
           new BarrierArrival(*this, bar, lhs, rhs, arrivals, true /*managed*/);
       insert_instruction(arrival);
-      managed_arrivals[bar].push_back(arrival);
+      managed_arrivals[bar].emplace_back(arrival);
     }
 
     //--------------------------------------------------------------------------
@@ -3346,7 +3346,7 @@ namespace Legion {
       IssueAcross* across = new IssueAcross(
           *this, lhs_, copy_pre, collective_pre, src_indirect_pre,
           dst_indirect_pre, tlid, executor);
-      across_copies.push_back(across);
+      across_copies.emplace_back(across);
       insert_instruction(across);
     }
 
@@ -3536,7 +3536,7 @@ namespace Legion {
       // Do this first in case it gets preempted
       const unsigned complete_ =
           complete.exists() ? find_event(complete, tpl_lock) : 0;
-      events.push_back(ApEvent());
+      events.emplace_back(ApEvent());
       insert_instruction(new CompleteReplay(*this, tlid, complete_));
     }
 
@@ -3914,7 +3914,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       unsigned event_ = events.size();
-      events.push_back(event);
+      events.emplace_back(event);
 #ifdef DEBUG_LEGION
       assert(event_map.find(event) == event_map.end());
 #endif
@@ -3943,7 +3943,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(instructions.size() + 1 == events.size());
 #endif
-      instructions.push_back(inst);
+      instructions.emplace_back(inst);
     }
 
     //--------------------------------------------------------------------------

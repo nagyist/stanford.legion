@@ -191,7 +191,7 @@ namespace Legion {
         ApEvent done =
             (*it)->copy_from(serdez_redop_instance, this, ApEvent::NO_AP_EVENT);
         if (done.exists())
-          done_events.push_back(done);
+          done_events.emplace_back(done);
       }
       if (!done_events.empty())
         return Runtime::merge_events(nullptr, done_events);
@@ -206,7 +206,7 @@ namespace Legion {
     {
       const RtEvent ready = future->find_runtime_instance_ready();
       if (ready.exists())
-        ready_events.push_back(ready);
+        ready_events.emplace_back(ready);
     }
 
     //--------------------------------------------------------------------------
@@ -277,7 +277,8 @@ namespace Legion {
         subscribe_to_future(ready_events, initial_value.impl);
       // Also make sure we wait for any execution fences that we have
       if ((serdez_redop_fns != nullptr) && execution_fence_event.exists())
-        ready_events.push_back(Runtime::protect_event(execution_fence_event));
+        ready_events.emplace_back(
+            Runtime::protect_event(execution_fence_event));
       if (!ready_events.empty())
       {
         const RtEvent ready = Runtime::merge_events(ready_events);
@@ -383,7 +384,7 @@ namespace Legion {
         target_memories.swap(output.destination_memories);
       }
       else
-        target_memories.push_back(runtime->runtime_system_memory);
+        target_memories.emplace_back(runtime->runtime_system_memory);
       // Compute the future reduction size
       if (serdez_redop_fns == nullptr)
         future_result_size = redop->sizeof_rhs;
@@ -435,7 +436,7 @@ namespace Legion {
         FutureInstance* instance = manager->create_future_instance(
             unique_op_id, coordinates, result_size,
             nullptr /*safe for unbounded pools*/);
-        targets.push_back(instance);
+        targets.emplace_back(instance);
       }
       // This is an important optimization: if we're doing a small
       // reduction value we always want the reduction instance to
@@ -445,7 +446,7 @@ namespace Legion {
           (redop->sizeof_rhs <= LEGION_MAX_RETURN_SIZE))
       {
         runtime_visible = targets.size();
-        targets.push_back(FutureInstance::create_local(
+        targets.emplace_back(FutureInstance::create_local(
             &redop->identity, redop->sizeof_rhs, false /*own*/));
       }
       if (runtime_visible > 0)
@@ -489,7 +490,7 @@ namespace Legion {
         for (std::vector<ApEvent>::const_iterator it = preconditions.begin();
              it != preconditions.end(); it++)
           if (it->exists())
-            postconditions.push_back(*it);
+            postconditions.emplace_back(*it);
       }
       else
       {
@@ -503,7 +504,7 @@ namespace Legion {
                 targets[idx], this, redop_id, redop, false /*exclusive*/,
                 preconditions[idx]);
             if (done.exists())
-              postconditions.push_back(done);
+              postconditions.emplace_back(done);
           }
           if (runtime->legion_spy_enabled)
             LegionSpy::log_future_use(unique_op_id, it->second->did);
@@ -746,7 +747,7 @@ namespace Legion {
               local_target, this, redop_id, redop, false /*exclusive*/,
               local_precondition);
           if (postcondition.exists())
-            postconditions.push_back(postcondition);
+            postconditions.emplace_back(postcondition);
           if (runtime->legion_spy_enabled)
             LegionSpy::log_future_use(unique_op_id, it->second->did);
         }

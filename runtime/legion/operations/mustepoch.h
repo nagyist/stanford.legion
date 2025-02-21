@@ -43,8 +43,8 @@ namespace Legion {
       public:
         inline void add_entry(unsigned op_idx, unsigned req_idx)
         {
-          op_indexes.push_back(op_idx);
-          req_indexes.push_back(req_idx);
+          op_indexes.emplace_back(op_idx);
+          req_indexes.emplace_back(req_idx);
         }
       public:
         std::vector<unsigned> op_indexes;

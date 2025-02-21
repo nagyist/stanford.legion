@@ -131,7 +131,7 @@ namespace Legion {
                 runtime->find_or_request_logical_view(
                     vit->first->collective_did, ready));
             if (ready.exists())
-              ready_events.push_back(ready);
+              ready_events.emplace_back(ready);
             result_views[idx].insert(view, overlap);
             // Now count how many local arrivals we have for
             // instances on the same address space
@@ -274,13 +274,13 @@ namespace Legion {
         result = new RendezvousResult(this, key, targets, physical_ctx);
         // Reference for pending_rendezvous
         result->add_reference();
-        pending.push_back(result);
+        pending.emplace_back(result);
       }
       // Record all our targets in the result
-      result->target_mappings.push_back(&analysis_mapping);
-      result->target_first_locals.push_back(&first_local);
-      result->target_views.push_back(&target_views);
-      result->target_arrivals.push_back(&collective_arrivals);
+      result->target_mappings.emplace_back(&analysis_mapping);
+      result->target_first_locals.emplace_back(&first_local);
+      result->target_views.emplace_back(&target_views);
+      result->target_arrivals.emplace_back(&collective_arrivals);
       // Reference for ourselves
       result->add_reference();
       return result;
@@ -369,7 +369,7 @@ namespace Legion {
       if (mapping->contains(runtime->address_space))
         mapping->get_children(owner, runtime->address_space, targets);
       else
-        targets.push_back(owner);
+        targets.emplace_back(owner);
       // Send out the results to the next participants
       if (!targets.empty())
       {
@@ -942,8 +942,8 @@ namespace Legion {
                    const_iterator it = fit->elements.begin();
                it != fit->elements.end(); it++)
           {
-            targets.push_back(it->second);
-            target_spaces.push_back(it->first);
+            targets.emplace_back(it->second);
+            target_spaces.emplace_back(it->first);
           }
           RtEvent precondition;
           if (!std::binary_search(
@@ -963,7 +963,7 @@ namespace Legion {
                 parent_req_index, targets, target_spaces, region_owner_space,
                 expr, fit->set_mask);
           if (precondition.exists())
-            preconditions.push_back(precondition);
+            preconditions.emplace_back(precondition);
         }
 #ifdef DEBUG_LEGION
         assert(pit->second.ready_event.exists());
@@ -1065,7 +1065,7 @@ namespace Legion {
                 collective.results.begin(), collective.results.end(),
                 result_key))
         {
-          collective.results.push_back(result_key);
+          collective.results.emplace_back(result_key);
           std::sort(collective.results.begin(), collective.results.end());
         }
         // Now update the counts for all the instances
@@ -1130,7 +1130,7 @@ namespace Legion {
                       region_finder->second.results.begin(),
                       region_finder->second.results.end(), *it))
                 continue;
-              region_finder->second.results.push_back(*it);
+              region_finder->second.results.emplace_back(*it);
               std::sort(
                   region_finder->second.results.begin(),
                   region_finder->second.results.end());
@@ -1208,7 +1208,7 @@ namespace Legion {
                 physical_ctx->find_or_create_collective_view(
                     tid, instances, ready);
             if (ready.exists())
-              ready_events.push_back(ready);
+              ready_events.emplace_back(ready);
             // References already added by method so deduplicate references
             if (!results.insert(result, it->set_mask))
               result->remove_reference();
@@ -1234,7 +1234,7 @@ namespace Legion {
              it != rit->second.results.end(); it++)
         {
           if (unique_spaces.empty() || (unique_spaces.back() != it->first))
-            unique_spaces.push_back(it->first);
+            unique_spaces.emplace_back(it->first);
         }
         CollectiveMapping* mapping = new CollectiveMapping(
             unique_spaces, runtime->legion_collective_radix);

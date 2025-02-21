@@ -306,7 +306,7 @@ namespace Legion {
       size_t index = output_regions.size();
       OutputRegionImpl* impl = new OutputRegionImpl(
           index, req, instances, this, global, valid, grouped);
-      output_regions.push_back(OutputRegion(impl));
+      output_regions.emplace_back(OutputRegion(impl));
     }
 
     //--------------------------------------------------------------------------
@@ -1006,7 +1006,7 @@ namespace Legion {
       if (runtime->profiler != nullptr)
       {
         const long long start = Realm::Clock::current_time_in_nanoseconds();
-        user_profiling_ranges.push_back(start);
+        user_profiling_ranges.emplace_back(start);
       }
     }
 
@@ -1262,7 +1262,7 @@ namespace Legion {
             continue;
           physical_instances[idx1].add_instance(
               InstanceRef(ref.get_manager(), overlap));
-          input.chosen_instances[idx1].push_back(
+          input.chosen_instances[idx1].emplace_back(
               MappingInstance(ref.get_manager()));
           mask -= overlap;
           if (!mask)

@@ -904,7 +904,7 @@ namespace Legion {
       for (std::map<Color, CollectiveID>::const_iterator it =
                concurrent_exchange_colors.begin();
            it != concurrent_exchange_colors.end(); it++)
-        colors.push_back(it->first);
+        colors.emplace_back(it->first);
     }
 
 #ifdef LEGION_SPY

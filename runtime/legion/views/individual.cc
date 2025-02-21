@@ -159,7 +159,7 @@ namespace Legion {
           {
             it.filter(non_dominated);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           for (std::vector<PhysicalUser*>::const_iterator it =
                    to_delete.begin();
@@ -559,7 +559,7 @@ namespace Legion {
             need_tighten = true;
             // See if we need to remove this subview
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           // Otherwise it's just a normal intersection
         }
@@ -804,7 +804,7 @@ namespace Legion {
         if (!!new_mask)
           new_subviews.insert(it->first, new_mask);
         else
-          to_delete.push_back(it->first);
+          to_delete.emplace_back(it->first);
       }
       subviews.swap(new_subviews);
       if (!to_delete.empty())
@@ -1734,7 +1734,7 @@ namespace Legion {
             trace_info.pack_trace_info(rez);
           }
           runtime->send_view_register_user(logical_owner, rez);
-          registered.push_back(registered_event);
+          registered.emplace_back(registered_event);
           applied_events.insert(applied_event);
         }
         return ready_event;
@@ -1918,7 +1918,7 @@ namespace Legion {
           rez.serialize(ready);
         }
         runtime->send_view_find_last_users_request(logical_owner, rez);
-        ready_events.push_back(ready);
+        ready_events.emplace_back(ready);
       }
       else
       {
@@ -2531,11 +2531,11 @@ namespace Legion {
         result_info = finder->second.trace_info;
         analysis_mapping = finder->second.analysis_mapping;
         registered = finder->second.registered;
-        registered_events.push_back(registered);
+        registered_events.emplace_back(registered);
         applied = finder->second.applied;
         applied_events.insert(applied);
         if (term_event.exists())
-          finder->second.term_events.push_back(term_event);
+          finder->second.term_events.emplace_back(term_event);
 #ifdef DEBUG_LEGION
         assert(finder->second.local_initialized);
         assert(finder->second.remaining_local_arrivals > 0);
@@ -2660,7 +2660,7 @@ namespace Legion {
           rendezvous.applied = Runtime::create_rt_user_event();
         }
         if (remote_term_event.exists())
-          finder->second.term_events.push_back(remote_term_event);
+          finder->second.term_events.emplace_back(remote_term_event);
         Runtime::trigger_event(remote_registered, finder->second.registered);
         if (finder->second.applied.exists())
           applied_events.insert(finder->second.applied);
@@ -2873,10 +2873,10 @@ namespace Legion {
             // Make a new reservation and add it to the set
             Reservation handle = Reservation::create_reservation();
             view_reservations[idx] = handle;
-            results.push_back(handle);
+            results.emplace_back(handle);
           }
           else
-            results.push_back(finder->second);
+            results.emplace_back(finder->second);
         }
       }
       else
@@ -2890,7 +2890,7 @@ namespace Legion {
             std::map<unsigned, Reservation>::const_iterator finder =
                 view_reservations.find(idx);
             if (finder != view_reservations.end())
-              results.push_back(finder->second);
+              results.emplace_back(finder->second);
             else
               break;
           }

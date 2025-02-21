@@ -145,7 +145,7 @@ namespace Legion {
         if (already_acquired.find(manager) != already_acquired.end())
         {
           if ((to_erase != nullptr) && filter_acquired_instances)
-            to_erase->push_back(idx);
+            to_erase->emplace_back(idx);
           continue;
         }
         // Try to add an acquired reference immediately
@@ -156,13 +156,13 @@ namespace Legion {
           // We already know it wasn't there before
           already_acquired[manager] = 1;
           if ((to_erase != nullptr) && filter_acquired_instances)
-            to_erase->push_back(idx);
+            to_erase->emplace_back(idx);
         }
         else
         {
           all_acquired = false;
           if ((to_erase != nullptr) && !filter_acquired_instances)
-            to_erase->push_back(idx);
+            to_erase->emplace_back(idx);
         }
       }
       return all_acquired;
@@ -177,7 +177,7 @@ namespace Legion {
         const long long start = Realm::Clock::current_time_in_nanoseconds();
         if (profiling_ranges == nullptr)
           profiling_ranges = new std::vector<long long>();
-        profiling_ranges->push_back(start);
+        profiling_ranges->emplace_back(start);
       }
     }
 
@@ -1052,9 +1052,9 @@ namespace Legion {
           info->resume = Runtime::create_rt_user_event();
           precondition = info->resume;
           if (prioritize)
-            pending_calls.push_front(info);
+            pending_calls.emplace_front(info);
           else
-            pending_calls.push_back(info);
+            pending_calls.emplace_back(info);
         }
         else
           executing_call = info;
@@ -1126,9 +1126,9 @@ namespace Legion {
             info->resume = Runtime::create_rt_user_event();
             wait_on = info->resume;
             if (info->priority)
-              ready_calls.push_front(info);
+              ready_calls.emplace_front(info);
             else
-              ready_calls.push_back(info);
+              ready_calls.emplace_back(info);
           }
           else
             executing_call = info;
@@ -1384,7 +1384,7 @@ namespace Legion {
               {
                 info->resume = Runtime::create_rt_user_event();
                 wait_on = info->resume;
-                exclusive_waiters.push_back(info);
+                exclusive_waiters.emplace_back(info);
               }
               else  // add it to the set of current holders
                 current_holders.insert(info);
@@ -1396,9 +1396,9 @@ namespace Legion {
               info->resume = Runtime::create_rt_user_event();
               wait_on = info->resume;
               if (read_only)
-                read_only_waiters.push_back(info);
+                read_only_waiters.emplace_back(info);
               else
-                exclusive_waiters.push_back(info);
+                exclusive_waiters.emplace_back(info);
               break;
             }
           default:
@@ -1566,7 +1566,7 @@ namespace Legion {
             if (!exclusive_waiters.empty())
             {
               // Pull off the first exlusive waiter
-              to_trigger.push_back(exclusive_waiters.front()->resume);
+              to_trigger.emplace_back(exclusive_waiters.front()->resume);
               exclusive_waiters.pop_front();
               lock_state = EXCLUSIVE_STATE;
             }

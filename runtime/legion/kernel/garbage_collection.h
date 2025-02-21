@@ -200,7 +200,7 @@ namespace Legion {
       {
         if (implicit_reference_tracker == nullptr)
           implicit_reference_tracker = new ImplicitReferenceTracker;
-        implicit_reference_tracker->live_expressions.push_back(expr);
+        implicit_reference_tracker->live_expressions.emplace_back(expr);
       }
     private:
       std::vector<IndexSpaceExpression*> live_expressions;

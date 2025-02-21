@@ -445,8 +445,8 @@ namespace Legion {
           for (std::set<SingleTask*>::const_iterator sit = task_set.begin();
                sit != task_set.end(); sit++)
           {
-            constraint.constrained_tasks.push_back(*sit);
-            constraint.requirement_indexes.push_back(req_index);
+            constraint.constrained_tasks.emplace_back(*sit);
+            constraint.requirement_indexes.emplace_back(req_index);
 #ifdef DEBUG_LEGION
             assert(single_task_map.find(*sit) != single_task_map.end());
 #endif
@@ -531,13 +531,13 @@ namespace Legion {
                indiv_tasks.begin();
            it != indiv_tasks.end(); it++)
       {
-        tasks_all_mapped.push_back((*it)->get_mapped_event());
+        tasks_all_mapped.emplace_back((*it)->get_mapped_event());
         record_completion_effect((*it)->get_completion_event());
       }
       for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
            it != index_tasks.end(); it++)
       {
-        tasks_all_mapped.push_back((*it)->get_mapped_event());
+        tasks_all_mapped.emplace_back((*it)->get_mapped_event());
         record_completion_effect((*it)->get_completion_event());
       }
       // For correctness we still have to abide by the mapping dependences
@@ -562,7 +562,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert((*it) < idx);
 #endif
-          preconditions.push_back(
+          preconditions.emplace_back(
               mapped_events[single_tasks[*it]->index_point]);
         }
         RtEvent precondition;
@@ -599,7 +599,7 @@ namespace Legion {
         for (std::map<DomainPoint, RtUserEvent>::const_iterator it =
                  mapped_events.begin();
              it != mapped_events.end(); it++)
-          preconditions.push_back(it->second);
+          preconditions.emplace_back(it->second);
         release_nonempty_acquired_instances(
             Runtime::merge_events(preconditions), acquired_instances);
       }
@@ -685,7 +685,7 @@ namespace Legion {
       {
         AutoLock o_lock(op_lock);
         if (precondition.exists())
-          concurrent_preconditions.push_back(precondition);
+          concurrent_preconditions.emplace_back(precondition);
 #ifdef DEBUG_LEGION
         assert(remaining_concurrent_mapped > 0);
 #endif
@@ -1048,7 +1048,7 @@ namespace Legion {
         // Record the destination as a potential target for anything
         // that comes later and depends on the internal operation
         std::pair<Operation*, GenerationID> internal_key(src_op, src_gen);
-        internal_dependences[internal_key].push_back(
+        internal_dependences[internal_key].emplace_back(
             std::pair<unsigned, unsigned>(dst_index, dst_idx));
         // Use the source of the internal operation here since we still
         // need to record constraints properly between these operations
@@ -1151,7 +1151,7 @@ namespace Legion {
             unsigned record_index = dependences.size();
             dependence_map[src_key] = record_index;
             dependence_map[dst_key] = record_index;
-            dependences.push_back(new_record);
+            dependences.emplace_back(new_record);
           }
           else
           {
@@ -1201,7 +1201,7 @@ namespace Legion {
           map_output.chosen_instances[idx] =
               output.constraint_mappings[record_finder->second];
           // Also record that we premapped this
-          map_input.premapped_regions.push_back(idx);
+          map_input.premapped_regions.emplace_back(idx);
         }
       }
     }
@@ -1224,7 +1224,7 @@ namespace Legion {
 #endif
       task_sets[index].insert(single);
       AutoLock o_lock(op_lock);
-      single_tasks.push_back(single);
+      single_tasks.emplace_back(single);
       const unsigned remaining = remaining_single_tasks.fetch_sub(1);
 #ifdef DEBUG_LEGION
       assert(remaining > 0);
@@ -1878,7 +1878,7 @@ namespace Legion {
         RtEvent next_local = Runtime::merge_events(local_mapped_events);
         local_mapped_events.clear();
         if (next_local.exists())
-          local_mapped_events.push_back(next_local);
+          local_mapped_events.emplace_back(next_local);
       }
       if (local_complete_events.size() > 1)
       {
@@ -1886,7 +1886,7 @@ namespace Legion {
             Runtime::merge_events(nullptr, local_complete_events);
         local_complete_events.clear();
         if (next_local.exists())
-          local_complete_events.push_back(next_local);
+          local_complete_events.emplace_back(next_local);
       }
       if (local_mapped_events.empty())
         rez.serialize(RtEvent::NO_RT_EVENT);
@@ -1906,11 +1906,11 @@ namespace Legion {
       RtEvent remote_mapped;
       derez.deserialize(remote_mapped);
       if (remote_mapped.exists())
-        local_mapped_events.push_back(remote_mapped);
+        local_mapped_events.emplace_back(remote_mapped);
       ApEvent remote_complete;
       derez.deserialize(remote_complete);
       if (!remote_complete.exists())
-        local_complete_events.push_back(remote_complete);
+        local_complete_events.emplace_back(remote_complete);
     }
 
     //--------------------------------------------------------------------------
@@ -2123,8 +2123,8 @@ namespace Legion {
         }
         if (is_local)
         {
-          local_constraints.push_back(input.constraints[idx]);
-          original_constraint_indexes.push_back(idx);
+          local_constraints.emplace_back(input.constraints[idx]);
+          original_constraint_indexes.emplace_back(idx);
         }
       }
       if (collective_map_must_epoch_call)
@@ -2216,16 +2216,16 @@ namespace Legion {
                indiv_tasks.begin();
            it != indiv_tasks.end(); it++)
       {
-        tasks_all_mapped.push_back((*it)->get_mapped_event());
-        tasks_all_complete.push_back((*it)->get_completion_event());
+        tasks_all_mapped.emplace_back((*it)->get_mapped_event());
+        tasks_all_complete.emplace_back((*it)->get_completion_event());
         if (shard_single_tasks.find(*it) != shard_single_tasks.end())
           remaining_resource_returns++;
       }
       for (std::vector<IndexTask*>::const_iterator it = index_tasks.begin();
            it != index_tasks.end(); it++)
       {
-        tasks_all_mapped.push_back((*it)->get_mapped_event());
-        tasks_all_complete.push_back((*it)->get_completion_event());
+        tasks_all_mapped.emplace_back((*it)->get_mapped_event());
+        tasks_all_complete.emplace_back((*it)->get_completion_event());
       }
       // Start the exchange for the mapped and completion events
       MustEpochCompletionExchange completion_exchange(

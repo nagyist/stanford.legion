@@ -51,7 +51,7 @@ namespace Legion {
       {
         AddressSpaceID next = start + idx;
         if (next < runtime->total_address_spaces)
-          targets.push_back(next);
+          targets.emplace_back(next);
         else
           break;
       }
@@ -141,12 +141,12 @@ namespace Legion {
           std::vector<RtEvent> shutdown_events;
           Realm::ProfilingRequestSet empty_requests;
           const Processor utility_group = runtime->find_utility_group();
-          shutdown_events.push_back(RtEvent(utility_group.spawn(
+          shutdown_events.emplace_back(RtEvent(utility_group.spawn(
               LG_SHUTDOWN_TASK_ID, nullptr, 0, empty_requests)));
           // One last really crazy precondition on shutdown, we actually need to
           // make sure that this task itself is done executing before trying to
           // shutdown so add our own completion event as a precondition
-          shutdown_events.push_back(
+          shutdown_events.emplace_back(
               RtEvent(Processor::get_current_finish_event()));
           // Then tell Realm to shutdown when they are all done
           RealmRuntime realm = RealmRuntime::get_runtime();

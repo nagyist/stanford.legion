@@ -876,7 +876,7 @@ namespace Legion {
       {
         PointFillOp* point = runtime->get_operation<PointFillOp>();
         point->initialize(this, itr.p);
-        temp_points.push_back(point);
+        temp_points.emplace_back(point);
       }
       // Now we have to do the projection
       ProjectionFunction* function =
@@ -1212,7 +1212,7 @@ namespace Legion {
       const RtEvent pre = parent_ctx->find_pointwise_dependence(
           previous_context_index, previous_point, shard);
       if (pre.exists())
-        pointwise_mapping_dependences.push_back(pre);
+        pointwise_mapping_dependences.emplace_back(pre);
     }
 
     //--------------------------------------------------------------------------

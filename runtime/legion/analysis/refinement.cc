@@ -727,7 +727,7 @@ namespace Legion {
 #endif
             allow_refinement = true;
             child->add_base_resource_ref(REFINEMENT_REF);
-            children.push_back(child);
+            children.emplace_back(child);
             if (((uint64_t)partition->row_source->total_children) <=
                 CHANGE_REFINEMENT_PARTITION_FRACTION)
               refinement_state = IS_WRITE(usage) ?
@@ -756,7 +756,7 @@ namespace Legion {
               if (!std::binary_search(children.begin(), children.end(), child))
               {
                 child->add_base_resource_ref(REFINEMENT_REF);
-                children.push_back(child);
+                children.emplace_back(child);
                 std::sort(children.begin(), children.end());
               }
             }
@@ -775,7 +775,7 @@ namespace Legion {
             if (!std::binary_search(children.begin(), children.end(), child))
             {
               child->add_base_resource_ref(REFINEMENT_REF);
-              children.push_back(child);
+              children.emplace_back(child);
               std::sort(children.begin(), children.end());
               if (((uint64_t)partition->row_source->total_children) <=
                   (children.size() * CHANGE_REFINEMENT_PARTITION_FRACTION))
@@ -802,7 +802,7 @@ namespace Legion {
               if (!std::binary_search(children.begin(), children.end(), child))
               {
                 child->add_base_resource_ref(REFINEMENT_REF);
-                children.push_back(child);
+                children.emplace_back(child);
                 std::sort(children.begin(), children.end());
                 // See if we dominate the projection at this point
                 if ((refined_projection != nullptr) &&
@@ -825,7 +825,7 @@ namespace Legion {
               if (!std::binary_search(children.begin(), children.end(), child))
               {
                 child->add_base_resource_ref(REFINEMENT_REF);
-                children.push_back(child);
+                children.emplace_back(child);
                 std::sort(children.begin(), children.end());
                 if (((uint64_t)partition->row_source->total_children) <=
                     (children.size() * CHANGE_REFINEMENT_PARTITION_FRACTION))

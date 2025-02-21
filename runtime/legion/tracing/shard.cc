@@ -96,7 +96,7 @@ namespace Legion {
 #endif
       const unsigned rhs_ =
           rhs.exists() ? find_event(rhs, tpl_lock) : fence_completion_id;
-      events.push_back(ApEvent());
+      events.emplace_back(ApEvent());
       insert_instruction(new TriggerEvent(*this, finder->second, rhs_, tlid));
       return true;
     }
@@ -124,7 +124,7 @@ namespace Legion {
         if (finder == event_map.end())
         {
           // We're going to need to check this event later
-          pending_events.push_back(*it);
+          pending_events.emplace_back(*it);
           // See if anyone else has requested this event yet
           std::map<ApEvent, RtEvent>::const_iterator request_finder =
               pending_event_requests.find(*it);
@@ -218,7 +218,7 @@ namespace Legion {
         if (finder == event_map.end())
         {
           // We're going to need to check this event later
-          pending_events.push_back(*it);
+          pending_events.emplace_back(*it);
           // See if anyone else has requested this event yet
           std::map<ApEvent, RtEvent>::const_iterator request_finder =
               pending_event_requests.find(*it);
@@ -411,7 +411,7 @@ namespace Legion {
 #endif
       // Find the pre event first
       unsigned rhs = find_event(pre, tpl_lock);
-      events.push_back(ApEvent());
+      events.emplace_back(ApEvent());
       BarrierArrival* arrival = new BarrierArrival(
           *this, bar, events.size() - 1, rhs, arrival_count, true /*managed*/);
       insert_instruction(arrival);
@@ -438,13 +438,13 @@ namespace Legion {
           rez.serialize(subscribed);
           manager->send_trace_update(owner_shard, rez);
           applied.insert(subscribed);
-          managed_arrivals[bar].push_back(arrival);
+          managed_arrivals[bar].emplace_back(arrival);
         }
         else
-          finder->second.push_back(arrival);
+          finder->second.emplace_back(arrival);
       }
       else
-        managed_arrivals[bar].push_back(arrival);
+        managed_arrivals[bar].emplace_back(arrival);
     }
 
     //--------------------------------------------------------------------------
@@ -573,12 +573,12 @@ namespace Legion {
         insert_instruction(advance);
         managed_barriers[event] = advance;
         // Next make the arrival instruction for this barrier
-        events.push_back(ApEvent());
+        events.emplace_back(ApEvent());
         BarrierArrival* arrival = new BarrierArrival(
             *this, barrier, events.size() - 1, finder->second, 1 /*count*/,
             true /*managed*/);
         insert_instruction(arrival);
-        managed_arrivals[event].push_back(arrival);
+        managed_arrivals[event].emplace_back(arrival);
         // Record our local shard too
         advance->record_subscribed_shard(local_shard);
         return advance->record_subscribed_shard(remote_shard);
@@ -1572,7 +1572,7 @@ namespace Legion {
       const ShardMapping& shard_spaces = repl_ctx->shard_manager->get_mapping();
       for (unsigned idx = 0; idx < shard_spaces.size(); idx++)
         if (shard_spaces[idx] == owner)
-          shards.push_back(idx);
+          shards.emplace_back(idx);
       // If we didn't find any then take the owner mod the number of total
       // spaces and then send it to the shards on that space
       if (shards.empty())
@@ -1586,7 +1586,7 @@ namespace Legion {
         for (unsigned idx = 0; idx < count; idx++) target_space++;
         for (unsigned idx = 0; idx < shard_spaces.size(); idx++)
           if (shard_spaces[idx] == *target_space)
-            shards.push_back(idx);
+            shards.emplace_back(idx);
       }
 #ifdef DEBUG_LEGION
       assert(!shards.empty());
@@ -1728,7 +1728,7 @@ namespace Legion {
           this, repl_ctx->owner_shard->shard_id, runtime->address_space,
           template_index, event, event_space, next_event_id, done_event);
       events.resize(next_event_id + 1);
-      ready_events.push_back(done_event);
+      ready_events.emplace_back(done_event);
       return next_event_id;
     }
 
@@ -1741,7 +1741,7 @@ namespace Legion {
            vit != inst_users.end(); vit++)
       {
         const ShardID owner_shard = find_inst_owner(vit->instance);
-        shard_inst_users[owner_shard].push_back(*vit);
+        shard_inst_users[owner_shard].emplace_back(*vit);
       }
       std::atomic<bool> result(true);
       std::vector<RtEvent> done_events;
@@ -1772,7 +1772,7 @@ namespace Legion {
           rez.serialize(&result);
           rez.serialize(done);
           manager->send_trace_update(sit->first, rez);
-          done_events.push_back(done);
+          done_events.emplace_back(done);
         }
         else if (!PhysicalTemplate::are_read_only_users(sit->second))
         {
@@ -1811,7 +1811,7 @@ namespace Legion {
       {
         if (!it->first.exists())
         {
-          to_filter.push_back(it->second);
+          to_filter.emplace_back(it->second);
           it = remote_frontiers.erase(it);
         }
         else
@@ -1884,7 +1884,7 @@ namespace Legion {
            it != remote_frontiers.end(); it++)
       {
         inv_topo_order[it->second] = topo_order.size();
-        topo_order.push_back(it->second);
+        topo_order.emplace_back(it->second);
       }
     }
 

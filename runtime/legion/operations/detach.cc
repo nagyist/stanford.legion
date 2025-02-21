@@ -453,7 +453,7 @@ namespace Legion {
         PointDetachOp* point = runtime->get_operation<PointDetachOp>();
         const DomainPoint index_point = Point<1>(idx);
         point->initialize_detach(this, ctx, regions[idx], index_point, flush);
-        points.push_back(point);
+        points.emplace_back(point);
       }
       // Create the future result that we will complete when we're done
       result = Future(new FutureImpl(
@@ -531,7 +531,7 @@ namespace Legion {
                 RtEvent precondition = parent_ctx->find_pointwise_dependence(
                     pit->context_index, *it, shard);
                 if (precondition.exists())
-                  preconditions[idx].push_back(precondition);
+                  preconditions[idx].emplace_back(precondition);
               }
             }
           }
@@ -551,7 +551,7 @@ namespace Legion {
                 RtEvent precondition = parent_ctx->find_pointwise_dependence(
                     pit->context_index, *it, 0 /*shard*/);
                 if (precondition.exists())
-                  preconditions[idx].push_back(precondition);
+                  preconditions[idx].emplace_back(precondition);
               }
             }
           }

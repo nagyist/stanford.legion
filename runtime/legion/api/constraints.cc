@@ -221,7 +221,7 @@ namespace Legion {
   //--------------------------------------------------------------------------
   {
     if ((kind != Processor::NO_KIND) && (kind != Processor::PROC_GROUP))
-      valid_kinds.push_back(kind);
+      valid_kinds.emplace_back(kind);
   }
 
   //--------------------------------------------------------------------------
@@ -233,7 +233,7 @@ namespace Legion {
     for (unsigned idx = 0; idx < valid_kinds.size(); idx++)
       if (valid_kinds[idx] == kind)
         return;
-    valid_kinds.push_back(kind);
+    valid_kinds.emplace_back(kind);
   }
 
   //--------------------------------------------------------------------------
@@ -513,7 +513,7 @@ namespace Legion {
       const ResourceConstraint& constraint)
   //--------------------------------------------------------------------------
   {
-    resource_constraints.push_back(constraint);
+    resource_constraints.emplace_back(constraint);
     return *this;
   }
 
@@ -522,7 +522,7 @@ namespace Legion {
       const LaunchConstraint& constraint)
   //--------------------------------------------------------------------------
   {
-    launch_constraints.push_back(constraint);
+    launch_constraints.emplace_back(constraint);
     return *this;
   }
 
@@ -531,7 +531,7 @@ namespace Legion {
       const ColocationConstraint& constraint)
   //--------------------------------------------------------------------------
   {
-    colocation_constraints.push_back(constraint);
+    colocation_constraints.emplace_back(constraint);
     return *this;
   }
 
@@ -1807,7 +1807,7 @@ namespace Legion {
       const TilingConstraint& constraint)
   //--------------------------------------------------------------------------
   {
-    tiling_constraints.push_back(constraint);
+    tiling_constraints.emplace_back(constraint);
     return *this;
   }
 
@@ -1825,7 +1825,7 @@ namespace Legion {
       const DimensionConstraint& constraint)
   //--------------------------------------------------------------------------
   {
-    dimension_constraints.push_back(constraint);
+    dimension_constraints.emplace_back(constraint);
     return *this;
   }
 
@@ -1834,7 +1834,7 @@ namespace Legion {
       const AlignmentConstraint& constraint)
   //--------------------------------------------------------------------------
   {
-    alignment_constraints.push_back(constraint);
+    alignment_constraints.emplace_back(constraint);
     return *this;
   }
 
@@ -1843,7 +1843,7 @@ namespace Legion {
       const OffsetConstraint& constraint)
   //--------------------------------------------------------------------------
   {
-    offset_constraints.push_back(constraint);
+    offset_constraints.emplace_back(constraint);
     return *this;
   }
 

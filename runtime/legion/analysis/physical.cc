@@ -412,7 +412,7 @@ namespace Legion {
               to_add.insert(diff, overlap);
             it.filter(overlap);
             if (!it->second)
-              to_remove.push_back(it->first);
+              to_remove.emplace_back(it->first);
           }
         }
       }
@@ -433,7 +433,7 @@ namespace Legion {
             to_add.insert(diff, overlap);
           it.filter(overlap);
           if (!it->second)
-            to_remove.push_back(it->first);
+            to_remove.emplace_back(it->first);
         }
       }
       if (!to_remove.empty())

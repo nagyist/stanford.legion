@@ -155,7 +155,7 @@ namespace Legion {
       {
         compressed = src_mask;
         compress_mask<STATIC_LOG2(LEGION_MAX_FIELDS)>(compressed, full_mask);
-        compressed_cache.push_back(
+        compressed_cache.emplace_back(
             std::pair<FieldMask, FieldMask>(src_mask, compressed));
       }
       const unsigned pop_count = FieldMask::pop_count(compressed);
@@ -368,7 +368,7 @@ namespace Legion {
           copy_mask.set_bit(*it);
           PhysicalManager* manager = ref.get_physical_manager();
           manager->compute_copy_offsets(copy_mask, src_fields);
-          src_unique_events.push_back(manager->get_unique_event());
+          src_unique_events.emplace_back(manager->get_unique_event());
 #ifdef DEBUG_LEGION
           found = true;
 #endif
@@ -410,7 +410,7 @@ namespace Legion {
           copy_mask.set_bit(*it);
           PhysicalManager* manager = ref.get_physical_manager();
           manager->compute_copy_offsets(copy_mask, dst_fields);
-          dst_unique_events.push_back(manager->get_unique_event());
+          dst_unique_events.emplace_back(manager->get_unique_event());
 #ifdef DEBUG_LEGION
           found = true;
 #endif

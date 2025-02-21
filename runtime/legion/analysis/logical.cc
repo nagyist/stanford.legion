@@ -215,7 +215,7 @@ namespace Legion {
       {
         it.filter(mask);
         if (!it->second)
-          to_delete.push_back(it->first);
+          to_delete.emplace_back(it->first);
       }
       if (to_delete.size() < open_children.size())
       {
@@ -412,7 +412,7 @@ namespace Legion {
         {
           it.filter(deleted_mask);
           if (!it->second)
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
         }
         for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
              it != to_delete.end(); it++)
@@ -432,7 +432,7 @@ namespace Legion {
         {
           it.filter(deleted_mask);
           if (!it->second)
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
         }
         for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
              it != to_delete.end(); it++)
@@ -457,7 +457,7 @@ namespace Legion {
           it->first->invalidate_refinement(ctx, overlap);
           it.filter(overlap);
           if (!it->second)
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
         }
         for (std::vector<RefinementTracker*>::const_iterator it =
                  to_delete.begin();
@@ -533,7 +533,7 @@ namespace Legion {
       if (proj_info.projection->is_functional)
       {
         result->add_reference();
-        projection_summary_cache.push_front(result);
+        projection_summary_cache.emplace_front(result);
       }
       return result;
     }
@@ -787,7 +787,7 @@ namespace Legion {
           if (it->first->update_child(child, usage, allow_refinement))
           {
             it->first->invalidate_refinement(ctx, overlap);
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
           }
           else
           {
@@ -857,7 +857,7 @@ namespace Legion {
           if (it->first->update_projection(summary, usage, allow_refinement))
           {
             it->first->invalidate_refinement(ctx, overlap);
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
           }
           else
           {
@@ -924,7 +924,7 @@ namespace Legion {
           if (it->first->update_arrival(usage))
           {
             it->first->invalidate_refinement(ctx, overlap);
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
           }
           else
           {
@@ -972,7 +972,7 @@ namespace Legion {
         it->first->invalidate_refinement(ctx, overlap);
         it.filter(overlap);
         if (!it->second)
-          to_delete.push_back(it->first);
+          to_delete.emplace_back(it->first);
         invalidation_mask -= overlap;
         if (!invalidation_mask)
           break;
@@ -1052,7 +1052,7 @@ namespace Legion {
       {
         it.filter(field_mask);
         if (!it->second)
-          to_delete.push_back(it->first);
+          to_delete.emplace_back(it->first);
       }
       for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
            it != to_delete.end(); it++)
@@ -1088,7 +1088,7 @@ namespace Legion {
           it->first->add_reference();
         it.filter(local_dom);
         if (!it->second)
-          to_delete.push_back(it->first);
+          to_delete.emplace_back(it->first);
       }
       for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
            it != to_delete.end(); it++)
@@ -1127,7 +1127,7 @@ namespace Legion {
         if (!it->first->op->is_operation_committed(it->first->gen))
           continue;
         it->first->add_reference();
-        timeout_users.push_back(it->first);
+        timeout_users.emplace_back(it->first);
       }
       const size_t prev_size = timeout_users.size();
       for (OrderedFieldMaskUsers::const_iterator it = prev_epoch_users.begin();
@@ -1140,7 +1140,7 @@ namespace Legion {
                 it->first))
           continue;
         it->first->add_reference();
-        timeout_users.push_back(it->first);
+        timeout_users.emplace_back(it->first);
       }
       // Now we do the exchange and record whether we need to double
       // the timeout check iterations

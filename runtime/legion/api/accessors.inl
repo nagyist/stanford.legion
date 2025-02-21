@@ -556,7 +556,7 @@ namespace Legion {
             "GenericAccessor", fid, instance, inst, *start);                   \
       else                                                                     \
         instance = inst;                                                       \
-      ises.push_back(is);                                                      \
+      ises.emplace_back(is);                                                   \
     }                                                                          \
     accessor = Realm::GenericAccessor<FT, DIM, T>(instance, fid, offset);      \
     /* The bounds are the union of the ises (need to be precise) */            \
@@ -600,7 +600,7 @@ namespace Legion {
             "GenericAccessor", fid, instance, inst, *start);                   \
       else                                                                     \
         instance = inst;                                                       \
-      ises.push_back(is);                                                      \
+      ises.emplace_back(is);                                                   \
     }                                                                          \
     accessor = Realm::GenericAccessor<FT, DIM, T>(                             \
         instance, fid, source_bounds, offset);                                 \
@@ -1888,7 +1888,7 @@ namespace Legion {
             "AffineAccessor", fid, instance, inst, *start);                    \
       else                                                                     \
         instance = inst;                                                       \
-      ises.push_back(is);                                                      \
+      ises.emplace_back(is);                                                   \
     }                                                                          \
     if (!Realm::AffineAccessor<FT, DIM, T>::is_compatible(                     \
             instance, fid, bounding_box))                                      \
@@ -1935,7 +1935,7 @@ namespace Legion {
             "AffineAccessor", fid, instance, inst, *start);                    \
       else                                                                     \
         instance = inst;                                                       \
-      ises.push_back(is);                                                      \
+      ises.emplace_back(is);                                                   \
     }                                                                          \
     if (!Realm::AffineAccessor<FT, DIM, T>::is_compatible(                     \
             instance, fid, source_bounds))                                     \
@@ -1983,7 +1983,7 @@ namespace Legion {
             "AffineAccessor", fid, instance, inst, *start);                    \
       else                                                                     \
         instance = inst;                                                       \
-      ises.push_back(is);                                                      \
+      ises.emplace_back(is);                                                   \
     }                                                                          \
     if (!Realm::AffineAccessor<FT, DIM, T>::is_compatible(                     \
             instance, transform.transform, transform.offset, fid))             \
@@ -2031,7 +2031,7 @@ namespace Legion {
             "AffineAccessor", fid, instance, inst, *start);                    \
       else                                                                     \
         instance = inst;                                                       \
-      ises.push_back(is);                                                      \
+      ises.emplace_back(is);                                                   \
     }                                                                          \
     if (!Realm::AffineAccessor<FT, DIM, T>::is_compatible(                     \
             instance, transform.transform, transform.offset, fid,              \
@@ -4357,7 +4357,7 @@ namespace Legion {
             "AffineAccessor", fid, instance, inst, *start, true);             \
       else                                                                    \
         instance = inst;                                                      \
-      ises.push_back(is);                                                     \
+      ises.emplace_back(is);                                                  \
     }                                                                         \
     if (!Realm::AffineAccessor<typename REDOP::RHS, DIM, T>::is_compatible(   \
             instance, fid, bounding_box))                                     \
@@ -4407,7 +4407,7 @@ namespace Legion {
             "AffineAccessor", fid, instance, inst, *start, true);             \
       else                                                                    \
         instance = inst;                                                      \
-      ises.push_back(is);                                                     \
+      ises.emplace_back(is);                                                  \
     }                                                                         \
     if (!Realm::AffineAccessor<typename REDOP::RHS, DIM, T>::is_compatible(   \
             instance, fid, source_bounds))                                    \
@@ -4457,7 +4457,7 @@ namespace Legion {
             "AffineAccessor", fid, instance, inst, *start, true);             \
       else                                                                    \
         instance = inst;                                                      \
-      ises.push_back(is);                                                     \
+      ises.emplace_back(is);                                                  \
     }                                                                         \
     if (!Realm::AffineAccessor<typename REDOP::RHS, DIM, T>::is_compatible(   \
             instance, transform.transform, transform.offset, fid))            \
@@ -4507,7 +4507,7 @@ namespace Legion {
             "AffineAccessor", fid, instance, inst, *start, true);             \
       else                                                                    \
         instance = inst;                                                      \
-      ises.push_back(is);                                                     \
+      ises.emplace_back(is);                                                  \
     }                                                                         \
     if (!Realm::AffineAccessor<typename REDOP::RHS, DIM, T>::is_compatible(   \
             instance, transform.transform, transform.offset, fid,             \
@@ -5347,7 +5347,7 @@ namespace Legion {
             "MultiAffineAccessor", fid, instance, inst, *start);               \
       else                                                                     \
         instance = inst;                                                       \
-      ises.push_back(is);                                                      \
+      ises.emplace_back(is);                                                   \
       if (!Realm::MultiAffineAccessor<FT, DIM, T>::is_compatible(              \
               instance, fid, is.bounds))                                       \
         it->report_incompatible_accessor(                                      \
@@ -5394,7 +5394,7 @@ namespace Legion {
             "MultiAffineAccessor", fid, instance, inst, *start);               \
       else                                                                     \
         instance = inst;                                                       \
-      ises.push_back(is);                                                      \
+      ises.emplace_back(is);                                                   \
       if (!Realm::MultiAffineAccessor<FT, DIM, T>::is_compatible(              \
               instance, fid, source_bounds))                                   \
         it->report_incompatible_accessor(                                      \

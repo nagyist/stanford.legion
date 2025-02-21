@@ -81,7 +81,7 @@ namespace Legion {
       // Make an event for recording when all the remote events are applied
       RtUserEvent remote_release = Runtime::create_rt_user_event();
       rez.serialize(remote_release);
-      remote_release_events.push_back(remote_release);
+      remote_release_events.emplace_back(remote_release);
     }
 
     //--------------------------------------------------------------------------
@@ -361,7 +361,7 @@ namespace Legion {
         std::vector<FillUpdate*>& fills)
     //--------------------------------------------------------------------------
     {
-      copies[source].push_back(this);
+      copies[source].emplace_back(this);
     }
 
     //--------------------------------------------------------------------------
@@ -378,7 +378,7 @@ namespace Legion {
         std::vector<FillUpdate*>& fills)
     //--------------------------------------------------------------------------
     {
-      fills.push_back(this);
+      fills.emplace_back(this);
     }
 
     //--------------------------------------------------------------------------
@@ -510,7 +510,7 @@ namespace Legion {
       {
         for (unsigned idx = 0; idx < unique_indexes.size(); idx++)
           if (!unique_indexes[idx])
-            ranking.push_back(idx);
+            ranking.emplace_back(idx);
       }
       // Save the result for the future
       finder->second.emplace_back(SelectSourcesResult(
@@ -577,7 +577,7 @@ namespace Legion {
                 break;
               }
               else
-                instances.push_back((*it)->as_instance_view());
+                instances.emplace_back((*it)->as_instance_view());
             }
             if (deferred != nullptr)
               deferred->flatten(
@@ -718,7 +718,7 @@ namespace Legion {
             remainders.tighten_valid_mask();
         }
         else
-          instances.push_back(vit->first->as_instance_view());
+          instances.emplace_back(vit->first->as_instance_view());
       }
       // If we get here, next try to sort the instances into whatever order
       // the mapper wants us to try to issue copies from them
@@ -736,7 +736,7 @@ namespace Legion {
           points = result.points;
         }
         else
-          ranking.push_back(0);
+          ranking.emplace_back(0);
         for (unsigned idx = 0; idx < ranking.size(); idx++)
         {
           InstanceView* src_view = instances[ranking[idx]];
@@ -906,7 +906,7 @@ namespace Legion {
           assert(redop_index <= reductions.size());
 #endif
           // Start a new redop epoch if necessary
-          redop_epochs.push_back(redop);
+          redop_epochs.emplace_back(redop);
           if (reductions.size() == redop_index)
             resize_reductions(redop_index + 1);
         }
@@ -1134,7 +1134,7 @@ namespace Legion {
           {
             // Update our precondition to incude the copies from
             // any previous passes that we performed
-            finder->second.push_back(precondition);
+            finder->second.emplace_back(precondition);
             dst_precondition =
                 Runtime::merge_events(&trace_info, finder->second);
             // Clear this for the next iteration
@@ -1236,9 +1236,9 @@ namespace Legion {
         if (result.exists())
         {
           if (track_events)
-            events.push_back(result);
+            events.emplace_back(result);
           if (dst_events != nullptr)
-            dst_events->push_back(result);
+            dst_events->emplace_back(result);
         }
       }
       else
@@ -1291,9 +1291,9 @@ namespace Legion {
           if (result.exists())
           {
             if (track_events)
-              events.push_back(result);
+              events.emplace_back(result);
             if (dst_events != nullptr)
-              dst_events->push_back(result);
+              dst_events->emplace_back(result);
           }
         }
       }
@@ -1348,7 +1348,7 @@ namespace Legion {
 #endif
             if ((*it)->redop == 0)
             {
-              fused_gather_copies[source].push_back(*it);
+              fused_gather_copies[source].emplace_back(*it);
               it = cit->second.erase(it);
             }
             else
@@ -1393,9 +1393,9 @@ namespace Legion {
           if (result.exists())
           {
             if (track_events)
-              events.push_back(result);
+              events.emplace_back(result);
             if (dst_events != nullptr)
-              dst_events->push_back(result);
+              dst_events->emplace_back(result);
           }
         }
         else if (!fused_gather_copies.empty())
@@ -1452,9 +1452,9 @@ namespace Legion {
           if (result.exists())
           {
             if (track_events)
-              events.push_back(result);
+              events.emplace_back(result);
             if (dst_events != nullptr)
-              dst_events->push_back(result);
+              dst_events->emplace_back(result);
           }
         }
         else
@@ -1515,9 +1515,9 @@ namespace Legion {
             if (result.exists())
             {
               if (track_events)
-                events.push_back(result);
+                events.emplace_back(result);
               if (dst_events != nullptr)
-                dst_events->push_back(result);
+                dst_events->emplace_back(result);
             }
           }
         }

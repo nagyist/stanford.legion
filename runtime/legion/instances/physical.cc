@@ -1535,7 +1535,7 @@ namespace Legion {
                 rez.serialize(ready_event);
               }
               runtime->send_gc_acquire(*it, rez);
-              ready_events.push_back(ready_event);
+              ready_events.emplace_back(ready_event);
             }
           }
           const size_t needed_guards = count_remote_instances();
@@ -1560,7 +1560,7 @@ namespace Legion {
                   rez.serialize(ready_event);
                 }
                 runtime->send_gc_acquire(target, rez);
-                ready_events.push_back(ready_event);
+                ready_events.emplace_back(ready_event);
               }
               const DistributedID did;
               std::vector<RtEvent>& ready_events;
@@ -2491,7 +2491,7 @@ namespace Legion {
           }
           pack_global_ref();
           runtime->send_gc_priority_update(*it, rez);
-          done_events.push_back(done);
+          done_events.emplace_back(done);
         }
       }
       if (is_owner() && (count_remote_instances() > 0))
@@ -2516,7 +2516,7 @@ namespace Legion {
             }
             manager->pack_global_ref();
             runtime->send_gc_priority_update(target, rez);
-            done_events.push_back(done);
+            done_events.emplace_back(done);
           }
           PhysicalManager* const manager;
           std::vector<RtEvent>& done_events;

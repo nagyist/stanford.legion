@@ -464,7 +464,7 @@ namespace Legion {
       // Just enumerate the points in order for the domain
       ordered_points.reserve(launch_domain.get_volume());
       for (Domain::DomainPointIterator itr(launch_domain); itr; itr++)
-        ordered_points.push_back(itr.p);
+        ordered_points.emplace_back(itr.p);
     }
 
     //--------------------------------------------------------------------------
@@ -479,7 +479,7 @@ namespace Legion {
       const DomainPoint point = runtime->get_logical_region_color_point(region);
       // Need to check if it is in the launch domain
       if (launch_domain.contains(point))
-        ordered_points.push_back(point);
+        ordered_points.emplace_back(point);
     }
 
     //--------------------------------------------------------------------------

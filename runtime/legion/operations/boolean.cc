@@ -373,7 +373,7 @@ namespace Legion {
         RtEvent ready;
         it->impl->get_predicate(ready);
         if (ready.exists())
-          ready_events.push_back(ready);
+          ready_events.emplace_back(ready);
       }
       if (!ready_events.empty())
       {
@@ -498,7 +498,7 @@ namespace Legion {
         RtEvent ready;
         it->impl->get_predicate(ready);
         if (ready.exists())
-          ready_events.push_back(ready);
+          ready_events.emplace_back(ready);
       }
       if (!ready_events.empty())
       {

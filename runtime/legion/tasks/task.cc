@@ -719,7 +719,7 @@ namespace Legion {
             if (IS_NO_ACCESS(req) || req.privilege_fields.empty())
               continue;
             if (!IS_WRITE(req))
-              check_collective_regions.push_back(*it);
+              check_collective_regions.emplace_back(*it);
             else if (!IS_COLLECTIVE(req))
               Exception(WARNING_EXCEPTION, this)
                   << "Ignoring request by mapper " << *mapper
@@ -730,7 +730,7 @@ namespace Legion {
         }
         for (unsigned idx = 0; idx < regions.size(); idx++)
           if (IS_COLLECTIVE(regions[idx]))
-            check_collective_regions.push_back(idx);
+            check_collective_regions.emplace_back(idx);
         if (!check_collective_regions.empty())
         {
           std::sort(
@@ -1100,7 +1100,7 @@ namespace Legion {
                phase_barriers.begin();
            it != phase_barriers.end(); it++)
       {
-        arrive_barriers.push_back(*it);
+        arrive_barriers.emplace_back(*it);
         runtime->phase_barrier_arrive(*it, 1 /*count*/, arrive_pre);
         if (runtime->legion_spy_enabled)
           LegionSpy::log_phase_barrier_arrival(unique_op_id, it->phase_barrier);
@@ -1712,7 +1712,7 @@ namespace Legion {
              it != variants.end(); it++)
         {
           if (it->second->can_use(kind, true /*warn*/))
-            valid_variants.push_back(it->first);
+            valid_variants.emplace_back(it->first);
         }
       }
     }
@@ -2278,10 +2278,10 @@ namespace Legion {
         AddressSpaceID next = start + idx;
         if (next >= runtime->total_address_spaces)
           break;
-        locals.push_back(next);
+        locals.emplace_back(next);
         // Convert from relative to actual address space
         AddressSpaceID actual = (origin + next) % runtime->total_address_spaces;
-        targets.push_back(actual);
+        targets.emplace_back(actual);
       }
       if (!targets.empty())
       {

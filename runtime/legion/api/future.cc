@@ -380,7 +380,7 @@ namespace Legion {
           if (!it->second.read_events.empty())
           {
             if (precondition.exists())
-              it->second.read_events.push_back(precondition);
+              it->second.read_events.emplace_back(precondition);
             precondition =
                 Runtime::merge_events(nullptr, it->second.read_events);
           }
@@ -418,7 +418,7 @@ namespace Legion {
         if (!it->second.read_events.empty())
         {
           if (precondition.exists())
-            it->second.read_events.push_back(precondition);
+            it->second.read_events.emplace_back(precondition);
           precondition = Runtime::merge_events(nullptr, it->second.read_events);
         }
         if (!it->second.instance->defer_deletion(precondition))
@@ -1144,7 +1144,7 @@ namespace Legion {
       const ApEvent ready_event =
           target->copy_from(tracker.instance, op, precondition);
       if (ready_event.exists())
-        tracker.read_events.push_back(ready_event);
+        tracker.read_events.emplace_back(ready_event);
       return ready_event;
     }
 
@@ -1171,7 +1171,7 @@ namespace Legion {
       const ApEvent ready_event = target->reduce_from(
           tracker.instance, op, redop_id, redop, exclusive, precondition);
       if (ready_event.exists())
-        tracker.read_events.push_back(ready_event);
+        tracker.read_events.emplace_back(ready_event);
       return ready_event;
     }
 
@@ -1703,7 +1703,7 @@ namespace Legion {
         instances.erase(source);
       }
       else if (ready_event.exists())
-        tracker.read_events.push_back(ready_event);
+        tracker.read_events.emplace_back(ready_event);
       instances.emplace(std::make_pair(
           instance->memory, FutureInstanceTracker(instance, ready_event)));
       if (!local_visible_memory.exists() && instance->is_meta_visible)
@@ -2527,7 +2527,7 @@ namespace Legion {
           if (inst_space == target)
           {
             has_exact_target = true;
-            target_memories.push_back(it->first);
+            target_memories.emplace_back(it->first);
           }
           else if (
               (collective_mapping != nullptr) &&
@@ -2544,9 +2544,9 @@ namespace Legion {
               inst_space =
                   collective_mapping->get_parent(owner_space, inst_space);
             if (inst_space == target)
-              target_memories.push_back(it->first);
+              target_memories.emplace_back(it->first);
             else if ((inst_space == owner_space) && (target == owner_space))
-              target_memories.push_back(it->first);
+              target_memories.emplace_back(it->first);
           }
         }
         if (!target_memories.empty())
@@ -2578,7 +2578,7 @@ namespace Legion {
             {
               finder->second.remote_postcondition =
                   Runtime::create_ap_user_event(nullptr);
-              finder->second.read_events.push_back(
+              finder->second.read_events.emplace_back(
                   finder->second.remote_postcondition);
             }
             rez.serialize<size_t>(finder->second.read_events.size());
@@ -2617,7 +2617,7 @@ namespace Legion {
             const ApUserEvent read_done =
                 Runtime::create_ap_user_event(nullptr);
             rez.serialize(read_done);
-            finder->second.read_events.push_back(read_done);
+            finder->second.read_events.emplace_back(read_done);
           }
         }
       }

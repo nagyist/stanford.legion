@@ -320,7 +320,7 @@ namespace Legion {
               collective_mapping, view_collective_arrivals, registered_events,
               applied_events, trace_info, local_space, symbolic);
           if (ready.exists())
-            inst_ready_events.push_back(ready);
+            inst_ready_events.emplace_back(ready);
         }
       }
       if (!inst_ready_events.empty())
@@ -328,7 +328,7 @@ namespace Legion {
         if ((inst_ready_events.size() > 1) || init_precondition.exists())
         {
           if (init_precondition.exists())
-            inst_ready_events.push_back(init_precondition);
+            inst_ready_events.emplace_back(init_precondition);
           instances_ready =
               Runtime::merge_events(&trace_info, inst_ready_events);
         }

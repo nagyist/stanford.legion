@@ -423,7 +423,7 @@ namespace Legion {
                          map_state.ready_queue.begin();
                      it != map_state.ready_queue.end(); it++)
                   if ((*it)->is_stealable() && !(*it)->is_origin_mapped())
-                    input.stealable_tasks.push_back(*it);
+                    input.stealable_tasks.emplace_back(*it);
                 // Set the queue guard so no one else tries to
                 // read the ready queue while we've checked it out
                 if (!input.stealable_tasks.empty())
@@ -476,7 +476,7 @@ namespace Legion {
               if ((*it)->is_forward_progress_task())
                 decrement_progress_tasks();
               (*it)->mark_stolen();
-              local_stolen.push_back(*it);
+              local_stolen.emplace_back(*it);
               it = rqueue.erase(it);
             }
             else
@@ -499,7 +499,7 @@ namespace Legion {
         }
         if (!local_stolen.empty())
         {
-          successful_thiefs.push_back(stealer);
+          successful_thiefs.emplace_back(stealer);
           for (std::vector<SingleTask*>::const_iterator it =
                    local_stolen.begin();
                it != local_stolen.end(); it++)
@@ -584,7 +584,7 @@ namespace Legion {
         map_state.deferral_event = RtEvent::NO_RT_EVENT;
         increment_active_mappers();
       }
-      map_state.ready_queue.push_back(task);
+      map_state.ready_queue.emplace_back(task);
       // Finally if this is a progress task increment it
       if (forward_progress_task)
         increment_progress_tasks();
@@ -858,7 +858,7 @@ namespace Legion {
                       (*it)->get_context()->get_logical_tree_context();
                   const ContextState& ctx_state = context_states[ctx];
                   if (ctx_state.active || (*it)->is_forward_progress_task())
-                    input.ready_tasks.push_back(*it);
+                    input.ready_tasks.emplace_back(*it);
                 }
                 // Set the queue guard so no one else tries to
                 // read the ready queue while we've checked it out
@@ -988,7 +988,7 @@ namespace Legion {
                 decrement_active_contexts();
               if ((*it)->is_forward_progress_task())
                 decrement_progress_tasks();
-              to_trigger.push_back(*it);
+              to_trigger.emplace_back(*it);
               it = rqueue.erase(it);
             }
             else
@@ -1008,7 +1008,7 @@ namespace Legion {
             {
               if ((*it)->is_stealable())
               {
-                mappers_with_stealable_work.push_back(map_id);
+                mappers_with_stealable_work.emplace_back(map_id);
                 break;
               }
             }
@@ -1041,7 +1041,7 @@ namespace Legion {
               // remotely, which is hard if it is a point task that is
               // owned by a slice task, if it is just a normal indvidual
               // task then we can just ship it remotely immediately
-              to_send[finder->second].push_back(*it);
+              to_send[finder->second].emplace_back(*it);
             }
             else
               (*it)->enqueue_ready_task(true /*use target processor*/);

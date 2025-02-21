@@ -58,7 +58,7 @@ namespace Legion {
              it != this->wait_barriers.end(); it++)
         {
           ApEvent e = Runtime::get_previous_phase(it->phase_barrier);
-          sync_preconditions.push_back(e);
+          sync_preconditions.emplace_back(e);
           if (runtime->legion_spy_enabled)
             LegionSpy::log_phase_barrier_wait(this->get_unique_op_id(), e);
         }
@@ -66,10 +66,10 @@ namespace Legion {
              it != this->grants.end(); it++)
         {
           ApEvent e = it->impl->acquire_grant();
-          sync_preconditions.push_back(e);
+          sync_preconditions.emplace_back(e);
         }
         if (this->has_execution_fence_event())
-          sync_preconditions.push_back(this->get_execution_fence_event());
+          sync_preconditions.emplace_back(this->get_execution_fence_event());
         ApEvent result = Runtime::merge_events(nullptr, sync_preconditions);
         if (this->is_recording())
           trace_info.record_op_sync_event(result);

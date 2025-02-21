@@ -1573,13 +1573,13 @@ namespace Legion {
           collective->broadcast(ISBroadcast(
               did, runtime->get_unique_index_tree_id(),
               runtime->get_unique_index_space_expr_id(), double_next));
-          pending_index_spaces.push_back(
+          pending_index_spaces.emplace_back(
               std::pair<ValueBroadcast<ISBroadcast>*, bool>(collective, true));
         }
         else
         {
           register_collective(collective);
-          pending_index_spaces.push_back(
+          pending_index_spaces.emplace_back(
               std::pair<ValueBroadcast<ISBroadcast>*, bool>(collective, false));
         }
         index_space_allocator_shard++;
@@ -2169,7 +2169,7 @@ namespace Legion {
         {
           // If we didn't make the index space in this context, just
           // record it and keep going, it will get handled later
-          deleted_index_spaces.push_back(
+          deleted_index_spaces.emplace_back(
               DeletedIndexSpace(handle, recurse, provenance));
           return;
         }
@@ -2193,7 +2193,7 @@ namespace Legion {
           {
             if (it->first.get_tree_id() == handle.get_tree_id())
             {
-              sub_partitions.push_back(it->first);
+              sub_partitions.emplace_back(it->first);
 #ifdef DEBUG_LEGION
               assert(it->second > 0);
 #endif
@@ -2312,7 +2312,7 @@ namespace Legion {
               if ((handle.get_tree_id() == it->first.get_tree_id()) &&
                   runtime->is_dominated_tree_only(it->first, handle))
               {
-                sub_partitions.push_back(it->first);
+                sub_partitions.emplace_back(it->first);
 #ifdef DEBUG_LEGION
                 assert(it->second > 0);
 #endif
@@ -2332,7 +2332,7 @@ namespace Legion {
         else
         {
           // If we didn't make the partition, record it and keep going
-          deleted_index_partitions.push_back(
+          deleted_index_partitions.emplace_back(
               DeletedPartition(handle, recurse, provenance));
           return;
         }
@@ -2366,7 +2366,7 @@ namespace Legion {
         ValueBroadcast<IPBroadcast>* collective =
             new ValueBroadcast<IPBroadcast>(
                 this, index_partition_allocator_shard, COLLECTIVE_LOC_7);
-        pending_index_partitions.push_back(
+        pending_index_partitions.emplace_back(
             std::pair<ValueBroadcast<IPBroadcast>*, ShardID>(
                 collective, index_partition_allocator_shard));
         if (owner_shard->shard_id == index_partition_allocator_shard)
@@ -4418,13 +4418,13 @@ namespace Legion {
           runtime->record_pending_field_space(did);
           // Do our arrival on this generation, should be the last one
           collective->broadcast(FSBroadcast(did, double_next));
-          pending_field_spaces.push_back(
+          pending_field_spaces.emplace_back(
               std::pair<ValueBroadcast<FSBroadcast>*, bool>(collective, true));
         }
         else
         {
           register_collective(collective);
-          pending_field_spaces.push_back(
+          pending_field_spaces.emplace_back(
               std::pair<ValueBroadcast<FSBroadcast>*, bool>(collective, false));
         }
         field_space_allocator_shard++;
@@ -4533,7 +4533,7 @@ namespace Legion {
           // If we didn't make this field space, record the deletion
           // and keep going. It will be handled by the context that
           // made the field space
-          deleted_field_spaces.push_back(handle);
+          deleted_field_spaces.emplace_back(handle);
           return;
         }
       }
@@ -4668,13 +4668,13 @@ namespace Legion {
           const FieldID fid = runtime->get_unique_field_id();
           // Do our arrival on this generation, should be the last one
           collective->broadcast(FIDBroadcast(fid, double_next));
-          pending_fields.push_back(
+          pending_fields.emplace_back(
               std::pair<ValueBroadcast<FIDBroadcast>*, bool>(collective, true));
         }
         else
         {
           register_collective(collective);
-          pending_fields.push_back(
+          pending_fields.emplace_back(
               std::pair<ValueBroadcast<FIDBroadcast>*, bool>(
                   collective, false));
         }
@@ -5302,13 +5302,13 @@ namespace Legion {
           runtime->record_pending_region_tree(tid);
           // Do our arrival on this generation, should be the last one
           collective->broadcast(LRBroadcast(tid, did, double_next));
-          pending_region_trees.push_back(
+          pending_region_trees.emplace_back(
               std::pair<ValueBroadcast<LRBroadcast>*, bool>(collective, true));
         }
         else
         {
           register_collective(collective);
-          pending_region_trees.push_back(
+          pending_region_trees.emplace_back(
               std::pair<ValueBroadcast<LRBroadcast>*, bool>(collective, false));
         }
         logical_region_allocator_shard++;
@@ -8634,7 +8634,7 @@ namespace Legion {
       void* buffer = malloc(remaining_bytes);
       memcpy(buffer, derez.get_current_pointer(), remaining_bytes);
       derez.advance_pointer(remaining_bytes);
-      pending_rendezvous_updates[origin_shard].push_back(
+      pending_rendezvous_updates[origin_shard].emplace_back(
           std::pair<void*, size_t>(buffer, remaining_bytes));
       return nullptr;
     }
@@ -8776,7 +8776,7 @@ namespace Legion {
           derez.deserialize(mask);
           eq_sets.insert(set, mask);
           if (ready.exists())
-            ready_events.push_back(ready);
+            ready_events.emplace_back(ready);
         }
         if (!ready_events.empty())
         {
@@ -9208,7 +9208,7 @@ namespace Legion {
                   rit->region.field_space.get_id(), rit->region.get_tree_id(),
                   get_task_name(), get_unique_id())
             // Deletion keeps going up
-            deleted_regions.push_back(*rit);
+            deleted_regions.emplace_back(*rit);
           }
           else
           {
@@ -9220,7 +9220,7 @@ namespace Legion {
             {
               // Don't remove this from created regions yet,
               // That will happen when we make the deletion operation
-              delete_now.push_back(*rit);
+              delete_now.emplace_back(*rit);
             }
           }
         }
@@ -9274,7 +9274,7 @@ namespace Legion {
                   "by the task that made them.",
                   fit->fid, fit->space.get_id(), get_task_name(),
                   get_unique_id())
-            deleted_fields.push_back(*fit);
+            deleted_fields.emplace_back(*fit);
           }
           else
           {
@@ -9333,7 +9333,7 @@ namespace Legion {
 #endif
             if (--finder->second == 0)
             {
-              delete_now.push_back(*fit);
+              delete_now.emplace_back(*fit);
               created_field_spaces.erase(finder);
               // Count how many regions are still using this field space
               // that still need to be deleted before we can remove the
@@ -9375,7 +9375,7 @@ namespace Legion {
             // If we didn't make this field space, record the deletion
             // and keep going. It will be handled by the context that
             // made the field space
-            deleted_field_spaces.push_back(*fit);
+            deleted_field_spaces.emplace_back(*fit);
         }
       }
       if (!delete_now.empty())
@@ -9422,7 +9422,7 @@ namespace Legion {
 #endif
             if (--finder->second == 0)
             {
-              delete_now.push_back(*sit);
+              delete_now.emplace_back(*sit);
               sub_partitions.resize(sub_partitions.size() + 1);
               created_index_spaces.erase(finder);
               if (sit->recurse)
@@ -9441,7 +9441,7 @@ namespace Legion {
 #endif
                     if (--it->second == 0)
                     {
-                      subs.push_back(it->first);
+                      subs.emplace_back(it->first);
                       std::map<IndexPartition, unsigned>::iterator to_delete =
                           it++;
                       created_index_partitions.erase(to_delete);
@@ -9458,7 +9458,7 @@ namespace Legion {
           else
             // If we didn't make the index space in this context, just
             // record it and keep going, it will get handled later
-            deleted_index_spaces.push_back(*sit);
+            deleted_index_spaces.emplace_back(*sit);
         }
       }
       if (!delete_now.empty())
@@ -9506,7 +9506,7 @@ namespace Legion {
 #endif
             if (--finder->second == 0)
             {
-              delete_now.push_back(*pit);
+              delete_now.emplace_back(*pit);
               sub_partitions.resize(sub_partitions.size() + 1);
               created_index_partitions.erase(finder);
               if (pit->recurse)
@@ -9528,7 +9528,7 @@ namespace Legion {
 #endif
                     if (--it->second == 0)
                     {
-                      subs.push_back(it->first);
+                      subs.emplace_back(it->first);
                       std::map<IndexPartition, unsigned>::iterator to_delete =
                           it++;
                       created_index_partitions.erase(to_delete);
@@ -9544,7 +9544,7 @@ namespace Legion {
           }
           else
             // If we didn't make the partition, record it and keep going
-            deleted_index_partitions.push_back(*pit);
+            deleted_index_partitions.emplace_back(*pit);
         }
       }
       if (!delete_now.empty())
@@ -9696,7 +9696,7 @@ namespace Legion {
       void* buffer = malloc(remaining_bytes);
       memcpy(buffer, derez.get_current_pointer(), remaining_bytes);
       derez.advance_pointer(remaining_bytes);
-      pending_collective_updates[collective_index].push_back(
+      pending_collective_updates[collective_index].emplace_back(
           std::pair<void*, size_t>(buffer, remaining_bytes));
       return nullptr;
     }
@@ -9780,7 +9780,7 @@ namespace Legion {
       void* buffer = malloc(remaining_bytes);
       memcpy(buffer, derez.get_current_pointer(), remaining_bytes);
       derez.advance_pointer(remaining_bytes);
-      pending_template_updates[trace_index].push_back(
+      pending_template_updates[trace_index].emplace_back(
           PendingTemplateUpdate(buffer, remaining_bytes, source));
       return nullptr;
     }
@@ -9878,7 +9878,7 @@ namespace Legion {
         rez.serialize<size_t>(remote_shard_rects.size() + 1);
         rez.serialize(ready);
         shard_manager->send_compute_equivalence_sets(sit->first, rez);
-        pending_sets.push_back(ready);
+        pending_sets.emplace_back(ready);
       }
       const CollectiveMapping target_mapping(
           target_spaces, runtime->legion_collective_radix);
@@ -9930,14 +9930,14 @@ namespace Legion {
         }
         rez.serialize(ready);
         shard_manager->send_output_equivalence_set(sit->first, rez);
-        recorded_events.push_back(ready);
+        recorded_events.emplace_back(ready);
       }
       if (!new_subscriptions.empty())
       {
         RtEvent recorded = report_output_registrations(
             source, source_space, references, new_subscriptions);
         if (recorded.exists())
-          recorded_events.push_back(recorded);
+          recorded_events.emplace_back(recorded);
       }
       return Runtime::merge_events(recorded_events);
     }
@@ -10019,7 +10019,7 @@ namespace Legion {
           }
           rez.serialize(refined_event);
           shard_manager->send_refine_equivalence_sets(sit->first, rez);
-          applied_events.push_back(refined_event);
+          applied_events.emplace_back(refined_event);
         }
       }
       else
@@ -10092,7 +10092,7 @@ namespace Legion {
             rez.serialize(&current_set_lock);
             rez.serialize(ready_event);
             shard_manager->send_find_trace_local_sets(it->first, rez);
-            ready_events.push_back(ready_event);
+            ready_events.emplace_back(ready_event);
           }
           Runtime::merge_events(ready_events).wait();
         }
@@ -10560,7 +10560,7 @@ namespace Legion {
       IndexSpaceNode* node = runtime->get_node(handle);
       AttachLaunchSpace* space = new AttachLaunchSpace(node);
       space->shard_sizes.swap(shard_sizes);
-      index_attach_launch_spaces.push_back(space);
+      index_attach_launch_spaces.emplace_back(space);
       return node;
     }
 
@@ -11044,7 +11044,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(finder != ops.end());
 #endif
-          ready_ops.push_back(finder->second);
+          ready_ops.emplace_back(finder->second);
         }
       }
     }
@@ -11337,7 +11337,7 @@ namespace Legion {
     {
       RtEvent postcondition;
       derez.deserialize(postcondition);
-      postconditions.push_back(postcondition);
+      postconditions.emplace_back(postcondition);
     }
 
     //--------------------------------------------------------------------------
@@ -11452,7 +11452,7 @@ namespace Legion {
         if (child_offset < total_participants)
         {
           const unsigned index = convert_to_index(child_offset, origin_index);
-          children.push_back(get_index(index));
+          children.emplace_back(get_index(index));
         }
       }
     }

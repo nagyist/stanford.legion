@@ -224,7 +224,7 @@ namespace Legion {
             {
               trace_shard = trace_info.record_barrier_creation(
                   trace_barrier, children.size());
-              reduce_events.push_back(trace_barrier);
+              reduce_events.emplace_back(trace_barrier);
             }
             rez.serialize(trace_barrier);
             rez.serialize(trace_shard);
@@ -234,7 +234,7 @@ namespace Legion {
             const ApUserEvent reduced =
                 Runtime::create_ap_user_event(&trace_info);
             rez.serialize(reduced);
-            reduce_events.push_back(reduced);
+            reduce_events.emplace_back(reduced);
           }
           rez.serialize(origin);
           rez.serialize(collective_kind);
@@ -432,7 +432,7 @@ namespace Legion {
                   copy_mask, copy_expression, op_id, index, *recorded_events,
                   trace_info.recording, runtime->address_space);
             // Save it for a future reader
-            reduction_preconditions[it->first].push_back(
+            reduction_preconditions[it->first].emplace_back(
                 local_events[it->second]);
           }
           if (trace_info.recording)
@@ -508,7 +508,7 @@ namespace Legion {
           {
             if (!prepare_allreduce)
             {
-              reduced_events.push_back(reduce_post);
+              reduced_events.emplace_back(reduce_post);
               src_view->add_copy_user(
                   true /*reading*/, 0 /*redop*/, reduce_post, copy_mask,
                   copy_expression, op_id, index, *recorded_events,
@@ -688,7 +688,7 @@ namespace Legion {
             {
               trace_shard = trace_info.record_barrier_creation(
                   trace_barrier, children.size());
-              done_events.push_back(trace_barrier);
+              done_events.emplace_back(trace_barrier);
             }
             rez.serialize(trace_barrier);
             rez.serialize(trace_shard);
@@ -697,7 +697,7 @@ namespace Legion {
           {
             const ApUserEvent done = Runtime::create_ap_user_event(&trace_info);
             rez.serialize(done);
-            done_events.push_back(done);
+            done_events.emplace_back(done);
           }
           rez.serialize(origin);
         }
@@ -733,7 +733,7 @@ namespace Legion {
             false /*copy restricted*/);
         if (copy_post.exists())
         {
-          done_events.push_back(copy_post);
+          done_events.emplace_back(copy_post);
           local_view->add_copy_user(
               true /*reading*/, 0 /*redop*/, copy_post, copy_mask,
               copy_expression, op_id, index, recorded_events,
@@ -1010,7 +1010,7 @@ namespace Legion {
             const int rank = nonpart_index + offset;
             if (rank >= int(collective_mapping->size()))
               break;
-            expected_ranks.push_back(rank);
+            expected_ranks.emplace_back(rank);
           }
           std::vector<ApEvent> reduce_events;
           receive_allreduce_stage(
@@ -1057,7 +1057,7 @@ namespace Legion {
             for (int r = 1; r < collective_radix; r++)
             {
               int target = local_rank ^ (r << (stage * collective_log_radix));
-              stage_ranks.push_back(target);
+              stage_ranks.emplace_back(target);
             }
           }
           else
@@ -1067,14 +1067,14 @@ namespace Legion {
             for (int r = 1; r < collective_last_radix; r++)
             {
               int target = local_rank ^ (r << (stage * collective_log_radix));
-              stage_ranks.push_back(target);
+              stage_ranks.emplace_back(target);
             }
           }
 #ifdef DEBUG_LEGION
           assert(!stage_ranks.empty());
 #endif
           // Always include ourselves in the ranks as well
-          stage_ranks.push_back(local_rank);
+          stage_ranks.emplace_back(local_rank);
           // Check to see if we're sending or receiving this stage
           if ((stage % 2) == local_offset)
           {
@@ -1155,10 +1155,10 @@ namespace Legion {
           const unsigned offset = 2 * participating_ranks;
           const unsigned one = offset + local_index;
           if (one < collective_mapping->size())
-            targets.push_back((*collective_mapping)[one]);
+            targets.emplace_back((*collective_mapping)[one]);
           const unsigned two = offset + partner_index;
           if (two < collective_mapping->size())
-            targets.push_back((*collective_mapping)[two]);
+            targets.emplace_back((*collective_mapping)[two]);
           std::vector<ApEvent> read_events;
           send_allreduce_stage(
               allreduce_tag, -2 /*stage*/, local_rank, broadcast_pre,
@@ -1318,7 +1318,7 @@ namespace Legion {
             for (int r = 1; r < collective_radix; r++)
             {
               int target = local_rank ^ (r << (stage * collective_log_radix));
-              stage_ranks.push_back(target);
+              stage_ranks.emplace_back(target);
             }
           }
           else
@@ -1328,7 +1328,7 @@ namespace Legion {
             for (int r = 1; r < collective_last_radix; r++)
             {
               int target = local_rank ^ (r << (stage * collective_log_radix));
-              stage_ranks.push_back(target);
+              stage_ranks.emplace_back(target);
             }
           }
 #ifdef DEBUG_LEGION
@@ -1383,8 +1383,8 @@ namespace Legion {
           std::vector<ApEvent> dst_events;
           if (local_post.exists())
           {
-            src_events.push_back(local_post);
-            dst_events.push_back(local_post);
+            src_events.emplace_back(local_post);
+            dst_events.emplace_back(local_post);
           }
           if (trace_info.recording)
           {
@@ -1556,7 +1556,7 @@ namespace Legion {
       {
         for (unsigned idx = 1; idx < instance_events.size(); idx++)
           if (instance_events[idx].exists())
-            reduced->push_back(instance_events[idx]);
+            reduced->emplace_back(instance_events[idx]);
         reduce_post = Runtime::merge_events(&trace_info, *reduced);
       }
       else
@@ -1658,7 +1658,7 @@ namespace Legion {
       {
         for (unsigned idx = 0; idx < instance_events.size(); idx++)
           if ((idx != final_index) && instance_events[idx].exists())
-            broadcast->push_back(instance_events[idx]);
+            broadcast->emplace_back(instance_events[idx]);
         broadcast_post = Runtime::merge_events(&trace_info, *broadcast);
       }
       else
@@ -1740,7 +1740,7 @@ namespace Legion {
             {
               src_bar_shard =
                   trace_info.record_barrier_creation(src_bar, total);
-              src_events.push_back(src_bar);
+              src_events.emplace_back(src_bar);
             }
             rez.serialize(src_bar);
             rez.serialize(src_bar_shard);
@@ -1750,7 +1750,7 @@ namespace Legion {
             const ApUserEvent src_done =
                 Runtime::create_ap_user_event(&trace_info);
             rez.serialize(src_done);
-            src_events.push_back(src_done);
+            src_events.emplace_back(src_done);
           }
         }
         runtime->send_collective_distribute_allreduce(targets[t], rez);
@@ -1811,8 +1811,8 @@ namespace Legion {
           for (unsigned idx = 0; idx < remaining; idx++)
           {
             const ApUserEvent post = Runtime::create_ap_user_event(&trace_info);
-            pending.remaining_postconditions.push_back(post);
-            dst_events.push_back(post);
+            pending.remaining_postconditions.emplace_back(post);
+            dst_events.emplace_back(post);
           }
           if (trace_info.recording)
           {
@@ -1861,7 +1861,7 @@ namespace Legion {
                 it->src_postcondition, post, trace_info, applied_events);
           }
           if (post.exists())
-            dst_events.push_back(post);
+            dst_events.emplace_back(post);
         }
       }
     }

@@ -1075,7 +1075,7 @@ namespace Legion {
           if (reorder_stages == nullptr)
             reorder_stages =
                 new std::map<int, std::vector<std::pair<void*, size_t> > >();
-          (*reorder_stages)[stage].push_back(
+          (*reorder_stages)[stage].emplace_back(
               std::pair<void*, size_t>(buffer, buffer_size));
         }
         else
@@ -1574,7 +1574,7 @@ namespace Legion {
           rez.serialize(shadow_ready);
           ApUserEvent reduction_done = Runtime::create_ap_user_event(nullptr);
           rez.serialize(reduction_done);
-          shadow_reads.push_back(reduction_done);
+          shadow_reads.emplace_back(reduction_done);
         }
       }
       else
@@ -1762,7 +1762,7 @@ namespace Legion {
           Runtime::trigger_event_untraced(it->second.postcondition, post);
         delete it->second.instance;
         if (post.exists())
-          postconditions.push_back(post);
+          postconditions.emplace_back(post);
       }
       if (!postconditions.empty())
         return Runtime::merge_events(nullptr, postconditions);
@@ -1797,7 +1797,7 @@ namespace Legion {
         rez.serialize(write_event);
         ApUserEvent remote_read_done = Runtime::create_ap_user_event(nullptr);
         rez.serialize(remote_read_done);
-        read_events.push_back(remote_read_done);
+        read_events.emplace_back(remote_read_done);
       }
     }
 
@@ -1827,7 +1827,7 @@ namespace Legion {
       if (!read_events.empty())
       {
         if (write_event.exists())
-          read_events.push_back(write_event);
+          read_events.emplace_back(write_event);
         write_event = Runtime::merge_events(nullptr, read_events);
       }
       Runtime::trigger_event_untraced(finished, write_event);
@@ -2355,7 +2355,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(child >= 0);
 #endif
-          children.push_back(child);
+          children.emplace_back(child);
         }
       }
     }

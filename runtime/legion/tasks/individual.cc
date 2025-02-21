@@ -246,7 +246,7 @@ namespace Legion {
         req.privilege = LEGION_WRITE_DISCARD;
 
         // Store the output requirement in the task
-        output_regions.push_back(req);
+        output_regions.emplace_back(req);
       }
     }
 

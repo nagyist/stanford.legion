@@ -97,7 +97,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(dynamic_cast<WRAP*>(op) != nullptr);
 #endif
-      available.push_back(op);
+      available.emplace_back(op);
     }
 
     //--------------------------------------------------------------------------
@@ -142,7 +142,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
       assert(dynamic_cast<WRAP*>(op) != nullptr);
 #endif
-      available.push_back(op);
+      available.emplace_back(op);
       if (available.size() > LEGION_MAX_RECYCLABLE_OBJECTS)
       {
         op = available.front();
@@ -189,7 +189,7 @@ namespace Legion {
     void OperationFactory<OP, OP, false>::recycle(OP* op)
     //--------------------------------------------------------------------------
     {
-      available.push_back(op);
+      available.emplace_back(op);
     }
 
     // template overrides to help with allocations

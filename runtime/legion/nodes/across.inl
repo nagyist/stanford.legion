@@ -500,7 +500,7 @@ namespace Legion {
             src_fields, dst_fields, indirections, preimage_requests, pre,
             priority));
         if (post.exists())
-          postconditions.push_back(post);
+          postconditions.emplace_back(post);
       }
       if (postconditions.empty())
         return ApEvent::NO_AP_EVENT;
@@ -532,7 +532,7 @@ namespace Legion {
       // entire copy domain.
       std::vector<Rect<DIM, T> > covering;
       if (copy_domain.dense())
-        covering.push_back(copy_domain.bounds);
+        covering.emplace_back(copy_domain.bounds);
       // See if we can compute a covering with up to 100% overhead
       // meaning this takes 2X space as all the points, if not we'll
       // just make pieces for all the rectangles
@@ -542,7 +542,7 @@ namespace Legion {
       {
         // No covering just do all the rects individually
         for (Realm::IndexSpaceIterator itr(copy_domain); itr.valid; itr.step())
-          covering.push_back(itr.rect);
+          covering.emplace_back(itr.rect);
       }
       // Figure out which order to iterate the dimensions based on the first
       // piece of the current indirection layout
@@ -726,10 +726,10 @@ namespace Legion {
           const IndirectRecord& record = indirect_records[idx];
           ApEvent ready = record.domain_ready;
           if (ready.exists())
-            preconditions.push_back(ready);
+            preconditions.emplace_back(ready);
         }
         if (copy_domain_ready.exists())
-          preconditions.push_back(copy_domain_ready);
+          preconditions.emplace_back(copy_domain_ready);
         if (source)
         {
           // No need for tracing to know about this merge
@@ -800,12 +800,12 @@ namespace Legion {
       {
         const ApEvent valid(preimages[idx].make_valid());
         if (valid.exists())
-          valid_events.push_back(valid);
+          valid_events.emplace_back(valid);
       }
       if (!valid_events.empty())
       {
         if (result.exists())
-          valid_events.push_back(result);
+          valid_events.emplace_back(result);
         result = Runtime::merge_events(nullptr, valid_events);
       }
 #ifdef LEGION_DISABLE_EVENT_PRUNING
@@ -854,7 +854,7 @@ namespace Legion {
           else
           {
             preimage = tightened;
-            nonempty_indexes.push_back(idx);
+            nonempty_indexes.emplace_back(idx);
           }
         }
       }
@@ -1020,7 +1020,7 @@ namespace Legion {
                           op, sizeof(Point<D2, T2>), source);
                       shadow_instances.emplace(std::make_pair(
                           memory, ShadowInstance{shadow, ready, unique_event}));
-                      shadow_preconditions.push_back(ready);
+                      shadow_preconditions.emplace_back(ready);
                     }
                     else
                       // Otherwise default to using the original indirection
@@ -1053,13 +1053,13 @@ namespace Legion {
                                     finder->second.unique_event}));
                     // Remove this instance from the old shadow instances
                     old_shadows.erase(finder);
-                    shadow_preconditions.push_back(ready);
+                    shadow_preconditions.emplace_back(ready);
                   }
                 }
                 else
                 {
                   unstructured->inst = finder->second.instance;
-                  shadow_preconditions.push_back(finder->second.ready);
+                  shadow_preconditions.emplace_back(finder->second.ready);
                 }
               }
               unstructured->is_ranges = both_are_range;
@@ -1067,14 +1067,14 @@ namespace Legion {
               unstructured->aliasing_possible =
                   source ? false /*no aliasing*/ : possible_dst_aliasing;
               unstructured->subfield_offset = 0;
-              unstructured->insts.push_back(instance);
+              unstructured->insts.emplace_back(instance);
               unstructured->spaces.resize(1);
               unstructured->spaces.back() =
                   indirect_records[nonempty_index].domain;
               // No next indirections yet...
               unstructured->next_indirection = nullptr;
               indirect_index = indirections.size();
-              indirections.push_back(unstructured);
+              indirections.emplace_back(unstructured);
             }
             field_indexes[fidx] = indirect_index;
           }
@@ -1167,7 +1167,7 @@ namespace Legion {
             // No next indirections yet...
             unstructured->next_indirection = nullptr;
             indirect_index = indirections.size();
-            indirections.push_back(unstructured);
+            indirections.emplace_back(unstructured);
 #ifdef LEGION_SPY
             // If we made a new indirection then log it with Legion Spy
             LegionSpy::log_indirect_instance(

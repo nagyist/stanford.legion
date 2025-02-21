@@ -67,7 +67,7 @@ namespace Legion {
           {
             const Rect<DIM, T> overlap = rect.intersection(itr.rect);
             if (!overlap.empty())
-              pieces.push_back(overlap);
+              pieces.emplace_back(overlap);
           }
         }
       }
@@ -162,13 +162,13 @@ namespace Legion {
         while (!index_space_users.empty())
         {
           if (!index_space_users.front().has_triggered_faultignorant())
-            preconditions.push_back(index_space_users.front());
+            preconditions.emplace_back(index_space_users.front());
           index_space_users.pop_front();
         }
         if (!preconditions.empty())
         {
           if (!index_space_valid.has_triggered_faultignorant())
-            preconditions.push_back(index_space_valid);
+            preconditions.emplace_back(index_space_valid);
           index_space_valid = Runtime::merge_events(nullptr, preconditions);
           // Protect it if necessary to make sure the deletion happens
           // even if one of the users was poisoned
@@ -263,7 +263,7 @@ namespace Legion {
         while (!index_space_users.empty() &&
                index_space_users.front().has_triggered_faultignorant())
           index_space_users.pop_front();
-        index_space_users.push_back(to_trigger);
+        index_space_users.emplace_back(to_trigger);
       }
       return index_space_valid;
     }
@@ -316,7 +316,7 @@ namespace Legion {
         while (!index_space_users.empty() &&
                index_space_users.front().has_triggered_faultignorant())
           index_space_users.pop_front();
-        index_space_users.push_back(user);
+        index_space_users.emplace_back(user);
       }
     }
 
@@ -539,7 +539,7 @@ namespace Legion {
           lo[idx] = 0;
           hi[idx] = it->second[idx - launch_ndim] - 1;
         }
-        output_rects.push_back(Realm::Rect<DIM, T>(lo, hi));
+        output_rects.emplace_back(Realm::Rect<DIM, T>(lo, hi));
       }
       const Realm::IndexSpace<DIM, T> output_space(output_rects);
       return set_realm_index_space(
@@ -616,13 +616,13 @@ namespace Legion {
         while (!index_space_users.empty())
         {
           if (!index_space_users.front().has_triggered_faultignorant())
-            preconditions.push_back(index_space_users.front());
+            preconditions.emplace_back(index_space_users.front());
           index_space_users.pop_front();
         }
         if (!preconditions.empty())
         {
           if (!index_space_valid.has_triggered_faultignorant())
-            preconditions.push_back(index_space_valid);
+            preconditions.emplace_back(index_space_valid);
           index_space_valid = Runtime::merge_events(nullptr, preconditions);
           // Protect it if necessary to make sure the deletion happens
           // even if one of the users was poisoned
@@ -1393,7 +1393,7 @@ namespace Legion {
         if (added.exists())
         {
           added.subscribe();
-          index_space_users.push_back(added);
+          index_space_users.emplace_back(added);
         }
       }
       return set_realm_index_space(
@@ -1522,15 +1522,15 @@ namespace Legion {
         ApEvent right_ready =
             right_child->get_loose_index_space(rhs_spaces.back(), to_trigger);
         if (left_ready.exists())
-          preconditions.push_back(left_ready);
+          preconditions.emplace_back(left_ready);
         if (right_ready.exists())
-          preconditions.push_back(right_ready);
+          preconditions.emplace_back(right_ready);
       }
       if (lhs_spaces.empty())
         return ApEvent::NO_AP_EVENT;
       std::vector<Realm::IndexSpace<DIM, T> > subspaces;
       if (op->has_execution_fence_event())
-        preconditions.push_back(op->get_execution_fence_event());
+        preconditions.emplace_back(op->get_execution_fence_event());
       const ApEvent precondition =
           Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
@@ -1595,15 +1595,15 @@ namespace Legion {
         ApEvent right_ready =
             right_child->get_loose_index_space(rhs_spaces.back(), to_trigger);
         if (left_ready.exists())
-          preconditions.push_back(left_ready);
+          preconditions.emplace_back(left_ready);
         if (right_ready.exists())
-          preconditions.push_back(right_ready);
+          preconditions.emplace_back(right_ready);
       }
       if (lhs_spaces.empty())
         return ApEvent::NO_AP_EVENT;
       std::vector<DomainT<DIM, T> > subspaces;
       if (op->has_execution_fence_event())
-        preconditions.push_back(op->get_execution_fence_event());
+        preconditions.emplace_back(op->get_execution_fence_event());
       const ApEvent precondition =
           Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
@@ -1665,7 +1665,7 @@ namespace Legion {
         ApEvent right_ready =
             right_child->get_loose_index_space(rhs_spaces.back(), to_trigger);
         if (right_ready.exists())
-          preconditions.push_back(right_ready);
+          preconditions.emplace_back(right_ready);
       }
       if (rhs_spaces.empty())
         return ApEvent::NO_AP_EVENT;
@@ -1683,9 +1683,9 @@ namespace Legion {
         DomainT<DIM, T> lhs_space;
         ApEvent left_ready = get_loose_index_space(lhs_space, to_trigger);
         if (left_ready.exists())
-          preconditions.push_back(left_ready);
+          preconditions.emplace_back(left_ready);
         if (op->has_execution_fence_event())
-          preconditions.push_back(op->get_execution_fence_event());
+          preconditions.emplace_back(op->get_execution_fence_event());
         precondition = Runtime::merge_events(nullptr, preconditions);
         Realm::ProfilingRequestSet requests;
         if (runtime->profiler != nullptr)
@@ -1751,15 +1751,15 @@ namespace Legion {
         ApEvent right_ready =
             right_child->get_loose_index_space(rhs_spaces.back(), to_trigger);
         if (left_ready.exists())
-          preconditions.push_back(left_ready);
+          preconditions.emplace_back(left_ready);
         if (right_ready.exists())
-          preconditions.push_back(right_ready);
+          preconditions.emplace_back(right_ready);
       }
       if (lhs_spaces.empty())
         return ApEvent::NO_AP_EVENT;
       std::vector<Realm::IndexSpace<DIM, T> > subspaces;
       if (op->has_execution_fence_event())
-        preconditions.push_back(op->get_execution_fence_event());
+        preconditions.emplace_back(op->get_execution_fence_event());
       const ApEvent precondition =
           Runtime::merge_events(nullptr, preconditions);
       Realm::ProfilingRequestSet requests;
@@ -2207,7 +2207,7 @@ namespace Legion {
         {
           Point<COLOR_DIM, COLOR_T> color;
           color_space->delinearize_color(*itr, color);
-          colors.push_back(color);
+          colors.emplace_back(color);
         }
       }
       else
@@ -2243,11 +2243,11 @@ namespace Legion {
       ApEvent parent_ready = get_loose_index_space(local_space, to_trigger);
       std::vector<ApEvent> preconditions;
       if (parent_ready.exists())
-        preconditions.push_back(parent_ready);
+        preconditions.emplace_back(parent_ready);
       if (instances_ready.exists())
-        preconditions.push_back(instances_ready);
+        preconditions.emplace_back(instances_ready);
       if (op->has_execution_fence_event())
-        preconditions.push_back(op->get_execution_fence_event());
+        preconditions.emplace_back(op->get_execution_fence_event());
       ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       // Get the profiling requests
       Realm::ProfilingRequestSet requests;
@@ -2357,11 +2357,11 @@ namespace Legion {
           std::vector<ApEvent> preconditions;
           ApEvent ready = get_loose_index_space(local_space, to_trigger);
           if (ready.exists())
-            preconditions.push_back(ready);
+            preconditions.emplace_back(ready);
           if (instances_ready.exists())
-            preconditions.push_back(instances_ready);
+            preconditions.emplace_back(instances_ready);
           if (op->has_execution_fence_event())
-            preconditions.push_back(op->get_execution_fence_event());
+            preconditions.emplace_back(op->get_execution_fence_event());
           precondition = Runtime::merge_events(nullptr, preconditions);
           // sort the instances so we can search for what we need
           std::sort(instances.begin(), instances.end());
@@ -2415,7 +2415,7 @@ namespace Legion {
                 source_space))
           delete child;
         if (result.exists())
-          results.push_back(result);
+          results.emplace_back(result);
       }
       ApEvent result;
       if (!results.empty())
@@ -2481,11 +2481,11 @@ namespace Legion {
           std::vector<ApEvent> preconditions;
           ApEvent ready = get_loose_index_space(local_space, to_trigger);
           if (ready.exists())
-            preconditions.push_back(ready);
+            preconditions.emplace_back(ready);
           if (instances_ready.exists())
-            preconditions.push_back(instances_ready);
+            preconditions.emplace_back(instances_ready);
           if (op->has_execution_fence_event())
-            preconditions.push_back(op->get_execution_fence_event());
+            preconditions.emplace_back(op->get_execution_fence_event());
           precondition = Runtime::merge_events(nullptr, preconditions);
           // sort the instances so we can search for what we need
           std::sort(instances.begin(), instances.end());
@@ -2539,7 +2539,7 @@ namespace Legion {
                 source_space))
           delete child;
         if (result.exists())
-          results.push_back(result);
+          results.emplace_back(result);
       }
       ApEvent result;
       if (!results.empty())
@@ -2635,7 +2635,7 @@ namespace Legion {
           ApEvent ready =
               target_child->get_loose_index_space(targets.back(), to_trigger);
           if (ready.exists())
-            preconditions.push_back(ready);
+            preconditions.emplace_back(ready);
         }
       }
       else
@@ -2670,7 +2670,7 @@ namespace Legion {
           ApEvent ready =
               target_child->get_loose_index_space(targets[index++], to_trigger);
           if (ready.exists())
-            preconditions.push_back(ready);
+            preconditions.emplace_back(ready);
         }
 #ifdef DEBUG_LEGION
         assert(index == targets.size());
@@ -2693,11 +2693,11 @@ namespace Legion {
       DomainT<DIM1, T1> local_space;
       ApEvent ready = get_loose_index_space(local_space, to_trigger);
       if (ready.exists())
-        preconditions.push_back(ready);
+        preconditions.emplace_back(ready);
       if (instances_ready.exists())
-        preconditions.push_back(instances_ready);
+        preconditions.emplace_back(instances_ready);
       if (op->has_execution_fence_event())
-        preconditions.push_back(op->get_execution_fence_event());
+        preconditions.emplace_back(op->get_execution_fence_event());
       std::vector<Realm::IndexSpace<DIM1, T1> > subspaces;
       ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       // Get the profiling requests
@@ -2836,7 +2836,7 @@ namespace Legion {
           ApEvent ready =
               target_child->get_loose_index_space(targets.back(), to_trigger);
           if (ready.exists())
-            preconditions.push_back(ready);
+            preconditions.emplace_back(ready);
         }
       }
       else
@@ -2871,7 +2871,7 @@ namespace Legion {
           ApEvent ready =
               target_child->get_loose_index_space(targets[index++], to_trigger);
           if (ready.exists())
-            preconditions.push_back(ready);
+            preconditions.emplace_back(ready);
         }
 #ifdef DEBUG_LEGION
         assert(index == targets.size());
@@ -2894,11 +2894,11 @@ namespace Legion {
       DomainT<DIM1, T1> local_space;
       ApEvent ready = get_loose_index_space(local_space, to_trigger);
       if (ready.exists())
-        preconditions.push_back(ready);
+        preconditions.emplace_back(ready);
       if (instances_ready.exists())
-        preconditions.push_back(instances_ready);
+        preconditions.emplace_back(instances_ready);
       if (op->has_execution_fence_event())
-        preconditions.push_back(op->get_execution_fence_event());
+        preconditions.emplace_back(op->get_execution_fence_event());
       std::vector<Realm::IndexSpace<DIM1, T1> > subspaces;
       ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       // Get the profiling requests
@@ -3001,15 +3001,15 @@ namespace Legion {
           range_node->get_loose_index_space(range_space, to_trigger);
       std::vector<ApEvent> preconditions;
       if (range_ready.exists())
-        preconditions.push_back(range_ready);
+        preconditions.emplace_back(range_ready);
       DomainT<DIM1, T1> local_space;
       ApEvent local_ready = get_loose_index_space(local_space, to_trigger);
       if (local_ready.exists())
-        preconditions.push_back(local_ready);
+        preconditions.emplace_back(local_ready);
       if (instances_ready.exists())
-        preconditions.push_back(instances_ready);
+        preconditions.emplace_back(instances_ready);
       if (op->has_execution_fence_event())
-        preconditions.push_back(op->get_execution_fence_event());
+        preconditions.emplace_back(op->get_execution_fence_event());
       // Issue the operation
       ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
       // Get the profiling requests
@@ -3092,7 +3092,7 @@ namespace Legion {
           // so we want to list dimensions in order from slowest to fastest
           for (unsigned idx = 0; idx < DIM; idx++)
             hlp->dim_order[idx] = dimension_order.ordering[DIM - 1 - idx];
-          layout->piece_lists[i].pieces.push_back(hlp);
+          layout->piece_lists[i].pieces.emplace_back(hlp);
         }
       }
       return layout;
@@ -3289,7 +3289,7 @@ namespace Legion {
           std::vector<Rect<DIM, T> > rects;
           for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space);
                itr.valid; itr.step())
-            rects.push_back(itr.rect);
+            rects.emplace_back(itr.rect);
           return new EqKDSparse<DIM, T>(realm_index_space.bounds, rects);
         }
         else
@@ -3303,7 +3303,7 @@ namespace Legion {
           std::vector<Rect<DIM, T> > rects;
           for (Realm::IndexSpaceIterator<DIM, T> itr(realm_index_space);
                itr.valid; itr.step())
-            rects.push_back(itr.rect);
+            rects.emplace_back(itr.rect);
           return new EqKDSparseSharded<DIM, T>(
               realm_index_space.bounds, 0 /*lower shard*/,
               total_shards - 1 /*upper shard*/, rects);
@@ -3562,7 +3562,7 @@ namespace Legion {
             const ShardID point_shard = func->find_owner(
                 DomainPoint(Point<DIM, T>(itr.p)), sharding_domain);
             if (point_shard == shard)
-              index_points.push_back(itr.p);
+              index_points.emplace_back(itr.p);
           }
         }
       }
@@ -3724,7 +3724,7 @@ namespace Legion {
         {
           // This is a rectangle that represents a single point or a
           // "pencil" in N-dimensions and therefore doesn't need a Morton curve
-          morton_tiles.push_back(new MortonTile(
+          morton_tiles.emplace_back(new MortonTile(
               domain.bounds, interesting_count, interesting_dims, 0 /*order*/));
           kdtree = nullptr;
           return;
@@ -3742,7 +3742,7 @@ namespace Legion {
         if (order <= max_morton)
         {
           // It fits so we just need a single MortonTile
-          morton_tiles.push_back(new MortonTile(
+          morton_tiles.emplace_back(new MortonTile(
               domain.bounds, interesting_count, interesting_dims, order));
           kdtree = nullptr;
           return;
@@ -3775,7 +3775,7 @@ namespace Legion {
         {
           // This is a rectangle that represents a single point or a
           // "pencil" in N-dimensions and therefore doesn't need a Morton curve
-          tiles.push_back(std::make_pair(
+          tiles.emplace_back(std::make_pair(
               *itr,
               new MortonTile(
                   *itr, interesting_count, interesting_dims, 0 /*order*/)));
@@ -3834,7 +3834,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(next.volume() > 0);
 #endif
-          tiles.push_back(std::make_pair(
+          tiles.emplace_back(std::make_pair(
               next, new MortonTile(
                         next, interesting_count, interesting_dims, order)));
           done = true;
@@ -4225,16 +4225,16 @@ namespace Legion {
                  tile_sizes.begin();
              it != tile_sizes.end(); it++)
         {
-          tiles.push_back(it->first);
-          extents.push_back(it->second);
-          color_offsets.push_back(offset);
+          tiles.emplace_back(it->first);
+          extents.emplace_back(it->second);
+          color_offsets.emplace_back(offset);
           offset += it->second;
         }
       }
       else
       {
-        tiles.push_back(domain.bounds.lo[0]);
-        extents.push_back(domain.bounds.volume());
+        tiles.emplace_back(domain.bounds.lo[0]);
+        extents.emplace_back(domain.bounds.volume());
       }
     }
 
@@ -4379,7 +4379,7 @@ namespace Legion {
             if (space.empty())
               continue;
             for (RectInDomainIterator<DIM, T> it(space); it(); it++)
-              bounds.push_back(std::make_pair(*it, *itr));
+              bounds.emplace_back(std::make_pair(*it, *itr));
           }
           KDNode<DIM, T, LegionColor>* root =
               new KDNode<DIM, T, LegionColor>(parent_space.bounds, bounds);
@@ -4446,7 +4446,7 @@ namespace Legion {
               if (space.empty() || space.dense())
                 continue;
               for (RectInDomainIterator<DIM, T> it(space); it(); it++)
-                dense_shard_rects->push_back(std::make_pair(*it, *itr));
+                dense_shard_rects->emplace_back(std::make_pair(*it, *itr));
             }
             KDNode<DIM, T, LegionColor>* root = new KDNode<DIM, T, LegionColor>(
                 parent_space.bounds, *dense_shard_rects);
@@ -4526,10 +4526,10 @@ namespace Legion {
         // if they're actually the owner child
         if (!child->is_owner())
           continue;
-        children.push_back(child);
+        children.emplace_back(child);
         RtEvent ready = child->get_realm_index_space_ready(true /*tight*/);
         if (ready.exists())
-          ready_events.push_back(ready);
+          ready_events.emplace_back(ready);
       }
       if (!ready_events.empty())
       {
@@ -4591,13 +4591,14 @@ namespace Legion {
             for (typename std::vector<Rect<DIM, T> >::const_iterator cit =
                      covering.begin();
                  cit != covering.end(); cit++)
-              sparse_shard_rects->push_back(std::make_pair(*cit, (*it)->color));
+              sparse_shard_rects->emplace_back(
+                  std::make_pair(*cit, (*it)->color));
           }
           else  // Can just add this as the covering failed
-            sparse_shard_rects->push_back(next);
+            sparse_shard_rects->emplace_back(next);
         }
         else if (!child_space.bounds.empty())
-          dense_shard_rects->push_back(next);
+          dense_shard_rects->emplace_back(next);
       }
       return perform_shard_rects_notification();
     }

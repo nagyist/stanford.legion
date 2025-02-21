@@ -568,7 +568,7 @@ namespace Legion {
                  it != pending_frees.end(); it++)
             {
               deallocate(it->first);
-              done_events.push_back(it->second);
+              done_events.emplace_back(it->second);
             }
             pending_frees.clear();
             Runtime::merge_events(done_events).wait();
@@ -808,20 +808,21 @@ namespace Legion {
           const Range& prev_range = ranges[prev_index];
           size_t size = range->first - prev_range.first;
           size_t offset = prev_range.first - ranges.front().first;
-          extra_layouts.push_back(create_layout(size, 1 /*alignment*/, offset));
+          extra_layouts.emplace_back(
+              create_layout(size, 1 /*alignment*/, offset));
           if (runtime->profiler != nullptr)
           {
             const Realm::UserEvent unique =
                 Realm::UserEvent::create_user_event();
             unique.trigger();
-            extra_unique_events.push_back(LgEvent(unique));
+            extra_unique_events.emplace_back(LgEvent(unique));
           }
           else
-            extra_unique_events.push_back(LgEvent::NO_LG_EVENT);
+            extra_unique_events.emplace_back(LgEvent::NO_LG_EVENT);
         }
         for (unsigned idx = 0; idx < num_results; idx++)
         {
-          extra_layouts.push_back(layouts[idx]);
+          extra_layouts.emplace_back(layouts[idx]);
           if ((runtime->profiler != nullptr) && !unique_events[idx].exists())
           {
             const Realm::UserEvent unique =
@@ -829,23 +830,24 @@ namespace Legion {
             unique.trigger();
             unique_events[idx] = LgEvent(unique);
           }
-          extra_unique_events.push_back(unique_events[idx]);
+          extra_unique_events.emplace_back(unique_events[idx]);
         }
         if (next_index != index)
         {
           const Range& next_range = ranges[next_index];
           size_t size = next_range.last - range->last;
           size_t offset = range->last - ranges.front().first;
-          extra_layouts.push_back(create_layout(size, 1 /*alignment*/, offset));
+          extra_layouts.emplace_back(
+              create_layout(size, 1 /*alignment*/, offset));
           if (runtime->profiler != nullptr)
           {
             const Realm::UserEvent unique =
                 Realm::UserEvent::create_user_event();
             unique.trigger();
-            extra_unique_events.push_back(LgEvent(unique));
+            extra_unique_events.emplace_back(LgEvent(unique));
           }
           else
-            extra_unique_events.push_back(LgEvent::NO_LG_EVENT);
+            extra_unique_events.emplace_back(LgEvent::NO_LG_EVENT);
         }
         std::vector<Realm::ProfilingRequestSet> requests(extra_layouts.size());
         for (unsigned idx = 0; idx < requests.size(); idx++)
@@ -1636,7 +1638,7 @@ namespace Legion {
                it != cit->second.end(); it++)
           {
             it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
-            to_check.push_back(it->first);
+            to_check.emplace_back(it->first);
           }
       }
       for (std::vector<PhysicalManager*>::const_iterator it = to_check.begin();
@@ -1680,7 +1682,7 @@ namespace Legion {
             if (it->first->can_collect(already_collected))
             {
               it->first->add_base_gc_ref(MEMORY_MANAGER_REF);
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             }
             else if (already_collected)
               remove_collectable(it->second, it->first);
@@ -2678,7 +2680,7 @@ namespace Legion {
             if (it->first->can_collect(already_collected))
             {
               it->first->add_base_gc_ref(MEMORY_MANAGER_REF);
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
 #ifdef DEBUG_LEGION
 #ifndef NDEBUG
               const size_t previous =
@@ -3361,7 +3363,7 @@ namespace Legion {
               runtime->find_or_request_instance_manager(did, manager_ready);
           // If the manager isn't ready yet, then we need to wait for it
           if (manager_ready.exists())
-            preconditions.push_back(manager_ready);
+            preconditions.emplace_back(manager_ready);
           target->store(manager);
         }
         if ((kind == CREATE_INSTANCE_CONSTRAINTS) ||
@@ -3404,8 +3406,8 @@ namespace Legion {
                 runtime->find_or_request_instance_manager(did, manager_ready);
             // If the manager isn't ready yet, then we need to wait for it
             if (manager_ready.exists())
-              preconditions.push_back(manager_ready);
-            results->push_back(manager);
+              preconditions.emplace_back(manager_ready);
+            results->emplace_back(manager);
           }
           target->store(results);
         }
@@ -3467,7 +3469,7 @@ namespace Legion {
           if (it->first->is_collected())
             continue;
           it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
-          candidates.push_back(it->first);
+          candidates.emplace_back(it->first);
         }
       }
       else
@@ -3484,7 +3486,7 @@ namespace Legion {
             if (it->first->is_collected())
               continue;
             it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
-            candidates.push_back(it->first);
+            candidates.emplace_back(it->first);
           }
         }
       }
@@ -3586,7 +3588,7 @@ namespace Legion {
           if (it->first->is_collected())
             continue;
           it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
-          candidates.push_back(it->first);
+          candidates.emplace_back(it->first);
         }
       }
       else
@@ -3603,7 +3605,7 @@ namespace Legion {
             if (it->first->is_collected())
               continue;
             it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
-            candidates.push_back(it->first);
+            candidates.emplace_back(it->first);
           }
         }
       }
@@ -3641,7 +3643,7 @@ namespace Legion {
               if (acquire && !(*it)->acquire_instance(MAPPING_ACQUIRE_REF))
                 continue;
               // If we make it here, we succeeded
-              results.push_back(MappingInstance(*it));
+              results.emplace_back(MappingInstance(*it));
             }
           }
         }
@@ -3659,7 +3661,7 @@ namespace Legion {
               if (acquire && !(*it)->acquire_instance(MAPPING_ACQUIRE_REF))
                 continue;
               // If we make it here, we succeeded
-              results.push_back(MappingInstance(*it));
+              results.emplace_back(MappingInstance(*it));
             }
           }
         }
@@ -3701,7 +3703,7 @@ namespace Legion {
           if (it->first->is_collected())
             continue;
           it->first->add_base_resource_ref(MEMORY_MANAGER_REF);
-          candidates.push_back(it->first);
+          candidates.emplace_back(it->first);
         }
       }
       // If we have any candidates check their constraints
@@ -4091,7 +4093,7 @@ namespace Legion {
       : size(m->instance_footprint)
     //--------------------------------------------------------------------------
     {
-      managers.push_back(m);
+      managers.emplace_back(m);
     }
 
     //--------------------------------------------------------------------------
@@ -4121,11 +4123,11 @@ namespace Legion {
               // the call to 'collect'
               (*it)->add_base_gc_ref(MEMORY_MANAGER_REF);
               if ((*it)->instance_footprint == needed_size)
-                perfect_holes.push_back(*it);
+                perfect_holes.emplace_back(*it);
               else if ((*it)->instance_footprint < needed_size)
-                small_holes.push_back(*it);
+                small_holes.emplace_back(*it);
               else
-                large_holes[(*it)->instance_footprint].push_back(*it);
+                large_holes[(*it)->instance_footprint].emplace_back(*it);
             }
             else if (already_collected)
             {
@@ -4270,7 +4272,7 @@ namespace Legion {
               {
                 update_capacity((*it)->instance_footprint);
                 if (collected.exists())
-                  collected_events.push_back(collected);
+                  collected_events.emplace_back(collected);
               }
               if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
                 delete (*it);
@@ -4300,7 +4302,7 @@ namespace Legion {
             {
               update_capacity((*it)->instance_footprint);
               if (collected.exists())
-                collected_events.push_back(collected);
+                collected_events.emplace_back(collected);
             }
             freed_size += (*it)->instance_footprint;
             if ((*it)->remove_base_gc_ref(MEMORY_MANAGER_REF))
@@ -4489,7 +4491,7 @@ namespace Legion {
         RtEvent ready;
         instances[idx] = runtime->find_or_request_instance_manager(did, ready);
         if (ready.exists())
-          wait_for.push_back(ready);
+          wait_for.emplace_back(ready);
       }
       MemoryManager* manager = runtime->find_memory_manager(memory);
       if (!wait_for.empty())
@@ -4880,7 +4882,7 @@ namespace Legion {
             if (it->second.lamport_clock < min_next)
             {
               next_tasks.clear();
-              next_tasks.push_back(it->first);
+              next_tasks.emplace_back(it->first);
               next_coords.clear();
               min_next = it->second.lamport_clock;
             }
@@ -4895,7 +4897,7 @@ namespace Legion {
               // See if these are the same index space
               if (next_coords.same_index_space(it_coords))
               {
-                next_tasks.push_back(it->first);
+                next_tasks.emplace_back(it->first);
                 continue;
               }
               const size_t lower_bound =
@@ -4910,7 +4912,7 @@ namespace Legion {
                   if (c2.index_point < c1.index_point)
                   {
                     next_tasks.clear();
-                    next_tasks.push_back(it->first);
+                    next_tasks.emplace_back(it->first);
                     next_coords.swap(it_coords);
                   }
                   else if (c1.index_point == c2.index_point)
@@ -4919,7 +4921,7 @@ namespace Legion {
                 else if (c2.context_index < c1.context_index)
                 {
                   next_tasks.clear();
-                  next_tasks.push_back(it->first);
+                  next_tasks.emplace_back(it->first);
                   next_coords.swap(it_coords);
                 }
                 equal = false;
@@ -4933,7 +4935,7 @@ namespace Legion {
                 if (it_coords.size() < next_coords.size())
                 {
                   next_tasks.clear();
-                  next_tasks.push_back(it->first);
+                  next_tasks.emplace_back(it->first);
                   next_coords.swap(it_coords);
                 }
               }
@@ -4941,7 +4943,7 @@ namespace Legion {
           }
           else
           {
-            next_tasks.push_back(it->first);
+            next_tasks.emplace_back(it->first);
             min_next = it->second.lamport_clock;
           }
         }

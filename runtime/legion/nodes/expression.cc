@@ -117,7 +117,7 @@ namespace Legion {
                it != derived_operations.end(); it++)
           {
             (*it)->add_nested_resource_ref(did);
-            derived.push_back(*it);
+            derived.emplace_back(*it);
           }
         }
       }

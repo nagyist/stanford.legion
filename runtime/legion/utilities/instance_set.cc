@@ -625,7 +625,7 @@ namespace Legion {
       {
         if (shared)
           make_copy();
-        refs.multi->vector.push_back(ref);
+        refs.multi->vector.emplace_back(ref);
       }
     }
 

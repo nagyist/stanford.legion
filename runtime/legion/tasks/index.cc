@@ -201,7 +201,7 @@ namespace Legion {
       // Record it in the set of output events and if we've seen all of them
       // then we can launch the meta-task to do the final regisration
       AutoLock o_lock(op_lock);
-      output_preconditions.push_back(registered);
+      output_preconditions.emplace_back(registered);
 #ifdef DEBUG_LEGION
       assert(output_preconditions.size() <= total_points);
 #endif
@@ -909,7 +909,7 @@ namespace Legion {
         req.privilege = LEGION_WRITE_DISCARD;
 
         // Store the output requirement in the task
-        output_regions.push_back(req);
+        output_regions.emplace_back(req);
       }
     }
 
@@ -1108,7 +1108,7 @@ namespace Legion {
       {
         AutoLock o_lock(op_lock);
         if (precondition.exists())
-          finder->second.preconditions.push_back(precondition);
+          finder->second.preconditions.emplace_back(precondition);
         std::map<Processor, DomainPoint>::const_iterator proc_finder =
             finder->second.processors.find(target);
         if (proc_finder != finder->second.processors.end())
@@ -1148,7 +1148,7 @@ namespace Legion {
           RtEvent precondition;
           derez.deserialize(precondition);
           if (precondition.exists())
-            finder->second.preconditions.push_back(precondition);
+            finder->second.preconditions.emplace_back(precondition);
           size_t num_points;
           derez.deserialize(num_points);
           for (unsigned idx2 = 0; idx2 < num_points; idx2++)
@@ -1495,7 +1495,7 @@ namespace Legion {
               mapper->get_mapper_name(), get_task_name(), unique_op_id)
       }
       else
-        target_mems.push_back(runtime->runtime_system_memory);
+        target_mems.emplace_back(runtime->runtime_system_memory);
       // If we've got a serdez redop function then we don't know how big
       // the output is going to be until later, otherwise we know the
       // output size from the reduction operator
@@ -1513,7 +1513,7 @@ namespace Legion {
             runtime_visible_index = reduction_instances.size();
           MemoryManager* manager = runtime->find_memory_manager(*it);
           // Safe to block here indefinitely waiting for unbounded pools
-          reduction_instances.push_back(manager->create_future_instance(
+          reduction_instances.emplace_back(manager->create_future_instance(
               unique_op_id, coordinates, reduction_op->sizeof_rhs,
               nullptr /*safe_for_unbounded_pools*/));
         }
@@ -1528,7 +1528,7 @@ namespace Legion {
           MemoryManager* manager =
               runtime->find_memory_manager(runtime->runtime_system_memory);
           // Safe to block here indefinitely waiting for unbounded pools
-          reduction_instances.push_back(manager->create_future_instance(
+          reduction_instances.emplace_back(manager->create_future_instance(
               unique_op_id, coordinates, reduction_op->sizeof_rhs,
               nullptr /*safe_for_unbounded_pools*/));
         }
@@ -2008,7 +2008,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock o_lock(op_lock);
-      origin_mapped_slices.push_back(local_slice);
+      origin_mapped_slices.emplace_back(local_slice);
     }
 
     //--------------------------------------------------------------------------
@@ -2183,7 +2183,7 @@ namespace Legion {
               ((*it) == runtime->runtime_system_memory))
           {
             runtime_visible_index = reduction_instances.size();
-            reduction_instances.push_back(FutureInstance::create_local(
+            reduction_instances.emplace_back(FutureInstance::create_local(
                 serdez_redop_state, serdez_redop_state_size, false /*own*/));
           }
           else
@@ -2192,7 +2192,7 @@ namespace Legion {
               compute_task_tree_coordinates(coordinates);
             MemoryManager* manager = runtime->find_memory_manager(*it);
             // Safe to block here indefinitely waiting for unbounded pools
-            reduction_instances.push_back(manager->create_future_instance(
+            reduction_instances.emplace_back(manager->create_future_instance(
                 unique_op_id, coordinates, serdez_redop_state_size,
                 nullptr /*safe_for_unbounded_pools*/));
           }
@@ -2200,7 +2200,7 @@ namespace Legion {
         if (runtime_visible_index < 0)
         {
           runtime_visible_index = reduction_instances.size();
-          reduction_instances.push_back(FutureInstance::create_local(
+          reduction_instances.emplace_back(FutureInstance::create_local(
               serdez_redop_state, serdez_redop_state_size, false /*own*/));
         }
         // Make sure the instance with the data is at the front
@@ -2845,7 +2845,7 @@ namespace Legion {
         RtEvent precondition;
         derez.deserialize(precondition);
         if (precondition.exists())
-          group.preconditions.push_back(precondition);
+          group.preconditions.emplace_back(precondition);
         size_t num_shards;
         derez.deserialize(num_shards);
         for (unsigned idx2 = 0; idx2 < num_shards; idx2++)
@@ -2855,7 +2855,7 @@ namespace Legion {
           if (!std::binary_search(
                   group.shards.begin(), group.shards.end(), shard))
           {
-            group.shards.push_back(shard);
+            group.shards.emplace_back(shard);
             std::sort(group.shards.begin(), group.shards.end());
           }
         }
@@ -2946,7 +2946,7 @@ namespace Legion {
 #endif
         it->second.color_points = it->second.group_points;
         if (it->second.shards.empty())
-          it->second.shards.push_back(local_shard);
+          it->second.shards.emplace_back(local_shard);
       }
       perform_collective_async();
     }
@@ -3498,7 +3498,7 @@ namespace Legion {
           SliceTask* new_slice = this->clone_as_slice_task(
               internal_space, target_proc, false /*recurse*/,
               !runtime->stealing_disabled);
-          slices.push_back(new_slice);
+          slices.emplace_back(new_slice);
           trigger_slices();
         }
         else
@@ -4029,7 +4029,7 @@ namespace Legion {
                     finder->second.shards.begin(), finder->second.shards.end(),
                     color_shard))
             {
-              finder->second.shards.push_back(color_shard);
+              finder->second.shards.emplace_back(color_shard);
               std::sort(
                   finder->second.shards.begin(), finder->second.shards.end());
             }
@@ -4329,7 +4329,7 @@ namespace Legion {
       AutoLock o_lock(op_lock);
       // Can be a no-event if we've been shared off
       if (registered.exists())
-        output_preconditions.push_back(registered);
+        output_preconditions.emplace_back(registered);
 #ifdef DEBUG_LEGION
       assert(output_preconditions.size() <= total_points);
 #endif

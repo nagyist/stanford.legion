@@ -43,10 +43,10 @@ namespace Legion {
         for (Machine::ProcessorQuery::iterator it = local_procs.begin();
              it != local_procs.end(); it++)
           if (it->kind() == Processor::LOC_PROC)
-            replay_targets.push_back(*it);
+            replay_targets.emplace_back(*it);
       }
       else
-        replay_targets.push_back(runtime->utility_group);
+        replay_targets.emplace_back(runtime->utility_group);
     }
 
     //--------------------------------------------------------------------------
@@ -166,7 +166,7 @@ namespace Legion {
             delete current;
           if (pending_deletion.exists())
             execution_preconditions.insert(pending_deletion);
-          to_delete.push_back(idx);
+          to_delete.emplace_back(idx);
         }
         else if (valid)
         {
@@ -257,7 +257,7 @@ namespace Legion {
         if (complete_recording(
                 op, map_applied_conditions, execution_preconditions,
                 has_blocking_call))
-          templates.push_back(current_template);
+          templates.emplace_back(current_template);
       }
       else
       {
@@ -319,7 +319,7 @@ namespace Legion {
               assert(valid);
 #endif
               // Replaying this right away
-              templates.push_back(current_template);
+              templates.emplace_back(current_template);
               // Treat the end of the recording as an intermediate fence
               // since we don't actually have events to use for a recurrent
               // replay quite yet since we just did the capture
@@ -399,7 +399,7 @@ namespace Legion {
         }
         else
         {
-          templates.push_back(non_idempotent_template);
+          templates.emplace_back(non_idempotent_template);
           return false;
         }
       }

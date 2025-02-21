@@ -400,7 +400,7 @@ namespace Legion {
                launcher.arrive_barriers.begin();
            it != launcher.arrive_barriers.end(); it++)
       {
-        arrive_barriers.push_back(*it);
+        arrive_barriers.emplace_back(*it);
         LegionSpy::log_event_dependence(
             it->phase_barrier, arrive_barriers.back().phase_barrier);
       }
@@ -658,7 +658,7 @@ namespace Legion {
         if (IS_REDUCE(reqs[idx]))
         {
           reqs[idx].privilege = LEGION_READ_WRITE;
-          changed_idxs.push_back(idx);
+          changed_idxs.emplace_back(idx);
         }
       }
     }
@@ -2254,11 +2254,11 @@ namespace Legion {
         // Get the preconditions for this copy
         std::vector<ApEvent> copy_preconditions;
         if (precondition.exists())
-          copy_preconditions.push_back(precondition);
+          copy_preconditions.emplace_back(precondition);
         if (src_ready.exists())
-          copy_preconditions.push_back(src_ready);
+          copy_preconditions.emplace_back(src_ready);
         if (dst_ready.exists())
-          copy_preconditions.push_back(dst_ready);
+          copy_preconditions.emplace_back(dst_ready);
         if (!copy_preconditions.empty())
           precondition = Runtime::merge_events(&trace_info, copy_preconditions);
         ApEvent result = across->execute(
@@ -2398,9 +2398,9 @@ namespace Legion {
       // Trigger the source precondition event when all our sources are ready
       std::vector<ApEvent> local_preconditions;
       if (init_precondition.exists())
-        local_preconditions.push_back(init_precondition);
+        local_preconditions.emplace_back(init_precondition);
       if (src_ready.exists())
-        local_preconditions.push_back(src_ready);
+        local_preconditions.emplace_back(src_ready);
       ApEvent local_precondition;
       if (!local_preconditions.empty())
         local_precondition =
@@ -2425,11 +2425,11 @@ namespace Legion {
       // Compute the copy preconditions
       std::vector<ApEvent> copy_preconditions;
       if (collective_pre.exists())
-        copy_preconditions.push_back(collective_pre);
+        copy_preconditions.emplace_back(collective_pre);
       else
         copy_preconditions.swap(local_preconditions);
       if (dst_ready.exists())
-        copy_preconditions.push_back(dst_ready);
+        copy_preconditions.emplace_back(dst_ready);
       ApEvent src_indirect_ready = idx_ready;
       if (init_precondition.exists())
       {
@@ -2536,9 +2536,9 @@ namespace Legion {
       // Trigger the source precondition event when all our sources are ready
       std::vector<ApEvent> local_preconditions;
       if (init_precondition.exists())
-        local_preconditions.push_back(init_precondition);
+        local_preconditions.emplace_back(init_precondition);
       if (dst_ready.exists())
-        local_preconditions.push_back(dst_ready);
+        local_preconditions.emplace_back(dst_ready);
       ApEvent local_precondition;
       if (!local_preconditions.empty())
         local_precondition =
@@ -2566,11 +2566,11 @@ namespace Legion {
       // Compute the copy preconditions
       std::vector<ApEvent> copy_preconditions;
       if (collective_pre.exists())
-        copy_preconditions.push_back(collective_pre);
+        copy_preconditions.emplace_back(collective_pre);
       else
         copy_preconditions.swap(local_preconditions);
       if (src_ready.exists())
-        copy_preconditions.push_back(src_ready);
+        copy_preconditions.emplace_back(src_ready);
       ApEvent dst_indirect_ready = idx_ready;
       if (init_precondition.exists())
       {
@@ -2685,11 +2685,11 @@ namespace Legion {
       // Trigger the precondition event when all our srcs and dsts are ready
       std::vector<ApEvent> local_preconditions;
       if (init_precondition.exists())
-        local_preconditions.push_back(init_precondition);
+        local_preconditions.emplace_back(init_precondition);
       if (src_ready.exists())
-        local_preconditions.push_back(src_ready);
+        local_preconditions.emplace_back(src_ready);
       if (dst_ready.exists())
-        local_preconditions.push_back(dst_ready);
+        local_preconditions.emplace_back(dst_ready);
       ApEvent local_precondition;
       if (!local_preconditions.empty())
         local_precondition =
@@ -2720,7 +2720,7 @@ namespace Legion {
       // Compute the copy preconditions
       std::vector<ApEvent> copy_preconditions;
       if (collective_pre.exists())
-        copy_preconditions.push_back(collective_pre);
+        copy_preconditions.emplace_back(collective_pre);
       else
         copy_preconditions.swap(local_preconditions);
       ApEvent src_indirect_ready = src_idx_ready;
@@ -3217,7 +3217,7 @@ namespace Legion {
       {
         PointCopyOp* point = runtime->get_operation<PointCopyOp>();
         point->initialize(this, itr.p);
-        temp_points.push_back(point);
+        temp_points.emplace_back(point);
       }
       // Perform the projections
       std::vector<ProjectionPoint*> projection_points(
@@ -3508,7 +3508,7 @@ namespace Legion {
 #endif
         src_indirect_records[index].emplace_back(
             IndirectRecord(req, insts, launch_space->get_volume()));
-        exchange.src_records.push_back(&records);
+        exchange.src_records.emplace_back(&records);
         if (src_indirect_records[index].size() == points.size())
           return finalize_exchange(index, true /*sources*/);
         return exchange.src_ready;
@@ -3549,7 +3549,7 @@ namespace Legion {
 #endif
         dst_indirect_records[index].emplace_back(
             IndirectRecord(req, insts, launch_space->get_volume()));
-        exchange.dst_records.push_back(&records);
+        exchange.dst_records.emplace_back(&records);
         if (dst_indirect_records[index].size() == points.size())
           return finalize_exchange(index, false /*sources*/);
         return exchange.dst_ready;
@@ -4032,7 +4032,7 @@ namespace Legion {
             const DomainPoint& prev = dependences[idx - 1];
             const RtEvent pre = owner->find_intra_space_dependence(prev);
             if (pre.exists())
-              pointwise_mapping_dependences.push_back(pre);
+              pointwise_mapping_dependences.emplace_back(pre);
             if (runtime->legion_spy_enabled)
             {
               // We know we only need a dependence on the previous point but
@@ -4059,7 +4059,7 @@ namespace Legion {
       const RtEvent pre = parent_ctx->find_pointwise_dependence(
           previous_context_index, previous_point, shard);
       if (pre.exists())
-        pointwise_mapping_dependences.push_back(pre);
+        pointwise_mapping_dependences.emplace_back(pre);
     }
 
     //--------------------------------------------------------------------------
@@ -4535,7 +4535,7 @@ namespace Legion {
           {
             const RtEvent done = finalize_exchange(idx, true /*source*/);
             if (done.exists())
-              done_events.push_back(done);
+              done_events.emplace_back(done);
           }
         }
         if (!dst_indirect_requirements.empty() &&
@@ -4545,7 +4545,7 @@ namespace Legion {
           {
             const RtEvent done = finalize_exchange(idx, false /*source*/);
             if (done.exists())
-              done_events.push_back(done);
+              done_events.emplace_back(done);
           }
         }
         // Arrive on our indirection barriers if we have them
@@ -4739,7 +4739,7 @@ namespace Legion {
 #endif
         src_indirect_records[index].emplace_back(
             IndirectRecord(req, insts, launch_space->get_volume()));
-        exchange.src_records.push_back(&records);
+        exchange.src_records.emplace_back(&records);
         if (src_indirect_records[index].size() == points.size())
           return finalize_exchange(index, true /*sources*/);
         return exchange.src_ready;
@@ -4793,7 +4793,7 @@ namespace Legion {
 #endif
         dst_indirect_records[index].emplace_back(
             IndirectRecord(req, insts, launch_space->get_volume()));
-        exchange.dst_records.push_back(&records);
+        exchange.dst_records.emplace_back(&records);
         if (dst_indirect_records[index].size() == points.size())
           return finalize_exchange(index, false /*sources*/);
         return exchange.dst_ready;

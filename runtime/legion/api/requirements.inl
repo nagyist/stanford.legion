@@ -265,7 +265,7 @@ namespace Legion {
   {
     privilege_fields.insert(fid);
     if (instance)
-      instance_fields.push_back(fid);
+      instance_fields.emplace_back(fid);
     return *this;
   }
 

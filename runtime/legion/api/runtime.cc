@@ -1216,7 +1216,7 @@ namespace Legion {
       Context ctx, IndexSpace handle, std::vector<Domain>& domains)
   //--------------------------------------------------------------------------
   {
-    domains.push_back(get_index_space_domain(ctx, handle));
+    domains.emplace_back(get_index_space_domain(ctx, handle));
   }
 
   //--------------------------------------------------------------------------
@@ -1224,7 +1224,7 @@ namespace Legion {
       IndexSpace handle, std::vector<Domain>& domains)
   //--------------------------------------------------------------------------
   {
-    domains.push_back(get_index_space_domain(handle));
+    domains.emplace_back(get_index_space_domain(handle));
   }
 
   //--------------------------------------------------------------------------

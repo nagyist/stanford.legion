@@ -161,7 +161,7 @@ namespace Legion {
       if (trace->has_physical_trace())
       {
         for (unsigned idx = 0; idx < ctx->get_max_trace_templates(); idx++)
-          status_collective_ids.push_back(
+          status_collective_ids.emplace_back(
               ctx->get_next_collective_index(COLLECTIVE_LOC_91));
         slow_barrier_id = ctx->get_next_collective_index(COLLECTIVE_LOC_95);
       }

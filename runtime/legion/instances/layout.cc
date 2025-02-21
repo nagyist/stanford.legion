@@ -131,7 +131,7 @@ namespace Legion {
             compressed, allocated_fields);
         // Save the result in the cache, duplicates from races here are benign
         AutoLock o_lock(layout_lock);
-        comp_cache[hash_key].push_back(
+        comp_cache[hash_key].emplace_back(
             std::pair<FieldMask, FieldMask>(copy_mask, compressed));
       }
       // It is absolutely imperative that these infos be added in
@@ -220,7 +220,7 @@ namespace Legion {
            it != filter.end(); it++)
       {
         if (field_indexes.find(*it) != field_indexes.end())
-          to_remove.push_back(*it);
+          to_remove.emplace_back(*it);
       }
       if (!to_remove.empty())
       {
@@ -275,7 +275,7 @@ namespace Legion {
            it != field_infos.end(); it++)
       {
         if (it->serdez_id > 0)
-          serdez_fields.push_back(PhysicalInstance::DestroyedField(
+          serdez_fields.emplace_back(PhysicalInstance::DestroyedField(
               it->field_id, it->size, it->serdez_id));
       }
     }

@@ -854,7 +854,7 @@ namespace Legion {
           if ((it->second != nullptr) &&
               (!it->second->initialized.exists() ||
                it->second->initialized.has_triggered()))
-            colors.push_back(it->first);
+            colors.emplace_back(it->first);
         }
         return next_uncollected_color;
       }
@@ -1368,7 +1368,7 @@ namespace Legion {
       {
         LegionColor cp;
         derez.deserialize(cp);
-        target->push_back(cp);
+        target->emplace_back(cp);
       }
       LegionColor* bound_target;
       derez.deserialize(bound_target);
@@ -1479,7 +1479,7 @@ namespace Legion {
         while (!index_space_users.empty() &&
                index_space_users.front().has_triggered_faultignorant())
           index_space_users.pop_front();
-        index_space_users.push_back(user);
+        index_space_users.emplace_back(user);
       }
     }
 
@@ -2092,7 +2092,7 @@ namespace Legion {
 #endif
           for (unsigned idx = offset; idx < collective_mapping->size();
                idx += total_children)
-            child_spaces.push_back((*collective_mapping)[idx]);
+            child_spaces.emplace_back((*collective_mapping)[idx]);
 #ifdef DEBUG_LEGION
           assert(!child_spaces.empty());
 #endif
@@ -2381,13 +2381,13 @@ namespace Legion {
         {
           if ((*it)->can_prune())
           {
-            to_prune.push_back(*it);
+            to_prune.emplace_back(*it);
             it = partition_trackers.erase(it);
           }
           else
             it++;
         }
-        partition_trackers.push_back(tracker);
+        partition_trackers.emplace_back(tracker);
       }
       for (std::vector<PartitionTracker*>::const_iterator it = to_prune.begin();
            it != to_prune.end(); it++)
@@ -3278,12 +3278,12 @@ namespace Legion {
             IndexSpaceExpression* intersection =
                 runtime->intersect_index_spaces(expr, child);
             if (!intersection->is_empty())
-              colors.push_back(*itr);
+              colors.emplace_back(*itr);
           }
         }
       }
       else
-        colors.push_back(below_color);
+        colors.emplace_back(below_color);
       // Save the result in the cache for the future
       AutoLock n_lock(node_lock);
       // If someone else beat us to it then we are done

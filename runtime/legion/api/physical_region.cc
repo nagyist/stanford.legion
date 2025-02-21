@@ -591,7 +591,7 @@ namespace Legion {
     void PhysicalRegionImpl::add_padded_field(FieldID fid)
     //--------------------------------------------------------------------------
     {
-      padded_fields.push_back(fid);
+      padded_fields.emplace_back(fid);
       // Resort to keep things in order
       if (padded_fields.size() > 1)
         std::sort(padded_fields.begin(), padded_fields.end());

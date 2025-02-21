@@ -609,14 +609,14 @@ namespace Legion {
               {
                 it.filter(close_mask - still_open);
                 if (!it->second)
-                  to_delete.push_back(it->first);
+                  to_delete.emplace_back(it->first);
               }
             }
             else
             {
               it.filter(close_mask);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
             }
           }
           if (!to_delete.empty())
@@ -689,14 +689,14 @@ namespace Legion {
             {
               it.filter(close_mask - still_open);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
             }
           }
           else
           {
             it.filter(close_mask);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
         }
         if (!to_delete.empty())
@@ -983,7 +983,7 @@ namespace Legion {
                       it.filter(overlap);
                       tighten = true;
                       if (!it->second)
-                        to_delete.push_back(it->first);
+                        to_delete.emplace_back(it->first);
                     }
                   }
                   break;
@@ -1077,7 +1077,7 @@ namespace Legion {
             root, user.idx, path_node, it->first, overlap);
         it.filter(overlap);
         if (!it->second)
-          to_delete.push_back(it->first);
+          to_delete.emplace_back(it->first);
       }
       for (std::vector<LogicalUser*>::const_iterator it = to_delete.begin();
            it != to_delete.end(); it++)
@@ -1269,13 +1269,13 @@ namespace Legion {
         {
           if ((*it)->can_prune())
           {
-            to_prune.push_back(*it);
+            to_prune.emplace_back(*it);
             it = partition_trackers.erase(it);
           }
           else
             it++;
         }
-        partition_trackers.push_back(tracker);
+        partition_trackers.emplace_back(tracker);
       }
       for (std::vector<PartitionTracker*>::const_iterator it = to_prune.begin();
            it != to_prune.end(); it++)

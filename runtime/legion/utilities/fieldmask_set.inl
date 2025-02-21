@@ -227,7 +227,7 @@ namespace Legion {
       // Put it on the front because it is the copy with
       // no elements so it can start right away!
       if (!!universe_mask)
-        output_sets.push_front(CT(universe_mask));
+        output_sets.emplace_front(CT(universe_mask));
     }
 
     //--------------------------------------------------------------------------

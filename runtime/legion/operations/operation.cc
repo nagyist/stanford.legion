@@ -1037,7 +1037,7 @@ namespace Legion {
           case Realm::PMID_OP_MEM_USAGE:
           case Realm::PMID_OP_COPY_INFO:
             {
-              results.push_back(*it);
+              results.emplace_back(*it);
               break;
             }
           default:
@@ -1226,7 +1226,7 @@ namespace Legion {
                    it != incoming.end(); it++)
                 if (verification_notifications.find(it->first) ==
                     verification_notifications.end())
-                  to_notify.push_back(it->first);
+                  to_notify.emplace_back(it->first);
             }
           }
         }
@@ -1661,7 +1661,7 @@ namespace Legion {
                  it != incoming.end(); it++)
               if (hardened || (verification_notifications.find(it->first) ==
                                verification_notifications.end()))
-                to_notify.push_back(it->first);
+                to_notify.emplace_back(it->first);
             if (completed)
               do_commit = true;
           }
@@ -1710,7 +1710,7 @@ namespace Legion {
                it != incoming.end(); it++)
             if (hardened || (verification_notifications.find(it->first) ==
                              verification_notifications.end()))
-              to_notify.push_back(it->first);
+              to_notify.emplace_back(it->first);
           if (completed)
             do_commit = true;
         }
@@ -1862,7 +1862,7 @@ namespace Legion {
           if (src->get_manager() == manager)
           {
             found = true;
-            ranking.push_back(idx);
+            ranking.emplace_back(idx);
             break;
           }
         }
@@ -1879,7 +1879,7 @@ namespace Legion {
               // Only need to save the first instance from each collective
               if (collective_insts.find(idx) == collective_insts.end())
               {
-                ranking.push_back(idx);
+                ranking.emplace_back(idx);
                 collective_insts[idx] = manager;
                 break;
               }
@@ -2313,8 +2313,8 @@ namespace Legion {
           continue;
         if ((acquired != nullptr) &&
             (acquired->find(manager) == acquired->end()))
-          unacquired.push_back(manager);
-        result.push_back(manager);
+          unacquired.emplace_back(manager);
+        result.emplace_back(manager);
       }
       if (!unacquired.empty())
       {
@@ -2379,7 +2379,7 @@ namespace Legion {
         }
         // See if we should be checking the acquired sets
         if (do_acquire_checks && (acquired->find(manager) == acquired->end()))
-          unacquired.push_back(manager);
+          unacquired.emplace_back(manager);
         // See which fields need to be made valid here
         FieldMask valid_fields =
             manager->layout->allocated_fields & needed_fields;
@@ -2475,7 +2475,7 @@ namespace Legion {
         }
         // See if we should be checking the acquired sets
         if (do_acquire_checks && (acquired->find(manager) == acquired->end()))
-          unacquired.push_back(manager);
+          unacquired.emplace_back(manager);
         FieldMask valid_fields =
             manager->layout->allocated_fields & optional_fields;
         if (!valid_fields)
@@ -2633,7 +2633,7 @@ namespace Legion {
       {
         FieldID fid;
         derez.deserialize(fid);
-        req.instance_fields.push_back(fid);
+        req.instance_fields.emplace_back(fid);
       }
       derez.deserialize(req.privilege);
       derez.deserialize(req.prop);

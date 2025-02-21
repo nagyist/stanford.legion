@@ -209,7 +209,7 @@ namespace Legion {
           {
             if (infos[idx].ancestor)
               continue;
-            to_remove.push_back(infos[idx].fid);
+            to_remove.emplace_back(infos[idx].fid);
           }
           if (!to_remove.empty())
             runtime->remove_local_fields(it->first, to_remove);
@@ -472,7 +472,7 @@ namespace Legion {
           rez.serialize(done);
         }
         runtime->send_remote_context_refine_equivalence_sets(owner_space, rez);
-        applied_events.push_back(done);
+        applied_events.emplace_back(done);
       }
     }
 
@@ -1049,7 +1049,7 @@ namespace Legion {
               runtime->find_or_request_equivalence_set(did, ready);
           target->emplace(std::make_pair(set, req_index));
           if (ready.exists())
-            ready_events.push_back(ready);
+            ready_events.emplace_back(ready);
         }
       }
       else
@@ -1063,7 +1063,7 @@ namespace Legion {
               runtime->find_or_request_equivalence_set(did, ready);
           target->emplace(std::make_pair(set, req_index));
           if (ready.exists())
-            ready_events.push_back(ready);
+            ready_events.emplace_back(ready);
         }
       }
       RtUserEvent done;

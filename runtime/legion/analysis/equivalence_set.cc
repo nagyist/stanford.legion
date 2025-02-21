@@ -115,7 +115,7 @@ namespace Legion {
                      local_dids.begin();
                  it != local_dids.end(); it++)
               if (*it != inst_did)
-                remainder_dids.push_back(*it);
+                remainder_dids.emplace_back(*it);
             refinements.insert(
                 static_cast<T*>(this)->clone(
                     (InstanceView*)nullptr /*no view*/, refinement_mask,
@@ -141,7 +141,7 @@ namespace Legion {
             second++;
           else
           {
-            overlap.push_back(*first);
+            overlap.emplace_back(*first);
             first++;
             second++;
           }
@@ -163,7 +163,7 @@ namespace Legion {
             {
               if ((second == collective_view->instances.end()) ||
                   (*first < *second))
-                remainder.push_back(*first++);
+                remainder.emplace_back(*first++);
               else if (*second < *first)
                 second++;
               else
@@ -659,7 +659,7 @@ namespace Legion {
                 to_add.insert(diff_expr, overlap);
                 it.filter(overlap);
                 if (!it->second)
-                  to_delete.push_back(it->first);
+                  to_delete.emplace_back(it->first);
               }
             }
             else
@@ -667,7 +667,7 @@ namespace Legion {
               found_covered |= overlap;
               it.filter(overlap);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
             }
           }
           else
@@ -675,7 +675,7 @@ namespace Legion {
             found_covered |= overlap;
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           remainder_mask -= overlap;
           if (!remainder_mask)
@@ -807,7 +807,7 @@ namespace Legion {
             {
               local_view->add_nested_valid_ref(did);
               it->first->add_nested_expression_reference(did);
-              reduction_instances[fidx].push_back(
+              reduction_instances[fidx].emplace_back(
                   std::make_pair(local_view, it->first));
               fidx = it->second.find_next_set(fidx + 1);
             }
@@ -827,7 +827,7 @@ namespace Legion {
           {
             local_view->add_nested_valid_ref(did);
             needed_expr->add_nested_expression_reference(did);
-            reduction_instances[fidx].push_back(
+            reduction_instances[fidx].emplace_back(
                 std::make_pair(local_view, needed_expr));
             fidx = uncovered.find_next_set(fidx + 1);
           }
@@ -2533,7 +2533,7 @@ namespace Legion {
         break;
       }
       if (!found)
-        current_samples.push_back(
+        current_samples.emplace_back(
             std::pair<AddressSpaceID, unsigned>(eq_source, 1));
       // Increase the sample count and if we haven't done enough
       // for a test then we can return and keep going
@@ -2857,7 +2857,7 @@ namespace Legion {
           runtime->send_equivalence_set_replication_response(source, rez);
           if (replicated_owner_state == nullptr)
             replicated_owner_state = new ReplicatedOwnerState(true /*valid*/);
-          replicated_owner_state->children.push_back(source);
+          replicated_owner_state->children.emplace_back(source);
         }
         else
         {
@@ -2914,7 +2914,7 @@ namespace Legion {
       }
       if (source != local_space)
       {
-        replicated_owner_state->children.push_back(source);
+        replicated_owner_state->children.emplace_back(source);
       }
       if (replicated_owner_state->is_valid())
       {
@@ -3083,7 +3083,7 @@ namespace Legion {
               to_add.insert(set_expr, overlap);
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             subinit -= overlap;
             if (!subinit)
               break;
@@ -3093,7 +3093,7 @@ namespace Legion {
             // New expression covers the old expression
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           else
           {
@@ -3101,7 +3101,7 @@ namespace Legion {
             to_add.insert(union_expr, overlap);
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             subinit -= overlap;
             if (!subinit)
               break;
@@ -3148,7 +3148,7 @@ namespace Legion {
               continue;
             it.filter(user_mask);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           if (!to_delete.empty())
           {
@@ -3214,7 +3214,7 @@ namespace Legion {
           {
             it.filter(mask);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           for (std::vector<IndexSpaceExpression*>::const_iterator it =
                    to_delete.begin();
@@ -3306,7 +3306,7 @@ namespace Legion {
                 {
                   eit.filter(it->second);
                   if (!eit->second)
-                    to_delete.push_back(eit->first);
+                    to_delete.emplace_back(eit->first);
                 }
                 for (std::vector<IndexSpaceExpression*>::const_iterator eit =
                          to_delete.begin();
@@ -3377,7 +3377,7 @@ namespace Legion {
                 {
                   eit.filter(valid_mask);
                   if (!eit->second)
-                    to_delete.push_back(eit->first);
+                    to_delete.emplace_back(eit->first);
                 }
                 for (std::vector<IndexSpaceExpression*>::const_iterator eit =
                          to_delete.begin();
@@ -3586,7 +3586,7 @@ namespace Legion {
               // promoted up to the total valid instances
               it.filter(overlap);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
               if (total_valid_instances.insert(target, overlap))
                 target->add_nested_valid_ref(did);
               // No need for a collective instance check here since it
@@ -3599,7 +3599,7 @@ namespace Legion {
               // and put ourselves in
               it.filter(overlap);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
               to_add.insert(expr, overlap);
             }
             else if (union_size > it->first->get_volume())
@@ -3607,7 +3607,7 @@ namespace Legion {
               // Union dominates both so put it in instead
               it.filter(overlap);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
               to_add.insert(union_expr, overlap);
             }
             // Else previous expr dominates so we can just leave it there
@@ -3692,7 +3692,7 @@ namespace Legion {
               continue;
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           if (!to_delete.empty())
           {
@@ -3732,7 +3732,7 @@ namespace Legion {
               continue;
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           if (!to_delete.empty())
           {
@@ -3785,7 +3785,7 @@ namespace Legion {
                 else if (it->first->remove_nested_expression_reference(did))
                   delete it->first;
               }
-              to_delete.push_back(pit->first);
+              to_delete.emplace_back(pit->first);
             }
             else
             {
@@ -3797,7 +3797,7 @@ namespace Legion {
               {
                 it.filter(filter_mask);
                 if (!it->second)
-                  to_erase.push_back(it->first);
+                  to_erase.emplace_back(it->first);
               }
               if (!to_erase.empty())
               {
@@ -3875,7 +3875,7 @@ namespace Legion {
                 // filter expr covers, so remove it
                 it.filter(overlap);
                 if (!it->second)
-                  to_erase.push_back(it->first);
+                  to_erase.emplace_back(it->first);
               }
               else if (diff->get_volume() < it->first->get_volume())
               {
@@ -3883,7 +3883,7 @@ namespace Legion {
                 // the diff the new expression for these overlap fields
                 it.filter(overlap);
                 if (!it->second)
-                  to_erase.push_back(it->first);
+                  to_erase.emplace_back(it->first);
                 to_add.insert(diff, overlap);
               }
               // else expr does not cover any so nothing to do here
@@ -3936,7 +3936,7 @@ namespace Legion {
                 pit->first->add_nested_resource_ref(did);
             }
             else
-              to_delete.push_back(pit->first);
+              to_delete.emplace_back(pit->first);
           }
           for (std::vector<LogicalView*>::const_iterator it = to_delete.begin();
                it != to_delete.end(); it++)
@@ -3982,7 +3982,7 @@ namespace Legion {
               need_partial_rebuild = true;
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             // Check if this is a collective view to record
             else if (
                 it->first->is_collective_view() &&
@@ -4672,7 +4672,7 @@ namespace Legion {
                 to_add.insert(union_expr, prev_overlap);
                 it.filter(prev_overlap);
                 if (!it->second)
-                  to_delete.push_back(it->first);
+                  to_delete.emplace_back(it->first);
                 overlap -= prev_overlap;
                 if (!overlap)
                   break;
@@ -4739,7 +4739,7 @@ namespace Legion {
                   trace_info, trace_info.recording ? this : nullptr, redop);
               it.filter(overlap);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
             }
             if (!to_delete.empty())
             {
@@ -5230,7 +5230,8 @@ namespace Legion {
                   {
                     red_view->add_nested_valid_ref(did);
                     fill_expr->add_nested_expression_reference(did);
-                    field_views.push_back(std::make_pair(red_view, fill_expr));
+                    field_views.emplace_back(
+                        std::make_pair(red_view, fill_expr));
                   }
                   if (fill_expr != expr)
                     // If we were previously initialized for any points then
@@ -5247,7 +5248,7 @@ namespace Legion {
                 // we'll be flushing it here shortly
                 red_view->add_nested_valid_ref(did);
                 expr->add_nested_expression_reference(did);
-                field_views.push_back(std::make_pair(red_view, expr));
+                field_views.emplace_back(std::make_pair(red_view, expr));
               }
 #ifdef DEBUG_LEGION
               assert(!field_views.empty());
@@ -5519,20 +5520,20 @@ namespace Legion {
           {
             if (target_is_reduction && (it->first == target))
             {
-              to_delete.push_back(*it);
+              to_delete.emplace_back(*it);
               it = finder->second.erase(it);
             }
             else if (it->second == expr)
             {
-              to_record.push_back(*it);
-              to_delete.push_back(*it);
+              to_record.emplace_back(*it);
+              to_delete.emplace_back(*it);
               if (track_exprs)
                 has_cover = true;
               it = finder->second.erase(it);
             }
             else if (it->second == set_expr)
             {
-              to_record.push_back(std::make_pair(it->first, expr));
+              to_record.emplace_back(std::make_pair(it->first, expr));
               if (track_exprs)
                 has_cover = true;
               IndexSpaceExpression* remainder =
@@ -5555,15 +5556,15 @@ namespace Legion {
               }
               if (overlap_size == expr->get_volume())
               {
-                to_record.push_back(std::make_pair(it->first, expr));
+                to_record.emplace_back(std::make_pair(it->first, expr));
                 if (track_exprs)
                   has_cover = true;
               }
               else
-                to_record.push_back(std::make_pair(it->first, overlap));
+                to_record.emplace_back(std::make_pair(it->first, overlap));
               if (overlap_size == it->second->get_volume())
               {
-                to_delete.push_back(*it);
+                to_delete.emplace_back(*it);
                 it = finder->second.erase(it);
               }
               else
@@ -5793,7 +5794,7 @@ namespace Legion {
                 analysis.record_instance(it->first, it->second);
               release_finder->second.swap(eit->second);
             }
-            to_delete.push_back(eit->first);
+            to_delete.emplace_back(eit->first);
           }
           else
           {
@@ -5812,7 +5813,7 @@ namespace Legion {
               // Remove it from here
               it.filter(inst_overlap);
               if (!it->second)
-                to_erase.push_back(it->first);
+                to_erase.emplace_back(it->first);
               // Each field should only be represented by one instance
               overlap -= inst_overlap;
               if (!overlap)
@@ -5829,7 +5830,7 @@ namespace Legion {
             if (!eit->second.empty())
               eit->second.tighten_valid_mask();
             else
-              to_delete.push_back(eit->first);
+              to_delete.emplace_back(eit->first);
           }
         }
         else
@@ -5883,7 +5884,7 @@ namespace Legion {
               it->first->add_nested_valid_ref(did);
             it.filter(overlap);
             if (!it->second)
-              to_erase.push_back(it->first);
+              to_erase.emplace_back(it->first);
           }
           for (std::vector<InstanceView*>::const_iterator it = to_erase.begin();
                it != to_erase.end(); it++)
@@ -5893,14 +5894,14 @@ namespace Legion {
               delete (*it);
           }
           if (old_insts.empty())
-            to_delete.push_back(eit->first);
+            to_delete.emplace_back(eit->first);
           else
             old_insts.tighten_valid_mask();
         }
         else
         {
           new_insts.swap(old_insts);
-          to_delete.push_back(eit->first);
+          to_delete.emplace_back(eit->first);
         }
       }
       for (std::vector<IndexSpaceExpression*>::const_iterator it =
@@ -5978,7 +5979,7 @@ namespace Legion {
               // Remove it from here
               it.filter(inst_overlap);
               if (!it->second)
-                to_erase.push_back(it->first);
+                to_erase.emplace_back(it->first);
               // Each field should only be represented by one instance
               overlap -= inst_overlap;
               if (!overlap)
@@ -5995,7 +5996,7 @@ namespace Legion {
             if (!eit->second.empty())
               eit->second.tighten_valid_mask();
             else
-              to_delete.push_back(eit->first);
+              to_delete.emplace_back(eit->first);
           }
           else
           {
@@ -6049,7 +6050,7 @@ namespace Legion {
                 it->first->add_nested_valid_ref(did);
               it.filter(overlap);
               if (!it->second)
-                to_erase.push_back(it->first);
+                to_erase.emplace_back(it->first);
             }
             for (std::vector<InstanceView*>::const_iterator it =
                      to_erase.begin();
@@ -6060,14 +6061,14 @@ namespace Legion {
                 delete (*it);
             }
             if (old_insts.empty())
-              to_delete.push_back(eit->first);
+              to_delete.emplace_back(eit->first);
             else
               old_insts.tighten_valid_mask();
           }
           else
           {
             new_insts.swap(old_insts);
-            to_delete.push_back(eit->first);
+            to_delete.emplace_back(eit->first);
           }
         }
         for (std::vector<IndexSpaceExpression*>::const_iterator it =
@@ -6204,7 +6205,7 @@ namespace Legion {
               delete finder->first;
             eit->second.erase(finder);
             if (eit->second.empty())
-              to_delete.push_back(eit->first);
+              to_delete.emplace_back(eit->first);
             else
               eit->second.filter_valid_mask(overlap);
           }
@@ -6394,7 +6395,7 @@ namespace Legion {
           {
             it.filter(filter_mask);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           if (!to_delete.empty())
           {
@@ -6442,7 +6443,7 @@ namespace Legion {
             // We're removing this expression no matter what at this point
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             // See if there are any remaining points left
             if (volume < it->first->get_volume())
             {
@@ -6455,7 +6456,7 @@ namespace Legion {
           {
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             to_add.insert(
                 runtime->subtract_index_spaces(it->first, expr), overlap);
           }
@@ -6571,7 +6572,7 @@ namespace Legion {
                 else if (it->first->remove_nested_valid_ref(did))
                   delete it->first;
               }
-              to_delete.push_back(rit->first);
+              to_delete.emplace_back(rit->first);
             }
             else
             {
@@ -6583,7 +6584,7 @@ namespace Legion {
               {
                 it.filter(filter_mask);
                 if (!it->second)
-                  to_erase.push_back(it->first);
+                  to_erase.emplace_back(it->first);
               }
               for (std::vector<InstanceView*>::const_iterator it =
                        to_erase.begin();
@@ -6602,7 +6603,7 @@ namespace Legion {
                   delete (*it);
               }
               if (rit->second.empty())
-                to_delete.push_back(rit->first);
+                to_delete.emplace_back(rit->first);
               else
                 rit->second.tighten_valid_mask();
             }
@@ -6666,7 +6667,7 @@ namespace Legion {
                 else if (it->first->remove_nested_valid_ref(did))
                   delete it->first;
               }
-              to_delete.push_back(rit->first);
+              to_delete.emplace_back(rit->first);
             }
             else
             {
@@ -6678,7 +6679,7 @@ namespace Legion {
               {
                 it.filter(filter_mask);
                 if (!it->second)
-                  to_erase.push_back(it->first);
+                  to_erase.emplace_back(it->first);
               }
               for (std::vector<InstanceView*>::const_iterator it =
                        to_erase.begin();
@@ -6698,7 +6699,7 @@ namespace Legion {
                   delete (*it);
               }
               if (rit->second.empty())
-                to_delete.push_back(rit->first);
+                to_delete.emplace_back(rit->first);
               else
                 rit->second.tighten_valid_mask();
             }
@@ -6725,7 +6726,7 @@ namespace Legion {
               }
               else
                 to_add[diff].swap(rit->second);
-              to_delete.push_back(rit->first);
+              to_delete.emplace_back(rit->first);
             }
             else
             {
@@ -6743,7 +6744,7 @@ namespace Legion {
                   it->first->add_nested_valid_ref(did);
                 it.filter(overlap);
                 if (!it->second)
-                  to_erase.push_back(it->first);
+                  to_erase.emplace_back(it->first);
               }
               for (std::vector<InstanceView*>::const_iterator it =
                        to_erase.begin();
@@ -6763,7 +6764,7 @@ namespace Legion {
                   delete (*it);
               }
               if (rit->second.empty())
-                to_delete.push_back(rit->first);
+                to_delete.emplace_back(rit->first);
               else
                 rit->second.tighten_valid_mask();
             }
@@ -6858,7 +6859,7 @@ namespace Legion {
               else if (it->first->remove_nested_valid_ref(did))
                 delete it->first;
             }
-            to_delete.push_back(rit->first);
+            to_delete.emplace_back(rit->first);
           }
           else
           {
@@ -6869,7 +6870,7 @@ namespace Legion {
             {
               it.filter(filter_mask);
               if (!it->second)
-                to_erase.push_back(it->first);
+                to_erase.emplace_back(it->first);
             }
             for (std::vector<InstanceView*>::const_iterator it =
                      to_erase.begin();
@@ -6888,7 +6889,7 @@ namespace Legion {
                 delete (*it);
             }
             if (rit->second.empty())
-              to_delete.push_back(rit->first);
+              to_delete.emplace_back(rit->first);
             else
               rit->second.tighten_valid_mask();
           }
@@ -6950,7 +6951,7 @@ namespace Legion {
                 else if (it->first->remove_nested_valid_ref(did))
                   delete it->first;
               }
-              to_delete.push_back(rit->first);
+              to_delete.emplace_back(rit->first);
             }
             else
             {
@@ -6962,7 +6963,7 @@ namespace Legion {
               {
                 it.filter(filter_mask);
                 if (!it->second)
-                  to_erase.push_back(it->first);
+                  to_erase.emplace_back(it->first);
               }
               for (std::vector<InstanceView*>::const_iterator it =
                        to_erase.begin();
@@ -6982,7 +6983,7 @@ namespace Legion {
                   delete (*it);
               }
               if (rit->second.empty())
-                to_delete.push_back(rit->first);
+                to_delete.emplace_back(rit->first);
               else
                 rit->second.tighten_valid_mask();
             }
@@ -7009,7 +7010,7 @@ namespace Legion {
               }
               else
                 to_add[diff].swap(rit->second);
-              to_delete.push_back(rit->first);
+              to_delete.emplace_back(rit->first);
             }
             else
             {
@@ -7027,7 +7028,7 @@ namespace Legion {
                   it->first->add_nested_valid_ref(did);
                 it.filter(overlap);
                 if (!it->second)
-                  to_erase.push_back(it->first);
+                  to_erase.emplace_back(it->first);
               }
               for (std::vector<InstanceView*>::const_iterator it =
                        to_erase.begin();
@@ -7047,7 +7048,7 @@ namespace Legion {
                   delete (*it);
               }
               if (rit->second.empty())
-                to_delete.push_back(rit->first);
+                to_delete.emplace_back(rit->first);
               else
                 rit->second.tighten_valid_mask();
             }
@@ -7341,7 +7342,7 @@ namespace Legion {
             int fidx = it->second.find_first_set();
             while (fidx >= 0)
             {
-              reduction_instances[fidx].push_back(
+              reduction_instances[fidx].emplace_back(
                   std::make_pair(it->first, expr));
               it->first->add_nested_valid_ref(did);
               expr->add_nested_expression_reference(did);
@@ -7424,7 +7425,7 @@ namespace Legion {
                 phi_views[it->first].insert(deferred, overlap);
                 it.filter(overlap);
                 if (!it->second)
-                  to_remove.push_back(it->first);
+                  to_remove.emplace_back(it->first);
               }
               else
               {
@@ -7436,7 +7437,7 @@ namespace Legion {
                 // remove the fields from this expression no matter what
                 it.filter(overlap);
                 if (!it->second)
-                  to_remove.push_back(it->first);
+                  to_remove.emplace_back(it->first);
                 if (fill_expr->get_volume() < it->first->get_volume())
                 {
                   // if we only had a partial covering then put the
@@ -7473,7 +7474,7 @@ namespace Legion {
                   it->first->add_nested_expression_reference(did);
             }
             if (vit->second.empty())
-              to_delete.push_back(deferred);
+              to_delete.emplace_back(deferred);
             else
               vit->second.tighten_valid_mask();
           }
@@ -7545,7 +7546,7 @@ namespace Legion {
               phi_views[expr].insert(deferred, overlap);
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(deferred);
+              to_delete.emplace_back(deferred);
             if (!expr_covers)
             {
               // If the predicated fill isn't covering then we need to
@@ -7780,7 +7781,7 @@ namespace Legion {
                 delete finder->first;
               rit->second.erase(finder);
               if (rit->second.empty())
-                to_delete.push_back(rit->first);
+                to_delete.emplace_back(rit->first);
               else
                 rit->second.filter_valid_mask(overlap);
             }
@@ -7946,7 +7947,7 @@ namespace Legion {
             // cover at least some if it so this expression will be removed
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             // Field overlaps should only occur once
             part_overlap -= overlap;
             if (!part_overlap)
@@ -9072,8 +9073,9 @@ namespace Legion {
             ready_events.insert(ready);
           IndexSpaceExpression* expr =
               IndexSpaceExpression::unpack_expression(derez, source);
-          reductions.push_back(std::pair<InstanceView*, IndexSpaceExpression*>(
-              static_cast<InstanceView*>(view), expr));
+          reductions.emplace_back(
+              std::pair<InstanceView*, IndexSpaceExpression*>(
+                  static_cast<InstanceView*>(view), expr));
         }
       }
       size_t num_restrictions;
@@ -9306,7 +9308,7 @@ namespace Legion {
           if (expr_references->insert(it->first).second)
             it->first->add_base_expression_reference(META_TASK_REF);
       }
-      applied_events.push_back(done_event);
+      applied_events.emplace_back(done_event);
     }
 
     //--------------------------------------------------------------------------
@@ -9405,7 +9407,7 @@ namespace Legion {
             to_add.insert(diff, overlap);
           it.filter(overlap);
           if (!it->second)
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
         }
         for (std::vector<IndexSpaceExpression*>::const_iterator it =
                  to_delete.begin();
@@ -9460,7 +9462,7 @@ namespace Legion {
               to_add.insert(union_expr, overlap);
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             remaining -= overlap;
             if (!remaining)
               break;
@@ -9529,7 +9531,7 @@ namespace Legion {
             rez.serialize<bool>(record_invalidate);
           }
           runtime->send_equivalence_set_clone_request(logical_owner_space, rez);
-          applied_events.push_back(done_event);
+          applied_events.emplace_back(done_event);
           return;
         }
         bool overlap_covers = true;
@@ -9572,7 +9574,7 @@ namespace Legion {
                   temp_refs.begin(), temp_refs.end(), vit->first))
           {
             vit->first->add_nested_expression_reference(did);
-            temp_refs.push_back(vit->first);
+            temp_refs.emplace_back(vit->first);
             std::sort(temp_refs.begin(), temp_refs.end());
           }
           for (FieldMaskSet<LogicalView>::const_iterator it =
@@ -9588,7 +9590,7 @@ namespace Legion {
                   temp_refs.begin(), temp_refs.end(), it->first))
           {
             it->first->add_nested_expression_reference(did);
-            temp_refs.push_back(it->first);
+            temp_refs.emplace_back(it->first);
             std::sort(temp_refs.begin(), temp_refs.end());
           }
         }
@@ -9600,7 +9602,7 @@ namespace Legion {
                   temp_refs.begin(), temp_refs.end(), it->first))
           {
             it->first->add_nested_expression_reference(did);
-            temp_refs.push_back(it->first);
+            temp_refs.emplace_back(it->first);
             std::sort(temp_refs.begin(), temp_refs.end());
           }
         }
@@ -9619,7 +9621,7 @@ namespace Legion {
                     temp_refs.begin(), temp_refs.end(), it->second))
             {
               it->second->add_nested_expression_reference(did);
-              temp_refs.push_back(it->second);
+              temp_refs.emplace_back(it->second);
               std::sort(temp_refs.begin(), temp_refs.end());
             }
           }
@@ -9632,7 +9634,7 @@ namespace Legion {
                   temp_refs.begin(), temp_refs.end(), rit->first))
           {
             rit->first->add_nested_expression_reference(did);
-            temp_refs.push_back(rit->first);
+            temp_refs.emplace_back(rit->first);
             std::sort(temp_refs.begin(), temp_refs.end());
           }
           for (FieldMaskSet<InstanceView>::const_iterator it =
@@ -9648,7 +9650,7 @@ namespace Legion {
                   temp_refs.begin(), temp_refs.end(), rit->first))
           {
             rit->first->add_nested_expression_reference(did);
-            temp_refs.push_back(rit->first);
+            temp_refs.emplace_back(rit->first);
             std::sort(temp_refs.begin(), temp_refs.end());
           }
           for (FieldMaskSet<InstanceView>::const_iterator it =
@@ -9668,7 +9670,7 @@ namespace Legion {
                     temp_refs.begin(), temp_refs.end(), it->first))
             {
               it->first->add_nested_expression_reference(did);
-              temp_refs.push_back(it->first);
+              temp_refs.emplace_back(it->first);
               std::sort(temp_refs.begin(), temp_refs.end());
             }
           }
@@ -9728,7 +9730,7 @@ namespace Legion {
           rez.serialize<bool>(record_invalidate);
         }
         runtime->send_equivalence_set_clone_request(logical_owner_space, rez);
-        applied_events.push_back(done_event);
+        applied_events.emplace_back(done_event);
       }
       else
       {
@@ -9745,7 +9747,7 @@ namespace Legion {
               mask, false /*pack guards*/, false /*pack invalids*/);
         }
         runtime->send_equivalence_set_clone_response(target_space, rez);
-        applied_events.push_back(done_event);
+        applied_events.emplace_back(done_event);
         if (!set_expr->is_empty())
           invalidate_state(overlap, overlap_covers, mask, record_invalidate);
         else
@@ -10195,7 +10197,7 @@ namespace Legion {
                    read_only_guard_updates->begin();
                it != read_only_guard_updates->end(); it++)
             if (read_only_guards.find(it->first) == read_only_guards.end())
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           if (!to_delete.empty())
           {
             for (std::vector<CopyFillGuard*>::const_iterator it =
@@ -10212,7 +10214,7 @@ namespace Legion {
                it != reduction_fill_guard_updates->end(); it++)
             if (reduction_fill_guards.find(it->first) ==
                 reduction_fill_guards.end())
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           if (!to_delete.empty())
           {
             for (std::vector<CopyFillGuard*>::const_iterator it =
@@ -10237,7 +10239,7 @@ namespace Legion {
               false /*pack references*/, !unpack_tracing_references);
         }
         runtime->send_equivalence_set_clone_response(logical_owner_space, rez);
-        applied_events.push_back(done_event);
+        applied_events.emplace_back(done_event);
         return;
       }
       const size_t dst_volume = set_expr->get_volume();
@@ -10292,7 +10294,7 @@ namespace Legion {
         for (std::list<std::pair<InstanceView*, IndexSpaceExpression*> >::
                  const_iterator vit = it->second.begin();
              vit != it->second.end(); vit++)
-          local_reductions.push_back(vit->first);
+          local_reductions.emplace_back(vit->first);
         // Update the reductions
         update_reductions(it->first, it->second);
         // Then unpack our valid references
@@ -10992,7 +10994,7 @@ namespace Legion {
                 create_now[cit->first].insert(it->first, overlap);
                 it.filter(overlap);
                 if (!it->second)
-                  to_delete.push_back(it->first);
+                  to_delete.emplace_back(it->first);
               }
               for (std::vector<EqKDTree*>::const_iterator it =
                        to_delete.begin();
@@ -11190,7 +11192,7 @@ namespace Legion {
               multiple_sources |= overlap;
               it.filter(overlap);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
               src_fields -= overlap;
               if (!src_fields)
                 break;
@@ -11272,7 +11274,7 @@ namespace Legion {
         for (LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::const_iterator
                  it = to_notify.begin();
              it != to_notify.end(); it++)
-          spaces.push_back(it->first);
+          spaces.emplace_back(it->first);
         // Also add in any spaces for any targets that we need to send to also
         bool need_sort = false;
         for (unsigned idx = 0; idx < target_mapping.size(); idx++)
@@ -11280,7 +11282,7 @@ namespace Legion {
           const AddressSpace target_space = target_mapping[idx];
           if (to_notify.find(target_space) != to_notify.end())
             continue;
-          spaces.push_back(target_space);
+          spaces.emplace_back(target_space);
           need_sort = true;
         }
         if (need_sort)
@@ -11317,7 +11319,7 @@ namespace Legion {
           ready = initialize_new_equivalence_set(
               set, rit->set_mask, !set_created, set_sources);
           if (ready.exists())
-            ready_events.push_back(ready);
+            ready_events.emplace_back(ready);
         }
         // Notify any equivalence set kd tree nodes about the new set
         if (mapping != nullptr)
@@ -11386,7 +11388,7 @@ namespace Legion {
                 rez.serialize(notified);
               }
               runtime->send_equivalence_set_creation(*cit, rez);
-              ready_events.push_back(notified);
+              ready_events.emplace_back(notified);
             }
           }
           else
@@ -11427,7 +11429,7 @@ namespace Legion {
                 rez.serialize(notified);
               }
               runtime->send_equivalence_set_reuse(*cit, rez);
-              ready_events.push_back(notified);
+              ready_events.emplace_back(notified);
             }
           }
         }
@@ -11447,7 +11449,7 @@ namespace Legion {
                 set, overlap, ready, target_mapping, targets);
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           for (std::vector<EqKDTree*>::const_iterator it = to_delete.begin();
                it != to_delete.end(); it++)
@@ -11551,14 +11553,14 @@ namespace Legion {
             for (LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::
                      const_iterator it = to_notify.begin();
                  it != to_notify.end(); it++)
-              spaces.push_back(it->first);
+              spaces.emplace_back(it->first);
             bool need_sort = false;
             for (unsigned idx = 0; idx < target_mapping.size(); idx++)
             {
               const AddressSpaceID target_space = target_mapping[idx];
               if (to_notify.find(target_space) != to_notify.end())
                 continue;
-              spaces.push_back(target_space);
+              spaces.emplace_back(target_space);
               need_sort = true;
             }
             if (need_sort)
@@ -11610,7 +11612,7 @@ namespace Legion {
                   rez.serialize(notified);
                 }
                 runtime->send_equivalence_set_reuse(*cit, rez);
-                ready_events.push_back(notified);
+                ready_events.emplace_back(notified);
               }
             }
             // Check to see if there are any local notifications to perform
@@ -11632,7 +11634,7 @@ namespace Legion {
                     target_mapping, targets);
                 it.filter(local_overlap);
                 if (!it->second)
-                  to_delete.push_back(it->first);
+                  to_delete.emplace_back(it->first);
               }
               if (to_delete.size() < local_finder->second.size())
               {
@@ -11664,7 +11666,7 @@ namespace Legion {
           set_sources.erase(source_finder);
         eit.filter(src_mask);
         if (!eit->second)
-          to_remove.push_back(eit->first);
+          to_remove.emplace_back(eit->first);
       }
       for (std::vector<EquivalenceSet*>::const_iterator it = to_remove.begin();
            it != to_remove.end(); it++)
@@ -11751,7 +11753,7 @@ namespace Legion {
             notify.insert(it->first, overlap);
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           for (std::vector<EqKDTree*>::const_iterator it = to_delete.begin();
                it != to_delete.end(); it++)
@@ -11783,7 +11785,7 @@ namespace Legion {
         RtUserEvent filtered;
         target->filter_partial_invalidations(mask, filtered);
         if (filtered.exists())
-          ready_events.push_back(filtered);
+          ready_events.emplace_back(filtered);
       }
       for (std::map<EquivalenceSet*, local::list<SourceState> >::iterator eit =
                set_sources.begin();
@@ -11926,7 +11928,7 @@ namespace Legion {
               {
                 it.filter(invalidated);
                 if (!it->second)
-                  to_delete.push_back(it->first);
+                  to_delete.emplace_back(it->first);
               }
               if (!to_delete.empty())
               {
@@ -11965,7 +11967,7 @@ namespace Legion {
               {
                 it.filter(invalidated);
                 if (!it->second)
-                  to_delete.push_back(it->first);
+                  to_delete.emplace_back(it->first);
               }
               if (!to_delete.empty())
               {
@@ -12056,7 +12058,7 @@ namespace Legion {
                 it->first->add_base_gc_ref(ref_kind);
               it.filter(overlap);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
             }
             if (!to_delete.empty())
             {
@@ -12107,7 +12109,7 @@ namespace Legion {
                 if (!equivalence_sets.insert(it->first, it->second) &&
                     it->first->remove_base_gc_ref(ref_kind))
                   std::abort();  // should never delete the object
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
               }
               else
               {
@@ -12143,7 +12145,7 @@ namespace Legion {
             record_equivalence_sets(wit->first, info_overlap);
             wit.filter(info_overlap);
             if (!wit->second)
-              to_delete.push_back(wit->first);
+              to_delete.emplace_back(wit->first);
           }
           if (!to_delete.empty())
           {
@@ -12333,7 +12335,7 @@ namespace Legion {
             rez.serialize(notified);
           }
           runtime->send_equivalence_set_creation(*cit, rez);
-          notified_events.push_back(notified);
+          notified_events.emplace_back(notified);
         }
       }
       LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator
@@ -12477,7 +12479,7 @@ namespace Legion {
           rez.serialize(notified);
         }
         runtime->send_equivalence_set_reuse(*cit, rez);
-        done_events.push_back(notified);
+        done_events.emplace_back(notified);
       }
       LegionMap<AddressSpaceID, FieldMaskSet<EqKDTree> >::iterator
           local_finder = to_notify.find(runtime->address_space);
@@ -12598,7 +12600,7 @@ namespace Legion {
           {
             it.filter(remaining);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           if (!to_delete.empty())
           {
@@ -12651,7 +12653,7 @@ namespace Legion {
             invalidations.insert(it->first, overlap);
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           for (std::vector<EqKDTree*>::const_iterator it = to_delete.begin();
                it != to_delete.end(); it++)
@@ -12705,7 +12707,7 @@ namespace Legion {
             {
               const RtUserEvent cancelled = Runtime::create_rt_user_event();
               rez.serialize(cancelled);
-              cancelled_events->push_back(cancelled);
+              cancelled_events->emplace_back(cancelled);
             }
             else
               rez.serialize(RtUserEvent::NO_RT_USER_EVENT);
@@ -12815,7 +12817,7 @@ namespace Legion {
           }
           runtime->send_invalidate_equivalence_sets_subscription(
               sit->first, rez);
-          invalidated_events.push_back(invalidated);
+          invalidated_events.emplace_back(invalidated);
         }
         else
         {

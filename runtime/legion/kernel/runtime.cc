@@ -777,7 +777,7 @@ namespace Legion {
            it != local_procs.end(); it++)
       {
         if (it->kind() == Processor::LOC_PROC)
-          prof_procs.push_back(*it);
+          prof_procs.emplace_back(*it);
       }
 #ifdef DEBUG_LEGION
       assert(!prof_procs.empty());
@@ -1397,7 +1397,7 @@ namespace Legion {
         if (total_address_spaces <= next)
           break;
         MessageManager* messenger = find_messenger(next);
-        shutdown_preconditions.push_back(RtEvent(messenger->target.spawn(
+        shutdown_preconditions.emplace_back(RtEvent(messenger->target.spawn(
             LG_SHUTDOWN_TASK_ID, nullptr, 0, empty_requests)));
       }
       // Have the memory managers for deletion of all their instances
@@ -1852,7 +1852,7 @@ namespace Legion {
         for (std::map<Processor, ProcessorManager*>::const_iterator it =
                  proc_managers.begin();
              it != proc_managers.end(); it++)
-          all_local_processors.push_back(it->first);
+          all_local_processors.emplace_back(it->first);
         proc = find_processor_group(all_local_processors);
       }
       // First, wrap this mapper in a mapper manager
@@ -2061,7 +2061,7 @@ namespace Legion {
         for (std::map<Processor, ProcessorManager*>::const_iterator it =
                  proc_managers.begin();
              it != proc_managers.end(); it++)
-          all_local_processors.push_back(it->first);
+          all_local_processors.emplace_back(it->first);
         proc = find_processor_group(all_local_processors);
       }
       // First, wrap this mapper in a mapper manager
@@ -3371,7 +3371,7 @@ namespace Legion {
       task_impl->add_variant(impl);
       {
         AutoLock tv_lock(task_variant_lock);
-        variant_table.push_back(impl);
+        variant_table.emplace_back(impl);
       }
       // If this is a global registration we need to broadcast the variant
       if (registrar.global_registration && (total_address_spaces > 1))
@@ -4106,7 +4106,7 @@ namespace Legion {
           // Still local, so notify the processor manager
           std::vector<MapperID> thieves;
           for (; it != targets.upper_bound(target); it++)
-            thieves.push_back(it->second);
+            thieves.emplace_back(it->second);
           finder->second->process_steal_request(thief, thieves);
         }
         if (it == targets.end())
@@ -9688,9 +9688,10 @@ namespace Legion {
       // If we make it here create a new processor group and add it
       ProcessorGroup group = ProcessorGroup::create_group(procs);
       if (finder != processor_groups.end())
-        finder->second.push_back(ProcessorGroupInfo(group, local_mask));
+        finder->second.emplace_back(ProcessorGroupInfo(group, local_mask));
       else
-        processor_groups[hash].push_back(ProcessorGroupInfo(group, local_mask));
+        processor_groups[hash].emplace_back(
+            ProcessorGroupInfo(group, local_mask));
       return group;
     }
 
@@ -9710,7 +9711,7 @@ namespace Legion {
               processor_mapping.find(*it);
           if (finder == processor_mapping.end())
           {
-            need_allocation.push_back(*it);
+            need_allocation.emplace_back(*it);
             continue;
           }
           result.set_bit(finder->second);
@@ -10577,7 +10578,7 @@ namespace Legion {
           FutureImpl* impl = static_cast<FutureImpl*>(it->second);
 #endif
           impl->add_base_resource_ref(RUNTIME_REF);
-          leaked_futures.push_back(impl);
+          leaked_futures.emplace_back(impl);
         }
       }
       for (std::vector<FutureImpl*>::const_iterator it = leaked_futures.begin();
@@ -10616,7 +10617,7 @@ namespace Legion {
                  it = layout_constraints_table.begin();
              it != layout_constraints_table.end(); it++)
           if (it->second->is_owner() && !it->second->internal)
-            to_remove.push_back(it->second);
+            to_remove.emplace_back(it->second);
       }
       if (!to_remove.empty())
       {
@@ -13401,7 +13402,7 @@ namespace Legion {
       {
         // Remove any empty expressions on the way in
         if (!(*it)->is_empty())
-          expressions.push_back((*it)->get_canonical_expression());
+          expressions.emplace_back((*it)->get_canonical_expression());
       }
       if (expressions.empty())
       {
@@ -13450,21 +13451,21 @@ namespace Legion {
             // Pop up to 32 expressions off the back
             for (unsigned idx = 0; idx < MAX_EXPRESSION_FANOUT; idx++)
             {
-              temp_expressions.push_back(expressions.back());
+              temp_expressions.emplace_back(expressions.back());
               expressions.pop_back();
               if (expressions.empty())
                 break;
             }
             IndexSpaceExpression* expr = union_index_spaces(temp_expressions);
             expr->add_base_expression_reference(REGION_TREE_REF);
-            next_expressions.push_back(expr);
+            next_expressions.emplace_back(expr);
           }
           else
           {
             IndexSpaceExpression* expr = expressions.back();
             expressions.pop_back();
             expr->add_base_expression_reference(REGION_TREE_REF);
-            next_expressions.push_back(expr);
+            next_expressions.emplace_back(expr);
           }
         }
         if (!first_pass)
@@ -13736,7 +13737,7 @@ namespace Legion {
             // Pop up to 32 expressions off the back
             for (unsigned idx = 0; idx < MAX_EXPRESSION_FANOUT; idx++)
             {
-              temp_expressions.push_back(expressions.back());
+              temp_expressions.emplace_back(expressions.back());
               expressions.pop_back();
               if (expressions.empty())
                 break;
@@ -13744,14 +13745,14 @@ namespace Legion {
             IndexSpaceExpression* expr =
                 intersect_index_spaces(temp_expressions);
             expr->add_base_expression_reference(REGION_TREE_REF);
-            next_expressions.push_back(expr);
+            next_expressions.emplace_back(expr);
           }
           else
           {
             IndexSpaceExpression* expr = expressions.back();
             expressions.pop_back();
             expr->add_base_expression_reference(REGION_TREE_REF);
-            next_expressions.push_back(expr);
+            next_expressions.emplace_back(expr);
           }
         }
         if (!first_pass)
@@ -14069,7 +14070,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       AutoLock l_lock(lookup_is_op_lock);
-      empty_expressions.push_back(expr);
+      empty_expressions.emplace_back(expr);
     }
 
     //--------------------------------------------------------------------------
@@ -14227,7 +14228,7 @@ namespace Legion {
       check_region_tree_context(context);
 #endif
       AutoLock ctx_lock(context_lock);
-      available_contexts.push_back(context);
+      available_contexts.emplace_back(context);
     }
 
     //--------------------------------------------------------------------------
@@ -14558,7 +14559,7 @@ namespace Legion {
       // Generate a new provenance object
       Provenance* result = new Provenance(unique_provenance_id, prov, size);
       result->add_reference(2);  // one for ourself and one for the caller
-      finder->second.push_back(result);
+      finder->second.emplace_back(result);
       // If we have a profiler, then record this provenance
       if (profiler != nullptr)
         profiler->record_provenance(unique_provenance_id, prov, size);
@@ -15047,7 +15048,7 @@ namespace Legion {
       nop_events.reserve(local_procs.size());
       for (std::set<Processor>::const_iterator it = local_procs.begin();
            it != local_procs.end(); it++)
-        nop_events.push_back(
+        nop_events.emplace_back(
             RtEvent(it->spawn(Processor::TASK_ID_PROCESSOR_NOP, nullptr, 0)));
       // Now we can initialize the Legion runtime(s) on this node
       TopLevelContext* top_context = runtime->initialize_runtime(first_proc);
@@ -16010,13 +16011,13 @@ namespace Legion {
       {
         // These tasks get registered on startup_kind processors
         if (it->kind() == startup_kind)
-          registered_events.push_back(RtEvent(it->register_task(
+          registered_events.emplace_back(RtEvent(it->register_task(
               LG_STARTUP_TASK_ID, startup_task, no_requests)));
         // Only register runtime task on application processors if we don't
         // have any utility processors
         if (local_util_procs.empty())
         {
-          registered_events.push_back(RtEvent(it->register_task(
+          registered_events.emplace_back(RtEvent(it->register_task(
               LG_SHUTDOWN_TASK_ID, shutdown_task, no_requests)));
 #ifdef LEGION_SEPARATE_META_TASKS
           for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
@@ -16024,32 +16025,32 @@ namespace Legion {
             if (idx == LG_MESSAGE_ID)
             {
               for (unsigned msg = 0; msg < LAST_SEND_KIND; msg++)
-                registered_events.push_back(RtEvent(it->egister_task(
+                registered_events.emplace_back(RtEvent(it->egister_task(
                     LG_TASK_ID + idx + msg, lg_task, no_requests)));
             }
             else
-              registered_events.push_back(RtEvent(
+              registered_events.emplace_back(RtEvent(
                   it->register_task(LG_TASK_ID + idx, lg_task, no_requests)));
           }
 #else
-          registered_events.push_back(
+          registered_events.emplace_back(
               RtEvent(it->register_task(LG_TASK_ID, lg_task, no_requests)));
 #endif
-          registered_events.push_back(RtEvent(it->register_task(
+          registered_events.emplace_back(RtEvent(it->register_task(
               LG_ENDPOINT_TASK_ID, endpoint_task, no_requests)));
         }
         // Application processor tasks get registered on all
         // processors which are not utility processors
 #ifdef LEGION_SEPARATE_META_TASKS
         for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
-          registered_events.push_back(RtEvent(it->register_task(
+          registered_events.emplace_back(RtEvent(it->register_task(
               LG_APP_PROC_TASK_ID + idx, app_proc_task, no_requests)));
 #else
-        registered_events.push_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(it->register_task(
             LG_APP_PROC_TASK_ID, app_proc_task, no_requests)));
 #endif
         // Register profiling return meta-task on all processor kinds
-        registered_events.push_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(it->register_task(
             LG_LEGION_PROFILING_ID, rt_profiling_task, no_requests)));
       }
       for (std::set<Processor>::const_iterator it = local_util_procs.begin();
@@ -16057,9 +16058,9 @@ namespace Legion {
       {
         // These tasks get registered on startup_kind processors
         if (it->kind() == startup_kind)
-          registered_events.push_back(RtEvent(it->register_task(
+          registered_events.emplace_back(RtEvent(it->register_task(
               LG_STARTUP_TASK_ID, startup_task, no_requests)));
-        registered_events.push_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(it->register_task(
             LG_SHUTDOWN_TASK_ID, shutdown_task, no_requests)));
 #ifdef LEGION_SEPARATE_META_TASKS
         for (unsigned idx = 0; idx < LG_LAST_TASK_ID; idx++)
@@ -16067,21 +16068,21 @@ namespace Legion {
           if (idx == LG_MESSAGE_ID)
           {
             for (unsigned msg = 0; msg < LAST_SEND_KIND; msg++)
-              registered_events.push_back(RtEvent(it->register_task(
+              registered_events.emplace_back(RtEvent(it->register_task(
                   LG_TASK_ID + idx + msg, lg_task, no_requests)));
           }
           else
-            registered_events.push_back(RtEvent(
+            registered_events.emplace_back(RtEvent(
                 it->register_task(LG_TASK_ID + idx, lg_task, no_requests)));
         }
 #else
-        registered_events.push_back(
+        registered_events.emplace_back(
             RtEvent(it->register_task(LG_TASK_ID, lg_task, no_requests)));
 #endif
-        registered_events.push_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(it->register_task(
             LG_ENDPOINT_TASK_ID, endpoint_task, no_requests)));
         // Register profiling return meta-task on all processor kinds
-        registered_events.push_back(RtEvent(it->register_task(
+        registered_events.emplace_back(RtEvent(it->register_task(
             LG_LEGION_PROFILING_ID, rt_profiling_task, no_requests)));
       }
       // Lastly do any other registrations we might have
@@ -16233,7 +16234,7 @@ namespace Legion {
       {
         std::vector<LegionHandshake>& pending_handshakes =
             get_pending_handshake_table();
-        pending_handshakes.push_back(handshake);
+        pending_handshakes.emplace_back(handshake);
       }
     }
 
@@ -16819,7 +16820,7 @@ namespace Legion {
             "generators.",
             registrar.task_id)
       // Offset by the runtime tasks
-      pending_table.push_back(new PendingVariantRegistration(
+      pending_table.emplace_back(new PendingVariantRegistration(
           vid, return_size, has_return_size, registrar, user_data,
           user_data_size, code_desc, task_name));
       return vid;

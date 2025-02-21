@@ -104,7 +104,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       std::vector<PhaseBarrier> wait_barriers, no_arrival_barriers;
-      wait_barriers.push_back(collective);
+      wait_barriers.emplace_back(collective);
       parent_ctx->perform_barrier_dependence_analysis(
           this, wait_barriers, no_arrival_barriers);
     }

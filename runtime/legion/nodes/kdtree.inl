@@ -206,10 +206,10 @@ namespace Legion {
         {
           const Rect<DIM, T> left_rect = it->intersection(left_bounds);
           if (!left_rect.empty())
-            left_set.push_back(left_rect);
+            left_set.emplace_back(left_rect);
           const Rect<DIM, T> right_rect = it->intersection(right_bounds);
           if (!right_rect.empty())
-            right_set.push_back(right_rect);
+            right_set.emplace_back(right_rect);
         }
 #ifdef DEBUG_LEGION
         assert(left_set.size() < rects.size());
@@ -392,10 +392,10 @@ namespace Legion {
         {
           const Rect<DIM, T> left_rect = it->first.intersection(left_bounds);
           if (!left_rect.empty())
-            left_set.push_back(std::make_pair(left_rect, it->second));
+            left_set.emplace_back(std::make_pair(left_rect, it->second));
           const Rect<DIM, T> right_rect = it->first.intersection(right_bounds);
           if (!right_rect.empty())
-            right_set.push_back(std::make_pair(right_rect, it->second));
+            right_set.emplace_back(std::make_pair(right_rect, it->second));
         }
 #ifdef DEBUG_LEGION
         assert(left_set.size() < subrects.size());
@@ -494,7 +494,7 @@ namespace Legion {
       for (typename std::vector<std::pair<Rect<DIM, T>, RT> >::const_iterator
                it = rects.begin();
            it != rects.end(); it++)
-        out.push_back(it->second);
+        out.emplace_back(it->second);
       if (right != nullptr)
         right->record_inorder_traversal(out);
     }
@@ -929,7 +929,7 @@ namespace Legion {
               {
                 if (!(check_preconditions * it->second))
                 {
-                  pending_sets.push_back(it->first);
+                  pending_sets.emplace_back(it->first);
                   check_preconditions -= it->second;
                   if (!check_preconditions)
                     break;
@@ -965,7 +965,7 @@ namespace Legion {
               const FieldMask overlap = remaining & it->second;
               if (!overlap)
                 continue;
-              pending_sets.push_back(it->first);
+              pending_sets.emplace_back(it->first);
               remaining -= overlap;
               new_subscriptions.insert(this, overlap);
               for (unsigned idx = 0; idx < trackers.size(); idx++)
@@ -1529,7 +1529,7 @@ namespace Legion {
                   if (pending_postconditions == nullptr)
                     pending_postconditions =
                         new std::map<RtUserEvent, std::vector<RtEvent> >();
-                  (*pending_postconditions)[it->first].push_back(recorded);
+                  (*pending_postconditions)[it->first].emplace_back(recorded);
                 }
               }
             }
@@ -1572,7 +1572,7 @@ namespace Legion {
               if (finder != pending_postconditions->end())
               {
                 if (ready.exists())
-                  finder->second.push_back(ready);
+                  finder->second.emplace_back(ready);
                 Runtime::trigger_event(
                     it->first, Runtime::merge_events(finder->second));
                 pending_postconditions->erase(finder);
@@ -1597,7 +1597,7 @@ namespace Legion {
               if (pending_postconditions == nullptr)
                 pending_postconditions =
                     new std::map<RtUserEvent, std::vector<RtEvent> >();
-              (*pending_postconditions)[it->first].push_back(ready);
+              (*pending_postconditions)[it->first].emplace_back(ready);
             }
             it++;
           }
@@ -1774,7 +1774,7 @@ namespace Legion {
         {
           it.filter(mask);
           if (!it->second)
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
         }
         for (std::vector<EquivalenceSet*>::const_iterator it =
                  to_delete.begin();
@@ -1810,7 +1810,7 @@ namespace Legion {
           it.filter(overlap);
           if (!it->second)
             // Don't remove the refernce, it's in to_invalidate_previous
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
           else
             it->first->add_reference();
         }
@@ -1837,7 +1837,7 @@ namespace Legion {
           it.filter(overlap);
           if (!it->second)
             // Don't remove the refernce, it's in to_invalidate_previous
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
           else
             it->first->add_reference();
         }
@@ -1908,7 +1908,7 @@ namespace Legion {
         right->record_set(it->first, overlap, current);
         it.filter(overlap);
         if (!it->second)
-          to_delete.push_back(it->first);
+          to_delete.emplace_back(it->first);
         mask -= overlap;
         if (!mask)
           break;
@@ -2131,7 +2131,7 @@ namespace Legion {
             const Rect<DIM, T> overlap = it->first->bounds.intersection(rect);
             if (!overlap.empty())
             {
-              to_traverse.push_back(it->first);
+              to_traverse.emplace_back(it->first);
               if (overlap != rect)
                 remaining |= it->second;
             }
@@ -2151,7 +2151,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
             assert(it->first->bounds.overlaps(rect));
 #endif
-            to_traverse.push_back(it->first);
+            to_traverse.emplace_back(it->first);
             remaining -= overlap;
             if (!remaining)
               break;
@@ -2248,7 +2248,7 @@ namespace Legion {
               continue;
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           for (std::vector<EquivalenceSet*>::const_iterator it =
                    to_delete.begin();
@@ -2304,7 +2304,7 @@ namespace Legion {
                   invalidations.insert(it->first, overlap);
                   it.filter(overlap);
                   if (!it->second)
-                    to_delete.push_back(it->first);
+                    to_delete.emplace_back(it->first);
                 }
                 for (std::vector<EqSetTracker*>::const_iterator it =
                          to_delete.begin();
@@ -2356,7 +2356,7 @@ namespace Legion {
                 {
                   it.filter(current_mask);
                   if (!it->second)
-                    to_delete.push_back(it->first);
+                    to_delete.emplace_back(it->first);
                 }
                 for (std::vector<EquivalenceSet*>::const_iterator it =
                          to_delete.begin();
@@ -2385,7 +2385,7 @@ namespace Legion {
                 it->first->add_base_gc_ref(DISJOINT_COMPLETE_REF);
               it.filter(overlap);
               if (!it->second)
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
               current_mask -= overlap;
               if (!current_mask)
                 break;
@@ -2582,7 +2582,7 @@ namespace Legion {
             all_previous_below |= overlap;
             it.filter(overlap);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             mask -= overlap;
             if (!mask)
               break;
@@ -2786,7 +2786,7 @@ namespace Legion {
         {
           EqKDNode<DIM, T>* child = new EqKDNode<DIM, T>(*it);
           child->add_reference();
-          children.push_back(child);
+          children.emplace_back(child);
         }
         return;
       }
@@ -2804,11 +2804,11 @@ namespace Legion {
         EqKDSparse<DIM, T>* left =
             new EqKDSparse<DIM, T>(best_left_bounds, best_left_set);
         left->add_reference();
-        children.push_back(left);
+        children.emplace_back(left);
         EqKDSparse<DIM, T>* right =
             new EqKDSparse<DIM, T>(best_right_bounds, best_right_set);
         right->add_reference();
-        children.push_back(right);
+        children.emplace_back(right);
       }
       else
       {
@@ -2827,7 +2827,7 @@ namespace Legion {
         {
           EqKDNode<DIM, T>* child = new EqKDNode<DIM, T>(*it);
           child->add_reference();
-          children.push_back(child);
+          children.emplace_back(child);
         }
       }
     }
@@ -3748,13 +3748,13 @@ namespace Legion {
         {
           if (left_volume <= right_volume)
           {
-            left_set.push_back(*it);
+            left_set.emplace_back(*it);
             left_volume += it->volume();
             left_bounds = left_bounds.union_bbox(*it);
           }
           else
           {
-            right_set.push_back(*it);
+            right_set.emplace_back(*it);
             right_volume += it->volume();
             right_bounds = right_bounds.union_bbox(*it);
           }

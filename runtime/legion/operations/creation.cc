@@ -51,7 +51,7 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       kind = INDEX_SPACE_CREATION;
       index_space_node = n;
-      futures.push_back(f);
+      futures.emplace_back(f);
       mapping = map;
       owner = own;
       if (runtime->legion_spy_enabled)
@@ -73,8 +73,8 @@ namespace Legion {
       initialize_operation(ctx, provenance);
       kind = FIELD_ALLOCATION;
       field_space_node = node;
-      fields.push_back(fid);
-      futures.push_back(field_size);
+      fields.emplace_back(fid);
+      futures.emplace_back(field_size);
       owner = own;
       if (runtime->legion_spy_enabled)
         LegionSpy::log_creation_operation(
@@ -228,7 +228,7 @@ namespace Legion {
                 impl->request_runtime_instance(this);
                 const RtEvent subscribed = impl->find_runtime_instance_ready();
                 if (subscribed.exists())
-                  ready_events.push_back(subscribed);
+                  ready_events.emplace_back(subscribed);
               }
             }
             if (!mapped_events.empty())

@@ -385,7 +385,7 @@ namespace Legion {
           {
             int32_t dim = *it;
             if (((dim - LEGION_DIM_X) < ndim) || (dim == LEGION_DIM_F))
-              ordering.push_back(static_cast<DimensionKind>(dim));
+              ordering.emplace_back(static_cast<DimensionKind>(dim));
           }
           copied.ordering_constraint = OrderingConstraint(
               ordering, manager_cons->ordering_constraint.contiguous);
@@ -512,7 +512,7 @@ namespace Legion {
       for (std::map<FieldID, PhysicalInstance>::const_iterator it =
                returned_instances.begin();
            it != returned_instances.end(); it++)
-        instance_fields[it->second].push_back(it->first);
+        instance_fields[it->second].emplace_back(it->first);
 
       for (std::map<PhysicalInstance, std::vector<FieldID> >::const_iterator
                pit = instance_fields.begin();

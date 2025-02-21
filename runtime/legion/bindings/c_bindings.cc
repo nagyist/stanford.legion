@@ -613,7 +613,7 @@ legion_index_space_t legion_index_space_union(
   std::vector<IndexSpace> spaces;
   for (size_t i = 0; i < num_spaces; i++)
   {
-    spaces.push_back(CObjectWrapper::unwrap(spaces_[i]));
+    spaces.emplace_back(CObjectWrapper::unwrap(spaces_[i]));
   }
 
   IndexSpace is = runtime->union_index_spaces(ctx, spaces);
@@ -629,7 +629,7 @@ legion_index_space_t legion_index_space_intersection(
   std::vector<IndexSpace> spaces;
   for (size_t i = 0; i < num_spaces; i++)
   {
-    spaces.push_back(CObjectWrapper::unwrap(spaces_[i]));
+    spaces.emplace_back(CObjectWrapper::unwrap(spaces_[i]));
   }
 
   IndexSpace is = runtime->intersect_index_spaces(ctx, spaces);
@@ -1560,7 +1560,7 @@ legion_index_space_t legion_index_partition_create_index_space_union_spaces(
 
   std::vector<IndexSpace> handles;
   for (size_t idx = 0; idx < num_spaces; ++idx)
-    handles.push_back(CObjectWrapper::unwrap(spaces_[idx]));
+    handles.emplace_back(CObjectWrapper::unwrap(spaces_[idx]));
 
   return CObjectWrapper::wrap(
       runtime->create_index_space_union(ctx, parent, color, handles));
@@ -1594,7 +1594,7 @@ legion_index_space_t
 
   std::vector<IndexSpace> handles;
   for (size_t idx = 0; idx < num_spaces; ++idx)
-    handles.push_back(CObjectWrapper::unwrap(spaces_[idx]));
+    handles.emplace_back(CObjectWrapper::unwrap(spaces_[idx]));
 
   return CObjectWrapper::wrap(
       runtime->create_index_space_intersection(ctx, parent, color, handles));
@@ -1630,7 +1630,7 @@ legion_index_space_t legion_index_partition_create_index_space_difference(
 
   std::vector<IndexSpace> handles;
   for (size_t idx = 0; idx < num_spaces; ++idx)
-    handles.push_back(CObjectWrapper::unwrap(spaces_[idx]));
+    handles.emplace_back(CObjectWrapper::unwrap(spaces_[idx]));
 
   return CObjectWrapper::wrap(runtime->create_index_space_difference(
       ctx, parent, color, initial, handles));
@@ -3197,7 +3197,7 @@ legion_future_t legion_task_launcher_execute_outputs(
 
   std::vector<OutputRequirement> reqs;
   for (size_t idx = 0; idx < reqs_size; ++idx)
-    reqs.push_back(*CObjectWrapper::unwrap(reqs_[idx]));
+    reqs.emplace_back(*CObjectWrapper::unwrap(reqs_[idx]));
 
   Future f = runtime->execute_task(ctx, *launcher, &reqs);
 
@@ -3562,7 +3562,7 @@ legion_future_map_t legion_index_launcher_execute_outputs(
 
   std::vector<OutputRequirement> reqs;
   for (size_t idx = 0; idx < reqs_size; ++idx)
-    reqs.push_back(*CObjectWrapper::unwrap(reqs_[idx]));
+    reqs.emplace_back(*CObjectWrapper::unwrap(reqs_[idx]));
 
   FutureMap f = runtime->execute_index_space(ctx, *launcher, &reqs);
 
@@ -3614,7 +3614,7 @@ legion_future_t legion_index_launcher_execute_reduction_and_outputs(
 
   std::vector<OutputRequirement> reqs;
   for (size_t idx = 0; idx < reqs_size; ++idx)
-    reqs.push_back(*CObjectWrapper::unwrap(reqs_[idx]));
+    reqs.emplace_back(*CObjectWrapper::unwrap(reqs_[idx]));
 
   Future f =
       runtime->execute_index_space(ctx, *launcher, redop, deterministic, &reqs);
@@ -3852,7 +3852,7 @@ void legion_index_launcher_add_point_future(
   IndexTaskLauncher* launcher = CObjectWrapper::unwrap(launcher_);
   ArgumentMap* map = CObjectWrapper::unwrap(map_);
 
-  launcher->point_futures.push_back(*map);
+  launcher->point_futures.emplace_back(*map);
 }
 
 void legion_index_launcher_set_global_arg(
@@ -4588,7 +4588,7 @@ unsigned legion_copy_launcher_add_src_region_requirement_logical_region(
   LogicalRegion parent = CObjectWrapper::unwrap(parent_);
 
   unsigned idx = launcher->src_requirements.size();
-  launcher->src_requirements.push_back(
+  launcher->src_requirements.emplace_back(
       RegionRequirement(handle, priv, prop, parent, tag, verified));
   return idx;
 }
@@ -4604,7 +4604,7 @@ unsigned legion_copy_launcher_add_dst_region_requirement_logical_region(
   LogicalRegion parent = CObjectWrapper::unwrap(parent_);
 
   unsigned idx = launcher->dst_requirements.size();
-  launcher->dst_requirements.push_back(
+  launcher->dst_requirements.emplace_back(
       RegionRequirement(handle, priv, prop, parent, tag, verified));
   return idx;
 }
@@ -4621,7 +4621,7 @@ unsigned
   LogicalRegion parent = CObjectWrapper::unwrap(parent_);
 
   unsigned idx = launcher->dst_requirements.size();
-  launcher->dst_requirements.push_back(
+  launcher->dst_requirements.emplace_back(
       RegionRequirement(handle, redop, prop, parent, tag, verified));
   return idx;
 }
@@ -4817,7 +4817,7 @@ unsigned legion_index_copy_launcher_add_src_region_requirement_logical_region(
   LogicalRegion parent = CObjectWrapper::unwrap(parent_);
 
   unsigned idx = launcher->src_requirements.size();
-  launcher->src_requirements.push_back(
+  launcher->src_requirements.emplace_back(
       RegionRequirement(handle, proj, priv, prop, parent, tag, verified));
   return idx;
 }
@@ -4833,7 +4833,7 @@ unsigned legion_index_copy_launcher_add_dst_region_requirement_logical_region(
   LogicalRegion parent = CObjectWrapper::unwrap(parent_);
 
   unsigned idx = launcher->dst_requirements.size();
-  launcher->dst_requirements.push_back(
+  launcher->dst_requirements.emplace_back(
       RegionRequirement(handle, proj, priv, prop, parent, tag, verified));
   return idx;
 }
@@ -4851,7 +4851,7 @@ unsigned
   LogicalRegion parent = CObjectWrapper::unwrap(parent_);
 
   unsigned idx = launcher->src_requirements.size();
-  launcher->src_requirements.push_back(
+  launcher->src_requirements.emplace_back(
       RegionRequirement(handle, proj, priv, prop, parent, tag, verified));
   return idx;
 }
@@ -4869,7 +4869,7 @@ unsigned
   LogicalRegion parent = CObjectWrapper::unwrap(parent_);
 
   unsigned idx = launcher->dst_requirements.size();
-  launcher->dst_requirements.push_back(
+  launcher->dst_requirements.emplace_back(
       RegionRequirement(handle, proj, priv, prop, parent, tag, verified));
   return idx;
 }
@@ -4886,7 +4886,7 @@ unsigned
   LogicalRegion parent = CObjectWrapper::unwrap(parent_);
 
   unsigned idx = launcher->dst_requirements.size();
-  launcher->dst_requirements.push_back(
+  launcher->dst_requirements.emplace_back(
       RegionRequirement(handle, redop, proj, prop, parent, tag, verified));
   return idx;
 }
@@ -4904,7 +4904,7 @@ unsigned
   LogicalRegion parent = CObjectWrapper::unwrap(parent_);
 
   unsigned idx = launcher->dst_requirements.size();
-  launcher->dst_requirements.push_back(
+  launcher->dst_requirements.emplace_back(
       RegionRequirement(handle, redop, proj, prop, parent, tag, verified));
   return idx;
 }
@@ -5260,7 +5260,7 @@ void legion_attach_launcher_attach_hdf5(
   for (std::map<FieldID, const char*>::const_iterator it = field_map->begin();
        it != field_map->end(); it++)
   {
-    fields.push_back(it->first);
+    fields.emplace_back(it->first);
     handle->privilege_fields.insert(it->first);
   }
   handle->initialize_constraints(true /*column major*/, true /*soa*/, fields);
@@ -5456,9 +5456,9 @@ void legion_index_attach_launcher_attach_hdf5(
     for (std::map<FieldID, const char*>::const_iterator it = field_map->begin();
          it != field_map->end(); it++)
     {
-      fields.push_back(it->first);
+      fields.emplace_back(it->first);
       handle->privilege_fields.insert(it->first);
-      handle->field_files[it->first].push_back(it->second);
+      handle->field_files[it->first].emplace_back(it->second);
     }
     handle->initialize_constraints(true /*column major*/, true /*soa*/, fields);
   }
@@ -5466,7 +5466,7 @@ void legion_index_attach_launcher_attach_hdf5(
   {
     for (std::map<FieldID, const char*>::const_iterator it = field_map->begin();
          it != field_map->end(); it++)
-      handle->field_files[it->first].push_back(it->second);
+      handle->field_files[it->first].emplace_back(it->second);
   }
 #ifdef LEGION_USE_HDF5
   LogicalRegion region = CObjectWrapper::unwrap(region_);
@@ -6642,7 +6642,7 @@ void legion_task_add_future(legion_task_mut_t task_, legion_future_t future_)
   TaskMut* task = CObjectWrapper::unwrap(task_);
   Future* future = CObjectWrapper::unwrap(future_);
 
-  task->futures.push_back(*future);
+  task->futures.emplace_back(*future);
 }
 
 legion_task_id_t legion_task_get_task_id(legion_task_t task_)
@@ -6999,7 +6999,7 @@ void legion_runtime_add_registration_callback(
     Runtime::add_registration_callback(registration_callback_wrapper);
     registered = true;
   }
-  callbacks.push_back(callback_);
+  callbacks.emplace_back(callback_);
 }
 
 legion_mapper_id_t legion_runtime_generate_library_mapper_ids(
@@ -8207,7 +8207,7 @@ void legion_slice_task_output_slices_add(
 {
   Mapper::SliceTaskOutput* output = CObjectWrapper::unwrap(output_);
   Mapper::TaskSlice slice = CObjectWrapper::unwrap(slice_);
-  output->slices.push_back(slice);
+  output->slices.emplace_back(slice);
 }
 
 void legion_slice_task_output_verify_correctness_set(
@@ -8239,11 +8239,11 @@ void legion_map_task_output_chosen_instances_add(
     size_t instances_size_)
 {
   Mapper::MapTaskOutput* output = CObjectWrapper::unwrap(output_);
-  output->chosen_instances.push_back(std::vector<PhysicalInstance>());
+  output->chosen_instances.emplace_back(std::vector<PhysicalInstance>());
   std::vector<PhysicalInstance>& chosen_instances =
       output->chosen_instances.back();
   for (size_t i = 0; i < instances_size_; ++i)
-    chosen_instances.push_back(*CObjectWrapper::unwrap(instances_[i]));
+    chosen_instances.emplace_back(*CObjectWrapper::unwrap(instances_[i]));
 }
 
 void legion_map_task_output_chosen_instances_set(
@@ -8255,7 +8255,7 @@ void legion_map_task_output_chosen_instances_set(
       output->chosen_instances[idx_];
   chosen_instances.clear();
   for (size_t i = 0; i < instances_size_; ++i)
-    chosen_instances.push_back(*CObjectWrapper::unwrap(instances_[i]));
+    chosen_instances.emplace_back(*CObjectWrapper::unwrap(instances_[i]));
 }
 
 void legion_map_task_output_target_procs_clear(legion_map_task_output_t output_)
@@ -8268,7 +8268,7 @@ void legion_map_task_output_target_procs_add(
     legion_map_task_output_t output_, legion_processor_t proc_)
 {
   Mapper::MapTaskOutput* output = CObjectWrapper::unwrap(output_);
-  output->target_procs.push_back(CObjectWrapper::unwrap(proc_));
+  output->target_procs.emplace_back(CObjectWrapper::unwrap(proc_));
 }
 
 legion_processor_t legion_map_task_output_target_procs_get(
@@ -8303,7 +8303,7 @@ bool legion_mapper_runtime_create_physical_instance_layout_constraint(
   std::vector<LogicalRegion> regions;
   regions.reserve(regions_size_);
   for (size_t idx = 0; idx < regions_size_; ++idx)
-    regions.push_back(CObjectWrapper::unwrap(regions_[idx]));
+    regions.emplace_back(CObjectWrapper::unwrap(regions_[idx]));
 
   PhysicalInstance* result = new PhysicalInstance;
   bool ret = runtime->create_physical_instance(
@@ -8325,7 +8325,7 @@ bool legion_mapper_runtime_create_physical_instance_layout_constraint_id(
   std::vector<LogicalRegion> regions;
   regions.reserve(regions_size_);
   for (size_t idx = 0; idx < regions_size_; ++idx)
-    regions.push_back(CObjectWrapper::unwrap(regions_[idx]));
+    regions.emplace_back(CObjectWrapper::unwrap(regions_[idx]));
 
   PhysicalInstance* result = new PhysicalInstance;
   bool ret = runtime->create_physical_instance(
@@ -8348,7 +8348,7 @@ bool legion_mapper_runtime_find_or_create_physical_instance_layout_constraint(
   std::vector<LogicalRegion> regions;
   regions.reserve(regions_size_);
   for (size_t idx = 0; idx < regions_size_; ++idx)
-    regions.push_back(CObjectWrapper::unwrap(regions_[idx]));
+    regions.emplace_back(CObjectWrapper::unwrap(regions_[idx]));
 
   PhysicalInstance* result = new PhysicalInstance;
   bool ret = runtime->find_or_create_physical_instance(
@@ -8371,7 +8371,7 @@ bool legion_mapper_runtime_find_or_create_physical_instance_layout_constraint_id
   std::vector<LogicalRegion> regions;
   regions.reserve(regions_size_);
   for (size_t idx = 0; idx < regions_size_; ++idx)
-    regions.push_back(CObjectWrapper::unwrap(regions_[idx]));
+    regions.emplace_back(CObjectWrapper::unwrap(regions_[idx]));
 
   PhysicalInstance* result = new PhysicalInstance;
   bool ret = runtime->find_or_create_physical_instance(
@@ -8395,7 +8395,7 @@ bool legion_mapper_runtime_find_physical_instance_layout_constraint(
   std::vector<LogicalRegion> regions;
   regions.reserve(regions_size_);
   for (size_t idx = 0; idx < regions_size_; ++idx)
-    regions.push_back(CObjectWrapper::unwrap(regions_[idx]));
+    regions.emplace_back(CObjectWrapper::unwrap(regions_[idx]));
 
   PhysicalInstance* result = new PhysicalInstance;
   bool ret = runtime->find_physical_instance(
@@ -8418,7 +8418,7 @@ bool legion_mapper_runtime_find_physical_instance_layout_constraint_id(
   std::vector<LogicalRegion> regions;
   regions.reserve(regions_size_);
   for (size_t idx = 0; idx < regions_size_; ++idx)
-    regions.push_back(CObjectWrapper::unwrap(regions_[idx]));
+    regions.emplace_back(CObjectWrapper::unwrap(regions_[idx]));
 
   PhysicalInstance* result = new PhysicalInstance;
   bool ret = runtime->find_physical_instance(
@@ -8446,7 +8446,7 @@ bool legion_mapper_runtime_acquire_instances(
   MapperContext ctx = CObjectWrapper::unwrap(ctx_);
   std::vector<PhysicalInstance> instances;
   for (size_t idx = 0; idx < instances_size; ++idx)
-    instances.push_back(*CObjectWrapper::unwrap(instances_[idx]));
+    instances.emplace_back(*CObjectWrapper::unwrap(instances_[idx]));
   return runtime->acquire_instances(ctx, instances);
 }
 

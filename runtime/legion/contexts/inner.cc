@@ -416,7 +416,7 @@ namespace Legion {
                   rit->region.field_space.get_id(), rit->region.get_tree_id(),
                   get_task_name(), get_unique_id())
             // Deletion keeps going up
-            deleted_regions.push_back(*rit);
+            deleted_regions.emplace_back(*rit);
           }
           else
           {
@@ -463,7 +463,7 @@ namespace Legion {
                   }
                 }
               }
-              delete_now.push_back(*rit);
+              delete_now.emplace_back(*rit);
             }
           }
         }
@@ -542,7 +542,7 @@ namespace Legion {
                   "by the task that made them.",
                   fit->fid, fit->space.get_id(), get_task_name(),
                   get_unique_id())
-            deleted_fields.push_back(*fit);
+            deleted_fields.emplace_back(*fit);
           }
           else
           {
@@ -697,7 +697,7 @@ namespace Legion {
 #endif
             if (--finder->second == 0)
             {
-              delete_now.push_back(*fit);
+              delete_now.emplace_back(*fit);
               created_field_spaces.erase(finder);
               // Count how many regions are still using this field space
               // that still need to be deleted before we can remove the
@@ -739,7 +739,7 @@ namespace Legion {
             // If we didn't make this field space, record the deletion
             // and keep going. It will be handled by the context that
             // made the field space
-            deleted_field_spaces.push_back(*fit);
+            deleted_field_spaces.emplace_back(*fit);
         }
       }
       if (!delete_now.empty())
@@ -811,7 +811,7 @@ namespace Legion {
 #endif
             if (--finder->second == 0)
             {
-              delete_now.push_back(*sit);
+              delete_now.emplace_back(*sit);
               sub_partitions.resize(sub_partitions.size() + 1);
               created_index_spaces.erase(finder);
               if (sit->recurse)
@@ -830,7 +830,7 @@ namespace Legion {
 #endif
                     if (--it->second == 0)
                     {
-                      subs.push_back(it->first);
+                      subs.emplace_back(it->first);
                       std::map<IndexPartition, unsigned>::iterator to_delete =
                           it++;
                       created_index_partitions.erase(to_delete);
@@ -847,7 +847,7 @@ namespace Legion {
           else
             // If we didn't make the index space in this context, just
             // record it and keep going, it will get handled later
-            deleted_index_spaces.push_back(*sit);
+            deleted_index_spaces.emplace_back(*sit);
         }
       }
       if (!delete_now.empty())
@@ -920,7 +920,7 @@ namespace Legion {
 #endif
             if (--finder->second == 0)
             {
-              delete_now.push_back(*pit);
+              delete_now.emplace_back(*pit);
               sub_partitions.resize(sub_partitions.size() + 1);
               created_index_partitions.erase(finder);
               if (pit->recurse)
@@ -942,7 +942,7 @@ namespace Legion {
 #endif
                     if (--it->second == 0)
                     {
-                      subs.push_back(it->first);
+                      subs.emplace_back(it->first);
                       std::map<IndexPartition, unsigned>::iterator to_delete =
                           it++;
                       created_index_partitions.erase(to_delete);
@@ -958,7 +958,7 @@ namespace Legion {
           }
           else
             // If we didn't make the partition, record it and keep going
-            deleted_index_partitions.push_back(*pit);
+            deleted_index_partitions.emplace_back(*pit);
         }
       }
       if (!delete_now.empty())
@@ -1101,7 +1101,7 @@ namespace Legion {
       if (origin_space == local_space)
         target_mapping.get_children(origin_space, local_space, children);
       else
-        children.push_back(origin_space);
+        children.emplace_back(origin_space);
       AddressSpaceID creation_child = origin_space;
       if (!to_create.empty() && !children.empty() &&
           (creation_target_space != origin_space))
@@ -1196,7 +1196,7 @@ namespace Legion {
           rez.serialize(ready_event);
         }
         runtime->send_compute_equivalence_sets_response(*cit, rez);
-        ready_events.push_back(ready_event);
+        ready_events.emplace_back(ready_event);
       }
       if (origin_space == local_space)
       {
@@ -1261,7 +1261,7 @@ namespace Legion {
         EquivalenceSet* set =
             runtime->find_or_request_equivalence_set(did, ready);
         if (ready.exists())
-          done_events.push_back(ready);
+          done_events.emplace_back(ready);
         FieldMask set_mask;
         derez.deserialize(set_mask);
         eq_sets.insert(set, set_mask);
@@ -1307,7 +1307,7 @@ namespace Legion {
           EquivalenceSet* set =
               runtime->find_or_request_equivalence_set(did, ready);
           if (ready.exists())
-            ready_events.push_back(ready);
+            ready_events.emplace_back(ready);
           LegionMap<Domain, FieldMask>& rects = creation_srcs[set];
           size_t num_rects;
           derez.deserialize(num_rects);
@@ -1441,7 +1441,7 @@ namespace Legion {
           rez.serialize(child_event);
         }
         runtime->send_compute_equivalence_sets_response(*cit, rez);
-        done_events.push_back(child_event);
+        done_events.emplace_back(child_event);
       }
       // Wait for any ready events to be complete
       if (!ready_events.empty())
@@ -2402,7 +2402,7 @@ namespace Legion {
       for (unsigned idx = 0; idx < regions.size(); idx++)
       {
         if (virtual_mapped[idx])
-          virtual_indexes.push_back(idx);
+          virtual_indexes.emplace_back(idx);
       }
       rez.serialize<size_t>(virtual_indexes.size());
       for (unsigned idx = 0; idx < virtual_indexes.size(); idx++)
@@ -2819,7 +2819,7 @@ namespace Legion {
           {
             if (it->first.get_tree_id() == handle.get_tree_id())
             {
-              sub_partitions.push_back(it->first);
+              sub_partitions.emplace_back(it->first);
 #ifdef DEBUG_LEGION
               assert(it->second > 0);
 #endif
@@ -2907,7 +2907,7 @@ namespace Legion {
               if ((handle.get_tree_id() == it->first.get_tree_id()) &&
                   runtime->is_dominated_tree_only(it->first, handle))
               {
-                sub_partitions.push_back(it->first);
+                sub_partitions.emplace_back(it->first);
 #ifdef DEBUG_LEGION
                 assert(it->second > 0);
 #endif
@@ -2927,7 +2927,7 @@ namespace Legion {
         else
         {
           // If we didn't make the partition, record it and keep going
-          deleted_index_partitions.push_back(
+          deleted_index_partitions.emplace_back(
               DeletedPartition(handle, recurse, provenance));
           return;
         }
@@ -4575,7 +4575,7 @@ namespace Legion {
 #endif
       // Only need the lock here when modifying since all writes
       // to this data structure are serialized
-      infos.push_back(
+      infos.emplace_back(
           LocalFieldInfo(fid, field_size, serdez_id, new_indexes[0], false));
       struct Functor {
       public:
@@ -4714,7 +4714,7 @@ namespace Legion {
       // are serialized and we only need to worry about interfering readers
       const unsigned offset = infos.size();
       for (unsigned idx = 0; idx < resulting_fields.size(); idx++)
-        infos.push_back(LocalFieldInfo(
+        infos.emplace_back(LocalFieldInfo(
             resulting_fields[idx], sizes[idx], serdez_id, new_indexes[idx],
             false));
       // Have to send notifications to any remote nodes
@@ -5109,7 +5109,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           found++;
 #endif
-          to_set.push_back(it->fid);
+          to_set.emplace_back(it->fid);
         }
       }
 #ifdef DEBUG_LEGION
@@ -5560,12 +5560,12 @@ namespace Legion {
             assert(local_finder->second);
 #endif
             local_fields.erase(local_finder);
-            local_to_free.push_back(*it);
+            local_to_free.emplace_back(*it);
           }
           else
           {
             created_fields.erase(finder);
-            global_to_free.push_back(*it);
+            global_to_free.emplace_back(*it);
           }
         }
         // Now figure out which region requirements can be destroyed
@@ -5598,7 +5598,7 @@ namespace Legion {
           req.prop = LEGION_EXCLUSIVE;
           req.privilege_fields.swap(overlapping_fields);
           req.handle_type = LEGION_SINGULAR_PROJECTION;
-          parent_req_indexes.push_back(it->first);
+          parent_req_indexes.emplace_back(it->first);
           // We need some extra logging for legion spy
           if (runtime->legion_spy_enabled)
           {
@@ -5655,8 +5655,8 @@ namespace Legion {
             req.privilege_fields.swap(it->second.privilege_fields);
             req.handle_type = LEGION_SINGULAR_PROJECTION;
             req.flags = it->second.flags;
-            parent_req_indexes.push_back(it->first);
-            returnable.push_back(returnable_privileges[it->first]);
+            parent_req_indexes.emplace_back(it->first);
+            returnable.emplace_back(returnable_privileges[it->first]);
           }
         }
         // Remove the region from the created set
@@ -5744,8 +5744,8 @@ namespace Legion {
             // to delete those particular fields
             req.privilege_fields.swap(it->second.privilege_fields);
             req.handle_type = LEGION_SINGULAR_PROJECTION;
-            parent_req_indexes.push_back(it->first);
-            returnable.push_back(returnable_privileges[it->first]);
+            parent_req_indexes.emplace_back(it->first);
+            returnable.emplace_back(returnable_privileges[it->first]);
           }
         }
         // Remove the region from the created set
@@ -6763,7 +6763,7 @@ namespace Legion {
           {
             depths[idx]--;
             next_nodes[idx] = previous_nodes[idx]->get_parent();
-            next_to_previous[next_nodes[idx]].push_back(idx);
+            next_to_previous[next_nodes[idx]].emplace_back(idx);
             if (all_same && (idx > 0) &&
                 (next_nodes[idx - 1] != next_nodes[idx]))
               all_same = false;
@@ -6874,7 +6874,7 @@ namespace Legion {
         {
           // We can use the identity projection in this case
           // so just make it, but no need to register it with the runtime
-          finder->second.push_back(
+          finder->second.emplace_back(
               new AttachProjectionFunctor(0 /*identity*/, std::move(spaces)));
           return 0;
         }
@@ -6887,7 +6887,7 @@ namespace Legion {
           new AttachProjectionFunctor(result, std::move(spaces));
       runtime->register_projection_functor(
           result, functor, false /*check*/, true /*silence warnings*/);
-      finder->second.push_back(functor);
+      finder->second.emplace_back(functor);
       if (runtime->legion_spy_enabled)
         LegionSpy::log_projection_function(
             result, functor->get_depth(), functor->is_invertible());
@@ -7153,7 +7153,7 @@ namespace Legion {
       if (context_configuration.max_outstanding_frames > 0)
       {
         AutoLock child_lock(child_op_lock);
-        frame_ops.push_back(frame_op);
+        frame_ops.emplace_back(frame_op);
 #ifdef DEBUG_LEGION
         assert(
             frame_ops.size() <=
@@ -7227,7 +7227,7 @@ namespace Legion {
             return Predicate::FALSE_PRED;
           else if ((*it) == Predicate::TRUE_PRED)
             continue;
-          actual_predicates.push_back(*it);
+          actual_predicates.emplace_back(*it);
         }
         if (actual_predicates.empty())  // they were all true
           return Predicate::TRUE_PRED;
@@ -7252,7 +7252,7 @@ namespace Legion {
             return Predicate::TRUE_PRED;
           else if ((*it) == Predicate::FALSE_PRED)
             continue;
-          actual_predicates.push_back(*it);
+          actual_predicates.emplace_back(*it);
         }
         if (actual_predicates.empty())  // they were all false
           return Predicate::FALSE_PRED;
@@ -7355,7 +7355,7 @@ namespace Legion {
         {
           if (prepipeline_queue.empty())
             break;
-          to_perform.push_back(prepipeline_queue.front());
+          to_perform.emplace_back(prepipeline_queue.front());
           prepipeline_queue.pop_front();
         }
       }
@@ -7499,7 +7499,7 @@ namespace Legion {
             return false;
           // If this is unordered, stick it on the list of
           // unordered ops to be added later and then we're done
-          unordered_ops.push_back(op);
+          unordered_ops.emplace_back(op);
           return true;
         }
         if (dependence_queue.empty())
@@ -7507,7 +7507,7 @@ namespace Legion {
           issue_task = true;
           precondition = dependence_precondition;
         }
-        dependence_queue.push_back(op);
+        dependence_queue.emplace_back(op);
         // Insert any unordered operations now as long as we aren't
         // doing program order execution, if we're doing program order
         // execution then we'll do that after running this operation
@@ -7557,7 +7557,7 @@ namespace Legion {
         {
           if (dependence_queue.empty())
             break;
-          to_perform.push_back(dependence_queue.front());
+          to_perform.emplace_back(dependence_queue.front());
           dependence_queue.pop_front();
         }
         if (dependence_queue.empty())
@@ -7612,7 +7612,7 @@ namespace Legion {
                     context_configuration.max_window_size :
                     0);
         }
-        queue.push_back(entry);
+        queue.emplace_back(entry);
         comp_queue.add_event(entry.ready);
         if (issue_task)
         {
@@ -7639,7 +7639,7 @@ namespace Legion {
       {
         AutoLock r_lock(ready_lock);
         issue_task = ready_queue.empty();
-        ready_queue.push_back(op);
+        ready_queue.emplace_back(op);
       }
       if (issue_task)
       {
@@ -7683,7 +7683,7 @@ namespace Legion {
             ready_events.begin(), ready_events.end(), it->ready);
         if ((finder != ready_events.end()) && (*finder == it->ready))
         {
-          to_perform.push_back(it->op);
+          to_perform.emplace_back(it->op);
           it = queue.erase(it);
           ready_events.erase(finder);
           if (ready_events.empty())
@@ -7719,7 +7719,7 @@ namespace Legion {
         for (unsigned idx = 0;
              idx < context_configuration.meta_task_vector_width; idx++)
         {
-          to_perform.push_back(ready_queue.front());
+          to_perform.emplace_back(ready_queue.front());
           ready_queue.pop_front();
           if (ready_queue.empty())
             break;
@@ -7747,7 +7747,7 @@ namespace Legion {
           {
             if (pit->has_triggered_faultignorant())
             {
-              triggered.push_back(*pit);
+              triggered.emplace_back(*pit);
               std::set<ApEvent>::const_iterator delete_it = pit++;
               previous_completion_events.erase(delete_it);
             }
@@ -8201,7 +8201,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
           assert(dependence_queue.empty());
 #endif
-          dependence_queue.push_back(op);
+          dependence_queue.emplace_back(op);
           RtEvent precondition = dependence_precondition;
           // Release the lock and launch the meta-task
           d_lock.release();
@@ -8251,7 +8251,7 @@ namespace Legion {
             runtime->issue_runtime_meta_task(
                 args, priority, dependence_precondition);
           }
-          dependence_queue.push_back(*it);
+          dependence_queue.emplace_back(*it);
         }
         ready_operations.clear();
       }
@@ -8363,7 +8363,8 @@ namespace Legion {
       if (!task_executed)
       {
         if (entry.complete_event.exists())
-          cummulative_child_completion_events.push_back(entry.complete_event);
+          cummulative_child_completion_events.emplace_back(
+              entry.complete_event);
         // Make sure this vector doesn't grow too large for long-running tasks
         constexpr size_t MAX_SIZE = 32;
         if (cummulative_child_completion_events.size() == MAX_SIZE)
@@ -8371,7 +8372,7 @@ namespace Legion {
           const ApEvent merged = Runtime::merge_events(
               nullptr, cummulative_child_completion_events);
           cummulative_child_completion_events.clear();
-          cummulative_child_completion_events.push_back(merged);
+          cummulative_child_completion_events.emplace_back(merged);
         }
       }
 #endif
@@ -8532,7 +8533,7 @@ namespace Legion {
           if (check_region_dependence(
                   our_tid, our_space, our_req, our_usage, req))
           {
-            conflicting.push_back(physical_regions[our_idx]);
+            conflicting.emplace_back(physical_regions[our_idx]);
             // Once we find a conflict, we don't need to check
             // against it anymore, so go onto our next region
             break;
@@ -8563,7 +8564,7 @@ namespace Legion {
           if (check_region_dependence(
                   our_tid, our_space, our_req, our_usage, req))
           {
-            conflicting.push_back(*it);
+            conflicting.emplace_back(*it);
             // Once we find a conflict, we don't need to check
             // against it anymore, so go onto our next region
             break;
@@ -8630,7 +8631,7 @@ namespace Legion {
             has_conflict = true;
         }
         if (has_conflict)
-          conflicting.push_back(physical_regions[our_idx]);
+          conflicting.emplace_back(physical_regions[our_idx]);
       }
       // Need lock here because of unordered detach operations
       AutoLock i_lock(inline_lock, 1, false /*exclusive*/);
@@ -8684,7 +8685,7 @@ namespace Legion {
             has_conflict = true;
         }
         if (has_conflict)
-          conflicting.push_back(*it);
+          conflicting.emplace_back(*it);
       }
     }
 
@@ -8740,7 +8741,7 @@ namespace Legion {
         RegionUsage our_usage(our_req);
         if (check_region_dependence(
                 our_tid, our_space, our_req, our_usage, req))
-          conflicting.push_back(physical_regions[our_idx]);
+          conflicting.emplace_back(physical_regions[our_idx]);
       }
       // Need lock here because of unordered detach operations
       AutoLock i_lock(inline_lock, 1, false /*exclusive*/);
@@ -8760,7 +8761,7 @@ namespace Legion {
         RegionUsage our_usage(our_req);
         if (check_region_dependence(
                 our_tid, our_space, our_req, our_usage, req))
-          conflicting.push_back(*it);
+          conflicting.emplace_back(*it);
       }
     }
 
@@ -8798,7 +8799,7 @@ namespace Legion {
       }
       // Need lock because of unordered detach operations
       AutoLock i_lock(inline_lock);
-      inline_regions.push_back(region);
+      inline_regions.emplace_back(region);
     }
 
     //--------------------------------------------------------------------------
@@ -8878,7 +8879,7 @@ namespace Legion {
                 0, TRUE_DEPENDENCE);
         }
         // Have to record this operation in case there is a fence later
-        ops_since_last_fence.push_back(op->get_unique_op_id());
+        ops_since_last_fence.emplace_back(op->get_unique_op_id());
         // Cannot prune because of Legion Spy
         op->register_dependence(
             current_mapping_fence, current_mapping_fence_gen);
@@ -8890,7 +8891,7 @@ namespace Legion {
       }
 #ifdef LEGION_SPY
       else
-        ops_since_last_fence.push_back(op->get_unique_op_id());
+        ops_since_last_fence.emplace_back(op->get_unique_op_id());
 #endif
     }
 
@@ -9453,7 +9454,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Can only be called from user land so no need to hold the lock
-      context_locks.push_back(l.reservation_lock);
+      context_locks.emplace_back(l.reservation_lock);
     }
 
     //--------------------------------------------------------------------------
@@ -9486,7 +9487,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Can only be called from user land so no need to hold the lock
-      context_barriers.push_back(pb.phase_barrier);
+      context_barriers.emplace_back(pb.phase_barrier);
     }
 
     //--------------------------------------------------------------------------
@@ -9517,7 +9518,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // Can only be called from user land so no need to hold the lock
-      context_barriers.push_back(dc.phase_barrier);
+      context_barriers.emplace_back(dc.phase_barrier);
     }
 
     //--------------------------------------------------------------------------
@@ -9546,7 +9547,7 @@ namespace Legion {
           Realm::ID(dc.phase_barrier.id).event_generation();
       const size_t barrier_name = dc.phase_barrier.id - barrier_gen;
       AutoLock pb_lock(phase_barrier_lock);
-      barrier_contributions[barrier_name].push_back(BarrierContribution(
+      barrier_contributions[barrier_name].emplace_back(BarrierContribution(
           future.impl->producer_op, future.impl->op_gen,
 #ifdef LEGION_SPY
           future.impl->producer_uid,
@@ -9621,7 +9622,7 @@ namespace Legion {
             it = previous.erase(it);
 #endif
         }
-        previous.push_back(
+        previous.emplace_back(
             BarrierContribution(op, gen, uid, muid, barrier_gen));
       }
     }
@@ -9959,8 +9960,8 @@ namespace Legion {
                  return_regions.begin();
              it != return_regions.end(); it++)
         {
-          created_nodes.push_back(it->first);
-          created_trees.push_back(it->second);
+          created_nodes.emplace_back(it->first);
+          created_trees.emplace_back(it->second);
         }
         InnerContext* parent_ctx = find_parent_context();
         parent_ctx->receive_created_region_contexts(
@@ -10186,7 +10187,7 @@ namespace Legion {
             source_views[idx] = finder->second;
           }
           else
-            still_needed.push_back(idx);
+            still_needed.emplace_back(idx);
         }
       }
       if (!still_needed.empty())
@@ -10231,7 +10232,7 @@ namespace Legion {
             source_views[idx] = finder->second;
           }
           else
-            still_needed.push_back(idx);
+            still_needed.emplace_back(idx);
         }
       }
       if (!still_needed.empty())
@@ -10321,7 +10322,7 @@ namespace Legion {
           if (finder != instance_top_views.end())
             target_views[idx].insert(finder->second, ref.get_valid_fields());
           else
-            still_needed.push_back(idx);
+            still_needed.emplace_back(idx);
         }
       }
       if (!still_needed.empty())
@@ -10402,7 +10403,7 @@ namespace Legion {
       CollectiveResult* result =
           new CollectiveResult(instances, collective_did, ready);
       result->add_reference(2 /*one for us and one for result*/);
-      collectives.push_back(result);
+      collectives.emplace_back(result);
       if (mapping->remove_reference())
         delete mapping;
       return result;
@@ -10453,7 +10454,7 @@ namespace Legion {
           // Should always be able to find it since we're on the owner node
           PhysicalManager* manager = static_cast<PhysicalManager*>(
               runtime->find_distributed_collectable(*it));
-          local_views.push_back(
+          local_views.emplace_back(
               create_instance_top_view(manager, runtime->address_space));
         }
 #ifdef DEBUG_LEGION
@@ -10692,7 +10693,7 @@ namespace Legion {
 #ifndef LEGION_SPY
       view->add_nested_valid_ref(did);
       AutoLock f_lock(fill_view_lock);
-      value_fill_view_cache.push_back(view);
+      value_fill_view_cache.emplace_back(view);
       if (value_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
       {
         FillView* oldest = value_fill_view_cache.back();
@@ -10711,7 +10712,7 @@ namespace Legion {
 #ifndef LEGION_SPY
       view->add_nested_valid_ref(did);
       AutoLock f_lock(fill_view_lock);
-      future_fill_view_cache.push_front(std::make_pair(view, future_did));
+      future_fill_view_cache.emplace_front(std::make_pair(view, future_did));
       if (future_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
       {
         FillView* oldest = future_fill_view_cache.back().first;
@@ -10744,7 +10745,7 @@ namespace Legion {
         FillView* result = (*it);
         // Move it back to the front of the list
         value_fill_view_cache.erase(it);
-        value_fill_view_cache.push_front(result);
+        value_fill_view_cache.emplace_front(result);
         result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
         return result;
       }
@@ -10760,7 +10761,7 @@ namespace Legion {
 #ifndef LEGION_SPY
       // Add it to the cache since we're not doing Legion Spy
       fill_view->add_nested_valid_ref(did);
-      value_fill_view_cache.push_front(fill_view);
+      value_fill_view_cache.emplace_front(fill_view);
       if (value_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
       {
         FillView* oldest = value_fill_view_cache.back();
@@ -10798,7 +10799,8 @@ namespace Legion {
         FillView* result = it->first;
         // Move it back to the front of the list
         future_fill_view_cache.erase(it);
-        future_fill_view_cache.push_front(std::make_pair(result, future_did));
+        future_fill_view_cache.emplace_front(
+            std::make_pair(result, future_did));
         result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
         return result;
       }
@@ -10815,7 +10817,8 @@ namespace Legion {
 #ifndef LEGION_SPY
       // Add it to the cache since we're not doing Legion Spy
       fill_view->add_nested_valid_ref(did);
-      future_fill_view_cache.push_front(std::make_pair(fill_view, future_did));
+      future_fill_view_cache.emplace_front(
+          std::make_pair(fill_view, future_did));
       if (future_fill_view_cache.size() > MAX_FILL_VIEW_CACHE_SIZE)
       {
         FillView* oldest = future_fill_view_cache.back().first;
@@ -10848,7 +10851,7 @@ namespace Legion {
         FillView* result = (*it);
         // Move it back to the front of the list
         value_fill_view_cache.erase(it);
-        value_fill_view_cache.push_front(result);
+        value_fill_view_cache.emplace_front(result);
         result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
         return result;
       }
@@ -10880,7 +10883,8 @@ namespace Legion {
         FillView* result = it->first;
         // Move it back to the front of the list
         future_fill_view_cache.erase(it);
-        future_fill_view_cache.push_front(std::make_pair(result, future_did));
+        future_fill_view_cache.emplace_front(
+            std::make_pair(result, future_did));
         result->add_base_valid_ref(MAPPING_ACQUIRE_REF);
         return result;
       }
@@ -11093,7 +11097,7 @@ namespace Legion {
                  local_regions.begin();
              it != local_regions.end(); it++)
           if (!it->second)
-            local_regions_to_delete.push_back(it->first);
+            local_regions_to_delete.emplace_back(it->first);
         for (std::map<std::pair<FieldSpace, FieldID>, bool>::const_iterator it =
                  local_fields.begin();
              it != local_fields.end(); it++)
@@ -11236,7 +11240,7 @@ namespace Legion {
             continue;
           RtEvent mapped = it->operation->get_mapped_event();
           if (mapped.exists())
-            preconditions.push_back(mapped);
+            preconditions.emplace_back(mapped);
         }
 #ifdef DEBUG_LEGION
         assert(!task_executed);
@@ -11257,17 +11261,17 @@ namespace Legion {
                    reorder_buffer.begin();
                it != reorder_buffer.end(); it++)
             if (!it->complete)
-              completion_events.push_back(
+              completion_events.emplace_back(
                   it->operation->get_completion_event());
             else if (it->complete_event.exists())
-              completion_events.push_back(it->complete_event);
+              completion_events.emplace_back(it->complete_event);
         }
         else
           need_commit = true;
       }
       if (!completion_events.empty())
       {
-        completion_events.push_back(realm_done_event);
+        completion_events.emplace_back(realm_done_event);
         owner_task->record_inner_termination(
             Runtime::merge_events(nullptr, completion_events));
       }
@@ -11517,7 +11521,7 @@ namespace Legion {
           if (it->fid == local_to_free[idx])
           {
             // Can't remove it yet
-            local_field_indexes.push_back(it->index);
+            local_field_indexes.emplace_back(it->index);
 #ifdef DEBUG_LEGION
             found = true;
 #endif
@@ -11854,7 +11858,7 @@ namespace Legion {
           for (ColorSpaceIterator itr(base); itr; itr++)
           {
             IndexSpaceNode* child_node = base->get_child(*itr);
-            children_nodes.push_back(child_node);
+            children_nodes.emplace_back(child_node);
             std::vector<LegionColor> colors;
             LegionColor bound = child_node->get_colors(colors);
             if (!colors.empty())
@@ -11977,7 +11981,7 @@ namespace Legion {
               first_local_shard = false;
             continue;
           }
-          child_spaces.push_back(space);
+          child_spaces.emplace_back(space);
           std::sort(child_spaces.begin(), child_spaces.end());
         }
 #ifdef DEBUG_LEGION
@@ -12125,7 +12129,7 @@ namespace Legion {
               (*it)->ctx_index, (*it)->internal_idx);
           if (std::binary_search(all_timeouts.begin(), all_timeouts.end(), key))
           {
-            to_delete.push_back(*it);
+            to_delete.emplace_back(*it);
             it = timeout_users.erase(it);
           }
           else

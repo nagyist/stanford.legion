@@ -233,7 +233,7 @@ namespace Legion {
         }
         runtime->send_equivalence_set_remote_copies_across(target, rez);
         applied_events.insert(applied);
-        copy_events.push_back(copy);
+        copy_events.emplace_back(copy);
       }
       // Filter all the remote expressions from the local ones here
       filter_remote_expressions(local_exprs);
@@ -286,7 +286,7 @@ namespace Legion {
                it != target_views[idx].end(); it++)
           {
             // Always instantiate the entry in the map
-            dst_events[it->first].push_back(targets_ready);
+            dst_events[it->first].emplace_back(targets_ready);
           }
         }
         // This is a copy-across aggregator so the destination events
@@ -296,7 +296,7 @@ namespace Legion {
             trace_info, precondition, false /*restricted*/,
             false /*manage dst events*/, &dst_events);
         if (effect.exists())
-          copy_events.push_back(effect);
+          copy_events.emplace_back(effect);
         if (across_aggregator->effects_applied.has_triggered())
           applied_events.insert(across_aggregator->effects_applied);
         if (across_aggregator->release_guards(applied_events))

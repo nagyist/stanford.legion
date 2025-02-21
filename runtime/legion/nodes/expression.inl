@@ -150,7 +150,7 @@ namespace Legion {
         if (!dominated)
         {
           result = result.union_bbox(domain.bounds);
-          previous.push_back(domain.bounds);
+          previous.emplace_back(domain.bounds);
           total_volume += domain.bounds.volume();
         }
       }
@@ -658,7 +658,7 @@ namespace Legion {
 #ifdef DEBUG_LEGION
               assert(!piece.empty());
 #endif
-              piece_bounds.push_back(piece);
+              piece_bounds.emplace_back(piece);
               // Step the offset to the next location
               done = true;
               for (std::vector<TilingConstraint>::const_iterator it =
@@ -678,7 +678,7 @@ namespace Legion {
             }
           }
           else
-            piece_bounds.push_back(space.bounds);
+            piece_bounds.emplace_back(space.bounds);
         }
       }
       else
@@ -709,7 +709,7 @@ namespace Legion {
             for (Realm::IndexSpaceIterator<DIM, T> itr(space); itr.valid;
                  itr.step())
               if (!itr.rect.empty())
-                piece_bounds.push_back(itr.rect);
+                piece_bounds.emplace_back(itr.rect);
           }
         }
         else
@@ -717,7 +717,7 @@ namespace Legion {
           for (Realm::IndexSpaceIterator<DIM, T> itr(space); itr.valid;
                itr.step())
             if (!itr.rect.empty())
-              piece_bounds.push_back(itr.rect);
+              piece_bounds.emplace_back(itr.rect);
         }
       }
 
@@ -818,7 +818,7 @@ namespace Legion {
       std::vector<std::pair<size_t, FieldID> > zip_fields;
       for (unsigned idx = 0; idx < field_ids.size(); idx++)
       {
-        zip_fields.push_back(
+        zip_fields.emplace_back(
             std::pair<size_t, FieldID>(field_sizes[idx], field_ids[idx]));
         if (safe_reuse)
           unique_sizes.insert(field_sizes[idx]);
@@ -1009,7 +1009,7 @@ namespace Legion {
             // Update the total bytes used for the last piece
             if (!safe_reuse && ((pidx + 1) == piece_bounds.size()))
               layout->bytes_used = piece_start + stride;
-            pl.pieces.push_back(piece);
+            pl.pieces.emplace_back(piece);
           }
         }
         else
@@ -1168,7 +1168,7 @@ namespace Legion {
       {
         Rect<DIM, T> rect = *it;
         total_volume += rect.volume();
-        rectangles.push_back(rect);
+        rectangles.emplace_back(rect);
       }
 #ifdef DEBUG_LEGION
       assert(total_volume <= get_volume());
@@ -1266,7 +1266,7 @@ namespace Legion {
               std::vector<Rect<DIM, T> > local_rects;
               for (Realm::IndexSpaceIterator<DIM, T> itr(local_space);
                    itr.valid; itr.step())
-                local_rects.push_back(itr.rect);
+                local_rects.emplace_back(itr.rect);
               local_tree = new KDNode<DIM, T>(local_space.bounds, local_rects);
             }
             // Iterate the other rectangles and see if they are covered
@@ -1340,7 +1340,7 @@ namespace Legion {
       std::vector<Rect<DIM, T> > local_rects;
       for (Realm::IndexSpaceIterator<DIM, T> itr(local_space); itr.valid;
            itr.step())
-        local_rects.push_back(itr.rect);
+        local_rects.emplace_back(itr.rect);
       sparsity_map_kd_tree =
           new KDNode<DIM, T>(local_space.bounds, local_rects);
       return sparsity_map_kd_tree;
@@ -1380,7 +1380,7 @@ namespace Legion {
         if (added.exists())
         {
           added.subscribe();
-          index_space_users.push_back(added);
+          index_space_users.emplace_back(added);
         }
       }
     }
@@ -1398,13 +1398,13 @@ namespace Legion {
         while (!index_space_users.empty())
         {
           if (!index_space_users.front().has_triggered_faultignorant())
-            preconditions.push_back(index_space_users.front());
+            preconditions.emplace_back(index_space_users.front());
           index_space_users.pop_front();
         }
         if (!preconditions.empty())
         {
           if (!tight_index_space_ready.has_triggered())
-            preconditions.push_back(ApEvent(tight_index_space_ready));
+            preconditions.emplace_back(ApEvent(tight_index_space_ready));
           ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
           // Protect it if necessary to make sure the deletion happens
           // even if one of the users was poisoned
@@ -1460,7 +1460,7 @@ namespace Legion {
           while (!index_space_users.empty() &&
                  index_space_users.front().has_triggered_faultignorant())
             index_space_users.pop_front();
-          index_space_users.push_back(to_trigger);
+          index_space_users.emplace_back(to_trigger);
           space = realm_index_space;
           return realm_index_space_ready;
         }
@@ -1508,7 +1508,7 @@ namespace Legion {
         while (!index_space_users.empty() &&
                index_space_users.front().has_triggered_faultignorant())
           index_space_users.pop_front();
-        index_space_users.push_back(user);
+        index_space_users.emplace_back(user);
       }
       else if (!realm_index_space.dense())
       {
@@ -1524,7 +1524,7 @@ namespace Legion {
         while (!index_space_users.empty() &&
                index_space_users.front().has_triggered_faultignorant())
           index_space_users.pop_front();
-        index_space_users.push_back(user);
+        index_space_users.emplace_back(user);
       }
     }
 
@@ -1550,13 +1550,13 @@ namespace Legion {
         while (!index_space_users.empty())
         {
           if (!index_space_users.front().has_triggered_faultignorant())
-            preconditions.push_back(index_space_users.front());
+            preconditions.emplace_back(index_space_users.front());
           index_space_users.pop_front();
         }
         if (!preconditions.empty())
         {
           if (!tight_index_space_ready.has_triggered())
-            preconditions.push_back(ApEvent(tight_index_space_ready));
+            preconditions.emplace_back(ApEvent(tight_index_space_ready));
           ApEvent precondition = Runtime::merge_events(nullptr, preconditions);
           // Protect it if necessary to make sure the deletion happens
           // even if one of the users was poisoned

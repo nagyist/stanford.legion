@@ -887,7 +887,7 @@ namespace Legion {
     void FieldSpaceNode::FindTargetsFunctor::apply(AddressSpaceID target)
     //--------------------------------------------------------------------------
     {
-      targets.push_back(target);
+      targets.emplace_back(target);
     }
 
     //--------------------------------------------------------------------------
@@ -2252,7 +2252,7 @@ namespace Legion {
           for (std::map<FieldID, FieldInfo>::const_iterator it =
                    field_infos.begin();
                it != field_infos.end(); it++)
-            to_set.push_back(it->first);
+            to_set.emplace_back(it->first);
           return;
         }
       }
@@ -2264,7 +2264,7 @@ namespace Legion {
       for (std::map<FieldID, FieldInfo>::const_iterator it =
                local_infos.begin();
            it != local_infos.end(); it++)
-        to_set.push_back(it->first);
+        to_set.emplace_back(it->first);
     }
 
     //--------------------------------------------------------------------------
@@ -2360,7 +2360,7 @@ namespace Legion {
               if (it->second.local)
                 local_indexes.insert(it->second.idx);
               else
-                to_set.push_back(it->first);
+                to_set.emplace_back(it->first);
             }
           }
           if (local_indexes.empty())
@@ -2383,7 +2383,7 @@ namespace Legion {
             if (it->second.local)
               local_indexes.insert(it->second.idx);
             else
-              to_set.push_back(it->first);
+              to_set.emplace_back(it->first);
           }
         }
       }
@@ -3100,7 +3100,7 @@ namespace Legion {
           if ((*it)->total_dims != num_dims)
             continue;
           if ((*it)->allocated_fields == mask)
-            candidates.push_back(*it);
+            candidates.emplace_back(*it);
         }
       }
       if (candidates.empty())
@@ -3190,7 +3190,7 @@ namespace Legion {
         }
       }
       // Otherwise we successfully registered it
-      descs.push_back(layout);
+      descs.emplace_back(layout);
       // Add the reference here for our local data structure
       layout->add_reference();
       return layout;
@@ -3702,7 +3702,7 @@ namespace Legion {
         ready_event = Runtime::merge_events(invalidation_events);
       }
       // Record this as an available index
-      available_indexes.push_back(
+      available_indexes.emplace_back(
           std::pair<unsigned, RtEvent>(index, ready_event));
     }
 
@@ -3772,7 +3772,7 @@ namespace Legion {
             }
           }
           if (perform_delete)
-            to_delete.push_back(lit->first);
+            to_delete.emplace_back(lit->first);
         }
       }
       for (std::vector<LEGION_FIELD_MASK_FIELD_TYPE>::const_iterator it =
@@ -4028,7 +4028,7 @@ namespace Legion {
           std::pair<unsigned, RtEvent> index;
           derez.deserialize(index.first);
           derez.deserialize(index.second);
-          available_indexes.push_back(index);
+          available_indexes.emplace_back(index);
         }
       }
       // Make that we now have this in exclusive mode
@@ -4164,7 +4164,7 @@ namespace Legion {
               break;
             }
             if (!found)
-              available_indexes.push_back(next);
+              available_indexes.emplace_back(next);
           }
           derez.advance_pointer(sizeof(outstanding_allocators));
         }
@@ -4190,7 +4190,7 @@ namespace Legion {
             std::pair<unsigned, RtEvent> next;
             derez.deserialize(next.first);
             derez.deserialize(next.second);
-            available_indexes.push_back(next);
+            available_indexes.emplace_back(next);
           }
           unsigned remote_allocators;
           derez.deserialize(remote_allocators);
@@ -4251,7 +4251,7 @@ namespace Legion {
           std::pair<unsigned, RtEvent> next;
           derez.deserialize(next.first);
           derez.deserialize(next.second);
-          available_indexes.push_back(next);
+          available_indexes.emplace_back(next);
         }
         if (allocation_state == FIELD_ALLOC_INVALID)
           allocation_state = FIELD_ALLOC_READ_ONLY;

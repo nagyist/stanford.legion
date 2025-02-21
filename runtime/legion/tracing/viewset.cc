@@ -234,7 +234,7 @@ namespace Legion {
                     to_add.insert(expr, overlap);
                   it.filter(overlap);
                   if (!it->second)
-                    to_delete.push_back(it->first);
+                    to_delete.emplace_back(it->first);
                 }
                 else
                   it.merge(overlap);
@@ -397,7 +397,7 @@ namespace Legion {
           {
             it.filter(mask);
             if (!it->second)
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
           }
           for (std::vector<IndexSpaceExpression*>::const_iterator it =
                    to_delete.begin();
@@ -469,7 +469,7 @@ namespace Legion {
           // No matter what we're removing these fields for this expr
           it.filter(overlap);
           if (!it->second)
-            to_delete.push_back(it->first);
+            to_delete.emplace_back(it->first);
         }
         for (FieldMaskSet<IndexSpaceExpression>::const_iterator it =
                  to_add.begin();
@@ -549,7 +549,7 @@ namespace Legion {
           continue;
         if (it->second.get_valid_mask() * mask)
           continue;
-        to_invalidate.push_back(it->first);
+        to_invalidate.emplace_back(it->first);
       }
       for (std::vector<LogicalView*>::const_iterator it = to_invalidate.begin();
            it != to_invalidate.end(); it++)
@@ -845,7 +845,7 @@ namespace Legion {
           {
             it.filter(dominated_mask);
             if (!it->second)
-              to_remove.push_back(it->first);
+              to_remove.emplace_back(it->first);
           }
         }
         for (std::vector<IndexSpaceExpression*>::const_iterator it =
@@ -999,7 +999,7 @@ namespace Legion {
                 nit.filter(overlap);
                 if (!nit->second)
                 {
-                  to_delete.push_back(nit->first);
+                  to_delete.emplace_back(nit->first);
                   break;
                 }
               }
@@ -1253,26 +1253,26 @@ namespace Legion {
               // this one dominates us, see if we need to split ourself off
               if (volume < expr->get_volume())
               {
-                disjoint_expressions.push_back(intersection);
+                disjoint_expressions.emplace_back(intersection);
                 disjoint_components.resize(disjoint_components.size() + 1);
                 std::vector<IndexSpaceExpression*>& components =
                     disjoint_components.back();
                 components.insert(
                     components.end(), disjoint_components[idx].begin(),
                     disjoint_components[idx].end());
-                components.push_back(*isit);
+                components.emplace_back(*isit);
                 disjoint_expressions[idx] =
                     runtime->subtract_index_spaces(expr, intersection);
               }
               else  // Congruent so we are done
-                disjoint_components[idx].push_back(*isit);
+                disjoint_components[idx].emplace_back(*isit);
               current = nullptr;
               break;
             }
             else if (volume == expr->get_volume())
             {
               // We dominate the expression so add ourselves and compute diff
-              disjoint_components[idx].push_back(*isit);
+              disjoint_components[idx].emplace_back(*isit);
               current = runtime->subtract_index_spaces(current, intersection);
 #ifdef DEBUG_LEGION
               assert(!current->is_empty());
@@ -1281,14 +1281,14 @@ namespace Legion {
             else
             {
               // Split into the three parts and keep going
-              disjoint_expressions.push_back(intersection);
+              disjoint_expressions.emplace_back(intersection);
               disjoint_components.resize(disjoint_components.size() + 1);
               std::vector<IndexSpaceExpression*>& components =
                   disjoint_components.back();
               components.insert(
                   components.end(), disjoint_components[idx].begin(),
                   disjoint_components[idx].end());
-              components.push_back(*isit);
+              components.emplace_back(*isit);
               disjoint_expressions[idx] =
                   runtime->subtract_index_spaces(expr, intersection);
               current = runtime->subtract_index_spaces(current, intersection);
@@ -1299,9 +1299,9 @@ namespace Legion {
           }
           if (current != nullptr)
           {
-            disjoint_expressions.push_back(current);
+            disjoint_expressions.emplace_back(current);
             disjoint_components.resize(disjoint_components.size() + 1);
-            disjoint_components.back().push_back(*isit);
+            disjoint_components.back().emplace_back(*isit);
           }
         }
         // Now we have overlapping expressions and constituents for
@@ -1612,7 +1612,7 @@ namespace Legion {
           individual_results[it->first] = manager;
         }
         if (ready.exists())
-          views_ready.push_back(ready);
+          views_ready.emplace_back(ready);
       }
       if (!views_ready.empty())
       {
@@ -1672,7 +1672,7 @@ namespace Legion {
             to_add.insert(it->first, overlap);
             it.filter(overlap);
             if (!it->second)  // reference flows back
-              to_delete.push_back(it->first);
+              to_delete.emplace_back(it->first);
             else
               it->first->add_nested_expression_reference(owner_did);
           }
@@ -1739,7 +1739,7 @@ namespace Legion {
               if (std::binary_search(
                       collective->instances.begin(),
                       collective->instances.end(), *it))
-                intersection.push_back(*it);
+                intersection.emplace_back(*it);
           }
           else
           {
@@ -1749,7 +1749,7 @@ namespace Legion {
               if (std::binary_search(
                       current->instances.begin(), current->instances.end(),
                       *it))
-                intersection.push_back(*it);
+                intersection.emplace_back(*it);
           }
           // If they don't overlap at all then there's nothing to do
           if (intersection.empty())
@@ -1782,7 +1782,7 @@ namespace Legion {
               if (!std::binary_search(
                       collective->instances.begin(),
                       collective->instances.end(), *it))
-                difference.push_back(*it);
+                difference.emplace_back(*it);
             InstanceView* diff_view = find_instance_view(difference);
             if (to_add.find(diff_view) == to_add.end())
               diff_view->add_nested_gc_ref(owner_did);
@@ -1807,7 +1807,7 @@ namespace Legion {
               to_add[inter_view].insert(it->first, overlap);
               it.filter(overlap);
               if (!it->second)  // reference flows back
-                to_delete.push_back(it->first);
+                to_delete.emplace_back(it->first);
               else
                 it->first->add_nested_expression_reference(owner_did);
             }

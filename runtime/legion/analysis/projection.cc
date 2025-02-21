@@ -903,7 +903,7 @@ namespace Legion {
     {
       if (std::binary_search(shard_users.begin(), shard_users.end(), user))
         return;
-      shard_users.push_back(user);
+      shard_users.emplace_back(user);
       std::sort(shard_users.begin(), shard_users.end());
     }
 
@@ -1540,7 +1540,7 @@ namespace Legion {
               if (std::binary_search(
                       summary.users.begin(), summary.users.end(), user))
                 continue;
-              summary.users.push_back(user);
+              summary.users.emplace_back(user);
               std::sort(summary.users.begin(), summary.users.end());
             }
           }

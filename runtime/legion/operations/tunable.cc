@@ -132,7 +132,7 @@ namespace Legion {
         it->impl->request_runtime_instance(this);
         const RtEvent ready = it->impl->find_runtime_instance_ready();
         if (ready.exists())
-          ready_events.push_back(ready);
+          ready_events.emplace_back(ready);
       }
       if (!mapped_events.empty())
         futures_mapped = Runtime::merge_events(mapped_events);
@@ -152,7 +152,8 @@ namespace Legion {
       }
       // Also make sure we wait for any execution fences that we have
       if (execution_fence_event.exists())
-        ready_events.push_back(Runtime::protect_event(execution_fence_event));
+        ready_events.emplace_back(
+            Runtime::protect_event(execution_fence_event));
       if (!ready_events.empty())
       {
         RtEvent ready = Runtime::merge_events(ready_events);

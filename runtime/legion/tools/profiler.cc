@@ -1360,7 +1360,7 @@ namespace Legion {
         return;
       if (std::binary_search(mem_ids.begin(), mem_ids.end(), m.id))
         return;
-      mem_ids.push_back(m.id);
+      mem_ids.emplace_back(m.id);
       std::sort(mem_ids.begin(), mem_ids.end());
       owner->record_memory(m);
     }
@@ -1371,7 +1371,7 @@ namespace Legion {
     {
       if (std::binary_search(proc_ids.begin(), proc_ids.end(), p.id))
         return;
-      proc_ids.push_back(p.id);
+      proc_ids.emplace_back(p.id);
       std::sort(proc_ids.begin(), proc_ids.end());
       owner->record_processor(p);
     }
@@ -2510,7 +2510,7 @@ namespace Legion {
         proc.cuda_device_uuid[0] = 0;
 #endif
       serializer->serialize(proc);
-      recorded_processors.push_back(p);
+      recorded_processors.emplace_back(p);
       std::sort(recorded_processors.begin(), recorded_processors.end());
       std::vector<Memory> memories_to_log;
       std::vector<ProcessorMemoryAffinity> affinities;
@@ -2520,7 +2520,7 @@ namespace Legion {
            pit != affinities.end(); pit++)
         if (!std::binary_search(
                 recorded_memories.begin(), recorded_memories.end(), pit->m))
-          memories_to_log.push_back(pit->m);
+          memories_to_log.emplace_back(pit->m);
       record_affinities(memories_to_log);
     }
 
@@ -2536,7 +2536,7 @@ namespace Legion {
         // that it appears before anything that needs it
         const LegionProfDesc::MemDesc mem = {m.id, m.kind(), m.capacity()};
         serializer->serialize(mem);
-        recorded_memories.push_back(m);
+        recorded_memories.emplace_back(m);
         std::sort(recorded_memories.begin(), recorded_memories.end());
         std::vector<ProcessorMemoryAffinity> memory_affinities;
         runtime->machine.get_proc_mem_affinity(
@@ -2558,7 +2558,7 @@ namespace Legion {
               proc.cuda_device_uuid[0] = 0;
 #endif
             serializer->serialize(proc);
-            recorded_processors.push_back(mit->p);
+            recorded_processors.emplace_back(mit->p);
             std::sort(recorded_processors.begin(), recorded_processors.end());
             std::vector<ProcessorMemoryAffinity> processor_affinities;
             runtime->machine.get_proc_mem_affinity(
@@ -2569,7 +2569,7 @@ namespace Legion {
               if (!std::binary_search(
                       recorded_memories.begin(), recorded_memories.end(),
                       pit->m))
-                memories_to_log.push_back(pit->m);
+                memories_to_log.emplace_back(pit->m);
           }
           const LegionProfDesc::ProcMemDesc info = {
               mit->p.id, m.id, mit->bandwidth, mit->latency};
@@ -3537,7 +3537,7 @@ namespace Legion {
         else
           processor_instances[current] = instance;
       }
-      instances.push_back(instance);
+      instances.emplace_back(instance);
       return instance;
     }
 

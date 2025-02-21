@@ -2000,9 +2000,9 @@ namespace Legion {
         if (manager->collect(instance_collected))
         {
           collected[idx] = true;
-          to_notify[manager->memory_manager].push_back(manager);
+          to_notify[manager->memory_manager].emplace_back(manager);
           if (instance_collected.exists())
-            wait_for.push_back(instance_collected);
+            wait_for.emplace_back(instance_collected);
         }
       }
       // Notify all the memory managers of the collection
@@ -2555,7 +2555,7 @@ namespace Legion {
         std::vector<Domain>& domains) const
     //--------------------------------------------------------------------------
     {
-      domains.push_back(get_index_space_domain(ctx, handle));
+      domains.emplace_back(get_index_space_domain(ctx, handle));
     }
 
     //--------------------------------------------------------------------------

@@ -437,7 +437,7 @@ namespace Legion {
               {
                 DimensionKind dim = (DimensionKind)(LEGION_DIM_X + idx);
                 if (spatial_dims.find(dim) == spatial_dims.end())
-                  ord.ordering.push_back(dim);
+                  ord.ordering.emplace_back(dim);
               }
             }
             else if (field_idx == int(ord.ordering.size() - 1))
@@ -460,14 +460,14 @@ namespace Legion {
             {
               DimensionKind dim = (DimensionKind)(LEGION_DIM_X + idx);
               if (spatial_dims.find(dim) == spatial_dims.end())
-                ord.ordering.push_back(dim);
+                ord.ordering.emplace_back(dim);
             }
           }
         }
         // If we didn't see the field dimension either then add that
         // at the end to give us SOA layouts in general
         if (field_idx == -1)
-          ord.ordering.push_back(LEGION_DIM_F);
+          ord.ordering.emplace_back(LEGION_DIM_F);
         // We've now got all our dimensions so we can set the
         // contiguous flag to true
         ord.contiguous = true;
@@ -477,8 +477,8 @@ namespace Legion {
         // We had no ordering constraints so populate it with
         // SOA constraints for now
         for (unsigned idx = 0; idx < num_dims; idx++)
-          ord.ordering.push_back((DimensionKind)(LEGION_DIM_X + idx));
-        ord.ordering.push_back(LEGION_DIM_F);
+          ord.ordering.emplace_back((DimensionKind)(LEGION_DIM_X + idx));
+        ord.ordering.emplace_back(LEGION_DIM_F);
         ord.contiguous = true;
       }
 #ifdef DEBUG_LEGION
