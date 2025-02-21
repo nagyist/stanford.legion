@@ -7643,13 +7643,13 @@ namespace Legion {
 #endif  // __ARM_NEON
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    CompoundBitMask<DT, BLOAT, BIDIR>::CompoundBitMask(uint64_t init)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    CompoundBitMask<DT, L, BLOAT, BIDIR>::CompoundBitMask(uint64_t init)
     //-------------------------------------------------------------------------
     {
       if (init != 0)
       {
-        mask.dense = new DT(init);
+        mask.dense = new HeapifyBox<DT, L>(init);
         sparse_size = MAX_SPARSE + 1;
         sparsify();
       }
@@ -7658,21 +7658,21 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    CompoundBitMask<DT, BLOAT, BIDIR>::CompoundBitMask(
-        const CompoundBitMask<DT, BLOAT, BIDIR>& rhs)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    CompoundBitMask<DT, L, BLOAT, BIDIR>::CompoundBitMask(
+        const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs)
       : sparse_size(rhs.sparse_size)
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
         mask.sparse = rhs.mask.sparse;
       else
-        mask.dense = new DT(*(rhs.mask.dense));
+        mask.dense = new HeapifyBox<DT, L>(*(rhs.mask.dense));
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    CompoundBitMask<DT, BLOAT, BIDIR>::~CompoundBitMask(void)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    CompoundBitMask<DT, L, BLOAT, BIDIR>::~CompoundBitMask(void)
     //-------------------------------------------------------------------------
     {
       if (!is_sparse())
@@ -7680,8 +7680,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline void CompoundBitMask<DT, BLOAT, BIDIR>::set_bit(unsigned bit)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline void CompoundBitMask<DT, L, BLOAT, BIDIR>::set_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -7693,7 +7693,7 @@ namespace Legion {
         // Need to add it at this point
         if (sparse_size == MAX_SPARSE)
         {
-          DT* newmask = new DT();
+          HeapifyBox<DT, L>* newmask = new HeapifyBox<DT, L>();
           for (unsigned idx = 0; idx < sparse_size; idx++)
             newmask->set_bit(mask.sparse[idx]);
           newmask->set_bit(bit);
@@ -7724,8 +7724,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline void CompoundBitMask<DT, BLOAT, BIDIR>::unset_bit(unsigned bit)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline void CompoundBitMask<DT, L, BLOAT, BIDIR>::unset_bit(unsigned bit)
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -7755,8 +7755,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline void CompoundBitMask<DT, BLOAT, BIDIR>::assign_bit(
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline void CompoundBitMask<DT, L, BLOAT, BIDIR>::assign_bit(
         unsigned bit, bool val)
     //-------------------------------------------------------------------------
     {
@@ -7767,8 +7767,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline bool CompoundBitMask<DT, BLOAT, BIDIR>::is_set(unsigned bit) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline bool CompoundBitMask<DT, L, BLOAT, BIDIR>::is_set(unsigned bit) const
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -7779,8 +7779,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline int CompoundBitMask<DT, BLOAT, BIDIR>::find_first_set(void) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline int CompoundBitMask<DT, L, BLOAT, BIDIR>::find_first_set(void) const
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -7800,8 +7800,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline int CompoundBitMask<DT, BLOAT, BIDIR>::find_next_set(
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline int CompoundBitMask<DT, L, BLOAT, BIDIR>::find_next_set(
         unsigned start) const
     //-------------------------------------------------------------------------
     {
@@ -7822,8 +7822,9 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline int CompoundBitMask<DT, BLOAT, BIDIR>::find_index(unsigned bit) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline int CompoundBitMask<DT, L, BLOAT, BIDIR>::find_index(
+        unsigned bit) const
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -7852,8 +7853,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline int CompoundBitMask<DT, BLOAT, BIDIR>::get_index(
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline int CompoundBitMask<DT, L, BLOAT, BIDIR>::get_index(
         unsigned index) const
     //-------------------------------------------------------------------------
     {
@@ -7869,8 +7870,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline void CompoundBitMask<DT, BLOAT, BIDIR>::clear(void)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline void CompoundBitMask<DT, L, BLOAT, BIDIR>::clear(void)
     //-------------------------------------------------------------------------
     {
       if (!is_sparse())
@@ -7879,9 +7880,9 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline bool CompoundBitMask<DT, BLOAT, BIDIR>::operator==(
-        const CompoundBitMask<DT, BLOAT, BIDIR>& rhs) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline bool CompoundBitMask<DT, L, BLOAT, BIDIR>::operator==(
+        const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs) const
     //-------------------------------------------------------------------------
     {
       if (pop_count() != rhs.pop_count())
@@ -7905,9 +7906,9 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline bool CompoundBitMask<DT, BLOAT, BIDIR>::operator<(
-        const CompoundBitMask<DT, BLOAT, BIDIR>& rhs) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline bool CompoundBitMask<DT, L, BLOAT, BIDIR>::operator<(
+        const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs) const
     //-------------------------------------------------------------------------
     {
       size_t lhs_size = pop_count();
@@ -7932,19 +7933,19 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline bool CompoundBitMask<DT, BLOAT, BIDIR>::operator!=(
-        const CompoundBitMask<DT, BLOAT, BIDIR>& rhs) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline bool CompoundBitMask<DT, L, BLOAT, BIDIR>::operator!=(
+        const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs) const
     //-------------------------------------------------------------------------
     {
       return !(*this == rhs);
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>&
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator=(
-            const CompoundBitMask<DT, BLOAT, BIDIR>& rhs)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>&
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator=(
+            const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs)
     //-------------------------------------------------------------------------
     {
       const bool was_dense = !is_sparse();
@@ -7960,28 +7961,28 @@ namespace Legion {
         if (was_dense)
           (*mask.dense) = (*rhs.mask.dense);
         else
-          mask.dense = new DT(*rhs.mask.dense);
+          mask.dense = new HeapifyBox<DT, L>(*rhs.mask.dense);
       }
       return *this;
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator~(void) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator~(void) const
     //-------------------------------------------------------------------------
     {
-      CompoundBitMask<DT, BLOAT, BIDIR> result;
+      CompoundBitMask<DT, L, BLOAT, BIDIR> result;
       if (is_sparse())
       {
-        result.mask.dense = new DT(0xFFFFFFFFFFFFFFFFULL);
+        result.mask.dense = new HeapifyBox<DT, L>(0xFFFFFFFFFFFFFFFFULL);
         result.sparse_size = MAX_SPARSE + 1;
         for (unsigned idx = 0; idx < sparse_size; idx++)
           result.unset_bit(mask.sparse[idx]);
       }
       else
       {
-        result.mask.dense = new DT(~(*mask.dense));
+        result.mask.dense = new HeapifyBox<DT, L>(~(*mask.dense));
         result.sparse_size = MAX_SPARSE + 1;
         result.sparsify();
       }
@@ -7989,16 +7990,16 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator|(
-            const CompoundBitMask<DT, BLOAT, BIDIR>& rhs) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator|(
+            const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs) const
     //-------------------------------------------------------------------------
     {
-      CompoundBitMask<DT, BLOAT, BIDIR> result;
+      CompoundBitMask<DT, L, BLOAT, BIDIR> result;
       if (!is_sparse())
       {
-        result.mask.dense = new DT(*(mask.dense));
+        result.mask.dense = new HeapifyBox<DT, L>(*(mask.dense));
         result.sparse_size = MAX_SPARSE + 1;
         if (rhs.is_sparse())
         {
@@ -8010,7 +8011,7 @@ namespace Legion {
       }
       else if (!rhs.is_sparse())
       {
-        result.mask.dense = new DT(*rhs.mask.dense);
+        result.mask.dense = new HeapifyBox<DT, L>(*rhs.mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
         for (unsigned idx = 0; idx < sparse_size; idx++)
           result.set_bit(mask.sparse[idx]);
@@ -8026,13 +8027,13 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator&(
-            const CompoundBitMask<DT, BLOAT, BIDIR>& rhs) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator&(
+            const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs) const
     //-------------------------------------------------------------------------
     {
-      CompoundBitMask<DT, BLOAT, BIDIR> result;
+      CompoundBitMask<DT, L, BLOAT, BIDIR> result;
       if (is_sparse())
       {
         for (unsigned idx = 0; idx < sparse_size; idx++)
@@ -8047,7 +8048,7 @@ namespace Legion {
       }
       else
       {
-        result.mask.dense = new DT(*mask.dense);
+        result.mask.dense = new HeapifyBox<DT, L>(*mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
         (*result.mask.dense) &= (*rhs.mask.dense);
         result.sparsify();
@@ -8056,16 +8057,16 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator^(
-            const CompoundBitMask<DT, BLOAT, BIDIR>& rhs) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator^(
+            const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs) const
     //-------------------------------------------------------------------------
     {
-      CompoundBitMask<DT, BLOAT, BIDIR> result;
+      CompoundBitMask<DT, L, BLOAT, BIDIR> result;
       if (!is_sparse())
       {
-        result.mask.dense = new DT(*mask.dense);
+        result.mask.dense = new HeapifyBox<DT, L>(*mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
         if (rhs.is_sparse())
         {
@@ -8083,7 +8084,7 @@ namespace Legion {
       }
       else if (!rhs.is_sparse())
       {
-        result.mask.dense = new DT(*rhs.mask.dense);
+        result.mask.dense = new HeapifyBox<DT, L>(*rhs.mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
         for (unsigned idx = 0; idx < sparse_size; idx++)
           if (rhs.is_set(mask.sparse[idx]))
@@ -8105,10 +8106,10 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>&
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator|=(
-            const CompoundBitMask<DT, BLOAT, BIDIR>& rhs)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>&
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator|=(
+            const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs)
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8120,7 +8121,7 @@ namespace Legion {
         }
         else
         {
-          DT* newmask = new DT(*rhs.mask.dense);
+          DT* newmask = new HeapifyBox<DT, L>(*rhs.mask.dense);
           for (unsigned idx = 0; idx < sparse_size; idx++)
             newmask->set_bit(mask.sparse[idx]);
           mask.dense = newmask;
@@ -8141,10 +8142,10 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>&
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator&=(
-            const CompoundBitMask<DT, BLOAT, BIDIR>& rhs)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>&
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator&=(
+            const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs)
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8183,10 +8184,10 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>&
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator^=(
-            const CompoundBitMask<DT, BLOAT, BIDIR>& rhs)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>&
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator^=(
+            const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs)
     //-------------------------------------------------------------------------
     {
       if (rhs.is_sparse())
@@ -8199,7 +8200,7 @@ namespace Legion {
       }
       else if (is_sparse())
       {
-        DT* newmask = new DT(*rhs.mask.dense);
+        DT* newmask = new HeapifyBox<DT, L>(*rhs.mask.dense);
         for (unsigned idx = 0; idx < sparse_size; idx++)
           if (newmask->is_set(mask.sparse[idx]))
             newmask->unset_bit(mask.sparse[idx]);
@@ -8218,9 +8219,9 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline bool CompoundBitMask<DT, BLOAT, BIDIR>::operator*(
-        const CompoundBitMask<DT, BLOAT, BIDIR>& rhs) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline bool CompoundBitMask<DT, L, BLOAT, BIDIR>::operator*(
+        const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs) const
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8242,8 +8243,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline bool CompoundBitMask<DT, BLOAT, BIDIR>::empty(void) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline bool CompoundBitMask<DT, L, BLOAT, BIDIR>::empty(void) const
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8255,21 +8256,21 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline bool CompoundBitMask<DT, BLOAT, BIDIR>::operator!(void) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline bool CompoundBitMask<DT, L, BLOAT, BIDIR>::operator!(void) const
     //-------------------------------------------------------------------------
     {
       return empty();
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator-(
-            const CompoundBitMask<DT, BLOAT, BIDIR>& rhs) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator-(
+            const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs) const
     //-------------------------------------------------------------------------
     {
-      CompoundBitMask<DT, BLOAT, BIDIR> result;
+      CompoundBitMask<DT, L, BLOAT, BIDIR> result;
       if (is_sparse())
       {
         for (unsigned idx = 0; idx < sparse_size; idx++)
@@ -8278,7 +8279,7 @@ namespace Legion {
       }
       else
       {
-        result.mask.dense = new DT(*mask.dense);
+        result.mask.dense = new HeapifyBox<DT, L>(*mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
         if (rhs.is_sparse())
         {
@@ -8295,10 +8296,10 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>&
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator-=(
-            const CompoundBitMask<DT, BLOAT, BIDIR>& rhs)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>&
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator-=(
+            const CompoundBitMask<DT, L, BLOAT, BIDIR>& rhs)
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8331,12 +8332,12 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator<<(unsigned shift) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator<<(unsigned shift) const
     //-------------------------------------------------------------------------
     {
-      CompoundBitMask<DT, BLOAT, BIDIR> result;
+      CompoundBitMask<DT, L, BLOAT, BIDIR> result;
       if (is_sparse())
       {
         for (unsigned idx = 0; idx < sparse_size; idx++)
@@ -8345,7 +8346,7 @@ namespace Legion {
       }
       else
       {
-        result.mask.dense = new DT(*mask.dense);
+        result.mask.dense = new HeapifyBox<DT, L>(*mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
         (*result.mask.dense) <<= shift;
         result.sparsify();
@@ -8354,12 +8355,12 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator>>(unsigned shift) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator>>(unsigned shift) const
     //-------------------------------------------------------------------------
     {
-      CompoundBitMask<DT, BLOAT, BIDIR> result;
+      CompoundBitMask<DT, L, BLOAT, BIDIR> result;
       if (is_sparse())
       {
         for (unsigned idx = 0; idx < sparse_size; idx++)
@@ -8368,7 +8369,7 @@ namespace Legion {
       }
       else
       {
-        result.mask.dense = new DT(*mask.dense);
+        result.mask.dense = new HeapifyBox<DT, L>(*mask.dense);
         result.sparse_size = MAX_SPARSE + 1;
         (*result.mask.dense) >>= shift;
         result.sparsify();
@@ -8377,9 +8378,9 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>&
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator<<=(unsigned shift)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>&
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator<<=(unsigned shift)
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8399,9 +8400,9 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline CompoundBitMask<DT, BLOAT, BIDIR>&
-        CompoundBitMask<DT, BLOAT, BIDIR>::operator>>=(unsigned shift)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline CompoundBitMask<DT, L, BLOAT, BIDIR>&
+        CompoundBitMask<DT, L, BLOAT, BIDIR>::operator>>=(unsigned shift)
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8421,8 +8422,9 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline uint64_t CompoundBitMask<DT, BLOAT, BIDIR>::get_hash_key(void) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline uint64_t CompoundBitMask<DT, L, BLOAT, BIDIR>::get_hash_key(
+        void) const
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8437,9 +8439,9 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
     template<typename ST>
-    inline void CompoundBitMask<DT, BLOAT, BIDIR>::serialize(ST& rez) const
+    inline void CompoundBitMask<DT, L, BLOAT, BIDIR>::serialize(ST& rez) const
     //-------------------------------------------------------------------------
     {
       rez.serialize(sparse_size);
@@ -8453,9 +8455,9 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
     template<typename D>
-    inline void CompoundBitMask<DT, BLOAT, BIDIR>::deserialize(D& derez)
+    inline void CompoundBitMask<DT, L, BLOAT, BIDIR>::deserialize(D& derez)
     //-------------------------------------------------------------------------
     {
       const bool was_dense = !is_sparse();
@@ -8470,15 +8472,15 @@ namespace Legion {
       else
       {
         if (!was_dense)
-          mask.dense = new DT();
+          mask.dense = new HeapifyBox<DT, L>();
         mask.dense->deserialize(derez);
       }
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
     template<typename FUNC>
-    inline void CompoundBitMask<DT, BLOAT, BIDIR>::map(FUNC& functor) const
+    inline void CompoundBitMask<DT, L, BLOAT, BIDIR>::map(FUNC& functor) const
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8491,8 +8493,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline char* CompoundBitMask<DT, BLOAT, BIDIR>::to_string(void) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline char* CompoundBitMask<DT, L, BLOAT, BIDIR>::to_string(void) const
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8513,8 +8515,8 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline unsigned CompoundBitMask<DT, BLOAT, BIDIR>::pop_count(void) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline unsigned CompoundBitMask<DT, L, BLOAT, BIDIR>::pop_count(void) const
     //-------------------------------------------------------------------------
     {
       if (is_sparse())
@@ -8524,25 +8526,25 @@ namespace Legion {
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    /*static*/ inline unsigned CompoundBitMask<DT, BLOAT, BIDIR>::pop_count(
-        const CompoundBitMask<DT, BLOAT, BIDIR>& mask)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    /*static*/ inline unsigned CompoundBitMask<DT, L, BLOAT, BIDIR>::pop_count(
+        const CompoundBitMask<DT, L, BLOAT, BIDIR>& mask)
     //-------------------------------------------------------------------------
     {
       return mask.pop_count();
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline bool CompoundBitMask<DT, BLOAT, BIDIR>::is_sparse(void) const
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline bool CompoundBitMask<DT, L, BLOAT, BIDIR>::is_sparse(void) const
     //-------------------------------------------------------------------------
     {
       return (sparse_size <= MAX_SPARSE);
     }
 
     //-------------------------------------------------------------------------
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline void CompoundBitMask<DT, BLOAT, BIDIR>::sparsify(void)
+    template<typename DT, AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline void CompoundBitMask<DT, L, BLOAT, BIDIR>::sparsify(void)
     //-------------------------------------------------------------------------
     {
       if (!BIDIR)

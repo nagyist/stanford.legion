@@ -1318,10 +1318,11 @@ namespace Legion {
             precondition = dst_pre;
         }
       }
-      const FieldMask* src_mask =
-          (across_helper == nullptr) ?
-              &copy_mask :
-              new FieldMask(across_helper->convert_dst_to_src(copy_mask));
+      FieldMask across_mask;
+      if (across_helper != nullptr)
+        across_mask = across_helper->convert_dst_to_src(copy_mask);
+      const FieldMask& src_mask =
+          (across_helper == nullptr) ? copy_mask : across_mask;
       // Several cases here:
       // 1. The source is another individual manager - just straight up
       //    compute the dependences and do the copy or reduction
@@ -1335,7 +1336,7 @@ namespace Legion {
         IndividualView* source_view = src_view->as_individual_view();
         // Case 1: Source manager is another instance manager
         const ApEvent src_pre = source_view->find_copy_preconditions(
-            true /*reading*/, 0 /*redop*/, *src_mask, copy_expression, op_id,
+            true /*reading*/, 0 /*redop*/, src_mask, copy_expression, op_id,
             index, applied_events, trace_info);
         if (src_pre.exists())
         {
@@ -1350,10 +1351,10 @@ namespace Legion {
         if (across_helper == nullptr)
           manager->compute_copy_offsets(copy_mask, dst_fields);
         else
-          across_helper->compute_across_offsets(*src_mask, dst_fields);
+          across_helper->compute_across_offsets(src_mask, dst_fields);
         PhysicalManager* source_manager = source_view->get_manager();
         assert(manager->instance.id != source_manager->instance.id);
-        source_manager->compute_copy_offsets(*src_mask, src_fields);
+        source_manager->compute_copy_offsets(src_mask, src_fields);
         std::vector<Reservation> reservations;
         // If we're doing a reduction operation then set the reduction
         // information on the source-dst fields
@@ -1382,7 +1383,7 @@ namespace Legion {
         if (result.exists())
         {
           source_view->add_copy_user(
-              true /*reading*/, 0 /*redop*/, result, *src_mask, copy_expression,
+              true /*reading*/, 0 /*redop*/, result, src_mask, copy_expression,
               op_id, index, recorded_events, trace_info.recording,
               runtime->address_space);
           if (manage_dst_events)
@@ -1396,7 +1397,7 @@ namespace Legion {
           const UniqueInst src_inst(source_view);
           const UniqueInst dst_inst(this);
           trace_info.record_copy_insts(
-              result, copy_expression, src_inst, dst_inst, *src_mask, copy_mask,
+              result, copy_expression, src_inst, dst_inst, src_mask, copy_mask,
               reduction_op_id, applied_events);
         }
       }
@@ -1407,7 +1408,7 @@ namespace Legion {
         if (across_helper == nullptr)
           manager->compute_copy_offsets(copy_mask, dst_fields);
         else
-          across_helper->compute_across_offsets(*src_mask, dst_fields);
+          across_helper->compute_across_offsets(src_mask, dst_fields);
         std::vector<Reservation> reservations;
         if (reduction_op_id > 0)
         {
@@ -1475,7 +1476,7 @@ namespace Legion {
                 copy_expression->pack_expression(rez, origin);
                 op->pack_remote_operation(rez, origin, applied_events);
                 rez.serialize(index);
-                rez.serialize(*src_mask);
+                rez.serialize(src_mask);
                 rez.serialize(copy_mask);
                 if (src_point != nullptr)
                   rez.serialize(src_point->did);
@@ -1516,7 +1517,7 @@ namespace Legion {
               result = to_trigger;
               allreduce->perform_collective_reduction(
                   dst_fields, reservations, precondition, predicate_guard,
-                  copy_expression, op, index, *src_mask, copy_mask,
+                  copy_expression, op, index, src_mask, copy_mask,
                   (src_point != nullptr) ? src_point->did : 0, dst_inst,
                   manager->get_unique_event(), trace_info, COLLECTIVE_REDUCTION,
                   recorded_events, applied_events, to_trigger, origin);
@@ -1554,7 +1555,7 @@ namespace Legion {
                 copy_expression->pack_expression(rez, origin);
                 op->pack_remote_operation(rez, origin, applied_events);
                 rez.serialize(index);
-                rez.serialize(*src_mask);
+                rez.serialize(src_mask);
                 rez.serialize(copy_mask);
                 dst_inst.serialize(rez);
                 rez.serialize(manager->get_unique_event());
@@ -1586,7 +1587,7 @@ namespace Legion {
             else
               result = allreduce->perform_hammer_reduction(
                   dst_fields, reservations, precondition, predicate_guard,
-                  copy_expression, op, index, *src_mask, copy_mask, dst_inst,
+                  copy_expression, op, index, src_mask, copy_mask, dst_inst,
                   manager->get_unique_event(), trace_info, recorded_events,
                   applied_events, origin);
           }
@@ -1620,7 +1621,7 @@ namespace Legion {
               copy_expression->pack_expression(rez, origin);
               op->pack_remote_operation(rez, origin, applied_events);
               rez.serialize(index);
-              rez.serialize(*src_mask);
+              rez.serialize(src_mask);
               rez.serialize(copy_mask);
               rez.serialize(location);
               dst_inst.serialize(rez);
@@ -1643,7 +1644,7 @@ namespace Legion {
           else
             result = collective->perform_collective_point(
                 dst_fields, reservations, precondition, predicate_guard,
-                copy_expression, op, index, *src_mask, copy_mask, location,
+                copy_expression, op, index, src_mask, copy_mask, location,
                 dst_inst, manager->get_unique_event(),
                 (src_point != nullptr) ? src_point->did : 0, trace_info,
                 recorded_events, applied_events);
@@ -1654,8 +1655,6 @@ namespace Legion {
               copy_expression, op_id, index, recorded_events,
               trace_info.recording, runtime->address_space);
       }
-      if (across_helper != nullptr)
-        delete src_mask;
       return result;
     }
 
@@ -2552,7 +2551,8 @@ namespace Legion {
             {
               // Save our state for performing the registration later
               finder->second.usage = usage;
-              finder->second.mask = new FieldMask(user_mask);
+              finder->second.mask =
+                  new HeapifyBox<FieldMask, OPERATION_LIFETIME>(user_mask);
               finder->second.op_id = op_id;
               finder->second.symbolic = symbolic;
             }

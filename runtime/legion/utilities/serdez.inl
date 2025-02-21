@@ -134,9 +134,10 @@ namespace Legion {
 #endif
 
   //--------------------------------------------------------------------------
-  template<typename DT, unsigned BLOAT, bool BIDIR>
+  template<
+      typename DT, Internal::AllocationLifetime L, unsigned BLOAT, bool BIDIR>
   inline void Serializer::serialize(
-      const Internal::CompoundBitMask<DT, BLOAT, BIDIR>& m)
+      const Internal::CompoundBitMask<DT, L, BLOAT, BIDIR>& m)
   //--------------------------------------------------------------------------
   {
     m.serialize(*this);
@@ -386,9 +387,10 @@ namespace Legion {
 #endif
 
   //--------------------------------------------------------------------------
-  template<typename DT, unsigned BLOAT, bool BIDIR>
+  template<
+      typename DT, Internal::AllocationLifetime L, unsigned BLOAT, bool BIDIR>
   inline void Deserializer::deserialize(
-      Internal::CompoundBitMask<DT, BLOAT, BIDIR>& mask)
+      Internal::CompoundBitMask<DT, L, BLOAT, BIDIR>& mask)
   //--------------------------------------------------------------------------
   {
     mask.deserialize(*this);

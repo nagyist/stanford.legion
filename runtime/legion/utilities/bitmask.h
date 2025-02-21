@@ -417,8 +417,7 @@ namespace Legion {
     /////////////////////////////////////////////////////////////
     template<
         typename T, unsigned int MAX, unsigned int SHIFT, unsigned int MASK>
-    class BitMask
-      : public Heapify<BitMask<T, MAX, SHIFT, MASK>, TODO_LIFETIME> {
+    class BitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE = 8 * sizeof(T);
       static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
@@ -513,8 +512,7 @@ namespace Legion {
      * summary is a single instance of the summary type ST.
      */
     template<typename T, unsigned int MAX, unsigned SHIFT, unsigned MASK>
-    class TLBitMask
-      : public Heapify<TLBitMask<T, MAX, SHIFT, MASK>, TODO_LIFETIME> {
+    class TLBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE = 8 * sizeof(T);
       static constexpr unsigned BIT_ELMTS = MAX / ELEMENT_SIZE;
@@ -603,8 +601,7 @@ namespace Legion {
     // SSE Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) SSEBitMask
-      : public Heapify<SSEBitMask<MAX>, TODO_LIFETIME> {
+    class alignas(16) SSEBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE =
           BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
@@ -691,8 +688,7 @@ namespace Legion {
     // SSE Two-Level Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) SSETLBitMask
-      : public Heapify<SSETLBitMask<MAX>, TODO_LIFETIME> {
+    class alignas(16) SSETLBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE =
           BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
@@ -783,8 +779,7 @@ namespace Legion {
     // AVX Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(32) AVXBitMask
-      : public Heapify<AVXBitMask<MAX>, TODO_LIFETIME> {
+    class alignas(32) AVXBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE =
           BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
@@ -871,8 +866,7 @@ namespace Legion {
     // AVX Two-Level Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(32) AVXTLBitMask
-      : public Heapify<AVXTLBitMask<MAX>, TODO_LIFETIME> {
+    class alignas(32) AVXTLBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE =
           BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
@@ -964,8 +958,7 @@ namespace Legion {
     // PPC Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) PPCBitMask
-      : public Heapify<PPCBitMask<MAX>, TODO_LIFETIME> {
+    class alignas(16) PPCBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE =
           BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
@@ -1052,8 +1045,7 @@ namespace Legion {
     // PPC Two-Level Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) PPCTLBitMask
-      : public Heapify<PPCTLBitMask<MAX>, TODO_LIFETIME> {
+    class alignas(16) PPCTLBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE =
           BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
@@ -1144,8 +1136,7 @@ namespace Legion {
     // Neon Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) NeonBitMask
-      : public Heapify<NeonBitMask<MAX>, TODO_LIFETIME> {
+    class alignas(16) NeonBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE =
           BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
@@ -1232,8 +1223,7 @@ namespace Legion {
     // Neon Two-Level Bit Mask
     /////////////////////////////////////////////////////////////
     template<unsigned int MAX>
-    class alignas(16) NeonTLBitMask
-      : public Heapify<NeonTLBitMask<MAX>, TODO_LIFETIME> {
+    class alignas(16) NeonTLBitMask : public NoHeapify {
     public:
       static constexpr unsigned ELEMENT_SIZE =
           BitMaskHelp::BitVector<MAX>::ELEMENT_SIZE;
@@ -1319,7 +1309,9 @@ namespace Legion {
     };
 #endif  // __ARM_NEON
 
-    template<typename DT, unsigned BLOAT = 1, bool BIDIR = true>
+    template<
+        typename DT, AllocationLifetime L, unsigned BLOAT = 1,
+        bool BIDIR = true>
     class CompoundBitMask {
     public:
       static constexpr unsigned ELEMENT_SIZE = DT::ELEMENT_SIZE;
@@ -1392,7 +1384,7 @@ namespace Legion {
     public:
       inline unsigned pop_count(void) const;
       static inline unsigned pop_count(
-          const CompoundBitMask<DT, BLOAT, BIDIR>& mask);
+          const CompoundBitMask<DT, L, BLOAT, BIDIR>& mask);
     protected:
       inline bool is_sparse(void) const;
       inline void sparsify(void);
@@ -1407,7 +1399,7 @@ namespace Legion {
       union {
         // The sparse array is unique and sorted
         SA sparse;
-        DT* dense;
+        HeapifyBox<DT, L>* dense;
       } mask;
       unsigned sparse_size;
     };
@@ -1552,7 +1544,8 @@ namespace Legion {
         NodeMask;
 #endif
 #endif
-    typedef CompoundBitMask<NodeMask, 1 /*bloat*/, true /*bidir*/> NodeSet;
+    template<AllocationLifetime L>
+    using NodeSet = CompoundBitMask<NodeMask, L, 1 /*bloat*/, true /*bidir*/>;
 
 #undef LEGION_NODE_MASK_NODE_SHIFT
 #undef LEGION_NODE_MASK_NODE_MASK

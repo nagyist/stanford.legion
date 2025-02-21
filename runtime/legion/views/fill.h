@@ -48,7 +48,7 @@ namespace Legion {
         Operation* const op;
         IndexSpaceExpression* const fill_expr;
         IndividualView* const dst_view;
-        const FieldMask* const fill_mask;
+        const HeapifyBox<FieldMask, OPERATION_LIFETIME>* const fill_mask;
         PhysicalTraceInfo* const trace_info;
         std::vector<CopySrcDstField>* const dst_fields;
         PhysicalManager* const manager;

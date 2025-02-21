@@ -53,7 +53,7 @@ namespace Legion {
      * to manage garbage collection of distributed futures
      */
     class FutureImpl : public DistributedCollectable,
-                       public Heapify<FutureImpl, SHORT_BOUNDED_LIFETIME> {
+                       public Heapify<FutureImpl, SHORT_LIFETIME> {
     public:
       struct ContributeCollectiveArgs
         : public LgTaskArgs<ContributeCollectiveArgs> {

@@ -158,7 +158,7 @@ namespace Legion {
      */
     class ExternalResourcesImpl
       : public Collectable,
-        public Heapify<ExternalResourcesImpl, SHORT_BOUNDED_LIFETIME> {
+        public Heapify<ExternalResourcesImpl, SHORT_LIFETIME> {
     public:
       ExternalResourcesImpl(
           InnerContext* context, size_t num_regions, RegionTreeNode* upper,

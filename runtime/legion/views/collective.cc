@@ -2485,7 +2485,8 @@ namespace Legion {
           {
             // Save the state that we need for finalization later
             finder->second.usage = usage;
-            finder->second.mask = new FieldMask(user_mask);
+            finder->second.mask =
+                new HeapifyBox<FieldMask, OPERATION_LIFETIME>(user_mask);
             finder->second.op_id = op_id;
             finder->second.symbolic = symbolic;
           }

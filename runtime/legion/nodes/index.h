@@ -152,7 +152,7 @@ namespace Legion {
       Provenance* const provenance;
     public:
       RtEvent initialized;
-      NodeSet child_creation;
+      NodeSet<LONG_LIFETIME> child_creation;
     protected:
       mutable LocalLock node_lock;
     protected:
@@ -512,7 +512,7 @@ namespace Legion {
     template<int DIM, typename T>
     class IndexSpaceNodeT
       : public IndexSpaceNode,
-        public Heapify<IndexSpaceNodeT<DIM, T>, LONG_BOUNDED_LIFETIME> {
+        public Heapify<IndexSpaceNodeT<DIM, T>, LONG_LIFETIME> {
     public:
       IndexSpaceNodeT(
           IndexSpace handle, IndexPartNode* parent, LegionColor color,
@@ -1483,7 +1483,7 @@ namespace Legion {
     template<int DIM, typename T>
     class IndexPartNodeT
       : public IndexPartNode,
-        public Heapify<IndexPartNodeT<DIM, T>, LONG_BOUNDED_LIFETIME> {
+        public Heapify<IndexPartNodeT<DIM, T>, LONG_LIFETIME> {
     public:
       IndexPartNodeT(
           IndexPartition p, IndexSpaceNode* par, IndexSpaceNode* color_space,

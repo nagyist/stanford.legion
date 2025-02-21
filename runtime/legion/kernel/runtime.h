@@ -2249,7 +2249,7 @@ namespace Legion {
       std::atomic<DistributedID> unique_distributed_id;
     protected:
       mutable LocalLock distributed_collectable_lock;
-      LegionMap<DistributedID, DistributedCollectable*, LONG_BOUNDED_LIFETIME>
+      LegionMap<DistributedID, DistributedCollectable*, LONG_LIFETIME>
           dist_collectables;
       std::map<DistributedID, std::pair<DistributedCollectable*, RtUserEvent> >
           pending_collectables;

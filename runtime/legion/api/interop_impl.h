@@ -23,7 +23,7 @@ namespace Legion {
   namespace Internal {
 
     class HandshakeImpl : public Collectable,
-                          public Heapify<HandshakeImpl, LONG_BOUNDED_LIFETIME> {
+                          public Heapify<HandshakeImpl, LONG_LIFETIME> {
     public:
       HandshakeImpl(bool init_in_ext);
       HandshakeImpl(const HandshakeImpl& rhs) = delete;

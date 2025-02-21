@@ -323,7 +323,7 @@ namespace Legion {
       const std::vector<IndividualView*> local_views;
     protected:
       std::map<PhysicalManager*, IndividualView*> remote_instances;
-      NodeSet remote_instance_responses;
+      NodeSet<LONG_LIFETIME> remote_instance_responses;
     protected:
       struct UserRendezvous {
         UserRendezvous(void)
@@ -355,7 +355,7 @@ namespace Legion {
         PhysicalTraceInfo* trace_info;
         // Arguments for performing the local registration
         RegionUsage usage;
-        FieldMask* mask;
+        HeapifyBox<FieldMask, OPERATION_LIFETIME>* mask;
         IndexSpaceNode* expr;
         UniqueID op_id;
         bool symbolic;

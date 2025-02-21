@@ -1014,8 +1014,8 @@ namespace Legion {
       if ((previous_child == nullptr) || !owner->are_all_children_disjoint())
       {
         // Now traverse any open children and record dependences on them as well
-        for (LegionList<FieldState, SHORT_BOUNDED_LIFETIME>::const_iterator
-                 fit = field_states.begin();
+        for (LegionList<FieldState, SHORT_LIFETIME>::const_iterator fit =
+                 field_states.begin();
              fit != field_states.end(); fit++)
         {
           const FieldMask field_overlap = fit->valid_fields() & refinement_mask;
@@ -1187,7 +1187,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       // This will promote the child up to a read-write field state
-      for (LegionList<FieldState, SHORT_BOUNDED_LIFETIME>::iterator it =
+      for (LegionList<FieldState, SHORT_LIFETIME>::iterator it =
                field_states.begin();
            it != field_states.end(); it++)
       {

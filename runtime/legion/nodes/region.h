@@ -160,8 +160,7 @@ namespace Legion {
       virtual void send_node(Serializer& rez, AddressSpaceID target) = 0;
     public:
       // Logical helper operations
-      typedef FieldMaskSet<
-          LogicalUser, SHORT_BOUNDED_LIFETIME, true /*deterministic*/>
+      typedef FieldMaskSet<LogicalUser, SHORT_LIFETIME, true /*deterministic*/>
           OrderedFieldMaskUsers;
       template<bool TRACK_DOM>
       FieldMask perform_dependence_checks(
@@ -201,7 +200,7 @@ namespace Legion {
      * Represent a region in a region tree
      */
     class RegionNode : public RegionTreeNode,
-                       public Heapify<RegionNode, LONG_BOUNDED_LIFETIME> {
+                       public Heapify<RegionNode, LONG_LIFETIME> {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:
@@ -311,7 +310,7 @@ namespace Legion {
      * Represent an instance of a partition in a region tree.
      */
     class PartitionNode : public RegionTreeNode,
-                          public Heapify<PartitionNode, LONG_BOUNDED_LIFETIME> {
+                          public Heapify<PartitionNode, LONG_LIFETIME> {
     public:
       struct SemanticRequestArgs : public LgTaskArgs<SemanticRequestArgs> {
       public:

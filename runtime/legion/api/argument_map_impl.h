@@ -34,9 +34,8 @@ namespace Legion {
      * a single backing store to de-duplicate domain
      * points and values.
      */
-    class ArgumentMapImpl
-      : public Collectable,
-        public Heapify<ArgumentMapImpl, SHORT_BOUNDED_LIFETIME> {
+    class ArgumentMapImpl : public Collectable,
+                            public Heapify<ArgumentMapImpl, SHORT_LIFETIME> {
     public:
       ArgumentMapImpl(void);
       ArgumentMapImpl(const FutureMap& rhs);

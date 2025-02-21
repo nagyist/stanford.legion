@@ -34,9 +34,8 @@ namespace Legion {
      * same layout then they can all share the same
      * description object.
      */
-    class LayoutDescription
-      : public Collectable,
-        public Heapify<LayoutDescription, LONG_BOUNDED_LIFETIME> {
+    class LayoutDescription : public Collectable,
+                              public Heapify<LayoutDescription, LONG_LIFETIME> {
     public:
       LayoutDescription(
           FieldSpaceNode* owner, const FieldMask& mask,

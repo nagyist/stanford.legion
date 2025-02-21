@@ -56,7 +56,7 @@ namespace Legion {
       public:
         PhysicalAnalysis* const analysis;
         EquivalenceSet* const set;
-        FieldMask* const mask;
+        HeapifyBox<FieldMask, OPERATION_LIFETIME>* const mask;
         const RtUserEvent done_event;
         const bool already_deferred;
       };

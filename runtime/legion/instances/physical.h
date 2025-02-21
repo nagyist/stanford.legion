@@ -27,9 +27,8 @@ namespace Legion {
      * This is an abstract intermediate class for representing an allocation
      * of data; this includes both individual instances and collective instances
      */
-    class PhysicalManager
-      : public InstanceManager,
-        public Heapify<PhysicalManager, LONG_BOUNDED_LIFETIME> {
+    class PhysicalManager : public InstanceManager,
+                            public Heapify<PhysicalManager, LONG_LIFETIME> {
     public:
       enum InstanceKind {
         // Normal Realm allocations

@@ -890,10 +890,6 @@ namespace Legion {
       {
         return unique_sorted_spaces.find_index(space);
       }
-      inline const NodeSet& get_unique_spaces(void) const
-      {
-        return unique_sorted_spaces;
-      }
       inline size_t size(void) const { return total_spaces; }
       inline AddressSpaceID get_origin(void) const
 #ifdef DEBUG_LEGION
@@ -929,7 +925,7 @@ namespace Legion {
       unsigned convert_to_offset(unsigned index, unsigned origin) const;
       unsigned convert_to_index(unsigned offset, unsigned origin) const;
     protected:
-      NodeSet unique_sorted_spaces;
+      NodeSet<TODO_LIFETIME> unique_sorted_spaces;
       size_t total_spaces;
       size_t radix;
     };

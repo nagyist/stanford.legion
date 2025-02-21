@@ -213,7 +213,7 @@ namespace Legion {
         CollectiveMapping* analysis_mapping;
         // Arguments for performing the local registration
         RegionUsage usage;
-        FieldMask* mask;
+        HeapifyBox<FieldMask, OPERATION_LIFETIME>* mask;
         IndexSpaceNode* expr;
         UniqueID op_id;
         bool symbolic;

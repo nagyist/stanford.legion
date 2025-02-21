@@ -551,7 +551,7 @@ namespace Legion {
     template<int DIM, typename T>
     class IndexSpaceUnion
       : public IndexSpaceOperationT<DIM, T>,
-        public Heapify<IndexSpaceUnion<DIM, T>, LONG_BOUNDED_LIFETIME> {
+        public Heapify<IndexSpaceUnion<DIM, T>, LONG_LIFETIME> {
     public:
       IndexSpaceUnion(const std::vector<IndexSpaceExpression*>& to_union);
       IndexSpaceUnion(const Rect<DIM, T>& bounds);
@@ -590,7 +590,7 @@ namespace Legion {
     template<int DIM, typename T>
     class IndexSpaceIntersection
       : public IndexSpaceOperationT<DIM, T>,
-        public Heapify<IndexSpaceIntersection<DIM, T>, LONG_BOUNDED_LIFETIME> {
+        public Heapify<IndexSpaceIntersection<DIM, T>, LONG_LIFETIME> {
     public:
       IndexSpaceIntersection(
           const std::vector<IndexSpaceExpression*>& to_inter);
@@ -632,7 +632,7 @@ namespace Legion {
     template<int DIM, typename T>
     class IndexSpaceDifference
       : public IndexSpaceOperationT<DIM, T>,
-        public Heapify<IndexSpaceDifference<DIM, T>, LONG_BOUNDED_LIFETIME> {
+        public Heapify<IndexSpaceDifference<DIM, T>, LONG_LIFETIME> {
     public:
       IndexSpaceDifference(
           IndexSpaceExpression* lhs, IndexSpaceExpression* rhs);
@@ -684,7 +684,7 @@ namespace Legion {
     template<int DIM, typename T>
     class InternalExpression
       : public IndexSpaceOperationT<DIM, T>,
-        public Heapify<InternalExpression<DIM, T>, LONG_BOUNDED_LIFETIME> {
+        public Heapify<InternalExpression<DIM, T>, LONG_LIFETIME> {
     public:
       InternalExpression(const Rect<DIM, T>* rects, size_t num_rects);
       InternalExpression(const InternalExpression<DIM, T>& rhs) = delete;
@@ -729,7 +729,7 @@ namespace Legion {
     template<int DIM, typename T>
     class RemoteExpression
       : public IndexSpaceOperationT<DIM, T>,
-        public Heapify<RemoteExpression<DIM, T>, LONG_BOUNDED_LIFETIME> {
+        public Heapify<RemoteExpression<DIM, T>, LONG_LIFETIME> {
     public:
       RemoteExpression(
           IndexSpaceExprID eid, DistributedID did, IndexSpaceOperation* op,

@@ -542,7 +542,8 @@ namespace Legion {
         PhysicalAnalysis* ana, EquivalenceSet* s, const FieldMask& m,
         RtUserEvent done, bool def)
       : LgTaskArgs<DeferPerformAnalysisArgs>(ana->op->get_unique_op_id()),
-        analysis(ana), set(s), mask(new FieldMask(m)),
+        analysis(ana), set(s),
+        mask(new HeapifyBox<FieldMask, OPERATION_LIFETIME>(m)),
         done_event(done.exists() ? done : Runtime::create_rt_user_event()),
         already_deferred(def)
     //--------------------------------------------------------------------------

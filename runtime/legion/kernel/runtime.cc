@@ -10037,7 +10037,7 @@ namespace Legion {
                      .first;
       if (finder->second.first == nullptr)
         finder->second.first =
-            legion_malloc<T, LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
+            legion_malloc<T, LONG_LIFETIME>(sizeof(T), alignof(T));
       return finder->second.first;
     }
 
@@ -10185,7 +10185,7 @@ namespace Legion {
         {
           if (pending_finder->second.first == nullptr)
             pending_finder->second.first =
-                legion_malloc<T, LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
+                legion_malloc<T, LONG_LIFETIME>(sizeof(T), alignof(T));
           if (!pending_finder->second.second.exists())
             pending_finder->second.second = Runtime::create_rt_user_event();
           ready = pending_finder->second.second;
@@ -10193,7 +10193,7 @@ namespace Legion {
         }
         // This is the first request we've seen for this did, make it now
         // Allocate space for the result and type case
-        result = legion_malloc<T, LONG_BOUNDED_LIFETIME>(sizeof(T), alignof(T));
+        result = legion_malloc<T, LONG_LIFETIME>(sizeof(T), alignof(T));
         RtUserEvent to_trigger = Runtime::create_rt_user_event();
         pending_collectables[did] =
             std::pair<DistributedCollectable*, RtUserEvent>(result, to_trigger);

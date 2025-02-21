@@ -101,7 +101,7 @@ namespace Legion {
     public:
       inline bool is_valid(void) const { return ready_event.has_triggered(); }
     public:
-      BufferManager<SemanticInfo, LONG_BOUNDED_LIFETIME> buffer;
+      BufferManager<SemanticInfo, LONG_LIFETIME> buffer;
       RtUserEvent ready_event;
       bool is_mutable;
     };

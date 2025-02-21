@@ -70,9 +70,10 @@ namespace Legion {
     template<unsigned int MAX>
     inline void serialize(const Internal::NeonTLBitMask<MAX>& mask);
 #endif
-    template<typename DT, unsigned BLOAT, bool BIDIR>
+    template<
+        typename DT, Internal::AllocationLifetime L, unsigned BLOAT, bool BIDIR>
     inline void serialize(
-        const Internal::CompoundBitMask<DT, BLOAT, BIDIR>& mask);
+        const Internal::CompoundBitMask<DT, L, BLOAT, BIDIR>& mask);
     inline void serialize(const Domain& domain);
     inline void serialize(const DomainPoint& dp);
     inline void serialize(const Internal::CopySrcDstField& field);
@@ -159,8 +160,10 @@ namespace Legion {
     template<unsigned int MAX>
     inline void deserialize(Internal::NeonTLBitMask<MAX>& mask);
 #endif
-    template<typename DT, unsigned BLOAT, bool BIDIR>
-    inline void deserialize(Internal::CompoundBitMask<DT, BLOAT, BIDIR>& mask);
+    template<
+        typename DT, Internal::AllocationLifetime L, unsigned BLOAT, bool BIDIR>
+    inline void deserialize(
+        Internal::CompoundBitMask<DT, L, BLOAT, BIDIR>& mask);
     inline void deserialize(Domain& domain);
     inline void deserialize(DomainPoint& dp);
     inline void deserialize(Internal::CopySrcDstField& field);

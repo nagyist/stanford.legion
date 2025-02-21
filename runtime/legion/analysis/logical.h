@@ -104,8 +104,7 @@ namespace Legion {
       void add_child(RegionTreeNode* child, const FieldMask& mask);
       void remove_child(RegionTreeNode* child);
     public:
-      typedef FieldMaskSet<
-          RegionTreeNode, SHORT_BOUNDED_LIFETIME, true /*ordered*/>
+      typedef FieldMaskSet<RegionTreeNode, SHORT_LIFETIME, true /*ordered*/>
           OrderedFieldMaskChildren;
       OrderedFieldMaskChildren open_children;
       OpenState open_state;
@@ -167,12 +166,11 @@ namespace Legion {
     public:
       RegionTreeNode* const owner;
     public:
-      LegionList<FieldState, SHORT_BOUNDED_LIFETIME> field_states;
+      LegionList<FieldState, SHORT_LIFETIME> field_states;
       // Note that even though these are field mask sets keyed on pointers
       // we mark them as determinsitic so that shards always iterate over
       // these elements in the same order
-      typedef FieldMaskSet<
-          LogicalUser, SHORT_BOUNDED_LIFETIME, true /*determinisitic*/>
+      typedef FieldMaskSet<LogicalUser, SHORT_LIFETIME, true /*determinisitic*/>
           OrderedFieldMaskUsers;
       OrderedFieldMaskUsers curr_epoch_users, prev_epoch_users;
     protected:

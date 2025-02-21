@@ -363,7 +363,7 @@ namespace Legion {
 #endif
     protected:
       // Track all the remote instances (relative to ourselves) we know about
-      NodeSet remote_instances;
+      NodeSet<LONG_LIFETIME> remote_instances;
     protected:
       AddressSpaceID downgrade_owner, notready_owner;
       uint64_t sent_global_references, received_global_references;

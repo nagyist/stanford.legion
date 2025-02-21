@@ -30,9 +30,8 @@ namespace Legion {
      * that can be used to find the name of a future for a
      * given point anywhere in the machine.
      */
-    class FutureMapImpl
-      : public DistributedCollectable,
-        public Heapify<FutureMapImpl, SHORT_BOUNDED_LIFETIME> {
+    class FutureMapImpl : public DistributedCollectable,
+                          public Heapify<FutureMapImpl, SHORT_LIFETIME> {
     public:
       FutureMapImpl(
           TaskContext* ctx, Operation* op, IndexSpaceNode* domain,

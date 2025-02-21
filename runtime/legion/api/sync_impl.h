@@ -36,7 +36,7 @@ namespace Legion {
      * until the runtime marks that it is no longer active.
      */
     class GrantImpl : public Collectable,
-                      public Heapify<GrantImpl, SHORT_BOUNDED_LIFETIME> {
+                      public Heapify<GrantImpl, SHORT_LIFETIME> {
     public:
       struct ReservationRequest {
       public:

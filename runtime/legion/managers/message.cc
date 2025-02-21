@@ -502,7 +502,7 @@ namespace Legion {
                 // Same as max message size
                 message.size = sending_buffer_size;
                 VirtualChannel* buffer =
-                    legion_malloc<VirtualChannel, SHORT_BOUNDED_LIFETIME>(
+                    legion_malloc<VirtualChannel, SHORT_LIFETIME>(
                         message.size, alignof(std::max_align_t));
                 memcpy(&message.buffer, &buffer, sizeof(buffer));
               }

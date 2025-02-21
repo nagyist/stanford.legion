@@ -351,7 +351,8 @@ namespace Legion {
         CollectiveKind collect, bool fill_restrict,
         std::set<RtEvent>& applied_events)
       : LgTaskArgs<DeferIssueFill>(o->get_unique_op_id()), view(v), op(o),
-        fill_expr(expr), dst_view(dst_v), fill_mask(new FieldMask(mask)),
+        fill_expr(expr), dst_view(dst_v),
+        fill_mask(new HeapifyBox<FieldMask, OPERATION_LIFETIME>(mask)),
         trace_info(new PhysicalTraceInfo(info)),
         dst_fields(new std::vector<CopySrcDstField>(dst)), manager(man),
         precondition(pre), pred_guard(guard), collective(collect),

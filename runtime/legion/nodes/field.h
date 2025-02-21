@@ -29,9 +29,8 @@ namespace Legion {
      * Represent a generic field space that can be
      * pointed at by nodes in the region trees.
      */
-    class FieldSpaceNode
-      : public Heapify<FieldSpaceNode, LONG_BOUNDED_LIFETIME>,
-        public DistributedCollectable {
+    class FieldSpaceNode : public Heapify<FieldSpaceNode, LONG_LIFETIME>,
+                           public DistributedCollectable {
     public:
       enum FieldAllocationState {
         FIELD_ALLOC_INVALID,     // field_infos is invalid
@@ -362,7 +361,7 @@ namespace Legion {
       // differentiate them.
       std::map<
           LEGION_FIELD_MASK_FIELD_TYPE,
-          LegionList<LayoutDescription*, LONG_BOUNDED_LIFETIME> >
+          LegionList<LayoutDescription*, LONG_LIFETIME> >
           layouts;
     private:
       LegionMap<SemanticTag, SemanticInfo> semantic_info;

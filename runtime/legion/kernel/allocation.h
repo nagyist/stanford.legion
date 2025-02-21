@@ -41,14 +41,13 @@ namespace Legion {
   namespace Internal {
 
     enum AllocationLifetime {
-      TASK_LOCAL_LIFETIME,     // limited to the life of this Realm task
-      OPERATION_LIFETIME,      // lifetime of the operation but across multiple
-                               // tasks
-      CONTEXT_LIFETIME,        // lifetime of the enclosing task context
-      SHORT_BOUNDED_LIFETIME,  // lives for a few operations but not many
-      LONG_BOUNDED_LIFETIME,   // lives for potentially a long set of operations
-      RUNTIME_LIFETIME,        // lives for the duration of the Legion runtime
-      TODO_LIFETIME,           // still need to figure out the lifetime
+      TASK_LOCAL_LIFETIME,  // limited to the life of this Realm task
+      OPERATION_LIFETIME,   // lifetime of the operation but across tasks
+      CONTEXT_LIFETIME,     // lifetime of the enclosing task context
+      SHORT_LIFETIME,       // lives for a few operations but not many
+      LONG_LIFETIME,        // lives for potentially a long set of operations
+      RUNTIME_LIFETIME,     // lives for the duration of the Legion runtime
+      TODO_LIFETIME,        // still need to figure out the lifetime
     };
 
 #ifdef LEGION_TRACE_ALLOCATION
@@ -370,6 +369,125 @@ namespace Legion {
       std::abort();
     }
 
+    // Heapify box is used for providing a box for wrapping things that
+    // normally aren't allowed to be allocated on the heap
+    template<typename T, AllocationLifetime L>
+    class HeapifyBox : public T {
+    public:
+      template<typename... Args>
+      HeapifyBox(Args&&... args) : T(std::forward<Args>(args)...)
+      { }
+    public:
+      static inline void* operator new(std::size_t size);
+      static inline void* operator new[](std::size_t size);
+      static inline void* operator new(
+          std::size_t size, std::align_val_t alignment);
+      static inline void* operator new[](
+          std::size_t size, std::align_val_t alignment);
+    public:
+      static inline void* operator new(std::size_t size, void* ptr);
+      static inline void* operator new[](std::size_t size, void* ptr);
+    public:
+      static inline void operator delete(void* ptr, std::size_t size);
+      static inline void operator delete[](void* ptr, std::size_t size);
+      static inline void operator delete(void* ptr, void* place);
+      static inline void operator delete[](void* ptr, void* place);
+    };
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void* HeapifyBox<T, L>::operator new(std::size_t size)
+    //--------------------------------------------------------------------------
+    {
+      return static_cast<void*>(legion_malloc<T, L>(size, alignof(T)));
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void* HeapifyBox<T, L>::operator new[](std::size_t size)
+    //--------------------------------------------------------------------------
+    {
+      return static_cast<void*>(legion_malloc<T, L>(size, alignof(T)));
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void* HeapifyBox<T, L>::operator new(
+        std::size_t size, std::align_val_t alignment)
+    //--------------------------------------------------------------------------
+    {
+      return static_cast<void*>(
+          legion_malloc<T, L>(size, static_cast<std::size_t>(alignment)));
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void* HeapifyBox<T, L>::operator new[](
+        std::size_t size, std::align_val_t alignment)
+    //--------------------------------------------------------------------------
+    {
+      return static_cast<void*>(
+          legion_malloc<T, L>(size, static_cast<std::size_t>(alignment)));
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void* HeapifyBox<T, L>::operator new(
+        std::size_t size, void* ptr)
+    //--------------------------------------------------------------------------
+    {
+      // No need to do tracing of allocations, that is handled when
+      // legion_malloc is called for the type
+      return ptr;
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void* HeapifyBox<T, L>::operator new[](
+        std::size_t size, void* ptr)
+    //--------------------------------------------------------------------------
+    {
+      // No need to do tracing of allocations, that is handled when
+      // legion_malloc is called for the type
+      return ptr;
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void HeapifyBox<T, L>::operator delete(
+        void* ptr, std::size_t size)
+    //--------------------------------------------------------------------------
+    {
+      legion_free<T>(static_cast<T*>(ptr), size);
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void HeapifyBox<T, L>::operator delete[](
+        void* ptr, std::size_t size)
+    //--------------------------------------------------------------------------
+    {
+      legion_free<T>(static_cast<T*>(ptr), size);
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void HeapifyBox<T, L>::operator delete(
+        void* ptr, void* place)
+    //--------------------------------------------------------------------------
+    {
+      std::abort();
+    }
+
+    //--------------------------------------------------------------------------
+    template<typename T, AllocationLifetime L>
+    /*static*/ inline void HeapifyBox<T, L>::operator delete[](
+        void* ptr, void* place)
+    //--------------------------------------------------------------------------
+    {
+      std::abort();
+    }
+
     // A class to ensure that a type is never dynamically allocated
     class NoHeapify {
     public:
@@ -486,6 +604,174 @@ namespace Legion {
         return !operator==(a);
       }
     };
+
+    // namespaces for different lifetime data structures
+    namespace local {
+      template<typename T, typename COMPARATOR = std::less<T> >
+      using set =
+          std::set<T, COMPARATOR, LegionAllocator<T, TASK_LOCAL_LIFETIME> >;
+      template<typename T1, typename T2, typename COMPARATOR = std::less<T1> >
+      using map = std::map<
+          T1, T2, COMPARATOR,
+          LegionAllocator<std::pair<const T1, T2>, TASK_LOCAL_LIFETIME> >;
+      template<typename T>
+      using list = std::list<T, LegionAllocator<T, TASK_LOCAL_LIFETIME> >;
+      template<typename T>
+      using queue = std::queue<T, LegionAllocator<T, TASK_LOCAL_LIFETIME> >;
+      template<typename T>
+      using deque = std::deque<T, LegionAllocator<T, TASK_LOCAL_LIFETIME> >;
+      template<typename T>
+      using vector = std::vector<T, LegionAllocator<T, TASK_LOCAL_LIFETIME> >;
+      template<
+          typename T, typename HASH = std::hash<T>,
+          typename KEY = std::equal_to<T> >
+      using unordered_set = std::unordered_set<
+          T, HASH, KEY, LegionAllocator<T, TASK_LOCAL_LIFETIME> >;
+      template<
+          typename T1, typename T2, typename HASH = std::hash<T1>,
+          typename KEY = std::equal_to<T1> >
+      using unordered_map = std::unordered_map<
+          T1, T2, HASH, KEY,
+          LegionAllocator<std::pair<const T1, T2>, TASK_LOCAL_LIFETIME> >;
+    }  // namespace local
+    namespace op {
+      template<typename T, typename COMPARATOR = std::less<T> >
+      using set =
+          std::set<T, COMPARATOR, LegionAllocator<T, OPERATION_LIFETIME> >;
+      template<typename T1, typename T2, typename COMPARATOR = std::less<T1> >
+      using map = std::map<
+          T1, T2, COMPARATOR,
+          LegionAllocator<std::pair<const T1, T2>, OPERATION_LIFETIME> >;
+      template<typename T>
+      using list = std::list<T, LegionAllocator<T, OPERATION_LIFETIME> >;
+      template<typename T>
+      using queue = std::queue<T, LegionAllocator<T, OPERATION_LIFETIME> >;
+      template<typename T>
+      using deque = std::deque<T, LegionAllocator<T, OPERATION_LIFETIME> >;
+      template<typename T>
+      using vector = std::vector<T, LegionAllocator<T, OPERATION_LIFETIME> >;
+      template<
+          typename T, typename HASH = std::hash<T>,
+          typename KEY = std::equal_to<T> >
+      using unordered_set = std::unordered_set<
+          T, HASH, KEY, LegionAllocator<T, OPERATION_LIFETIME> >;
+      template<
+          typename T1, typename T2, typename HASH = std::hash<T1>,
+          typename KEY = std::equal_to<T1> >
+      using unordered_map = std::unordered_map<
+          T1, T2, HASH, KEY,
+          LegionAllocator<std::pair<const T1, T2>, OPERATION_LIFETIME> >;
+    }  // namespace op
+    namespace ctx {
+      template<typename T, typename COMPARATOR = std::less<T> >
+      using set =
+          std::set<T, COMPARATOR, LegionAllocator<T, CONTEXT_LIFETIME> >;
+      template<typename T1, typename T2, typename COMPARATOR = std::less<T1> >
+      using map = std::map<
+          T1, T2, COMPARATOR,
+          LegionAllocator<std::pair<const T1, T2>, CONTEXT_LIFETIME> >;
+      template<typename T>
+      using list = std::list<T, LegionAllocator<T, CONTEXT_LIFETIME> >;
+      template<typename T>
+      using queue = std::queue<T, LegionAllocator<T, CONTEXT_LIFETIME> >;
+      template<typename T>
+      using deque = std::deque<T, LegionAllocator<T, CONTEXT_LIFETIME> >;
+      template<typename T>
+      using vector = std::vector<T, LegionAllocator<T, CONTEXT_LIFETIME> >;
+      template<
+          typename T, typename HASH = std::hash<T>,
+          typename KEY = std::equal_to<T> >
+      using unordered_set = std::unordered_set<
+          T, HASH, KEY, LegionAllocator<T, CONTEXT_LIFETIME> >;
+      template<
+          typename T1, typename T2, typename HASH = std::hash<T1>,
+          typename KEY = std::equal_to<T1> >
+      using unordered_map = std::unordered_map<
+          T1, T2, HASH, KEY,
+          LegionAllocator<std::pair<const T1, T2>, CONTEXT_LIFETIME> >;
+    }  // namespace ctx
+    namespace shrt {
+      template<typename T, typename COMPARATOR = std::less<T> >
+      using set = std::set<T, COMPARATOR, LegionAllocator<T, SHORT_LIFETIME> >;
+      template<typename T1, typename T2, typename COMPARATOR = std::less<T1> >
+      using map = std::map<
+          T1, T2, COMPARATOR,
+          LegionAllocator<std::pair<const T1, T2>, SHORT_LIFETIME> >;
+      template<typename T>
+      using list = std::list<T, LegionAllocator<T, SHORT_LIFETIME> >;
+      template<typename T>
+      using queue = std::queue<T, LegionAllocator<T, SHORT_LIFETIME> >;
+      template<typename T>
+      using deque = std::deque<T, LegionAllocator<T, SHORT_LIFETIME> >;
+      template<typename T>
+      using vector = std::vector<T, LegionAllocator<T, SHORT_LIFETIME> >;
+      template<
+          typename T, typename HASH = std::hash<T>,
+          typename KEY = std::equal_to<T> >
+      using unordered_set =
+          std::unordered_set<T, HASH, KEY, LegionAllocator<T, SHORT_LIFETIME> >;
+      template<
+          typename T1, typename T2, typename HASH = std::hash<T1>,
+          typename KEY = std::equal_to<T1> >
+      using unordered_map = std::unordered_map<
+          T1, T2, HASH, KEY,
+          LegionAllocator<std::pair<const T1, T2>, SHORT_LIFETIME> >;
+    }  // namespace shrt
+    namespace lng {
+      template<typename T, typename COMPARATOR = std::less<T> >
+      using set = std::set<T, COMPARATOR, LegionAllocator<T, LONG_LIFETIME> >;
+      template<typename T1, typename T2, typename COMPARATOR = std::less<T1> >
+      using map = std::map<
+          T1, T2, COMPARATOR,
+          LegionAllocator<std::pair<const T1, T2>, LONG_LIFETIME> >;
+      template<typename T>
+      using list = std::list<T, LegionAllocator<T, LONG_LIFETIME> >;
+      template<typename T>
+      using queue = std::queue<T, LegionAllocator<T, LONG_LIFETIME> >;
+      template<typename T>
+      using deque = std::deque<T, LegionAllocator<T, LONG_LIFETIME> >;
+      template<typename T>
+      using vector = std::vector<T, LegionAllocator<T, LONG_LIFETIME> >;
+      template<
+          typename T, typename HASH = std::hash<T>,
+          typename KEY = std::equal_to<T> >
+      using unordered_set =
+          std::unordered_set<T, HASH, KEY, LegionAllocator<T, LONG_LIFETIME> >;
+      template<
+          typename T1, typename T2, typename HASH = std::hash<T1>,
+          typename KEY = std::equal_to<T1> >
+      using unordered_map = std::unordered_map<
+          T1, T2, HASH, KEY,
+          LegionAllocator<std::pair<const T1, T2>, LONG_LIFETIME> >;
+    }  // namespace lng
+    namespace rt {
+      template<typename T, typename COMPARATOR = std::less<T> >
+      using set =
+          std::set<T, COMPARATOR, LegionAllocator<T, RUNTIME_LIFETIME> >;
+      template<typename T1, typename T2, typename COMPARATOR = std::less<T1> >
+      using map = std::map<
+          T1, T2, COMPARATOR,
+          LegionAllocator<std::pair<const T1, T2>, RUNTIME_LIFETIME> >;
+      template<typename T>
+      using list = std::list<T, LegionAllocator<T, RUNTIME_LIFETIME> >;
+      template<typename T>
+      using queue = std::queue<T, LegionAllocator<T, RUNTIME_LIFETIME> >;
+      template<typename T>
+      using deque = std::deque<T, LegionAllocator<T, RUNTIME_LIFETIME> >;
+      template<typename T>
+      using vector = std::vector<T, LegionAllocator<T, RUNTIME_LIFETIME> >;
+      template<
+          typename T, typename HASH = std::hash<T>,
+          typename KEY = std::equal_to<T> >
+      using unordered_set = std::unordered_set<
+          T, HASH, KEY, LegionAllocator<T, RUNTIME_LIFETIME> >;
+      template<
+          typename T1, typename T2, typename HASH = std::hash<T1>,
+          typename KEY = std::equal_to<T1> >
+      using unordered_map = std::unordered_map<
+          T1, T2, HASH, KEY,
+          LegionAllocator<std::pair<const T1, T2>, RUNTIME_LIFETIME> >;
+    }  // namespace rt
 
     template<
         typename T, AllocationLifetime L = TASK_LOCAL_LIFETIME,

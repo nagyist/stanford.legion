@@ -1571,7 +1571,7 @@ namespace Legion {
       derez.deserialize(num_semantic);
       if (num_semantic > 0)
       {
-        NodeSet source_mask;
+        NodeSet<TASK_LOCAL_LIFETIME> source_mask;
         source_mask.add(source);
         source_mask.add(runtime->address_space);
         for (unsigned idx = 0; idx < num_semantic; idx++)

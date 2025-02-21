@@ -74,9 +74,8 @@ namespace Legion {
      * and we need to traverse them, but it's a cached starting
      * point that doesn't involve tracing the entire tree.
      */
-    class VersionManager
-      : public EqSetTracker,
-        public Heapify<VersionManager, LONG_BOUNDED_LIFETIME> {
+    class VersionManager : public EqSetTracker,
+                           public Heapify<VersionManager, LONG_LIFETIME> {
     public:
       struct FinalizeOutputEquivalenceSetArgs
         : public LgTaskArgs<FinalizeOutputEquivalenceSetArgs> {
