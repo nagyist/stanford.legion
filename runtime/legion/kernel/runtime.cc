@@ -17440,8 +17440,6 @@ namespace Legion {
         if (runtime->profiler->handle_profiling_response(
                 response, args, arglen, fevent, failed_alloc))
         {
-          if (failed_alloc)
-            runtime->profiler->handle_failed_instance_allocation();
           const long long t_stop = Realm::Clock::current_time_in_nanoseconds();
           const LgEvent finish_event(Processor::get_current_finish_event());
           implicit_profiler->process_proc_desc(p);
@@ -17457,8 +17455,6 @@ namespace Legion {
         if (base->handler->handle_profiling_response(
                 response, args, arglen, fevent, failed_alloc))
         {
-          if (failed_alloc)
-            runtime->profiler->handle_failed_instance_allocation();
           const long long t_stop = Realm::Clock::current_time_in_nanoseconds();
           const LgEvent finish_event(Processor::get_current_finish_event());
           implicit_profiler->process_proc_desc(p);

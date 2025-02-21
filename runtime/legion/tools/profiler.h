@@ -803,7 +803,6 @@ namespace Legion {
       void add_inst_request(
           Realm::ProfilingRequestSet& requests, Operation* op,
           LgEvent unique_event);
-      void handle_failed_instance_allocation(void);
       void add_partition_request(
           Realm::ProfilingRequestSet& requests, Operation* op,
           DepPartOpKind part_op, LgEvent critical);

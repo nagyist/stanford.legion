@@ -5294,14 +5294,15 @@ namespace Legion {
     MemoryManager::TaskLocalInstanceAllocator::TaskLocalInstanceAllocator(
         LgEvent unique)
       : ready(Runtime::create_rt_user_event()), unique_event(unique),
-        success(false)
+        caller_fevent(implicit_fevent), success(false)
     //--------------------------------------------------------------------------
     { }
 
     //--------------------------------------------------------------------------
     MemoryManager::TaskLocalInstanceAllocator::TaskLocalInstanceAllocator(
         TaskLocalInstanceAllocator&& rhs)
-      : ready(rhs.ready), unique_event(rhs.unique_event), success(rhs.success)
+      : ready(rhs.ready), unique_event(rhs.unique_event),
+        caller_fevent(implicit_fevent), success(rhs.success)
     //--------------------------------------------------------------------------
     {
       rhs.ready = RtUserEvent::NO_RT_USER_EVENT;
@@ -5330,8 +5331,11 @@ namespace Legion {
       assert(measured);
 #endif
       success = result.success;
-      fevent = unique_event;
-      failed_alloc = !result.success;
+      failed_alloc = !success;
+      if (failed_alloc)
+        fevent = caller_fevent;
+      else
+        fevent = unique_event;
       // Can't read anything after trigger the event as the object
       // might be deleted after we do that
       Runtime::trigger_event(ready);

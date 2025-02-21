@@ -216,7 +216,7 @@ namespace Legion {
     public:
       class TaskLocalInstanceAllocator : public ProfilingResponseHandler {
       public:
-        TaskLocalInstanceAllocator(void) = default;
+        TaskLocalInstanceAllocator(void) = delete;
         TaskLocalInstanceAllocator(LgEvent unique_event);
         TaskLocalInstanceAllocator(const TaskLocalInstanceAllocator&) = delete;
         TaskLocalInstanceAllocator(TaskLocalInstanceAllocator&& rhs);
@@ -238,6 +238,7 @@ namespace Legion {
       private:
         RtUserEvent ready;
         LgEvent unique_event;
+        LgEvent caller_fevent;
         bool success;
       };
 #ifdef LEGION_MALLOC_INSTANCES
